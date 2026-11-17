@@ -20,12 +20,14 @@ const withBaseWhere = <TDataObject extends object>(opts: {
 
   // `Pick` resolves the one key: a literal cannot be checked against `TWhere` over an unresolved type parameter.
   const scoped: Pick<TWhere<TDataObject>, 'and'> = { and: [baseWhere, where] };
+
   return scoped;
 };
 
 /** `id` is the primary key every entity family reads by; built at the default `TWhere` for the same unresolved-parameter reason. */
 const whereById = <TDataObject extends object>(opts: { id: IdType }): TWhere<TDataObject> => {
   const where: TWhere = { id: opts.id };
+
   return where;
 };
 
@@ -58,6 +60,10 @@ export abstract class ReadableCrudController<
   async count(opts: { context: TRouteContext<RouteEnv> }) {
     const { context } = opts;
     const { where } = context.req.valid<{ where: TWhere<TDataObject> }>('query');
+
+    // What the client sent, before the base where joins it: a hidden field cannot be asked about.
+    this.assertRequestFilter({ filter: { where } });
+
     const baseWhere = await this.getBaseWhere({ context });
     const scopedWhere = baseWhere ? withBaseWhere({ baseWhere, where }) : where;
 
@@ -74,6 +80,9 @@ export abstract class ReadableCrudController<
   async find(opts: { context: TRouteContext<RouteEnv> }) {
     const { context } = opts;
     const { filter = {} } = context.req.valid<{ filter?: TFilter<TDataObject> }>('query');
+
+    this.assertRequestFilter({ filter });
+
     const baseWhere = await this.getBaseWhere({ context });
     const scopedFilter = baseWhere
       ? { ...filter, where: withBaseWhere({ baseWhere, where: filter.where }) }
@@ -105,6 +114,10 @@ export abstract class ReadableCrudController<
     const { context } = opts;
     const { id } = context.req.valid<{ id: IdType }>('param');
     const { filter } = context.req.valid<{ filter?: Omit<TFilter<TDataObject>, 'where'> }>('query');
+
+    // The read is by id, so a `where` the client sent is never read; the check reads only what the query reads.
+    this.assertRequestFilter({ filter: filter && { ...filter, where: undefined } });
+
     const baseWhere = await this.getBaseWhere({ context });
 
     // `repository.findById` takes no where, so a scoped read goes through `findOne` - the same
@@ -137,6 +150,9 @@ export abstract class ReadableCrudController<
   async findOne(opts: { context: TRouteContext<RouteEnv> }) {
     const { context } = opts;
     const { filter = {} } = context.req.valid<{ filter?: TFilter<TDataObject> }>('query');
+
+    this.assertRequestFilter({ filter });
+
     const baseWhere = await this.getBaseWhere({ context });
     const scopedFilter = baseWhere
       ? { ...filter, where: withBaseWhere({ baseWhere, where: filter.where }) }
@@ -147,6 +163,7 @@ export abstract class ReadableCrudController<
       args: scopedFilter,
       task: async () => {
         const record = await this.repository.findOne({ filter: scopedFilter });
+
         return this.respond<TDataObject>({
           context,
           format: ResponseFormats.OBJECT,

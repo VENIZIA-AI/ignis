@@ -20,7 +20,7 @@ export const inject = (opts: TInjectOptions) => {
     });
   }
 
-  return (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => {
+  return (target: object, propertyName: string | symbol | undefined, parameterIndex?: number) => {
     const registry = opts.registry ?? metadataRegistry;
 
     if (typeof parameterIndex === 'number') {
@@ -33,6 +33,7 @@ export const inject = (opts: TInjectOptions) => {
           isOptional: opts.isOptional ?? false,
         },
       });
+
       return;
     }
 
@@ -45,6 +46,7 @@ export const inject = (opts: TInjectOptions) => {
           isOptional: opts.isOptional ?? false,
         },
       });
+
       return;
     }
 

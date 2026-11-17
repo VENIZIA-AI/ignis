@@ -4,14 +4,14 @@
 
   The Layout of a wiki: the default theme's, with the top bar of the Venizia docs frame (the Venizia
   wordmark, the name of these docs, the search, the venizia.ai link; also in the mobile menu), the line
-  above an inner page's title, the "Getting help" block at its end, and the footer. `site` is the wiki's
+  above an inner page's title, the details and the upgrade page of a changelog version, the "Getting help" block at its end, and the footer. `site` is the wiki's
   identity and `home` the content of its home page, whose closing pitch the footer shows. The footer is on
   the home page only; inner pages have none.
 -->
 <script setup lang="ts">
 import { useData } from 'vitepress';
 import DefaultTheme from 'vitepress/theme';
-import { computed } from 'vue';
+import { computed, defineAsyncComponent } from 'vue';
 import ChangelogEntryHead from './ChangelogEntryHead.vue';
 import DocEyebrow from './DocEyebrow.vue';
 import DocsHelp from './DocsHelp.vue';
@@ -22,6 +22,10 @@ import { provideThemeSwitch } from './toggle-appearance';
 import { useBarState } from './useBarState';
 import VeniziaLink from './VeniziaLink.vue';
 
+// Their data (the items and the blocks of every version) stays out of the script every page loads.
+const ChangelogVersion = defineAsyncComponent(() => import('./ChangelogVersion.vue'));
+const ChangelogUpgrade = defineAsyncComponent(() => import('./ChangelogUpgrade.vue'));
+
 const props = defineProps<{ site: TSiteInfo; home?: THomeContent | null }>();
 
 provideThemeSwitch();
@@ -31,6 +35,13 @@ const { Layout } = DefaultTheme;
 const { page } = useData();
 const isChangelogEntry = computed(() =>
   /^changelogs\/\d{4}-\d{2}-\d{2}-/.test(page.value.relativePath),
+);
+/** A wiki serves changelogs/<X.Y.Z>/log.md at changelogs/<X.Y.Z> (a rewrite): the page knows itself by either path. */
+const isVersionPage = computed(() =>
+  /^changelogs\/\d+\.\d+\.\d+(?:\/log)?\.md$/.test(page.value.relativePath),
+);
+const isUpgradePage = computed(() =>
+  /^changelogs\/\d+\.\d+\.\d+\/upgrade\.md$/.test(page.value.relativePath),
 );
 const isHome = computed(() => page.value.relativePath === 'index.md');
 </script>
@@ -45,6 +56,10 @@ const isHome = computed(() => page.value.relativePath === 'index.md');
     </template>
     <template #nav-screen-content-after>
       <VeniziaLink />
+    </template>
+    <template #page-top>
+      <ChangelogVersion v-if="isVersionPage" />
+      <ChangelogUpgrade v-else-if="isUpgradePage" />
     </template>
     <template #doc-before>
       <ChangelogEntryHead v-if="isChangelogEntry" />

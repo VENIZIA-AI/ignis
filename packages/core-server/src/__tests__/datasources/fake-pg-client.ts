@@ -46,6 +46,7 @@ export class FakePool {
   async connect(): Promise<FakePoolClient> {
     const client = new FakePoolClient({ failOn: this.failOn });
     this.clients.push(client);
+
     return client;
   }
 

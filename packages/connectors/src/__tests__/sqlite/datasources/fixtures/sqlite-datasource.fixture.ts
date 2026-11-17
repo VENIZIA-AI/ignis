@@ -4,7 +4,7 @@ import { BaseSqliteDataSource } from '@/relational/sqlite/datasources';
 import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 
 /**
  * A real in-memory libsql database behind the real SQLite datasource, so BEGIN statements are
@@ -13,7 +13,7 @@ import type { AnyType } from '@venizia/ignis-helpers/common';
 @datasource({ driver: LibSqlDriver, autoDiscovery: false })
 export class SqliteDataSourceFixture extends BaseSqliteDataSource<
   { url: string },
-  AnyType,
+  TAnyDataSourceSchema,
   {},
   Client
 > {
@@ -33,6 +33,7 @@ export class SqliteDataSourceFixture extends BaseSqliteDataSource<
 
   protected override buildBeginStatement(opts?: ISqliteTransactionOptions): string {
     this.beginStatementCalls.push(opts);
+
     return super.buildBeginStatement(opts);
   }
 

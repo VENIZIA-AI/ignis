@@ -1,12 +1,22 @@
+import { CrudRoutes } from '@/base/controllers/common';
+import type { TCrudRoutes } from '@/base/controllers/common';
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
-import { ControllerFactory } from '@/base/controllers/factory/controller';
+import { CrudControllerFactory } from '@/base/controllers/factory/controller';
 import { RouteConfigResolver } from '@/base/controllers/factory/definition';
+import {
+  controller as controllerDecorator,
+  model,
+  repository as repositoryDecorator,
+} from '@/base/metadata';
 import { AbstractEntity } from '@/base/models';
+import { AuditFields } from '@/base/models/common/constants';
 import { BindingNamespaces } from '@/common/bindings';
 import { BindingKeys, Container } from '@/helpers/inversion';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import { describe, expect, test } from 'bun:test';
+import { untyped } from '../support/untyped';
+import { answer, StubRepository } from './stub-repository';
 
 /** The shape an entity with the audit and timestamp enrichers exposes; `deletedAt` is soft-delete state, not a stamp. */
 const auditedShape = {
@@ -26,20 +36,29 @@ const plainUpdateSchema = z.object({ code: z.string().optional() });
 /** What a relational entity with both enrichers reports. */
 const AUDIT_KEYS = ['createdBy', 'modifiedBy', 'createdAt', 'modifiedAt'];
 
-/** A `.transform()` pipe is no object schema, so the typed signature refuses it; held untyped to reach the runtime guard without a cast. */
-const untypedSchemas: Record<string, AnyType> = {
-  transformed: z.object({ code: z.string() }).transform((value) => value),
-};
+/** A `.transform()` pipe is no object schema, so the typed signature refuses it; handed over untyped to reach the runtime guard. */
+const transformedSchema = untyped<TAnyObjectSchema>(
+  z.object({ code: z.string() }).transform((value) => value),
+);
 
 type TRouteWithBody = {
   request: { body: { content: { 'application/json': { schema: TAnyObjectSchema } } } };
 };
 
-const toBody = (opts: { route: TRouteWithBody }) => {
-  return opts.route.request.body.content['application/json'].schema;
+/** A route the test lists is built; one it does not list is not, and reading it is a test bug. */
+const listedRoute = (opts: { route: TRouteWithBody | undefined }): TRouteWithBody => {
+  if (opts.route === undefined) {
+    throw getError({ message: 'the route is not listed, so it was not built' });
+  }
+
+  return opts.route;
 };
 
-const toBodyKeys = (opts: { route: TRouteWithBody }) => {
+const toBody = (opts: { route: TRouteWithBody | undefined }) => {
+  return listedRoute(opts).request.body.content['application/json'].schema;
+};
+
+const toBodyKeys = (opts: { route: TRouteWithBody | undefined }) => {
   return Object.keys(toBody(opts).shape).sort();
 };
 
@@ -47,25 +66,25 @@ const buildRoutes = (opts: {
   create: TAnyObjectSchema;
   update?: TAnyObjectSchema;
   serverStampedKeys?: string[];
-  routes?: Parameters<typeof RouteConfigResolver.defineControllerRouteConfigs>[0]['routes'];
+  routes?: TCrudRoutes;
 }) => {
   return RouteConfigResolver.defineControllerRouteConfigs({
     isStrict: true,
     idType: 'string',
     schema: { select: plainSchema, create: opts.create, update: opts.update ?? opts.create },
     serverStampedKeys: opts.serverStampedKeys,
-    routes: opts.routes,
+    routes: { create: true, updateById: true, updateBy: true, ...opts.routes },
   });
 };
 
 /** The request body a generated OpenAPI document declares for one write route. */
-const toDocumentedBody = (opts: { route: TRouteWithBody }) => {
+const toDocumentedBody = (opts: { route: TRouteWithBody | undefined }) => {
   const application = new OpenAPIHono();
   application.openapi(
     createRoute({
       method: 'post',
       path: '/probe',
-      request: { body: opts.route.request.body },
+      request: { body: listedRoute(opts).request.body },
       responses: { 200: { description: 'ok' } },
     }),
     (context) => context.text('ok'),
@@ -75,6 +94,7 @@ const toDocumentedBody = (opts: { route: TRouteWithBody }) => {
     openapi: '3.1.0',
     info: { title: 'crud-write-body-probe', version: '1' },
   });
+
   return document.paths?.['/probe']?.post?.requestBody;
 };
 
@@ -141,6 +161,7 @@ describe('the CRUD factory default write bodies leave out what the entity stamps
     );
 
     expect(bodies).toHaveLength(3);
+
     for (const body of bodies) {
       expect(body).toBe(auditedSchema);
     }
@@ -214,12 +235,12 @@ describe('the default body is the entity schema itself when nothing is dropped',
 
   test('a transformed schema is used as it is on create; an update route needs its own body', () => {
     const routes = buildRoutes({
-      create: untypedSchemas.transformed,
+      create: transformedSchema,
       update: plainUpdateSchema,
     });
 
-    expect(toBody({ route: routes.CREATE })).toBe(untypedSchemas.transformed);
-    expect(() => buildRoutes({ create: plainSchema, update: untypedSchemas.transformed })).toThrow(
+    expect(toBody({ route: routes.CREATE })).toBe(transformedSchema);
+    expect(() => buildRoutes({ create: plainSchema, update: transformedSchema })).toThrow(
       'Pass routes.updateById.request.body',
     );
   });
@@ -252,36 +273,45 @@ const variantSchema = z.object({
   modifiedAt: z.number().optional(),
 });
 
-/** Held untyped so the generic abstract `getSchema` returns it without a cast. */
-const entitySchemas: Record<string, AnyType> = { variant: variantSchema };
-
-/** Stamps nothing - the engine-neutral default a search collection keeps. */
+/** Declares no settings, so the default stamped keys apply. */
 class VariantDocument extends AbstractEntity<typeof variantSchema> {
   constructor() {
     super({ name: VariantDocument.name });
   }
 
   getSchema<T>(): T {
-    return entitySchemas.variant;
+    return untyped<T>(variantSchema);
   }
 }
 
-/** Reports the two timestamps, as a relational entity with the timestamp enricher does. */
-class StampedVariantDocument extends VariantDocument {
-  override getServerStampedKeys(): string[] {
-    return ['createdAt', 'modifiedAt'];
-  }
-}
+/** Declares that nothing is stamped, as a search collection does. */
+@model({ settings: { properties: { stamped: [] } } })
+class UnstampedVariantDocument extends VariantDocument {}
+
+/** Declares one stamped key, as a Set. */
+@model({ settings: { properties: { stamped: new Set(['createdAt']) } } })
+class StampedVariantDocument extends VariantDocument {}
 
 /** Records what the create route hands over. */
-class RecordingRepository {
+class RecordingRepository extends StubRepository {
   readonly created: object[] = [];
 
-  async create(opts: { data: object }) {
+  override create(opts: { data: object }) {
     this.created.push(opts.data);
-    return { count: 1, data: opts.data };
+
+    return answer({ count: 1, data: opts.data });
   }
 }
+
+/** A repository class bound to `entity`, the way `@repository({ model })` binds a real one. */
+const repositoryClassOf = (opts: { entity: typeof VariantDocument; name: string }) => {
+  class VariantRepository extends RecordingRepository {}
+
+  Object.defineProperty(VariantRepository, 'name', { value: opts.name, configurable: true });
+  repositoryDecorator({ model: opts.entity, dataSource: 'ProbeDataSource' })(VariantRepository);
+
+  return VariantRepository;
+};
 
 const resolveVariantController = (opts: {
   entity: typeof VariantDocument;
@@ -289,21 +319,24 @@ const resolveVariantController = (opts: {
 }) => {
   const { entity, controllerName } = opts;
   const repositoryName = `${controllerName}Repository`;
-  const VariantController = ControllerFactory.defineCrudController({
-    entity,
-    repository: { name: repositoryName },
-    controller: { name: controllerName, basePath: '/variants' },
+  const VariantRepository = repositoryClassOf({ entity, name: repositoryName });
+  const VariantCrudController = CrudControllerFactory.build({
+    repository: VariantRepository,
+    routes: { ...CrudRoutes.READ, create: true, updateById: true },
   });
 
-  const repository = new RecordingRepository();
+  @controllerDecorator({ path: '/variants' })
+  class VariantController extends VariantCrudController {}
+
+  const repositoryInstance = new VariantRepository();
   const container = new Container();
   container
     .bind({
       key: BindingKeys.build({ namespace: BindingNamespaces.REPOSITORY, key: repositoryName }),
     })
-    .toValue(repository);
+    .toValue(repositoryInstance);
 
-  return { controller: container.resolve(VariantController), repository };
+  return { controller: container.resolve(VariantController), repository: repositoryInstance };
 };
 
 const toRouteBodySchemas = async (opts: {
@@ -322,14 +355,38 @@ const toRouteBodySchemas = async (opts: {
   };
 };
 
-describe('defineCrudController asks the entity which keys it stamps', () => {
-  test('the engine-neutral entity stamps nothing', () => {
-    expect(new VariantDocument().getServerStampedKeys()).toEqual([]);
+describe('CrudControllerFactory.build reads which keys the model stamps', () => {
+  test('the default stamped list is the audit keys and deletedAt', () => {
+    expect([...AuditFields.SCHEME_SET]).toEqual([
+      'createdBy',
+      'modifiedBy',
+      'createdAt',
+      'modifiedAt',
+      'deletedAt',
+    ]);
   });
 
-  test('an entity that stamps nothing keeps a required createdAt in POST, and it reaches the repository', async () => {
-    const { controller, repository } = resolveVariantController({
+  test('an entity without settings loses the default stamped keys from POST and PATCH', async () => {
+    const { controller } = resolveVariantController({
       entity: VariantDocument,
+      controllerName: 'DefaultVariantController',
+    });
+    const { create, updateById } = await toRouteBodySchemas({ controller });
+
+    expect(create).toMatchObject({
+      content: { 'application/json': { schema: { required: ['id', 'name'] } } },
+    });
+    expect(create).not.toMatchObject({
+      content: { 'application/json': { schema: { properties: { createdAt: {} } } } },
+    });
+    expect(updateById).not.toMatchObject({
+      content: { 'application/json': { schema: { properties: { modifiedAt: {} } } } },
+    });
+  });
+
+  test('an entity that declares stamped: [] keeps a required createdAt in POST, and it reaches the repository', async () => {
+    const { controller, repository } = resolveVariantController({
+      entity: UnstampedVariantDocument,
       controllerName: 'VariantController',
     });
     const { router, create, updateById } = await toRouteBodySchemas({ controller });
@@ -358,7 +415,7 @@ describe('defineCrudController asks the entity which keys it stamps', () => {
     expect(repository.created).toEqual([document]);
   });
 
-  test('an entity that reports keys loses exactly those from POST and PATCH', async () => {
+  test('an entity that declares keys loses exactly those from POST and PATCH', async () => {
     const { controller } = resolveVariantController({
       entity: StampedVariantDocument,
       controllerName: 'StampedVariantController',
@@ -371,7 +428,7 @@ describe('defineCrudController asks the entity which keys it stamps', () => {
     expect(create).not.toMatchObject({
       content: { 'application/json': { schema: { properties: { createdAt: {} } } } },
     });
-    expect(updateById).not.toMatchObject({
+    expect(updateById).toMatchObject({
       content: { 'application/json': { schema: { properties: { modifiedAt: {} } } } },
     });
   });

@@ -13,9 +13,12 @@ import type {
 import type { TSqliteConnector } from '@/relational/sqlite/drivers';
 import { NotSupportedUtility } from '@venizia/ignis-kernel';
 import type { ILogger } from '@venizia/ignis-helpers/core';
-import type { AnyType, TNullable } from '@venizia/ignis-helpers/common';
+import type { TNullable } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import type { AnyColumn } from 'drizzle-orm';
+import { is, SQL } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
+import { SQLiteColumn } from 'drizzle-orm/sqlite-core';
 
 /**
  * Translates already-built SQL fragments (`where`, `orderBy`, projections) to Drizzle Core calls.
@@ -25,6 +28,8 @@ import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
  * `returning()`'s row type from the table schema, not from the caller-chosen R.
  */
 export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConnector> {
+  readonly supportsRowLock = false;
+
   private readonly logger: ILogger;
 
   constructor() {
@@ -49,10 +54,7 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
     const sqliteTable = this.asTable({ table });
 
     let query = columns
-      ? connector
-          .select(columns as AnyType)
-          .from(sqliteTable)
-          .$dynamic()
+      ? connector.select(this.toSelectedFields({ columns })).from(sqliteTable).$dynamic()
       : connector.select().from(sqliteTable).$dynamic();
 
     if (where) {
@@ -77,15 +79,17 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
 
   async count(opts: ICountOptions<TSqliteConnector>): Promise<number> {
     const { connector, table, where } = opts;
+
     return connector.$count(this.asTable({ table }), where);
   }
 
   async findMany<R>(opts: IRelationalQueryOptions<TSqliteConnector>): Promise<Array<R>> {
     const queryInterface = this.getQueryInterface(opts);
 
-    // Drizzle's relational result does not overlap the
-    // caller-chosen R enough for a direct assertion.
-    return queryInterface.findMany(opts.query) as AnyType;
+    // Same drizzle-relational-query-versus-caller-generic boundary as `findFirst` below.
+    const rows = await queryInterface.findMany(opts.query);
+
+    return rows as Array<R>;
   }
 
   async findFirst<R>(opts: IRelationalQueryOptions<TSqliteConnector>): Promise<TNullable<R>> {
@@ -101,33 +105,46 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
   }
 
   async insert<R>(opts: IInsertOptions<TSqliteConnector>): Promise<IWriteResult<R>> {
-    const { connector, table, values, returning, shouldReturn } = opts;
-    const query = connector.insert(this.asTable({ table })).values(values as AnyType);
+    const { connector, table, values, returning, shouldReturn, onConflict } = opts;
+    const inserted = connector.insert(this.asTable({ table })).values(values);
+    const query = onConflict
+      ? inserted.onConflictDoUpdate({
+          target: this.toConflictTarget({ columns: onConflict.target }),
+          targetWhere: onConflict.targetWhere,
+          set: onConflict.set,
+          setWhere: onConflict.setWhere,
+        })
+      : inserted;
 
     if (!shouldReturn) {
       const result = await query;
+
       return { count: this.readAffectedRowCount({ result }), rows: [] };
     }
 
-    const pending = returning ? query.returning(returning as AnyType) : query.returning();
+    const pending = returning
+      ? query.returning(this.toSelectedFields({ columns: returning }))
+      : query.returning();
     const rows = await pending;
+
     return { count: rows.length, rows: rows as Array<R> };
   }
 
   async update<R>(opts: IUpdateOptions<TSqliteConnector>): Promise<IWriteResult<R>> {
     const { connector, table, data, where, returning, shouldReturn } = opts;
-    const query = connector
-      .update(this.asTable({ table }))
-      .set(data as AnyType)
-      .where(where);
+    const query = connector.update(this.asTable({ table })).set(data).where(where);
 
     if (!shouldReturn) {
       const result = await query;
+
       return { count: this.readAffectedRowCount({ result }), rows: [] };
     }
 
-    const pending = returning ? query.returning(returning as AnyType) : query.returning();
+    const pending = returning
+      ? query.returning(this.toSelectedFields({ columns: returning }))
+      : query.returning();
     const rows = await pending;
+
     return { count: rows.length, rows: rows as Array<R> };
   }
 
@@ -137,12 +154,29 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
 
     if (!shouldReturn) {
       const result = await query;
+
       return { count: this.readAffectedRowCount({ result }), rows: [] };
     }
 
-    const pending = returning ? query.returning(returning as AnyType) : query.returning();
+    const pending = returning
+      ? query.returning(this.toSelectedFields({ columns: returning }))
+      : query.returning();
     const rows = await pending;
+
     return { count: rows.length, rows: rows as Array<R> };
+  }
+
+  /** The conflict target, narrowed to SQLite columns; a column of another engine cannot name a SQLite key. */
+  private toConflictTarget(opts: { columns: AnyColumn[] }): SQLiteColumn[] {
+    const { columns } = opts;
+
+    if (!columns.every((column): column is SQLiteColumn => is(column, SQLiteColumn))) {
+      throw getError({
+        message: '[insert] Invalid conflict target | every target column must be a SQLite column',
+      });
+    }
+
+    return columns;
   }
 
   /**
@@ -169,6 +203,7 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
     }
 
     const queryInterface = connector.query[entityName];
+
     if (!queryInterface) {
       const availableKeys = Object.keys(connector.query);
       throw getError({
@@ -177,6 +212,29 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
     }
 
     return queryInterface;
+  }
+
+  /**
+   * The projection a caller built from the table's columns, narrowed to what Drizzle's SQLite
+   * builders take. The neutral options carry it as a plain record; a value that is not a SQLite
+   * column or an SQL expression cannot name a field of this engine.
+   */
+  private toSelectedFields(opts: {
+    columns: Record<string, unknown>;
+  }): Record<string, SQLiteColumn | SQL | SQL.Aliased> {
+    const fields: Record<string, SQLiteColumn | SQL | SQL.Aliased> = {};
+
+    for (const [key, value] of Object.entries(opts.columns)) {
+      if (!is(value, SQLiteColumn) && !is(value, SQL) && !is(value, SQL.Aliased)) {
+        throw getError({
+          message: `[toSelectedFields] Invalid column selection | '${key}' must be a SQLite column or an SQL expression`,
+        });
+      }
+
+      fields[key] = value;
+    }
+
+    return fields;
   }
 
   /**

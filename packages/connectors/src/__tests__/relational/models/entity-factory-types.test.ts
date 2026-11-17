@@ -261,10 +261,12 @@ describe('defineEntity keeps the compiler strict', () => {
     errorsByProbe = Object.fromEntries(probeEntries.map(([name]) => [name, []]));
 
     const lines = compilerOutput.split('\n');
+
     for (const line of lines) {
       const owner = probeEntries
         .map(([name]) => name)
         .find((name) => line.includes(`/${name}.probe.ts`));
+
       if (owner && line.includes('error TS')) {
         errorsByProbe[owner].push(line);
       }

@@ -1,5 +1,6 @@
-import { type AnyType, type TConstValue } from '@/common/types';
+import { type TConstValue } from '@/common/types';
 
+/** Log severities. `ORDER` runs from most to least severe, and `isEnabled` tests a level against a threshold. */
 export class LogLevels {
   static readonly ERROR = 'error';
   static readonly EMERG = 'emerg';
@@ -33,16 +34,17 @@ export class LogLevels {
   }
 }
 
+/** One of the `LogLevels` values. */
 export type TLogLevel = TConstValue<typeof LogLevels>;
 
 /** The logging contract every consumer types against; which provider produced the logger is invisible behind it - only `factory.ts` and a provider's back-compat aliases may name a concrete logger class. */
 export interface ILogger {
-  debug(message: string, ...args: AnyType[]): void;
-  info(message: string, ...args: AnyType[]): void;
-  warn(message: string, ...args: AnyType[]): void;
-  error(message: string, ...args: AnyType[]): void;
-  emerg(message: string, ...args: AnyType[]): void;
-  log(level: TLogLevel, message: string, ...args: AnyType[]): void;
+  debug(message: string, ...args: unknown[]): void;
+  info(message: string, ...args: unknown[]): void;
+  warn(message: string, ...args: unknown[]): void;
+  error(message: string, ...args: unknown[]): void;
+  emerg(message: string, ...args: unknown[]): void;
+  log(level: TLogLevel, message: string, ...args: unknown[]): void;
   for(methodName: string): ILogger;
 }
 

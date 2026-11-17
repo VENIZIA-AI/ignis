@@ -48,6 +48,7 @@ interface ICasbinRoleManagerWithDomainHierarchy {
 
 // Wraps casbin (optional peer dep). Each request borrows its own pooled enforcer; any error during use destroys it (fail-closed). Pooled enforcers carry no adapter - only extractUserLines uses one.
 
+/** Authorization enforcer backed by casbin (an optional peer dependency); `configure()` throws when `options.model` is missing. */
 export class CasbinAuthorizationEnforcer<
   E extends Env = Env,
   TAction extends string = string,
@@ -90,6 +91,7 @@ export class CasbinAuthorizationEnforcer<
     this.resolvedPayloadFn = this.options.normalizePayloadFn ?? this.defaultScopedPayloadFn();
 
     const { cached } = this.options;
+
     if (cached.use) {
       this.validateExpiresIn({ expiresIn: cached.options.expiresIn });
     }
@@ -130,6 +132,7 @@ export class CasbinAuthorizationEnforcer<
     try {
       if (this.options.isScoped || this.options.normalizePayloadFn) {
         opts.enforcer.enforceSync('::warmup', '::warmup', '::warmup', '::warmup');
+
         return;
       }
 
@@ -151,6 +154,7 @@ export class CasbinAuthorizationEnforcer<
     const cached = this.options.cached;
 
     let lines: string[];
+
     if (cached.use) {
       const fetched = await this.requireRedisCache().fetch({ user });
       lines = fetched;
@@ -194,6 +198,7 @@ export class CasbinAuthorizationEnforcer<
             enforcer,
             vals: [subject, String(request.resource), String(request.action)],
           });
+
           return isAllowed ? AuthorizationDecisions.ALLOW : AuthorizationDecisions.DENY;
         }
 
@@ -368,6 +373,7 @@ export class CasbinAuthorizationEnforcer<
   }): (arg1: string, arg2: string) => boolean {
     // casbin Util built-ins: (requestValue, policyValue) => match. keyMatchFunc only special-cases `*` (never splits on `/` or `:`), so it cannot pattern-match a `Merchant_<uuid>`; see CasbinDomainMatchingFunctions for per-function semantics.
     const { Util } = opts.casbin;
+
     switch (opts.name) {
       case CasbinDomainMatchingFunctions.KEY_MATCH: {
         return Util.keyMatchFunc;

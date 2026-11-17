@@ -15,6 +15,7 @@
 
 export { AbstractRepository } from '@/base/repositories/core/abstract';
 export { AbstractDataSource } from '@/base/datasources/abstract';
+export { DataSourceRoot } from '@/base/datasources/root';
 
 export type {
   ICreatableRepository,
@@ -52,7 +53,7 @@ export type { IDataSource } from '@/base/datasources/common/types';
 // `IRepository` names an entity, so a consumer implementing the contract needs the base to extend.
 // Engine-neutral like the datasource: a name, `getSchema({ type })`, and an id type.
 export { AbstractEntity } from '@/base/models/base';
-export { SchemaTypes } from '@/base/models/common/constants';
+export { AuditFields, SchemaTypes } from '@/base/models/common/constants';
 export type { TIdSchemaType, TSchemaType } from '@/base/models/common';
 
 // The query vocabulary both transports share.
@@ -65,3 +66,12 @@ export type {
   TSelectedRow,
   TWhere,
 } from '@venizia/ignis-filter';
+
+// What a repository on any transport needs to refuse a request filter that names a hidden property.
+export { RequestFilterParts } from '@/base/repositories/common/request-filter-guard';
+export type {
+  IRequestFilterJudge,
+  IRequestFilterShape,
+  TRequestFilterPart,
+  TRequestFilterPiece,
+} from '@/base/repositories/common/request-filter-guard';

@@ -13,6 +13,7 @@ export class SwitchCaseBracesRule {
     opts: { severity?: TRuleSeverity; mode?: TSwitchCaseBracesMode } = {},
   ): TOxlintRuleEntry<'unicorn/switch-case-braces'> {
     const { severity = 'error', mode = SwitchCaseBracesModes.ALWAYS } = opts;
+
     return [severity, mode];
   }
 }

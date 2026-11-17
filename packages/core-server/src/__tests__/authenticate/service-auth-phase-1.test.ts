@@ -8,7 +8,7 @@ import {
   type TAuthStrategy,
   type TContext,
 } from '@venizia/ignis-kernel';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import { BaseRestController } from '@/base/controllers';
 
 /**
  * The open strategy type, and the registry that is the only source of truth for a strategy name.
@@ -25,6 +25,7 @@ class ServiceStrategy implements IAuthenticationStrategy {
 const freshRegistry = (): AuthenticationStrategyRegistry => {
   const registry = AuthenticationStrategyRegistry.getInstance();
   registry.reset();
+
   return registry;
 };
 
@@ -35,7 +36,7 @@ describe('a third strategy name typechecks with no cast', () => {
    * `scripts/rebuild.sh` type-checks `__tests__`, so a narrowed alias fails the build here.
    */
   test('an application name sits alongside the built-ins in a strategy list', () => {
-    // Typed as TAuthStrategy[] ON PURPOSE. `AnyType` here would make the test a tautology: it would
+    // Typed as TAuthStrategy[] ON PURPOSE. `any` here would make the test a tautology: it would
     // still compile against the narrow `'basic' | 'jwt'` alias, so it would prove nothing about the
     // widening it claims to pin.
     const strategies: TAuthStrategy[] = [AuthenticateStrategy.JWT, 'service'];
@@ -108,7 +109,7 @@ describe('the registry is the source of truth for a strategy name', () => {
   });
 
   /**
-   * What the FRAMEWORK does, and it must never throw. `AuthControllerFactory.define` hard-codes `'jwt'` on
+   * What the FRAMEWORK does, and it must never throw. `AuthControllerFactory.build` hard-codes `'jwt'` on
    * four of its routes, and a route listing several strategies in ANY mode tolerates one that does
    * not resolve - throwing here would stop applications booting that work today.
    */
@@ -145,7 +146,7 @@ describe('the registry is the source of truth for a strategy name', () => {
  * The regression this suite exists to prevent, and the reason the framework reports rather than
  * throws.
  *
- * `AuthControllerFactory.define` hard-codes `strategies: ['jwt']` on four routes it registers
+ * `AuthControllerFactory.build` hard-codes `strategies: ['jwt']` on four routes it registers
  * unconditionally. An application that registers its JWT strategy under a custom name - the exact
  * configuration this release adds support for - has 'jwt' unregistered. A boot-time THROW would
  * kill such an application at `registerControllers()`, so the feature would break the configuration
@@ -159,21 +160,25 @@ describe('a route naming an unregistered strategy still builds', () => {
       strategies: [{ name: 'service-jwt', strategy: ServiceStrategy }],
     });
 
-    const { AbstractRestController } = await import('@venizia/ignis-kernel');
-
-    class ProbeController extends (AbstractRestController as AnyType) {
+    class ProbeController extends BaseRestController {
       constructor() {
         super({ scope: 'ProbeController', path: '/probe' });
       }
+
       async binding(): Promise<void> {}
     }
 
-    const controller = new ProbeController() as AnyType;
+    const controller = new ProbeController();
 
     // 'jwt' is what the framework's own auth controller asks for, and it is not registered here.
     expect(() =>
       controller.buildRouteMiddlewares({
-        configs: { authenticate: { strategies: ['jwt'] } },
+        configs: {
+          method: 'get',
+          path: '/probe',
+          responses: {},
+          authenticate: { strategies: ['jwt'] },
+        },
       }),
     ).not.toThrow();
   });

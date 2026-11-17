@@ -36,6 +36,29 @@ if (isCached) {
 }
 ```
 
+## Declare the instance, then await
+
+Never call a method on a fresh instance inside an `await`. Declare the instance on its own line, then await on the next.
+
+```typescript
+// Not this
+await new RelationalMigrationRunner({ driver }).run({ migrations });
+const text = await new Response(body).text();
+const token = await new SignJWT(claims).setIssuer(issuer).sign(key);
+
+// This
+const runner = new RelationalMigrationRunner({ driver });
+await runner.run({ migrations });
+
+const response = new Response(body);
+const text = await response.text();
+
+const jwt = new SignJWT(claims).setIssuer(issuer);
+const token = await jwt.sign(key);
+```
+
+A builder chain declares the builder, then awaits its last call. `await new Promise(...)` is fine: no method is called on the new instance. `await new X().prop` is not a call and is fine too.
+
 ## Return the promise
 
 A function that ends with a promise returns it: `return load()`, not `return await load()`.
@@ -133,20 +156,22 @@ useEffect(() => {
 
 ## Turning the rules on
 
+The rules are in `houseConfigs`, so one array turns them on:
+
 ```javascript
 // .configs/lints/eslint.config.mjs
-import { asyncStyleConfigs, houseConfigs } from '@venizia/dev-configs/linters';
+import { houseConfigs } from '@venizia/dev-configs/linters';
 
-export default [...houseConfigs, ...asyncStyleConfigs];
+export default houseConfigs;
 ```
 
-A React project spreads `reactHouseConfigs` and `reactAsyncStyleConfigs` the same way. Both arrays carry the chain rule (`venizia/no-await-promise-chain`) and the silent catch rule (`venizia/no-silent-catch`), so a project that already spreads them gets the two new rules with nothing to wire.
+A project that adds its own entries spreads the array: `[...houseConfigs, { ... }]`. A React project uses `reactHouseConfigs` the same way: it carries the five async rules and the two hook rules (`venizia/no-async-hook-callback`, `venizia/effect-cleanup-consistency`).
 
-To fix an existing codebase, run the codemod. It applies the safe fixes of `no-inline-await`, `no-return-await` and `no-await-promise-chain`, and lists the rest with file, line and rule, including every silent catch, which it never fixes:
+To fix an existing codebase, run the codemod. It applies the safe fixes of `no-inline-await`, `no-return-await`, `no-await-new-chain` and `no-await-promise-chain`, and lists the rest with file, line and rule, including every silent catch, which it never fixes:
 
 ```bash
-devz codemod async-style packages/my-package          # dry run
-devz codemod async-style packages/my-package --write  # commit your work first; --write needs a path, or --all for the whole tree
+bun run devz codemod async-style packages/my-package          # dry run
+bun run devz codemod async-style packages/my-package --write  # commit your work first; --write needs a path, or --all for the whole tree
 ```
 
 The ESLint setup these rules extend is in [Tooling](./tooling).

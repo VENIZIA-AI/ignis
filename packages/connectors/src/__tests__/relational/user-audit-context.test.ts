@@ -4,14 +4,21 @@ import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
 import { pgTable, text as pgText } from 'drizzle-orm/pg-core';
 import { sqliteTable, text as sqliteText } from 'drizzle-orm/sqlite-core';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { OpenAPIHono } from '@hono/zod-openapi';
+import { Context } from 'hono';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   Authentication,
   BaseAppErrorMiddleware,
-  ControllerFactory,
+  controller,
+  CrudControllerFactory,
+  CrudRoutes,
   datasource,
   model,
+  repository as repositoryDecorator,
   RequestContextRegistry,
+  type TAnyDataSourceSchema,
+  type TCrudRepositoryClass,
 } from '@venizia/ignis-kernel';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
@@ -37,10 +44,14 @@ import { DefaultSqliteRepository } from '@/relational/sqlite/repositories';
  * a live request whose context carries no authenticated user - and it must stay distinguishable from
  * having no context at all.
  */
-const buildContext = (opts: { userId?: number }): AnyType => {
-  return {
-    get: (key: string) => (key === Authentication.AUDIT_USER_ID ? opts.userId : undefined),
-  } as AnyType;
+const buildContext = (opts: { userId?: number }): Context => {
+  const context = new Context(new Request('http://localhost/'));
+
+  if (opts.userId !== undefined) {
+    context.set(Authentication.AUDIT_USER_ID, opts.userId);
+  }
+
+  return context;
 };
 
 const NO_CONTEXT_MESSAGE = /Invalid request context to identify user/;
@@ -78,10 +89,17 @@ const sqliteStrictTable = sqliteTable('sqlite_user_audit_strict', {
 });
 
 /** `$default` and `$onUpdate` are what drizzle calls per row; reading them back is the only way to exercise the enricher without a live engine. */
-const stampCreatedBy = (opts: { table: AnyType }): unknown => opts.table.createdBy.defaultFn();
-const stampModifiedBy = (opts: { table: AnyType }): unknown => opts.table.modifiedBy.onUpdateFn();
+interface IAuditedTable {
+  createdBy: { defaultFn?: () => unknown };
+  modifiedBy: { onUpdateFn?: () => unknown };
+}
 
-const TIERS: Array<{ name: string; anonymous: AnyType; strict: AnyType }> = [
+const stampCreatedBy = (opts: { table: IAuditedTable }): unknown =>
+  opts.table.createdBy.defaultFn?.();
+const stampModifiedBy = (opts: { table: IAuditedTable }): unknown =>
+  opts.table.modifiedBy.onUpdateFn?.();
+
+const TIERS: Array<{ name: string; anonymous: IAuditedTable; strict: IAuditedTable }> = [
   { name: 'postgres', anonymous: postgresAnonymousTable, strict: postgresStrictTable },
   { name: 'sqlite', anonymous: sqliteAnonymousTable, strict: sqliteStrictTable },
 ];
@@ -169,13 +187,13 @@ class PostgresRouteRow extends BasePostgresEntity<typeof postgresRouteTable> {
 }
 
 @model({ type: 'entity' })
-class SqliteRouteRow extends BaseSqliteEntity {
+class SqliteRouteRow extends BaseSqliteEntity<typeof sqliteRouteTable> {
   static override TABLE_NAME = SQLITE_ROUTE_TABLE;
   static override schema = sqliteRouteTable;
 }
 
 @datasource({ driver: PGliteDriver })
-class PostgresRouteDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class PostgresRouteDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {
   constructor(opts: { client: PGlite }) {
     super({
       name: PostgresRouteDataSource.name,
@@ -198,7 +216,12 @@ class PostgresRouteDataSource extends BasePostgresDataSource<{}, AnyType, {}, PG
 }
 
 @datasource({ driver: LibSqlDriver })
-class SqliteRouteDataSource extends BaseSqliteDataSource<{ url: string }, AnyType, {}, Client> {
+class SqliteRouteDataSource extends BaseSqliteDataSource<
+  { url: string },
+  TAnyDataSourceSchema,
+  {},
+  Client
+> {
   constructor(opts: { client: Client }) {
     super({
       name: SqliteRouteDataSource.name,
@@ -212,16 +235,62 @@ class SqliteRouteDataSource extends BaseSqliteDataSource<{ url: string }, AnyTyp
   override configure(): ValueOrPromise<void> {}
 }
 
+@repositoryDecorator({ model: PostgresRouteRow, dataSource: 'PostgresRouteDataSource' })
+class PostgresRouteRepository extends DefaultCRUDRepository<
+  typeof postgresRouteTable,
+  TTableObject<typeof postgresRouteTable>,
+  TTableInsert<typeof postgresRouteTable>,
+  IDatabaseExtraOptions,
+  PostgresRouteDataSource
+> {}
+
+@repositoryDecorator({ model: SqliteRouteRow, dataSource: 'SqliteRouteDataSource' })
+class SqliteRouteRepository extends DefaultSqliteRepository<typeof sqliteRouteTable> {}
+
+/** What the route tests read and spy on, whichever engine backs the repository. */
+type TRouteRepository = PostgresRouteRepository | SqliteRouteRepository;
+
+/** Builds the generated CRUD controller over a repository class and returns its router. */
+const buildRouter = async <Repository extends TCrudRepositoryClass>(opts: {
+  repositoryClass: Repository;
+  repository: InstanceType<Repository>;
+}): Promise<OpenAPIHono> => {
+  const RouteController = CrudControllerFactory.build({
+    repository: opts.repositoryClass,
+    routes: {
+      ...CrudRoutes.READ,
+      create: true,
+      updateById: true,
+      updateBy: true,
+      deleteById: true,
+      deleteBy: true,
+    },
+  });
+
+  @controller({ path: '/rows' })
+  class RowsController extends RouteController {}
+
+  const rowsController = new RowsController(opts.repository);
+  await rowsController.configure();
+  const router = rowsController.getRouter();
+  // The handler an application installs on its server: without it a thrown `getError` is a bare 500.
+  router.onError(new BaseAppErrorMiddleware().value());
+
+  return router;
+};
+
 interface IRouteTier {
   name: string;
-  open: () => Promise<{ repository: AnyType; close: () => Promise<void> }>;
-  entity: AnyType;
+  open: () => Promise<{
+    repository: TRouteRepository;
+    router: OpenAPIHono;
+    close: () => Promise<void>;
+  }>;
 }
 
 const ROUTE_TIERS: IRouteTier[] = [
   {
     name: 'postgres (PGlite)',
-    entity: PostgresRouteRow,
     open: async () => {
       const client = new PGlite();
       await client.waitReady;
@@ -237,21 +306,20 @@ const ROUTE_TIERS: IRouteTier[] = [
       `);
 
       const dataSource = new PostgresRouteDataSource({ client });
+
+      const repository = new PostgresRouteRepository(dataSource, { entityClass: PostgresRouteRow });
+
+      const router = await buildRouter({ repositoryClass: PostgresRouteRepository, repository });
+
       return {
-        repository: new DefaultCRUDRepository<
-          typeof postgresRouteTable,
-          TTableObject<typeof postgresRouteTable>,
-          TTableInsert<typeof postgresRouteTable>,
-          IDatabaseExtraOptions,
-          PostgresRouteDataSource
-        >(dataSource, { entityClass: PostgresRouteRow }),
+        repository,
+        router,
         close: () => dataSource.endDriver(),
       };
     },
   },
   {
     name: 'sqlite (libsql :memory:)',
-    entity: SqliteRouteRow,
     open: async () => {
       const client = createClient({ url: ':memory:' });
       await client.execute(`
@@ -266,10 +334,14 @@ const ROUTE_TIERS: IRouteTier[] = [
       `);
 
       const dataSource = new SqliteRouteDataSource({ client });
+
+      const repository = new SqliteRouteRepository(dataSource, { entityClass: SqliteRouteRow });
+
+      const router = await buildRouter({ repositoryClass: SqliteRouteRepository, repository });
+
       return {
-        repository: new DefaultSqliteRepository<AnyType>(dataSource, {
-          entityClass: SqliteRouteRow,
-        }),
+        repository,
+        router,
         close: async () => client.close(),
       };
     },
@@ -279,26 +351,16 @@ const ROUTE_TIERS: IRouteTier[] = [
 const FORGED_TIME = '2000-01-01T00:00:00.000Z';
 
 describe.each(ROUTE_TIERS)('a generated CRUD route on $name stamps the signed-in user', (tier) => {
-  let repository: AnyType;
+  let repository: TRouteRepository;
   let close: () => Promise<void>;
-  let router: AnyType;
+  let router: OpenAPIHono;
 
   beforeAll(async () => {
     const opened = await tier.open();
     repository = opened.repository;
     close = opened.close;
 
-    const RouteController = ControllerFactory.defineCrudController({
-      entity: tier.entity,
-      repository: { name: `${tier.entity.name}Repository` },
-      controller: { name: `${tier.entity.name}Controller`, basePath: '/rows' },
-    });
-
-    const controller = new RouteController(repository);
-    await controller.configure();
-    router = controller.getRouter();
-    // The handler an application installs on its server: without it a thrown `getError` is a bare 500.
-    router.onError(new BaseAppErrorMiddleware().value());
+    router = opened.router;
   });
 
   afterAll(async () => {
@@ -311,20 +373,24 @@ describe.each(ROUTE_TIERS)('a generated CRUD route on $name stamps the signed-in
   };
 
   const request = (opts: { method: string; path: string; body: object }): Promise<Response> => {
-    return router.request(opts.path, {
-      method: opts.method,
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(opts.body),
-    });
+    return Promise.resolve(
+      router.request(opts.path, {
+        method: opts.method,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(opts.body),
+      }),
+    );
   };
 
   const send = async (opts: { method: string; path: string; body: object }) => {
     const response = await request(opts);
+
     return response.status;
   };
 
   const readRow = async (opts: { id: string }) => {
     const row = await repository.findById({ id: opts.id });
+
     return row
       ? {
           id: row.id,

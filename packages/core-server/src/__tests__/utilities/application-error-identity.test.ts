@@ -32,6 +32,7 @@ describe('isApplicationError recognizes errors across package boundaries', () =>
     const container = new Container({ scope: 'probe' });
 
     let caught: unknown;
+
     try {
       container.get({ key: 'no-such-binding' });
     } catch (error) {

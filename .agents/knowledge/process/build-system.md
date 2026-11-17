@@ -20,7 +20,7 @@ tags: [process, build]
    `@venizia/ignis-helpers` resolves to `packages/helpers/dist/...`. Skip this and you get a wall
    of module-resolution errors that have nothing to do with your change.
 2. To rebuild everything: `make build` (alias `make build-all`). This runs
-   `core core-worker boot docs surface-check wiki-links-check wiki-anchors-check` - the `core`
+   `core core-worker boot docs wiki-links-check wiki-anchors-check api-check api-undocumented` - the `core`
    target pulls in the full dependency chain first, so this also rebuilds `dev-configs`,
    `inversion`, `helpers`, `filter`, and `kernel`.
 3. To build one package plus its dependencies: `make <package>`, e.g. `make helpers` runs
@@ -89,8 +89,8 @@ tags: [process, build]
    `inversion`, `filter`, `helpers` (`/core` and `/common` only), `kernel`, `core-worker` and
    `connectors` (engine-client rows waived in the manifest); `make purity-<package>` for the others
    prints a no-op. It reads `dist/`, so run it after a build, never instead of one. Run it on
-   Bun >= 1.4.1: `connectors/postgres/supabase [import]` is pure on 1.4.1 and red on 1.4.0, and the
-   release workflow installs `bun-version: latest`.
+   Bun >= 1.4.1: `connectors/postgres/supabase [import]` is pure on 1.4.1 and red on 1.4.0. The
+   release workflow pins `bun-version: '1.4.4'`; `ci.yml` installs `latest`.
 9. Two details keep that gate honest - do not "simplify" them away. It inspects the `--metafile`
    module graph instead of grepping the bundle for a `node:` prefix, because
    `bun build --target=browser` silently stubs unpolyfillable builtins to an empty object, exits 0,

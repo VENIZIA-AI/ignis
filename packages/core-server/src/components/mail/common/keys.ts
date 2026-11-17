@@ -1,3 +1,4 @@
+/** DI binding keys the mail component registers and reads: options, queue executor config, transport and queue provider/instance, services and verification generators. */
 export class MailKeys {
   // Options & Configs
   static readonly MAIL_OPTIONS = '@app/components/mail/options';
@@ -14,8 +15,10 @@ export class MailKeys {
   // Generators
   static readonly MAIL_VERIFICATION_CODE_GENERATOR =
     '@app/components/mail/verification/code-generator';
+
   static readonly MAIL_VERIFICATION_TOKEN_GENERATOR =
     '@app/components/mail/verification/token-generator';
+
   static readonly MAIL_VERIFICATION_DATA_GENERATOR =
     '@app/components/mail/verification/data-generator';
 

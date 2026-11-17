@@ -22,9 +22,11 @@ Each layer adds one capability. The first two ship from `@venizia/ignis-kernel` 
 | Class | Adds | Key Methods |
 |-------|------|-------------|
 | **AbstractApplication** | config, lifecycle hooks, the DI container | `init()`, `registerPostStartHook()`, `registerPostStopHook()` |
-| **RestApplication** | the two `OpenAPIHono` routers and the whole registration surface | `getServer()`, `getRootRouter()`, `configuration()`, `component()`, `controller()`, `service()`, `repository()`, `dataSource()`, `registerArtifacts()` |
+| **RestApplication** | the two routers and the whole registration surface | `getServer()`, `getRootRouter()`, `registerArtifacts()` and the registration methods |
 | **ServerApplication** | the socket | `start()`, `stop()`, `getServerHost()`, `getServerPort()`, `getServerAddress()` |
 | **BaseApplication** | secrets, static serving, the gRPC transport, the server-only boot steps | `static()`, `validateEnvs()`, `registerSecrets()`, `hydrateSecrets()`, `wireSecretRotatables()` |
+
+The routers are plain `Hono`, or `OpenAPIHono` once the REST controller layer is loaded. The registration methods are `configuration()`, `component()`, `controller()`, `service()`, `repository()` and `dataSource()`.
 
 Registration is a kernel capability, not a server one. `component()`, `controller()`, `service()`, `repository()`, `dataSource()`, `configuration()` and `registerArtifacts()` are all declared on `RestApplication`, so a host with no socket registers artifacts the same way a server does.
 
@@ -47,7 +49,7 @@ constructor(opts: { scope: string; config: IApplicationConfigs })
 
 The constructor:
 1. Merges the provided config with defaults
-2. Resolves `asyncContext.enable` from `getDefaultAsyncContextEnabled()`
+2. Resolves `asyncContext.enable` from `getDefaultAsyncContextEnabled()`: `false` here, `true` in `ServerApplication` (see [The two constructor hooks](#the-two-constructor-hooks))
 3. Sets `projectRoot` from `getProjectRoot()`
 
 It resolves no host and no port. Both mean nothing to a host that binds no socket, so `ServerApplication` resolves them in its own constructor instead.
@@ -75,7 +77,9 @@ abstract class RestApplication<
 > extends AbstractApplication
 ```
 
-It builds the two `OpenAPIHono` instances - the main server and the `rootRouter` - and binds them as `APPLICATION_SERVER` and `APPLICATION_ROOT_ROUTER`.
+It builds the two routers - the main server and the `rootRouter` - and binds them as `APPLICATION_SERVER` and `APPLICATION_ROOT_ROUTER`.
+
+The routers are plain `Hono` unless the REST controller layer is part of the program: loading `AbstractRestController` registers `OpenAPIHono`, and from then on the routers are `OpenAPIHono`. So a browser worker with no controller never loads `@hono/zod-openapi`, zod or zod-to-openapi (about 137 KB, 45 KB gzipped, instead of 569 KB, 146 KB gzipped). A subclass that must always have `OpenAPIHono` overrides the protected `createRouter({ strict })`; `ServerApplication` does.
 
 ## `ServerApplication`
 
@@ -98,12 +102,18 @@ Port `0` survives that scan on purpose - it asks the operating system for an eph
 
 | Feature | Description |
 | :--- | :--- |
-| **Hono Instance** | Creates and holds two `OpenAPIHono` instances - a main server and a root router |
-| **Runtime Guard** | `start()` throws `IGNIS requires Bun >= 1.4 (running on <runtime>)` on any other runtime, before it touches a hook, a datasource or a socket |
-| **Core Bindings** | Registers `CoreBindings.APPLICATION_INSTANCE`, `CoreBindings.APPLICATION_SERVER`, and `CoreBindings.APPLICATION_ROOT_ROUTER` |
-| **Lifecycle Management** | Defines abstract methods (`preConfigure`, `postConfigure`, `setupMiddlewares`, `staticConfigure`, `initialize`, `getAppInfo`) |
-| **Environment Validation** | Off by default. Set `ALLOW_EMPTY_ENV_VALUE=false` (or `0`) to require every registered `applicationEnvironment` key to be non-empty |
+| **Hono Instance** | Creates and holds two `OpenAPIHono` instances: a main server and a root router |
+| **Runtime Guard** | `start()` throws on any runtime other than Bun >= 1.4 |
+| **Core Bindings** | Registers the application instance, server and root router in `CoreBindings` |
+| **Lifecycle Management** | Defines the abstract lifecycle methods |
+| **Environment Validation** | Off by default; `ALLOW_EMPTY_ENV_VALUE=false` turns it on |
 | **Post-Start Hooks** | Supports registering hooks that execute after the server starts |
+
+- **Hono Instance:** `createRouter()` always builds an `OpenAPIHono` here.
+- **Runtime Guard:** the error reads `IGNIS requires Bun >= 1.4 (running on <runtime>)`, and it fires before `start()` touches a hook, a datasource or a socket.
+- **Core Bindings:** `CoreBindings.APPLICATION_INSTANCE`, `CoreBindings.APPLICATION_SERVER` and `CoreBindings.APPLICATION_ROOT_ROUTER`.
+- **Lifecycle Management:** the abstract methods are `preConfigure`, `postConfigure`, `setupMiddlewares`, `staticConfigure`, `initialize` and `getAppInfo`.
+- **Environment Validation:** set `ALLOW_EMPTY_ENV_VALUE=false` (or `0`) to require every registered `applicationEnvironment` key to be non-empty.
 
 ### Abstract Methods
 
@@ -123,7 +133,7 @@ These must be implemented by subclasses:
 | Method | Return Type | Description |
 | :--- | :--- | :--- |
 | `getProjectConfigs()` | `IApplicationConfigs` | Returns the merged application config |
-| `getProjectRoot()` | `string` | Returns `configs.projectRoot ?? process.cwd()`, binds it to `CoreBindings.APPLICATION_PROJECT_ROOT` and hands it to `ModuleUtility` so optional peers resolve under it |
+| `getProjectRoot()` | `string` | Returns `configs.projectRoot ?? process.cwd()` and binds it to `CoreBindings.APPLICATION_PROJECT_ROOT` |
 | `getRootRouter()` | `OpenAPIHono` | Returns the root router instance |
 | `getServerHost()` | `string` | Returns the configured host |
 | `getServerPort()` | `number` | Returns the configured port |
@@ -133,7 +143,11 @@ These must be implemented by subclasses:
 | `registerPostStartHook(opts)` | `void` | Register a hook to run after server start |
 | `init()` | `void` | Calls `registerCoreBindings()` |
 | `start()` | `Promise<void>` | Runs `initialize()`, `setupMiddlewares()`, mounts root router, starts the server, then runs post-start hooks |
-| `stop()` | `Promise<void>` | Runs the post-stop hooks, stops the server (`.stop()`), then calls `close()` on every datasource the boot configured - even when the server fails to close. Each `close()` gets at most `dataSourceCloseTimeoutMs` (default `10_000`, `0` waits without limit); past it, the datasource is logged as timed out and skipped - a client that was never released used to hold it forever. A failed `close()` is logged and does not stop the others. Safe to call twice |
+| `stop()` | `Promise<void>` | Runs the post-stop hooks, stops the server, then closes every datasource |
+
+`getProjectRoot()` also hands the root to `ModuleUtility` so optional peers resolve under it.
+
+`stop()` calls `close()` on every datasource the boot configured, even when the server fails to close, and it is safe to call twice. Each `close()` gets at most `dataSourceCloseTimeoutMs` (default `10_000`, `0` waits without limit); past it, the datasource is logged as timed out and skipped, because a client that was never released used to hold `stop()` forever. A failed `close()` is logged and does not stop the others.
 
 ### `start()` Method Flow
 
@@ -156,10 +170,10 @@ type TBunServerInstance = ReturnType<typeof Bun.serve>;
 The router and the socket are held apart. `RestApplication` carries the router alone:
 
 ```typescript
-protected server: { hono: OpenAPIHono<AppEnv, AppSchema, BasePath> };
+protected server: { hono: Hono<AppEnv, AppSchema, BasePath> };
 ```
 
-`ServerApplication` adds the runtime and the socket as two separate fields of its own:
+`ServerApplication` narrows it to `OpenAPIHono` and adds the runtime and the socket as two separate fields of its own:
 
 ```typescript
 protected runtime = RuntimeModules.detect();
@@ -349,6 +363,8 @@ To run this sequence in a test without a database, a port or a network, call `Ap
 | **`register...()`** | Framework iterates bindings and instantiates classes | Configurations first, then datasources, then the layers that depend on them |
 | **`postConfigure()`** | Logic after all resources configured | Do not register new datasources/components/controllers here - they won't auto-configure |
 
+`configs.middlewares` is already read by the time `staticConfigure()` runs, so [set it in the constructor](/references/base/middlewares#set-configs-middlewares-in-the-constructor).
+
 ### registerDefaultMiddlewares
 
 Automatically registers these default middlewares during `initialize()`:
@@ -392,23 +408,27 @@ A component may register more components while it is configured, at any nesting 
 ```typescript
 interface IApplicationConfigs {
   path: { base: string; isStrict: boolean }; // Base path; isStrict: trailing-slash strictness (default true)
-  requestId?: { isStrict: boolean };      // Request ID validation
+  requestId?: { isStrict: boolean };      // Typed, but nothing in the framework reads it
   favicon?: string;                       // Favicon emoji (default: '🔥')
   error?: { rootKey?: string; environment?: string }; // Error envelope root key, ambient environment name
-  asyncContext?: { enable: boolean };     // Hono async context storage
-  middlewares?: IMiddlewareConfigs;       // Only bodyLimit is installed by the framework; see Middlewares Reference
+  asyncContext?: { enable: boolean };     // Hono async context storage (default: true on BaseApplication, false on Rest and Worker)
+  middlewares?: IMiddlewareConfigs;       // cors and bodyLimit are installed by the framework, read BEFORE staticConfigure(): pass them here; see Middlewares Reference
   artifacts?: TArtifactIndexInput;        // Generated indexes registered before preConfigure
+  discoverArtifacts?: boolean;            // Register every decorated class the application imports (default: false)
   bootChecks?: {                          // Boot-time checks; absent means nothing is verified
     binding?: { doVerify: boolean; allowManual: boolean; allowOverride: boolean };
+    allowDerivedKeyCollision?: boolean;   // true turns a derived-binding-key collision into a warning (default: false)
   };
   debug?: { shouldShowRoutes?: boolean }; // Show registered routes on startup
   transports?: TControllerTransport[];    // Controller transports: 'rest' | 'grpc' (default: ['rest'])
   dataSourceCloseTimeoutMs?: number;      // How long stop() waits per datasource close() (default 10_000; 0 waits without limit)
-  [key: string]: any;                     // Extensible
+  [key: string]: unknown;                     // Extensible
 }
 ```
 
-`error.environment` names the host's ambient environment. Set it where there is none to read - a browser Worker - so the error middleware can tell "no ambient environment" from "misconfigured". Leave it unset on a server, which reads `process.env.NODE_ENV`.
+`IApplicationConfigs` also allows extra string keys, so an application can carry its own settings.
+
+`error.environment` names the host's ambient environment. Set it where there is none to read - a browser Worker - so the error middleware can tell "no ambient environment" from "misconfigured". `BaseApplication` ignores it and reads `process.env.NODE_ENV`; every other application class passes it to the error middleware.
 
 There is no `host` and no `port` here: a browser Worker has neither. `@venizia/ignis` widens the shape for hosts that bind a socket:
 
@@ -417,7 +437,7 @@ interface IServerApplicationConfigs extends IApplicationConfigs {
   host?: string;                          // Default: process.env.HOST, then APP_ENV_SERVER_HOST, then 'localhost'
   port?: number;                          // Default: process.env.PORT, then APP_ENV_SERVER_PORT, then 3000
   projectRoot?: string;                   // Bound as APPLICATION_PROJECT_ROOT (default: process.cwd())
-  server?: { idleTimeout?: number; maxRequestBodySize?: number }; // Bun.serve options, Bun runtime only
+  server?: { idleTimeout?: number; maxRequestBodySize?: number }; // Bun.serve options, Bun runtime only; idleTimeout in seconds (Bun caps it at 255), maxRequestBodySize in bytes
 }
 ```
 
@@ -454,7 +474,7 @@ class ControllerTransports {
   static readonly GRPC = 'grpc';
 }
 
-type TControllerTransport = 'rest' | 'grpc';
+type TControllerTransport = TConstValue<typeof ControllerTransports>;
 ```
 
 ## `IApplicationInfo`
@@ -465,9 +485,11 @@ interface IApplicationInfo {
   version: string;
   description: string;
   author?: { name: string; email: string; url?: string };
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 ```
+
+`IApplicationInfo` also allows extra keys.
 
 ## `CoreBindings`
 
@@ -521,8 +543,8 @@ The same file declares three more mixin interfaces that `IRestApplication` does 
 
 ## Middleware Configuration Types
 
-Bind `middlewares` under `configs` and the framework installs `bodyLimit` for you, right after the
-request id and ahead of every other middleware - see [Body limit](/references/base/middlewares#body-limit-configs-middlewares-bodylimit).
+Pass `middlewares` under `configs` to the constructor and the framework installs `cors` first and `bodyLimit` right after the
+request id, ahead of every other middleware - see [CORS](/references/base/middlewares#cors-configs-middlewares-cors) and [Body limit](/references/base/middlewares#body-limit-configs-middlewares-bodylimit).
 Every other key below is a type only; read it from `this.configs.middlewares` inside your own
 `setupMiddlewares()`.
 
@@ -534,15 +556,17 @@ interface IMiddlewareConfigs {
   csrf?: ICSRFOptions;
   bodyLimit?: IBodyLimitOptions;
   ipRestriction?: IBaseMiddlewareOptions & IIPRestrictionRules;
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 
 interface IBaseMiddlewareOptions {
   enable: boolean;
   path?: string;
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 ```
+
+Both `IMiddlewareConfigs` and `IBaseMiddlewareOptions` also allow extra keys.
 
 ## See Also
 

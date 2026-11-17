@@ -49,20 +49,26 @@ const run = (): number => {
         `${result.written ? 'wrote' : 'up to date'} ${options.out} | ${result.artifacts.length} artifact(s)`,
       );
       warnIgnored({ ignored: result.ignored, root: options.root });
+
       return 0;
     }
     case 'check': {
       const result = ArtifactIndexGenerator.check(options);
       warnIgnored({ ignored: result.ignored, root: options.root });
+
       if (result.isFresh) {
         console.log(`fresh ${options.out}`);
+
         return 0;
       }
+
       console.error(`stale ${options.out} - run: ${ArtifactIndexEmitter.renderCommand(options)}`);
+
       return 1;
     }
     default: {
       console.error(USAGE);
+
       return 2;
     }
   }

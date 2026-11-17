@@ -29,6 +29,7 @@ export class DomainHierarchyRoleManager extends BaseRoleManager implements RoleM
 
   async addLink(child: string, parent: string): Promise<void> {
     const existing = this.overlay.get(child);
+
     if (existing) {
       existing.add(parent);
     } else {
@@ -47,6 +48,7 @@ export class DomainHierarchyRoleManager extends BaseRoleManager implements RoleM
   syncedHasLink(name1: string, name2: string): boolean {
     this.reportGraphOnce(() => {
       const { nodeCount, edgeCount } = DomainHierarchyRoleManager.overlayStats(this.overlay);
+
       return {
         message: 'domain-hierarchy role manager initialized | nodes: %d | edges: %d | reversed: %s',
         args: [nodeCount, edgeCount, this.reversed],
@@ -88,6 +90,7 @@ export class DomainHierarchyRoleManager extends BaseRoleManager implements RoleM
       overlay: this.overlay,
       node: start,
     });
+
     return ancestors.includes(target);
   }
 }

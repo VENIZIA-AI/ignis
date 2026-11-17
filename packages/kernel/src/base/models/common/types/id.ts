@@ -1,6 +1,10 @@
+/** Numeric entity id. */
 export type NumberIdType = number;
+/** String entity id. */
 export type StringIdType = string;
+/** Bigint entity id. */
 export type BigIntIdType = bigint;
+/** Any id type an entity can use: number, string or bigint. */
 export type IdType = NumberIdType | StringIdType | BigIntIdType;
 
 declare const entityIdBrand: unique symbol;

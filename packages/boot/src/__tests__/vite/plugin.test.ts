@@ -12,6 +12,7 @@ const AUTO = resolve(process.cwd(), 'src', 'bun', 'auto.ts');
 const plugin = (opts: { root?: string; viteRoot: string }) => {
   const created = IgnisArtifactsVitePlugin.create({ root: opts.root });
   created.configResolved({ root: opts.viteRoot });
+
   return created;
 };
 

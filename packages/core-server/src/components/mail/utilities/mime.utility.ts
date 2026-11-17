@@ -1,8 +1,8 @@
-import { HTTP } from '@venizia/ignis-helpers/common';
-import { getError } from '@venizia/ignis-helpers/core';
-import { MailErrorCodes, type IMailAttachment, type IMailMessage } from '../common';
+import { TokenUidHelper, UidTokenEncodings } from '@venizia/ignis-helpers/core';
+import type { IMailAttachment, IMailMessage } from '../common';
 import { MailAddressUtility } from './address.utility';
 import { MailAttachmentUtility } from './attachment.utility';
+import { MailHeaderUtility } from './header.utility';
 
 const CRLF = '\r\n';
 const BASE64_LINE_LENGTH = 76;
@@ -19,9 +19,9 @@ const MAX_HEADER_HARD_LIMIT = 990;
 /** RFC 2047 caps one encoded-word (`=?charset?B?...?=` included) at 75 characters. */
 const ENCODED_WORD_MAX_LENGTH = 75;
 
-/** `bytes` random bytes as lowercase hex, from the platform CSPRNG. */
+/** `bytes` random bytes as lowercase hex, from the platform CSPRNG. `bytes` is at least 16, the floor of `TokenUidHelper`. */
 function generateRandomHex(opts: { bytes: number }): string {
-  return Buffer.from(crypto.getRandomValues(new Uint8Array(opts.bytes))).toString('hex');
+  return new TokenUidHelper({ bytes: opts.bytes, encoding: UidTokenEncodings.HEX }).nextId();
 }
 
 function isAscii(value: string): boolean {
@@ -152,6 +152,7 @@ function foldHeaderLine(line: string): string {
   }
 
   lines.push(remaining);
+
   return lines.join(CRLF);
 }
 
@@ -176,51 +177,9 @@ function encodeBufferBase64(buffer: Buffer): string {
   return foldBase64(buffer.toString('base64'));
 }
 
-/** A literal CR/LF/NUL inside a header-bound value would let it break out of its own header line and forge additional headers or smuggle body content - classic email header injection. Every value spliced into a raw header line is checked here first, so an attempt fails loudly instead of silently reaching the wire.
- *
- * `value` is `unknown`, not `string`: `IMailMessage`/`IMailAttachment` both end in
- * `[key: string]: any`, so nothing at the type layer stops a caller (e.g. a controller
- * forwarding a request body) from putting a non-string - notably an array - where a string is
- * declared. `Array.prototype.includes('\r')` checks element *equality*, not substring, so
- * `['x\r\nBcc: evil'].includes('\r')` is `false` and a naive string-only check would wave a
- * forged header straight through once it is later stringified by a template literal. Requiring
- * `typeof value === 'string'` up front closes that gap for every field that flows through here. */
-function assertNoHeaderInjection(opts: { field: string; value: unknown }): void {
-  const { field, value } = opts;
-
-  if (typeof value !== 'string') {
-    throw getError({
-      statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-      messageCode: MailErrorCodes.INVALID_CONFIGURATION,
-      message: `Invalid Amazon SES message | ${field} must be a string`,
-    });
-  }
-
-  if (!value.includes('\r') && !value.includes('\n') && !value.includes('\0')) {
-    return;
-  }
-
-  throw getError({
-    statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-    messageCode: MailErrorCodes.INVALID_CONFIGURATION,
-    message: `Invalid Amazon SES message | ${field} contains illegal control characters`,
-  });
-}
-
-/** Same guard as {@link assertNoHeaderInjection}, applied to every address in a `to`/`cc`/`bcc`
- * field individually - a string field only, not `[key: string]: any`; validating the raw
- * caller-provided value (before splitting/joining) both types and content-checks each entry. */
-function assertNoAddressListInjection(opts: { field: string; value: string | string[] }): void {
-  const { field, value } = opts;
-  const list = Array.isArray(value) ? value : [value];
-
-  for (const item of list) {
-    assertNoHeaderInjection({ field, value: item });
-  }
-}
-
 function extractDomain(address: string | undefined): string {
   const match = address ? /@([^@>\s]+)>?\s*$/.exec(address) : null;
+
   return match ? match[1] : 'localhost';
 }
 
@@ -228,32 +187,21 @@ function buildHeaders(message: IMailMessage): string[] {
   const headers: string[] = [];
 
   if (message.from) {
-    assertNoAddressListInjection({ field: 'from', value: message.from });
     headers.push(foldHeaderLine(`From: ${formatAddressList(message.from)}`));
   }
 
   if (message.to) {
-    assertNoAddressListInjection({ field: 'to', value: message.to });
     headers.push(foldHeaderLine(`To: ${formatAddressList(message.to)}`));
   }
 
   if (message.cc) {
-    assertNoAddressListInjection({ field: 'cc', value: message.cc });
     headers.push(foldHeaderLine(`Cc: ${formatAddressList(message.cc)}`));
   }
 
   if (message.replyTo) {
-    assertNoAddressListInjection({ field: 'replyTo', value: message.replyTo });
     headers.push(foldHeaderLine(`Reply-To: ${formatAddressList(message.replyTo)}`));
   }
 
-  // Checked, never emitted: a `Bcc:` header would disclose the blind recipients, so they travel as
-  // `Destination.BccAddresses`. Without this, `bcc` is the one address field that fails at AWS.
-  if (message.bcc) {
-    assertNoAddressListInjection({ field: 'bcc', value: message.bcc });
-  }
-
-  assertNoHeaderInjection({ field: 'subject', value: message.subject });
   headers.push(foldHeaderLine(`Subject: ${encodeHeaderValue(message.subject)}`));
   // RFC 5322 requires both on every message; SES's raw-message parser does not synthesize them,
   // so an omission here is an omission on the wire (some receiving MTAs reject a `Date`-less
@@ -264,9 +212,8 @@ function buildHeaders(message: IMailMessage): string[] {
 
   if (message.headers) {
     const messageHeadersEntries = Object.entries(message.headers);
+
     for (const [key, value] of messageHeadersEntries) {
-      assertNoHeaderInjection({ field: `headers.${key}`, value: key });
-      assertNoHeaderInjection({ field: `headers.${key}`, value });
       headers.push(foldHeaderLine(`${key}: ${encodeHeaderValue(value)}`));
     }
   }
@@ -314,6 +261,7 @@ function attachmentNameParams(attribute: 'name' | 'filename', value: string): st
   }
 
   const asciiFallback = value.replace(/[^\x20-\x7E]/g, '_');
+
   return (
     `; ${attribute}="${escapeQuotedString(asciiFallback)}"` +
     `; ${attribute}*=UTF-8''${encodeRfc2231(value)}`
@@ -324,14 +272,14 @@ async function attachmentPart(attachment: IMailAttachment, boundary: string): Pr
   // No root here: a `path` that did not go through `MailAttachmentUtility.resolve` is refused, never read.
   const content = await MailAttachmentUtility.readContent({ attachment });
   const contentType = attachment.contentType ?? 'application/octet-stream';
-  assertNoHeaderInjection({ field: 'attachment.contentType', value: contentType });
+  MailHeaderUtility.assertValue({ field: 'attachment.contentType', value: contentType });
 
   if (attachment.filename) {
-    assertNoHeaderInjection({ field: 'attachment.filename', value: attachment.filename });
+    MailHeaderUtility.assertValue({ field: 'attachment.filename', value: attachment.filename });
   }
 
   if (attachment.cid) {
-    assertNoHeaderInjection({ field: 'attachment.cid', value: attachment.cid });
+    MailHeaderUtility.assertValue({ field: 'attachment.cid', value: attachment.cid });
   }
 
   const nameAttribute = attachment.filename
@@ -358,10 +306,16 @@ async function attachmentPart(attachment: IMailAttachment, boundary: string): Pr
 
 /** Every boundary is generated the same way - a fixed prefix plus random hex - so no two nested multipart sections in one message can ever collide. */
 function newBoundary(label: string): string {
-  return `----=_${label}_${generateRandomHex({ bytes: 12 })}`;
+  return `----=_${label}_${generateRandomHex({ bytes: 16 })}`;
 }
 
+/** Builds the MIME pieces the Amazon SES transport sends: the raw message and RFC 5322 address headers. */
 export class MailMimeUtility {
+  /** Escapes `\` and `"` so a value can sit inside a quoted string: a display name, a MIME parameter. */
+  static escapeQuotedString(opts: { value: string }): string {
+    return escapeQuotedString(opts.value);
+  }
+
   /** Formats a `to`/`cc`/`from`/`replyTo` field as one RFC 5322 address list: splits a
    * comma-separated string or array into individual mailboxes, RFC 2047-encodes each display name,
    * and rejoins with `, ` - the same shape whether the caller passed a string or an array. */
@@ -397,6 +351,7 @@ export class MailMimeUtility {
       }
 
       const altBoundary = newBoundary('Alt');
+
       return [
         `--${boundary}`,
         `Content-Type: multipart/alternative; boundary="${altBoundary}"`,
@@ -412,6 +367,7 @@ export class MailMimeUtility {
     if (attachments.length === 0 && !hasBothBodies) {
       headers.push(`Content-Type: ${singleContentType}; charset=UTF-8`);
       headers.push('Content-Transfer-Encoding: base64');
+
       return Buffer.from([...headers, '', encodeTextBase64(singleContent)].join(CRLF), 'utf-8');
     }
 
@@ -423,6 +379,7 @@ export class MailMimeUtility {
         textPart(boundary, 'text/html', message.html ?? ''),
         `--${boundary}--`,
       ];
+
       return Buffer.from([...headers, '', parts.join(CRLF)].join(CRLF), 'utf-8');
     }
 
@@ -456,6 +413,7 @@ export class MailMimeUtility {
 
       parts.push(`--${relatedBoundary}--`);
       headers.push(`Content-Type: multipart/related; boundary="${relatedBoundary}"`);
+
       return Buffer.from([...headers, '', parts.join(CRLF)].join(CRLF), 'utf-8');
     }
 

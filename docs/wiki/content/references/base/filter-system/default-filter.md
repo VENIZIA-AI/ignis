@@ -7,7 +7,7 @@ lastUpdated: 2026-07-23
 
 # Default Filter <Badge type="tip" text="v0.0.5+" />
 
-A model's `settings.query.filter` merges into every `find`/`findOne`/`findById`/`count`/`updateById`/`updateAll`/`deleteById`/`deleteAll` call for that model. It's the standard way to implement soft delete, multi-tenancy, active-record scoping, and query-limit protection without repeating a `where` clause at every call site.
+A model's `settings.query.filter` merges into every `find`/`findOne`/`findById`/`count`/`updateById`/`updateBy`/`deleteById`/`deleteBy` call for that model. It's the standard way to implement soft delete, multi-tenancy, active-record scoping, and query-limit protection without repeating a `where` clause at every call site.
 
 ```typescript
 import { model, BaseEntity } from '@venizia/ignis';
@@ -25,9 +25,11 @@ export class User extends BaseEntity<typeof User.schema> {
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `settings.query.filter` | `TFilter` | none | Filter merged into every query for the model - `where`, `limit`, `offset`, `order`, `fields`, `include` are all valid inside it. |
-| `settings.query.limit.default` | `number` (positive integer) | `DEFAULT_LIMIT` (`10`) | Per-model row cap. Independent of `settings.query.filter` - see [Fields, Order & Pagination -> Default limit resolution](./fields-order-pagination#default-limit-resolution). |
+| `settings.query.filter` | `TFilter` | none | Filter merged into every query for the model (any `filter` property is valid) |
+| `settings.query.limit.default` | `number` (positive integer) | `DEFAULT_LIMIT` (`10`) | Per-model row cap, independent of `settings.query.filter` |
 | `options.shouldSkipDefaultFilter` | `boolean` | `false` | Skips the `settings.query.filter` merge for one call. Does not drop `settings.query.limit.default`. |
+
+`settings.query.filter` takes `where`, `limit`, `offset`, `order`, `fields` and `include`. For how `settings.query.limit.default` resolves, see [Fields, Order & Pagination -> Default limit resolution](./fields-order-pagination#default-limit-resolution).
 
 ```typescript
 import { userRepository } from '@/repositories';
@@ -54,15 +56,17 @@ Keys present on only one side pass through untouched. When the same key appears 
 
 | Default | Caller | Result |
 |---|---|---|
-| scalar | scalar | **Caller wins** - the one true override (`isDeleted: false` -> `isDeleted: true` opts an admin out of soft-delete) |
+| scalar | scalar | **Equal: one condition. Different: AND-composed** |
 | operator object | operator object | **AND-composed** into an `and: [...]` group - both conditions apply |
 | scalar | operator object | **AND-composed** |
 | operator object | scalar | **AND-composed** |
 
+A caller asking for `isDeleted: true` against the default `isDeleted: false` gets no rows. Server code that needs the hidden rows passes `shouldSkipDefaultFilter: true`.
+
 - **`and` collisions concatenate.** Both conjunct lists merge into one.
 - **`or` collisions cannot concatenate** - that would union, not narrow - so each side's `or` group becomes its own conjunct instead.
 - **Non-scalar collisions always AND-compose.** Take a default scope - a `createdAt` floor, a tenant `inq`. A caller filter can narrow it, but never widen or drop it.
-- **Only scalar-over-scalar is a true override.** Every other collision shape composes rather than replaces.
+- **There is no override.** Every collision shape composes rather than replaces, scalar-over-scalar included. A caller filter can narrow a default, never widen or drop it. To read what the default hides (a trash view, a restore screen), server code calls the repository with `options: { shouldSkipDefaultFilter: true }`; a request cannot send it. The row scope of `access.resolve` still composes outermost.
 
 ```typescript
 // Default: a floor on createdAt. Caller: an upper bound on the same key.
@@ -83,7 +87,7 @@ Non-colliding keys still combine with an implicit AND, exactly like two `where` 
 
 ## Bypassing the default filter
 
-Pass `shouldSkipDefaultFilter: true` in `options` to skip the merge entirely. Every repository verb honors it - `find`, `findOne`, `findById`, `count`, `updateById`, `updateAll`, `deleteById`, `deleteAll`:
+Pass `shouldSkipDefaultFilter: true` in `options` to skip the merge entirely. Every repository verb honors it - `find`, `findOne`, `findById`, `count`, `updateById`, `updateBy`, `deleteById`, `deleteBy`:
 
 ```typescript
 // Normal - default filter applies
@@ -101,7 +105,7 @@ await repository.find({
 > [!WARNING] It does not lift a row scope
 > `shouldSkipDefaultFilter` clears `settings.query.filter` only. A model's `settings.access` is AND-composed on top and stays applied - a tenant or ownership boundary must not be liftable by an options flag. See [`@model` options](/references/base/models-reference#options).
 
-`updateById` and `deleteById` merge the default filter into their `{ id }` condition the same way `updateAll`/`deleteAll` merge it into their `where`. The bypass applies to all four identically:
+`updateById` and `deleteById` merge the default filter into their `{ id }` condition the same way `updateBy`/`deleteBy` merge it into their `where`. The bypass applies to all four identically:
 
 ```typescript
 // Also merges the default filter into { id: postId } - skip to update a soft-deleted row
@@ -117,7 +121,7 @@ It composes with a transaction the same way any other option does:
 ```typescript
 const tx = await repository.beginTransaction();
 try {
-  await repository.updateAll({
+  await repository.updateBy({
     where: { status: 'archived' },
     data: { isDeleted: true },
     options: { transaction: tx, shouldSkipDefaultFilter: true },
@@ -129,7 +133,7 @@ try {
 }
 ```
 
-`updateAll`/`deleteAll` additionally require `force: true` when the resulting `where` is empty - see [Advanced Repository Features -> Empty where protection](../repositories/advanced#empty-where-protection).
+`updateBy`/`deleteBy` additionally require `force: true` when the resulting `where` is empty - see [Advanced Repository Features -> Empty where protection](../repositories/advanced#empty-where-protection).
 
 | Scenario | Why bypass |
 |---|---|
@@ -152,7 +156,7 @@ interface IWithTransaction {
 }
 ```
 
-`log` and `lock` are documented in [Advanced Repository Features](../repositories/advanced.md) - `log` only takes effect on write verbs (`create`/`updateById`/`updateAll`/`deleteById`/`deleteAll`), not on reads.
+`log` and `lock` are documented in [Advanced Repository Features](../repositories/advanced.md) - `log` only takes effect on write verbs (`create`/`updateById`/`updateBy`/`deleteById`/`deleteBy`), not on reads.
 
 ## Configuring a default filter
 
@@ -232,7 +236,7 @@ applyDefaultFilter(opts: { userFilter?: TFilter; shouldSkipDefaultFilter?: boole
 
 `getDefaultFilter()` reads `this.modelSettings?.query?.filter`. `modelSettings` is a protected getter on `AbstractRepository` (`packages/kernel/src/base/repositories/core/abstract.ts`), resolved from `MetadataRegistry` by the entity's constructor - not by name string - on first access, then memoized.
 
-Read verbs (`find`/`findOne`/`findById`/`count`) call `applyDefaultFilter()` directly. Write verbs (`updateById`/`updateAll`/`deleteById`/`deleteAll`) route through the shared `_update`/`_delete` helpers instead. Those helpers call it against `{ where: opts.where }` (or `{ id }` for the `ById` forms) before building the SQL condition.
+Read verbs (`find`/`findOne`/`findById`/`count`) call `applyDefaultFilter()` directly. Write verbs (`updateById`/`updateBy`/`deleteById`/`deleteBy`) route through the shared `_update`/`_delete` helpers instead. Those helpers call it against `{ where: opts.where }` (or `{ id }` for the `ById` forms) before building the SQL condition.
 
 > [!NOTE]
 > An older `DefaultFilterMixin` implemented this same behavior via mixin composition. It is no longer composed onto any repository class - see [Moved from the removed mixins](../repositories/advanced.md#moved-from-the-removed-mixins).
@@ -261,6 +265,6 @@ queryDialect.mergeFilter({
 - [`packages/connectors/src/relational/core/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/dialect/filter.ts) - `FilterBuilder.mergeFilter()`/`mergeWhere()`, the narrowing merge
 - [`packages/connectors/src/relational/core/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/base.ts) - `RelationalBaseRepository`, `applyDefaultFilter`/`applyScopeFilter`/`getDefaultFilter`/`getDefaultLimit`
 - [`packages/connectors/src/relational/core/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/readable.ts) - `find`/`findOne`/`count` calling `applyDefaultFilter`
-- [`packages/connectors/src/relational/core/repositories/core/persistable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/persistable.ts) - `_update`/`_delete` calling `applyDefaultFilter` for `updateById`/`updateAll`/`deleteById`/`deleteAll`
-- [`packages/kernel/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents.ts) - `@model` decorator, `settings.query.limit.default`/`settings.query.limit.max` validation
+- [`packages/connectors/src/relational/core/repositories/core/persistable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/persistable.ts) - `_update`/`_delete` calling `applyDefaultFilter` for `updateById`/`updateBy`/`deleteById`/`deleteBy`
+- [`packages/kernel/src/base/metadata/persistents/model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents/model.ts) - `@model` decorator, `settings.query.limit.default`/`settings.query.limit.max` validation
 - [`packages/kernel/src/base/repositories/common/types/options.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/types/options.ts) - `IExtraOptions`, `IWithTransaction`

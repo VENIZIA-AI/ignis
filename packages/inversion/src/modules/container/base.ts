@@ -10,12 +10,20 @@ const CYCLE_CHECK_DEPTH = 64;
 
 /** Storage half of the container, keyed by normalized binding-key strings - resolution (`instantiate`) stays abstract, it is the part an implementation swaps. */
 export abstract class BaseContainer extends AbstractContainer {
-  protected bindings = new Map<string, Binding>();
+  /**
+   * Every binding of the container, whatever its `T`. The one deliberate `any` of the container: `Binding<T>` is invariant in `T` and this store holds every `T`, so no concrete type argument lets a lookup answer the `Binding<T>` its caller names without a cast. Everything around it is typed; a token-keyed container is the way to remove it.
+   */
+  protected bindings = new Map<string, Binding<any>>();
 
   /** How often each bound key has been handed out since counting started. */
   protected resolutionCounts = new Map<string, number>();
 
-  /** Off by default: the counter sits on the hottest path in the container, and an application that never reads the report should not pay for it. */
+  /**
+   * Whether resolutions are counted. The counter sits on the hottest path in the container, and an
+   * application that never reads the report should not pay for it.
+   *
+   * @default false
+   */
   protected isCountingResolutions = false;
 
   /** Whether `startResolutionCounting` has ever run. A report read without it would name every binding, which is a wrong answer rather than an empty one. */
@@ -75,6 +83,7 @@ export abstract class BaseContainer extends AbstractContainer {
     const { key } = opts;
 
     const known = this.symbolKeys.get(key);
+
     if (known !== undefined) {
       return known;
     }
@@ -85,6 +94,7 @@ export abstract class BaseContainer extends AbstractContainer {
 
     const keyStr = count === 1 ? description : `${description}#${count}`;
     this.symbolKeys.set(key, keyStr);
+
     return keyStr;
   }
 
@@ -92,12 +102,14 @@ export abstract class BaseContainer extends AbstractContainer {
     const { key } = opts;
     const keyStr = typeof key === 'symbol' ? this.bindSymbolKey({ key }) : key;
     const binding = new Binding<T>({ key: keyStr });
-    this.bindings.set(keyStr, binding as Binding);
+    this.bindings.set(keyStr, binding);
+
     return binding;
   }
 
   override isBound(opts: { key: TBindingKey }): boolean {
     const keyStr = this.toKeyString({ key: opts.key });
+
     return keyStr !== undefined && this.bindings.has(keyStr);
   }
 
@@ -105,6 +117,7 @@ export abstract class BaseContainer extends AbstractContainer {
     key: TBindingKey | { namespace: string; key: string };
   }): TNullable<Binding<T>> {
     const keyStr = this.toKeyString({ key: opts.key });
+
     return keyStr === undefined ? undefined : this.bindings.get(keyStr);
   }
 
@@ -139,6 +152,7 @@ export abstract class BaseContainer extends AbstractContainer {
     const { key, isOptional = false } = opts;
 
     const binding = this.getBinding<T>({ key });
+
     if (binding) {
       // Counted here and nowhere else: constructor injection, property injection, `application.get`
       // and `BindingVerifier.verify` all arrive through this one method. A miss below is not a resolution.
@@ -169,6 +183,7 @@ export abstract class BaseContainer extends AbstractContainer {
         return binding.getValue(this);
       } finally {
         this.resolutionDepth--;
+
         if (isTracked) {
           this.resolvingKeys.delete(binding.key);
         }
@@ -221,7 +236,7 @@ export abstract class BaseContainer extends AbstractContainer {
     return this.instantiate(cls);
   }
 
-  override findByTag<T = any>(opts: {
+  override findByTag<T = unknown>(opts: {
     tag: string;
     exclude?: Array<string> | Set<string>;
   }): Binding<T>[] {
@@ -230,6 +245,7 @@ export abstract class BaseContainer extends AbstractContainer {
     const rs: Binding<T>[] = [];
 
     const bindings = this.bindings.values();
+
     for (const binding of bindings) {
       if (!binding.hasTag(tag)) {
         continue;
@@ -251,6 +267,7 @@ export abstract class BaseContainer extends AbstractContainer {
 
   override clear(): void {
     const bindings = this.bindings.values();
+
     for (const binding of bindings) {
       binding.clearCache();
     }

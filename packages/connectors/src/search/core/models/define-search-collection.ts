@@ -41,6 +41,7 @@ const makeFieldBuilder =
     return buildField({ name, type, flags: opts });
   };
 
+/** Builders for `ISearchFieldDefinition` entries: `id()` is the reserved `id` string field, the rest set the field type and accept `TFieldFlags`; `vector` takes `dimensions`, `distance` and `embed` instead. */
 export const field = {
   id: (): { name: 'id'; type: 'string' } => {
     return { name: 'id', type: SearchFieldTypes.STRING };
@@ -81,6 +82,7 @@ export const field = {
   },
 };
 
+/** `define()` validates a collection definition and returns it with its field literals preserved. It throws on an empty name or two synonyms with one id. */
 export class SearchCollectionFactory {
   /** @throws when two synonym sets in the same collection share an id. */
   private static assertUniqueSynonymIds(opts: {
@@ -118,6 +120,7 @@ export class SearchCollectionFactory {
     }
 
     const seenNames = new Set<string>();
+
     for (const definitionField of fields) {
       if (seenNames.has(definitionField.name)) {
         throw getError({
@@ -126,6 +129,12 @@ export class SearchCollectionFactory {
       }
 
       seenNames.add(definitionField.name);
+
+      if (definitionField.nullable && !definitionField.optional) {
+        throw getError({
+          message: `[defineSearchCollection] Invalid nullable field | nullable needs optional: true | name: ${name} | field: ${definitionField.name}`,
+        });
+      }
     }
 
     const idField = fields.find((item) => item.name === 'id');
@@ -160,10 +169,7 @@ export class SearchCollectionFactory {
           });
         }
 
-        if (
-          queryByField.type !== SearchFieldTypes.STRING &&
-          queryByField.type !== SearchFieldTypes.STRING_ARRAY
-        ) {
+        if (!SearchFieldTypes.isText(queryByField.type)) {
           throw getError({
             message: `[defineSearchCollection] Invalid defaultQueryBy | full-text search matches text fields only (string, string[]) | name: ${name} | field: ${queryByFieldName} | type: ${queryByField.type}`,
           });
@@ -191,7 +197,10 @@ export class SearchCollectionFactory {
     type: TSchemaType;
   }): z.ZodType {
     const { definition, type } = opts;
-    const shape = buildShape(definition.fields);
+    // A read fills a nullable field the engine dropped; a write leaves it absent.
+    const shape = buildShape(definition.fields, {
+      shouldFillNullable: type === SchemaTypes.SELECT,
+    });
 
     switch (type) {
       case SchemaTypes.SELECT: {

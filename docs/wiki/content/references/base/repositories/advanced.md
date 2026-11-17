@@ -260,7 +260,7 @@ Fields like `password` must never leave the database by accident. Declare them o
 ```typescript
 @model({
   settings: {
-    hiddenProperties: ['password', 'secret', 'apiKey'],
+    properties: { hidden: ['password', 'secret', 'apiKey'] },
   },
 })
 export class User extends BaseEntity<typeof User.schema> {
@@ -373,7 +373,7 @@ const result2 = await repository.create({ data: { name: 'John' } });
 console.log(result2.data.name); // 'John' - fully typed
 ```
 
-The same inference applies to `createAll`, `updateById`, `updateAll`, `updateBy`, `deleteById`, `deleteAll`, `deleteBy`.
+The same inference applies to `createAll`, `updateById`, `updateBy`, `deleteById`, `deleteBy`.
 
 ### Generic return types
 
@@ -391,7 +391,7 @@ if (user) {
 }
 ```
 
-**Supported on:** `find<R>()`, `findOne<R>()`, `findById<R>()`, `create<R>()`, `createAll<R>()`, `updateById<R>()`, `updateAll<R>()`, `updateBy<R>()`, `deleteById<R>()`, `deleteAll<R>()`, `deleteBy<R>()`.
+**Supported on:** `find<R>()`, `findOne<R>()`, `findById<R>()`, `create<R>()`, `createAll<R>()`, `updateById<R>()`, `updateBy<R>()`, `updateBy<R>()`, `deleteById<R>()`, `deleteBy<R>()`, `deleteBy<R>()`.
 
 ## Debugging
 
@@ -414,7 +414,7 @@ await repository.create({
 | `warn` | Notable but non-fatal conditions |
 | `error` | Failure paths |
 
-**Supported on:** `create`, `createAll`, `updateById`, `updateAll`, `updateBy`, `deleteById`, `deleteAll`, `deleteBy` - every write operation that goes through the internal `_create`, `_update`, or `_delete` methods.
+**Supported on:** `create`, `createAll`, `updateById`, `updateBy`, `deleteById`, `deleteBy` - every write operation that goes through the internal `_create`, `_update`, or `_delete` methods.
 
 ### Query interface validation
 
@@ -431,14 +431,14 @@ Error: [UserRepository] Schema key mismatch
 
 ### Empty where protection
 
-`updateAll`/`updateBy`/`deleteAll`/`deleteBy` refuse an empty `where` unless `force: true` is passed, to block accidental mass updates and deletes:
+`updateBy`/`deleteBy` refuse an empty `where` unless `force: true` is passed, to block accidental mass updates and deletes:
 
 ```typescript
 // Throws - empty where without force
-await repository.deleteAll({ where: {} });
+await repository.deleteBy({ where: {} });
 
 // Explicit force - logs a warning, proceeds
-await repository.deleteAll({ where: {}, options: { force: true } });
+await repository.deleteBy({ where: {}, options: { force: true } });
 // Warning: [_delete] Entity: User | Performing delete with empty condition
 ```
 
@@ -482,12 +482,16 @@ All the behavior lives on the engine-neutral `*RelationalRepository` ladder. Eac
 
 | Neutral class | Scope | Description |
 |---|---|---|
-| `AbstractRepository` | N/A | Engine-neutral abstract base (`@venizia/ignis-kernel`), defines every method signature, lazy `dataSource`/`entity` resolution, the `limit` shape and ceiling checks. Plain `BaseHelper` subclass, no mixin composition. |
-| `RelationalBaseRepository` | N/A | Relational base. Adds `FilterBuilder`/`UpdateBuilder`, hidden-column exclusion (`getHiddenProperties`/`getVisibleProperties`), default-filter application (`getDefaultFilter`/`applyDefaultFilter`) - the behavior formerly provided by the now-removed `FieldsVisibilityMixin`/`DefaultFilterMixin` (see [Moved from the removed mixins](#moved-from-the-removed-mixins)). |
+| `AbstractRepository` | N/A | Engine-neutral abstract base (`@venizia/ignis-kernel`) |
+| `RelationalBaseRepository` | N/A | Relational base. Adds the builders, hidden columns and the default filter |
 | `ReadableRelationalRepository` | `READ_ONLY` | Read-only operations (`find`, `findOne`, `findById`, `count`, `existsWith`). Write operations throw. |
 | `PersistableRelationalRepository` | `READ_WRITE` | Adds write operations (`create`, `update`, `delete`) with `UpdateBuilder`. |
 | `DefaultRelationalRepository` | `READ_WRITE` | Extends `PersistableRelationalRepository` with no additional logic - **recommended default**. |
 | `SoftDeletableRelationalRepository` | `READ_WRITE` | Extends `DefaultRelationalRepository` with soft delete and restore - see [SoftDeletableRepository](./soft-deletable). |
+
+`AbstractRepository` defines every method signature, lazy `dataSource`/`entity` resolution, the `limit` shape and ceiling checks. It is a plain `BaseHelper` subclass, with no mixin composition.
+
+`RelationalBaseRepository` adds `FilterBuilder`/`UpdateBuilder`, hidden-column exclusion (`getHiddenProperties`/`getVisibleProperties`) and default-filter application (`getDefaultFilter`/`applyDefaultFilter`). That is the behavior formerly provided by the now-removed `FieldsVisibilityMixin`/`DefaultFilterMixin`; see [Moved from the removed mixins](#moved-from-the-removed-mixins).
 
 Each engine binding extends its own neutral rung, never the engine's previous rung. `DefaultCRUDRepository extends DefaultRelationalRepository`, not `PersistableRepository`. The five Postgres classes are siblings, not a ladder:
 
@@ -510,13 +514,6 @@ export class AuditLogRepository extends ReadableRepository<typeof AuditLog.schem
   // Write operations throw a "NOT ALLOWED" error
 }
 ```
-
-### Alias methods
-
-`AbstractRepository` provides two alias methods for convenience, both delegating directly and supporting the same `shouldReturn`/`force` options:
-
-- `updateBy(opts)` - alias for `updateAll(opts)`.
-- `deleteBy(opts)` - alias for `deleteAll(opts)`.
 
 ### Moved from the removed mixins
 
@@ -550,15 +547,15 @@ await repository.find({
 await repository.find({ filter, options: { shouldSkipDefaultFilter: true } });
 await repository.findOne({ filter, options: { shouldSkipDefaultFilter: true } });
 await repository.count({ where, options: { shouldSkipDefaultFilter: true } });
-await repository.updateAll({ where, data, options: { shouldSkipDefaultFilter: true } });
-await repository.deleteAll({ where, options: { shouldSkipDefaultFilter: true, force: true } });
+await repository.updateBy({ where, data, options: { shouldSkipDefaultFilter: true } });
+await repository.deleteBy({ where, options: { shouldSkipDefaultFilter: true, force: true } });
 ```
 
 > [!TIP]
 > Combine it with a transaction for an atomic admin operation:
 > ```typescript
 > const tx = await repository.beginTransaction();
-> await repository.updateAll({
+> await repository.updateBy({
 >   where: { status: 'archived' },
 >   data: { isDeleted: true },
 >   options: { transaction: tx, shouldSkipDefaultFilter: true },
@@ -617,8 +614,10 @@ Read operations (`find`, `findOne`, `findById`) additionally support:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `retry` | `IReadRetryOptions` | - | Re-read with backoff until a predicate passes - see [Read Retry](#read-retry-replica-lag). Skipped inside a transaction. Not accepted by write operations. |
+| `retry` | `IReadRetryOptions` | - | Re-read with backoff until a predicate passes - see [Read Retry](#read-retry-replica-lag) |
 | `shouldQueryRange` | `boolean` | `false` | Return `{ data, range }` with the total count. `find` only |
+
+`retry` is skipped inside a transaction, and write operations do not accept it.
 
 Write operations additionally support:
 

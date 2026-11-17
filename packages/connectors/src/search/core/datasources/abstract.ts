@@ -7,6 +7,9 @@ import type { ISearchQueryDialect, TMultiSearchEntry } from '@/search/core/repos
 export abstract class AbstractSearchDataSource<
   Settings extends object = {},
 > extends AbstractDataSource<Settings, TSearchSchema> {
+  /** Phantom, never set at runtime: the engine's typed tuning knobs, read by `SearchControllerFactory.build` to type `query`. A datasource that does not bind it leaves `query.tuning` closed; `TypesenseDataSource` binds `ITypesenseTuning`. */
+  declare readonly $inferTuning?: unknown;
+
   abstract getConnector(): ISearchConnector;
 
   abstract getQueryDialect(): ISearchQueryDialect;

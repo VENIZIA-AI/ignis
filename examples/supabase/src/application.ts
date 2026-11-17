@@ -14,6 +14,7 @@ import {
   type TJWTTokenServiceOptions,
 } from '@venizia/ignis';
 import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
+import { getJwtClaims } from '@/common/jwt-claims';
 import appInfo from '../package.json';
 
 export class Application extends BaseApplication {
@@ -36,10 +37,11 @@ export class Application extends BaseApplication {
     this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
       standard: JOSEStandards.JWS,
       options: {
-        jwtSecret: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_SECRET),
+        jwtSecret: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_JWT_SECRET),
+        claims: getJwtClaims(),
         getTokenExpiresFn: () =>
           ParseUtility.toInt({
-            input: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN),
+            input: applicationEnvironment.get(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN),
           }),
       },
     });

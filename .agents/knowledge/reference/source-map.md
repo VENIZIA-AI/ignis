@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Layout: [monorepo layout](/overview/monorepo-layout.md).
 
-**1113 source files across 9 packages.**
+**1193 source files across 9 packages.**
 
 ## boot  (27 source files)
 
@@ -23,22 +23,22 @@ generated:
 | `vite/` | 2 |
 | `clis/` | 1 |
 
-## connectors  (237 source files)
+## connectors  (250 source files)
 
 | Subsystem | Files |
 |---|---|
-| `relational/` | 138 |
-| `search/` | 77 |
+| `relational/` | 143 |
+| `search/` | 84 |
 | `common/` | 7 |
 | `http/` | 7 |
 | `raw-sql/` | 5 |
-| `testing/` | 2 |
+| `testing/` | 3 |
 
-## core-server  (193 source files)
+## core-server  (220 source files)
 
 | Subsystem | Files |
 |---|---|
-| `components/` | 160 |
+| `components/` | 187 |
 | `base/` | 22 |
 | `utilities/` | 3 |
 | `common/` | 2 |
@@ -54,30 +54,30 @@ generated:
 | `applications/` | 4 |
 | `envelope/` | 4 |
 
-## dev-configs  (78 source files)
+## dev-configs  (87 source files)
 
 | Subsystem | Files |
 |---|---|
-| `linters/` | 35 |
-| `cli/` | 24 |
+| `linters/` | 41 |
+| `cli/` | 27 |
 | `checks/` | 11 |
 | `testing/` | 5 |
 | `compilers/` | 2 |
 
-## filter  (8 source files)
+## filter  (10 source files)
 
 | Subsystem | Files |
 |---|---|
-| `schemas/` | 4 |
-| `common/` | 3 |
+| `schemas/` | 5 |
+| `common/` | 4 |
 
-## helpers  (306 source files)
+## helpers  (319 source files)
 
 | Subsystem | Files |
 |---|---|
-| `modules/` | 274 |
-| `common/` | 17 |
-| `utilities/` | 11 |
+| `modules/` | 284 |
+| `common/` | 18 |
+| `utilities/` | 13 |
 
 ## inversion  (35 source files)
 
@@ -86,11 +86,11 @@ generated:
 | `modules/` | 29 |
 | `common/` | 5 |
 
-## kernel  (209 source files)
+## kernel  (225 source files)
 
 | Subsystem | Files |
 |---|---|
-| `base/` | 173 |
+| `base/` | 187 |
 | `helpers/` | 23 |
 | `common/` | 8 |
-| `utilities/` | 2 |
+| `utilities/` | 3 |

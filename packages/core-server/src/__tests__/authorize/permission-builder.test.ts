@@ -113,6 +113,7 @@ describe('AuthorizationPermissionBuilder.crud', () => {
       methods: ['find', 'create'],
     });
     expect(rows).toHaveLength(2);
+
     for (const row of rows) {
       expect(row.description).toBe(`${row.method} SaleOrder`);
     }

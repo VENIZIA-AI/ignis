@@ -1,4 +1,3 @@
-import type { AnyType } from '@/common/types';
 /** AbstractRedisHelper - arg-mapping, empty-array guards, boolean mapping, camelCase cleanup, against a mock ioredis client substituted into RedisSingleHelper via bracket access. */
 
 import { describe, expect, it, mock, beforeEach } from 'bun:test';
@@ -80,7 +79,8 @@ function buildHelper() {
     autoConnect: false,
   });
   // Inject mock client via bracket access (client is a public field on AbstractRedisHelper)
-  (helper as AnyType as { client: MockRedisClient }).client = mockClient;
+  Reflect.set(helper, 'client', mockClient);
+
   return { helper, mockClient };
 }
 
@@ -89,22 +89,22 @@ function buildHelper() {
 describe('camelCase cleanup — lowercase methods removed', () => {
   it('hset is undefined on the helper', () => {
     const { helper } = buildHelper();
-    expect((helper as AnyType as Record<string, unknown>).hset).toBeUndefined();
+    expect(Reflect.get(helper, 'hset')).toBeUndefined();
   });
 
   it('hgetall is undefined on the helper', () => {
     const { helper } = buildHelper();
-    expect((helper as AnyType as Record<string, unknown>).hgetall).toBeUndefined();
+    expect(Reflect.get(helper, 'hgetall')).toBeUndefined();
   });
 
   it('mset is undefined on the helper', () => {
     const { helper } = buildHelper();
-    expect((helper as AnyType as Record<string, unknown>).mset).toBeUndefined();
+    expect(Reflect.get(helper, 'mset')).toBeUndefined();
   });
 
   it('mget is undefined on the helper', () => {
     const { helper } = buildHelper();
-    expect((helper as AnyType as Record<string, unknown>).mget).toBeUndefined();
+    expect(Reflect.get(helper, 'mget')).toBeUndefined();
   });
 
   it('camelCase hSet, hGetAll, mSet, mGet are present', () => {

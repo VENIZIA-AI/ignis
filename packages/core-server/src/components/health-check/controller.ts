@@ -88,6 +88,7 @@ const RouteConfigs = {
   },
 } as const;
 
+/** Serves the health routes: the root summary and `/ping` always, `/stats` only when `IHealthCheckOptions.stats` allows it and the request is authorized. */
 export class HealthCheckController extends BaseRestController {
   /**
    * Both dependencies arrive through the container, so two applications in one process each get
@@ -117,6 +118,7 @@ export class HealthCheckController extends BaseRestController {
       this.logger
         .for(this.binding.name)
         .debug('Stats route disabled | path: %s', HealthCheckRestPaths.STATS);
+
       return;
     }
 

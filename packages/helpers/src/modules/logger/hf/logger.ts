@@ -1,4 +1,3 @@
-import { type AnyType } from '@/common/types';
 import { AbstractLogger } from '../base';
 import { type ILogger, LogLevels, LoggerDebugGate, type TLogLevel } from '../common';
 import { LogFormatUtility } from '../formatting';
@@ -41,42 +40,52 @@ export class HfLogger extends AbstractLogger {
 
   private static encodeScope(scope: string): Uint8Array {
     let bytes = HfLogger.scopeCache.get(scope);
+
     if (!bytes) {
       bytes = HfLogger.textEncoder.encode(scope).subarray(0, HF_SCOPE_MAX_BYTES);
       HfLogger.scopeCache.set(scope, bytes);
     }
+
     return bytes;
   }
 
   static get(scope: string): HfLogger {
     let logger = this.cache.get(scope);
+
     if (!logger) {
       logger = new HfLogger(scope); // first logger allocates the ring - never at import
       this.cache.set(scope, logger);
     }
+
     return logger;
   }
 
   /** Pre-encode a message at initialization time; the cache is FIFO-bounded so dynamic strings can't grow it without limit. */
   static encodeMessage(message: string): Uint8Array {
     const cached = this.messageCache.get(message);
+
     if (cached) {
       return cached;
     }
 
     const bytes = HfLogger.textEncoder.encode(message);
+
     if (this.messageCache.size >= MESSAGE_CACHE_CAP) {
       this.evictOldestMessage();
     }
+
     this.messageCache.set(message, bytes);
+
     return bytes;
   }
 
   private static evictOldestMessage(): void {
     const oldest = this.messageCache.keys().next().value;
+
     if (oldest === undefined) {
       return;
     }
+
     this.messageCache.delete(oldest);
   }
 
@@ -100,54 +109,61 @@ export class HfLogger extends AbstractLogger {
     );
   }
 
-  private writeString(levelCode: number, message: string, args: Array<AnyType>): void {
+  private writeString(levelCode: number, message: string, args: unknown[]): void {
     if (args.length > 0) {
       // Slow path, documented: args are formatted (deep inspection + redaction) - never dropped.
       this.writeEntry(
         levelCode,
         HfLogger.textEncoder.encode(LogFormatUtility.formatMessage({ message, args })),
       );
+
       return;
     }
+
     this.writeEntry(levelCode, HfLogger.encodeMessage(message));
   }
 
-  debug(message: string, ...args: AnyType[]): void {
+  debug(message: string, ...args: unknown[]): void {
     if (!LoggerDebugGate.isOpen()) {
       return;
     }
+
     this.writeString(HF_LEVEL_CODES.debug, message, args);
   }
 
-  info(message: string, ...args: AnyType[]): void {
+  info(message: string, ...args: unknown[]): void {
     this.writeString(HF_LEVEL_CODES.info, message, args);
   }
 
-  warn(message: string, ...args: AnyType[]): void {
+  warn(message: string, ...args: unknown[]): void {
     this.writeString(HF_LEVEL_CODES.warn, message, args);
   }
 
-  error(message: string, ...args: AnyType[]): void {
+  error(message: string, ...args: unknown[]): void {
     this.writeString(HF_LEVEL_CODES.error, message, args);
   }
 
-  emerg(message: string, ...args: AnyType[]): void {
+  emerg(message: string, ...args: unknown[]): void {
     this.writeString(HF_LEVEL_CODES.emerg, message, args);
   }
 
-  log(level: TLogLevel, message: string, ...args: AnyType[]): void;
+  log(level: TLogLevel, message: string, ...args: unknown[]): void;
   log(level: TLogLevel, messageBytes: Uint8Array): void;
-  log(level: TLogLevel, message: string | Uint8Array, ...args: AnyType[]): void {
+  log(level: TLogLevel, message: string | Uint8Array, ...args: unknown[]): void {
     if (level === LogLevels.DEBUG && !LoggerDebugGate.isOpen()) {
       return;
     }
+
     const levelCode = Object.hasOwn(HF_LEVEL_CODES, level)
       ? HF_LEVEL_CODES[level]
       : HF_LEVEL_CODES.info;
+
     if (typeof message === 'string') {
       this.writeString(levelCode, message, args);
+
       return;
     }
+
     this.writeEntry(levelCode, message);
   }
 

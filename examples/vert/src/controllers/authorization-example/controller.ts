@@ -26,6 +26,7 @@ export class AuthorizationExampleController extends BaseRestController {
       configs: RouteConfigs['/profile'],
       handler: (context) => {
         const user = context.get(Authentication.CURRENT_USER);
+
         return context.json(
           { message: 'Authenticated user profile', userId: String(user?.userId ?? 'unknown') },
           HTTP.ResultCodes.RS_2.Ok,

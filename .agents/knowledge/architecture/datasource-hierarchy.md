@@ -6,6 +6,20 @@ resource: packages/connectors/src
 tags: [architecture, datasource, connectors, drizzle, postgres, search]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [The real layering](#the-real-layering)
+- [A raw-SQL engine sits beside the relational branch, not under it](#a-raw-sql-engine-sits-beside-the-relational-branch-not-under-it)
+- [Datasources are singletons](#datasources-are-singletons)
+- [Schema auto-discovery, not manual config](#schema-auto-discovery-not-manual-config)
+- [A datasource can open on first use](#a-datasource-can-open-on-first-use)
+- [Lazy resolution](#lazy-resolution)
+- [The driver is a CLASS, not a string](#the-driver-is-a-class-not-a-string)
+- [Closing](#closing)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 A DataSource owns the connection to one backing engine. IGNIS does not have a single DataSource base class per engine - it has a **paradigm-family** split under `packages/connectors/src`, the `@venizia/ignis-connectors` package, rooted at an engine-neutral base in `packages/kernel/src/base/datasources`. That base sits in the browser-pure `@venizia/ignis-kernel` package, and `@venizia/ignis` re-exports both: the whole kernel, plus `packages/core-server/src/connectors`, which is now only a shim of alias barrels forwarding to `@venizia/ignis-connectors` - import paths for consumers are unchanged.
 
 Sub-path **names** stay flat (`@venizia/ignis-connectors/postgres`, `/sqlite`, `/typesense`, `/meilisearch`) even though the source folders nest each engine under its family, `relational/` or `search/`.
@@ -58,6 +72,10 @@ override getSchema(): Schema {
 ```
 
 `discoverSchema()` calls `registry.buildSchema({ dataSource })` and merges `schema` with `relations`. `BaseSearchDataSource` mirrors it with `discoverCollections()` over the shared `discoverDefinitions()` helper, reading each bound model's static `searchCollection` (the dual-schema escape hatch for a Postgres entity that also carries a search index) and falling back to a shape-guarded static `schema`. Passing `schema` into the constructor, or `@datasource({ autoDiscovery: false })`, opts out.
+
+## A datasource can open on first use
+
+`@datasource({ open: { on: 'first-use' } })` (default `start`). The boot (`registerDynamicBindings`, DATASOURCE namespace) calls `deferOpen({ options })` instead of `configure()`; `AbstractDataSource.ensureOpen()` runs `configure(options)` once on the first call, concurrent callers share the promise, a failure runs `discardPartialOpen()` (the driver base ends the half-built client and clears driver/connector) and frees the slot for a retry, `close()` settles an open in flight first (`settleOpening()`) and refuses any later open. Only a family whose every entry point awaits `ensureOpen()` says `supportsDeferredOpen()`: the relational one does (`acquireConnector()` in the repository, `beginTransaction()`); search and raw SQL refuse `first-use` at boot. `getConnector()`/`getClient()` stay synchronous and throw until the datasource is open ("still opening" while it opens, "closed" after `close()`). **The open's own database work uses explicit handles, not ambient context:** `configure(options, opening)` gets `IDataSourceOpening<TConnector, Client, TTransaction>` (`getConnector`, `getClient`, `beginTransaction`) bound to the UNGATED internals (`createOpening()`, protected; the boot reaches it only through `[OPENING_HANDLES]()`, a symbol made with `Symbol()` in `base/datasources/opening-handles.ts` and NOT exported from the package, so there is no public accessor: an earlier `getOpening()` let any code take the handles during the open and query before the migrations ran; the relational family adds `openTransaction`). A `configure()` that never settles keeps the datasource unopenable until a restart (`timeoutMs` only releases the waiters), passed in start mode too by the boot, so one body serves both modes and no other caller can slip in (AsyncLocalStorage does not exist in a browser Worker, the target of this feature). A repository inside configure waits on itself; `open.timeoutMs` (default 60 s) turns that, or any hang, into a named rejection: the attempt is ABANDONED (`abandoned` promise): no second configure runs while it lives, and when it settles `discardPartialOpen()` closes what it built, so a late configure never publishes a client. `discardPartialOpen` never clears a `closePromise` that a pending `close()` owns. Every connector resolution in the framework awaits `ensureOpen()`: repository verbs via `acquireConnector()`, `beginTransaction()`, and the casbin adapters via `PolicyConnectorResolver.resolve` (async).
 
 ## Lazy resolution
 

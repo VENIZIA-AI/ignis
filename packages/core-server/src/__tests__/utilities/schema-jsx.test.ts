@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { AnyObjectSchema, OpenApiResponses, OpenApiSchemas } from '@/utilities';
-import { HTTP, type AnyType } from '@venizia/ignis-helpers/common';
+import { HTTP } from '@venizia/ignis-helpers/common';
 
 describe('OpenApiSchemas.requiredString', () => {
   test('rejects an empty string with no options at all', () => {
@@ -54,7 +54,7 @@ describe('OpenApiResponses.htmlContent / htmlResponse', () => {
   });
 
   test('OpenApiResponses.htmlResponse pairs the OK html body with a json error body', () => {
-    const response = OpenApiResponses.htmlResponse({ description: 'A page' }) as AnyType;
+    const response = OpenApiResponses.htmlResponse({ description: 'A page' });
 
     const okResponse = response[HTTP.ResultCodes.RS_2.Ok];
     expect(okResponse.description).toBe('A page');
@@ -62,6 +62,6 @@ describe('OpenApiResponses.htmlContent / htmlResponse', () => {
 
     expect(response['4XX'].content['application/json'].schema).toBeDefined();
     expect(response['5XX'].content['application/json'].schema).toBeDefined();
-    expect(response['4xx | 5xx']).toBeUndefined();
+    expect(Reflect.get(response, '4xx | 5xx')).toBeUndefined();
   });
 });

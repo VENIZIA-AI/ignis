@@ -1,4 +1,3 @@
-import type { AnyType } from '@/common/types';
 /** WebSocket Helpers Test Suite */
 
 import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test';
@@ -13,7 +12,7 @@ import {
   WebSocketEmitter,
 } from '@/modules/socket/websocket';
 import type { IWebSocketServerOptions, IRedisSocketMessage } from '@/modules/socket/websocket';
-import { type IRedisHelper } from '@/modules/redis';
+import { AbstractRedisHelper, type IRedisHelper, type TRedisClient } from '@/modules/redis';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -56,6 +55,7 @@ class MockRedisClient extends EventEmitter {
   duplicate = mock(() => {
     const dup = new MockRedisClient();
     dup.status = this.status;
+
     return dup;
   });
 
@@ -69,6 +69,7 @@ class MockRedisClient extends EventEmitter {
 
   publish = mock((channel: string, message: string) => {
     this.publishedMessages.push({ channel, message });
+
     return Promise.resolve(1);
   });
 
@@ -83,14 +84,37 @@ class MockRedisClient extends EventEmitter {
   }
 }
 
+const toRedisClient = (client: MockRedisClient): TRedisClient => {
+  const isRedisClient = (value: unknown): value is TRedisClient => value instanceof EventEmitter;
+
+  if (!isRedisClient(client)) {
+    throw new Error('[toRedisClient] The fake is not an event emitter');
+  }
+
+  return client;
+};
+
+/** A real helper over the fake client: it hands out the fake's `duplicate()` results, which the tests inspect. */
+class MockRedisHelper extends AbstractRedisHelper {
+  readonly mockClient: MockRedisClient;
+
+  constructor(mockClient: MockRedisClient = new MockRedisClient()) {
+    super({
+      scope: 'MockRedisHelper',
+      identifier: 'mock-redis',
+      client: toRedisClient(mockClient),
+    });
+
+    this.mockClient = mockClient;
+  }
+
+  override duplicateClient(): TRedisClient {
+    return toRedisClient(this.mockClient.duplicate());
+  }
+}
+
 function createMockRedisHelper(): IRedisHelper & { mockClient: MockRedisClient } {
-  const mockClient = new MockRedisClient();
-  const helper = {
-    getClient: () => mockClient,
-    duplicateClient: () => mockClient.duplicate(),
-    mockClient,
-  } as AnyType as IRedisHelper & { mockClient: MockRedisClient };
-  return helper;
+  return new MockRedisHelper();
 }
 
 function createMockSocket(clientId: string) {
@@ -442,10 +466,7 @@ describe('WebSocketServerHelper', () => {
       const waitClient = new MockRedisClient();
       waitClient.status = 'wait';
 
-      const waitRedisHelper = {
-        getClient: () => waitClient,
-        duplicateClient: () => waitClient.duplicate(),
-      } as AnyType as IRedisHelper;
+      const waitRedisHelper = new MockRedisHelper(waitClient);
 
       const waitHelper = new WebSocketServerHelper({
         ...opts,
@@ -475,6 +496,47 @@ describe('WebSocketServerHelper', () => {
       expect(redisSub.psubscribe).toHaveBeenCalledWith(WebSocketChannels.forRoomPattern());
       expect(redisSub.psubscribe).toHaveBeenCalledWith(WebSocketChannels.forClientPattern());
       expect(redisSub.psubscribe).toHaveBeenCalledWith(WebSocketChannels.forUserPattern());
+    });
+  });
+
+  describe('A frame that is not a message', () => {
+    test.each([
+      ['null', 'null'],
+      ['a number', '0'],
+      ['a string', '"authenticate"'],
+      ['true', 'true'],
+      ['a list', '[]'],
+      ['a list holding a message', '[{"event":"authenticate"}]'],
+      ['an event that is not a string', '{"event":{"a":1}}'],
+      ['an event that is null', '{"event":null}'],
+      ['an empty object', '{}'],
+    ])(
+      '%s is dropped without throwing, and the client stays connected and unauthenticated',
+      (_label, raw) => {
+        const socket = createMockSocket('client-1');
+        helper.onClientConnect({ clientId: 'client-1', socket });
+
+        expect(() => helper.onClientMessage({ clientId: 'client-1', raw })).not.toThrow();
+
+        const client = helper.getClients({ id: 'client-1' }) as any;
+        expect(client.state).toBe(WebSocketClientStates.UNAUTHORIZED);
+        expect(socket.close).not.toHaveBeenCalled();
+      },
+    );
+
+    test('a valid message still works after a bad frame', async () => {
+      const socket = createMockSocket('client-1');
+      helper.onClientConnect({ clientId: 'client-1', socket });
+
+      helper.onClientMessage({ clientId: 'client-1', raw: 'null' });
+      helper.onClientMessage({
+        clientId: 'client-1',
+        raw: JSON.stringify({ event: WebSocketEvents.AUTHENTICATE, data: { userId: 'user-1' } }),
+      });
+      await wait(10);
+
+      const client = helper.getClients({ id: 'client-1' }) as any;
+      expect(client.state).toBe(WebSocketClientStates.AUTHENTICATED);
     });
   });
 
@@ -564,6 +626,7 @@ describe('WebSocketServerHelper', () => {
       const calls = socket.send.mock.calls as any[][];
       const connectedMsg = calls.find((call) => {
         const parsed = JSON.parse(call[0]);
+
         return parsed.event === WebSocketEvents.CONNECTED;
       });
       expect(connectedMsg).toBeDefined();
@@ -658,6 +721,7 @@ describe('WebSocketServerHelper', () => {
       const calls = socket.send.mock.calls as any[][];
       const errorMsg = calls.find((call) => {
         const parsed = JSON.parse(call[0]);
+
         return parsed.event === WebSocketEvents.ERROR;
       });
       expect(errorMsg).toBeDefined();
@@ -688,6 +752,7 @@ describe('WebSocketServerHelper', () => {
         ...opts,
         authenticateFn: mock(async () => {
           await wait(10);
+
           return { userId: 'async-user', metadata: { role: 'admin' } };
         }),
       });
@@ -741,6 +806,7 @@ describe('WebSocketServerHelper', () => {
       const calls = socket.send.mock.calls as any[][];
       const errorMsg = calls.find((call) => {
         const parsed = JSON.parse(call[0]);
+
         return parsed.event === WebSocketEvents.ERROR;
       });
       expect(errorMsg).toBeDefined();
@@ -1905,6 +1971,7 @@ describe('WebSocketServerHelper', () => {
           }),
         });
       }
+
       await wait(50);
 
       const clients = helper.getClients() as Map<string, unknown>;
@@ -2186,6 +2253,7 @@ describe('Heartbeat — Application-Level Liveness Check', () => {
     const heartbeatCall = publishCalls.find((c) => {
       try {
         const parsed = JSON.parse(c[1]);
+
         return parsed.event === WebSocketEvents.HEARTBEAT;
         // eslint-disable-next-line venizia/no-silent-catch -- a published payload that is not JSON cannot be a heartbeat event; skipping it loses nothing
       } catch {
@@ -2254,10 +2322,7 @@ describe('WebSocketEmitter', () => {
       const waitClient = new MockRedisClient();
       waitClient.status = 'wait';
 
-      const waitRedisHelper = {
-        getClient: () => waitClient,
-        duplicateClient: () => waitClient.duplicate(),
-      } as AnyType as IRedisHelper;
+      const waitRedisHelper = new MockRedisHelper(waitClient);
 
       const waitEmitter = new WebSocketEmitter({
         redisConnection: waitRedisHelper,
@@ -2350,6 +2415,7 @@ describe('WebSocketEmitter', () => {
       await emitter.broadcast({ event: 'test', data: {} });
 
       const calls = redisPub.publish.mock.calls as any[][];
+
       for (const call of calls) {
         const msg: IRedisSocketMessage = JSON.parse(call[1]);
         expect(msg.serverId).toBe('emitter');
@@ -2367,5 +2433,119 @@ describe('WebSocketEmitter', () => {
       await emitter.shutdown();
       expect(async () => emitter.shutdown()).not.toThrow();
     });
+  });
+});
+
+describe('WebSocketServerHelper - the window of an encryption handshake', () => {
+  const build = (handshake: { resolve?: (value: unknown) => void }, authTimeout?: number) => {
+    const messageHandler = mock(() => {});
+    const helper = new WebSocketServerHelper({
+      identifier: 'handshake-ws-server',
+      authTimeout,
+      server: createMockBunServer(),
+      redisConnection: createMockRedisHelper(),
+      authenticateFn: () => ({ userId: 'user-1' }),
+      requireEncryption: true,
+      handshakeFn: () =>
+        new Promise((resolve) => {
+          handshake.resolve = resolve as (value: unknown) => void;
+        }) as never,
+      messageHandler,
+    } as IWebSocketServerOptions);
+
+    return { helper, messageHandler };
+  };
+
+  const send = (helper: WebSocketServerHelper, event: string, data?: unknown) => {
+    helper.onClientMessage({ clientId: 'c1', raw: JSON.stringify({ event, data }) });
+  };
+
+  test('until the handshake completes the client is not established: a room join and a message are refused', async () => {
+    const handshake: { resolve?: (value: unknown) => void } = {};
+    const { helper, messageHandler } = build(handshake);
+    const socket = createMockSocket('c1');
+
+    try {
+      helper.onClientConnect({ clientId: 'c1', socket });
+      send(helper, WebSocketEvents.AUTHENTICATE, {});
+      await wait(10);
+
+      const client = (
+        helper.getClients() as Map<string, { state: string; rooms: Set<string> }>
+      ).get('c1');
+      expect(client?.state).toBe(WebSocketClientStates.AUTHENTICATING);
+
+      send(helper, WebSocketEvents.JOIN, { rooms: ['private-room'] });
+      send(helper, 'custom-event', { x: 1 });
+      await wait(10);
+
+      expect(messageHandler).not.toHaveBeenCalled();
+      expect(client?.rooms.has('private-room')).toBe(false);
+
+      const replies = socket.send.mock.calls.map((call) => String((call as unknown[])[0]));
+      expect(replies.filter((reply) => reply.includes('Not authenticated')).length).toBe(2);
+    } finally {
+      await helper.shutdown();
+    }
+  });
+
+  test('a handshake that never completes leaves the client unestablished, and one that completes establishes it', async () => {
+    const handshake: { resolve?: (value: unknown) => void } = {};
+    const { helper } = build(handshake);
+    const socket = createMockSocket('c1');
+
+    try {
+      helper.onClientConnect({ clientId: 'c1', socket });
+      send(helper, WebSocketEvents.AUTHENTICATE, {});
+      await wait(10);
+
+      handshake.resolve?.({ serverPublicKey: 'pk', salt: 'salt' });
+      await wait(20);
+
+      const client = (helper.getClients() as Map<string, { state: string }>).get('c1');
+      expect(client?.state).toBe(WebSocketClientStates.AUTHENTICATED);
+    } finally {
+      await helper.shutdown();
+    }
+  });
+
+  test('a handshake that never completes is closed by the in-progress timeout, with the timeout close code', async () => {
+    const handshake: { resolve?: (value: unknown) => void } = {};
+    // The in-progress window is three times the authentication timeout: 3 x 20 ms.
+    const { helper } = build(handshake, 20);
+    const socket = createMockSocket('c1');
+
+    try {
+      helper.onClientConnect({ clientId: 'c1', socket });
+      send(helper, WebSocketEvents.AUTHENTICATE, {});
+      await wait(10);
+
+      expect(socket.close).not.toHaveBeenCalled();
+
+      await wait(120);
+
+      expect(socket.close).toHaveBeenCalledWith(4001, 'Authentication timeout');
+    } finally {
+      await helper.shutdown();
+    }
+  });
+
+  test('a second authenticate frame while the handshake runs is refused', async () => {
+    const handshake: { resolve?: (value: unknown) => void } = {};
+    const { helper } = build(handshake);
+    const socket = createMockSocket('c1');
+
+    try {
+      helper.onClientConnect({ clientId: 'c1', socket });
+      send(helper, WebSocketEvents.AUTHENTICATE, {});
+      await wait(10);
+      send(helper, WebSocketEvents.AUTHENTICATE, {});
+      await wait(10);
+
+      const replies = socket.send.mock.calls.map((call) => String((call as unknown[])[0]));
+      expect(replies.some((reply) => reply.includes('Already authenticated'))).toBe(true);
+    } finally {
+      await helper.shutdown();
+    }
   });
 });

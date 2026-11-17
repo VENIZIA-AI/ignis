@@ -25,6 +25,7 @@ const probeJose = (opts: { body: string }): string => {
   });
 
   const stdout = result.stdout.toString();
+
   if (!stdout.includes('JOSE_LOADED') && !stdout.includes('JOSE_ABSENT')) {
     throw getError({
       message: `[jose-lazy-load] probe failed | stdout: ${stdout} | stderr: ${result.stderr.toString()}`,
@@ -55,6 +56,7 @@ describe('auth services load jose lazily', () => {
       const service = new JWSTokenService({
         jwtSecret: 'probe-secret-that-is-long-enough-for-hs256',
         getTokenExpiresFn: () => 60,
+        claims: { issuer: 'test-issuer', audience: 'test-audience' },
       });
       const token = await service.generate({ payload: { userId: 'probe', roles: [] } });
       await service.verify({ type: 'Bearer', token });

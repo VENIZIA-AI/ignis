@@ -9,6 +9,7 @@ Self-contained feature modules you register with `this.component(SomeComponent)`
 | [Authentication](./authentication/) | JWT, Basic and service-assertion auth - token generation, protected routes, multi-strategy | `@venizia/ignis` | A route needs to know who the caller is |
 | [Authorization](./authorization/) <Badge type="warning" text="Experimental" /> | Enforcer-based RBAC/ABAC, voters, Casbin integration | `@venizia/ignis` | A route needs a permission check beyond authentication |
 | [Health Check](./health-check) | `/health` endpoint, ping/pong | `@venizia/ignis` | A load balancer or Kubernetes needs a liveness probe |
+| [Server Info](./server-info) | `GET /server/info/time` - the public server clock | `@venizia/ignis` | A client needs the server time or its clock skew |
 | [Mail](./mail/) | Email sending - multiple transports, templating, queue-based | `@venizia/ignis/mail` | The app sends transactional or templated email |
 | [Request Tracker](./request-tracker) | Request ID, timing, structured request logging | `@venizia/ignis` | Always on - registered automatically, nothing to configure |
 | [Socket.IO](./socket-io/) | Real-time over Socket.IO - Redis adapter, event-based | `@venizia/ignis/socket-io` | Clients need rooms or Socket.IO-specific features |

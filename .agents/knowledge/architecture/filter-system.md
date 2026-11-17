@@ -14,6 +14,7 @@ tags: [architecture, filter, query, drizzle, postgres]
 - [Translation](#translation)
 - [The dual query API](#the-dual-query-api)
 - [JSON path pitfalls](#json-path-pitfalls)
+- [Hidden fields and a request filter](#hidden-fields-and-a-request-filter)
 - [mergeFilter and arrays](#mergefilter-and-arrays)
 - [Related](#related)
 <!-- okf:generated:contents end -->
@@ -39,13 +40,15 @@ The zod schemas that validate a filter arriving over HTTP come in two layers. `p
 | Postgres array | `contains` (`@>`), `containedBy` (`<@`), `overlaps` (`&&`) |
 | Logical | `not`, `and`, `or` |
 
+**Timestamp operands (relational).** `FilterBuilder.buildWhereKeyConditions` (`connectors/src/relational/core/repositories/dialect/filter.ts`) parses the operand of a `where` key whose Drizzle column has `dataType === 'date'` (pg `timestamp`/`date` in `mode: 'date'`, SQLite `integer({ mode: 'timestamp' | 'timestamp_ms' })`) before it builds the condition, because the driver mapping calls `toISOString` (pg) or `getTime` (SQLite) on whatever it gets and a JSON request cannot carry a `Date`. `DateOperandUtility` (`dialect/internal/date-operand.ts`) does the parsing: a `Date`, a finite number (epoch ms) or a string in ISO 8601 (`YYYY-MM-DD`, or a date-time with `T` and `Z` or `+HH:mm`; a date-time with no zone is refused, since `Date` would read it in the host's zone) that names a real calendar date. The conversion covers the bare value, bare arrays, `eq`/`ne`/`neq`/`gt`/`gte`/`lt`/`lte`/`is`/`isn`, each element of `in`/`inq`/`nin` and both ends of `between`/`notBetween`, and recurses through `not`; `and`/`or` reach it through `toWhere`. `null` is kept (it is `IS NULL`, and a `null` list element stays SQL NULL). Anything else (locale string, numeric string, `NaN`, boolean, object, an invalid `Date`, `undefined`) is a 400 that names the table, the column and the accepted forms and echoes the value only through `EchoUtility.toSafeEcho` (cut at 64 characters). Not converted: a column with a custom driver type (`isoTimestamp`, `dataType: 'custom'`) or a string mode, a JSON path (its column is JSON, its operand text or a number), `like`-family and other operators, and the search tier. SQLite behaves as Postgres does.
+
 `Sorts` carries `asc`/`desc`. `DEFAULT_LIMIT` is `10` - `find()` applies `filter.limit ?? getDefaultLimit() ?? DEFAULT_LIMIT`, so an unbounded query is not the default.
 
 ## Order entries share one parser
 
 Every `order` entry - relational and both search dialects (Typesense, Meilisearch) - is read by
 `Sorts.parseEntry` (`packages/filter/src/common/operators.ts`), a single static method replacing three
-private copies of the same `entry.trim().split(/\s+/)` logic (V-C-16). It returns `TParsedOrderEntry`
+private copies of the same `entry.trim().split(/\s+/)` logic (V-P-08). It returns `TParsedOrderEntry`
 (`{ field: string; direction: TSortDirection }`) and throws a `400` naming the whole entry for:
 
 | Case | Example | Before this parser |
@@ -147,13 +150,19 @@ above) and the value are still runtime-only, and it cannot tell a relation field
 (both are object-shaped at the type level), so `'creator.name'` type-checks and still throws
 `Column 'creator' is not a JSON column` here.
 
+## Hidden fields and a request filter
+
+`AbstractRepository.assertRequestFilter({ filter })` (kernel, on `RequestFilterGuard`) refuses a request-supplied filter that names a hidden property: its `where` (through `and`/`or`), its `order` entries, and the `scope` of each `include`, each level judged by the model it reads. The repository supplies the judge (`createRequestFilterJudge`): it reads a key the way its own query does, so every spelling of a relational JSON path (`meta.pin`, `[meta].pin`, `.meta.pin`, `[meta]pin`) names its first part through the one shared reader `FilterKeys` (filter package), and a search model refuses a hidden name, a path under it, and the parent of a hidden nested name (`meta` for `meta.pin`). The refusal is a 400 with the very error the query gives for a column or field that does not exist (relational `FilterBuilder.columnNotFoundError`, search `ISearchQueryDialect.fieldNotFoundError`), byte for byte for the same key, so a caller cannot tell hidden from missing. A filter that names a hidden key and also holds something the query refuses on its own gets the first refusal the query would meet with the hidden name missing: the judge's optional hooks say the read order (`readOrder`: relational Core API where, order; relational `build` and every include scope order, where, include; search order, where), the refusal of the whole filter before any key (`filterRefusal`: relational `mergeFilter` with the default filter, a search `include`), and the query's own error for one piece (`queryRefusal`: the dialect compiles a one-key `where`, one `order` entry, one unknown or malformed `include` entry). The guard walks in that order and throws, at the first hidden key, the first refusal it met or else the hidden refusal; a filter with no hidden key is left to the query. Meilisearch `toOrderBy` checks declared fields (`assertKnownField`) as Typesense does, so an undeclared order field is refused like a hidden one. Not mirrored (the guard does not know the verb): the relational `limit` checks, the search `limit` ceiling, and the Typesense three-sort-field limit, each refused before any key. The generated CRUD controllers call it on what the client sent (before the base `where` joins it; `count`, `find`, `findOne`, `findById` with its `where` dropped because the read by id never reads it, `updateBy`, `deleteBy`), and `AbstractSearchController.search` calls it on `filter` for the non-raw modes. The repository's own verbs do not call it, so server code and a model's default filter can still name a hidden property.
+
 ## mergeFilter and arrays
 
 `mergeFilter({ defaultFilter, userFilter })` composes a model's default filter (soft delete, tenancy, visibility) with the caller's. It merges `where` at the **top key level, never index-wise** - index-wise merging corrupts operator arrays like `inq` and `or`. The rules, as implemented in `mergeWhere()`:
 
 - a user value of `undefined` never overrides a defined default, so a caller cannot blow away a tenant or soft-delete scope by passing `undefined`;
-- scalar-over-scalar on the same key is a plain override (`isDeleted: false` -> `true` is the long-standing opt-out);
+- scalar-over-scalar on the same key AND-composes like every other collision (equal scalars collapse to one condition): a caller cannot replace the soft-delete default and read deleted rows; server code opts out with `shouldSkipDefaultFilter`, which is not on the wire schema;
+- the row scope of `access.resolve` is NOT merged by key: `composeScope({ scopeWhere, userFilter })` ANDs it with the caller's `where` (`{ and: [scope, userWhere] }`), so a caller can only narrow it, whatever shape the scope has. Order: the default filter is merged with the caller's filter first (the caller can only narrow it there), then the scope is composed last and outermost (`applyDefaultFilter`; for includes `toInclude`). Only the model's default filter (`query.filter`) uses the key merge below;
 - **any other collision AND-composes** into the reserved `and` group, so a default scope can only ever be narrowed - `status: 'active'` plus `status: { neq: 'archived' }` keeps both;
+- a caller key named `__proto__`, `constructor` or `prototype` is refused as an unknown column (400) in `mergeWhere`, so `merged[key] = ...` can never change the merged object's prototype; column lookups in `toWhere`, `toOrderBy` and the update transform read OWN columns only (`Object.hasOwn`);
 - an `and` collision concatenates the two conjunct lists (concatenating *is* the AND of the groups);
 - an `or` collision does **not** concatenate - that would union the disjunctions and widen the query. Each group becomes its own conjunct, so both must hold.
 

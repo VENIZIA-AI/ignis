@@ -1,31 +1,26 @@
-import type { TConstValue } from '@/common/types';
+import {
+  RetryBackoffStrategies,
+  RetryJitterModes,
+  type IRetryBackoffOptions,
+} from '@/modules/retry';
 
-export class RedisModes {
-  static readonly SINGLE = 'single';
-  static readonly CLUSTER = 'cluster';
-  static readonly SENTINEL = 'sentinel';
+/** Reconnect defaults of a Redis helper. */
+export class RedisDefaults {
+  /** The port of a data node when none is given. */
+  static readonly PORT = 6379;
+  /** Reconnect attempts before the helper gives up: `0` never reconnects, `RETRY_FOREVER` never stops. */
+  static readonly MAX_RETRY = 5;
+  static readonly RETRY_FOREVER = -1;
 
-  static readonly SCHEME_SET = new Set([this.SINGLE, this.CLUSTER, this.SENTINEL]);
-
-  static isValid(scheme: string): scheme is TRedisMode {
-    return this.SCHEME_SET.has(scheme);
-  }
+  /** The wait before reconnect attempt N, computed by `RetryHelper.computeBackoffDelayMs`. */
+  static readonly RECONNECT_BACKOFF = {
+    strategy: RetryBackoffStrategies.EXPONENTIAL,
+    initialDelayMs: 1000,
+    multiplier: 2,
+    maxDelayMs: 30_000,
+    jitter: RetryJitterModes.EQUAL,
+  } satisfies IRetryBackoffOptions;
 }
-
-export type TRedisMode = TConstValue<typeof RedisModes>;
-
-export class RedisSentinelRoles {
-  static readonly MASTER = 'master';
-  static readonly SLAVE = 'slave';
-
-  static readonly ROLE_SET = new Set([this.MASTER, this.SLAVE]);
-
-  static isValid(role: string): role is TRedisSentinelRole {
-    return this.ROLE_SET.has(role);
-  }
-}
-
-export type TRedisSentinelRole = TConstValue<typeof RedisSentinelRoles>;
 
 /** Ceiling on a caller-sized fan-out over one connection; a burst larger than this queues rather than piles up. */
 export class RedisConcurrency {

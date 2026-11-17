@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+
 import type { IAuthRouteConfig } from '@/base/controllers/common/types';
 import type { TMixinTarget } from '@venizia/ignis-helpers/common';
 import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
@@ -11,6 +13,7 @@ export const RestControllerMetadataMixin = <BaseClass extends TMixinTarget<_Meta
       target: Target;
     }): Map<string | symbol, IAuthRouteConfig> | undefined {
       const { target } = opts;
+
       return Reflect.getMetadata(MetadataKeys.CONTROLLER_REST_ROUTE, target);
     }
 
@@ -20,11 +23,13 @@ export const RestControllerMetadataMixin = <BaseClass extends TMixinTarget<_Meta
     }): IAuthRouteConfig | undefined {
       const { target, methodName } = opts;
       const routes = this.getRoutes({ target });
+
       return routes?.get(methodName);
     }
 
     hasRoutes<Target extends object = object>(opts: { target: Target }): boolean {
       const routes = this.getRoutes(opts);
+
       return routes !== undefined && routes.size > 0;
     }
 

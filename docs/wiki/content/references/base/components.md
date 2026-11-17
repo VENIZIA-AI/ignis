@@ -160,9 +160,9 @@ export interface IHealthCheckOptions {
 
 **For complex components with service interfaces:**
 
+<!-- docs-code: off -->
 ```typescript
 // src/components/auth/authenticate/common/types.ts
-import { AnyObject } from '@venizia/ignis-helpers';
 import { Env } from 'hono';
 
 // Options interface for the component
@@ -182,18 +182,18 @@ export interface IAuthService<
   E extends Env = Env,
   // SignIn types
   SIRQ extends TSignInRequest = TSignInRequest,
-  SIRS = AnyObject,
+  SIRS = Record<string, unknown>,
   // SignUp types
   SURQ extends TSignUpRequest = TSignUpRequest,
-  SURS = AnyObject,
+  SURS = Record<string, unknown>,
   // ChangePassword types
   CPRQ extends TChangePasswordRequest = TChangePasswordRequest,
-  CPRS = AnyObject,
+  CPRS = Record<string, unknown>,
   // UserInformation types
-  UIRQ = AnyObject,
-  UIRS = AnyObject,
+  UIRQ = Record<string, unknown>,
+  UIRS = Record<string, unknown>,
   // RefreshToken types
-  RTRS = AnyObject,
+  RTRS = Record<string, unknown>,
 > {
   signIn(context: TContext<E>, opts: SIRQ): Promise<SIRS>;
   signUp(context: TContext<E>, opts: SURQ): Promise<SURS>;
@@ -205,9 +205,10 @@ export interface IAuthService<
 // Auth user type
 export interface IAuthUser {
   userId: IdType;
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 ```
+<!-- docs-code: on -->
 
 **Naming Conventions:**
 - Interfaces: `I` prefix (e.g., `IHealthCheckOptions`, `IAuthService`)
@@ -308,8 +309,10 @@ The `super()` constructor in your component can take the following options:
 | Option | Type | Description |
 | :--- | :--- | :--- |
 | `scope` | `string` | **Required.** A unique name for the component, typically `MyComponent.name`. Used for logging. |
-| `initDefault` | `{ enable: false } \| { enable: true; container: Container }` | If `enable` is `true`, the `bindings` defined below will be automatically registered with the provided `container` (usually the application instance) when `configure()` is called - but only if they are not already bound. Defaults to `{ enable: false }`. |
-| `bindings` | `Record<string \| symbol, Binding>` | An object where keys are binding keys and values are `Binding` instances. These are the default services, values, or providers that your component offers. Defaults to `{}`. |
+| `initDefault` | `{ enable: false } \| { enable: true; container: Container }` | Auto-registers `bindings` with the given `container` when `configure()` runs. Defaults to `{ enable: false }`. |
+| `bindings` | `Record<string \| symbol, Binding>` | Binding keys mapped to `Binding` instances: the defaults your component offers. Defaults to `{}`. |
+
+With `initDefault.enable` set, `container` is usually the application instance, and a binding is registered only if it is not already bound. `bindings` holds the default services, values, or providers.
 
 ### Properties
 
@@ -636,7 +639,7 @@ export class AuthenticateComponent extends BaseComponent {
         });
       }
 
-      this.application.controller(AuthControllerFactory.define(restOptions.controllerOpts));
+      this.application.controller(AuthControllerFactory.build(restOptions.controllerOpts));
     }
   }
 }
@@ -649,30 +652,18 @@ When controllers need to be dynamically configured:
 ```typescript
 // src/components/static-asset/component.ts (condensed)
 override binding(): ValueOrPromise<void> {
-  const componentOptions = this.application.get<TStaticAssetsComponentOptions>({
-    key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+  const componentOptions = this.application.get<TStaticAssetComponentOptions>({
+    key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
   });
 
   // Create multiple controllers from configuration
-  for (const [key, opt] of Object.entries(componentOptions)) {
-    const { storage, controller, helper, extra } = opt;
-
-    this.application.controller(
-      AssetControllerFactory.defineAssetController({
-        controller,
-        storage,
-        helper,
-        useMetaLink: opt.useMetaLink,
-        metaLink: opt.useMetaLink ? opt.metaLink : undefined,
-        options: { ...extra /* , normalizeLinkFn fallback */ },
-      }),
-    );
+  for (const [key, entry] of Object.entries(componentOptions)) {
+    this.application.controller(StaticAssetControllerFactory.build({ key, entry }));
 
     this.application.logger.info(
-      `[binding] Asset storage is bound | Key: %s | Storage type: %s | UseMetaLink: %s`,
+      `[binding] Asset storage is bound | Key: %s | Mount: %s`,
       key,
-      storage,
-      Boolean(opt.useMetaLink),
+      entry.basePath,
     );
   }
 }
@@ -714,10 +705,12 @@ The shipped `ApiReferenceComponent` does **not** use this pattern: it passes `in
 | Component | Key Features |
 |-----------|-------------|
 | **HealthCheckComponent** | `GET /health` (default path, configurable). Registers `HealthCheckController` with `GET /` and `POST /ping` endpoints. |
-| **ApiReferenceComponent** | OpenAPI doc at `/doc/openapi.json`, UI at `/doc/explorer` (Scalar by default, Swagger UI also supported). Auto-populates app info and server URL. Registers JWT and Basic security schemes. |
-| **AuthenticateComponent** | JWT and/or Basic auth strategies. Optional auth controller (`signIn`/`signUp`). Token services (`JWSTokenService`, `BasicTokenService`). |
+| **ApiReferenceComponent** | OpenAPI doc at `/doc/openapi.json`, UI at `/doc/explorer` (Scalar by default, Swagger UI also supported) |
+| **AuthenticateComponent** | JWT and/or Basic auth strategies, optional auth controller, token services |
 | **AuthorizeComponent** | Casbin-based RBAC, permission mapping, `authorize()` middleware. |
-| **RequestTrackerComponent** | Registers one binding, `RequestSpyMiddleware`, for the access log and request body parsing. It installs no request id: `RestApplication.registerDefaultMiddlewares()` already did that, earlier, through `RequestIdGenerator`. |
+| **RequestTrackerComponent** | Registers `RequestSpyMiddleware` for the access log and request body parsing |
+
+`ApiReferenceComponent` also fills in the app info and server URL, and registers the JWT and Basic security schemes. `AuthenticateComponent` provides `JWSTokenService` and `BasicTokenService`, and the optional auth controller has `signIn` and `signUp`. `RequestTrackerComponent` installs no request id: `RestApplication.registerDefaultMiddlewares()` already did that, earlier, through `RequestIdGenerator`.
 
 ### Excluded from Barrel (Import Directly)
 
@@ -732,8 +725,10 @@ The shipped `ApiReferenceComponent` does **not** use this pattern: it passes `in
 
 | Component | When Used |
 |-----------|-----------|
-| **RestComponent** | Instantiated by `registerControllers()` when `transports` includes `'rest'` (the default). Discovers and mounts REST controllers. |
-| **GrpcComponent** | Instantiated by `registerControllers()` when `transports` includes `'grpc'`. Discovers and mounts gRPC controllers (ConnectRPC over HTTP). |
+| **RestComponent** | `registerControllers()` creates it when `transports` includes `'rest'` (the default) |
+| **GrpcComponent** | `registerControllers()` creates it when `transports` includes `'grpc'` |
+
+`RestComponent` discovers and mounts REST controllers. `GrpcComponent` discovers and mounts gRPC controllers (ConnectRPC over HTTP).
 
 
 ## Exposing and Consuming Component Options

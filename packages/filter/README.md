@@ -72,6 +72,7 @@ nested filter.
 | Pattern | `like`, `nlike`, `ilike`, `nilike`, `regexp`, `iregexp` |
 | Null | `is`, `isn` |
 | List and range | `in`, `inq`, `nin`, `between`, `notBetween` |
+| Subquery | `inSql`, `ninSql` - the operand is a Drizzle SQL object (`{ getSQL() }`) built in code, never a value from a request; the relational connectors run it |
 | Array columns | `contains`, `containedBy`, `overlaps` |
 | Other | `exists`, `notExists`, `not`, `and`, `or` |
 

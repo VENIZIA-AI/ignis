@@ -3,7 +3,7 @@ import '@/base/applications';
 
 import { BaseApplication } from '@/base/applications';
 import { ServerBootSteps } from '@/base/applications';
-import type { IApplicationConfigs } from '@/base/applications';
+import type { IApplicationConfigs, IArtifactIndex } from '@/base/applications';
 import { BaseRestController } from '@/base/controllers';
 import { controller, get, inject, model, repository, service } from '@/base/metadata';
 import { ApplicationBootAssertion } from '@/testing';
@@ -13,8 +13,9 @@ import {
   BasePostgresEntity,
   DefaultCRUDRepository,
 } from '@venizia/ignis-connectors/postgres';
-import type { AnyType, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
+import type { ILogger } from '@venizia/ignis-helpers/core';
 import {
   BaseComponent,
   BindingNamespaces,
@@ -23,6 +24,7 @@ import {
   OpenApiResponses,
 } from '@venizia/ignis-kernel';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
+import type { Context } from 'hono';
 import { beforeEach, describe, expect, spyOn, test } from 'bun:test';
 
 const okResponse = OpenApiResponses.jsonResponse({
@@ -30,7 +32,15 @@ const okResponse = OpenApiResponses.jsonResponse({
   description: 'ok',
 });
 
-const calls = { failing: 0, counting: 0, component: 0, hydrate: 0, rotatables: 0, override: 0 };
+const calls = {
+  failing: 0,
+  counting: 0,
+  component: 0,
+  hydrate: 0,
+  rotatables: 0,
+  override: 0,
+  middlewares: 0,
+};
 
 beforeEach(() => {
   for (const key of Object.keys(calls)) {
@@ -97,7 +107,7 @@ class AccountController extends BaseRestController {
   override binding(): ValueOrPromise<void> {}
 
   @get({ configs: { path: '/', responses: okResponse } })
-  list(context: AnyType) {
+  list(context: Context) {
     return context.json({ hit: 'list' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
@@ -129,7 +139,7 @@ class FirstDuplicateController extends BaseRestController {
   override binding(): ValueOrPromise<void> {}
 
   @get({ configs: { path: '/users/:id', responses: okResponse } })
-  one(context: AnyType) {
+  one(context: Context) {
     return context.json({ hit: 'first' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
@@ -143,7 +153,7 @@ class SecondDuplicateController extends BaseRestController {
   override binding(): ValueOrPromise<void> {}
 
   @get({ configs: { path: '/users/:userId', responses: okResponse } })
-  one(context: AnyType) {
+  one(context: Context) {
     return context.json({ hit: 'second' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
@@ -164,7 +174,7 @@ class ValidatedController extends BaseRestController {
       responses: okResponse,
     },
   })
-  one(context: AnyType) {
+  one(context: Context) {
     return context.json({ hit: 'one' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
@@ -179,12 +189,12 @@ class SelfDuplicateController extends BaseRestController {
   override binding(): ValueOrPromise<void> {}
 
   @get({ configs: { path: '/same', responses: okResponse } })
-  first(context: AnyType) {
+  first(context: Context) {
     return context.json({ hit: 'first' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
   @get({ configs: { path: '/same', responses: okResponse } })
-  second(context: AnyType) {
+  second(context: Context) {
     return context.json({ hit: 'second' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
@@ -217,17 +227,25 @@ class ThrowingComponent extends BaseComponent {
 /** Records what an application logs, so a test can read the lines of one level. */
 const recordLogs = (application: BaseApplication): Array<{ level: string; message: string }> => {
   const lines: Array<{ level: string; message: string }> = [];
-  const recorder: AnyType = {
-    for: () => recorder,
-    log: () => {},
-  };
-  for (const level of ['debug', 'info', 'warn', 'error']) {
-    recorder[level] = (...args: unknown[]) => {
+
+  const record =
+    (level: string) =>
+    (...args: unknown[]): void => {
       lines.push({ level, message: args.map(String).join(' ') });
     };
-  }
+
+  const recorder: ILogger = {
+    for: () => recorder,
+    log: () => {},
+    debug: record('debug'),
+    info: record('info'),
+    warn: record('warn'),
+    error: record('error'),
+    emerg: () => {},
+  };
 
   application.logger = recorder;
+
   return lines;
 };
 
@@ -247,12 +265,10 @@ class ContributingComponent extends BaseComponent {
   }
 }
 
-interface IPlan {
-  dataSources?: Array<TClass<AnyType>>;
-  repositories?: Array<TClass<AnyType>>;
-  services?: Array<TClass<AnyType>>;
-  controllers?: Array<TClass<AnyType>>;
-  components?: Array<TClass<AnyType>>;
+interface IPlan extends Pick<
+  IArtifactIndex,
+  'dataSources' | 'repositories' | 'services' | 'controllers' | 'components'
+> {
   config?: Partial<IApplicationConfigs>;
 }
 
@@ -284,7 +300,9 @@ class PlannedApplication extends BaseApplication {
   }
 
   postConfigure(): void {}
-  setupMiddlewares(): void {}
+  setupMiddlewares(): void {
+    calls.middlewares += 1;
+  }
 
   override async hydrateSecrets(): Promise<void> {
     calls.hydrate += 1;
@@ -308,6 +326,7 @@ describe('ApplicationBootAssertion.assert - the boot path', () => {
     const boot = application.initialize.bind(application);
     application.init();
     let original: unknown;
+
     try {
       await boot();
     } catch (error) {
@@ -316,6 +335,7 @@ describe('ApplicationBootAssertion.assert - the boot path', () => {
 
     const fresh = new PlannedApplication({ controllers: [BrokenController] });
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({ application: fresh });
     } catch (caught) {
@@ -333,6 +353,7 @@ describe('ApplicationBootAssertion.assert - the boot path', () => {
     const application = new PlannedApplication({ controllers: [BrokenController] });
     const seen: unknown[] = [];
     const original = application.initialize.bind(application);
+
     application.initialize = async () => {
       try {
         await original();
@@ -343,6 +364,7 @@ describe('ApplicationBootAssertion.assert - the boot path', () => {
     };
 
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({ application });
     } catch (caught) {
@@ -351,6 +373,27 @@ describe('ApplicationBootAssertion.assert - the boot path', () => {
 
     expect(seen).toHaveLength(1);
     expect(error).toBe(seen[0]);
+  });
+
+  test('the default stack validates configs.middlewares, so an invalid CORS pattern fails the probe', async () => {
+    const application = new PlannedApplication({
+      config: { middlewares: { cors: { origin: 'http://*:*' } } },
+    });
+    let error: unknown;
+
+    try {
+      await ApplicationBootAssertion.assert({ application });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(String(error)).toContain('[registerCors] configs.middlewares.cors.origin');
+  });
+
+  test('the start-time setupMiddlewares step is user code and is not run by the probe', async () => {
+    await ApplicationBootAssertion.assert({ application: new PlannedApplication(FULL) });
+
+    expect(calls.middlewares).toBe(0);
   });
 
   test('C3 a correct application resolves with that same application', async () => {
@@ -386,6 +429,7 @@ describe('ApplicationBootAssertion.assert - the boot path', () => {
 
   test('C5 a service injecting an unregistered key fails even though no controller references it', async () => {
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application: new PlannedApplication({ ...FULL, services: [AccountService, OrphanService] }),
@@ -420,6 +464,7 @@ describe('ApplicationBootAssertion.assert - the shared verification core', () =>
 
   test('I3 the rejection is the core error: it says what is missing and who needs it', async () => {
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application: new PlannedApplication(ORPHANED),
@@ -448,6 +493,7 @@ describe('ApplicationBootAssertion.assert - the shared verification core', () =>
 
   test('I5 a skipBindings name that matches nothing rejects, naming it', async () => {
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application: new PlannedApplication(FULL),
@@ -495,6 +541,7 @@ describe('ApplicationBootAssertion.assert - the shared verification core', () =>
     }
 
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application: new ScopeFilterFailingApplication(ORPHANED),
@@ -513,6 +560,7 @@ describe('ApplicationBootAssertion.assert - datasources and components', () => {
     application.init();
 
     let error: unknown;
+
     try {
       await application.initialize();
     } catch (caught) {
@@ -540,6 +588,7 @@ describe('ApplicationBootAssertion.assert - datasources and components', () => {
     ['its binding key', () => 'datasources.FailingDataSource'],
   ])('C8 a datasource kept by %s runs its real configure()', async (_form, target) => {
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application: new PlannedApplication(FULL),
@@ -601,6 +650,7 @@ describe('ApplicationBootAssertion.assert - datasources and components', () => {
         opts: Parameters<PlannedApplication['registerDynamicBindings']>[0],
       ): Promise<void> {
         calls.override += 1;
+
         return super.registerDynamicBindings(opts);
       }
     }
@@ -620,11 +670,13 @@ describe('ApplicationBootAssertion.assert - a failing component names the way ou
     const lines = recordLogs(application);
 
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({ application });
     } catch (caught) {
       error = caught;
     }
+
     const hints = lines.filter((line) => line.message.includes('skipComponents'));
 
     expect(error).toBe(BINDING_FAILURE);
@@ -640,6 +692,7 @@ describe('ApplicationBootAssertion.assert - a failing component names the way ou
     const lines = recordLogs(application);
 
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application,
@@ -650,6 +703,7 @@ describe('ApplicationBootAssertion.assert - a failing component names the way ou
     } catch (caught) {
       error = caught;
     }
+
     const hints = lines.filter((line) => line.message.includes('skipComponents'));
 
     expect(error).toBe(BINDING_FAILURE);
@@ -728,6 +782,7 @@ describe('ApplicationBootAssertion.assert - steps and secrets', () => {
     const application = new PlannedApplication(FULL);
 
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application,
@@ -749,6 +804,7 @@ describe('ApplicationBootAssertion.assert - guards', () => {
     const good = new PlannedApplication(FULL);
     await ApplicationBootAssertion.assert({ application: good });
     const bad = new PlannedApplication({ controllers: [BrokenController] });
+
     try {
       await ApplicationBootAssertion.assert({ application: bad });
       // eslint-disable-next-line venizia/no-silent-catch -- the first call fails on purpose; the test asserts the second call, not this error
@@ -758,6 +814,7 @@ describe('ApplicationBootAssertion.assert - guards', () => {
 
     for (const application of [good, bad]) {
       let error: unknown;
+
       try {
         await ApplicationBootAssertion.assert({ application });
       } catch (caught) {
@@ -771,6 +828,7 @@ describe('ApplicationBootAssertion.assert - guards', () => {
   test('C17 an application booted outside the helper is refused too', async () => {
     const application = new PlannedApplication(FULL);
     application.init();
+
     try {
       await application.initialize();
       // eslint-disable-next-line venizia/no-silent-catch -- this boot only marks the application as booted (it fails at the datasource); the test asserts the helper's refusal, not this error
@@ -779,6 +837,7 @@ describe('ApplicationBootAssertion.assert - guards', () => {
     }
 
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({ application });
     } catch (caught) {
@@ -790,6 +849,7 @@ describe('ApplicationBootAssertion.assert - guards', () => {
 
   test('C18 an application with no controller is rejected', async () => {
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application: new PlannedApplication({ dataSources: [FailingDataSource] }),
@@ -822,6 +882,7 @@ describe('ApplicationBootAssertion.assert - guards', () => {
     const configureBefore = FailingDataSource.prototype.configure;
 
     await ApplicationBootAssertion.assert({ application: passed });
+
     try {
       await ApplicationBootAssertion.assert({ application: failed });
       // eslint-disable-next-line venizia/no-silent-catch -- the failing call is on purpose; the test asserts what is restored afterwards, not this error
@@ -836,6 +897,7 @@ describe('ApplicationBootAssertion.assert - guards', () => {
       expect(application['getBootSequence' as never]).toBe(original.sequence);
       expect(application['configs'].bootChecks).toBeUndefined();
     }
+
     expect(FailingDataSource.prototype.configure).toBe(configureBefore);
     const dataSource = passed.get<FailingDataSource>({ key: 'datasources.FailingDataSource' });
     expect(Object.hasOwn(dataSource, 'configure')).toBe(false);
@@ -846,6 +908,7 @@ describe('ApplicationBootAssertion.assert - guards', () => {
     Object.defineProperty(application, 'registerDynamicBindings', { value: undefined });
 
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({ application });
     } catch (caught) {
@@ -862,6 +925,7 @@ describe("ApplicationBootAssertion.assert - duplicate routes (the helper's own c
 
   test('C27 the same method and path mounted twice rejects, naming both controllers', async () => {
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application: new PlannedApplication(DUPLICATES),
@@ -896,6 +960,7 @@ describe("ApplicationBootAssertion.assert - duplicate routes (the helper's own c
 
   test('one controller declaring the same method and path twice is a duplicate, reported once', async () => {
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application: new PlannedApplication({ controllers: [SelfDuplicateController] }),
@@ -903,6 +968,7 @@ describe("ApplicationBootAssertion.assert - duplicate routes (the helper's own c
     } catch (caught) {
       error = caught;
     }
+
     const message = String(error);
 
     expect(message).toContain('1 route(s) are mounted more than once');

@@ -59,9 +59,9 @@ To stop the services and drop their data, run `docker compose down -v`.
 |---|---|
 | Models | `src/models/entities/*.model.ts` - a table first, then `ModelFactory.defineEntity({ table, relations })` |
 | Relations | `sale-channel-product.model.ts`: `one(productTable)` reads its columns off the foreign key. `configuration.model.ts`: `modifier` names its columns, because `modified_by` has no foreign key |
-| Hidden columns, default filter | `user.model.ts` (`hiddenProperties`), `product.model.ts` (`query.filter`) |
+| Hidden columns, default filter | `user.model.ts` (`properties.hidden`), `product.model.ts` (`query.filter`) |
 | Repositories | `src/repositories/*.repository.ts` - `@repository({ model, dataSource })` over an empty class, plus custom queries |
-| CRUD routes | `src/controllers/configuration.controller.ts` - `ControllerFactory.defineCrudController` with per-route authentication, a custom create body, and two overridden handlers |
+| CRUD routes | `src/controllers/configuration.controller.ts` - `CrudControllerFactory.build` with per-route authentication, a custom create body, and two overridden handlers |
 | Hand-written routes | `src/controllers/test/` (`defineRoute`, `bindRoute`, `@get`, `@post`) and `src/controllers/authorization-example/` |
 | Sign-in, sign-up, change password | `src/services/authentication.service.ts` behind the framework's `/auth` routes |
 | JWKS, Basic auth, upload and health options | `src/components/platform.component.ts` - one `@provide` method per option key |
@@ -93,6 +93,7 @@ Every route sits under `/v1/api`.
 | `GET` | `/authz-example/admin/dashboard` | JWT + role `999_super-admin` or `900_admin` |
 | `GET`, `POST` | `/test/1` to `/test/5` | route examples, off in production |
 | `GET`, `POST`, `DELETE` | `/assets/...`, `/resources/...` | upload, list, download, delete |
+| `GET` | `/certs` | none; the public JWKS other services verify tokens with |
 | `GET` | `/doc/openapi.json`, `/doc/explorer` | none |
 
 ## Sign in and call a route
@@ -124,7 +125,7 @@ are rows in `PolicyDefinition`; `scripts/seed-authz-test-data.ts` and
 |---|---|---|
 | `bun test` | `src/__tests__/smoke.test.ts`: boots the app on a free port, signs in, creates and reads a configuration, and checks Casbin answers `200` for a granted user and `403` for another. Skips when Postgres or Redis is down | `docker compose up -d` |
 | `bun run test:authz` | `scripts/test-authorization.sh`: 25 authorization cases over HTTP, against a running server | a running `server:dev`, `jq` |
-| `APP_ENV_RUN_REPOSITORY_TESTS=true bun run server:dev` | The repository suites in `src/services/tests` (listed in `TEST_CASES.md`) at boot; each case logs `PASSED` or `FAILED` | `docker compose up -d`, `migrate:dev` |
+| `APP_ENV_RUN_REPOSITORY_TESTS=true bun run server:dev` | The repository suites in `src/services/tests` (listed in `src/services/tests/TEST_CASES.md`) at boot; each case logs `PASSED` or `FAILED` | `docker compose up -d`, `migrate:dev` |
 
 The smoke test applies the migrations itself and signs with a key pair it makes for the run, so it
 needs no `.env` and no `keys/`.

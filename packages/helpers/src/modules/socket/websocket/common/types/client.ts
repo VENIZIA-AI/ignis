@@ -1,6 +1,7 @@
 import { type TConstValue } from '@/common/types';
 import { type WebSocketClientStates } from '../constants';
 
+/** The subset of a Bun server WebSocket the helpers use; `data` holds the per-connection data attached at upgrade. */
 export interface IWebSocket<T = unknown> {
   readonly data: T;
   readonly remoteAddress: string;
@@ -18,8 +19,10 @@ export interface IWebSocket<T = unknown> {
   cork(callback: (ws: IWebSocket<T>) => void): void;
 }
 
+/** One of the `WebSocketClientStates` values. */
 export type TWebSocketClientState = TConstValue<typeof WebSocketClientStates>;
 
+/** A connected WebSocket client as tracked by the server helper. `connectedAt` and `lastActivity` are timestamps; `backpressured` is set while the socket cannot accept more data. */
 export interface IWebSocketClient<
   MetadataType extends Record<string, unknown> = Record<string, unknown>,
 > {
@@ -38,6 +41,7 @@ export interface IWebSocketClient<
   authTimer?: ReturnType<typeof setTimeout>;
 }
 
+/** Per-connection data attached to a socket when it is upgraded, linking it back to its client record. */
 export interface IWebSocketData<
   MetadataType extends Record<string, unknown> = Record<string, unknown>,
 > {

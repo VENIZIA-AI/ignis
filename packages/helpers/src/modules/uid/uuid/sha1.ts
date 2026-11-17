@@ -28,6 +28,7 @@ export class Sha1Digest {
 
     padded.set(bytes);
     padded[length] = 0x80;
+
     if (reusable) {
       // The scratch still holds the previous input past this one: zero the gap, not the whole buffer.
       padded.fill(0, length + 1, paddedLength);
@@ -78,6 +79,7 @@ export class Sha1Digest {
         const round = (index / 20) | 0;
 
         let mixed: number;
+
         if (round === 0) {
           mixed = (b & c) | (~b & d);
         } else if (round === 2) {
@@ -105,6 +107,7 @@ export class Sha1Digest {
 
     const digest = new Uint8Array(20);
     const words = [h0, h1, h2, h3, h4];
+
     for (let index = 0; index < 5; index++) {
       const word = words[index];
       const at = index * 4;

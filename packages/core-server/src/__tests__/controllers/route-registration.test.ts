@@ -6,12 +6,16 @@ import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
 import type { TRouteContext } from '@/base/controllers';
 import { BaseRestController } from '@/base/controllers';
-import { ControllerFactory } from '@venizia/ignis-kernel';
+import { CrudControllerFactory, CrudRoutes } from '@venizia/ignis-kernel';
 import { api, controller, del, get, model, patch, post, put, repository } from '@/base/metadata';
 import { OpenApiResponses } from '@venizia/ignis-kernel';
-import { BasePostgresDataSource, BasePostgresEntity } from '@venizia/ignis-connectors/postgres';
+import {
+  BasePostgresDataSource,
+  BasePostgresEntity,
+  DefaultCRUDRepository,
+} from '@venizia/ignis-connectors/postgres';
 import { z } from '@hono/zod-openapi';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getDroppedRouteDecorators } from '@venizia/ignis-kernel';
 import { applyMethodDecorator, fakeCrudRepository } from './fixtures';
@@ -120,6 +124,7 @@ class MixedRoutesController extends BaseRestController {
     }).to({
       handler: (context: TRouteContext) => {
         const body = context.req.valid<{ id: string }>('json');
+
         return context.json({ hit: `fluent:${body.id}` }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
@@ -174,12 +179,13 @@ class RouteOrderSubscriber extends BasePostgresEntity<typeof RouteOrderSubscribe
 
 // Registered purely for the @repository decorator's side effect (binding registration).
 @repository({ model: RouteOrderSubscriber, dataSource: RouteOrderDataSource })
-class RouteOrderSubscriberRepository {}
+class RouteOrderSubscriberRepository extends DefaultCRUDRepository<
+  typeof RouteOrderSubscriber.schema
+> {}
 
-const SubscriberCrudController = ControllerFactory.defineCrudController({
-  entity: RouteOrderSubscriber,
-  repository: { name: RouteOrderSubscriberRepository.name },
-  controller: { name: 'RouteOrderSubscriberController', basePath: '/subscribers' },
+const SubscriberCrudController = CrudControllerFactory.build({
+  repository: RouteOrderSubscriberRepository,
+  routes: { ...CrudRoutes.READ, create: true, updateById: true, deleteById: true },
 });
 
 @controller({ path: '/subscribers' })
@@ -196,14 +202,9 @@ applyMethodDecorator({
 });
 
 // The shape consumer apps use to hand-write an id endpoint: the generated findById is disabled and a decorator route takes its place, while the generated static routes (/count) stay enabled.
-const CountOnlyCrudController = ControllerFactory.defineCrudController({
-  entity: RouteOrderSubscriber,
-  repository: { name: RouteOrderSubscriberRepository.name },
-  controller: {
-    name: 'RouteOrderCountOnlyController',
-    basePath: '/subscribers',
-    enabledRoutes: ['count'],
-  },
+const CountOnlyCrudController = CrudControllerFactory.build({
+  repository: RouteOrderSubscriberRepository,
+  routes: { count: true },
 });
 
 @controller({ path: '/subscribers' })
@@ -246,10 +247,11 @@ describe('Route registration - decorator, imperative, fluent', () => {
   test('a TC39-shaped decorator call registers nothing on the method and is recorded, not swallowed', () => {
     const decorate = api({
       configs: { method: HTTP.Methods.GET, path: '/tc39', responses: okResponse },
-    }) as AnyType;
+    });
 
     const handler = function tc39Handler() {};
-    decorate(handler, { kind: 'method', name: 'tc39Handler' });
+
+    Reflect.apply(decorate, undefined, [handler, { kind: 'method', name: 'tc39Handler' }]);
 
     // The config must never be attached to the method function: nothing reads metadata from there.
     expect(Reflect.getMetadataKeys(handler)).toEqual([]);
@@ -309,7 +311,10 @@ describe('Route registration - decorator, imperative, fluent', () => {
 
   test('a static decorator route wins over an inherited CRUD param route on the same path segment', async () => {
     const restController = new RouteOrderSubscriberController(
-      fakeCrudRepository({ records: [{ id: 1, email: 'a@b.c' }] }),
+      fakeCrudRepository({
+        repository: RouteOrderSubscriberRepository,
+        records: [{ id: 1, email: 'a@b.c' }],
+      }),
     );
     await restController.configure();
 
@@ -322,7 +327,10 @@ describe('Route registration - decorator, imperative, fluent', () => {
 
   test('a decorator PARAM route does NOT swallow the generated static routes of its CRUD base', async () => {
     const restController = new RouteOrderCountOnlyController(
-      fakeCrudRepository({ records: [{ id: 1, email: 'a@b.c' }] }),
+      fakeCrudRepository({
+        repository: RouteOrderSubscriberRepository,
+        records: [{ id: 1, email: 'a@b.c' }],
+      }),
     );
     await restController.configure();
 

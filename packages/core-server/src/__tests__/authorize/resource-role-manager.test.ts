@@ -4,9 +4,11 @@ import type { ILogger } from '@venizia/ignis-helpers/core';
 
 const managerWith = async (edges: Array<[string, string]>) => {
   const manager = new ResourceRoleManager();
+
   for (const [child, parent] of edges) {
     await manager.addLink(child, parent);
   }
+
   return manager;
 };
 
@@ -105,6 +107,7 @@ describe('ResourceRoleManager', () => {
 
   it('deduplicates repeated addLink so buildRoleLinks cycles cannot grow the graph', async () => {
     const manager = new ResourceRoleManager();
+
     for (let index = 0; index < 500; index++) {
       await manager.addLink('Order', 'Sales');
     }
@@ -146,7 +149,9 @@ describe('ResourceRoleManager', () => {
     ]);
 
     const debugCalls: unknown[][] = [];
+
     const noop = (): void => {};
+
     // Fully implements ILogger (no `debug`-only partial) so no cast is needed to assign it.
     const debuggingLogger: ILogger = {
       debug: (...args: unknown[]): void => {

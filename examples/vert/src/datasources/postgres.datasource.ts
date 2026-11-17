@@ -26,13 +26,13 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     super({
       name: PostgresDataSource.name,
       config: {
-        host: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_HOST),
+        host: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_POSTGRES_HOST),
         port: ParseUtility.toInt({
-          input: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_PORT),
+          input: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_POSTGRES_PORT),
         }),
-        database: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_DATABASE),
-        user: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_USERNAME),
-        password: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_PASSWORD),
+        database: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_POSTGRES_DATABASE),
+        user: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_POSTGRES_USERNAME),
+        password: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_POSTGRES_PASSWORD),
         ssl: false,
       },
     });
@@ -51,6 +51,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 
   override getConnectionString(): ValueOrPromise<string> {
     const { host, port, user, password, database } = this.settings;
+
     return `${this.protocol}://${user}:${password}@${host}:${port}/${database}`;
   }
 }

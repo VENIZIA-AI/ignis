@@ -53,7 +53,7 @@ Everything on this page is the relational connector - see the [Full reference](/
 
 ### Add id and timestamp columns
 
-Enrichers return column definitions - spread them into the table. `PostgresIdEnricher.generateColumnDefs` adds the primary key; `PostgresTzEnricher.generateColumnDefs` adds `createdAt` and `modifiedAt`. The old function names (`generateIdColumnDefs`, `generateTzColumnDefs`, ...) are removed; `devz codemod namespace-functions` moves your calls.
+Enrichers return column definitions - spread them into the table. `PostgresIdEnricher.generateColumnDefs` adds the primary key; `PostgresTzEnricher.generateColumnDefs` adds `createdAt` and `modifiedAt`. The old function names (`generateIdColumnDefs`, `generateTzColumnDefs`, ...) are removed; `bun run devz codemod namespace-functions` moves your calls.
 
 ```typescript
 import { model } from '@venizia/ignis';
@@ -114,7 +114,7 @@ A `one` to a table that keys back to it - `profile: one(profileTable)` on an aut
 
 ### Hide a field
 
-List a column in `settings.hiddenProperties`. Hidden columns are excluded at the SQL level - never selected or returned through repositories.
+List a column in `settings.properties.hidden`. Hidden columns are excluded at the SQL level - never selected or returned through repositories.
 
 ```typescript
 export const accountTable = pgTable('Account', {
@@ -124,7 +124,7 @@ export const accountTable = pgTable('Account', {
 });
 
 @model({
-  settings: { hiddenProperties: ['password'] },
+  settings: { properties: { hidden: ['password'] } },
 })
 export class Account extends ModelFactory.defineEntity({ table: accountTable }) {}
 ```

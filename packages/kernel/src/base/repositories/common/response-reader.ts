@@ -1,4 +1,5 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
+import type { TJsonValue } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { ApplicationError, TResponsedError } from '@venizia/ignis-helpers/core';
 
@@ -7,6 +8,9 @@ import type { ApplicationError, TResponsedError } from '@venizia/ignis-helpers/c
  * client of that server: the http connector, and a client that reads it without the connector.
  */
 export class HttpResponseReader {
+  /** A content type that names JSON: `application/json`, `application/problem+json`, `application/ld+json`. */
+  static readonly JSON_CONTENT_TYPE_PATTERN = /json/i;
+
   static isPlainObject(value: unknown): value is Record<string, unknown> {
     return (
       !!value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype
@@ -33,11 +37,13 @@ export class HttpResponseReader {
     }
 
     const range = header.match(/(\d+)\s*-\s*(\d+)\s*\/\s*(\d+)/);
+
     if (range) {
       return { skip: Number(range[1]), total: Number(range[3]) };
     }
 
     const unsatisfied = header.match(/\*\s*\/\s*(\d+)/);
+
     if (unsatisfied) {
       return { total: Number(unsatisfied[1]) };
     }
@@ -85,6 +91,7 @@ export class HttpResponseReader {
   /** A failed response's envelope. A body that is not JSON yields `{}`, and the status alone still describes it. */
   static async readError(opts: { response: Response; rootKey?: string }): Promise<TResponsedError> {
     let text;
+
     try {
       const result = await opts.response.text();
       text = result;
@@ -94,6 +101,7 @@ export class HttpResponseReader {
     }
 
     let body: unknown;
+
     try {
       body = text ? JSON.parse(text) : undefined;
       // eslint-disable-next-line venizia/no-silent-catch -- a body that is not JSON yields `{}`; the status alone still describes the failure
@@ -125,6 +133,7 @@ export class HttpResponseReader {
     const displayText = serverText ?? `HTTP ${response.status}`;
 
     const extra: Record<string, unknown> = { ...server.extra };
+
     if (server.requestId) {
       const upstreamRequestId = extra.requestId;
       extra.requestId = server.requestId;
@@ -144,6 +153,76 @@ export class HttpResponseReader {
       cause: server.details?.cause,
       transform: ({ message }) => ({ ...message, text: displayText }),
     });
+  }
+
+  /**
+   * The body as text: `''` for a 204 or an empty body. `response.json()` throws on those, and each client
+   * that reads a response has copied the guard.
+   */
+  static async readText(opts: { response: Response }): Promise<string> {
+    const { response } = opts;
+
+    return response.status === HTTP.ResultCodes.RS_2.NoContent ? '' : response.text();
+  }
+
+  /**
+   * The body of a success answer, by what it says it is: `null` for a 204 or an empty body, the parsed
+   * value when the content type names JSON (`application/json`, `application/problem+json`), the text itself
+   * for any other type (`text/plain`, `text/csv`). A body that claims JSON and is not is a `502` that names
+   * `context` (where it happened, e.g. `[Client][read] 200 | /tickets`), its size and its content type; its
+   * content stays out of the message, which a relaying server may pass to its own clients.
+   */
+  static async readBody(opts: { response: Response; context: string }): Promise<TJsonValue> {
+    const { response, context } = opts;
+    const text = await HttpResponseReader.readText({ response });
+
+    if (!text) {
+      return null;
+    }
+
+    if (
+      !HttpResponseReader.JSON_CONTENT_TYPE_PATTERN.test(
+        response.headers.get(HTTP.Headers.CONTENT_TYPE) ?? '',
+      )
+    ) {
+      return text;
+    }
+
+    return HttpResponseReader.parseJson({ text, response, context });
+  }
+
+  /**
+   * The body as JSON whatever its content type says, `null` for a 204 or an empty body: for a route that
+   * answers JSON under a type a proxy rewrote. Errors as `readBody` does.
+   */
+  static async readJson(opts: { response: Response; context: string }): Promise<TJsonValue> {
+    const { response, context } = opts;
+    const text = await HttpResponseReader.readText({ response });
+
+    if (!text) {
+      return null;
+    }
+
+    return HttpResponseReader.parseJson({ text, response, context });
+  }
+
+  private static parseJson(opts: {
+    text: string;
+    response: Response;
+    context: string;
+  }): TJsonValue {
+    const { text, response, context } = opts;
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      const contentType = response.headers.get(HTTP.Headers.CONTENT_TYPE) ?? 'none';
+
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_5.BadGateway,
+        message: `${context} | The response body is not JSON (${text.length} chars, content-type: ${contentType})`,
+      });
+    }
   }
 
   /**
@@ -168,6 +247,7 @@ export class HttpResponseReader {
     }
 
     const { extra, ...envelope } = body;
+
     return { body: 'count' in envelope ? envelope : envelope.data, extra: { ...extra } };
   }
 }

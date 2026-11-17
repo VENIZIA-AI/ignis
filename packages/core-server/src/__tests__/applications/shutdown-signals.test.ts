@@ -34,6 +34,7 @@ const build = () => {
     config: { host: '127.0.0.1', port: 0, path: { base: '/', isStrict: true } },
   });
   application.init();
+
   return application;
 };
 
@@ -51,6 +52,7 @@ const install = (application: ShutdownApplication, exits: number[], extra = {}) 
     ...extra,
   });
   uninstallers.push(uninstall);
+
   return uninstall;
 };
 
@@ -72,7 +74,9 @@ describe('ServerApplication.installShutdownSignals', () => {
   test('a second signal while stopping is ignored: stop() still runs once', async () => {
     const application = build();
     const exits: number[] = [];
+
     let release: () => void = () => {};
+
     application.stopImplementation = () => new Promise<void>((resolve) => (release = resolve));
     install(application, exits);
 
@@ -90,9 +94,11 @@ describe('ServerApplication.installShutdownSignals', () => {
   test('a stop() that throws exits 1', async () => {
     const application = build();
     const exits: number[] = [];
+
     application.stopImplementation = async () => {
       throw new Error('pool refused to end');
     };
+
     install(application, exits);
 
     process.emit(SIGNAL);

@@ -17,6 +17,9 @@ const KAFKA = '@venizia/ignis-helpers/kafka';
  * The inversion names the package re-exports (`isEmpty`, `omit`, `resolveValue`, ...) are in the
  * inversion table, which lists the helpers entries in its own `modules`.
  *
+ * Not here: `createRedisHelper`. It has no one method to move to: `RedisHelperFactory.single`, `.cluster` and `.sentinel` each take
+ * the options of one topology, so the call is rewritten by hand.
+ *
  * Not here, and still functions: `isPromiseLike`, `isRedisHelper` (type guards), and
  * `applicationLogFormatter` (a value, not a function). `ApplicationLogger` is removed: `logger-scope.ts` moves
  * its calls to `LoggerFactory.getLogger([scope])`, a call on a class that no table entry can carry.
@@ -328,15 +331,7 @@ export const HELPERS_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
     keepsOptions: true,
   },
 
-  // modules/redis, modules/secrets
-  {
-    modules: [ROOT],
-    oldName: 'createRedisHelper',
-    className: 'RedisHelperFactory',
-    method: 'create',
-    params: [],
-    keepsOptions: true,
-  },
+  // modules/secrets
   {
     modules: [ROOT],
     oldName: 'createSecretsHelper',

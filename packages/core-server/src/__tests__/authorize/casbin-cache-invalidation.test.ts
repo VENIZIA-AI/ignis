@@ -45,16 +45,19 @@ class FakeRedisClient {
 
   async set(key: string, value: string): Promise<'OK'> {
     this.store.set(key, value);
+
     return 'OK';
   }
 
   async del(...keys: string[]): Promise<number> {
     let deleted = 0;
+
     for (const key of keys) {
       if (this.store.delete(key)) {
         deleted += 1;
       }
     }
+
     return deleted;
   }
 }
@@ -67,6 +70,7 @@ class FakeFilteredAdapter implements FilteredAdapter {
 
   async loadFilteredPolicy(model: Model): Promise<void> {
     const { Helper } = await import('casbin');
+
     for (const line of this.lines) {
       Helper.loadPolicyLine(line, model);
     }
@@ -174,6 +178,7 @@ describe('CasbinAuthorizationEnforcer — cache invalidation', () => {
       });
 
       let error: unknown;
+
       try {
         await enforcer.invalidateUserCache({ user: { principalType: 'User', userId: 1 } });
       } catch (err) {
@@ -206,6 +211,7 @@ describe('CasbinAuthorizationEnforcer — cache invalidation', () => {
       });
 
       let error: unknown;
+
       try {
         await enforcer.invalidateUserCache({ user: { principalType: 'User', userId: 1 } });
       } catch (err) {
@@ -349,17 +355,20 @@ class FakeInvalidatableEnforcer extends BaseHelper implements IAuthorizationEnfo
   buildRules(): unknown {
     return {};
   }
+
   evaluate(): TAuthorizationDecision {
     return AuthorizationDecisions.ALLOW;
   }
 
   async invalidateUserCache(opts: { user: unknown }) {
     FakeInvalidatableEnforcer.lastInvalidateUser = opts.user;
+
     return { invalidatedKeys: 1 };
   }
 
   async rebuildUserCache(opts: { user: unknown }) {
     FakeInvalidatableEnforcer.lastRebuildUser = opts.user;
+
     return { cacheKey: 'casbin:User:7', lineCount: 0 };
   }
 }
@@ -375,6 +384,7 @@ class FakePlainEnforcer extends BaseHelper implements IAuthorizationEnforcer {
   buildRules(): unknown {
     return {};
   }
+
   evaluate(): TAuthorizationDecision {
     return AuthorizationDecisions.ALLOW;
   }
@@ -448,6 +458,7 @@ describe('AuthorizationEnforcerRegistry — cache invalidation delegation', () =
     });
 
     let error: unknown;
+
     try {
       await registry.invalidateUserCache({
         user: { principalType: 'User', userId: 7 },

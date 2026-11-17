@@ -43,8 +43,10 @@ describe('FilterBuilder - resolveRelations guard + memoization', () => {
 
   test('a second build() with include reuses the memoized relation resolution', () => {
     let resolverCallCount = 0;
+
     const relationsResolver = () => {
       resolverCallCount++;
+
       return [{ name: 'child', type: 'one', schema: childTable, metadata: undefined }];
     };
 

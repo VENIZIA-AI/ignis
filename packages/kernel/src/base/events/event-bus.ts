@@ -1,6 +1,6 @@
 import { ObjectUtility } from '@venizia/ignis-helpers/common';
 import type { Container } from '@/helpers/inversion/container';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   BaseHelper,
   getError,
@@ -16,13 +16,12 @@ import type {
   TEventHandlerReference,
 } from './common/types';
 
-type TEventHandlerInvoker = (opts: { event: IDomainEvent<unknown> }) => ValueOrPromise<void>;
-
 /** One `register`ed handler, resolved to concrete retry numbers and a ready-to-call invoker -
  * `EventDispatchRetry`'s defaults already applied and `handler`'s shape already resolved, so
  * `dispatch` never has to branch on either. */
 interface IResolvedEventRegistration {
-  invokeHandler: TEventHandlerInvoker;
+  // A method signature on purpose: its parameter is bivariant, so a registration holds the invoker of any payload type, which the registry cannot tell apart.
+  invokeHandler(opts: { event: IDomainEvent<unknown> }): ValueOrPromise<void>;
   /** For the exhaustion log line only - a binding key or `<function fn.name>`. */
   description: string;
   maxAttempts: number;
@@ -98,6 +97,7 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
     }
 
     const totalWindowMs = EventBus.computeTotalWindowMs({ maxAttempts, baseDelayMs });
+
     if (totalWindowMs > EventDispatchRetry.MAX_TOTAL_WINDOW_MS) {
       throw getError({
         message: `[EventBus][register] retry window exceeds the ceiling | name: ${name} | Got: ${totalWindowMs}ms | Ceiling: ${EventDispatchRetry.MAX_TOTAL_WINDOW_MS}ms | Lower retry.maxAttempts or retry.baseDelayMs`,
@@ -112,11 +112,14 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
    * nothing left to re-read on a later attempt. The tag (`handler.type`) is what this switches on,
    * not which field happens to be present - see `EventHandlerTypes`' doc.
    */
-  private static buildHandlerInvoker(opts: {
+  private static buildHandlerInvoker<TPayload>(opts: {
     container: Container;
-    handler: TEventHandlerReference<AnyType>;
+    handler: TEventHandlerReference<TPayload>;
     name: string;
-  }): { invokeHandler: TEventHandlerInvoker; description: string } {
+  }): {
+    invokeHandler: (opts: { event: IDomainEvent<TPayload> }) => ValueOrPromise<void>;
+    description: string;
+  } {
     const { container, handler, name } = opts;
 
     if (ObjectUtility.isEmpty({ value: handler })) {
@@ -128,6 +131,7 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
     switch (handler.type) {
       case EventHandlerTypes.BINDING_KEY: {
         const { key } = handler;
+
         if (ObjectUtility.isEmpty({ value: key })) {
           throw getError({
             message: `[EventBus][register] Invalid handler.key | name: ${name} | Got: ${key}`,
@@ -142,6 +146,7 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
 
       case EventHandlerTypes.FUNCTION: {
         const { fn } = handler;
+
         if (typeof fn !== 'function') {
           throw getError({
             message: `[EventBus][register] Invalid handler.fn | name: ${name} | Expected a function | Got: ${typeof fn}`,
@@ -204,8 +209,10 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
     };
 
     const existing = this.registrationsByName.get(name);
+
     if (existing) {
       existing.push(registration);
+
       return;
     }
 
@@ -232,10 +239,12 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
     };
 
     const registrations = this.registrationsByName.get(name);
+
     if (!registrations?.length) {
       // A typo is already a compile error, so at runtime this only means nobody is listening yet -
       // a legitimate state on a fire-and-forget bus, not an incident.
       this.logger.debug('[publish] No handler registered | name: %s | traceId: %s', name, traceId);
+
       return;
     }
 

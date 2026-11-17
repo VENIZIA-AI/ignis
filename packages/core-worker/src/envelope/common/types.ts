@@ -1,6 +1,7 @@
 /** Headers are carried as tuples: a `Headers` instance is not structured-cloneable. */
 export type TEnvelopeHeaders = Array<[string, string]>;
 
+/** A request as it crosses between tabs and the worker: the plain, structured-cloneable parts of a `Request`, matched to its response by `id`. */
 export interface IBffRequestEnvelope {
   id: string;
   method: string;
@@ -10,6 +11,7 @@ export interface IBffRequestEnvelope {
   body?: ArrayBuffer;
 }
 
+/** A response as it crosses between the worker and tabs, matched to its request by `id`. */
 export interface IBffResponseEnvelope {
   id: string;
   status: number;

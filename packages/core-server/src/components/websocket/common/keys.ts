@@ -1,3 +1,4 @@
+/** Container keys of the WebSocket component: the server instance, its options, the Redis connection and the handlers an application binds. */
 export class WebSocketBindingKeys {
   static readonly WEBSOCKET_INSTANCE = '@app/websocket/instance';
 

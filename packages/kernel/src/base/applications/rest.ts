@@ -3,31 +3,32 @@ import { ArtifactNamespaces, BindingNamespaces, CoreBindings } from '@/common/bi
 import type { Binding, TBindingScope } from '@/helpers/inversion';
 import { BindingScopes, MetadataRegistry } from '@/helpers/inversion';
 import { BindingVerifier } from '@venizia/ignis-inversion';
-import { OpenAPIHono } from '@hono/zod-openapi';
-import type { AnyType, IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   PerformanceUtility,
   getError,
   RequestIdGenerator,
   RetryHelper,
 } from '@venizia/ignis-helpers/core';
-import type { Env, Schema } from 'hono';
+import type { Env, Hono, MiddlewareHandler, Schema } from 'hono';
 import { showRoutes as showApplicationRoutes } from 'hono/dev';
-import { bodyLimit } from 'hono/body-limit';
 import { requestId } from 'hono/request-id';
 import type { BaseComponent } from '../components';
 import { ArtifactBindingKeys } from '../metadata/artifact-keys';
 import { RestComponent } from '../components/controller/rest/rest.component';
 import type { BaseConfiguration } from '../configurations';
 import { ControllerTransports } from '../controllers/common/constants';
-import type { IDataSource } from '../datasources';
+import type { IDataSource, IDataSourceOpening } from '../datasources';
+import { DataSourceOpenModes } from '../datasources';
+import { OPENING_HANDLES } from '../datasources/opening-handles';
 import { BaseAppErrorMiddleware } from '../middlewares/app-error/app-error.middleware';
-import { RequestErrors } from '../middlewares/common/errors';
 import { notFoundHandler } from '../middlewares/not-found/not-found.middleware';
 import type { TMixinOpts } from '../mixins/common';
 import type { IRepository } from '../repositories';
 import type { IService } from '../services';
 import { AbstractApplication } from './abstract';
+import { BodyLimits } from './body-limit';
+import { RouterFactories } from './router-factory';
 import { CorsUtility } from './cors';
 import { ArtifactIndexHelper } from './artifact-index';
 import type { IBootSequenceStep } from './boot-sequence';
@@ -41,7 +42,48 @@ interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurabl
   onAfterConfigure?: (opts: { binding: Binding<T>; instance: T }) => Promise<void>;
 }
 
-/** Adds the `OpenAPIHono` router surface on top of `AbstractApplication` - no listening server, so this is the layer a browser Worker or gRPC-only host can extend without pulling in `Bun.serve`. */
+/**
+ * Runtime checks that narrow a bound instance to the members the boot calls on it. Positional: a type predicate narrows
+ * its own parameter.
+ */
+class BootTargets {
+  private static isObjectLike(value: unknown): value is object {
+    return (typeof value === 'object' && value !== null) || typeof value === 'function';
+  }
+
+  /** Has `isOpenDeferred()`, so the boot can ask whether its open waits for the first use. */
+  static canDeferOpen(
+    value: unknown,
+  ): value is Pick<IDataSource, 'deferOpen'> & Required<Pick<IDataSource, 'isOpenDeferred'>> {
+    return (
+      BootTargets.isObjectLike(value) &&
+      'isOpenDeferred' in value &&
+      typeof value.isOpenDeferred === 'function'
+    );
+  }
+
+  /** Has `configure()`; a datasource's takes the opening handles in its second argument. */
+  static isConfigurable(value: unknown): value is Pick<IDataSource, 'configure'> {
+    return (
+      BootTargets.isObjectLike(value) &&
+      'configure' in value &&
+      typeof value.configure === 'function'
+    );
+  }
+
+  /** Carries the opening handles every datasource root defines. */
+  static hasOpeningHandles(
+    value: unknown,
+  ): value is { [OPENING_HANDLES]: () => IDataSourceOpening } {
+    return (
+      BootTargets.isObjectLike(value) &&
+      OPENING_HANDLES in value &&
+      typeof value[OPENING_HANDLES] === 'function'
+    );
+  }
+}
+
+/** Adds the Hono router surface on top of `AbstractApplication` - no listening server, so this is the layer a browser Worker or gRPC-only host can extend without pulling in `Bun.serve`. */
 export abstract class RestApplication<
   AppEnv extends Env = Env,
   AppSchema extends Schema = {},
@@ -51,9 +93,9 @@ export abstract class RestApplication<
   private artifactOptions = new Map<string, object>();
 
   /** The router, and nothing else. What runtime is underneath and what socket is bound are `ServerApplication`'s to know - a browser Worker has neither, and carrying the union here made `RuntimeModules.detect()` answer `'node'` inside a Worker. */
-  protected server: { hono: OpenAPIHono<AppEnv, AppSchema, BasePath> };
+  protected server: { hono: Hono<AppEnv, AppSchema, BasePath> };
 
-  protected rootRouter: OpenAPIHono<AppEnv, AppSchema, BasePath>;
+  protected rootRouter: Hono<AppEnv, AppSchema, BasePath>;
   protected readonly requestIdGenerator: RequestIdGenerator;
 
   /** A copy of the `bodyLimit` the default stack installed, absent until `registerDefaultMiddlewares()` ran. */
@@ -79,17 +121,23 @@ export abstract class RestApplication<
     this.requestIdGenerator = new RequestIdGenerator({ scope: opts.scope });
 
     const strict = this.configs.path.isStrict ?? true;
-    const honoServer = new OpenAPIHono<AppEnv, AppSchema, BasePath>({ strict });
-    this.rootRouter = new OpenAPIHono({ strict });
-
-    this.server = { hono: honoServer };
+    this.server = { hono: this.createRouter({ strict }) };
+    this.rootRouter = this.createRouter({ strict });
   }
 
-  getRootRouter(): OpenAPIHono<AppEnv, AppSchema, BasePath> {
+  /**
+   * Builds one of the two routers: a plain `Hono`, or an `OpenAPIHono` once the REST controller layer is
+   * loaded. Called from the constructor, so an override must not read its own instance fields.
+   */
+  protected createRouter(opts: { strict: boolean }): Hono<AppEnv, AppSchema, BasePath> {
+    return RouterFactories.create<AppEnv, AppSchema, BasePath>({ strict: opts.strict });
+  }
+
+  getRootRouter(): Hono<AppEnv, AppSchema, BasePath> {
     return this.rootRouter;
   }
 
-  getServer(): OpenAPIHono<AppEnv, AppSchema, BasePath> {
+  getServer(): Hono<AppEnv, AppSchema, BasePath> {
     return this.server.hono;
   }
 
@@ -137,7 +185,10 @@ export abstract class RestApplication<
     server.use(requestId({ generator: () => this.generateRequestId() }));
 
     // Ahead of every middleware a host adds after this one, so none of them buffers a body over it.
-    const bodyLimitOptions = this.configs.middlewares?.bodyLimit;
+    // Unset, every route gets BodyLimits.DEFAULT_MAX_SIZE; a configured bodyLimit replaces it, and `enable: false` removes it.
+    const bodyLimitOptions = this.resolveBodyLimit({
+      options: this.configs.middlewares?.bodyLimit,
+    });
     this.installedBodyLimit = { options: this.toInstalledBodyLimit({ options: bodyLimitOptions }) };
 
     if (bodyLimitOptions && bodyLimitOptions.enable !== false) {
@@ -149,17 +200,11 @@ export abstract class RestApplication<
         });
       }
 
-      const limiter = bodyLimit({
-        maxSize,
-        onError:
-          onError ??
-          (() => {
-            throw getError({
-              error: RequestErrors.BODY_TOO_LARGE,
-              message: `Request body exceeds the maximum of ${maxSize} bytes`,
-            });
-          }),
-      });
+      const defaultLimiter = BodyLimits.limiter({ maxSize, onError });
+
+      // A route with its own limit (BodyLimits.route) is held to that one, not to this.
+      const limiter: MiddlewareHandler = (context, next) =>
+        BodyLimits.hasRouteLimit(context) ? next() : defaultLimiter(context, next);
 
       if (path) {
         server.use(path, limiter);
@@ -170,6 +215,11 @@ export abstract class RestApplication<
 
     server.onError(this.buildErrorMiddleware().value());
     server.notFound(notFoundHandler({ logger: this.logger }));
+  }
+
+  /** The configured `bodyLimit`, or the default one when none is configured. */
+  private resolveBodyLimit(opts: { options?: IBodyLimitOptions }): IBodyLimitOptions {
+    return opts.options ?? { maxSize: BodyLimits.DEFAULT_MAX_SIZE };
   }
 
   /** What a `bodyLimit` config installs: nothing when absent or disabled, else a copy, so a later in-place edit shows. */
@@ -193,6 +243,7 @@ export abstract class RestApplication<
     }
 
     const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+
     for (const key of keys) {
       if (!Object.is(left[key], right[key])) {
         return false;
@@ -212,7 +263,9 @@ export abstract class RestApplication<
     }
 
     const installed = this.installedBodyLimit.options;
-    const current = this.toInstalledBodyLimit({ options: this.configs.middlewares?.bodyLimit });
+    const current = this.toInstalledBodyLimit({
+      options: this.resolveBodyLimit({ options: this.configs.middlewares?.bodyLimit }),
+    });
 
     if (this.isSameBodyLimit({ left: installed, right: current })) {
       return;
@@ -284,6 +337,7 @@ export abstract class RestApplication<
     hook: () => ValueOrPromise<void>;
   }): Promise<void> {
     this.runningApplicationHook = opts.name;
+
     try {
       await opts.hook();
     } finally {
@@ -312,6 +366,7 @@ export abstract class RestApplication<
 
     for (const tag of tags) {
       const bindings = this.findByTag({ tag });
+
       for (const binding of bindings) {
         if (counts.has(binding.key)) {
           continue;
@@ -347,6 +402,7 @@ export abstract class RestApplication<
     const t = performance.now();
 
     const stepsEntries = steps.entries();
+
     for (const [index, step] of stepsEntries) {
       try {
         await PerformanceUtility.executeWithMeasure({
@@ -432,6 +488,7 @@ export abstract class RestApplication<
     if (!this.registeredBindings[namespace]) {
       this.registeredBindings[namespace] = new Set<string>();
     }
+
     const configured = this.registeredBindings[namespace];
 
     await this.drainByTag<T>({
@@ -443,14 +500,36 @@ export abstract class RestApplication<
         }
 
         const instance = this.get<T>({ key: binding.key, isOptional: false });
+
         if (!instance) {
           logger.debug('No binding instance | namespace: %s | key: %s', namespace, binding.key);
+
           return;
         }
 
-        if (typeof (instance as Partial<IConfigurable>)?.configure === 'function') {
+        // A family on `DataSourceRoot` does not read `@datasource` metadata, so the boot reads the declaration itself: `first-use` on a family that cannot honour it is refused by `deferOpen`, never ignored.
+        const isDeclaredDeferred =
+          namespace === BindingNamespaces.DATASOURCE &&
+          MetadataRegistry.getInstance().getDataSourceMetadata({ target: instance.constructor })
+            ?.open?.on === DataSourceOpenModes.FIRST_USE;
+
+        if (
+          namespace === BindingNamespaces.DATASOURCE &&
+          BootTargets.canDeferOpen(instance) &&
+          (instance.isOpenDeferred() === true || isDeclaredDeferred)
+        ) {
+          // Opens at the first call that needs it; the application starts, and listens, without it.
+          instance.deferOpen?.({ options: this.artifactOptions.get(binding.key) });
+          logger.info('Datasource opens on first use | key: %s', binding.key);
+        } else if (BootTargets.isConfigurable(instance)) {
           const options = this.artifactOptions.get(binding.key);
-          await (instance as IConfigurable).configure(options);
+          // A datasource also gets the handles of its open (the same body works at start and on first use).
+          const opening =
+            namespace === BindingNamespaces.DATASOURCE && BootTargets.hasOpeningHandles(instance)
+              ? instance[OPENING_HANDLES]()
+              : undefined;
+
+          await instance.configure(options, opening);
         }
 
         // Marked before the after-hook runs, so the hook sees its own binding as configured.
@@ -608,6 +687,7 @@ export abstract class RestApplication<
       scope: this.registerControllers.name,
       task: async () => {
         const transports = this.configs.transports ?? [ControllerTransports.REST];
+
         if (!transports.includes(ControllerTransports.REST)) {
           return;
         }
@@ -670,7 +750,7 @@ export abstract class RestApplication<
     });
 
     const registry = MetadataRegistry.getInstance();
-    const kinds: Array<[ReadonlyArray<TClass<AnyType>>, TBindingNamespace]> = [
+    const kinds: Array<[ReadonlyArray<TClass<unknown>>, TBindingNamespace]> = [
       [resolved.configurations, BindingNamespaces.CONFIGURATION],
       [resolved.dataSources, BindingNamespaces.DATASOURCE],
       [resolved.components, BindingNamespaces.COMPONENT],
@@ -757,10 +837,11 @@ export abstract class RestApplication<
   }
 
   /** Each `@provide` method becomes a lazy provider: the component is resolved (SINGLETON) and the method called on first `get`, so a provided value may depend on datasources or secrets that do not exist yet at registration time. */
-  private bindProvidedKeys(opts: { target: TClass<any> }): void {
+  private bindProvidedKeys(opts: { target: TClass<unknown> }): void {
     const { target } = opts;
     const registry = MetadataRegistry.getInstance();
     const provides = registry.getProvideMetadata({ target });
+
     if (provides.length === 0) {
       return;
     }
@@ -777,12 +858,14 @@ export abstract class RestApplication<
         namespace: defaultNamespace,
         binding: declared?.binding,
       }).key;
+
     for (const entry of provides) {
       this.bind({ key: entry.key })
         .toProvider((container) => {
           const instance = container.get<Record<string | symbol, () => unknown>>({
             key: componentKey,
           });
+
           return instance[entry.methodName]();
         })
         .setScope(entry.scope ?? BindingScopes.SINGLETON);
@@ -813,6 +896,7 @@ export abstract class RestApplication<
     for (const key of keys) {
       try {
         const dataSource = this.get<IDataSource>({ key, isOptional: true });
+
         if (!dataSource?.close) {
           logger.debug('Nothing to close | key: %s', key);
           continue;

@@ -21,10 +21,9 @@ This guide helps you make informed architectural decisions when building applica
 ```typescript
 // Simple CRUD with no business logic
 @controller({ path: '/items' })
-export class ItemController extends ControllerFactory.defineCrudController({
-  entity: Item,
-  repository: { name: ItemRepository.name },
-  controller: { name: 'ItemController', basePath: '/items' },
+export class ItemController extends CrudControllerFactory.build({
+  repository: ItemRepository,
+  routes: CrudRoutes.READ,
 }) {}
 ```
 
@@ -160,9 +159,9 @@ existsWith({ where })       // Existence check -> boolean
 create({ data })            // Create new -> { count, data }
 createAll({ data })         // Create many -> { count, data }
 updateById({ id, data })    // Update existing -> { count, data }
-updateAll({ data, where })  // Bulk update (updateBy is an alias)
+updateBy({ data, where })   // Bulk update -> { count, data }
 deleteById({ id })          // Delete -> { count, data }
-deleteAll({ where })        // Bulk delete (deleteBy is an alias)
+deleteBy({ where })         // Bulk delete -> { count, data }
 ```
 
 Reads return the record(s) directly; writes return `{ count, data }`. Pass `options: { shouldReturn: false }` on a write to skip the `RETURNING` round-trip.
@@ -192,11 +191,11 @@ export class OrderRepository extends DefaultRelationalRepository<typeof Order.sc
 
   // Performance-optimized query (raw SQL through the Drizzle connector)
   async getOrderStats(userId: string) {
-    return this.dataSource.connector.execute(sql`
+    return this.dataSource.getConnector().execute(sql`
       SELECT
-        COUNT(*) as total,
-        SUM(total) as revenue,
-        AVG(total) as average
+        COUNT(*) AS total,
+        SUM(total) AS revenue,
+        AVG(total) AS average
       FROM orders
       WHERE user_id = ${userId}
     `);
@@ -257,7 +256,7 @@ export class UserService extends BaseService {
     if (existing) {
       // One message shape everywhere: { text, code, args }
       throw getError({
-        statusCode: 400,
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
         message: {
           text: 'User with this email already exists',
           code: MessageCode.build({ parts: ['app', 'user', 'duplicate_email'] }),
@@ -382,7 +381,7 @@ OrderStatusRepository  // Probably doesn't need its own repo
 const orders = await orderRepository.find({ filter: { where: { userId } } });
 
 // Use raw queries (via the datasource's Drizzle connector) for:
-const connector = this.dataSource.connector;
+const connector = this.dataSource.getConnector();
 
 // 1. Complex aggregations
 const stats = await connector.execute(sql`
@@ -416,11 +415,11 @@ import { applicationEnvironment } from '@venizia/ignis-helpers';
 // Use for: secrets, environment-specific values
 const config = {
   database: {
-    host: applicationEnvironment.get<string>('APP_ENV_POSTGRES_HOST'),
-    password: applicationEnvironment.get<string>('APP_ENV_POSTGRES_PASSWORD'),
+    host: applicationEnvironment.get('APP_ENV_POSTGRES_HOST'),
+    password: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD'),
   },
   stripe: {
-    secretKey: applicationEnvironment.get<string>('APP_ENV_STRIPE_SECRET_KEY'),
+    secretKey: applicationEnvironment.get('APP_ENV_STRIPE_SECRET_KEY'),
   },
 };
 ```

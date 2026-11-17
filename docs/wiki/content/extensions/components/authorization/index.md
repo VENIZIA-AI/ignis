@@ -64,15 +64,14 @@ export class Application extends BaseApplication {
 ```
 
 ```typescript
-import { Authentication, AuthorizationActions, ControllerFactory } from '@venizia/ignis';
+import { Authentication, AuthorizationActions, CrudControllerFactory, CrudRoutes } from '@venizia/ignis';
 
 // A CRUD controller with a route protected by authentication + authorization
-export const ArticleController = ControllerFactory.defineCrudController({
-  entity: Article,
-  repository: { name: 'ArticleRepository' },
-  controller: { name: 'ArticleController', basePath: '/articles' },
+export const ArticleController = CrudControllerFactory.build({
+  repository: ArticleRepository,
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   routes: {
+    ...CrudRoutes.READ,
     deleteById: {
       authorize: { action: AuthorizationActions.DELETE, resource: 'Article' },
     },
@@ -160,4 +159,4 @@ authorize: { action: AuthorizationActions.READ, resource: Article.AUTHORIZATION_
 - [`packages/core-server/src/components/auth/authorize/enforcers/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/enforcers) - `CasbinAuthorizationEnforcer`, `AuthorizationEnforcerRegistry`, `CASBIN_RBAC_DOMAIN_SCOPED_MODEL`
 - [`packages/core-server/src/components/auth/authorize/adapters/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/adapters) - `BaseFilteredAdapter`, `ScopedCasbinAdapter`
 - [`packages/kernel/src/base/auth/authorize/models/authorization-role.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/auth/authorize/models/authorization-role.model.ts) - `AuthorizationRole`
-- [`packages/kernel/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents.ts) - `@model` auto-populating `AUTHORIZATION_SUBJECT` from `settings.authorize.principal`
+- [`packages/kernel/src/base/metadata/persistents/model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents/model.ts) - `@model` auto-populating `AUTHORIZATION_SUBJECT` from `settings.authorize.principal`

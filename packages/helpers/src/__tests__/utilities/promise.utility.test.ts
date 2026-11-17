@@ -1,5 +1,4 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test';
-import type { AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
 import { ErrorUtility } from '@/utilities/error.utility';
 import { ParseUtility } from '@/utilities/parse.utility';
@@ -27,6 +26,7 @@ const buildInstrumentedTasks = (opts: { count: number; delayMs?: number }) => {
       state.peak = Math.max(state.peak, state.inFlight);
       await new Promise((resolve) => setTimeout(resolve, delayMs));
       state.inFlight -= 1;
+
       return index;
     };
   });
@@ -36,6 +36,7 @@ const buildInstrumentedTasks = (opts: { count: number; delayMs?: number }) => {
 
 describe('executePromiseWithLimit', () => {
   const unhandled: unknown[] = [];
+
   const onUnhandled = (reason: unknown) => {
     unhandled.push(reason);
   };
@@ -56,14 +57,17 @@ describe('executePromiseWithLimit', () => {
     const tasks = [
       async () => {
         await new Promise((resolve) => setTimeout(resolve, 30));
+
         return 'slow-first';
       },
       async () => {
         await new Promise((resolve) => setTimeout(resolve, 1));
+
         return 'fast-second';
       },
       async () => {
         await new Promise((resolve) => setTimeout(resolve, 15));
+
         return 'medium-third';
       },
     ];
@@ -150,6 +154,7 @@ describe('executePromiseWithLimit', () => {
     ];
 
     let caught: unknown;
+
     try {
       await PromiseUtility.executeWithLimit({ tasks, limit: 2 });
     } catch (error) {
@@ -170,8 +175,7 @@ describe('isPromiseLike', () => {
     expect(isPromiseLike(Promise.resolve(1))).toBe(true);
     expect(isPromiseLike({ then: () => undefined })).toBe(true);
 
-    const thenableFunction = () => undefined;
-    (thenableFunction as AnyType).then = () => undefined;
+    const thenableFunction = Object.assign(() => undefined, { then: () => undefined });
     expect(isPromiseLike(thenableFunction)).toBe(true);
 
     expect(isPromiseLike(null)).toBe(false);

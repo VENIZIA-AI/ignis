@@ -40,6 +40,7 @@ export class OneRelations {
       if (def?.type !== RelationTypes.ONE) {
         continue;
       }
+
       if (def.metadata?.fields) {
         this.writtenFields.push(def.metadata.fields);
       } else if (
@@ -59,6 +60,7 @@ export class OneRelations {
     if (resolution.side === OneRelationSides.INVERSE) {
       return undefined;
     }
+
     return {
       relationName: name,
       ...metadata,
@@ -69,10 +71,12 @@ export class OneRelations {
 
   private resolve(opts: { name: string; target: Table; metadata: TOneMetadata }): TOneResolution {
     let resolution = this.resolutions.get(opts.name);
+
     if (!resolution) {
       resolution = this.resolveOne(opts);
       this.resolutions.set(opts.name, resolution);
     }
+
     return resolution;
   }
 
@@ -92,6 +96,7 @@ export class OneRelations {
         link: { columns: metadata.fields, foreignColumns: metadata.references },
       };
     }
+
     if (metadata?.fields || metadata?.references) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
@@ -122,6 +127,7 @@ export class OneRelations {
     if (candidates.length === 1) {
       return { side: OneRelationSides.OWNING, link: candidates[0] };
     }
+
     if (owned.length > 1) {
       const listed = candidates.length > 0 ? candidates : owned;
       const columns = listed
@@ -138,12 +144,14 @@ export class OneRelations {
     }
 
     const inverse = OneRelations.foreignKeysBetween({ from: target, to: source });
+
     if (inverse.length > 1) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         message: `[createRelations] relation '${name}': ${inverse.length} foreign keys on ${targetName} reference ${sourceName} (${inverse.map((link) => OneRelations.columnNames({ columns: link.columns })).join(', ')}), so drizzle cannot tell which one this side pairs with | Pick one: write fields and references on this side, reversed - e.g. ${OneRelations.reversedConfig({ link: inverse[0], source, target })}`,
       });
     }
+
     if (inverse.length === 1) {
       if (metadata?.relationName) {
         throw getError({
@@ -151,6 +159,7 @@ export class OneRelations {
           message: `[createRelations] relation '${name}' is the inverse side of a one-to-one - the foreign key (${OneRelations.columnNames({ columns: inverse[0].columns })}) is on ${targetName} | drizzle pairs an inverse one() by table, never by relationName. Remove relationName, or write fields and references on this side, reversed: ${OneRelations.reversedConfig({ link: inverse[0], source, target })}`,
         });
       }
+
       return { side: OneRelationSides.INVERSE };
     }
 
@@ -174,6 +183,7 @@ export class OneRelations {
       foreignColumns: Array<AnyColumn>;
       foreignTable: Table;
     }> = [];
+
     if (is(from, PgTable)) {
       references = getPgTableConfig(from).foreignKeys.map((foreignKey) => foreignKey.reference());
     } else if (is(from, SQLiteTable)) {
@@ -183,8 +193,10 @@ export class OneRelations {
     }
 
     const links: Array<IForeignKeyLink> = [];
+
     for (const reference of references) {
       const { columns, foreignColumns, foreignTable } = reference;
+
       if (
         foreignTable === to &&
         OneRelations.isNonEmpty(columns) &&
@@ -193,6 +205,7 @@ export class OneRelations {
         links.push({ columns, foreignColumns });
       }
     }
+
     return links;
   }
 
@@ -220,6 +233,7 @@ export class OneRelations {
   /** Whether `link` starts at exactly these columns, in order. */
   private static startsAt(opts: { link: IForeignKeyLink; columns: Array<AnyColumn> }): boolean {
     const { link, columns } = opts;
+
     return (
       link.columns.length === columns.length &&
       link.columns.every((column, index) => column === columns[index])

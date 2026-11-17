@@ -40,6 +40,7 @@ export class FakeSearchEngineHelper implements ISearchConnector {
     batchSize?: number;
     action?: string;
   }> = [];
+
   importDocumentsResponse: IImportResult<unknown> = {
     count: { success: 0, fail: 0 },
     responses: [],
@@ -156,6 +157,7 @@ export class FakeSearchEngineHelper implements ISearchConnector {
 
   async createDocument<T extends object>(opts: { collection: string; document: T }): Promise<T> {
     this.createDocumentCalls.push(opts);
+
     return opts.document;
   }
 
@@ -175,6 +177,7 @@ export class FakeSearchEngineHelper implements ISearchConnector {
 
   async countDocuments(opts: { collection: string; filterBy?: string }): Promise<number> {
     this.countDocumentsCalls.push(opts);
+
     return this.countDocumentsResponse;
   }
 
@@ -188,11 +191,13 @@ export class FakeSearchEngineHelper implements ISearchConnector {
     document: Partial<T>;
   }): Promise<T> {
     this.updateDocumentCalls.push(opts);
+
     return opts.document as T;
   }
 
   async deleteDocument(opts: { collection: string; id: string }): Promise<boolean> {
     this.deleteDocumentCalls.push(opts);
+
     return this.deleteDocumentResult;
   }
 
@@ -203,6 +208,7 @@ export class FakeSearchEngineHelper implements ISearchConnector {
     action?: string;
   }): Promise<IImportResult<T>> {
     this.importDocumentsCalls.push(opts);
+
     return this.importDocumentsResponse as IImportResult<T>;
   }
 
@@ -212,16 +218,19 @@ export class FakeSearchEngineHelper implements ISearchConnector {
     filterBy: string;
   }): Promise<{ updatedCount: number }> {
     this.updateByFilterCalls.push(opts);
+
     return this.updateByFilterResponse;
   }
 
   async deleteByFilter(opts: { collection: string; filterBy: string }): Promise<number> {
     this.deleteByFilterCalls.push(opts);
+
     return this.deleteByFilterResponse;
   }
 
   async deleteAllDocuments(opts: { collection: string }): Promise<boolean> {
     this.deleteAllDocumentsCalls.push(opts);
+
     return this.deleteAllDocumentsResponse;
   }
 
@@ -278,7 +287,7 @@ export class FakeSearchDataSource extends TypesenseDataSource {
   type: 'entity',
   tableName: 'products',
   settings: {
-    hiddenProperties: ['secret'],
+    properties: { hidden: ['secret'] },
     query: { filter: { where: { isActive: true } } },
   },
 })
@@ -295,12 +304,15 @@ export class ProductDocument extends BaseSearchEntity {
   });
 }
 
+/** The document shape of `ProductDocument`, for a repository class that serves it. */
+export type TProductDocument = NonNullable<ProductDocument['$inferData']>;
+
 /** Same shape as `ProductDocument` but with no `defaultFilter` - for truncate-path tests. */
 @model({
   type: 'entity',
   tableName: 'products_no_default_filter',
   settings: {
-    hiddenProperties: ['secret'],
+    properties: { hidden: ['secret'] },
   },
 })
 export class ProductDocumentNoDefaultFilter extends BaseSearchEntity {

@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import type { AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
 import { AbstractSecretsHelper } from '@/modules/secrets/base/abstract.helper';
 import type {
@@ -15,6 +14,7 @@ const TIMEOUT_MAX_MS = 2_147_483_647;
 /** Awaits a rejection explicitly: bun's `expect(...).rejects` is typed as non-thenable in this repo. */
 const captureRejection = async (opts: { promise: Promise<unknown> }): Promise<Error> => {
   let outcome: Error | null = null;
+
   try {
     await opts.promise;
   } catch (error) {
@@ -26,6 +26,17 @@ const captureRejection = async (opts: { promise: Promise<unknown> }): Promise<Er
   }
 
   return outcome;
+};
+
+/** Reads the size of one of the provider's private maps (`leases`, `leasePaths`, `cache`). */
+const readMapSize = (opts: { provider: object; field: string }): number => {
+  const map: unknown = Reflect.get(opts.provider, opts.field);
+
+  if (!(map instanceof Map)) {
+    throw getError({ message: `Expected the provider field ${opts.field} to be a Map` });
+  }
+
+  return map.size;
 };
 
 class ManualClock implements IClock {
@@ -44,23 +55,30 @@ class ManualTimers implements ITimerAdapter {
     const handle = ++this.seq;
     this.handlers.set(handle, handler);
     this.delays.push(ms);
+
     return handle;
   }
+
   clear(handle: TTimerHandle) {
     this.handlers.delete(handle);
   }
+
   count() {
     return this.handlers.size;
   }
+
   lastDelay() {
     return this.delays[this.delays.length - 1];
   }
+
   async fireAll() {
     const pending = [...this.handlers.values()];
     this.handlers.clear();
+
     for (const handler of pending) {
       handler();
     }
+
     await Promise.resolve();
     await Promise.resolve();
   }
@@ -90,21 +108,28 @@ class FakeSecretsHelper extends AbstractSecretsHelper {
   protected async fetchRaw() {
     const call = this.fetchCount;
     this.fetchCount += 1;
+
     if (this.fetchGate) {
       await this.fetchGate;
     }
+
     const injected = this.fetchErrorAtCall.get(call);
+
     if (injected) {
       throw injected;
     }
+
     return this.fetchScript[Math.min(call, this.fetchScript.length - 1)];
   }
+
   protected async renewRaw() {
     if (this.renewGate) {
       await this.renewGate;
     }
+
     return this.renewResults.shift() ?? null;
   }
+
   protected async revokeRaw(opts: { leaseId: string }) {
     this.revoked.push(opts.leaseId);
   }
@@ -120,6 +145,7 @@ const build = () => {
     cacheTtlSeconds: 100,
     renewBeforeRatio: 0.5,
   });
+
   return { clock, timers, provider };
 };
 
@@ -128,6 +154,7 @@ const createDeferred = () => {
   const promise = new Promise<void>((res) => {
     resolve = res;
   });
+
   return { promise, resolve };
 };
 
@@ -261,7 +288,7 @@ describe('AbstractSecretsHelper', () => {
 
     expect(ctx.provider.revoked).toEqual(['L1']);
     expect(ctx.timers.count()).toBe(0); // no timer resurrected
-    expect((ctx.provider as AnyType).leases.size).toBe(0); // lease not re-added
+    expect(readMapSize({ provider: ctx.provider, field: 'leases' })).toBe(0); // lease not re-added
   });
 
   // Fix 3 - a huge ttl must clamp the delay to setTimeout's ceiling, not overflow to ~1ms.
@@ -298,9 +325,11 @@ describe('AbstractSecretsHelper', () => {
       { value: { password: 'p1' }, lease: { leaseId: 'L1', ttlSeconds: 10, renewable: false } },
     ];
     const FAILURE_COUNT = 1040;
+
     for (let call = 1; call <= FAILURE_COUNT; call += 1) {
       ctx.provider.fetchErrorAtCall.set(call, new Error(`vault unreachable #${call}`));
     }
+
     await ctx.provider.lease({ path: 'db', key: 'datasources.postgres' });
 
     for (let i = 0; i < FAILURE_COUNT; i += 1) {
@@ -320,6 +349,7 @@ describe('AbstractSecretsHelper', () => {
     const hanging: ISecretRotatable = {
       onSecretRotated() {
         started.push('hanging');
+
         return new Promise<void>(() => undefined); // never resolves
       },
     };
@@ -346,8 +376,8 @@ describe('AbstractSecretsHelper', () => {
     const error = await captureRejection({ promise: pending });
     expect(error.message).toMatch(/shut down/);
 
-    expect((ctx.provider as AnyType).leases.size).toBe(0);
-    expect((ctx.provider as AnyType).leasePaths.size).toBe(0);
+    expect(readMapSize({ provider: ctx.provider, field: 'leases' })).toBe(0);
+    expect(readMapSize({ provider: ctx.provider, field: 'leasePaths' })).toBe(0);
   });
 
   // Fix 7 - getBundle() resolving AFTER shutdown() must not repopulate the cleared cache map.
@@ -361,7 +391,7 @@ describe('AbstractSecretsHelper', () => {
     gate.resolve();
     await pending;
 
-    expect((ctx.provider as AnyType).cache.size).toBe(0);
+    expect(readMapSize({ provider: ctx.provider, field: 'cache' })).toBe(0);
   });
 
   // Fix 6 - rotation refreshes the get/getBundle cache instead of serving a stale secret.

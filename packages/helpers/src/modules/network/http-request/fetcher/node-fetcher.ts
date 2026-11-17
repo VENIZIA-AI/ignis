@@ -1,6 +1,5 @@
 import { RedactUtility } from '@/common/redact';
 import { HTTP, type THttpMethod } from '@/common/constants/http';
-import { type AnyObject } from '@/common/types';
 import {
   type IQueryStringOptions,
   QueryStringSeparators,
@@ -14,10 +13,11 @@ import {
   type TFetcherLogger,
 } from './base-fetcher';
 
+/** Request accepted by `NodeFetcher`: `RequestInit` plus `url`; `params` are written into the url query. */
 export interface INodeFetchRequestOptions extends RequestInit, IRequestOptions {
   url: string;
   method?: THttpMethod;
-  params?: AnyObject;
+  params?: Record<string, unknown>;
 }
 
 /** What `fetch` takes as a body as it is: encoding any of these again would change the bytes sent. A constructor is looked up on `globalThis` so a runtime without one (no `FormData`) just never matches it. */
@@ -28,10 +28,12 @@ const isRawBody = (body: unknown): boolean => {
 
   return ['Blob', 'FormData', 'URLSearchParams', 'ReadableStream'].some((name) => {
     const ctor = Reflect.get(globalThis, name);
+
     return typeof ctor === 'function' && body instanceof ctor;
   });
 };
 
+/** Fetcher over the global `fetch` (`getWorker()`). `timeout` (milliseconds) aborts the request and is combined with a `signal` the caller passes. */
 export class NodeFetcher extends AbstractNetworkFetchableHelper<
   'node-fetch',
   INodeFetchRequestOptions,
@@ -44,7 +46,7 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
   constructor(opts: {
     name: string;
     defaultConfigs: RequestInit;
-    /** How `params` are written into the url; the defaults are `node:querystring`'s. */
+    /** How `params` are written into the url; unset fields behave as `node:querystring` does. */
     queryString?: IQueryStringOptions;
     logger?: TFetcherLogger;
   }) {
@@ -140,6 +142,7 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
 
     try {
       const rs = await fetch(requestUrl, requestConfigs);
+
       return rs;
     } finally {
       if (timeoutId) {
@@ -149,6 +152,7 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
   }
 }
 
+/** Options of `NodeFetchNetworkRequest`: `RequestInit` plus `baseUrl` and `queryString`, which sets how `params` are written into every url. */
 export interface INodeFetchNetworkRequestOptions {
   name: string;
   networkOptions: RequestInit & {
@@ -158,21 +162,21 @@ export interface INodeFetchNetworkRequestOptions {
   };
 }
 
+/** `BaseNetworkRequest` over a `NodeFetcher`. Request headers default to a JSON content type, and the caller's headers win. */
 export class NodeFetchNetworkRequest extends BaseNetworkRequest<'node-fetch'> {
   constructor(opts: INodeFetchNetworkRequestOptions) {
     const { name, networkOptions } = opts;
     const { headers, baseUrl, queryString, ...rest } = networkOptions;
 
-    const userHeaders =
-      headers instanceof Headers ? Object.fromEntries(headers.entries()) : headers;
-    const mergedHeaders: AnyObject = {
-      ['content-type']: 'application/json; charset=utf-8',
-      ...userHeaders,
-    };
+    // Case-insensitive, like the wire: a caller's `Content-Type` replaces the default one.
+    const mergedHeaders = new Headers({ 'content-type': 'application/json; charset=utf-8' });
+
+    new Headers(headers).forEach((value, key) => mergedHeaders.set(key, value));
 
     const defaultConfigs: Partial<RequestInit> = {
       ...rest,
-      headers: mergedHeaders,
+      // A plain object, so the request log (which redacts by key) can read it; a `Headers` instance has no own entries.
+      headers: Object.fromEntries(mergedHeaders),
     };
 
     super({

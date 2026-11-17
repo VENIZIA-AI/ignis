@@ -30,7 +30,9 @@ Never hard-coding a secret is not enough on its own. An options object holding o
 | Function | Use For | Behavior |
 |----------|---------|----------|
 | `RedactUtility.redactSecrets({ value })` | Any object/array being logged | Recursively replaces every value whose key matches a secret-looking name with `'[REDACTED]'` |
-| `RedactUtility.redactUrlCredentials({ url })` | A connection/broker URL string | Strips the password out of a URL's authority section: `mqtts://user:hunter2@broker:8883` becomes `mqtts://user:[REDACTED]@broker:8883`. A value that doesn't parse as a URL, or one with no password, is returned unchanged |
+| `RedactUtility.redactUrlCredentials({ url })` | A connection/broker URL string | Strips the password out of the URL's authority section |
+
+`mqtts://user:hunter2@broker:8883` becomes `mqtts://user:[REDACTED]@broker:8883`. A value that doesn't parse as a URL, or one with no password, is returned unchanged.
 
 ```typescript
 import { RedactUtility } from '@venizia/ignis-helpers';
@@ -41,8 +43,12 @@ this.logger.info('[connect] Broker: %s', RedactUtility.redactUrlCredentials({ ur
 
 `RedactUtility.redactSecrets` matches on the **key name**, case-insensitively, at any depth:
 
-- Options-object spellings: `password`, `passphrase`, `secret`, `token`, `apiKey`, `privateKey`, `credentials`, `authorization`, `connectionString`, ...
+- Options-object spellings: `password`, `passphrase`, `secret`, `token`, `apiKey`, `privateKey`, `credential`, `credentials`, `authorization`, `connectionString`, ...
 - Any `*_token` / `*Token` key: `access_token`, `refresh_token`, `vaultToken`, ...
+- Any `*_credential` / `*Credential` key, singular or plural: `dbCredential`, `api_credentials`, ...
+- Named secrets: cloud and signing keys (`secretAccessKey`, `signingKey`, `encryptionKey`, `masterKey`, `hmacKey`, `licenseKey`), session and one-time values (`jwt`, `sessionId`, `sid`, `otp`, `totp`, `resetCode`, `verificationCode`, `authorization_code`), `signature` / `sig`, card and national-id numbers (`cvv`, `cardNumber`, `ssn`, `nationalId`), `passwd` / `pwd`, `redisUrl` / `mongoUri`, and the kebab spellings (`id-token`, `refresh-token`, `client-secret`, `private-key`). Plain names such as `primaryKey`, `cacheKey` and `code` stay visible.
+
+String values are scrubbed as well: the password of a url (`scheme://user:password@host`), a `Bearer` / `Basic` credential and credential-like query parameters (`access_token`, `signature`, `code`, ...) read `[REDACTED]` wherever they sit in a string, an `Error` message and stack included. The request log masks the OAuth callback `code` and `state` parameters.
 - Vault wire keys: `client_token`, `secret_id`, `role_id`
 - HTTP header spellings: `x-api-key`, `x-vault-token`, `cookie`, `set-cookie`, `proxy-authorization`, `www-authenticate`
 
@@ -52,6 +58,10 @@ These are the primitives the framework itself uses. Outbound HTTP request config
 
 > [!WARNING]
 > `APP_ENV_LOGGER_DO_REDACT=false` turns both functions into the identity function. It is a local-debugging kill-switch and must never be set in production. The check is fail-closed - only the literal string `false` disables redaction - and is read per call, so it can be flipped at runtime.
+
+To keep the key masking on whatever the switch says, pass `force: true`: `RedactUtility.redactSecrets({ value, force: true })`, and the same option on `redactUrlCredentials` and `toJsonSafe`. The logger never passes it, so the switch keeps working for log lines.
+
+`force` masks by key name only, so a card number under `number` or an email under `email` is not masked. Its output is also the log-shaped copy, not a faithful document: strings over `APP_ENV_LOGGER_MAX_STRING_LENGTH` (2048 by default) are cut, a second reference to the same object reads `[Circular]`, and binary and `Map` values are summarized. Use it for a copy that is logged or inspected, not as the payload you write to a file or send to a third party.
 
 ## 2. Input Validation
 
@@ -102,12 +112,17 @@ const SecureRoute = {
 
 **Access user in protected routes:**
 ```typescript
-import { Authentication, IJWTTokenPayload } from '@venizia/ignis';
-import { getError } from '@venizia/ignis-helpers';
+import { Authentication } from '@venizia/ignis';
+import { getError, HTTP } from '@venizia/ignis-helpers';
 
-const user = context.get(Authentication.CURRENT_USER) as IJWTTokenPayload;
-if (!user.roles.some(role => role.identifier === 'admin')) {
-  throw getError({ statusCode: 403, message: 'Forbidden' });
+// Declared once on IAuthUser (see "Read the claims your app adds" in the authentication guide):
+// declare module '@venizia/ignis' { interface IAuthUser { roles?: Array<{ identifier: string }> } }
+
+const user = context.get(Authentication.CURRENT_USER);
+const isAdmin = user.roles?.some((role) => role.identifier === 'admin') ?? false;
+
+if (!isAdmin) {
+  throw getError({ statusCode: HTTP.ResultCodes.RS_4.Forbidden, message: 'Forbidden' });
 }
 ```
 
@@ -118,7 +133,7 @@ Configure model properties that should **never be returned** through repository 
 ```typescript
 @model({
   settings: {
-    hiddenProperties: ['password', 'apiSecret', 'internalToken'],
+    properties: { hidden: ['password', 'apiSecret', 'internalToken'] },
   },
 })
 export class User extends BaseRelationalEntity<typeof User.schema> {
@@ -186,7 +201,7 @@ Use `RequestUtility.buildContentDispositionHeader()` for secure download respons
 ```typescript
 import { z } from '@hono/zod-openapi';
 import { get, type TRouteContext } from '@venizia/ignis';
-import { RequestUtility } from '@venizia/ignis-helpers';
+import { HTTP, RequestUtility } from '@venizia/ignis-helpers';
 
 @get({
   configs: {
@@ -203,8 +218,8 @@ async downloadFile(context: TRouteContext) {
 
   return new Response(fileBuffer, {
     headers: {
-      'Content-Type': 'application/octet-stream',
-      'Content-Disposition': RequestUtility.buildContentDispositionHeader({
+      [HTTP.Headers.CONTENT_TYPE]: 'application/octet-stream',
+      [HTTP.Headers.CONTENT_DISPOSITION]: RequestUtility.buildContentDispositionHeader({
         filename: safeFilename,
         type: 'attachment',
       }),
@@ -277,6 +292,8 @@ config: { middlewares: { cors: { enable: true, origin: '*' } } }
 
 **Production (Restrictive):**
 ```typescript
+import { HTTP } from '@venizia/ignis-helpers';
+
 config: {
   middlewares: {
     cors: {
@@ -284,7 +301,7 @@ config: {
       path: '/api/*',
       origin: ['https://yourdomain.com', 'https://app.yourdomain.com'],
       allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-      allowHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+      allowHeaders: [HTTP.Headers.CONTENT_TYPE, HTTP.Headers.AUTHORIZATION, 'X-Request-ID'],
       exposeHeaders: ['X-Request-ID'],
       credentials: true,
       maxAge: 86400, // Cache preflight for 24 hours
@@ -323,6 +340,7 @@ Protect against brute force attacks and denial of service.
 
 **Basic Rate Limiter:**
 ```typescript
+import { HTTP } from '@venizia/ignis-helpers';
 import { createMiddleware } from 'hono/factory';
 
 const rateLimiter = (opts: { windowMs: number; max: number }) => {
@@ -336,10 +354,13 @@ const rateLimiter = (opts: { windowMs: number; max: number }) => {
     if (!record || now > record.resetAt) {
       requests.set(ip, { count: 1, resetAt: now + opts.windowMs });
     } else if (record.count >= opts.max) {
-      return context.json({
-        statusCode: 429,
-        message: 'Too many requests. Please try again later.',
-      }, 429);
+      return context.json(
+        {
+          statusCode: HTTP.ResultCodes.RS_4.TooManyRequests,
+          message: 'Too many requests. Please try again later.',
+        },
+        HTTP.ResultCodes.RS_4.TooManyRequests,
+      );
     } else {
       record.count++;
     }
@@ -450,7 +471,7 @@ this.getServer().use('*', secureHeaders({
 
 ## 11. Request Size Limits
 
-Prevent denial of service through large payloads. Prefer `configs.middlewares.bodyLimit` over
+Prevent denial of service through large payloads. Every route has a 5 MiB body limit unless you configure another. Prefer `configs.middlewares.bodyLimit` over
 registering `hono/body-limit` yourself in `setupMiddlewares()`: the framework installs it right
 after the request id, ahead of every other middleware, including the request spy - a limit
 registered in `setupMiddlewares()` runs after all of that.
@@ -472,8 +493,8 @@ effect, and the application refuses to boot when it detects the value changed af
 
 Over the limit answers `413` with `core.request.body_too_large`, or your own `onError`. See
 [Body limit](/references/base/middlewares#body-limit-configs-middlewares-bodylimit) for `path`
-scoping and the full option table - `path` lets a file-upload route carry a higher ceiling than the
-rest of the API.
+scoping and the full option table. A route that takes larger bodies (an upload, an import) sets its own
+limit with `BodyLimits.route({ maxSize })`; the 5 MiB default stands aside for it.
 
 ## 12. Logging Security Events
 
@@ -481,7 +502,7 @@ Log security-relevant events for monitoring and forensics:
 
 ```typescript
 import { BaseService, type TRouteContext } from '@venizia/ignis';
-import { getError } from '@venizia/ignis-helpers';
+import { getError, HTTP } from '@venizia/ignis-helpers';
 
 export class AuthService extends BaseService {
   async login(email: string, password: string, context: TRouteContext) {
@@ -494,7 +515,7 @@ export class AuthService extends BaseService {
       // Log failed attempt
       this.logger.warn('[login] Failed login attempt | email: %s | ip: %s | userAgent: %s',
         email, ip, userAgent);
-      throw getError({ statusCode: 401, message: 'Invalid credentials' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.Unauthorized, message: 'Invalid credentials' });
     }
 
     // Log successful login
@@ -543,7 +564,7 @@ Before deploying to production, verify:
 | **Logging** | Security events logged for monitoring |
 | **Dependencies** | No known vulnerabilities (`bun audit`) |
 | **HTTPS** | TLS configured for production |
-| **Hidden Data** | Sensitive fields use `hiddenProperties` |
+| **Hidden Data** | Sensitive fields use `properties.hidden` |
 | **Redaction** | `APP_ENV_LOGGER_DO_REDACT` is unset (never `false`) |
 | **Error Leakage** | `NODE_ENV` set to a production value so responses are sanitized |
 

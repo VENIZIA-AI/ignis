@@ -9,15 +9,18 @@ const createRecordingTransport = () => {
   const transport: IBffTransport = {
     fetch: async ({ request }) => {
       let body = '';
+
       if (request.body) {
         const text = await request.text();
         body = text;
       }
+
       seen.push({
         url: request.url,
         method: request.method,
         body,
       });
+
       return new Response('from-bff', { status: 200 });
     },
   };
@@ -33,14 +36,17 @@ const createCarrier = () => {
     fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
       const request = new Request(input, init);
       let body = '';
+
       if (request.body) {
         const text = await request.text();
         body = text;
       }
+
       networkCalls.push({
         url: request.url,
         body,
       });
+
       return new Response('from-network', { status: 200 });
     }) as unknown as typeof globalThis.fetch,
   };

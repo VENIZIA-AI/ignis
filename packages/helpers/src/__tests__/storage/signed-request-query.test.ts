@@ -4,7 +4,7 @@ import { describe, expect, test } from 'bun:test';
 import { S3SignatureUtility } from '@/modules/storage/bun-s3/utility';
 
 const baseRequest = {
-  method: 'GET',
+  method: 'GET' as const,
   endpoint: 'http://localhost:9000',
   path: '/my-bucket/my-object',
   accessKey: 'test-access-key',
@@ -14,6 +14,7 @@ const baseRequest = {
 
 const extractSignature = (authorizationHeader: string): string => {
   const match = authorizationHeader.match(/Signature=([0-9a-f]+)/);
+
   if (!match) {
     throw new Error(`No signature found in header: ${authorizationHeader}`);
   }

@@ -242,9 +242,11 @@ describe('drop-redundant-casts', () => {
 
   test('many casts are checked a handful of times, not once each', () => {
     const lines = ["const text: string = 'x';"];
+
     for (let index = 0; index < 40; index += 1) {
       lines.push(`export const v${index} = text as string;`);
     }
+
     lines.push('const takes = (value: string) => value;');
     lines.push('export const needed = (mixed: string | number) => takes(mixed as string);');
     write('src/a.ts', `${lines.join('\n')}\n`);

@@ -39,11 +39,13 @@ const gzippedSize = async (opts: { name: string; source: string }): Promise<numb
     stdout: 'pipe',
     stderr: 'pipe',
   });
+
   if (build.exitCode !== 0) {
     throw new Error(`[uuid-bundle-budget] bun build failed | stderr: ${build.stderr.toString()}`);
   }
 
   const result = await Bun.file(outfile).bytes();
+
   return Bun.gzipSync(result, { level: 9 }).length;
 };
 

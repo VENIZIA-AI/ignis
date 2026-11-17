@@ -8,7 +8,7 @@ Build-time tools for an IGNIS application: `ignis-artifacts` writes one static f
 bun add -d @venizia/ignis-boot typescript
 ```
 
-`typescript` 5 or 6 is a required peer: the scanner reads your source with the TypeScript compiler API. Both binaries run under Bun (they carry a `bun` shebang).
+`typescript` 5 or 6 is a required peer: the scanner reads your source with the TypeScript compiler API. `ignis-artifacts` runs under Bun (it carries a `bun` shebang).
 
 ## Register your classes
 
@@ -71,17 +71,18 @@ The scanner reads source text and never imports a module. No decorator runs and 
 ## `ignis-artifacts`
 
 ```
-ignis-artifacts <generate|check> [--root src] [--out src/generated/artifacts.ts] [--ignore a,b] [--export GeneratedArtifacts]
+ignis-artifacts <generate|check> [--root src] [--out src/generated/artifacts.ts] [--ignore a,b] [--export GeneratedArtifacts] [--source-module <specifier>]...
 ```
 
 | Flag | Default | Meaning |
 |---|---|---|
-| `--root` | `src` | Directory to scan, recursively (`.ts` files, `.d.ts` skipped) |
+| `--root` | `src` | Directory to scan, recursively (`.ts` and `.tsx` files, `.d.ts` skipped) |
 | `--out` | `src/generated/artifacts.ts` | Output file; import paths are relative to it |
 | `--ignore` | none | Comma-separated globs, relative to `--root`, added to the default list |
 | `--export` | `GeneratedArtifacts` | Name of the exported constant |
+| `--source-module` | none | A module specifier, matched exactly, whose stereotype imports also count - a package that re-exports the decorators. Repeat the flag for several. Adds to `@venizia/ignis` and `@venizia/ignis-kernel` |
 
-The default ignore list always applies: `**/__tests__/**`, `**/*.test.ts`, `**/*.spec.ts`, `**/generated/**`. A decorated class hidden by one of your own `--ignore` patterns prints one `warning:` line on stderr.
+The default ignore list always applies: `**/__tests__/**`, `**/*.test.{ts,tsx}`, `**/*.spec.{ts,tsx}`, `**/generated/**`. A decorated class hidden by one of your own `--ignore` patterns prints one `warning:` line on stderr.
 
 | Command | Effect | Exit code |
 |---|---|---|
@@ -95,7 +96,7 @@ A class lands in the index when all of these hold. The scanner logs a warning fo
 
 - It is a named export (`export class` or `export { Name }`), not `export default`.
 - It is not `abstract`.
-- It carries exactly one of `@configuration`, `@component`, `@controller`, `@service`, `@repository` or `@datasource`, imported by name from `@venizia/ignis` or `@venizia/ignis-kernel` (aliases resolved). `@injectable({ type })` counts when `type` is a string literal or `ArtifactTypes.<NAME>`.
+- It carries exactly one of `@configuration`, `@component`, `@controller`, `@service`, `@repository` or `@datasource`, imported by name from `@venizia/ignis`, `@venizia/ignis-kernel` or a module named with `--source-module` (aliases resolved). `@injectable({ type })` counts when `type` is a string literal or `ArtifactTypes.<NAME>`.
 
 `@model` classes are recognized and never emitted - a repository registers its model. A decorator re-exported through your own wrapper module is not recognized. Two stereotypes on one class fail the scan.
 
@@ -140,9 +141,12 @@ The resolver reads each field from the environment first (first non-blank key wi
 
 | Subpath | What it gives | Extra peers |
 |---|---|---|
-| `@venizia/ignis-boot` | Everything from the two subpaths below | `typescript` |
+| `@venizia/ignis-boot` | Everything from `/generator` and `/build-info` | `typescript` |
 | `@venizia/ignis-boot/generator` | `ArtifactIndexGenerator`, `ArtifactScanner`, `ArtifactIndexEmitter`, `ArtifactStereotypes`, `ArtifactTypes`, `ArtifactIndexFields` | `typescript` |
 | `@venizia/ignis-boot/build-info` | `BuildInfoStamp`, `BuildInfoResolver`, `BuildInfoEnvironmentKeys` | none |
+| `@venizia/ignis-boot/bun` | `IgnisArtifactsPlugin` (a Bun plugin that serves the `ignis:artifacts` module for `Bun.build`), `AutoArtifactGroup`, `AutoArtifactsLoader`, `GroupArtifactsResolver` | `typescript` (Bun only) |
+| `@venizia/ignis-boot/auto` | Default export `AutoArtifacts`: the application's decorated classes, found by the scanner at start. Pass it in `configs.artifacts`. Importing it has a side effect, so the package marks it in `sideEffects` | `typescript` (Bun only) |
+| `@venizia/ignis-boot/vite` | `IgnisArtifactsVitePlugin`: the same `ignis:artifacts` module for Vite, and it replaces `/auto` with an eager import so a browser bundle can be tree-shaken | `typescript` |
 
 | Binary | File |
 |---|---|
@@ -158,7 +162,7 @@ const { isFresh } = ArtifactIndexGenerator.check({ root: 'src', out: 'src/genera
 
 ## Where it sits
 
-`dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> connectors -> {core-worker, core-server}`. Boot depends on `@venizia/ignis-helpers` only; no IGNIS package depends on boot, so the application declares it.
+`dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> connectors -> {core-worker, core-server}`. Boot depends on `@venizia/ignis-helpers` and `@venizia/ignis-inversion`; no IGNIS package depends on boot, so the application declares it.
 
 The generated index replaces a run-time scan of the file system at startup.
 

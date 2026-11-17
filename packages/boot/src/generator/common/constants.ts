@@ -25,6 +25,7 @@ export class ArtifactTypes {
   }
 }
 
+/** One of the `ArtifactTypes` values. */
 export type TArtifactType = TConstValue<typeof ArtifactTypes>;
 
 /** Mirrors the kernel's `ArtifactIndexFields` - the keys of the object the emitter writes and `registerArtifacts` reads. */
@@ -50,8 +51,10 @@ export class ArtifactIndexFields {
   }
 }
 
+/** One of the `ArtifactIndexFields` values. */
 export type TArtifactIndexField = TConstValue<typeof ArtifactIndexFields>;
 
+/** How the scanner recognises a decorated class: the source glob, decorator-to-type map, default ignore patterns and the emit order. */
 export class ArtifactStereotypes {
   /** The source files the scanner reads: TypeScript, with or without JSX. */
   static readonly SOURCE_GLOB = '**/*.{ts,tsx}';
@@ -114,4 +117,5 @@ export class ScanSkipReasons {
   }
 }
 
+/** One of the `ScanSkipReasons` values. */
 export type TScanSkipReason = TConstValue<typeof ScanSkipReasons>;

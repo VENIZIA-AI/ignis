@@ -29,6 +29,7 @@ export class ZodErrorHandler {
     const statusCode = HTTP.ResultCodes.RS_4.UnprocessableEntity;
 
     let validationErrors: unknown;
+
     try {
       validationErrors = JSON.parse(error.message);
     } catch {
@@ -72,7 +73,10 @@ export class ZodErrorHandler {
                 expected: el.expected,
                 received: el.received,
               }))
-            : validationErrors,
+            : // A ZodError whose message is not an issue list: the raw error is for a developer, never for a production client.
+              isProduction
+              ? undefined
+              : validationErrors,
         },
       },
     };

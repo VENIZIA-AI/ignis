@@ -41,12 +41,13 @@ export class StrengthsCases extends BaseTestCases {
       }
 
       await transaction.commit();
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 1] FAILED with error: %o', error);
+
       try {
-        await repo.deleteAll({ where: { code } });
+        await repo.deleteBy({ where: { code } });
       } catch (cleanupError) {
         this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
       }
@@ -91,12 +92,13 @@ export class StrengthsCases extends BaseTestCases {
       }
 
       await transaction.commit();
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 2] FAILED with error: %o', error);
+
       try {
-        await repo.deleteAll({ where: { group } });
+        await repo.deleteBy({ where: { group } });
       } catch (cleanupError) {
         this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
       }
@@ -134,12 +136,13 @@ export class StrengthsCases extends BaseTestCases {
       }
 
       await transaction.commit();
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 3] FAILED with error: %o', error);
+
       try {
-        await repo.deleteAll({ where: { code } });
+        await repo.deleteBy({ where: { code } });
       } catch (cleanupError) {
         this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
       }
@@ -177,12 +180,13 @@ export class StrengthsCases extends BaseTestCases {
       }
 
       await transaction.commit();
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 4] FAILED with error: %o', error);
+
       try {
-        await repo.deleteAll({ where: { code } });
+        await repo.deleteBy({ where: { code } });
       } catch (cleanupError) {
         this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
       }
@@ -220,12 +224,13 @@ export class StrengthsCases extends BaseTestCases {
       }
 
       await transaction.commit();
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 5] FAILED with error: %o', error);
+
       try {
-        await repo.deleteAll({ where: { code } });
+        await repo.deleteBy({ where: { code } });
       } catch (cleanupError) {
         this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
       }
@@ -263,12 +268,13 @@ export class StrengthsCases extends BaseTestCases {
       }
 
       await transaction.commit();
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 6] FAILED with error: %o', error);
+
       try {
-        await repo.deleteAll({ where: { code } });
+        await repo.deleteBy({ where: { code } });
       } catch (cleanupError) {
         this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
       }

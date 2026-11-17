@@ -44,6 +44,7 @@ describe('AbstractDataSource - capability probing / beginTransaction default (De
     const dataSource = new StubDataSource();
 
     let caught: unknown;
+
     try {
       await dataSource.beginTransaction();
     } catch (error) {

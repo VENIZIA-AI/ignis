@@ -5,6 +5,7 @@ import { type ArtifactTypes } from '../constants';
 /** Decorator target for any constructable class (includes Function for ClassDecorator). */
 export type TDecoratorTarget<T = unknown> = TClass<T> | Function;
 
+/** Valid `ArtifactTypes` values. */
 export type TArtifactType = TConstValue<typeof ArtifactTypes>;
 
 /** Decides at registration time whether the class is registered at all. Sync or async; runs before `preConfigure`, so it may read config and env, never another artifact's binding. */
@@ -17,22 +18,29 @@ export interface IArtifactRegistrationOptions<ApplicationType = unknown> {
   binding?: { namespace: string; key: string };
   allowOverride?: boolean;
   scope?: TBindingScope;
-  /** Lower registers first within its kind. Default 0; ties keep index order. */
+  /**
+   * Lower registers first within its kind; ties keep index order.
+   *
+   * @default 0
+   */
   order?: number;
   when?: TArtifactCondition<ApplicationType>;
   /** Topological ordering for configurations: must run after these configuration classes. */
   after?: ReadonlyArray<TClass<unknown>>;
 }
 
+/** Registration options of an artifact plus its `type`. */
 export interface IArtifactMetadata<
   ApplicationType = unknown,
 > extends IArtifactRegistrationOptions<ApplicationType> {
   type: TArtifactType;
 }
 
-/** One `@provide` method: the key it binds, and the binding scope of the value (default SINGLETON). */
+/** One `@provide` method: the key it binds, and the binding scope of the value. */
 export interface IProvideMetadata {
   methodName: string | symbol;
   key: string;
+
+  /** @default BindingScopes.SINGLETON */
   scope?: TBindingScope;
 }

@@ -74,6 +74,7 @@ export class ArtifactGroup implements IArtifactGroup {
       content: group.content ? slice(group.content) : undefined,
       resolve: async () => {
         const content = await ArtifactGroup.resolveContent({ group });
+
         return slice(content);
       },
       kinds,
@@ -84,18 +85,23 @@ export class ArtifactGroup implements IArtifactGroup {
   /** A group's classes: inlined by a build, else its own `resolve()`, else the resolver `@venizia/ignis-boot/auto` installs. */
   static async resolveContent(opts: { group: IArtifactGroup }): Promise<IArtifactIndex> {
     const { group } = opts;
+
     if (group.content) {
       return group.content;
     }
+
     if (group.resolve) {
       return group.resolve();
     }
+
     const resolve = ArtifactGroup.getResolver();
+
     if (!resolve) {
       throw getError({
         message: `[ArtifactGroup] '${group.folder ?? '<application>'}' has no content | Import @venizia/ignis-boot/auto in the application (it resolves groups from source), or add IgnisArtifactsPlugin to the build's plugins`,
       });
     }
+
     return resolve({ group });
   }
 
@@ -169,14 +175,18 @@ export class ArtifactGroup implements IArtifactGroup {
       const opening = frame.indexOf(' (');
       const location = frame.endsWith(')') && opening >= 0 ? frame.slice(opening + 2, -1) : frame;
       let file = location.replace(/:\d+:\d+$/, '');
+
       if (file.startsWith('file://')) {
         file = decodeURIComponent(file.slice('file://'.length)).replace(/^\/([A-Za-z]:\/)/, '$1');
       }
+
       const isPath = file.startsWith('/') || /^[A-Za-z]:[\\/]/.test(file);
+
       if (isPath && !/(?:^|[\\/])artifact-group\.(?:ts|js)$/.test(file)) {
         return file;
       }
     }
+
     return undefined;
   }
 }

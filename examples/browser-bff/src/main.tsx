@@ -18,6 +18,7 @@ BffFetchBridge.install({ transport: bff, basePath: BFF_BASE_PATH });
 const application = new BrowserBffRaApplication();
 
 const container = document.getElementById('root');
+
 if (!container) {
   throw getError({ message: '[main] #root is missing from index.html' });
 }

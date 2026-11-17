@@ -66,6 +66,8 @@ const fixture = (): string => {
   const root = scratch();
 
   git({ cwd: root, args: ['init', '-q', '-b', 'develop'] });
+  // Git would start a detached maintenance run after a commit and write into the folder while the test removes it.
+  git({ cwd: root, args: ['config', 'maintenance.auto', 'false'] });
   commit({
     root,
     message: '[#1] feat(a): the first',
@@ -228,20 +230,26 @@ describe('GithubRelease.previousTag and isNewestStable', () => {
     'kernel-v0.4.9-2',
     'atlas-index',
   ];
-  const previous = (opts: { version: string; stableOnly: boolean }) =>
+  const previous = (opts: { version: string }) =>
     GithubRelease.previousTag({ tags, template: SERVER_TEMPLATE, ...opts });
   const isNewest = (opts: { version: string }) =>
     GithubRelease.isNewestStable({ tags, template: SERVER_TEMPLATE, ...opts });
 
   test('a stable looks back to the highest stable of the same package below it', () => {
-    expect(previous({ version: '0.4.8', stableOnly: true })).toBe('core-server-v0.4.7');
-    expect(previous({ version: '0.4.9', stableOnly: true })).toBe('core-server-v0.4.8');
+    expect(previous({ version: '0.4.8' })).toBe('core-server-v0.4.7');
+    expect(previous({ version: '0.4.9' })).toBe('core-server-v0.4.8');
   });
 
-  test('a prerelease looks back to the highest tag of any kind below it, and numbers compare as numbers', () => {
-    expect(previous({ version: '0.4.8-1', stableOnly: false })).toBe('core-server-v0.4.8-0');
-    expect(previous({ version: '0.4.8-10', stableOnly: false })).toBe('core-server-v0.4.8-1');
-    expect(previous({ version: '0.4.6', stableOnly: false })).toBeUndefined();
+  test('a prerelease tag is never the previous one, and numbers compare as numbers', () => {
+    expect(previous({ version: '0.4.8-10' })).toBe('core-server-v0.4.7');
+    expect(previous({ version: '0.4.6' })).toBeUndefined();
+    expect(
+      GithubRelease.previousTag({
+        tags: ['core-server-v0.4.9', 'core-server-v0.4.10'],
+        template: SERVER_TEMPLATE,
+        version: '0.4.11',
+      }),
+    ).toBe('core-server-v0.4.10');
   });
 
   test('a stable is the newest only when no stable tag of the same package is above it', () => {
@@ -252,7 +260,7 @@ describe('GithubRelease.previousTag and isNewestStable', () => {
 
   test('the tags of another package never count: kernel-v0.4.9 does not make core-server 0.4.8 old', () => {
     expect(isNewest({ version: '0.4.8' })).toBe(true);
-    expect(previous({ version: '0.4.10', stableOnly: false })).toBe('core-server-v0.4.8');
+    expect(previous({ version: '0.4.10' })).toBe('core-server-v0.4.8');
   });
 });
 
@@ -402,19 +410,18 @@ describe('GithubRelease.create', () => {
     );
   });
 
-  test('a prerelease of another package is still a Pre-release, never Latest, with its own title', () => {
+  test('a prerelease of another package has no Release either', () => {
     const stub = stubGh({});
-
-    make({
+    const outcome = make({
       root: fixture(),
       targets: [{ dir: 'kernel', version: '0.4.8-1' }],
       kind: 'prerelease',
       stub,
     });
 
-    expect(stub.created()).toContain('--prerelease');
-    expect(stub.created()).not.toContain('--latest');
-    expect(stub.created()[stub.created().indexOf('--title') + 1]).toBe('IGNIS kernel 0.4.8-1');
+    expect(outcome.state).toBe('skipped');
+    expect(outcome.message).toContain('only a stable has a GitHub Release');
+    expect(stub.calls).toEqual([]);
   });
 
   test('a stable that is not the newest of its package is never marked Latest', () => {
@@ -432,7 +439,7 @@ describe('GithubRelease.create', () => {
     expect(stub.created()).not.toContain('--latest');
   });
 
-  test('a prerelease is marked Pre-release and never Latest, with the install line and the issue subjects only', () => {
+  test('a prerelease has no GitHub Release: nothing is asked of gh, and the outcome is skipped, not a failure', () => {
     const stub = stubGh({});
     const outcome = make({
       root: fixture(),
@@ -444,28 +451,23 @@ describe('GithubRelease.create', () => {
       stub,
     });
 
-    expect(outcome.state).toBe('created');
-    expect(stub.created()).toContain('--prerelease');
-    expect(stub.created()).not.toContain('--latest');
-    expect(stub.created()[stub.created().indexOf('--title') + 1]).toBe('IGNIS 0.4.8-1');
-    expect(stub.notes()).toContain('npm install @x/core@next');
-    expect(stub.notes()).toContain('[#11] fix(c): third change');
-    expect(stub.notes()).not.toContain('housekeeping');
-    expect(stub.notes()).not.toContain('[#10]');
+    expect(outcome.state).toBe('skipped');
+    expect(outcome.message).toBe(
+      'core-server-v0.4.8-1 is a prerelease: only a stable has a GitHub Release',
+    );
+    expect(stub.calls).toEqual([]);
   });
 
-  test('the release commits of the loop are not listed, even when they carry an issue', () => {
-    const stub = stubGh({});
-
-    make({
-      root: fixture(),
-      targets: [{ dir: 'core-server', version: '0.4.8-1' }],
-      kind: 'prerelease',
-      stub,
+  test('the subjects of a backfill leave out the release commits of the loop, even when they carry an issue', () => {
+    const subjects = GithubRelease.subjectsOf({
+      cwd: fixture(),
+      from: 'core-server-v0.4.7',
+      to: 'core-server-v0.4.8',
     });
 
-    expect(stub.notes()).not.toContain('chore(kernel): release');
-    expect(stub.notes()).not.toContain('chore(core-server): release');
+    expect(subjects).toContain('[#11] fix(c): third change');
+    expect(subjects).toContain('chore: housekeeping with no issue');
+    expect(subjects.filter((subject) => subject.includes(': release v'))).toEqual([]);
     expect(
       GithubReleaseConstants.RELEASE_COMMIT_SUBJECT.test(
         '[#11] chore(core-server): release v0.4.8-1 [prerelease]',
@@ -517,6 +519,7 @@ describe('GithubRelease.create', () => {
     const stub = stubGh({});
 
     git({ cwd: root, args: ['init', '-q', '-b', 'develop'] });
+    git({ cwd: root, args: ['config', 'maintenance.auto', 'false'] });
     // A pattern no real manifest has: `<dir>-<version>` turns the package `atlas` at the version `index` into the tag.
     commit({
       root,
@@ -617,15 +620,200 @@ describe('GithubRelease.create', () => {
     expect(stub.created()).toEqual([]);
   });
 
-  test('a subject cannot ping anyone or close an issue through the notes', () => {
-    const body = GithubRelease.bodyOf({
-      kind: 'prerelease',
-      notes: '',
-      subjects: ['[#9] fixes #3, thanks @someone', 'closes```'],
-      packages: [{ name: '@x/core', version: '0.4.8-1' }],
+  test('a subject of a backfill cannot ping anyone or close an issue through the notes', () => {
+    const root = fixture();
+
+    commit({ root, message: '[#12] chore(x): fixes #3, thanks @someone and closes```' });
+    tag({ root, name: 'core-server-v0.4.9' });
+
+    const backfill = stubGh({});
+
+    make({
+      root,
+      targets: [{ dir: 'core-server', version: '0.4.9' }],
+      kind: 'stable',
+      stub: backfill,
+      withSubjectFallback: true,
     });
 
-    expect(body).toContain("```text\n[#9] fixes #3, thanks @someone\ncloses'''\n```");
+    expect(backfill.notes()).toContain(
+      "```text\n[#12] chore(x): fixes #3, thanks @someone and closes'''\n```",
+    );
+  });
+});
+
+describe('GithubRelease.create of a stable with a version folder', () => {
+  const LOG =
+    "---\ntitle: 0.4.9\nversion: 0.4.9\npackages: ['@x/core']\nreleased: 2026-11-20\n---\nIGNIS 0.4.9 fixes the bug, thanks @someone. See [the guide](/guide/start).\n\n## Breaking\n- **A change** `a-change` (`@x/core`): edit it.\n";
+  const MIGRATION =
+    'a-change:\n  symbols: [x]\n  upgrade:\n    before: |\n      a\n    after: |\n      b\n';
+
+  /** The fixture, then the folder of 0.4.9 and the tag of it, the dated entries of the fixture still there. */
+  const folderFixture = (opts: { log?: string; migration?: string }): string => {
+    const root = fixture();
+    const files: Record<string, string> = {
+      'docs/changelogs/0.4.9/log.md': opts.log ?? LOG,
+    };
+
+    if (opts.migration !== undefined) {
+      files['docs/changelogs/0.4.9/migration.yaml'] = opts.migration;
+    }
+
+    commit({ root, message: '[#13] chore(core-server): release v0.4.9 [patch]', files });
+    tag({ root, name: 'core-server-v0.4.9' });
+
+    return root;
+  };
+  const NINE = [{ dir: 'core-server', version: '0.4.9' }];
+
+  test('the notes are the body of log.md as a Release shows it, not the dated entries, with the Packages section after', () => {
+    const stub = stubGh({});
+    const outcome = make({ root: folderFixture({}), targets: NINE, kind: 'stable', stub });
+
+    expect(outcome.state).toBe('created');
+    expect(stub.notes()).toStartWith('IGNIS 0.4.9 fixes the bug');
+    expect(stub.notes()).not.toContain('released:');
+    expect(stub.notes()).not.toContain('title: 0.4.9');
+    expect(stub.notes()).toContain('thanks `@someone`');
+    expect(stub.notes()).toContain('(https://ignis.venizia.ai/guide/start)');
+    expect(stub.notes()).toContain('## Breaking');
+    expect(stub.notes()).toContain(
+      '- [@x/core@0.4.9](https://www.npmjs.com/package/@x/core/v/0.4.9)',
+    );
+    expect(stub.notes()).not.toContain('B body line.');
+    expect(stub.notes()).not.toContain('C body line.');
+    expect(stub.created()).toContain('--latest');
+  });
+
+  test('migration.yaml is attached under the name migration-<version>.yaml when it holds a block', () => {
+    const stub = stubGh({});
+    const attached: string[] = [];
+    const gh: TGh = (call) => {
+      if (call.args[1] === 'create') {
+        const file = call.args[3];
+
+        attached.push(`${file.split('/').pop()}=${readFileSync(file, 'utf8')}`);
+      }
+
+      return stub.gh(call);
+    };
+    const outcome = GithubRelease.create({
+      cwd: folderFixture({ migration: MIGRATION }),
+      targets: NINE,
+      kind: 'stable',
+      gh,
+      scratchRoot: scratch(),
+    });
+
+    expect(outcome.state).toBe('created');
+    expect(attached).toEqual([`migration-0.4.9.yaml=${MIGRATION}`]);
+    expect(stub.created().slice(0, 3)).toEqual(['release', 'create', 'core-server-v0.4.9']);
+    expect(stub.created()[3]).toEndWith('migration-0.4.9.yaml');
+    expect(stub.created()[stub.created().indexOf('--title') + 1]).toBe('IGNIS 0.4.9');
+  });
+
+  test('nothing is attached when migration.yaml is absent, empty or {}', () => {
+    for (const migration of [undefined, '', '{}\n', '# nothing here\n']) {
+      const stub = stubGh({});
+
+      expect(
+        make({ root: folderFixture({ migration }), targets: NINE, kind: 'stable', stub }).state,
+      ).toBe('created');
+      expect(stub.created()[3]).toBe('--title');
+    }
+  });
+
+  test('a log.md that says nothing is released with the line that says nothing changed for users', () => {
+    const stub = stubGh({});
+
+    make({
+      root: folderFixture({ log: '---\ntitle: 0.4.9\nversion: 0.4.9\n---\n\n' }),
+      targets: NINE,
+      kind: 'stable',
+      stub,
+      withSubjectFallback: true,
+    });
+
+    expect(stub.notes()).toStartWith(GithubReleaseConstants.NO_USER_CHANGES);
+  });
+
+  test('a version with no folder keeps the dated entries since the previous stable', () => {
+    const root = folderFixture({});
+    const stub = stubGh({});
+
+    make({
+      root,
+      targets: [{ dir: 'core-server', version: '0.4.8' }],
+      kind: 'stable',
+      stub,
+    });
+
+    expect(stub.notes()).toContain('B body line.');
+    expect(stub.notes()).not.toContain('IGNIS 0.4.9 fixes the bug');
+  });
+
+  test('the folder is read from the tag, not from the working tree', () => {
+    const root = folderFixture({});
+
+    writeFileSync(
+      join(root, 'docs/changelogs/0.4.9/log.md'),
+      '---\ntitle: x\n---\nEdited after the tag.\n',
+    );
+
+    const stub = stubGh({});
+
+    make({ root, targets: NINE, kind: 'stable', stub });
+
+    expect(stub.notes()).toContain('IGNIS 0.4.9 fixes the bug');
+    expect(stub.notes()).not.toContain('Edited after the tag.');
+  });
+
+  test('a dry run says it is the folder and names the attached file', () => {
+    const outcome = make({
+      root: folderFixture({ migration: MIGRATION }),
+      targets: NINE,
+      kind: 'stable',
+      stub: stubGh({}),
+      dryRun: true,
+    });
+
+    expect(outcome.state).toBe('planned');
+    expect(outcome.message).toContain('with migration-0.4.9.yaml');
+    expect(outcome.message).toContain('docs/changelogs/0.4.9');
+  });
+
+  test('the folder is core-server only: a Release made on another package takes the dated entries, even when a folder of its version exists', () => {
+    const root = fixture();
+
+    commit({
+      root,
+      message: '[#14] chore(kernel): release v0.4.12 [patch]',
+      files: { 'docs/changelogs/0.4.12/log.md': LOG.replaceAll('0.4.9', '0.4.12') },
+    });
+    tag({ root, name: 'kernel-v0.4.12' });
+
+    const stub = stubGh({});
+    const outcome = make({
+      root,
+      targets: [{ dir: 'kernel', version: '0.4.12' }],
+      kind: 'stable',
+      stub,
+    });
+
+    expect(outcome.state).toBe('created');
+    expect(stub.notes()).not.toContain('IGNIS 0.4.12 fixes the bug');
+    expect(stub.created()[stub.created().indexOf('--title') + 1]).toBe('IGNIS kernel 0.4.12');
+  });
+
+  test('folderNotes is undefined for a version the tag holds no folder of', () => {
+    expect(
+      GithubRelease.folderNotes({
+        cwd: folderFixture({}),
+        tag: 'core-server-v0.4.9',
+        folder: 'docs/changelogs',
+        version: '0.4.8',
+      }),
+    ).toBeUndefined();
   });
 });
 
@@ -767,6 +955,41 @@ describe('GithubRelease.publicText over code that wraps and fences of any length
     expect(names.length).toBeGreaterThan(200);
     expect(surviving).toEqual([]);
   });
+
+  test('over every version folder of the changelog, no @word outside code survives in its notes', () => {
+    const folder = resolve(import.meta.dir, '../../../docs/wiki/content/changelogs');
+    const versions = readdirSync(folder).filter((name) => /^\d+\.\d+\.\d+$/.test(name));
+    const surviving: string[] = [];
+
+    for (const version of versions) {
+      const shown = GithubRelease.publicText({
+        text: GithubRelease.stripEntry({
+          text: readFileSync(join(folder, version, 'log.md'), 'utf8'),
+        }),
+      });
+      let fenced = false;
+      const outside = shown
+        .split('\n')
+        .filter((line) => {
+          if (/^\s*(?:```|~~~)/.test(line)) {
+            fenced = !fenced;
+
+            return false;
+          }
+
+          return !fenced;
+        })
+        .join('\n')
+        .replace(/(`+)[\s\S]*?\1/g, '');
+
+      for (const mention of outside.matchAll(GithubReleaseConstants.MENTION)) {
+        surviving.push(`${version}: ${mention[0]}`);
+      }
+    }
+
+    expect(versions.length).toBeGreaterThan(0);
+    expect(surviving).toEqual([]);
+  });
 });
 
 describe('GithubRelease.cutAtLine', () => {
@@ -845,9 +1068,7 @@ describe('GithubRelease.ghOf refuses at run time what the script must never ask 
 describe('GithubRelease.bodyOf with notes too long for a Release', () => {
   const body = (opts: { notes: string }) =>
     GithubRelease.bodyOf({
-      kind: 'stable',
       notes: opts.notes,
-      subjects: [],
       packages: [{ name: '@x/core', version: '0.4.8' }],
     });
 
@@ -894,6 +1115,26 @@ describe('GithubRelease.manifestOf', () => {
     expect(() => GithubRelease.manifestOf({ cwd: root })).toThrow('release.tagPattern');
     expect(GithubRelease.manifestOf({ cwd: fixture() }).packages).toEqual(MANIFEST.packages);
   });
+
+  test('reads knowledge.migrationFrom when it is a string, and leaves it out otherwise', () => {
+    const root = scratch();
+    const write = (migrationFrom: unknown): void => {
+      mkdirSync(join(root, '.agents'), { recursive: true });
+      writeFileSync(
+        join(root, '.agents', 'vulcan.manifest.json'),
+        JSON.stringify({
+          release: { tagPattern: '<dir>-v<version>' },
+          knowledge: { changelogs: 'docs/changelogs', migrationFrom },
+          packages: [],
+        }),
+      );
+    };
+
+    write('0.4.5');
+    expect(GithubRelease.manifestOf({ cwd: root }).migrationFrom).toBe('0.4.5');
+    write(undefined);
+    expect(GithubRelease.manifestOf({ cwd: root }).migrationFrom).toBeUndefined();
+  });
 });
 
 describe('GithubRelease.main', () => {
@@ -923,6 +1164,26 @@ describe('GithubRelease.main', () => {
     expect(readFileSync(summary, 'utf8')).toContain('failed');
     expect(run({ args, root: scratch(), stub: stubGh({}), summary: crashed })).toBe(1);
     expect(readFileSync(crashed, 'utf8')).toContain('GitHub Release');
+  });
+
+  test('a prerelease run exits 0, asks nothing of gh and says so in the summary', () => {
+    const summary = join(scratch(), 'summary');
+    const stub = stubGh({});
+
+    writeFileSync(summary, '');
+
+    expect(
+      run({
+        args: ['create', '--targets', 'kernel=0.4.8-1,core-server=0.4.8-1', '--kind', 'prerelease'],
+        root: fixture(),
+        stub,
+        summary,
+      }),
+    ).toBe(0);
+    expect(stub.calls).toEqual([]);
+    expect(readFileSync(summary, 'utf8')).toContain(
+      'skipped: core-server-v0.4.8-1 is a prerelease',
+    );
   });
 
   test('a line break in what gh says cannot start a workflow command in the log or in the summary', () => {
@@ -1013,7 +1274,7 @@ describe('GithubRelease.main', () => {
     expect(
       run({ args: ['backfill', '--tag', 'core-server-v0.4.8-1', '--yes'], root, stub: pre }),
     ).toBe(0);
-    expect(pre.created()).toContain('--prerelease');
+    expect(pre.calls).toEqual([]);
     expect(
       run({ args: ['backfill', '--tag', 'atlas-index', '--yes'], root, stub: stubGh({}) }),
     ).toBe(2);

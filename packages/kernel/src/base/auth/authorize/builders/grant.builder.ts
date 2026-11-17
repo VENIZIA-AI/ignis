@@ -29,6 +29,7 @@ const expandCoveredActions = (opts: { covered: Set<string> }): boolean => {
   return grew;
 };
 
+/** Pure planner for grant rows: validates and shapes grant intents (tier or per-operation) into `PolicyDefinition` rows. Persisting and the operation catalog stay with the caller. */
 export class GrantBuilder extends BaseHelper {
   static readonly SINGLETON_REAL_KEY = 'grant-builder';
 
@@ -69,6 +70,7 @@ export class GrantBuilder extends BaseHelper {
       this.logger
         .for(this.decodeMetadata.name)
         .error('Failed to parse metadata | Error: %s', error);
+
       return null;
     }
   }
@@ -82,6 +84,7 @@ export class GrantBuilder extends BaseHelper {
     }
 
     const ops = (decoded as { ops?: unknown }).ops;
+
     if (!Array.isArray(ops) || ops.length === 0) {
       return null;
     }
@@ -137,6 +140,7 @@ export class GrantBuilder extends BaseHelper {
     const covered = new Set<string>([opts.tier]);
 
     let grew = true;
+
     while (grew) {
       grew = expandCoveredActions({ covered });
     }
@@ -196,6 +200,7 @@ export class GrantBuilder extends BaseHelper {
     const byMethod = new Map(subjectCatalog.map((entry) => [entry.method, entry]));
 
     const unknown = ops.filter((op) => !byMethod.has(op));
+
     if (unknown.length) {
       throw getError({
         message: `[planGrant] Unknown operations for resource "${opts.resource.subject}": ${unknown.join(', ')}`,
@@ -242,6 +247,7 @@ export class GrantBuilder extends BaseHelper {
 
     for (const op of leftover) {
       const entry = byMethod.get(op);
+
       if (!entry) {
         throw getError({ message: `[planGrant] No catalog entry for operation "${op}".` });
       }
@@ -272,6 +278,7 @@ export class GrantBuilder extends BaseHelper {
     // manage equals read+write+execute only when the subject has at least one operation in EACH narrow tier; otherwise manage also covers a future tier, which is more than the narrow tiers confer today.
     const spansAllNarrowTiers = GrantBuilder.NARROW_TIERS.every((tier) => {
       const covered = this.actionsCoveredBy({ tier });
+
       return subjectCatalog.some((entry) => covered.has(entry.action));
     });
 
@@ -286,6 +293,7 @@ export class GrantBuilder extends BaseHelper {
       manageOps.every((method) => remaining.has(method))
     ) {
       rows.push(tierRow(AuthorizationActions.MANAGE));
+
       for (const method of manageOps) {
         remaining.delete(method);
       }
@@ -304,6 +312,7 @@ export class GrantBuilder extends BaseHelper {
       }
 
       rows.push(tierRow(tier));
+
       for (const method of methods) {
         remaining.delete(method);
       }

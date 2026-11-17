@@ -21,6 +21,7 @@ const rejection = async (opts: { promise: Promise<unknown> }) => {
 
 const update = (opts: { throwOn: unknown }) => {
   const { helper } = makeHelper({ throwOn: { 'documents.update': opts.throwOn } });
+
   return rejection({
     promise: helper.updateDocument({ collection: 'products', id: '1', document: {} }),
   });

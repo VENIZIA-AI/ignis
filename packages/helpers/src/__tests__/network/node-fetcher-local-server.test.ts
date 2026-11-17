@@ -13,10 +13,12 @@ beforeAll(() => {
 
       if (url.pathname === '/slow') {
         await new Promise((resolve) => setTimeout(resolve, 500));
+
         return new Response('late');
       }
 
       const body = await req.text();
+
       return Response.json({
         method: req.method,
         search: url.search,
@@ -71,6 +73,7 @@ describe('NodeFetchNetworkRequest against a local server', () => {
     const request = buildRequest();
 
     let outcome = 'answered';
+
     try {
       await request
         .getNetworkService()
@@ -95,6 +98,7 @@ describe('NodeFetchNetworkRequest against a local server', () => {
     controller.abort();
 
     let outcome = 'answered';
+
     try {
       await pending;
     } catch (error) {

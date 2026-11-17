@@ -60,7 +60,9 @@ The framework layer (`@venizia/ignis`) creates these bindings for you - for cont
 | Scope | Constant | Behavior |
 |-------|----------|----------|
 | Transient | `BindingScopes.TRANSIENT` | New instance on every resolution (default) |
-| Singleton | `BindingScopes.SINGLETON` | Cached on the `Binding` after first resolution - any value, `null` and `undefined` included. A rejected promise stays cached until `clear()` |
+| Singleton | `BindingScopes.SINGLETON` | Cached on the `Binding` after first resolution |
+
+The cache holds any value, `null` and `undefined` included. A rejected promise stays cached until `clear()`.
 
 > [!IMPORTANT]
 > Singleton caching lives on the `Binding` object, not the container. Rebinding a key creates a fresh `Binding` with its own cache. If you hold onto an old `Binding` reference, its cache stays independent of `container.clear()`/`reset()` calls made against the new `Binding` registered under the same key.

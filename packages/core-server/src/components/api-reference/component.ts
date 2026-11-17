@@ -1,7 +1,5 @@
 import { type BaseApplication } from '@/base/applications';
 import { inject } from '@/base/metadata';
-import { type OpenAPIObjectConfigure } from '@hono/zod-openapi';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { BaseComponent, Binding, CoreBindings } from '@venizia/ignis-kernel';
 import type { Context, Next } from 'hono';
@@ -10,6 +8,8 @@ import { ServiceAssertion } from '@venizia/ignis-kernel';
 import { ApiReferenceBindingKeys, DocumentUITypes, type IApiReferenceOptions } from './common';
 import { UIProviderFactory } from './ui';
 
+const DEFAULT_OPENAPI_VERSION = '3.0.0';
+
 const DEFAULT_API_REFERENCE_OPTIONS: IApiReferenceOptions = {
   restOptions: {
     base: { path: '/doc' },
@@ -17,7 +17,7 @@ const DEFAULT_API_REFERENCE_OPTIONS: IApiReferenceOptions = {
     ui: { path: '/explorer', type: 'scalar' },
   },
   explorer: {
-    openapi: '3.0.0',
+    openapi: DEFAULT_OPENAPI_VERSION,
     info: {
       title: 'API Documentation',
       version: '1.0.0',
@@ -37,6 +37,20 @@ const joinRestPath = (segments: Array<string | undefined>): string => {
   return joined.startsWith('/') ? joined : `/${joined}`;
 };
 
+/**
+ * Serves the OpenAPI document and an interactive UI for it. Paths and UI type come from `IApiReferenceOptions` bound at `ApiReferenceBindingKeys.API_REFERENCE_OPTIONS`; `info` is always taken from the application info.
+ *
+ * @example
+ * ```typescript
+ * import { ApiReferenceComponent, BaseApplication } from '@venizia/ignis';
+ *
+ * abstract class App extends BaseApplication {
+ *   preConfigure(): void {
+ *     this.component(ApiReferenceComponent);
+ *   }
+ * }
+ * ```
+ */
 export class ApiReferenceComponent extends BaseComponent {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
@@ -75,7 +89,7 @@ export class ApiReferenceComponent extends BaseComponent {
     const configs = this.application.getProjectConfigs();
 
     const appInfo = await this.application.getAppInfo();
-    explorer.info = {
+    const info = {
       title: appInfo.name,
       version: appInfo.version,
       description: appInfo.description,
@@ -94,7 +108,11 @@ export class ApiReferenceComponent extends BaseComponent {
     const docPath = joinRestPath([restOptions.base.path, restOptions.doc.path]);
     const uiPath = joinRestPath([restOptions.base.path, restOptions.ui.path]);
 
-    rootRouter.doc(docPath, explorer as OpenAPIObjectConfigure<any, string>);
+    rootRouter.doc(docPath, {
+      ...explorer,
+      openapi: explorer.openapi ?? DEFAULT_OPENAPI_VERSION,
+      info,
+    });
 
     const uiType = restOptions.ui.type ?? DocumentUITypes.SWAGGER;
     const uiProviderFactory = UIProviderFactory.getInstance();
@@ -144,8 +162,9 @@ export class ApiReferenceComponent extends BaseComponent {
 
     const securitySchemes = boundOptions?.securitySchemes ?? {};
     const securitySchemesEntries = Object.entries(securitySchemes);
+
     for (const [name, scheme] of securitySchemesEntries) {
-      rootRouter.openAPIRegistry.registerComponent('securitySchemes', name, scheme as AnyType);
+      rootRouter.openAPIRegistry.registerComponent('securitySchemes', name, scheme);
     }
   }
 }

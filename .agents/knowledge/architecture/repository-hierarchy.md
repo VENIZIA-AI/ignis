@@ -153,7 +153,7 @@ Wiring:
 
 ## Hidden fields are excluded at query time
 
-`hiddenProperties` in `@model` settings is not post-query filtering. `RelationalBaseRepository`
+`properties.hidden` in `@model` settings is not post-query filtering. `RelationalBaseRepository`
 memoizes a `Set` view of `hiddenFields` and derives a Drizzle column-selection map from it
 (`_visibleColumns`). Hidden columns are simply never selected, so the value never leaves the
 database - a security property, not an optimization, since nothing downstream has to remember to
@@ -177,7 +177,7 @@ explicit `@inject` already claims that slot, so the common case needs no constru
 export class UserRepository extends DefaultRelationalRepository<typeof User.schema> {}
 ```
 
-`registerDataSourceInjection` in `packages/kernel/src/base/metadata/persistents.ts` does the work,
+`registerDataSourceInjection` in `packages/kernel/src/base/metadata/persistents/repository/injection.ts` does the work,
 and it is strict:
 
 - With no explicit `@inject` at index 0, the decorator writes the injection: `{ target, key }` for a

@@ -56,6 +56,7 @@ describe('updateById / deleteById reject null & undefined id before executing', 
   async function rejectionMessage(op: Promise<unknown>): Promise<string | null> {
     try {
       await op;
+
       return null;
     } catch (err) {
       return (err as Error).message;

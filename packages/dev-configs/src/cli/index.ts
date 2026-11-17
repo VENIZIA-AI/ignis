@@ -16,6 +16,8 @@ Commands:
   codemod async-style [paths...]                apply the async-style lint fixers and list the rest (dry run unless --write)
   codemod namespace-functions [paths...]        move calls of a function that moved into a class to the class form (dry run unless --write)
   codemod connector-imports [paths...]          move @venizia/ignis/<connector sub-path> imports to @venizia/ignis-connectors (dry run unless --write)
+  codemod env-get [paths...]                    strip the type arguments of applicationEnvironment.get() for the string-reading get() (dry run unless --write)
+  codemod any-aliases [paths...]                replace the removed AnyType and AnyObject aliases by what they stood for, any (--strict: unknown and Record<string, unknown>; dry run unless --write)
 
 Run \`devz clean --help\` or \`devz codemod --help\` for a command's options.`;
 
@@ -24,6 +26,7 @@ const main = async (opts: { argv: string[] }): Promise<number> => {
 
   if (command === undefined || command === '--help' || command === '-h') {
     console.log(USAGE);
+
     return 0;
   }
 
@@ -44,6 +47,7 @@ const main = async (opts: { argv: string[] }): Promise<number> => {
   }
 
   console.error(`devz: unknown command "${command ?? ''}"\n${USAGE}`);
+
   return 1;
 };
 

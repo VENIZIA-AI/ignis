@@ -11,6 +11,7 @@ const ANSI_ESCAPE = '[';
 const ENV_KEYS = ['APP_ENV_LOGGER_COLOR', 'NO_COLOR', 'NODE_ENV'] as const;
 
 const saved: Record<string, string | undefined> = {};
+
 for (const key of ENV_KEYS) {
   saved[key] = process.env[key];
 }
@@ -21,6 +22,7 @@ const restoreEnv = () => {
       delete process.env[key];
       continue;
     }
+
     process.env[key] = saved[key];
   }
 };
@@ -44,6 +46,7 @@ const renderConsoleLine = (logger: winston.Logger): string => {
 
   const loggerFormat = logger.format;
   const prepped = loggerFormat ? loggerFormat.transform(seed, loggerFormat.options) : seed;
+
   if (typeof prepped === 'boolean') {
     throw new Error('logger format filtered the info');
   }
@@ -52,6 +55,7 @@ const renderConsoleLine = (logger: winston.Logger): string => {
   const finalized = transportFormat
     ? transportFormat.transform({ ...prepped }, transportFormat.options)
     : prepped;
+
   if (typeof finalized === 'boolean') {
     throw new Error('transport format filtered the info');
   }

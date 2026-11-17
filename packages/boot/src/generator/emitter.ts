@@ -18,15 +18,19 @@ export class ArtifactIndexEmitter {
   }): string {
     const { root, out, ignore = [], exportName, sourceModules = [] } = opts;
     const flags = [`--root ${root}`, `--out ${out}`];
+
     if (ignore.length > 0) {
       flags.push(`--ignore ${ignore.join(',')}`);
     }
+
     if (exportName && exportName !== ArtifactIndexEmitter.DEFAULT_EXPORT_NAME) {
       flags.push(`--export ${exportName}`);
     }
+
     for (const sourceModule of sourceModules) {
       flags.push(`--source-module ${sourceModule}`);
     }
+
     return `ignis-artifacts generate ${flags.join(' ')}`;
   }
 
@@ -101,10 +105,12 @@ export class ArtifactIndexEmitter {
     if (opts.isAbsolute) {
       return opts.to.split(sep).join('/').replace(ArtifactStereotypes.SOURCE_EXTENSION, '');
     }
+
     const raw = relative(dirname(opts.from), opts.to)
       .split(sep)
       .join('/')
       .replace(ArtifactStereotypes.SOURCE_EXTENSION, '');
+
     return raw.startsWith('.') ? raw : `./${raw}`;
   }
 }

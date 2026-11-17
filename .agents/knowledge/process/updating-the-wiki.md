@@ -11,6 +11,7 @@ tags: [process, docs, wiki]
 
 - [Steps](#steps)
 - [What the changelog records](#what-the-changelog-records)
+- [The migration block](#the-migration-block)
 - [Related](#related)
 <!-- okf:generated:contents end -->
 
@@ -20,7 +21,7 @@ tags: [process, docs, wiki]
    from markdown under `content/`. It lives at top-level `docs/wiki/` (sibling of `packages/`,
    package name `@venizia/ignis-docs`), not inside `packages/`. The MCP server that reads this same
    content is VULCAN's atlas (`@venizia/vulcan-atlas`, run in this repo as
-   `bun x --no-install vulcan x atlas mcp`, registered as `atlas` in the per-machine `.mcp.json` that `vulcan sync` writes) - `docs/wiki`
+   `bun node_modules/.bin/vulcan x atlas mcp --root .`, registered as `atlas` in the per-machine `.mcp.json` that `vulcan sync` writes) - `docs/wiki`
    no longer ships one itself. This `.agents/knowledge/` bundle
    (what this file is part of) is a separate, agent-facing artifact - editing one does not update
    the other.
@@ -61,7 +62,7 @@ tags: [process, docs, wiki]
    docs:clean`.
 5. The built site reaches production through GitHub Pages, not through you: the
    `.github/workflows/deploy-docs.yml` workflow ("Docs") runs `make docs` and deploys
-   `docs/wiki/site/.vitepress/dist`, on every push to `develop` that touches `docs/wiki/**` and on
+   `docs/wiki/site/.vitepress/dist`, on every push to `develop` that touches `docs/wiki/**` or whose range holds a release commit (the release workflow also dispatches it after a release, so the changelog's latest-prerelease box follows) and on
    manual dispatch with `job=docs` (the default; `job=atlas-index` publishes the atlas pair of a `ref` and deploys no wiki). Nothing else publishes the site - merging your page to `develop` is the deploy.
 6. There is no compiled output in this package any more: `content/` is plain markdown VitePress
    reads directly, and every script under `scripts/` runs straight with `bun`, no build step. The
@@ -89,7 +90,10 @@ tags: [process, docs, wiki]
    (copied by hand, identical in the three repos) fails on a hand edit or an unlisted file and when a
    VitePress piece the shared CSS overrides is gone. `.gitattributes` marks the folder `-text` so git
    converts no byte. Keep `bun fmt` off it: `make lint-wiki` still checks it. What stays ours:
-   `product.css`, `home-content.ts`, `design-tokens.css`, `theme/index.ts`, `config.mts`.
+   `home-content.ts`, `design-tokens.css`, `theme/index.ts`, `config.mts`. The wiki's colours are the
+   `theme` of `.configs/vulcan.config.mts`: `vulcan sync` writes the resolved tokens into
+   `.agents/vulcan.manifest.json`, and `config.mts` puts them in the head of every page
+   (`WikiTheme.head`).
 
 ## What the changelog records
 
@@ -115,6 +119,22 @@ do about it, and the upgrade step of a breaking change. Several changes to one t
 
 An entry is attached to the first release made on or after its date (`vulcan x atlas releases`), so date it on or
 after the day the release that carries it is made.
+
+## The migration block
+
+A Breaking Change entry (badge text `Breaking Change`; `Breaking` is read as breaking too but reported on entries after the cutover) dated on or after `knowledge.migrationFrom` carries `migration:` in its frontmatter: how an app moves across the change, in both directions. `make changelog-check` (`vulcan changelog check`, a CI step) fails when it is missing or invalid; entries before the cutover are never read.
+
+```yaml
+migration:
+  - id: redis-factory-per-topology       # lower-case words joined by -, unique across the folder
+    symbols: [RedisHelperFactory.create] # the names an app's code uses: Name, Name.member or a module specifier
+    upgrade: { before: "RedisHelper.new()", after: "RedisHelperFactory.create()" }  # or { steps: ["..."] }
+    downgrade: { steps: ["Call RedisHelper.new() again"] }   # required; an irreversible change says so here
+    data: "Stored tokens keep the old prefix."               # optional: stored data that does not cross the boundary
+    codemod: namespace-functions                             # optional: a `devz codemod` name
+```
+
+List the symbols as the app spells them before the change (a removed or renamed name is not in the new exports, so the check does not look them up). `before`/`after` and `steps` are alternatives, never both. The `## Breaking changes` section stays: it is the human version of the same steps.
 
 ## Related
 

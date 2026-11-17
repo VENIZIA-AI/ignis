@@ -1,6 +1,7 @@
 import { OpenApiSchemas } from '@/base/models/common';
 import { z } from '@hono/zod-openapi';
 
+/** Validates a sign-in body: an `identifier` and a `credential`, each a `scheme` plus `value`, and an optional `clientId`. */
 export const SignInRequestSchema = z
   .object({
     identifier: z
@@ -40,4 +41,5 @@ export const SignInRequestSchema = z
     ],
   });
 
+/** Parsed body of `SignInRequestSchema`. */
 export type TSignInRequest = z.infer<typeof SignInRequestSchema>;

@@ -33,8 +33,10 @@ export class BootSteps {
   }
 }
 
+/** Union of the step names in `BootSteps`. */
 export type TBootStep = TConstValue<typeof BootSteps>;
 
+/** One named step of a boot sequence. `name` is what `BootSequence.insertAfter` targets; `run` is the work done when the sequence reaches the step. */
 export interface IBootSequenceStep {
   name: string;
   run: () => ValueOrPromise<void>;

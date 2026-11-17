@@ -2,13 +2,12 @@ import { describe, expect, test } from 'bun:test';
 import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect/query-dialect';
 import { PostgresQueryExecutor } from '@/relational/postgres/repositories/executor';
 import { AbstractRelationalDataSource } from '@/relational/core/datasources';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 
 describe('datasource supplies both ports', () => {
   test('the neutral base does not name a dialect or an executor', () => {
-    const source = AbstractRelationalDataSource.prototype as AnyType;
-    expect(source.getQueryDialect).toBeUndefined();
-    expect(source.getQueryExecutor).toBeUndefined();
+    const source = AbstractRelationalDataSource.prototype;
+    expect(Reflect.get(source, 'getQueryDialect')).toBeUndefined();
+    expect(Reflect.get(source, 'getQueryExecutor')).toBeUndefined();
   });
 
   /**

@@ -8,12 +8,15 @@ import type {
   IMailQueueResult,
   IQueueJobPayload,
 } from '../../common';
-import { MailBackoffTypes, MailErrorCodes, MailExecutorErrors } from '../../common';
+import { MailBackoffTypes, MailDefaults, MailErrorCodes, MailExecutorErrors } from '../../common';
 
+/** In-process mail queue executor: jobs are lost on restart. Supports `delay`, `attempts` and `backoff`; call `close` to clear pending timers. */
 export class InternalQueueMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {
   private queue: SequentialQueueHelper<IQueueJobPayload>;
   private jobIdCounter = 0;
   private delayedJobs: Map<string, NodeJS.Timeout> = new Map();
+  /** Set by `close`: a job that fails afterwards must not arm a retry timer nobody will clear. */
+  private isClosed = false;
 
   private processor?: (email: string) => Promise<IMailProcessorResult>;
 
@@ -27,13 +30,7 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
         await this.processJob(queueElement.payload);
       },
       onDataEnqueue: ({ queueElement }) => {
-        this.logger
-          .for('onDataEnqueue')
-          .info(
-            'Job enqueued | jobId: %s | email: %s',
-            queueElement.payload.id,
-            queueElement.payload.email,
-          );
+        this.logger.for('onDataEnqueue').debug('Job enqueued | jobId: %s', queueElement.payload.id);
       },
       onStateChange: ({ from, to }) => {
         this.logger.for('onStateChange').debug('Queue state changed | from: %s | to: %s', from, to);
@@ -56,6 +53,10 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
       throw getError({ message: MailExecutorErrors.PROCESSOR_NOT_SET });
     }
 
+    if (this.isClosed) {
+      throw getError({ message: MailExecutorErrors.CLOSED });
+    }
+
     const jobId = `job_${++this.jobIdCounter}_${Date.now()}`;
     const job: IQueueJobPayload = {
       id: jobId,
@@ -65,9 +66,7 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
       scheduledAt: Date.now() + (options?.delay ?? 0),
     };
 
-    this.logger
-      .for(this.enqueueVerificationEmail.name)
-      .info('Queuing email | jobId: %s | email: %s', jobId, email);
+    this.logger.for(this.enqueueVerificationEmail.name).debug('Queuing email | jobId: %s', jobId);
 
     if (options?.delay && options.delay > 0) {
       const timeout = setTimeout(() => {
@@ -97,9 +96,12 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
 
   /** Releases every pending delayed/backoff timer - a live `setTimeout` holds the event loop open past the executor. */
   async close(): Promise<void> {
+    this.isClosed = true;
+
     const pendingCount = this.delayedJobs.size;
 
     const delayedJobsValues = this.delayedJobs.values();
+
     for (const timeout of delayedJobsValues) {
       clearTimeout(timeout);
     }
@@ -112,10 +114,11 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
   private async processJob(job: IQueueJobPayload): Promise<void> {
     if (!this.processor) {
       this.logger.for(this.processJob.name).error('Processor not set | jobId: %s', job.id);
+
       return;
     }
 
-    const maxAttempts = job.options?.attempts ?? 3;
+    const maxAttempts = job.options?.attempts ?? MailDefaults.ATTEMPTS;
 
     this.logger
       .for(this.processJob.name)
@@ -143,7 +146,11 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
       const errorMsg = error instanceof Error ? error.message : error;
       job.attempts++;
 
-      if (job.attempts < maxAttempts) {
+      if (this.isClosed) {
+        this.logger
+          .for(this.processJob.name)
+          .warn('Job failed after close, not retried | jobId: %s | error: %s', job.id, errorMsg);
+      } else if (job.attempts < maxAttempts) {
         const backoffDelay = this.calculateBackoff(job);
 
         this.logger
@@ -184,7 +191,7 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
     const backoff = job.options?.backoff;
 
     if (!backoff) {
-      return 1000;
+      return MailDefaults.BACKOFF_DELAY_MS;
     }
 
     if (backoff.type === MailBackoffTypes.EXPONENTIAL) {

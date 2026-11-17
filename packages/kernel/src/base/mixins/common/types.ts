@@ -6,15 +6,22 @@ import type { BaseConfiguration } from '../../configurations';
 import type { IDataSource } from '../../datasources';
 import type { IRepository } from '../../repositories';
 import type { IService } from '../../services';
+
 /** Options of the registration itself, never of the artifact - what the artifact needs goes on its class. */
 export type TMixinOpts<Options extends object = {}> = {
   binding?: { namespace: string; key: string };
-  /** Default true, matching `bind()`'s overwrite behavior; false makes a same-key re-registration throw. */
+  /**
+   * Matches `bind()`'s overwrite behavior; false makes a same-key re-registration throw. Unset, it
+   * follows `bootChecks.binding.allowOverride`.
+   *
+   * @default true
+   */
   allowOverride?: boolean;
   /** Options passed directly to `instance.configure(options)` during initialization. */
   options?: Options;
 };
 
+/** Mixin contract for registering configuration classes on the application. */
 export interface IConfigurationMixin {
   configuration<Base extends BaseConfiguration<Options>, Options extends object = {}>(
     target: TClass<Base>,
@@ -23,6 +30,7 @@ export interface IConfigurationMixin {
   registerConfigurations(): ValueOrPromise<void>;
 }
 
+/** Mixin contract for registering components on the application. */
 export interface IComponentMixin {
   component<Base extends BaseComponent<Options>, Options extends object = {}>(
     target: TClass<Base>,
@@ -31,6 +39,7 @@ export interface IComponentMixin {
   registerComponents(): ValueOrPromise<void>;
 }
 
+/** Mixin contract for the application lifecycle hooks of a server and its reported version. */
 export interface IServerConfigMixin {
   staticConfigure(): ValueOrPromise<void>;
   preConfigure(): ValueOrPromise<void>;
@@ -38,11 +47,13 @@ export interface IServerConfigMixin {
   getApplicationVersion(): ValueOrPromise<string>;
 }
 
+/** Mixin contract for registering controllers on the application. */
 export interface IControllerMixin {
   controller<Base>(target: TClass<Base>, opts?: TMixinOpts): Binding<Base>;
   registerControllers(): ValueOrPromise<void>;
 }
 
+/** Mixin contract for registering datasources and repositories on the application. */
 export interface IRepositoryMixin {
   dataSource<Base extends IDataSource<Options>, Options extends object = {}>(
     target: TClass<Base>,
@@ -50,14 +61,17 @@ export interface IRepositoryMixin {
   ): Binding<Base>;
   repository<Base extends IRepository>(target: TClass<Base>, opts?: TMixinOpts): Binding<Base>;
 }
+/** Mixin contract for registering services on the application. */
 export interface IServiceMixin {
   service<Base extends IService>(target: TClass<Base>, opts?: TMixinOpts): Binding<Base>;
 }
 
+/** Mixin contract for registering every discovered artifact from an artifact index in one call. */
 export interface IArtifactRegistrationMixin {
   registerArtifacts(index: TArtifactIndexInput): Promise<void>;
 }
 
+/** Mixin contract for serving a static folder; `restPath` is the URL path it is served under. */
 export interface IStaticServeMixin {
   static(opts: { restPath?: string; folderPath: string }): IApplication;
 }

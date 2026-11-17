@@ -49,6 +49,7 @@ export class SqliteJsonPathUtility {
     const ambiguousCount = path.filter((part) =>
       SqliteJsonPathUtility.isAmbiguousComponent({ part }),
     ).length;
+
     if (ambiguousCount > SqliteJsonPathUtility.MAX_AMBIGUOUS_COMPONENTS) {
       throw getError({
         message: `[toSqliteJsonPaths] Ambiguous JSON path components over the limit | max: ${SqliteJsonPathUtility.MAX_AMBIGUOUS_COMPONENTS} | got: ${ambiguousCount} | each all-digit component doubles the candidate paths`,

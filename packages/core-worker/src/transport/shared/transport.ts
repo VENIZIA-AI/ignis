@@ -179,6 +179,7 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
           'navigator.locks is unavailable - running single-tab | a second tab cannot open the same OPFS database',
         );
       this.becomeLeader();
+
       return;
     }
 
@@ -205,6 +206,7 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
 
       this.becomeLeader();
       await this.heldUntilClosed();
+
       return true;
     });
 
@@ -324,6 +326,7 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
       const handleAbort = (): void => {
         this.takePending({ id })?.reject(this.toAbortError({ signal }));
       };
+
       signal?.addEventListener('abort', handleAbort);
 
       this.pendingRequests.set(id, {
@@ -339,6 +342,7 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
       // that aborted before it was attached - without this re-read that window loses the abort.
       if (signal?.aborted) {
         handleAbort();
+
         return;
       }
 
@@ -359,17 +363,20 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
 
   private takePending(opts: { id: string }): IPendingRequest | undefined {
     const pending = this.pendingRequests.get(opts.id);
+
     if (!pending) {
       return undefined;
     }
 
     this.pendingRequests.delete(opts.id);
     pending.release();
+
     return pending;
   }
 
   private rejectAllPending(opts: { reason: string }): void {
     const pendingRequestsKeys = [...this.pendingRequests.keys()];
+
     for (const id of pendingRequestsKeys) {
       this.takePending({ id })?.reject(
         getError({
@@ -405,6 +412,7 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
               error,
             );
         });
+
         return;
       }
 
@@ -414,6 +422,7 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
       // fail its caller, never leave the promise unsettled for the full timeout.
       case ChannelMessageKinds.RESPONSE: {
         const pending = this.takePending({ id: message.envelope.id });
+
         if (!pending) {
           return;
         }
@@ -435,11 +444,13 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
             }),
           );
         }
+
         return;
       }
 
       case ChannelMessageKinds.ERROR: {
         const pending = this.takePending({ id: message.envelope.id });
+
         if (!pending) {
           return;
         }
@@ -454,6 +465,7 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
             }),
           );
         }
+
         return;
       }
 

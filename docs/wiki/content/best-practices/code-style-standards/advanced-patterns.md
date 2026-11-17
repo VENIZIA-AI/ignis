@@ -61,21 +61,16 @@ export const TimestampMixin = <
 Generate classes dynamically with configuration:
 
 ```typescript
-class ControllerFactory extends BaseHelper {
-  static defineCrudController<
-    TEntity extends AbstractEntity = AbstractEntity,
-    Routes extends ICustomizableRoutes = ICustomizableRoutes,
-    // DataObject/PersistObject default to the entity's inferred select/insert shapes
-    TDataObject extends object = TEntityDataObject<TEntity>,
-    TPersistObject extends object = TEntityPersistObject<TEntity>,
-  >(defOpts: ICrudControllerOptions<TEntity, Routes>) {
-    const { controller, entity, routes } = defOpts;
+class CrudControllerFactory extends BaseHelper {
+  static crud<Repository extends TClass<IRepository>>(opts: ICrudControllerOptions<Repository>) {
+    const { repository, routes } = opts;
 
-    // `entity` accepts a class directly or a resolver function
-    const entityClass = isClass(entity) ? entity : entity();
+    // The entity comes from @repository({ model }) on the repository class
+    const model = MetadataRegistry.getInstance().getRepositoryBinding({ target: repository })?.model;
+    const entityClass = isClass(model) ? model : model();
     const entityInstance = new entityClass();
 
-    // Derive request/response schemas + route configs from the entity instance
+    // Derive request/response schemas + route configs from the entity; only listed routes get one
     const definitions = RouteConfigResolver.defineControllerRouteConfigs({
       idType: entityInstance.getIdType(),
       routes,
@@ -86,37 +81,29 @@ class ControllerFactory extends BaseHelper {
       },
     });
 
-    return class extends PersistableCrudController<TEntity> {
-      constructor(repository: AbstractRepository<TDataObject, TPersistObject>) {
-        super({
-          scope: controller.name,
-          path: controller.basePath,
-          repository,
-          definitions,
-        });
+    return class extends PersistableCrudController {
+      constructor(repositoryInstance: InstanceType<Repository>) {
+        super({ scope: new.target.name, repository: repositoryInstance, definitions });
       }
 
-      /** Registers all CRUD route handlers. */
-      override binding(): ValueOrPromise<void> {
-        this.defineRoute({
-          configs: definitions.FIND,
-          handler: async context => this.find({ context }),
-        });
-        this.defineRoute({
-          configs: definitions.FIND_BY_ID,
-          handler: async context => this.findById({ context }),
-        });
-        // ... more routes (count/findOne/create/updateById/deleteById/...)
+      /** Registers each listed CRUD route handler, after the subclass's binding(). */
+      override bindDefaultRoutes(): ValueOrPromise<void> {
+        if (definitions.FIND) {
+          this.defineRoute({
+            configs: definitions.FIND,
+            handler: async context => this.find({ context }),
+          });
+        }
+        // ... the other routes, each guarded the same way
       }
     };
   }
 }
 
-// Usage - types come from the entity, entity can be a class or a resolver
-const UserCrudController = ControllerFactory.defineCrudController({
-  controller: { name: 'UserController', basePath: '/users' },
-  repository: { name: UserRepository.name },
-  entity: () => User,
+// Usage - the entity comes from the repository's @repository({ model }), the path from @controller
+const UserCrudController = CrudControllerFactory.build({
+  repository: UserRepository,
+  routes: CrudRoutes.READ,
 });
 
 @controller({ path: '/users' })
@@ -126,45 +113,38 @@ export class UserController extends UserCrudController {
 ```
 
 > [!NOTE]
-> `controller.basePath` is required - `defineCrudController` throws via `getError` when it is
-> missing or left at the internal `'unknown_path'` placeholder.
+> The path is only on `@controller({ path })`. The generated routes register after the subclass's
+> `binding()`, so a custom static path declared there wins over `/{id}`.
 
 ## Value Resolver Pattern
 
 Support multiple input types that resolve to a single value:
 
 ```typescript
-// Type definitions (from @venizia/ignis-helpers)
-export type TResolver<T> = (...args: any[]) => T;
+export type TResolver<T> = (...args: never[]) => T;
 export type TValueOrResolver<T> = T | TResolver<T>;
+declare const isClass: <T>(target: unknown) => target is TClass<T>;
+```
 
-// Resolver function (ResolverUtility.resolveValue, declared in @venizia/ignis-inversion)
+`isClass` tells a class constructor from an arrow or regular function by testing the function's source against `/^class[\s{]/`, since every non-arrow function has a prototype. It is sound only on ES2020+ output.
+
+```typescript
+// A resolver is anything callable that is not a class - a class is a value, never a factory
 export class ResolverUtility {
+  private static isResolver<T>(
+    valueOrResolver: TValueOrResolver<T>,
+  ): valueOrResolver is TResolver<T> {
+    return typeof valueOrResolver === 'function' && !isClass(valueOrResolver);
+  }
+
+  // ResolverUtility.resolveValue is declared in @venizia/ignis-inversion
   static resolveValue<T>(opts: { value: TValueOrResolver<T> }): T {
     const { value } = opts;
 
-    if (typeof value !== 'function') {
-      return value;  // Direct value
-    }
-
-    if (isClass(value)) {
-      return value as T;  // Class constructor (return as-is)
-    }
-
-    return (value as TResolver<T>)();  // Function resolver
+    // A class constructor is returned as-is; only a plain function is called
+    return ResolverUtility.isResolver(value) ? value() : value;
   }
 }
-
-// isClass (declared in @venizia/ignis-inversion, re-exported by helpers) - distinguishes class
-// constructors from arrow/regular functions by testing the SOURCE against /^class[\s{]/,
-// since every non-arrow function has a prototype. Sound only on ES2020+ output.
-export const isClass = <T>(target: any): target is TClass<T> => {
-  if (typeof target !== 'function' || target.prototype === undefined) {
-    return false;
-  }
-
-  return /^class[\s{]/.test(Function.prototype.toString.call(target));
-};
 ```
 
 ### Usage
@@ -196,12 +176,12 @@ For constructing complex objects step-by-step:
 
 ```typescript
 class QueryBuilder<T> {
-  private _where: Record<string, any> = {};
+  private _where: Record<string, unknown> = {};
   private _orderBy: string[] = [];
   private _limit?: number;
   private _offset?: number;
 
-  where(conditions: Record<string, any>): this {
+  where(conditions: Record<string, unknown>): this {
     this._where = { ...this._where, ...conditions };
     return this;
   }

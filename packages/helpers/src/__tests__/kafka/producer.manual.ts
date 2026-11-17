@@ -43,6 +43,7 @@ async function main() {
     if (!producer.isHealthy()) {
       console.warn('Kafka Producer not healthy after timeout');
     }
+
     if (!producer.isReady()) {
       console.warn('Kafka Producer not ready after timeout');
     }

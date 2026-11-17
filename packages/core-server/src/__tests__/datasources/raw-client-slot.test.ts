@@ -1,10 +1,16 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { datasource } from '@/base/metadata';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 
-const buildFakePool = (): AnyType => {
+interface IFakeClientSlot {
+  totalCount: number;
+  connect: () => Promise<{ query: () => Promise<{ rows: [] }>; release: () => void }>;
+  end: () => Promise<void>;
+}
+
+const buildFakePool = (): IFakeClientSlot => {
   return {
     totalCount: 0,
     connect: () =>
@@ -15,8 +21,13 @@ const buildFakePool = (): AnyType => {
 
 /** The current shape: the raw client goes in the non-deprecated slot. */
 @datasource({ driver: NodePostgresDriver })
-class ClientSlotDataSource extends BasePostgresDataSource<{}> {
-  constructor(private readonly rawClient: AnyType) {
+class ClientSlotDataSource extends BasePostgresDataSource<
+  {},
+  TAnyDataSourceSchema,
+  {},
+  IFakeClientSlot
+> {
+  constructor(private readonly rawClient: IFakeClientSlot) {
     super({ name: 'client-slot', config: {} });
   }
 

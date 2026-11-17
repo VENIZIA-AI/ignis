@@ -4,7 +4,7 @@ import { BaseApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications';
 import { PostgresUserAuditEnricher } from '@/connectors';
 import { RequestTrackerComponent } from '@/components';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   Authentication,
   BindingKeys,
@@ -23,7 +23,7 @@ const auditTable = pgTable('request_context_wiring_audit', {
 });
 
 /** What drizzle calls per inserted row - the value that actually lands in `created_by`. */
-const stampCreatedBy = (): unknown => (auditTable.createdBy as AnyType).defaultFn();
+const stampCreatedBy = (): unknown => auditTable.createdBy.defaultFn?.();
 
 const AUDIT_USER_ID = 7;
 
@@ -54,6 +54,7 @@ class AuditContextApplication extends BaseApplication {
 
     server.get('/audit-with-user', (context) => {
       context.set(Authentication.AUDIT_USER_ID, AUDIT_USER_ID);
+
       return context.json({ stamped: stampCreatedBy() });
     });
 

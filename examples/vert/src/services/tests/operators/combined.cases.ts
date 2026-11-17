@@ -42,6 +42,7 @@ export class CombinedCases extends BaseTestCases {
 
       // Should find -100
       const allNegative = results.every((r) => r.nValue !== null && r.nValue < 0);
+
       if (allNegative && results.length >= 1) {
         this.context.logger.info(
           '[NEGATIVE] PASSED | Found %d records with negative nValue',
@@ -125,6 +126,7 @@ export class CombinedCases extends BaseTestCases {
 
       // Behavior may vary: either returns nothing or ignores limit=0
       this.context.logger.info('[LIMIT-ZERO] INFO | limit: 0 returned %d records', results.length);
+
       if (results.length === 0) {
         this.context.logger.info('[LIMIT-ZERO] PASSED | limit: 0 returns empty array');
       } else {
@@ -145,12 +147,13 @@ export class CombinedCases extends BaseTestCases {
     try {
       const results = await repo.find({
         filter: {
-          where: { group: 'COMPREHENSIVE_TEST', 'jValue.metadata.level': 3 } as any,
+          where: { group: 'COMPREHENSIVE_TEST', 'jValue.metadata.level': 3 },
         },
       });
 
       if (results.length >= 1) {
         const level = (results[0].jValue as any)?.metadata?.level;
+
         if (level === 3) {
           this.context.logger.info('[JSON-DEEP] PASSED | Found record with metadata.level = 3');
         } else {
@@ -172,7 +175,7 @@ export class CombinedCases extends BaseTestCases {
       // Find records where metadata is empty object
       const results = await repo.find({
         filter: {
-          where: { group: 'COMPREHENSIVE_TEST', 'jValue.metadata': '{}' } as any,
+          where: { group: 'COMPREHENSIVE_TEST', 'jValue.metadata': '{}' },
         },
       });
 
@@ -211,6 +214,7 @@ export class CombinedCases extends BaseTestCases {
 
       // Verify table still exists
       const stillExists = await repo.count({ where: { group: 'COMPREHENSIVE_TEST' } });
+
       if (stillExists.count > 0) {
         this.context.logger.info('[SEC-SQL-VALUE] VERIFIED | Table intact after injection attempt');
       }
@@ -239,6 +243,7 @@ export class CombinedCases extends BaseTestCases {
 
       // Verify data intact
       const count = await repo.count({ where: { group: 'COMPREHENSIVE_TEST' } });
+
       if (count.count >= 10) {
         this.context.logger.info(
           '[SEC-SQL-LIKE] VERIFIED | Data intact after LIKE injection attempt',
@@ -285,6 +290,7 @@ export class CombinedCases extends BaseTestCases {
 
       if (results.length >= 1) {
         const desc = results[0].description;
+
         // XSS should be stored as-is (output escaping is UI responsibility)
         if (desc?.includes('<script>')) {
           this.context.logger.info(
@@ -470,7 +476,7 @@ export class CombinedCases extends BaseTestCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { tags: { contains: [testTag] } } });
+      await repo.deleteBy({ where: { tags: { contains: [testTag] } } });
     } catch (error) {
       this.context.logger.error('[COMBO-PRODUCT] FAILED | Error: %s', (error as Error).message);
     }

@@ -92,6 +92,7 @@ export class NamespaceMappings {
 
       const keys = new Set<string>();
       let isOptionalSeen = false;
+
       for (const parameter of mapping.params) {
         if (!IDENTIFIER.test(parameter.key)) {
           problems.push(`${label}: the parameter key "${parameter.key}" is not an identifier`);
@@ -100,6 +101,7 @@ export class NamespaceMappings {
         if (keys.has(parameter.key)) {
           problems.push(`${label}: the parameter key "${parameter.key}" is listed twice`);
         }
+
         keys.add(parameter.key);
 
         if (isOptionalSeen && !parameter.optional) {
@@ -107,6 +109,7 @@ export class NamespaceMappings {
             `${label}: the required parameter "${parameter.key}" follows an optional one`,
           );
         }
+
         isOptionalSeen = isOptionalSeen || parameter.optional === true;
       }
 
@@ -126,9 +129,11 @@ export class NamespaceMappings {
 
       for (const module of mapping.modules) {
         const id = `${module}#${mapping.oldName}`;
+
         if (seen.has(id)) {
           problems.push(`${label}: ${mapping.oldName} from ${module} has two entries`);
         }
+
         seen.add(id);
       }
     }

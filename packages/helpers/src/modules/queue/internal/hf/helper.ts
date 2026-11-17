@@ -27,6 +27,7 @@ export class HfQueueHelper<T> extends BaseHelper {
     this.nodes.push(node);
 
     this.liveCount += 1;
+
     return node;
   }
 
@@ -39,6 +40,7 @@ export class HfQueueHelper<T> extends BaseHelper {
     if (this.head >= this.nodes.length) {
       // fully drained → cheap reset
       this.reset();
+
       return null;
     }
 
@@ -52,6 +54,7 @@ export class HfQueueHelper<T> extends BaseHelper {
       this.nodes.splice(0, this.head);
       this.head = 0;
     }
+
     return node.value;
   }
 
@@ -68,8 +71,10 @@ export class HfQueueHelper<T> extends BaseHelper {
   /** Remove and return every remaining LIVE value in FIFO order (e.g. on shutdown), emptying the queue. */
   drain(): T[] {
     const values: T[] = [];
+
     for (let index = this.head; index < this.nodes.length; index += 1) {
       const node = this.nodes[index];
+
       if (!node.isCancelled) {
         values.push(node.value);
         node.isCancelled = true; // mark consumed so a late cancel() of this node is a no-op, as in dequeue()
@@ -77,6 +82,7 @@ export class HfQueueHelper<T> extends BaseHelper {
     }
 
     this.reset();
+
     return values;
   }
 

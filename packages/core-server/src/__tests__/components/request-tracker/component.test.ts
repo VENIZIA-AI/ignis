@@ -9,9 +9,10 @@ import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { RequestTrackerComponent } from '@/components/request-tracker';
 import { z } from '@hono/zod-openapi';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import { HTTP, type AnyType, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { RequestUtility } from '@venizia/ignis-helpers';
 import { afterEach, describe, expect, test } from 'bun:test';
+import { readJson } from '../../helpers/json-shape';
 
 const TEST_CONFIGS: IApplicationConfigs = {
   host: '0.0.0.0',
@@ -60,6 +61,7 @@ class EchoController extends BaseRestController {
     }).to({
       handler: (context: TRouteContext) => {
         const { name } = context.req.valid<{ name: string }>('json');
+
         return context.json({ name }, 200);
       },
     });
@@ -76,6 +78,7 @@ class EchoController extends BaseRestController {
     }).to({
       handler: async (context: TRouteContext) => {
         const { files } = await RequestUtility.parseMultipartBody({ context });
+
         return context.json({ names: files.map((file) => file.originalname) }, 200);
       },
     });
@@ -117,6 +120,7 @@ const bootTrackedApplication = async (opts?: {
   await application['registerControllers']();
 
   server.route(TEST_CONFIGS.path.base, application.getRootRouter());
+
   return server;
 };
 
@@ -179,8 +183,7 @@ describe('RequestTrackerComponent — body parsing', () => {
     });
     expect(response.status).toBe(400);
 
-    const result = await response.json();
-    const responseBody = result as Record<string, AnyType>;
+    const responseBody = await readJson<{ message?: string }>(response);
     expect(responseBody.message).toBe('Malformed Body Payload');
   });
 
@@ -194,8 +197,7 @@ describe('RequestTrackerComponent — body parsing', () => {
     });
 
     // `content-length: 0` short-circuits the spy, so the status comes from the downstream route validator, not an unhandled throw inside the middleware.
-    const result = await response.json();
-    const responseBody = result as Record<string, AnyType>;
+    const responseBody = await readJson<{ message?: string }>(response);
     expect(responseBody.message).not.toBe('Malformed Body Payload');
   });
 
@@ -214,8 +216,7 @@ describe('RequestTrackerComponent — body parsing', () => {
     });
 
     // The spy itself must not reject a non-JSON payload; the route (JSON body) decides.
-    const result = await response.json();
-    const responseBody = result as Record<string, AnyType>;
+    const responseBody = await readJson<{ message?: string }>(response);
     expect(responseBody.message).not.toBe('Malformed Body Payload');
   });
 
@@ -249,8 +250,10 @@ describe('configs.middlewares.bodyLimit runs before the spy reads a body', () =>
   afterEach(() => {
     if (ORIGINAL_NODE_ENV === undefined) {
       delete process.env.NODE_ENV;
+
       return;
     }
+
     process.env.NODE_ENV = ORIGINAL_NODE_ENV;
   });
 

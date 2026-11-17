@@ -24,6 +24,7 @@ const TESTING_EXPORTS = [
   'PostgresTransactionDouble',
   'SqliteTransactionDouble',
   'TransactionStates',
+  'RepositoryDouble',
 ];
 
 /** What the entry adds beside the connectors' doubles. */
@@ -33,6 +34,7 @@ const PACKAGE_ROOT = path.resolve(import.meta.dir, '../../..');
 
 const importEntry = async (opts: { specifier: string }): Promise<Record<string, unknown>> => {
   const entry: Record<string, unknown> = await import(opts.specifier);
+
   return entry;
 };
 

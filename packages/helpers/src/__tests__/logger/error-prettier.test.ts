@@ -473,6 +473,7 @@ describe('ErrorPrettier stack budget', () => {
     } catch (error) {
       return error;
     }
+
     throw new Error('unreachable');
   };
 
@@ -584,6 +585,7 @@ describe('ErrorPrettier JSON resilience', () => {
   const buildCircular = () => {
     const value: Record<string, unknown> = { orderId: 'ord-1' };
     value.self = value;
+
     return value;
   };
 

@@ -90,10 +90,18 @@ describe('BunS3Helper.listObjects - useRecursive', () => {
     expect(calls[0].delimiter).toBe('/');
   });
 
-  test('the default stays recursive, so no delimiter is sent', async () => {
+  test('the default is not recursive, so the delimiter is sent', async () => {
     const { helper, calls } = buildHelper({ pages: [{ keys: ['a'] }] });
 
     await helper.listObjects({ bucket: { name: 'assets' } });
+
+    expect(calls[0].delimiter).toBe('/');
+  });
+
+  test('useRecursive true sends no delimiter, so the whole tree is listed', async () => {
+    const { helper, calls } = buildHelper({ pages: [{ keys: ['a'] }] });
+
+    await helper.listObjects({ bucket: { name: 'assets' }, useRecursive: true });
 
     expect(calls[0].delimiter).toBeUndefined();
   });

@@ -8,11 +8,13 @@ const openSockets: Socket[] = [];
 
 afterEach(async () => {
   const sockets = openSockets.splice(0);
+
   for (const socket of sockets) {
     socket.destroy();
   }
 
   const servers = openServers.splice(0);
+
   for (const server of servers) {
     await server.shutdown();
   }
@@ -47,6 +49,7 @@ const connectClient = async (port: number): Promise<Socket> => {
   });
 
   openSockets.push(socket);
+
   return socket;
 };
 
@@ -179,9 +182,11 @@ describe('NetworkTcpServer - a failed listen must not crash the process', () => 
     const port = typeof address === 'object' && address ? address.port : 0;
 
     let uncaught: unknown;
+
     const onUncaught = (error: unknown) => {
       uncaught = error;
     };
+
     process.on('uncaughtException', onUncaught);
 
     let reported: Error | undefined;

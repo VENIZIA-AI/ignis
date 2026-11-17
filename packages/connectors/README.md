@@ -4,8 +4,8 @@ The datasources, drivers, entity bases and repositories IGNIS uses to reach a ba
 through Drizzle (Postgres, PGlite, SQLite), search engines (Typesense, Meilisearch), and another
 IGNIS server over HTTP.
 
-Server applications get these through `@venizia/ignis` and its sub-paths. Install this package
-directly when you use the connectors without the server, for example in a browser Worker.
+Server applications get the Postgres entry through `@venizia/ignis`; every other entry is imported from this
+package. Install it directly when you use the connectors without the server, for example in a browser Worker.
 
 ## Install
 
@@ -123,9 +123,33 @@ styles can live in one application.
 | `/typesense/controllers` | The same search controllers as `/search/controllers` | `hono`, `@hono/zod-openapi` |
 | `/meilisearch` | `MeilisearchDataSource`, `MeilisearchConnector`, `MeilisearchQueryDialect` | `meilisearch` |
 | `/http` | `HttpDataSource` and `HttpRepository` - read another IGNIS server's REST routes with the same filter vocabulary | none |
+| `/raw-sql` | `BaseRawSqlDataSource`, `BaseRawSqlRepository`, `RawSqlEntity` - an engine that only runs raw SQL and returns rows, with no dialect and no transactions; you supply the connector and the driver | none to load (`drizzle-orm` for the `SQLWrapper` type) |
+| `/testing` | Test-only: `RepositoryDouble`, `TransactionDouble`, `PostgresTransactionDouble`, `SqliteTransactionDouble`; never imported from a production barrel | none |
 
 The root entry imports no driver and no engine client. A driver loads only when you import its
 entry and name its class in `@datasource({ driver })`.
+
+### Search controllers
+
+`SearchControllerFactory.build` generates `POST /search` and `POST /multi-search`. It needs `authenticate`
+(a config with no strategy and no `skip` throws when the controller is built), and each route you list is a
+toggle:
+
+```typescript
+import { Authentication } from '@venizia/ignis-kernel';
+import { SearchControllerFactory } from '@venizia/ignis-connectors/typesense/controllers';
+
+const BaseSearchController = SearchControllerFactory.build({
+  repository: ArticleRepository,
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] }, // or { skip: true } to open the routes
+  routes: { search: { use: true } }, // a route that is absent or { use: false } is not served
+  query: { fixed: { queryBy: ['title'] }, allow: { tuning: ['typoTokensThreshold'] } },
+});
+```
+
+`modes: { raw: { use: true } }` serves `mode: 'raw'` and multi-search over HTTP. `query` sets what the server
+decides for a query, and `response` reshapes the hits. See the
+[Typesense guide](https://ignis.venizia.ai/guides/core-concepts/persistent/search-typesense) for each option.
 
 ## Where it sits
 

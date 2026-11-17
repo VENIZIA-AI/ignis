@@ -8,6 +8,7 @@ interface IFetchCarrier {
   fetch: TFetch;
 }
 
+/** Options for replacing `fetch` so matching requests go to a BFF transport. */
 export interface IInstallBffFetchOptions {
   /** Anything implementing the transport contract, so an in-process transport works in a test. */
   transport: IBffTransport;
@@ -22,7 +23,7 @@ export interface IInstallBffFetchOptions {
    * Unset, only the path decides, so a call to ANY origin under `basePath` is claimed.
    */
   origin?: string | Array<string>;
-  /** Defaults to `globalThis`. */
+  /** @default globalThis */
   carrier?: IFetchCarrier;
 }
 
@@ -105,7 +106,7 @@ export class BffFetchBridge {
               (value) => new URL(value).origin,
             ),
           );
-    const carrier = opts.carrier ?? (globalThis as unknown as IFetchCarrier);
+    const carrier: IFetchCarrier = opts.carrier ?? globalThis;
 
     const prefixes = BffFetchBridge.toPrefixList(basePath);
     const previousFetch = carrier.fetch;

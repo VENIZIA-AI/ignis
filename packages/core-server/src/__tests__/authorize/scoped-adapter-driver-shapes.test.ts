@@ -27,6 +27,7 @@ const buildAdapter = (opts: { shape: (rows: unknown[]) => unknown; rows: unknown
   };
 
   const dataSource = { connector } as ICasbinPolicySource;
+
   return new ScopedCasbinAdapter({ dataSource, entities: entities() });
 };
 
@@ -66,6 +67,7 @@ describe('ScopedCasbinAdapter - driver result shapes are equivalent', () => {
     const adapter = buildAdapter({ shape: () => ({ command: 'SELECT' }), rows: [] });
 
     let caught: unknown;
+
     try {
       await adapter['queryEdgePolicies']();
     } catch (error) {

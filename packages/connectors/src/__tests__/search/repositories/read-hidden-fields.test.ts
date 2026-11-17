@@ -1,9 +1,8 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { ReadableSearchRepository } from '@/search/core/repositories';
 import { FakeSearchDataSource, ProductDocument } from './fake-search-connector';
 
-/** The engine is not the last line of defence for `hiddenProperties`: Meilisearch has NO per-query exclusion, so the READ path strips them in JS just like the WRITE path (`omitHiddenFields`) - a hidden field must never leave the repository, whatever the engine or index settings. */
+/** The engine is not the last line of defence for `hidden properties`: Meilisearch has NO per-query exclusion, so the READ path strips them in JS just like the WRITE path (`omitHiddenFields`) - a hidden field must never leave the repository, whatever the engine or index settings. */
 const buildRepository = (opts: {
   hiddenFields: string[];
   hits: Array<Record<string, unknown>>;
@@ -18,10 +17,10 @@ const buildRepository = (opts: {
 
   const repository = new ReadableSearchRepository(dataSource, { entityClass: ProductDocument });
 
-  // Stand in for the `@model({ settings: { hiddenProperties } })` the entity would carry.
+  // Stand in for the `@model({ settings: { hidden properties } })` the entity would carry.
   Object.defineProperty(repository, 'hiddenFields', { get: () => opts.hiddenFields });
 
-  return repository as AnyType;
+  return repository;
 };
 
 describe('a hidden field never leaves the read path', () => {
@@ -34,7 +33,7 @@ describe('a hidden field never leaves the read path', () => {
       ],
     });
 
-    return repository.find({ filter: {} }).then((rows: AnyType[]) => {
+    return repository.find({ filter: {} }).then((rows) => {
       expect(JSON.stringify(rows)).not.toContain('LEAKED');
       expect(rows[0].name).toBe('a');
     });

@@ -1,7 +1,7 @@
 import { NetworkUtility } from '@/utilities/network.utility';
 import { Environment } from '@venizia/ignis-helpers';
 import { BaseHelper, EnvironmentNames, getError } from '@venizia/ignis-helpers/core';
-import { HTTP } from '@venizia/ignis-helpers/common';
+import { HTTP, REDACTED } from '@venizia/ignis-helpers/common';
 import type { IProvider } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
 import type { MiddlewareHandler } from 'hono/types';
@@ -12,6 +12,7 @@ const TEXT_CONTENT_TYPE_PREFIX = 'text/';
 /** Logs incoming/outgoing request details. The BODY is parsed and logged only in a recognised development environment - see the constructor for why that test is fail-closed; elsewhere only a JSON body is parsed, for its malformed-body 400. */
 export class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHandler> {
   static readonly REQUEST_ID_KEY = REQUEST_ID_KEY;
+  private static readonly CALLBACK_PARAMETERS = new Set(['code', 'state']);
 
   private isDebugMode: boolean;
 
@@ -41,6 +42,7 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
 
     // Only an explicit zero short-circuits: a CHUNKED request carries no Content-Length, so gating on the header's presence would skip every streamed body and let a malformed one detonate deeper as a 500.
     const contentLength = opts.req.header(HTTP.Headers.CONTENT_LENGTH);
+
     if (contentLength === '0' || !opts.req.raw.body) {
       return null;
     }
@@ -48,6 +50,7 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
     try {
       if (contentType.includes(HTTP.HeaderValues.APPLICATION_JSON)) {
         const rs = await opts.req.json();
+
         return rs;
       }
 
@@ -56,6 +59,7 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
         contentType.includes(HTTP.HeaderValues.APPLICATION_FORM_URLENCODED)
       ) {
         const rs = await opts.req.parseBody();
+
         return rs;
       }
 
@@ -67,6 +71,7 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
       // A body an earlier middleware read cannot be cloned; Hono's cache serves it instead.
       if (contentType.startsWith(TEXT_CONTENT_TYPE_PREFIX)) {
         let rs: string;
+
         if (opts.req.raw.bodyUsed) {
           const cached = await opts.req.text();
           rs = cached;
@@ -74,6 +79,7 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
           const cloned = await opts.req.raw.clone().text();
           rs = cloned;
         }
+
         return rs;
       }
 
@@ -101,7 +107,15 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
 
       // Best-effort, never fatal: a unix socket, some proxies and any in-process call yield no connection info - refusing to serve because the client IP is unknown turns a logging gap into an outage.
       const clientIp = incomingIp ?? forwardedIp ?? 'unknown';
-      const query = req.query() ?? {};
+      // `code` and `state` are credentials in an OAuth callback and too common as plain names to mask everywhere.
+      const query = Object.fromEntries(
+        Object.entries(req.query() ?? {}).map(([key, value]) => {
+          return [
+            key,
+            RequestSpyMiddleware.CALLBACK_PARAMETERS.has(key.toLowerCase()) ? REDACTED : value,
+          ];
+        }),
+      );
 
       if (this.isDebugMode) {
         const body = await this.parseBody({ req });

@@ -5,6 +5,7 @@ import type { ILogger } from '@venizia/ignis-helpers/core';
 
 const noopLogger = (): ILogger => {
   const noop = (): void => {};
+
   const logger: ILogger = {
     debug: noop,
     info: noop,
@@ -14,6 +15,7 @@ const noopLogger = (): ILogger => {
     log: noop,
     for: () => logger,
   };
+
   return logger;
 };
 
@@ -120,9 +122,11 @@ describe('DomainHierarchyRoleManager', () => {
 
     const debugCalls: unknown[][] = [];
     const logger = noopLogger();
+
     logger.debug = (...args: unknown[]): void => {
       debugCalls.push(args);
     };
+
     manager.logger = logger;
 
     manager.syncedHasLink('Merchant_123', 'Organizer_456');

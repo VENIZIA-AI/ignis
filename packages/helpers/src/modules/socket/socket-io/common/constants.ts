@@ -1,5 +1,6 @@
 import { type TConstValue } from '@/common/types';
 
+/** Event names and default room names used by the Socket.IO server and client helpers. */
 export class SocketIOConstants {
   static readonly EVENT_PING = 'ping';
   static readonly EVENT_CONNECT = 'connection';
@@ -10,10 +11,13 @@ export class SocketIOConstants {
   static readonly EVENT_AUTHENTICATED = 'authenticated';
   static readonly EVENT_UNAUTHENTICATE = 'unauthenticated';
 
+  /** Every authenticated socket, and only those, is in this room: a send with no destination goes here, never to the whole server. */
+  static readonly ROOM_AUTHENTICATED = 'io-authenticated';
   static readonly ROOM_DEFAULT = 'io-default';
   static readonly ROOM_NOTIFICATION = 'io-notification';
 }
 
+/** Authentication states of a Socket.IO client. `isValid` narrows a string to one of them. */
 export class SocketIOClientStates {
   static readonly UNAUTHORIZED = 'unauthorized';
   static readonly AUTHENTICATING = 'authenticating';

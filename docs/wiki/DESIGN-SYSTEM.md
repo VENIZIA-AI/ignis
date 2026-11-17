@@ -3,8 +3,9 @@
 The standards behind how the IGNIS documentation site looks: type, spacing, contrast and measure.
 
 > The site is the shared Venizia theme in `site/.vitepress/theme/shared/`, a copy of VULCAN's folder
-> that is never edited here. It owns the neutrals, fonts, header, doc pages and footer. IGNIS sets its
-> accent in `site/.vitepress/theme/product.css`. The `--ig-*` brand colours in
+> that is never edited here. It owns the fonts, header, doc pages and footer. The neutrals and the
+> accent come from the `theme` in `.configs/vulcan.config.mts`, which `vulcan sync` resolves into
+> `.agents/vulcan.manifest.json`; `site/.vitepress/config.mts` reads them. The `--ig-*` brand colours in
 > [`design-tokens.css`](./site/.vitepress/theme/design-tokens.css) are a reference copy of those accent
 > values; no page reads them.
 
@@ -37,18 +38,21 @@ against the dark background `#0B0A0C`.
 
 ### Hard rules (these prevent real bugs)
 
-1. **Primary button** = `--accent` (`#AF5F5F`) with **white** text → 4.54:1 AA.
-   Never dark text on rose (4.18:1, fails).
+1. **Primary button** in the light theme = `--accent` (`#AF5F5F`) with **white** text → 4.54:1 AA.
+   Never dark text on rose (4.18:1, fails). In the dark theme the accent is `rose-lt #C98A8A` with
+   near-black `#0E0E0F` text.
 2. **Accent text** is theme-dependent: dark theme → `rose-lt #C98A8A` (7.04:1);
-   light theme → `rose #AF5F5F` (4.54:1 on white; `rose-lt` is only 2.81:1 on white - fails).
+   light theme → `#A15757`, a darker rose that passes 4.5:1 on every light surface, the tinted ones
+   included (`#AF5F5F` is 4.54:1 on white but below 4.5:1 on the grey ground).
 3. **`#AF5F5F` is never small body text on dark** (4.35:1). Fills & large accents only.
 4. **Prose width caps at 70ch**; lede at 62ch.
 
 ## Where the values live
 
-The shared theme (`site/.vitepress/theme/shared/`) sets the neutrals, fonts, type and spacing.
-`site/.vitepress/theme/product.css` sets IGNIS's accent. Change the accent there, not in
-`design-tokens.css`.
+The shared theme (`site/.vitepress/theme/shared/`) sets the fonts, type and spacing. The neutrals and
+IGNIS's accent are the `theme` of `.configs/vulcan.config.mts` (`accent`, `accentDark`, `accentText`):
+change the accent there, run `make vulcan-sync`, then rebuild. The second gradient colour
+(`--accent-2`) is `ACCENT_2` in `site/.vitepress/config.mts`. Never change them in `design-tokens.css`.
 
 ## Sources
 

@@ -1,4 +1,4 @@
-import type { AnyType, TClass } from '@venizia/ignis-helpers/common';
+import type { TClass } from '@venizia/ignis-helpers/common';
 import { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import { SingletonRealm } from '../singleton-realm';
 import type { IModelRegistryEntry, IRepositoryBinding } from './common/types';
@@ -32,7 +32,7 @@ export class MetadataRegistry extends BaseRegistry {
     this.modelsBySchema = new WeakMap<object, IModelRegistryEntry>();
     this.repositoryBindings = new Map<string, IRepositoryBinding>();
     this.repositoryBindingsByClass = new Map<Function, IRepositoryBinding>();
-    this.datasourceModels = new Map<string | Function, Set<TClass<AnyType>>>();
+    this.datasourceModels = new Map<string | Function, Set<TClass<unknown>>>();
   }
 
   static getInstance(): MetadataRegistry {

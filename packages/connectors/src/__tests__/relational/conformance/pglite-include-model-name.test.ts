@@ -58,7 +58,7 @@ class ModelNameOwner extends BasePostgresEntity<typeof ownerTable> {
 @model({
   type: 'entity',
   settings: {
-    hiddenProperties: ['secret'],
+    properties: { hidden: ['secret'] },
     access: { resolve: () => ({ tenant: 'tenant-a' }) },
   },
 })

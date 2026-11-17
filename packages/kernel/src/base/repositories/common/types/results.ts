@@ -20,6 +20,7 @@ export class DataRangeUtility {
     const { skip, offset, dataLength, total } = opts;
     const start = skip ?? offset ?? 0;
     const end = dataLength > 0 ? start + dataLength - 1 : start;
+
     return { start, end, total };
   }
 
@@ -27,6 +28,7 @@ export class DataRangeUtility {
   static toContentRange(opts: { range: TDataRange; count: number }): string {
     const { range, count } = opts;
     const { start, end, total } = range;
+
     return count > 0 ? `records ${start}-${end}/${total}` : `records */${total}`;
   }
 }

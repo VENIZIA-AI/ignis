@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { type AnyType, HTTP, type THttpMethod } from '@/common';
+import { HTTP, type THttpMethod } from '@/common';
 import { NodeFetcher } from '@/modules/network';
 // Module path, never the barrel: axios is an optional peer.
 import { AxiosFetcher } from '@/modules/network/http-request/fetcher/axios-fetcher';
@@ -16,10 +16,11 @@ afterEach(() => {
 const captureNodeFetchMethod = async (method?: THttpMethod): Promise<string | undefined> => {
   let captured: string | undefined;
 
-  globalThis.fetch = ((_input: AnyType, init?: RequestInit) => {
+  Reflect.set(globalThis, 'fetch', (_input: unknown, init?: RequestInit) => {
     captured = init?.method;
+
     return Promise.resolve(new Response(null, { status: 204 }));
-  }) as AnyType;
+  });
 
   const fetcher = new NodeFetcher({ name: 'boundary-node', defaultConfigs: {} });
   await fetcher.send({ url: 'http://example.test/probe', method });
@@ -31,11 +32,11 @@ const captureAxiosMethod = async (method?: THttpMethod): Promise<string | undefi
   const fetcher = new AxiosFetcher({ name: 'boundary-axios', defaultConfigs: {} });
 
   let captured: string | undefined;
-  const worker = fetcher.getWorker() as AnyType;
-  worker.request = (props: { method?: string }) => {
+  Reflect.set(fetcher.getWorker(), 'request', (props: { method?: string }) => {
     captured = props.method;
+
     return Promise.resolve({ data: null });
-  };
+  });
 
   await fetcher.send({ url: 'http://example.test/probe', method });
 

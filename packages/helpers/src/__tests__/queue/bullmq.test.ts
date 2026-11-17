@@ -1,11 +1,12 @@
-import { type AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
 import { BullMQHelper } from '@/modules/queue/bullmq';
+import type { IRedisHelper } from '@/modules/redis';
+import type { Job, Processor, Queue, QueueOptions, Worker, WorkerOptions } from 'bullmq';
 import { Cluster } from 'ioredis';
 import { EventEmitter } from 'node:events';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
-type TProcessor = (job: AnyType) => Promise<AnyType>;
+type TProcessor = Processor<unknown, unknown>;
 
 /** Structural stand-in for a bullmq Queue/Worker - EventEmitter + close(). */
 class FakeBullClient extends EventEmitter {
@@ -34,41 +35,132 @@ class FakeBullWorker extends FakeBullClient {
   }
 }
 
-class TestBullMQHelper extends BullMQHelper<AnyType, AnyType> {
-  protected override buildQueue(opts: { queueName: string }): AnyType {
-    return new FakeBullClient(opts.queueName);
+/** The fakes stand in for bullmq's `Queue`/`Worker`: these guards are what lets one be handed over without a cast. */
+const isQueue = (value: unknown): value is Queue => value instanceof FakeBullClient;
+
+const asQueue = (client: FakeBullClient): Queue => {
+  if (!isQueue(client)) {
+    throw getError({ message: 'Expected the fake to stand in for a bullmq Queue' });
   }
 
-  protected override buildWorker(opts: { queueName: string; processor: AnyType }): AnyType {
-    return new FakeBullWorker(opts.queueName, opts.processor);
+  return client;
+};
+
+const isWorker = (value: unknown): value is Worker => value instanceof FakeBullWorker;
+
+const isJob = (value: unknown): value is Job => {
+  return typeof value === 'object' && value !== null && 'id' in value && 'data' in value;
+};
+
+/** Reads a helper's `queue`/`worker` back as the fake it really is. */
+const readFakeClient = (value: unknown): FakeBullClient => {
+  if (!(value instanceof FakeBullClient)) {
+    throw getError({ message: 'Expected the helper client to be a FakeBullClient' });
+  }
+
+  return value;
+};
+
+const readFakeWorker = (value: unknown): FakeBullWorker => {
+  if (!(value instanceof FakeBullWorker)) {
+    throw getError({ message: 'Expected the helper worker to be a FakeBullWorker' });
+  }
+
+  return value;
+};
+
+class TestBullMQHelper extends BullMQHelper {
+  protected override buildQueue(opts: { queueName: string }): Queue {
+    return asQueue(new FakeBullClient(opts.queueName));
+  }
+
+  protected override buildWorker(opts: { queueName: string; processor: TProcessor }): Worker {
+    const worker = new FakeBullWorker(opts.queueName, opts.processor);
+
+    if (!isWorker(worker)) {
+      throw getError({ message: 'Expected the fake to stand in for a bullmq Worker' });
+    }
+
+    return worker;
   }
 
   /** Test-only seam: exposes the protected options builders without a live Queue/Worker. */
-  exposeQueueOptions(opts: { queueName: string }): AnyType {
+  exposeQueueOptions(opts: { queueName: string }): QueueOptions {
     return this.queueOptionsFor(opts);
   }
 
-  exposeWorkerOptions(opts: { queueName: string; processor: AnyType }): AnyType {
+  exposeWorkerOptions(opts: { queueName: string; processor: TProcessor }): WorkerOptions {
     return this.workerOptionsFor(opts);
   }
 }
 
-const buildRedisConnection = (opts?: { client?: AnyType }): AnyType => {
-  const client = opts?.client ?? {};
+/** Structural stand-in for an ioredis client a helper hands to BullMQ: a status, `quit()` and `disconnect()`. */
+class FakeRedisClient extends EventEmitter {
+  status = 'ready';
+  quits = 0;
+  quitError: Error | null = null;
+  disconnects = 0;
 
-  return {
-    getClient: () => client,
-    duplicateClient: () => client,
-  };
+  async quit(): Promise<string> {
+    this.quits += 1;
+
+    if (this.quitError) {
+      throw this.quitError;
+    }
+
+    this.status = 'end';
+    this.emit('end');
+
+    return 'OK';
+  }
+
+  disconnect(): void {
+    this.disconnects += 1;
+    this.status = 'end';
+  }
+}
+
+/** The helper only reads `getClient()` and `duplicateClient()` off its redis connection. */
+const isRedisHelperFake = (value: unknown): value is IRedisHelper => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'getClient' in value &&
+    'duplicateClient' in value
+  );
 };
 
-const buildJob = (opts?: { id?: string }): AnyType => {
-  return { id: opts?.id ?? 'job-1', name: 'default', data: { value: 1 } };
+const buildRedisConnection = (opts?: {
+  client?: unknown;
+  duplicateClient?: () => unknown;
+}): IRedisHelper => {
+  const client = opts?.client ?? new FakeRedisClient();
+  const connection = {
+    getClient: () => client,
+    duplicateClient: opts?.duplicateClient ?? (() => client),
+  };
+
+  if (!isRedisHelperFake(connection)) {
+    throw getError({ message: 'Expected the fake to stand in for a redis helper' });
+  }
+
+  return connection;
+};
+
+const buildJob = (opts?: { id?: string }): Job => {
+  const job = { id: opts?.id ?? 'job-1', name: 'default', data: { value: 1 } };
+
+  if (!isJob(job)) {
+    throw getError({ message: 'Expected the fake to stand in for a bullmq Job' });
+  }
+
+  return job;
 };
 
 /** Awaits a rejection explicitly: bun's `expect(...).rejects` is typed as non-thenable in this repo. */
 const captureRejection = async (opts: { promise: Promise<unknown> }): Promise<Error> => {
   let outcome: Error | null = null;
+
   try {
     await opts.promise;
   } catch (error) {
@@ -84,6 +176,7 @@ const captureRejection = async (opts: { promise: Promise<unknown> }): Promise<Er
 
 describe('BullMQHelper — role dispatch, worker hooks, close', () => {
   const unhandledRejections: unknown[] = [];
+
   const onUnhandledRejection = (reason: unknown) => {
     unhandledRejections.push(reason);
   };
@@ -129,7 +222,7 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
         role: 'queue',
         redisConnection: buildRedisConnection(),
       });
-      const plainQueue: FakeBullClient = plain.queue as AnyType;
+      const plainQueue = readFakeClient(plain.queue);
       expect(plainQueue.queueName).toBe('mail');
 
       const clustered = new TestBullMQHelper({
@@ -138,7 +231,7 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
         role: 'queue',
         redisConnection: buildRedisConnection({ client: cluster }),
       });
-      const clusteredQueue: FakeBullClient = clustered.queue as AnyType;
+      const clusteredQueue = readFakeClient(clustered.queue);
       expect(clusteredQueue.queueName).toBe('{mail}');
 
       const preTagged = new TestBullMQHelper({
@@ -147,7 +240,7 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
         role: 'queue',
         redisConnection: buildRedisConnection({ client: cluster }),
       });
-      const preTaggedQueue: FakeBullClient = preTagged.queue as AnyType;
+      const preTaggedQueue = readFakeClient(preTagged.queue);
       expect(preTaggedQueue.queueName).toBe('{mail}');
     } finally {
       cluster.disconnect();
@@ -159,18 +252,20 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
       queueName: 'mail',
       identifier: 'duck-typed-iscluster',
       role: 'queue',
-      redisConnection: buildRedisConnection({ client: { isCluster: true } }),
+      redisConnection: buildRedisConnection({
+        client: Object.assign(new EventEmitter(), { isCluster: true }),
+      }),
     });
-    const duckTypedQueue: FakeBullClient = duckTyped.queue as AnyType;
+    const duckTypedQueue = readFakeClient(duckTyped.queue);
     expect(duckTypedQueue.queueName).toBe('{mail}');
 
     const plain = new TestBullMQHelper({
       queueName: 'mail',
       identifier: 'duck-typed-plain',
       role: 'queue',
-      redisConnection: buildRedisConnection({ client: {} }),
+      redisConnection: buildRedisConnection({ client: new EventEmitter() }),
     });
-    const plainQueue: FakeBullClient = plain.queue as AnyType;
+    const plainQueue = readFakeClient(plain.queue);
     expect(plainQueue.queueName).toBe('mail');
   });
 
@@ -179,14 +274,102 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
       queueName: 'mail',
       identifier: 'duck-typed-nodes',
       role: 'queue',
-      redisConnection: buildRedisConnection({ client: { nodes: () => [] } }),
+      redisConnection: buildRedisConnection({
+        client: Object.assign(new EventEmitter(), { nodes: () => [] }),
+      }),
     });
-    const duckTypedQueue: FakeBullClient = duckTyped.queue as AnyType;
+    const duckTypedQueue = readFakeClient(duckTyped.queue);
     expect(duckTypedQueue.queueName).toBe('{mail}');
   });
 
+  test('the queue and the worker each get a duplicate of the helper client, never the shared one', () => {
+    const shared = new FakeRedisClient();
+    const made: FakeRedisClient[] = [];
+    const helper = new TestBullMQHelper({
+      queueName: 'q',
+      identifier: 'q-helper',
+      role: 'queue',
+      redisConnection: buildRedisConnection({
+        client: shared,
+        duplicateClient: () => {
+          const duplicate = new FakeRedisClient();
+          made.push(duplicate);
+
+          return duplicate;
+        },
+      }),
+    });
+
+    const queue = helper.exposeQueueOptions({ queueName: 'q' });
+    const worker = helper.exposeWorkerOptions({ queueName: 'q', processor: async () => 1 });
+
+    expect(made.length).toBe(2);
+    expect(queue.connection).toBe(made[0]);
+    expect(worker.connection).toBe(made[1]);
+    expect(queue.connection).not.toBe(shared);
+  });
+
+  test('close() quits every duplicate it handed to BullMQ, and leaves the shared client open', async () => {
+    const shared = new FakeRedisClient();
+    const made: FakeRedisClient[] = [];
+    const helper = new TestBullMQHelper({
+      queueName: 'q',
+      identifier: 'q-helper',
+      role: 'worker',
+      redisConnection: buildRedisConnection({
+        client: shared,
+        duplicateClient: () => {
+          const duplicate = new FakeRedisClient();
+          made.push(duplicate);
+
+          return duplicate;
+        },
+      }),
+    });
+
+    helper.exposeWorkerOptions({ queueName: 'q', processor: async () => 1 });
+    await helper.close();
+
+    expect(made.length).toBe(1);
+    expect(made.map((duplicate) => duplicate.quits)).toEqual([1]);
+    expect(shared.quits).toBe(0);
+    expect(shared.status).toBe('ready');
+
+    await helper.close();
+
+    expect(made[0]?.quits).toBe(1);
+  });
+
+  test('a duplicate whose quit fails is disconnected, and one BullMQ already closed is left alone', async () => {
+    const made: FakeRedisClient[] = [];
+    const helper = new TestBullMQHelper({
+      queueName: 'q',
+      identifier: 'q-helper',
+      role: 'queue',
+      redisConnection: buildRedisConnection({
+        client: new FakeRedisClient(),
+        duplicateClient: () => {
+          const duplicate = new FakeRedisClient();
+          made.push(duplicate);
+
+          return duplicate;
+        },
+      }),
+    });
+
+    helper.exposeQueueOptions({ queueName: 'q' });
+    helper.exposeWorkerOptions({ queueName: 'q', processor: async () => 1 });
+    made[0]!.quitError = new Error('boom');
+    made[1]!.status = 'end';
+
+    await helper.close();
+
+    expect(made[0]?.disconnects).toBe(1);
+    expect(made[1]?.quits).toBe(0);
+  });
+
   test('queueOptionsFor merges framework defaults, then user queueOptions, then the owned connection', () => {
-    const client = {};
+    const client = new EventEmitter();
 
     const withDefaults = new TestBullMQHelper({
       queueName: 'mail',
@@ -214,7 +397,7 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
   });
 
   test('workerOptionsFor merges user workerOptions under the owned connection/concurrency/lockDuration', () => {
-    const client = {};
+    const client = new EventEmitter();
     const helper = new TestBullMQHelper({
       queueName: 'mail',
       identifier: 'worker-options-user',
@@ -236,7 +419,7 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
   });
 
   test('the worker processor delegates to onWorkerData and returns its result', async () => {
-    const processed: AnyType[] = [];
+    const processed: unknown[] = [];
     const helper = new TestBullMQHelper({
       queueName: 'mail',
       identifier: 'worker-processor',
@@ -244,11 +427,12 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
       redisConnection: buildRedisConnection(),
       onWorkerData: async (job) => {
         processed.push(job);
+
         return { ok: true };
       },
     });
 
-    const worker: FakeBullWorker = helper.worker as AnyType;
+    const worker = readFakeWorker(helper.worker);
     const result = await worker.processor(buildJob());
 
     expect(processed.length).toBe(1);
@@ -263,14 +447,14 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
       redisConnection: buildRedisConnection(),
     });
 
-    const worker: FakeBullWorker = helper.worker as AnyType;
+    const worker = readFakeWorker(helper.worker);
     const result = await worker.processor(buildJob());
     expect(result).toBeUndefined();
   });
 
   test('completed/failed hooks receive the job and are reported on rejection', async () => {
-    const completed: AnyType[] = [];
-    const failed: AnyType[] = [];
+    const completed: unknown[] = [];
+    const failed: unknown[] = [];
 
     const helper = new TestBullMQHelper({
       queueName: 'mail',
@@ -286,7 +470,7 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
       },
     });
 
-    const worker: FakeBullWorker = helper.worker as AnyType;
+    const worker = readFakeWorker(helper.worker);
     worker.emit('completed', buildJob(), { ok: true });
     worker.emit('failed', buildJob({ id: 'job-2' }), new Error('job blew up'));
 
@@ -305,15 +489,15 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
       identifier: 'worker-throwing-hooks',
       role: 'worker',
       redisConnection: buildRedisConnection(),
-      onWorkerDataCompleted: (() => {
+      onWorkerDataCompleted: () => {
         throw new Error('completed-hook-boom');
-      }) as AnyType,
-      onWorkerDataFail: (() => {
+      },
+      onWorkerDataFail: () => {
         throw new Error('failed-hook-boom');
-      }) as AnyType,
+      },
     });
 
-    const worker: FakeBullWorker = helper.worker as AnyType;
+    const worker = readFakeWorker(helper.worker);
 
     expect(() => worker.emit('completed', buildJob(), { ok: true })).not.toThrow();
     expect(() => worker.emit('failed', buildJob(), new Error('job blew up'))).not.toThrow();
@@ -333,8 +517,8 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
       redisConnection: buildRedisConnection(),
     });
 
-    const workerClient: FakeBullClient = worker.worker as AnyType;
-    const queueClient: FakeBullClient = queue.queue as AnyType;
+    const workerClient = readFakeClient(worker.worker);
+    const queueClient = readFakeClient(queue.queue);
 
     // An 'error' event with no listener is re-thrown by EventEmitter - an uncaught exception that takes the whole process down whenever the driver's Redis link hiccups.
     expect(() => {
@@ -354,9 +538,9 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
     });
 
     // A worker-role helper only owns a worker; wire a queue in as well to pin the close ORDER contract.
-    const worker: FakeBullClient = helper.worker as AnyType;
+    const worker = readFakeClient(helper.worker);
     const queue = new FakeBullClient('mail');
-    helper.queue = queue as AnyType;
+    helper.queue = asQueue(queue);
 
     worker.closeError = new Error('worker refused to close'); // raw driver error
 
@@ -375,13 +559,55 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
       redisConnection: buildRedisConnection(),
     });
 
-    const worker: FakeBullClient = helper.worker as AnyType;
+    const worker = readFakeClient(helper.worker);
     const queue = new FakeBullClient('mail');
-    helper.queue = queue as AnyType;
+    helper.queue = asQueue(queue);
 
     await helper.close();
 
     expect(worker.closeCount).toBe(1);
     expect(queue.closeCount).toBe(1);
+  });
+});
+
+describe('BullMQHelper says when its shared client ended', () => {
+  class EndedHelper extends TestBullMQHelper {
+    reports = 0;
+
+    protected override reportClientEnded() {
+      this.reports += 1;
+    }
+  }
+
+  const build = () => {
+    const client = new FakeRedisClient();
+    const helper = new EndedHelper({
+      queueName: 'ended-queue',
+      identifier: 'ended-helper',
+      role: 'worker',
+      redisConnection: buildRedisConnection({ client }),
+    });
+
+    helper.exposeWorkerOptions({ queueName: 'ended-queue', processor: async () => 1 });
+
+    return { client, helper };
+  };
+
+  test('an ended client is reported once', () => {
+    const { client, helper } = build();
+
+    client.emit('end');
+    client.emit('end');
+
+    expect(helper.reports).toBe(1);
+  });
+
+  test('a client closed by the helper itself is not reported', async () => {
+    const { client, helper } = build();
+
+    await helper.close();
+    client.emit('end');
+
+    expect(helper.reports).toBe(0);
   });
 });

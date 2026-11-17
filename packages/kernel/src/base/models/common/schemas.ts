@@ -38,6 +38,7 @@ export const ErrorSchema = z
     },
   });
 
+/** The error response body type inferred from `ErrorSchema`. */
 export type TErrorResponse = z.infer<typeof ErrorSchema>;
 
 /** OpenAPI schema builders for the parts of a route that every controller repeats. */

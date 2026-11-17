@@ -1,5 +1,6 @@
 import type { TConstValue } from '@/common/types';
 
+/** Secret backends a secrets registration can select. */
 export class SecretProviders {
   static readonly SYSTEM_ENVS = 'system-envs';
   static readonly HASHICORP_VAULT = 'hashicorp-vault';
@@ -12,8 +13,10 @@ export class SecretProviders {
   }
 }
 
+/** Union of the `SecretProviders` values. */
 export type TSecretProvider = TConstValue<typeof SecretProviders>;
 
+/** Ways a Vault provider can authenticate. */
 export class VaultAuthMethods {
   static readonly TOKEN = 'token';
   static readonly APP_ROLE = 'app-role';
@@ -26,4 +29,5 @@ export class VaultAuthMethods {
   }
 }
 
+/** Union of the `VaultAuthMethods` values. */
 export type TVaultAuthMethod = TConstValue<typeof VaultAuthMethods>;

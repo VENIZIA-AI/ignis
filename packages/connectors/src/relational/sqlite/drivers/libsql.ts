@@ -2,8 +2,9 @@ import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { NotSupportedUtility } from '@venizia/ignis-kernel';
 import type { Client } from '@libsql/client';
 import type { ILogger, IPoolControlOptions } from '@venizia/ignis-helpers/core';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { BaseHelper, BasePoolHelper, getError } from '@venizia/ignis-helpers/core';
+import { DuckTypingUtility } from '@/common/internal';
+import { RelationalDialects } from '@/relational/core/drivers';
 import { drizzle } from 'drizzle-orm/libsql';
 import type { TSqliteConnection, TSqliteConnector, TSqliteDriver } from './driver';
 
@@ -39,6 +40,9 @@ export type TLibSqlDriverOptions = Omit<IPoolControlOptions, 'size'> & { client:
 export class LibSqlDriver<
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
 > implements TSqliteDriver<Schema, Client> {
+  /** The engine this driver speaks; the migration ledger reads it (see {@link RelationalDialects}). */
+  readonly dialect = RelationalDialects.SQLITE;
+
   private readonly client: Client;
 
   /**
@@ -61,11 +65,15 @@ export class LibSqlDriver<
 
     // A `bun:sqlite` / better-sqlite3 Database leads with prepare()/exec() and has none
     // of these, so the wrong driver class fails here rather than at the first query.
-    const isLibSqlClient =
-      typeof (client as AnyType)?.execute === 'function' &&
-      typeof (client as AnyType)?.batch === 'function' &&
-      typeof (client as AnyType)?.transaction === 'function' &&
-      typeof (client as AnyType)?.protocol === 'string';
+    const isLibSqlClient = DuckTypingUtility.hasMembers({
+      value: client,
+      members: {
+        execute: 'function',
+        batch: 'function',
+        transaction: 'function',
+        protocol: 'string',
+      },
+    });
 
     if (!isLibSqlClient) {
       throw getError({
@@ -117,6 +125,7 @@ export class LibSqlDriver<
     }
 
     let connector: TSqliteConnector<Schema>;
+
     try {
       connector = drizzle({ client, schema: opts.schema });
     } catch (error) {
@@ -133,11 +142,13 @@ export class LibSqlDriver<
 
       execute: async (executeOpts: { statement: string }) => {
         const result = await client.execute(executeOpts.statement);
+
         return { count: result.rowsAffected ?? 0 };
       },
 
       query: async <R>(queryOpts: { statement: string }) => {
         const result = await client.execute(queryOpts.statement);
+
         return (result.rows ?? []) as Array<R>;
       },
 
@@ -145,10 +156,12 @@ export class LibSqlDriver<
         if (isReleased) {
           return;
         }
+
         isReleased = true;
 
         if (releaseOpts?.destroy !== true) {
           this.slot.release({ resource: client });
+
           return;
         }
 
@@ -190,6 +203,7 @@ export class LibSqlDriver<
 
       if (message.includes(NO_ACTIVE_TRANSACTION)) {
         this.logger.for(this.scrubSession.name).debug('Nothing to scrub | %s', message);
+
         return;
       }
 

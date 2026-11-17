@@ -92,6 +92,7 @@ describe('AuthModelColumns.buildPolicyDefinitionDomainShapeCheck against a real 
   }): Promise<unknown> => {
     try {
       await insert(opts);
+
       return undefined;
     } catch (error) {
       return error;

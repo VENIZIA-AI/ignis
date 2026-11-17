@@ -1,15 +1,20 @@
-import { datasource, model, ScopeFilterMissingBehaviors } from '@venizia/ignis-kernel';
+import {
+  datasource,
+  model,
+  ScopeFilterMissingBehaviors,
+  type TAnyDataSourceSchema,
+} from '@venizia/ignis-kernel';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
-import { DefaultCRUDRepository, SoftDeletableRepository } from '@/relational/postgres/repositories';
+import { PGliteDefaultRepository, PGliteSoftDeletableRepository } from './pglite-repositories';
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 
 /**
- * End-to-end proof, against a real Postgres engine (PGlite), that `@model` settings.scopeFilter
+ * End-to-end proof, against a real Postgres engine (PGlite), that `@model` settings.access
  * reaches every read AND write verb - including `restore()`, the exact site that would leak a
  * soft-deleted row across tenants if scoping were bolted onto `defaultFilter` instead of kept
  * separate from `shouldSkipDefaultFilter`.
@@ -43,7 +48,7 @@ let currentTenant: TNullable<string> | '__throw__' = 'tenant-a';
     query: { filter: { where: { deletedAt: null } } },
   },
 })
-class TenantScopedEntity extends BasePostgresEntity {
+class TenantScopedEntity extends BasePostgresEntity<typeof scopeTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = scopeTable;
 }
@@ -59,13 +64,13 @@ let allowTenant: TNullable<string> = null;
     },
   },
 })
-class AllowOnMissingEntity extends BasePostgresEntity {
+class AllowOnMissingEntity extends BasePostgresEntity<typeof scopeTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = scopeTable;
 }
 
 @datasource({ driver: PGliteDriver })
-class ScopeFilterDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class ScopeFilterDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {
   constructor(opts: { client: PGlite }) {
     super({
       name: ScopeFilterDataSource.name,
@@ -89,8 +94,8 @@ class ScopeFilterDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGli
 
 let client: PGlite;
 let dataSource: ScopeFilterDataSource;
-let repository: SoftDeletableRepository<typeof scopeTable>;
-let allowRepository: DefaultCRUDRepository<typeof scopeTable>;
+let repository: PGliteSoftDeletableRepository<typeof scopeTable>;
+let allowRepository: PGliteDefaultRepository<typeof scopeTable>;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -107,12 +112,12 @@ beforeAll(async () => {
 
   dataSource = new ScopeFilterDataSource({ client });
 
-  repository = new SoftDeletableRepository<typeof scopeTable>(dataSource as AnyType, {
-    entityClass: TenantScopedEntity as AnyType,
+  repository = new PGliteSoftDeletableRepository<typeof scopeTable>(dataSource, {
+    entityClass: TenantScopedEntity,
   });
 
-  allowRepository = new DefaultCRUDRepository<typeof scopeTable>(dataSource as AnyType, {
-    entityClass: AllowOnMissingEntity as AnyType,
+  allowRepository = new PGliteDefaultRepository<typeof scopeTable>(dataSource, {
+    entityClass: AllowOnMissingEntity,
   });
 });
 
@@ -184,8 +189,8 @@ describe('scopeFilter - read verbs are scoped to the current tenant', () => {
 });
 
 describe('scopeFilter - write verbs are scoped to the current tenant', () => {
-  test("updateAll only touches the current tenant's rows", async () => {
-    await repository.updateAll({
+  test("updateBy only touches the current tenant's rows", async () => {
+    await repository.updateBy({
       data: { name: 'a-active-updated' },
       where: {},
       options: { shouldReturn: false },
@@ -197,8 +202,8 @@ describe('scopeFilter - write verbs are scoped to the current tenant', () => {
     expect(row3?.name).toBe('b-active');
   });
 
-  test("deleteAll (soft) only soft-deletes the current tenant's active row", async () => {
-    await repository.deleteAll({ where: {}, options: { shouldReturn: false } });
+  test("deleteBy (soft) only soft-deletes the current tenant's active row", async () => {
+    await repository.deleteBy({ where: {}, options: { shouldReturn: false } });
 
     const row1 = await rawRow(1);
     const row3 = await rawRow(3);
@@ -240,8 +245,8 @@ describe('scopeFilter - restore() is scoped (the site that would otherwise leak)
     expect(row4?.deletedAt).not.toBeNull();
   });
 
-  test('restoreAll only reaches the current tenant', async () => {
-    await repository.restoreAll({ where: {}, options: { shouldReturn: false } });
+  test('restoreBy only reaches the current tenant', async () => {
+    await repository.restoreBy({ where: {}, options: { shouldReturn: false } });
 
     const row2 = await rawRow(2);
     const row4 = await rawRow(4);

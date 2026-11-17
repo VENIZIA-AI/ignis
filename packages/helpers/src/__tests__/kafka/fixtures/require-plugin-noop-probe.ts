@@ -37,6 +37,7 @@ const probe = async (): Promise<void> => {
     });
 
     let code = '';
+
     if (built.success) {
       const text = await built.outputs[0].text();
       code = text;

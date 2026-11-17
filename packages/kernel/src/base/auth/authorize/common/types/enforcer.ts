@@ -55,6 +55,7 @@ export interface IAuthorizationEnforcer<
   }): Promise<{ cacheKey: string; lineCount: number }>;
 }
 
+/** Per-route check run before the enforcer. `deny` rejects the request, `allow` accepts it without consulting the enforcer, `abstain` passes to the next voter and then the enforcer. */
 export type TAuthorizationVoter<
   E extends Env = Env,
   TAction = string,
@@ -66,6 +67,7 @@ export type TAuthorizationVoter<
   context: TContext<E, string>;
 }) => ValueOrPromise<TAuthorizationDecision>;
 
+/** Per-route authorization requirement passed to `authorize()`. `allowedRoles` grants access to matching roles before voters and the enforcer run. */
 export interface IAuthorizationSpec<E extends Env = Env, TAction = string, TResource = string> {
   action: TAction;
   resource: TResource;
@@ -76,11 +78,13 @@ export interface IAuthorizationSpec<E extends Env = Env, TAction = string, TReso
   domain?: IAuthorizationDomainSource | TAuthorizationDomainResolver<E>;
 }
 
+/** Factory that turns an `IAuthorizationSpec` (and optional enforcer name) into a Hono middleware. */
 export type TAuthorizeFn<E extends Env = Env, TAction = string, TResource = string> = (opts: {
   spec: IAuthorizationSpec<E, TAction, TResource>;
   enforcerName?: string;
 }) => MiddlewareHandler;
 
+/** Redis cache for a Casbin enforcer's per-user policy lines. `keyFn` returns the cache key for a user and must not return an empty string. */
 export interface ICasbinEnforcerCachedRedis {
   driver: typeof CasbinEnforcerCachedDrivers.REDIS;
   options: {
@@ -90,6 +94,7 @@ export interface ICasbinEnforcerCachedRedis {
   };
 }
 
+/** Options of a Casbin enforcer: model source, policy cache, optional adapter, domain matching and enforcer pool sizing. */
 export interface ICasbinEnforcerOptions<
   E extends Env = Env,
   TAction = string,
@@ -119,16 +124,29 @@ export interface ICasbinEnforcerOptions<
     domain?: string;
   };
 
-  /** Domain-scoped RBAC model: requests become 4-token `(subject, domain, object, action)` and the enforcer registers the domain matcher (`keyMatch` on `g`) + resource matcher (`objectMatch`). A role assignment or grant declared at a parent domain (via a `g3` policy line, e.g. `Merchant_7 -> Organizer_3`) applies to every child domain - the adapter is what decides whether those edges exist. */
+  /**
+   * Domain-scoped RBAC model: requests become 4-token `(subject, domain, object, action)` and the enforcer registers the domain matcher (`keyMatch` on `g`) + resource matcher (`objectMatch`). A role assignment or grant declared at a parent domain (via a `g3` policy line, e.g. `Merchant_7 -> Organizer_3`) applies to every child domain - the adapter is what decides whether those edges exist.
+   *
+   * @default false
+   */
   isScoped?: boolean;
 
-  /** Number of pooled enforcers (each request enforces on its own). Default 16. */
+  /**
+   * Number of pooled enforcers (each request enforces on its own).
+   *
+   * @default 16
+   */
   poolSize?: number;
 
-  /** Max ms to wait for a free pooled enforcer before failing closed. Default 5000. */
+  /**
+   * Max ms to wait for a free pooled enforcer before failing closed.
+   *
+   * @default 5000
+   */
   poolAcquireTimeoutMs?: number;
 }
 
+/** Application-wide authorize options. `defaultDecision` applies when an enforcer abstains and when no enforcer is registered (a `deny` default then fails the request). */
 export interface IAuthorizeOptions {
   defaultDecision: TAuthorizationDecision;
   alwaysAllowRoles?: string[];

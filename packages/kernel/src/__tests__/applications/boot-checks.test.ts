@@ -2,7 +2,7 @@ import { RestApplication } from '@/base/applications/rest';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications/common';
 import { inject, service } from '@/base/metadata';
 import { BindingNamespaces } from '@/common/bindings';
-import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 
 /** Runs the real boot sequence; only the server-only hooks are stubbed. */
@@ -10,6 +10,7 @@ class CheckedApplication extends RestApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'boot-checks-app', version: '0.0.0', description: '' };
   }
+
   preConfigure(): void {}
   postConfigure(): void {}
   staticConfigure(): void {}
@@ -41,7 +42,9 @@ const buildConfigs = (overrides: Partial<IApplicationConfigs> = {}): IApplicatio
 });
 
 const buildApplication = <ApplicationType extends CheckedApplication>(opts: {
-  ApplicationClass: TClass<ApplicationType>;
+  ApplicationClass: new (
+    ...args: ConstructorParameters<typeof CheckedApplication>
+  ) => ApplicationType;
   configs: IApplicationConfigs;
 }) => {
   const application = new opts.ApplicationClass({
@@ -49,6 +52,7 @@ const buildApplication = <ApplicationType extends CheckedApplication>(opts: {
     config: opts.configs,
   });
   application.init();
+
   return application;
 };
 
@@ -72,6 +76,7 @@ describe('bootChecks.binding.doVerify', () => {
     });
 
     let failure: unknown;
+
     try {
       await application.initialize();
     } catch (error) {
@@ -94,6 +99,7 @@ describe('bootChecks.binding.doVerify', () => {
     });
 
     let failure: unknown;
+
     try {
       await application.initialize();
     } catch (error) {
@@ -140,6 +146,7 @@ describe('bootChecks.binding.allowManual', () => {
     });
 
     let failure: unknown;
+
     try {
       await application.initialize();
     } catch (error) {
@@ -247,6 +254,7 @@ describe('bootChecks.binding.allowOverride', () => {
     });
 
     let failure: unknown;
+
     try {
       await application.initialize();
     } catch (error) {

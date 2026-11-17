@@ -4,6 +4,7 @@ import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 
 type TInitDefault = { enable: false } | { enable: true; container: Container };
 
+/** Base of every component: `configure()` stores the options once, then runs `binding()` to register the component bindings. A second `configure()` call is a no-op. */
 export abstract class BaseComponent<ConfigurableOptions extends object = {}>
   extends BaseHelper
   implements IConfigurable<ConfigurableOptions>

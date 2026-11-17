@@ -23,6 +23,13 @@ import { ZodErrorHandler } from './zod.handler';
 
 const DEFAULT_INTERNAL_ERROR_MESSAGE = 'Internal Server Error';
 
+/**
+ * Set by `ApplicationError.fromUnknown` on an error it wrapped from a value with no usable HTTP status. Read by registry key, so
+ * kernel and inversion share no export. Such an error carries a `statusCode` (500) like any `ApplicationError`, yet its message
+ * came from a foreign value, so it is answered as UNEXPECTED: generic to the client in production.
+ */
+const UNEXPECTED_ERROR_MARKER = Symbol.for('@venizia/ignis-inversion:unexpected-error');
+
 /** An intentional error's throw site is still worth naming; its caller chain is framework plumbing, so it gets a smaller budget than an unexpected one. */
 const DEFAULT_INTENTIONAL_STACK_FRAMES = 5;
 const DEFAULT_UNEXPECTED_STACK_FRAMES = 10;
@@ -238,6 +245,10 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
       return ApplicationErrorTypes.DATABASE_RETRYABLE;
     }
 
+    if (UNEXPECTED_ERROR_MARKER in error) {
+      return ApplicationErrorTypes.UNEXPECTED;
+    }
+
     if ('statusCode' in error || this.readClientErrorStatus({ error }) !== undefined) {
       return ApplicationErrorTypes.INTENTIONAL;
     }
@@ -286,8 +297,10 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
       messageCode ??
       MessageCode.resolve('messageCode' in error ? (error.messageCode as string) : undefined);
 
+    // An error wrapped from a foreign value keeps that value's text in `normalized`: the response must carry the answer chosen
+    // here (generic in production), never the wrapped text.
     const normalized =
-      'normalized' in error
+      'normalized' in error && !(UNEXPECTED_ERROR_MARKER in error)
         ? (error.normalized as IResolvedApplicationError['normalized'])
         : { text: message, code, args: {} };
 
@@ -415,6 +428,92 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     return text;
   }
 
+  /**
+   * The `extra` a response carries. It is whatever a throw site attached, so it goes through the same redaction the log
+   * line uses (always masking in production, whatever the logger switch says), and a server error (5xx) in production
+   * carries none: the log has it, a client has no use for it.
+   */
+  private renderExtra(opts: { error: Error; statusCode: number; isProduction: boolean }): unknown {
+    const { error, statusCode, isProduction } = opts;
+
+    if (!('extra' in error) || error.extra === undefined) {
+      return undefined;
+    }
+
+    if (isProduction && statusCode >= 500) {
+      return this.pickCorrelationIds({ extra: error.extra });
+    }
+
+    const safe = RedactUtility.toJsonSafe({ value: error.extra, force: isProduction });
+
+    // A value `context.json` would refuse (a BigInt) becomes text here, so the authored status survives it.
+    try {
+      // A nested Error keeps its `stack` through the redaction (the log wants it); a client in production does not get one.
+      const text = JSON.stringify(safe, (key, entry: unknown) => {
+        if (isProduction && key === 'stack') {
+          return undefined;
+        }
+
+        return typeof entry === 'bigint' ? entry.toString() : entry;
+      });
+
+      return text === undefined ? undefined : JSON.parse(text);
+      // eslint-disable-next-line venizia/no-silent-catch -- the marker returned below is the report: the response carries it where the value would have been
+    } catch {
+      return '[unrenderable]';
+    }
+  }
+
+  /**
+   * What a production server error still carries from `extra`: the correlation ids support needs, `requestId` and
+   * `upstreamRequestIds`, and nothing else. Only short strings count (a list of them for the chain), so the allowance
+   * cannot carry anything but an id.
+   */
+  private pickCorrelationIds(opts: { extra: unknown }): Record<string, unknown> | undefined {
+    const { extra } = opts;
+
+    if (typeof extra !== 'object' || extra === null) {
+      return undefined;
+    }
+
+    const source = extra as Record<string, unknown>;
+    const isId = (value: unknown): value is string =>
+      typeof value === 'string' && value.length <= 128;
+    const picked: Record<string, unknown> = {};
+
+    if (isId(source.requestId)) {
+      picked.requestId = source.requestId;
+    }
+
+    const chain = source.upstreamRequestIds;
+
+    if (Array.isArray(chain) && chain.length <= 32 && chain.every(isId)) {
+      picked.upstreamRequestIds = chain;
+    }
+
+    return Object.keys(picked).length > 0 ? picked : undefined;
+  }
+
+  /** The `args` a throw site passes to its message template are data the client may see; secret-shaped keys in them are masked in production, whatever the logger switch says. */
+  private renderNormalized(opts: {
+    normalized: IResolvedApplicationError['normalized'];
+    isProduction: boolean;
+  }): IResolvedApplicationError['normalized'] {
+    const { normalized, isProduction } = opts;
+
+    if (!isProduction || !normalized.args || Object.keys(normalized.args).length === 0) {
+      return normalized;
+    }
+
+    return {
+      ...normalized,
+      args: RedactUtility.redactSecrets({
+        value: normalized.args,
+        force: true,
+      }) as typeof normalized.args,
+    };
+  }
+
   value(): ErrorHandler {
     return async (error, context) => {
       const requestId = context.get(REQUEST_ID_KEY);
@@ -451,9 +550,9 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
       const rs = {
         message: this.renderMessage({ resolved, isProduction, requestId }),
         statusCode,
-        normalized,
+        normalized: this.renderNormalized({ normalized, isProduction }),
         requestId,
-        extra: 'extra' in error ? error?.extra : undefined,
+        extra: this.renderExtra({ error, statusCode, isProduction }),
         details: {
           url: context.req.url,
           path: context.req.path,

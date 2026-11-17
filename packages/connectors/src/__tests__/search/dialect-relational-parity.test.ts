@@ -166,6 +166,7 @@ const expectMatchesNothing = (outcome: TOutcome, dialect: string): void => {
     expect(outcome.rendered, `[${dialect}] the absorbing clause must survive as false`).toMatch(
       /\bfalse\b/i,
     );
+
     return;
   }
 
@@ -286,6 +287,7 @@ describe('search <-> relational parity - unknown fields', () => {
     const outcome = relationalOutcome({ fieldThatDoesNotExist: 'x' } as TWhere);
 
     expect(outcome.kind).toBe('threw');
+
     if (outcome.kind !== 'threw') {
       return;
     }
@@ -371,6 +373,7 @@ describe('search <-> relational parity - operators follow the classification tab
             outcome.kind,
             `[${name}] '${operator}' is published as expressible but did not compile: ${JSON.stringify(outcome)}`,
           ).toBe('compiled');
+
           return;
         }
 
@@ -392,6 +395,7 @@ describe('search <-> relational parity - operators follow the classification tab
     const outcome = relationalOutcome({ status: { is: null } });
 
     expect(outcome.kind).toBe('compiled');
+
     if (outcome.kind !== 'compiled') {
       return;
     }

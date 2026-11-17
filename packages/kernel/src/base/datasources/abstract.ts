@@ -1,78 +1,32 @@
 import { MetadataRegistry } from '@/helpers/inversion';
-import { NotSupportedUtility } from '@/utilities';
-import type { AnyType, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
-import type {
-  IDataSource,
-  IDataSourceCapabilities,
-  ITransaction,
-  ITransactionOptions,
-  TAnyDataSourceSchema,
-} from './common';
-
-/**
- * Brands the datasource root so `@repository` can recognise a subclass WITHOUT `instanceof`.
- *
- * Two copies of this package give two `AbstractDataSource` classes, and `instanceof` across them is
- * false - the same trap `isApplicationError` exists to avoid for `ApplicationError`. `Symbol.for` is
- * realm-keyed, so both copies produce this exact symbol, and a static is inherited by every
- * subclass however deep.
- */
-export const DATA_SOURCE_BRAND = Symbol.for('@venizia/ignis-kernel:abstract-data-source');
-
-/** True for `AbstractDataSource` itself and for any class extending it, across package copies. */
-export const isDataSourceClass = (value: unknown): value is TClass<AnyType> => {
-  return typeof value === 'function' && DATA_SOURCE_BRAND in value;
-};
+import type { TClass } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
+import type { IDataSource, TAnyDataSourceSchema, TDataSourceOpenMode } from './common';
+import { DataSourceOpenDefaults, DataSourceOpenModes } from './common';
+import { DataSourceRoot } from './root';
 
 /** Engine-neutral datasource root - NO SQL members. Every connector family extends this. */
 export abstract class AbstractDataSource<
   Settings extends object = {},
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
   ConfigurableOptions extends object = {},
->
-  extends BaseHelper
-  implements IDataSource<Settings, Schema, ConfigurableOptions>
-{
-  /** Read by {@link isDataSourceClass}. Static, so every subclass inherits it. */
-  static readonly [DATA_SOURCE_BRAND] = true;
-
-  name: string;
-  settings: Settings;
-  schema: Schema;
-
-  abstract configure(opts?: ConfigurableOptions): ValueOrPromise<void>;
-
-  getSettings() {
-    return this.settings;
-  }
-
-  getSchema(): Schema {
-    if (!this.schema) {
-      throw getError({
-        message: `[${this.constructor.name}] Schema not initialized. Override getSchema() or provide schema in constructor.`,
-      });
-    }
-    return this.schema;
-  }
-
-  /** Capability probe, overridden by connectors that support it (e.g. postgres reports `{ transactions: true }`). */
-  getCapabilities(): IDataSourceCapabilities {
-    return { transactions: false };
-  }
-
-  /** Nothing to release at this root; a family that holds a connection overrides it. */
-  close(): Promise<void> {
-    return Promise.resolve();
-  }
-
-  /** Defaults to throwing NotSupported - only connectors with real transaction support override this; async so callers get a rejected promise, not a synchronous throw that skips try/catch. */
-  async beginTransaction(_opts?: ITransactionOptions): Promise<ITransaction> {
-    return NotSupportedUtility.throwNotSupported({
-      scope: this.constructor.name,
-      feature: 'Transactions',
-      logger: this.logger,
+> extends DataSourceRoot<Settings, Schema, ConfigurableOptions> {
+  /** The `open.on` of `@datasource`, `start` when unset. */
+  override getOpenMode(): TDataSourceOpenMode {
+    const metadata = MetadataRegistry.getInstance().getDataSourceMetadata({
+      target: this.constructor,
     });
+
+    return metadata?.open?.on ?? DataSourceOpenModes.START;
+  }
+
+  /** The `open.timeoutMs` of `@datasource` (ms; `0` waits for ever), 60 s when unset. */
+  override getOpenTimeoutMs(): number {
+    const metadata = MetadataRegistry.getInstance().getDataSourceMetadata({
+      target: this.constructor,
+    });
+
+    return metadata?.open?.timeoutMs ?? DataSourceOpenDefaults.TIMEOUT_MS;
   }
 
   /** Model classes bound to this datasource via `@repository` metadata - paradigm-free (no schema/relation resolution). */
@@ -92,8 +46,10 @@ export abstract class AbstractDataSource<
     const registry = MetadataRegistry.getInstance();
 
     const metadata = registry.getDataSourceMetadata({ target: this.constructor });
+
     if (metadata?.autoDiscovery === false) {
       logger.debug('Auto-discovery disabled for %s', this.name);
+
       return {};
     }
 
@@ -116,6 +72,7 @@ export abstract class AbstractDataSource<
       }
 
       const existingOwner = definitionOwners.get(definition.name);
+
       if (existingOwner !== undefined && existingOwner !== modelClass.name) {
         throw getError({
           message: `[${this.constructor.name}][discoverDefinitions] Duplicate ${kind} name '${definition.name}' | Name: ${this.name} | Classes: ${existingOwner}, ${modelClass.name}`,

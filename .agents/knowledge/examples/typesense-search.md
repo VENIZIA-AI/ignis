@@ -18,13 +18,13 @@ under `@repository({ model, dataSource })`).
   `pgTable`; `id` is auto-prepended, never listed. `TArticleDocument` derives from
   `ArticleDocument.schema`.
 - **Factory CRUD over a search repository** - `src/controllers/article.controller.ts` calls
-  `ControllerFactory.defineCrudController` exactly as the Postgres examples do; `TFilter`/`where`
+  `CrudControllerFactory.build` exactly as the Postgres examples do; `TFilter`/`where`
   translates to Typesense `filter_by` instead of SQL.
 - **Factory search endpoints** -
-  `SearchControllerFactory.defineSearchController` in `src/controllers/search.controller.ts`
+  `SearchControllerFactory.build` in `src/controllers/search.controller.ts`
   generates `POST /articles/search` (keyword/semantic/hybrid/raw, dispatched to
-  `repository.search()`) and `POST /articles/multi-search` (forwarded to `dataSource.multiSearch()`).
-  Like `ControllerFactory.defineCrudController`, it injects the repository named in
+  `repository.search()`) and `POST /articles/multi-search` (forwarded to `dataSource.multiSearch()`; it and `mode: 'raw'` answer 400 until the controller sets `modes: { raw: { use: true } }`). The example has no authentication component, so its `build` call writes `authenticate: { skip: true }`; `authenticate` is required on every `build` call.
+  Like `CrudControllerFactory.build`, it injects the repository named in
   `repository.name`, so the subclass is empty.
 - **The NotSupported convention** - passing `{ transaction }` or `{ lock }` in any repository call
   throws the standardized `NotSupported` error (HTTP 501, `core.not_supported`), because Typesense
@@ -46,8 +46,8 @@ bun test                      # smoke test: skips itself (test.skipIf) when Type
 
 - `POST /articles` requires `id` in the body - Typesense has no server-side default, unlike a
   Postgres entity where an id is generated.
-- `/articles/multi-search` always exists, even with one collection - it is the cross-collection
-  route the factory always registers.
+- `/articles/multi-search` exists only because the controller lists `routes.multiSearch: { use: true }`;
+  a route that is absent or `{ use: false }` is not served.
 - This example's `bun test` needs `docker compose up -d` first; it runs locally, not in CI.
 
 ## Related

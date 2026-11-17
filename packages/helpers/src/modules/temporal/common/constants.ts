@@ -29,6 +29,7 @@ export class TemporalUnits {
   }
 }
 
+/** A value of {@link TemporalUnits}. */
 export type TTemporalUnit = TConstValue<typeof TemporalUnits>;
 
 /** A helper built without a `tz` computes in UTC - never in the host's zone, which differs per machine. */
@@ -54,6 +55,7 @@ export class TemporalDurationStyles {
   }
 }
 
+/** A value of {@link TemporalDurationStyles}. */
 export type TTemporalDurationStyle = TConstValue<typeof TemporalDurationStyles>;
 
 /** Which ends of the range `isBetween` counts: `[` includes an end, `(` leaves it out. */
@@ -75,6 +77,7 @@ export class TemporalInclusivities {
   }
 }
 
+/** A value of {@link TemporalInclusivities}. */
 export type TTemporalInclusivity = TConstValue<typeof TemporalInclusivities>;
 
 /** How long a month or weekday name is written: NARROW (`M`), SHORT (`Mon`) or LONG (`Monday`). */

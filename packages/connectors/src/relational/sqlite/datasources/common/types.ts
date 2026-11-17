@@ -24,6 +24,7 @@ export class SqliteBeginModes {
   }
 }
 
+/** One of the `SqliteBeginModes` values: `DEFERRED`, `IMMEDIATE` or `EXCLUSIVE`. */
 export type TSqliteBeginMode = TConstValue<typeof SqliteBeginModes>;
 
 /** SQLite transaction options: a locking mode where Postgres takes an isolation level. */

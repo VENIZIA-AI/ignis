@@ -44,8 +44,8 @@ bun run server:dev
 ```
 
 `vert` is the full reference implementation - CRUD, auth, components, transactions, relations.
-For the smallest possible surface area, read `examples/5-mins-qs` instead - a single-file
-hello world.
+For the smallest possible surface area, read `examples/5-mins-qs` instead - one controller,
+one route and generated API docs.
 
 ## 4. Run the tests
 

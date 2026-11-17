@@ -37,6 +37,7 @@ const probe = async (): Promise<void> => {
           hasInlinedWasm: code.includes('atob'),
         }),
       );
+
       return;
     }
 

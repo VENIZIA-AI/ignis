@@ -70,7 +70,7 @@ describe('the release workflow keeps its guards', () => {
   });
 
   test('the guard list and the mutations below cover each other', () => {
-    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(39);
+    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(41);
   });
 });
 
@@ -771,15 +771,20 @@ describe('one mutation per guard: removing the guard from a copy fails the check
     },
     {
       guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
-      edits: [{ find: '          GH_TOKEN: ${{ github.token }}\n', replace: '' }],
+      edits: [
+        {
+          find: '          GH_TOKEN: ${{ github.token }}\n          RELEASE_KIND:',
+          replace: '          RELEASE_KIND:',
+        },
+      ],
     },
     {
       guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
       edits: [
         {
-          find: '          GH_TOKEN: ${{ github.token }}\n',
+          find: '          GH_TOKEN: ${{ github.token }}\n          RELEASE_KIND:',
           replace:
-            '          GH_TOKEN: ${{ github.token }}\n          LEAK: ${{ secrets.RELEASE_PAT }}\n',
+            '          GH_TOKEN: ${{ github.token }}\n          LEAK: ${{ secrets.RELEASE_PAT }}\n          RELEASE_KIND:',
         },
       ],
     },
@@ -999,8 +1004,9 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
       script: [
         {
-          find: "          'release',\n          'create',\n",
-          replace: "          'release',\n          'comment',\n",
+          find: "            'release',\n            'create',\n",
+          replace: "            'release',\n            'comment',\n",
+          everywhere: true,
         },
       ],
     },
@@ -1078,6 +1084,69 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       script: [
         { find: "args: ['tag', '--list']", replace: "args: ['tag', '--list', '+refs/tags/x']" },
       ],
+    },
+    // A stable checks the changelog history against the previous stable tag, and dates its version folder.
+    {
+      guard: ReleaseWorkflowGuards.CHANGELOG_HISTORY_FOR_A_STABLE,
+      edits: [
+        {
+          find: '      changelog_base: ${{ steps.plan.outputs.changelog_base }}\n',
+          replace: '',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.CHANGELOG_HISTORY_FOR_A_STABLE,
+      edits: [
+        {
+          find: '        run: bun node_modules/.bin/vulcan changelog check --history --base "$CHANGELOG_BASE"\n',
+          replace:
+            '        run: bun node_modules/.bin/vulcan changelog check --base "$CHANGELOG_BASE"\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.CHANGELOG_HISTORY_FOR_A_STABLE,
+      edits: [
+        {
+          find: " && needs.plan.outputs.changelog_base != '' }}",
+          replace: ' }}',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.CHANGELOG_HISTORY_FOR_A_STABLE,
+      edits: [
+        {
+          find: '      - name: Changelog history (a stable)\n',
+          replace: '      - name: Changelog history\n',
+        },
+      ],
+    },
+    {
+      // The history check reads the previous stable tag: a shallow checkout has none.
+      guard: ReleaseWorkflowGuards.CHANGELOG_HISTORY_FOR_A_STABLE,
+      edits: [
+        {
+          find: 'reads the previous stable tag.\n      - name: Checkout\n        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3\n        with:\n          ref: ${{ github.sha }}\n          fetch-depth: 0\n',
+          replace:
+            'reads the previous stable tag.\n      - name: Checkout\n        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3\n        with:\n          ref: ${{ github.sha }}\n          fetch-depth: 1\n',
+        },
+      ],
+    },
+    {
+      // The loop dates the folder of a stable in the release commit of its last package.
+      guard: ReleaseWorkflowGuards.CHANGELOG_HISTORY_FOR_A_STABLE,
+      runner: [
+        {
+          find: "          await ports.run({ command: ['git', 'add', '--', stamped] });\n",
+          replace: '',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.CHANGELOG_HISTORY_FOR_A_STABLE,
+      runner: [{ find: "            'scripts/release/stamp-release.ts',\n", replace: '' }],
     },
     // The environment the publish steps run in is the one the file shows.
     {
@@ -1379,6 +1448,101 @@ describe('one mutation per guard: removing the guard from a copy fails the check
         },
       ],
     },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: '    continue-on-error: true\n    permissions:\n      actions: write\n',
+          replace:
+            '    continue-on-error: true\n    permissions:\n      actions: write\n      contents: write\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: '    continue-on-error: true\n    permissions:\n      actions: write\n',
+          replace:
+            '    continue-on-error: true\n    permissions:\n      actions: write\n      id-token: write\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: '    continue-on-error: true\n    permissions:\n      actions: write\n',
+          replace: '    continue-on-error: true\n    permissions:\n      contents: read\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: '    continue-on-error: true\n    permissions:\n      actions: write\n',
+          replace:
+            '    environment: npm-release\n    continue-on-error: true\n    permissions:\n      actions: write\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: '    timeout-minutes: 5\n    continue-on-error: true\n    permissions:\n      actions: write\n',
+          replace: '    timeout-minutes: 5\n    permissions:\n      actions: write\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: '    needs: publish\n    if: ${{ !cancelled() && contains',
+          replace: '    needs: [plan, publish]\n    if: ${{ !cancelled() && contains',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: 'run: gh workflow run deploy-docs.yml --ref develop',
+          replace: 'run: gh workflow run deploy-docs.yml --ref main',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: 'run: gh workflow run deploy-docs.yml --ref develop',
+          replace:
+            'run: gh workflow run deploy-docs.yml --ref develop && gh release delete atlas-index --yes',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: '          GH_REPO: ${{ github.repository }}\n',
+          replace: '          GH_REPO: ${{ github.repository }}\n          OTHER: x\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: '    steps:\n      - name: Dispatch the docs deploy\n',
+          replace:
+            '    steps:\n      - name: Checkout\n        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3\n\n      - name: Dispatch the docs deploy\n',
+        },
+      ],
+    },
   ];
 
   test('the table names every guard', () => {
@@ -1551,6 +1715,7 @@ describe('the atlas pair of each release tag', () => {
       const git = (args: string[]) =>
         Bun.spawnSync({ cmd: ['git', ...args], cwd: repository, stdout: 'pipe', stderr: 'pipe' });
       git(['init', '-q']);
+      git(['config', 'maintenance.auto', 'false']);
       git([
         '-c',
         'user.name=t',
@@ -1642,9 +1807,7 @@ describe('the atlas pair of each release tag', () => {
       Bun.spawnSync({
         cmd: [
           'bun',
-          'x',
-          '--no-install',
-          'vulcan',
+          resolve(ROOT, 'node_modules', '.bin', 'vulcan'),
           'x',
           'atlas',
           'index',

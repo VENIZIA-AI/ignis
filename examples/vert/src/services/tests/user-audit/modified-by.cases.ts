@@ -35,6 +35,7 @@ export class ModifiedByCases extends UserAuditCases {
 
       if (!created.data) {
         this.context.logger.error('[CASE 4] FAILED | No data returned from create');
+
         return;
       }
 
@@ -58,6 +59,7 @@ export class ModifiedByCases extends UserAuditCases {
 
       if (!dbRecord) {
         this.context.logger.error('[CASE 4] FAILED | Record not found after update');
+
         return;
       }
 
@@ -80,15 +82,15 @@ export class ModifiedByCases extends UserAuditCases {
   }
 
   // ----------------------------------------------------------------
-  // CASE 6: UpdateAll (bulk) - modifiedBy changes for all
+  // CASE 6: UpdateBy (bulk) - modifiedBy changes for all
   // ----------------------------------------------------------------
-  async case6UpdateAllBulkModifiedByChanges(): Promise<void> {
+  async case6UpdateByBulkModifiedByChanges(): Promise<void> {
     const repo = this.context.configurationRepository;
-    this.context.logCase('[CASE 6] UpdateAll - modifiedBy should change for all matching records');
+    this.context.logCase('[CASE 6] UpdateBy - modifiedBy should change for all matching records');
 
     try {
       const uniqueId = ParseUtility.getUID();
-      const group = `AUDIT_UPDATEALL_${uniqueId}`;
+      const group = `AUDIT_UPDATEBY_${uniqueId}`;
       // Create real Users for FK constraint
       const originalUser = await this.createTestUser(`CASE6_ORIGINAL_${uniqueId}`);
       const bulkUpdater = await this.createTestUser(`CASE6_UPDATER_${uniqueId}`);
@@ -124,7 +126,7 @@ export class ModifiedByCases extends UserAuditCases {
       });
 
       // Bulk update with new modifiedBy
-      await repo.updateAll({
+      await repo.updateBy({
         where: { group },
         data: {
           nValue: 999,
@@ -151,6 +153,7 @@ export class ModifiedByCases extends UserAuditCases {
             record.modifiedBy,
           );
         }
+
         if (record.createdBy !== originalUser) {
           createdByPreserved = false;
           this.context.logger.error(
@@ -171,7 +174,7 @@ export class ModifiedByCases extends UserAuditCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       this.context.logger.error('[CASE 6] FAILED | Error: %s', (error as Error).message);
     }
@@ -206,6 +209,7 @@ export class ModifiedByCases extends UserAuditCases {
 
       if (!created.data) {
         this.context.logger.error('[CASE 7] FAILED | No data returned from create');
+
         return;
       }
 
@@ -230,6 +234,7 @@ export class ModifiedByCases extends UserAuditCases {
           regularUser,
           dbRecord?.modifiedBy,
         );
+
         return;
       }
 
@@ -302,6 +307,7 @@ export class ModifiedByCases extends UserAuditCases {
 
       if (!created.data) {
         this.context.logger.error('[CASE 13] FAILED | Record creation failed');
+
         return;
       }
 
@@ -328,6 +334,7 @@ export class ModifiedByCases extends UserAuditCases {
 
       if (!dbRecord) {
         this.context.logger.error('[CASE 13] FAILED | Record not found after concurrent updates');
+
         return;
       }
 
@@ -354,7 +361,7 @@ export class ModifiedByCases extends UserAuditCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { group: 'AUDIT_CONCURRENT_TEST' } });
+      await repo.deleteBy({ where: { group: 'AUDIT_CONCURRENT_TEST' } });
     } catch (error) {
       this.context.logger.error('[CASE 13] FAILED | Error: %s', (error as Error).message);
     }
@@ -392,6 +399,7 @@ export class ModifiedByCases extends UserAuditCases {
 
       if (!created.data) {
         this.context.logger.error('[CASE 15] FAILED | Record creation failed');
+
         return;
       }
 
@@ -454,7 +462,7 @@ export class ModifiedByCases extends UserAuditCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { group: 'AUDIT_SEQUENTIAL_TEST' } });
+      await repo.deleteBy({ where: { group: 'AUDIT_SEQUENTIAL_TEST' } });
     } catch (error) {
       this.context.logger.error('[CASE 15] FAILED | Error: %s', (error as Error).message);
     }

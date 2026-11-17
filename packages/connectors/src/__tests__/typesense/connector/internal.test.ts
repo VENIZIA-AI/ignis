@@ -58,11 +58,13 @@ describe('SearchConnectorInternal.wrapDependencyError', () => {
   test('throws a sanitized 503 ApplicationError without raw detail', () => {
     const raw = new Error('connection refused at typesense-internal-host:8108 secret-api-key');
     let thrown: unknown;
+
     try {
       SearchConnectorInternal.wrapDependencyError({ method: 'search', error: raw, logger });
     } catch (e) {
       thrown = e;
     }
+
     expect(thrown).toBeInstanceOf(ApplicationError);
     const appError = thrown as ApplicationError;
     expect(appError.statusCode).toBe(503);
@@ -85,6 +87,7 @@ describe('SearchConnectorInternal.wrapDependencyError', () => {
     const raw = new Error('connection refused at typesense-internal-host:8108 secret-api-key');
 
     let thrown: unknown;
+
     try {
       SearchConnectorInternal.wrapDependencyError({
         method: 'search',
@@ -103,6 +106,7 @@ describe('SearchConnectorInternal.wrapDependencyError', () => {
 
   test('attaches caller-actionable details to the thrown error extra payload', () => {
     let thrown: unknown;
+
     try {
       SearchConnectorInternal.wrapDependencyError({
         method: 'importDocuments',
@@ -113,6 +117,7 @@ describe('SearchConnectorInternal.wrapDependencyError', () => {
     } catch (e) {
       thrown = e;
     }
+
     expect((thrown as ApplicationError).extra?.details).toEqual({
       totalCount: 10,
       processedCount: 4,
@@ -125,6 +130,7 @@ describe('SearchConnectorInternal.wrapDependencyError', () => {
 describe('SearchConnectorInternal.throwNotFoundError', () => {
   test('throws a sanitized 404 with the not_found messageCode', () => {
     let thrown: unknown;
+
     try {
       SearchConnectorInternal.throwNotFoundError({
         method: 'getDocument',
@@ -133,6 +139,7 @@ describe('SearchConnectorInternal.throwNotFoundError', () => {
     } catch (e) {
       thrown = e;
     }
+
     expect(thrown).toBeInstanceOf(ApplicationError);
     const appError = thrown as ApplicationError;
     expect(appError.statusCode).toBe(404);

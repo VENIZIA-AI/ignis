@@ -24,6 +24,7 @@ const waitFor = async (
     if (Date.now() - start > timeout) {
       throw new Error(`waitFor timed out after ${timeout}ms`);
     }
+
     await wait(interval);
   }
 };
@@ -137,6 +138,7 @@ describe('SocketIOClientHelper', () => {
         // ignore cleanup errors
       }
     }
+
     activeClients = [];
 
     // Fire-and-forget: io.close() only settles once the underlying httpServer closes, which the race below drives, so awaiting here would deadlock. Never swallow a cleanup failure.
@@ -1105,6 +1107,7 @@ describe('SocketIOClientHelper - Edge Cases', () => {
         // ignore cleanup errors
       }
     }
+
     activeClients = [];
 
     // Fire-and-forget: io.close() only settles once the underlying httpServer closes, which the race below drives, so awaiting here would deadlock. Never swallow a cleanup failure.

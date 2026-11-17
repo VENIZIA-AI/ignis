@@ -46,7 +46,7 @@ const host = process.env.APP_ENV_POSTGRES_HOST;
 // 2. Using the helper (recommended)
 import { applicationEnvironment } from '@venizia/ignis-helpers';
 import { EnvironmentKeys } from '@venizia/ignis';
-const host = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_HOST);
+const host = applicationEnvironment.get(EnvironmentKeys.APP_ENV_POSTGRES_HOST);
 ```
 
 ## How it works
@@ -68,7 +68,7 @@ Prefer `applicationEnvironment.get()` over `process.env` directly - it stays in 
 import { applicationEnvironment } from '@venizia/ignis-helpers';
 import { EnvironmentKeys } from '@venizia/ignis';
 
-const dbHost = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_HOST);
+const dbHost = applicationEnvironment.get(EnvironmentKeys.APP_ENV_POSTGRES_HOST);
 ```
 
 ### Add a per-environment file

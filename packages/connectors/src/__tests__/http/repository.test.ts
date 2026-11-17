@@ -13,6 +13,7 @@ const stubFetch = (spec: { body?: unknown; contentRange?: string; status?: numbe
 
   globalThis.fetch = (async (url: string | URL) => {
     urls.push(String(url));
+
     return new Response(JSON.stringify('body' in spec ? spec.body : []), {
       status: spec.status ?? 200,
       headers: spec.contentRange ? { 'content-range': spec.contentRange } : {},

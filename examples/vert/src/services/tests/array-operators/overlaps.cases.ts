@@ -25,6 +25,7 @@ export class OverlapsCases extends BaseTestCases {
       // Product C: has clothing ✓
       if (results.length === 2) {
         const names = results.map((r) => r.name).sort();
+
         if (names.includes('Product B') && names.includes('Product C')) {
           this.context.logger.info('[CASE 7] PASSED | Found 2 products with overlapping tags');
           this.context.logger.info('[CASE 7] Products: %j', names);

@@ -17,6 +17,7 @@ type TNumberIdCol = IsIdentity<IsPrimaryKey<NotNull<PgIntegerBuilderInitial<'id'
 type TBigInt53IdCol = IsIdentity<IsPrimaryKey<NotNull<PgBigInt53BuilderInitial<'id'>>>, 'always'>;
 type TBigInt64IdCol = IsIdentity<IsPrimaryKey<NotNull<PgBigInt64BuilderInitial<'id'>>>, 'always'>;
 
+/** The column definitions with an `id` primary key, text or integer, added. */
 export type TIdEnricherResult<ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions> =
   ColumnDefinitions & {
     id: TStringIdCol | TNumberIdCol | TPrimaryKey<PgSerialBuilderInitial<'id'>>;
@@ -39,7 +40,22 @@ type TIdColumnDef<Opts extends TIdEnricherOptions | undefined = undefined> = Opt
 // Time-ordered, so a text primary key appends to its B-tree instead of splitting pages.
 const defaultStringId = (): string => UuidHelper.getInstance().v7();
 
+/** Adds the `id` primary key column. Without options it is an integer identity; string ids default to a time-ordered UUID v7. */
 export class PostgresIdEnricher {
+  /**
+   * Returns the `id` primary key column definition to spread into a table.
+   *
+   * @example
+   * ```typescript
+   * import { PostgresIdEnricher } from '@venizia/ignis-connectors/postgres';
+   * import { pgTable, text } from 'drizzle-orm/pg-core';
+   *
+   * export const tags = pgTable('Tag', {
+   *   ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+   *   name: text('name').notNull(),
+   * });
+   * ```
+   */
   static generateColumnDefs<Opts extends TIdEnricherOptions | undefined>(
     opts?: Opts,
   ): TIdColumnDef<Opts> {
@@ -76,6 +92,7 @@ export class PostgresIdEnricher {
   static enrich(opts: { baseColumns: TColumnDefinitions; opts?: TIdEnricherOptions }) {
     const { baseColumns, opts: enricherOpts } = opts;
     const defs = PostgresIdEnricher.generateColumnDefs(enricherOpts);
+
     return { ...baseColumns, ...defs };
   }
 }

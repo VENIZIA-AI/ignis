@@ -4,15 +4,16 @@ import {
   model,
   RelationTypes,
   ScopeFilters,
+  type TAnyDataSourceSchema,
 } from '@venizia/ignis-kernel';
 import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
 import type { TRelationConfig } from '@/relational/core/repositories/common';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
-import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
+import { PGliteDefaultRepository } from './pglite-repositories';
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { integer, pgTable, serial, text } from 'drizzle-orm/pg-core';
 
@@ -98,7 +99,7 @@ const resolveScope = (state: TScopeState) => {
   type: 'entity',
   settings: { access: { resolve: () => resolveScope(currentMerchantScope) } },
 })
-class ScopeUnrestrictedMerchantEntity extends BasePostgresEntity {
+class ScopeUnrestrictedMerchantEntity extends BasePostgresEntity<typeof merchantTable> {
   static override TABLE_NAME = MERCHANT_TABLE;
   static override schema = merchantTable;
   static override relations = (): TRelationConfig[] => merchantRelationsConfig;
@@ -108,7 +109,7 @@ class ScopeUnrestrictedMerchantEntity extends BasePostgresEntity {
   type: 'entity',
   settings: { access: { resolve: () => resolveScope(currentProductScope) } },
 })
-class ScopeUnrestrictedProductEntity extends BasePostgresEntity {
+class ScopeUnrestrictedProductEntity extends BasePostgresEntity<typeof productTable> {
   static override TABLE_NAME = PRODUCT_TABLE;
   static override schema = productTable;
   static override relations = (): TRelationConfig[] => productRelationsConfig;
@@ -118,7 +119,7 @@ class ScopeUnrestrictedProductEntity extends BasePostgresEntity {
   type: 'entity',
   settings: { access: { resolve: () => resolveScope(currentReviewScope) } },
 })
-class ScopeUnrestrictedReviewEntity extends BasePostgresEntity {
+class ScopeUnrestrictedReviewEntity extends BasePostgresEntity<typeof reviewTable> {
   static override TABLE_NAME = REVIEW_TABLE;
   static override schema = reviewTable;
   static override relations = (): TRelationConfig[] => reviewRelationsConfig;
@@ -138,7 +139,12 @@ const reviewRelationsBuilt = RelationsFactory.create({
 });
 
 @datasource({ driver: PGliteDriver })
-class ScopeUnrestrictedIncludeDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class ScopeUnrestrictedIncludeDataSource extends BasePostgresDataSource<
+  {},
+  TAnyDataSourceSchema,
+  {},
+  PGlite
+> {
   constructor(opts: { client: PGlite }) {
     super({
       name: ScopeUnrestrictedIncludeDataSource.name,
@@ -191,7 +197,7 @@ interface IMerchantRow {
 
 let client: PGlite;
 let dataSource: ScopeUnrestrictedIncludeDataSource;
-let merchantRepository: DefaultCRUDRepository<typeof merchantTable>;
+let merchantRepository: PGliteDefaultRepository<typeof merchantTable>;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -219,8 +225,8 @@ beforeAll(async () => {
 
   dataSource = new ScopeUnrestrictedIncludeDataSource({ client });
 
-  merchantRepository = new DefaultCRUDRepository<typeof merchantTable>(dataSource as AnyType, {
-    entityClass: ScopeUnrestrictedMerchantEntity as AnyType,
+  merchantRepository = new PGliteDefaultRepository<typeof merchantTable>(dataSource, {
+    entityClass: ScopeUnrestrictedMerchantEntity,
   });
 });
 

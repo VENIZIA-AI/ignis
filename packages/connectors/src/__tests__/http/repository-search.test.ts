@@ -92,10 +92,11 @@ describe('search maps onto the IGNIS search route', () => {
     }
 
     const calls = stubFetch({ body: ANSWER });
-    await new ScopedRepository({
+    const repository = new ScopedRepository({
       dataSource: new HttpDataSource({ baseUrl: 'https://api.example.com' }),
       resource: 'tickets',
-    }).search({ input: { mode: 'keyword', query: 'a' } });
+    });
+    await repository.search({ input: { mode: 'keyword', query: 'a' } });
 
     expect(calls[0].url.pathname).toBe('/search/tickets');
   });

@@ -45,13 +45,11 @@ export class Application extends BaseApplication {
 
 Socket.IO needs a running server, but components initialize before the server exists. Five mechanisms bridge that gap and keep every client on a security-by-default path:
 
-| Mechanism | What happens |
-|---|---|
-| Post-start hook | `binding()` runs during `initialize()`, resolves bindings, and registers a hook. The hook builds `SocketIOServerHelper` and binds it to `SOCKET_IO_INSTANCE` only after `start()` runs. |
-| Bun engine | `@socket.io/bun-engine` is dynamically imported and wired into `server.reload()`. See the [Bun details](./api#runtime-specific-behavior). |
-| Redis fan-out | The connection you bind is never consumed directly. The helper calls `duplicateClient()` three times: a pub/sub pair for the Redis adapter, and a third client for the Redis emitter. |
-| Mandatory authentication | Every client starts `unauthorized`. It must emit `authenticate` within `authenticateTimeout` (default 10s) or it gets disconnected. Success joins the client to the default rooms and starts a keep-alive ping. |
-| Opt-in rooms | No `VALIDATE_ROOM_HANDLER` bound means every `join` request is rejected. That's security-by-default, not a bug. |
+- **Post-start hook.** `binding()` runs during `initialize()`, resolves bindings, and registers a hook. The hook builds `SocketIOServerHelper` and binds it to `SOCKET_IO_INSTANCE` only after `start()` runs.
+- **Bun engine.** `@socket.io/bun-engine` is dynamically imported and wired into `server.reload()`. See the [Bun details](./api#runtime-specific-behavior).
+- **Redis fan-out.** The connection you bind is never consumed directly. The helper calls `duplicateClient()` three times: a pub/sub pair for the Redis adapter, and a third client for the Redis emitter.
+- **Mandatory authentication.** Every client starts `unauthorized`. It must emit `authenticate` within `authenticateTimeout` (default 10s) or it gets disconnected. Success joins the client to the default rooms and starts a keep-alive ping.
+- **Opt-in rooms.** No `VALIDATE_ROOM_HANDLER` bound means every `join` request is rejected. That's security-by-default, not a bug.
 
 ## Common tasks
 

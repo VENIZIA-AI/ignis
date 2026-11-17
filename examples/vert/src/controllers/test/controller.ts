@@ -33,6 +33,7 @@ export class TestController extends BaseRestController {
     }).to({
       handler: (context) => {
         this.logger.for('/3').info('Current user | %j', context.get(Authentication.CURRENT_USER));
+
         return context.json({ message: 'Hello 3' }, HTTP.ResultCodes.RS_2.Ok);
       },
     });

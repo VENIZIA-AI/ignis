@@ -1,6 +1,5 @@
 import { BaseApplication } from '@/base/applications/base';
 import { CoreBindings } from '@venizia/ignis-kernel';
-import { type AnyType } from '@venizia/ignis-helpers/common';
 import {
   applicationEnvironment,
   SecretProviders,
@@ -12,9 +11,11 @@ class HydrateApp extends BaseApplication {
   override getProjectRoot() {
     return process.cwd();
   }
+
   override getAppInfo() {
-    return { name: 'probe', version: '0', description: '' } as AnyType;
+    return { name: 'probe', version: '0', description: '' };
   }
+
   override staticConfigure() {}
   override preConfigure() {}
   override postConfigure() {}
@@ -34,7 +35,7 @@ describe('hydrateSecrets', () => {
     await app.hydrateSecrets();
     const provider = app.get({ key: CoreBindings.APPLICATION_CONFIG, isOptional: false });
     expect(provider).toBeDefined();
-    expect(applicationEnvironment.get<string>('APP_ENV_TARGET')).toBe('hydrated');
+    expect(applicationEnvironment.get('APP_ENV_TARGET')).toBe('hydrated');
     expect(process.env.APP_ENV_TARGET).toBe('hydrated');
   });
 });

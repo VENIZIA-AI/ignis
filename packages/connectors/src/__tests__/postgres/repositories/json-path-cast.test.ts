@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import type { SQL } from 'drizzle-orm';
 import { jsonb, PgDialect, pgTable, serial } from 'drizzle-orm/pg-core';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { TWhere } from '@venizia/ignis-kernel';
 import { PostgresFilterBuilder } from '@/relational/postgres/repositories/dialect/filter';
 
 /**
@@ -16,9 +15,13 @@ const table = pgTable('documents', {
 
 const dialect = new PgDialect();
 
-const compile = (where: AnyType): string => {
-  const builder = new PostgresFilterBuilder() as AnyType;
-  const condition = builder.toWhere({ tableName: 'documents', schema: table, where }) as SQL;
+const compile = (where: TWhere): string => {
+  const builder = new PostgresFilterBuilder();
+  const condition = builder.toWhere({ tableName: 'documents', schema: table, where });
+
+  if (!condition) {
+    throw new Error('[compile] The where compiled to no condition');
+  }
 
   return dialect.sqlToQuery(condition).sql;
 };

@@ -25,6 +25,7 @@ export class BffEnvelope {
    */
   static toSyntheticUrl(opts: { url: string }): string {
     const url = new URL(opts.url);
+
     return `${BFF_SYNTHETIC_ORIGIN}${url.pathname}${url.search}${url.hash}`;
   }
 
@@ -43,6 +44,7 @@ export class BffEnvelope {
     const hasBody = request.method !== 'GET' && request.method !== 'HEAD';
 
     let body: ArrayBuffer | undefined;
+
     if (hasBody) {
       const buffer = await request.arrayBuffer();
       body = buffer;
@@ -75,6 +77,7 @@ export class BffEnvelope {
     const hasBody = !BffEnvelope.NULL_BODY_STATUSES.has(response.status);
 
     let body: ArrayBuffer | undefined;
+
     if (hasBody) {
       const buffer = await response.arrayBuffer();
       body = buffer;

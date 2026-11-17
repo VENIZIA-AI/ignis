@@ -124,6 +124,7 @@ interface IRelationalDriver<TConnector, Client = unknown> {
   acquire(opts: { schema: TAnyDataSourceSchema }): Promise<IRelationalConnection<TConnector>>;
   getClient(): Client; // raw client escape: pg.Pool or Sql
   end(): Promise<void>;
+  readonly dialect?: 'postgres' | 'sqlite'; // the built-in drivers declare it; RelationalMigrationRunner reads it for ledger.schema
 }
 
 interface IRelationalConnection<TConnector> {

@@ -9,7 +9,7 @@ lastUpdated: 2026-10-30
 
 `ParseUtility` is a class of static methods for type checking, safe type conversion, and string/object/array transformation - the small helpers repositories and controllers reach for when normalizing loosely typed input. Every method takes one options object.
 
-The old function names (`int`, `float`, `toBoolean`, ...) are removed. `devz codemod namespace-functions` moves your calls to the class form.
+The old function names (`int`, `float`, `toBoolean`, ...) are removed. `bun run devz codemod namespace-functions` moves your calls to the class form.
 
 ## In one example
 
@@ -30,22 +30,25 @@ const camelObject = ParseUtility.keysToCamel({
 
 | Method | Signature | What it does |
 |--------|-----------|---------------|
-| `isInt` | `isInt({ input: any }): boolean` | `true` when `input` is (or coerces to) an integer. |
-| `isFloat` | `isFloat({ input: any }): boolean` | `true` when `input` is (or coerces to) a non-integer number. |
-| `toInt` | `toInt({ input: any }): number` | Parses `input` to an integer. Strips commas first; returns `0` for empty/invalid input. |
-| `toFloat` | `toFloat({ input: any, digit?: number }): number` | Parses `input` to a float, rounded to `digit` places (default `2`). Strips commas first; returns `0` for empty/invalid input. |
-| `toBoolean` | `toBoolean({ input: any }): boolean` | `false` for `''`, `'false'`, `'0'`, `false`, `0`, `null`, `undefined`; `true` for everything else. |
+| `isInt` | `isInt({ input: unknown }): boolean` | `true` when `input` is (or coerces to) an integer. |
+| `isFloat` | `isFloat({ input: unknown }): boolean` | `true` when `input` is (or coerces to) a non-integer number. |
+| `toInt` | `toInt({ input: unknown }): number` | Parses `input` to an integer. Strips commas first; returns `0` for empty/invalid input. |
+| `toFloat` | `toFloat({ input: unknown, digit?: number }): number` | Parses `input` to a float, rounded to `digit` places (default `2`); `0` for invalid input |
+| `toBoolean` | `toBoolean({ input: unknown }): boolean` | `false` for `''`, `'false'`, `'0'`, `false`, `0`, `null`, `undefined`; `true` for everything else. |
 | `toCamel` | `toCamel({ input: string }): string` | Converts a `snake_case` or `kebab-case` string to `camelCase`. |
-| `keysToCamel` | `keysToCamel({ source: object }): any` | Recursively camelizes every key in `source`. Arrays stay arrays (their object elements are still camelized); `Date` values pass through untouched. |
-| `parseArrayToMapWithKey` | `parseArrayToMapWithKey<T, K>({ items: T[], key: K }): Map<T[K], T>` | Turns an array of objects into a `Map` keyed by `key`. Throws if `key` is missing from an element; last element wins on duplicate keys. |
+| `keysToCamel` | `keysToCamel({ source: object }): Record<string, unknown>` | Recursively camelizes every key in `source` and returns the new object |
+| `parseArrayToMapWithKey` | `parseArrayToMapWithKey<T, K>({ items: T[], key: K }): Map<T[K], T>` | Turns an array of objects into a `Map` keyed by `key` |
 | `toDelimitedArray` | `toDelimitedArray({ input: unknown, separator?: string }): string[]` | Splits `input` on `separator` (default `,`) into trimmed, non-empty entries. `null`/`undefined` input returns `[]`. |
-| `blankToUndefined` | `blankToUndefined({ input: string \| undefined }): string \| undefined` | Trims `input` and returns `undefined` when nothing is left, so a blank value reads as unset. Otherwise returns the trimmed string. |
+| `blankToUndefined` | `blankToUndefined({ input: string \| undefined }): string \| undefined` | Trims `input`; `undefined` when nothing is left |
 | `toTrimmed` | `toTrimmed({ input: unknown }): string` | Stringifies and trims `input`; `null`/`undefined` returns `''`. |
 | `getDeepProperty` | `getDeepProperty<T, V>({ source: T, path: string }): V` | Reads a dotted path (`'a.b.c'`) off `source`; throws when a step is `null` or `undefined`. |
 | `getUID` | `getUID(): string` | Generates a short, uppercase, `Math.random()`-based ID - not cryptographically unique. |
 
+
 ## Notes
 
+- **`keysToCamel` keeps arrays as arrays**, camelizes their object elements, and passes `Date` values through untouched.
+- **`parseArrayToMapWithKey` throws** if `key` is missing from an element; the last element wins on duplicate keys.
 - **`toInt`/`toFloat` are comma-tolerant.** Both strip `,` before parsing, so `'1,000'` and `1000` behave the same - useful for user-typed numeric input.
 - **`toDelimitedArray` and `toTrimmed` are the transform functions for list-shaped and string env values** - typical use is `applicationEnvironment.get(KEY, { transform: (input) => ParseUtility.toDelimitedArray({ input }) })`.
 - **`blankToUndefined` is what makes `??` work on env values.** `KEY=` in a deployment file is a pipeline that forgot to export the value, but `process.env.KEY` answers `''`, and `''` walks straight past `??`. Write `ParseUtility.blankToUndefined({ input: process.env.KEY }) ?? 'text'`, not `process.env.KEY ?? 'text'`. Reach for it rather than `||`, which reads `'0'` as blank too.

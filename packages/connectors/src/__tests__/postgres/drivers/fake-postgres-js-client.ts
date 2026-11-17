@@ -1,3 +1,6 @@
+import type { Sql } from 'postgres';
+import { DuckTypingUtility } from '@/common/internal';
+
 export interface IReleaseCall {
   destroyed: boolean;
 }
@@ -62,3 +65,18 @@ export class FakeSql {
     this.ended = true;
   }
 }
+
+/** The verbs `PostgresJsDriver` checks, stated as a guard so a fake can be handed over as a `Sql`. */
+const isSql = (value: unknown): value is Sql =>
+  DuckTypingUtility.hasMembers({ value, members: { reserve: 'function', unsafe: 'function' } });
+
+/** A fake client the driver accepts as a real `Sql`. */
+export const createFakeSql = (opts?: { failOn?: string }): FakeSql & Sql => {
+  const sql = new FakeSql(opts);
+
+  if (!isSql(sql)) {
+    throw new Error('[FakeSql] Lacks reserve() or unsafe()');
+  }
+
+  return sql;
+};

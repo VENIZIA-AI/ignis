@@ -26,6 +26,7 @@ const calls = { counts: 0, summary: 0 };
 
 const readLimit = (context: TRouteContext): number => {
   const filter: { limit?: number } = JSON.parse(context.req.query('filter') ?? '{}');
+
   return filter.limit ?? ROWS.length;
 };
 
@@ -52,22 +53,26 @@ class ExtrasController extends BaseRestController {
               isDefault: true,
               compute: () => {
                 calls.counts += 1;
+
                 return { total: ROWS.length };
               },
             },
             summary: () => {
               calls.summary += 1;
+
               return 'summary';
             },
             facets: {
               keys: ['status', 'category', 'tag'],
               compute: ({ keys }) => {
                 facetCalls.push(keys);
+
                 return Object.fromEntries(keys.map((key) => [key, { [key]: 1 }]));
               },
             },
           },
         });
+
         return context.json(body, 200);
       },
     });
@@ -88,6 +93,7 @@ class ExtrasController extends BaseRestController {
             },
           },
         });
+
         return context.json(body, 200);
       },
     });
@@ -100,6 +106,7 @@ class ExtrasController extends BaseRestController {
           payload: { count: ROWS.length, data: ROWS },
           extra: { counts: { isDefault: true, compute: () => ({ declared: ROWS.length }) } },
         });
+
         return context.json(body, 200);
       },
     });
@@ -135,14 +142,17 @@ afterAll(async () => {
 
 const failureOf = async (task: Promise<unknown>) => {
   let caught: unknown;
+
   try {
     await task;
   } catch (error) {
     caught = error;
   }
+
   if (!isApplicationError(caught)) {
     throw new Error(`expected an ApplicationError, got: ${String(caught)}`);
   }
+
   return caught;
 };
 

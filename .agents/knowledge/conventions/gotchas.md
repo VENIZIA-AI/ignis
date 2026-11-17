@@ -40,7 +40,7 @@ tags: [conventions, gotchas, debugging]
 - [Under `path.isStrict: false`, a route declared with a trailing slash is unreachable](#under-pathisstrict-false-a-route-declared-with-a-trailing-slash-is-unreachable)
 - [drizzle refuses an empty UPDATE with `No values to set`](#drizzle-refuses-an-empty-update-with-no-values-to-set)
 - [Do not name a schema `ErrorResponse`](#do-not-name-a-schema-errorresponse)
-- [Only the entity knows what the server stamps](#only-the-entity-knows-what-the-server-stamps)
+- [The model says what the server stamps](#the-model-says-what-the-server-stamps)
 - [Only tsconfig.json stays at a project root](#only-tsconfigjson-stays-at-a-project-root)
 - [tsc-alias must read the root tsconfig.json](#tsc-alias-must-read-the-root-tsconfigjson)
 - [A stale .configs/builders/*.tsbuildinfo makes tsc emit nothing](#a-stale-configsbuilderstsbuildinfo-makes-tsc-emit-nothing)
@@ -249,9 +249,9 @@ looks like it works until it doesn't).
 The probe spawns the `bun` on `PATH`, so the bundler's own bugs are part of the measurement. Bun
 1.4.0 emitted `connectors/postgres/supabase` under `--target=browser` with the `drizzle-orm/supabase`
 re-exports listed but unbound, and the row was waived as impure; Bun 1.4.1 binds them, and the same
-waiver failed a connectors release with "STALE WAIVER" because the workflow installs
-`bun-version: latest`. Before a release, run `make purity-<package>` on the Bun version CI will
-use, and when a waiver goes stale, delete it rather than loosening the gate.
+waiver failed a connectors release with "STALE WAIVER" because the workflow then installed
+`bun-version: latest`; the release workflow now pins `'1.4.4'` and `ci.yml` installs `latest`. Before a
+release, run `make purity-<package>` on the Bun version the release workflow pins, and when a waiver goes stale, delete it rather than loosening the gate.
 
 ## `bun update` rewrites peerDependencies floors, not only devDependencies
 
@@ -339,6 +339,8 @@ test in `packages/helpers/src/__tests__/redis/cluster.helper.test.ts` is the con
 the two defaults are moved above the spread. Adding `autoConnect` to cluster was legitimate; adding
 `buildDefaultOpts` alongside it would not be.
 
+The cluster's first-class `username` and `password` go through `redisOptions` with the Sentinel helper's rule: a given first-class credential wins, and `clusterOptions.redisOptions` only fills what is unset (an `undefined` there does not clobber). The other cluster knobs keep `clusterOptions` as the last word. A per-node password cannot do this job: ioredis applies it to the startup nodes only, and nodes found later are built from host:port plus `redisOptions`. The same reason keeps credentials off Sentinel nodes (ioredis reads only host and port of an endpoint).
+
 ## Every constructor parameter needs @inject
 
 Mixing a decorated and an undecorated constructor parameter is refused, not tolerated.
@@ -409,7 +411,7 @@ constructor parameter (`IAuthService`) into a runtime import that fails to link,
 core-server's `tsconfig.json` declares `experimentalDecorators` alone (its former `tsconfig.core.json` was merged into it).
 The failure reads `Export named 'X' not found` at load time. To find every such value import before
 Bun does: `tsc --noEmit --isolatedModules` reports most as TS1272, and loading each package's
-`src/index.ts` under Bun finds the rest - BANA swept its 19 backend tsconfigs this way when it
+`src/index.ts` under Bun finds the rest - a project that uses Venizia swept its 19 backend tsconfigs this way when it
 restated the flags (2026-10-17).
 
 ## Under bun-runs-source, a type used on a decorated member must come from `import type`
@@ -599,10 +601,11 @@ repository directly still gets the 500.
 The kernel's `ErrorSchema` owns that OpenAPI component; a second schema with the same refId is
 silently replaced by a `$ref` to the first.
 
-## Only the entity knows what the server stamps
+## The model says what the server stamps
 
-The CRUD factory reads `getServerStampedKeys()`; never match audit keys by name in the kernel. A
-search document is stamped by nothing, so its `createdAt` must stay writable.
+The CRUD factory reads `settings.properties.stamped` from the model metadata and falls back to
+`AuditFields.SCHEME_SET`. A search document is stamped by nothing, so its model declares `stamped: []`
+to keep a writable `createdAt`.
 
 ## Only tsconfig.json stays at a project root
 

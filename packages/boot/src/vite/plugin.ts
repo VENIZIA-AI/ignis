@@ -26,6 +26,7 @@ export class IgnisArtifactsVitePlugin {
   /** The file a module id names: vite dev adds a query (`?v=<hash>`) to the id of a node_modules file. */
   static filePathOf(opts: { id: string }): string {
     const queryAt = opts.id.indexOf('?');
+
     return queryAt === -1 ? opts.id : opts.id.slice(0, queryAt);
   }
 
@@ -51,6 +52,7 @@ export class IgnisArtifactsVitePlugin {
         if (id === IgnisArtifactsVitePlugin.RESOLVED_VIRTUAL) {
           return IgnisArtifactsPlugin.render({ root });
         }
+
         return IgnisArtifactsPlugin.AUTO_MODULE.test(IgnisArtifactsVitePlugin.filePathOf({ id }))
           ? autoModule
           : undefined;
@@ -58,12 +60,15 @@ export class IgnisArtifactsVitePlugin {
       transform: (code, moduleId) => {
         const id = IgnisArtifactsVitePlugin.filePathOf({ id: moduleId });
         const classNames = classesByFile.get(id);
+
         if (!groupFiles.has(id) && !classNames) {
           return undefined;
         }
+
         const grouped = groupFiles.has(id)
           ? IgnisArtifactsPlugin.rewriteGroups({ filePath: id, source: code })
           : code;
+
         return classNames
           ? IgnisArtifactsPlugin.pinClassNames({ filePath: id, source: grouped, classNames })
           : grouped;

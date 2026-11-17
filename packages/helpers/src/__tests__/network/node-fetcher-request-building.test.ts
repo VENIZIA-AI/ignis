@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { type AnyType } from '@/common';
 import { NodeFetcher } from '@/modules/network';
 
 const originalFetch = globalThis.fetch;
@@ -16,11 +15,12 @@ interface ICapturedRequest {
 const captureRequest = (): ICapturedRequest => {
   const captured: ICapturedRequest = {};
 
-  globalThis.fetch = ((input: AnyType, init?: RequestInit) => {
+  Reflect.set(globalThis, 'fetch', (input: unknown, init?: RequestInit) => {
     captured.url = String(input);
     captured.signal = init?.signal ?? undefined;
+
     return Promise.resolve(new Response(null, { status: 204 }));
-  }) as AnyType;
+  });
 
   return captured;
 };
@@ -98,16 +98,18 @@ describe('NodeFetcher - abort signal', () => {
   test('a timeout aborts an IN-FLIGHT request when the caller passes no signal', async () => {
     // The timer is cleared as soon as a response lands (no leaked timers), so the abort has to be observed while the request is still open - a fake transport that only settles on abort.
     let capturedSignal: AbortSignal | undefined;
-    globalThis.fetch = ((_input: AnyType, init?: RequestInit) => {
+    Reflect.set(globalThis, 'fetch', (_input: unknown, init?: RequestInit) => {
       capturedSignal = init?.signal ?? undefined;
+
       return new Promise<Response>((_resolve, reject) => {
         capturedSignal?.addEventListener('abort', () => reject(new Error('aborted')), {
           once: true,
         });
       });
-    }) as AnyType;
+    });
 
     let caught: unknown;
+
     try {
       await buildFetcher().send({ url: 'http://example.test/a', timeout: 5 });
     } catch (error) {

@@ -25,6 +25,7 @@ const buildPool = (): IProbePool => {
 
       sequence += 1;
       created.push(sequence);
+
       return sequence;
     },
     destroy: (resource: number) => {
@@ -48,6 +49,7 @@ describe('BasePoolHelper - destroy() while a create() is still in flight', () =>
 
     const acquiring = pool.acquire().catch((error: unknown) => {
       expect(error).toBeInstanceOf(Error);
+
       return 'rejected';
     });
     // Let the dispatch loop reach the awaited create().

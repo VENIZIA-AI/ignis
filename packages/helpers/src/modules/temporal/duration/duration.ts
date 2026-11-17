@@ -34,6 +34,7 @@ const FIELDS = [
 export class TemporalDuration {
   static parts(opts: { milliseconds: number }): ITemporalDurationParts {
     const { milliseconds } = opts;
+
     if (!Number.isSafeInteger(milliseconds)) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
@@ -42,6 +43,7 @@ export class TemporalDuration {
     }
 
     const total = Math.abs(milliseconds);
+
     return {
       isNegative: milliseconds < 0,
       days: Math.floor(total / DAY_MILLISECONDS),
@@ -65,6 +67,7 @@ export class TemporalDuration {
     locale: string;
   }): string {
     const { style = TemporalDurationStyles.COMPACT, pattern, maxUnits, locale } = opts;
+
     if (pattern !== undefined) {
       return TemporalDuration.formatFace({ milliseconds: opts.milliseconds, pattern });
     }
@@ -98,6 +101,7 @@ export class TemporalDuration {
         parts[field],
       ),
     );
+
     return sign + new Intl.ListFormat(locale, { type: 'unit', style }).format(words);
   }
 
@@ -115,28 +119,34 @@ export class TemporalDuration {
 
     let text = parts.isNegative ? '-' : '';
     let position = 0;
+
     while (position < pattern.length) {
       const character = pattern[position];
+
       if (character === '[') {
         const close = pattern.indexOf(']', position + 1);
+
         if (close < 0) {
           throw getError({
             statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
             message: `[TemporalDuration] unclosed [ in pattern '${pattern}'`,
           });
         }
+
         text += pattern.slice(position + 1, close);
         position = close + 1;
         continue;
       }
 
       let runEnd = position + 1;
+
       while (pattern[runEnd] === character) {
         runEnd += 1;
       }
 
       const run = pattern.slice(position, runEnd);
       const token = FACE_TOKENS.get(run);
+
       if (token === undefined) {
         if (/[A-Za-z]/.test(character)) {
           throw getError({
@@ -144,6 +154,7 @@ export class TemporalDuration {
             message: `[TemporalDuration] unknown token '${run}' in pattern '${pattern}' | Supported: ${[...FACE_TOKENS.keys()].join(' ')}; wrap text in [brackets]`,
           });
         }
+
         text += run;
         position = runEnd;
         continue;
@@ -154,6 +165,7 @@ export class TemporalDuration {
       text += String(amount).padStart(token.width, '0');
       position = runEnd;
     }
+
     return text;
   }
 }

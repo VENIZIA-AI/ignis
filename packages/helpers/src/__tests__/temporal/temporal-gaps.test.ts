@@ -29,6 +29,7 @@ const statusOf = (run: () => unknown): unknown => {
   } catch (error) {
     return error instanceof Error ? Reflect.get(error, 'statusCode') : error;
   }
+
   return undefined;
 };
 
@@ -255,6 +256,7 @@ describe('diff counts as dayjs does, add takes fractions of elapsed time', () =>
           for (const other of INSTANTS) {
             const counted = helper.diff({ value, other, unit });
             const expected = dayjs(value).tz(tz).diff(dayjs(other).tz(tz), unit);
+
             if (
               counted !== expected ||
               counted !== -helper.diff({ value: other, other: value, unit }) + 0
@@ -264,6 +266,7 @@ describe('diff counts as dayjs does, add takes fractions of elapsed time', () =>
           }
         }
       }
+
       expect(mismatches).toEqual([]);
     });
   }

@@ -5,7 +5,7 @@ const ORIGINAL_NODE_ENV = process.env.NODE_ENV;
 
 import { afterEach, describe, expect, test } from 'bun:test';
 import { Hono } from 'hono';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { ILogger } from '@venizia/ignis-helpers/core';
 import { RequestSpyMiddleware } from '@/base/middlewares/request-spy/request-spy.middleware';
 
 /**
@@ -33,17 +33,20 @@ const captureLoggedLines = async (opts: { environment?: string }): Promise<strin
   }
 
   const middleware = new RequestSpyMiddleware();
-  const captured: AnyType[][] = [];
+  const captured: unknown[][] = [];
 
-  (middleware as AnyType).logger = {
-    info: (...args: AnyType[]) => {
+  const logger: ILogger = {
+    info: (...args: unknown[]) => {
       captured.push(args);
     },
     error: () => {},
     warn: () => {},
     debug: () => {},
-    trace: () => {},
+    emerg: () => {},
+    log: () => {},
+    for: () => logger,
   };
+  middleware.logger = logger;
 
   const application = new Hono();
   application.use(middleware.value());
@@ -62,12 +65,15 @@ describe('RequestSpyMiddleware body logging', () => {
   afterEach(() => {
     if (ORIGINAL_NODE_ENV === undefined) {
       delete process.env.NODE_ENV;
+
       return;
     }
+
     process.env.NODE_ENV = ORIGINAL_NODE_ENV;
   });
 
   const quietEnvironments = ['staging', 'uat', 'alpha', 'beta', 'prod', 'production'];
+
   for (const environment of quietEnvironments) {
     test(`does NOT log the body in '${environment}'`, async () => {
       const logged = await captureLoggedLines({ environment });
@@ -82,6 +88,7 @@ describe('RequestSpyMiddleware body logging', () => {
   });
 
   const loggingEnvironments = ['local', 'development', 'dev', 'debug', 'sit'];
+
   for (const environment of loggingEnvironments) {
     test(`logs the body in '${environment}', which is what the flag is for`, async () => {
       const logged = await captureLoggedLines({ environment });

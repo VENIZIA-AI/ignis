@@ -55,6 +55,7 @@ afterAll(async () => {
 describe('runInTransaction runtime - postgres (PGlite)', () => {
   const countNamed = async (opts: { name: string }) => {
     const counted = await postgresRepository.count({ where: { name: opts.name } });
+
     return counted.count;
   };
 
@@ -119,6 +120,7 @@ describe('runInTransaction runtime - postgres (PGlite)', () => {
           options: { transaction },
         });
         await transaction.commit();
+
         return 'execute-result';
       },
     });
@@ -144,6 +146,7 @@ describe('runInTransaction runtime - postgres (PGlite)', () => {
             options: { transaction },
           });
           await transaction.rollback();
+
           return 'execute-result';
         },
       }),
@@ -209,6 +212,7 @@ describe('runInTransaction runtime - postgres (PGlite)', () => {
 describe('runInTransaction runtime - sqlite (libsql :memory:)', () => {
   const countNamed = async (opts: { name: string }) => {
     const counted = await sqliteRepository.count({ where: { name: opts.name } });
+
     return counted.count;
   };
 
@@ -271,6 +275,7 @@ describe('runInTransaction runtime - sqlite (libsql :memory:)', () => {
           options: { transaction },
         });
         await transaction.commit();
+
         return 'execute-result';
       },
     });
@@ -296,6 +301,7 @@ describe('runInTransaction runtime - sqlite (libsql :memory:)', () => {
             options: { transaction },
           });
           await transaction.rollback();
+
           return 'execute-result';
         },
       }),

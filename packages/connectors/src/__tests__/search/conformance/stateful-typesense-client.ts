@@ -1,4 +1,3 @@
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { ITypesenseClientLike } from '@/search/typesense/connector';
 
@@ -11,6 +10,7 @@ interface IFakeCollection {
 const notFoundError = (message: string): Error => {
   const error = new Error(message) as Error & { httpStatus: number };
   error.httpStatus = 404;
+
   return error;
 };
 
@@ -18,6 +18,7 @@ const notFoundError = (message: string): Error => {
 const conflictError = (message: string): Error => {
   const error = new Error(message) as Error & { httpStatus: number };
   error.httpStatus = 409;
+
   return error;
 };
 
@@ -79,6 +80,7 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
 
   private select(opts: { name: string; filter?: string }): Array<Record<string, unknown>> {
     const rows = [...this.requireCollection(opts.name).documents.values()];
+
     return opts.filter
       ? rows.filter((document) => matchesFilter({ document, filter: opts.filter! }))
       : rows;
@@ -94,8 +96,14 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
    * and merge logic pass without ever running.
    */
   readonly multiSearch = {
-    perform: async (requests: AnyType) => {
-      const searches = (requests?.searches ?? []) as Array<Record<string, unknown>>;
+    perform: async (requests: unknown) => {
+      const searches: Array<Record<string, unknown>> =
+        typeof requests === 'object' &&
+        requests !== null &&
+        'searches' in requests &&
+        Array.isArray(requests.searches)
+          ? requests.searches
+          : [];
 
       return {
         results: searches.map((entry) => {
@@ -125,7 +133,7 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
 
   aliases(): { upsert(name: string, mapping: unknown): Promise<unknown> };
   aliases(aliasName: string): { retrieve(): Promise<unknown> };
-  aliases(aliasName?: string): AnyType {
+  aliases(aliasName?: string): unknown {
     if (aliasName === undefined) {
       return { upsert: async () => ({}) };
     }
@@ -139,7 +147,7 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
     retrieve(): Promise<unknown>;
     delete(): Promise<unknown>;
   };
-  synonymSets(synonymSetName?: string): AnyType {
+  synonymSets(synonymSetName?: string): unknown {
     if (synonymSetName === undefined) {
       return { retrieve: async () => [] };
     }
@@ -153,12 +161,13 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
 
   collections(): { create(schema: unknown): Promise<unknown>; retrieve(): Promise<unknown> };
   collections(collectionName: string): ReturnType<StatefulFakeTypesenseClient['collectionApi']>;
-  collections(collectionName?: string): AnyType {
+  collections(collectionName?: string): unknown {
     if (collectionName === undefined) {
       return {
         create: async (schema: unknown) => {
           const { name } = schema as { name: string };
           this.store.set(name, { name, documents: new Map() });
+
           return schema;
         },
         retrieve: async () => [...this.store.values()].map((item) => ({ name: item.name })),
@@ -183,6 +192,7 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
         }
 
         collection.documents.set(id, { ...row });
+
         return row;
       },
 
@@ -190,6 +200,7 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
         const collection = self.requireCollection(name);
         const row = document as Record<string, unknown>;
         collection.documents.set(String(row['id']), { ...row });
+
         return row;
       },
 
@@ -212,6 +223,7 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
 
         if (params['truncate'] === true) {
           collection.documents.clear();
+
           return { ['num_deleted']: 0 };
         }
 
@@ -278,6 +290,7 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
 
         const merged = { ...existing, ...(partialDocument as Record<string, unknown>) };
         collection.documents.set(documentId, merged);
+
         return merged;
       },
 
@@ -307,6 +320,7 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
       async delete() {
         self.requireCollection(name);
         self.store.delete(name);
+
         return {};
       },
 

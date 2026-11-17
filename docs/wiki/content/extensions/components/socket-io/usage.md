@@ -372,11 +372,15 @@ client.shutdown();
 
 A full working example lives at `examples/socket-io-test/`.
 
-| Feature | Implementation |
+| File | Role |
 |---|---|
-| Application setup | `src/application.ts` - binds `REDIS_CONNECTION` and `AUTHENTICATE_HANDLER`, registers `SocketIOComponent`, shuts the socket server and Redis down on stop |
-| REST endpoint | `src/controllers/chat.controller.ts` - `POST /chat/messages` pushes a message into the room every authenticated client joins |
-| Smoke test | `src/__tests__/smoke.test.ts` - boots the app, connects real Socket.IO clients over the wire, and checks the authenticated and unauthenticated paths |
+| `src/application.ts` | Application setup |
+| `src/controllers/chat.controller.ts` | The REST endpoint |
+| `src/__tests__/smoke.test.ts` | The smoke test |
+
+- `src/application.ts` binds `REDIS_CONNECTION` and `AUTHENTICATE_HANDLER`, registers `SocketIOComponent`, and shuts the socket server and Redis down on stop.
+- `src/controllers/chat.controller.ts` exposes `POST /chat/messages`, which pushes a message into the room every authenticated client joins.
+- `src/__tests__/smoke.test.ts` boots the app, connects real Socket.IO clients over the wire, and checks the authenticated and unauthenticated paths.
 
 ### REST API endpoints
 

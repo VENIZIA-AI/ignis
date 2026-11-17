@@ -1,14 +1,15 @@
+import { EventEmitter } from 'node:events';
 import { describe, expect, test } from 'bun:test';
-import { BullMQExecutorModes, MailExecutorErrors } from '@/components/mail/common';
+import type { JobsOptions } from 'bullmq';
+import { BullMQExecutorModes, MailDefaults, MailExecutorErrors } from '@/components/mail/common';
 import type { IMailProcessorResult, IQueueJobPayload } from '@/components/mail/common';
 import {
   BullMQMailExecutorHelper,
   DirectMailExecutorHelper,
   InternalQueueMailExecutorHelper,
 } from '@/components/mail/helpers';
-import { type AnyType } from '@venizia/ignis-helpers/common';
-import { LoggerFactory } from '@venizia/ignis-helpers';
-import { ProcessorCallTracker, successProcessorResult } from './fakes';
+import { LoggerFactory, type IRedisHelper } from '@venizia/ignis-helpers';
+import { catchError, ProcessorCallTracker, successProcessorResult } from './fakes';
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -16,12 +17,7 @@ describe('DirectMailExecutorHelper', () => {
   test('enqueue without setProcessor throws PROCESSOR_NOT_SET', async () => {
     const executor = new DirectMailExecutorHelper();
 
-    let error: AnyType;
-    try {
-      await executor.enqueueVerificationEmail('a@b.com');
-    } catch (caught) {
-      error = caught;
-    }
+    const error = await catchError(() => executor.enqueueVerificationEmail('a@b.com'));
 
     expect(error.message).toBe(MailExecutorErrors.PROCESSOR_NOT_SET);
   });
@@ -32,6 +28,7 @@ describe('DirectMailExecutorHelper', () => {
 
     executor.setProcessor(async (email: string) => {
       tracker.record(email);
+
       return successProcessorResult;
     });
 
@@ -46,20 +43,16 @@ describe('DirectMailExecutorHelper', () => {
     const executor = new DirectMailExecutorHelper();
     let shouldThrow = true;
 
-    executor.setProcessor(((email: string) => {
+    executor.setProcessor((email: string) => {
       if (shouldThrow) {
         throw new Error('sync boom');
       }
 
       return Promise.resolve({ ...successProcessorResult, message: email });
-    }) as AnyType);
+    });
 
-    let syncError: AnyType;
-    try {
-      await executor.enqueueVerificationEmail('a@b.com');
-    } catch (caught) {
-      syncError = caught;
-    }
+    const syncError = await catchError(() => executor.enqueueVerificationEmail('a@b.com'));
+
     expect(syncError.message).toBe('sync boom');
 
     shouldThrow = false;
@@ -72,12 +65,7 @@ describe('InternalQueueMailExecutorHelper', () => {
   test('enqueue without setProcessor throws PROCESSOR_NOT_SET', async () => {
     const executor = new InternalQueueMailExecutorHelper({ identifier: 'mail-no-processor' });
 
-    let error: AnyType;
-    try {
-      await executor.enqueueVerificationEmail('a@b.com');
-    } catch (caught) {
-      error = caught;
-    }
+    const error = await catchError(() => executor.enqueueVerificationEmail('a@b.com'));
 
     expect(error.message).toBe(MailExecutorErrors.PROCESSOR_NOT_SET);
     await executor.close();
@@ -89,6 +77,7 @@ describe('InternalQueueMailExecutorHelper', () => {
 
     executor.setProcessor(async (email: string) => {
       tracker.record(email);
+
       return successProcessorResult;
     });
 
@@ -128,6 +117,7 @@ describe('InternalQueueMailExecutorHelper', () => {
 
     executor.setProcessor(async (email: string) => {
       tracker.record(email);
+
       return { success: false, message: 'SMTP 535', expiresInMinutes: 0 };
     });
 
@@ -148,10 +138,10 @@ describe('InternalQueueMailExecutorHelper', () => {
     const executor = new InternalQueueMailExecutorHelper({ identifier: 'mail-sync-throw' });
     const tracker = new ProcessorCallTracker();
 
-    executor.setProcessor(((email: string) => {
+    executor.setProcessor((email: string) => {
       tracker.record(email);
       throw new Error('sync boom');
-    }) as AnyType);
+    });
 
     await executor.enqueueVerificationEmail('a@b.com', {
       attempts: 1,
@@ -164,6 +154,7 @@ describe('InternalQueueMailExecutorHelper', () => {
     const survivor = new ProcessorCallTracker();
     executor.setProcessor(async (email: string) => {
       survivor.record(email);
+
       return successProcessorResult;
     });
 
@@ -180,6 +171,7 @@ describe('InternalQueueMailExecutorHelper', () => {
 
     executor.setProcessor(async (email: string) => {
       tracker.record(email);
+
       return successProcessorResult;
     });
 
@@ -210,21 +202,31 @@ class FakeWorkerHelper {
       },
     };
   }
+
+  /** What `BullMQHelper.close()` is to the executor: closes the worker, then quits the connections handed to BullMQ. */
+  close(): Promise<void> {
+    return this.worker.close();
+  }
 }
 
 class FakeQueueHelper {
   isClosed = false;
-  addedJobs: Array<{ name: string; payload: IQueueJobPayload; options: AnyType }> = [];
+  addedJobs: Array<{ name: string; payload: IQueueJobPayload; options: JobsOptions }> = [];
 
   queue = {
-    add: async (name: string, payload: IQueueJobPayload, options: AnyType) => {
+    add: async (name: string, payload: IQueueJobPayload, options: JobsOptions) => {
       this.addedJobs.push({ name, payload, options });
+
       return { id: 'bull-1' };
     },
     close: async () => {
       this.isClosed = true;
     },
   };
+
+  close(): Promise<void> {
+    return this.queue.close();
+  }
 }
 
 class FakeRedisConnection {
@@ -232,6 +234,7 @@ class FakeRedisConnection {
 
   async disconnect(): Promise<boolean> {
     this.isDisconnected = true;
+
     return true;
   }
 }
@@ -267,6 +270,35 @@ const buildBullMQExecutor = (opts: {
   return { executor, queueHelper, redisConnection, workerHelpers };
 };
 
+describe('InternalQueueMailExecutorHelper - close', () => {
+  test('a job that fails after close arms no retry timer, and a new job is refused', async () => {
+    const executor = new InternalQueueMailExecutorHelper({ identifier: 'mail-closed' });
+    const release: { fail?: () => void } = {};
+    const started = new Promise<void>((resolve) => {
+      executor.setProcessor(async () => {
+        resolve();
+        await new Promise<void>((done) => {
+          release.fail = done;
+        });
+
+        throw new Error('smtp down');
+      });
+    });
+
+    await executor.enqueueVerificationEmail('a@b.com');
+    await started;
+    await executor.close();
+    release.fail?.();
+    await Bun.sleep(10);
+
+    expect(executor['delayedJobs'].size).toBe(0);
+
+    const error = await catchError(() => executor.enqueueVerificationEmail('c@d.com'));
+
+    expect(error.message).toBe(MailExecutorErrors.CLOSED);
+  });
+});
+
 describe('BullMQMailExecutorHelper - teardown', () => {
   test('clearWorkers closes EVERY worker and empties the list even when one close fails', async () => {
     const failing = new FakeWorkerHelper({ failOnClose: true });
@@ -291,12 +323,8 @@ describe('BullMQMailExecutorHelper - teardown', () => {
       workerHelpers: [failing],
     });
 
-    let error: AnyType;
-    try {
-      await executor.removeWorker(0);
-    } catch (caught) {
-      error = caught;
-    }
+    const error = await catchError(() => executor.removeWorker(0));
+
     expect(error.message).toBe('worker close failed');
     expect(executor.getWorkerCount()).toBe(0);
   });
@@ -314,7 +342,7 @@ describe('BullMQMailExecutorHelper - teardown', () => {
     expect(executor.getWorkerCount()).toBe(1);
   });
 
-  test('close() tears down workers AND queue AND redis even when a worker close fails', async () => {
+  test('close() tears down workers AND queue even when a worker close fails', async () => {
     const failing = new FakeWorkerHelper({ failOnClose: true });
     const healthy = new FakeWorkerHelper();
 
@@ -323,21 +351,18 @@ describe('BullMQMailExecutorHelper - teardown', () => {
       workerHelpers: [failing, healthy],
     });
 
-    let error: AnyType;
-    try {
-      await executor.close();
-    } catch (caught) {
-      error = caught;
-    }
+    const error = await catchError(() => executor.close());
+
     expect(error.message).toContain('worker close failed');
 
     expect(healthy.isClosed).toBe(true);
     expect(queueHelper.isClosed).toBe(true);
-    expect(redisConnection.isDisconnected).toBe(true);
+    expect(redisConnection.isDisconnected).toBe(false);
     expect(executor.getWorkerCount()).toBe(0);
   });
 
-  test('close() on a healthy executor resolves and closes queue + redis', async () => {
+  /** The Redis helper is the application's: an executor that quit it would take down every other user of the connection. */
+  test('close() on a healthy executor resolves, closes the queue, and leaves the Redis helper open', async () => {
     const { executor, queueHelper, redisConnection } = buildBullMQExecutor({
       mode: BullMQExecutorModes.BOTH,
       workerHelpers: [new FakeWorkerHelper()],
@@ -346,7 +371,146 @@ describe('BullMQMailExecutorHelper - teardown', () => {
     await executor.close();
 
     expect(queueHelper.isClosed).toBe(true);
-    expect(redisConnection.isDisconnected).toBe(true);
+    expect(redisConnection.isDisconnected).toBe(false);
+  });
+});
+
+/** What a Redis helper's `duplicateClient()` hands BullMQ: an emitter with a status, `quit()` and `disconnect()`. */
+class FakeDuplicate extends EventEmitter {
+  status = 'ready';
+  quits = 0;
+
+  async quit(): Promise<string> {
+    this.quits += 1;
+    this.status = 'end';
+
+    return 'OK';
+  }
+
+  disconnect(): void {
+    this.status = 'end';
+  }
+}
+
+/** A Redis helper of any topology: BullMQ gets a duplicate per queue and worker, and the helper quits each one in `close()`. */
+const buildRedisHelper = (opts: { client: Record<string, unknown> }) => {
+  const state = { isDisconnected: false, duplicates: new Array<FakeDuplicate>() };
+  // Only `getClient`, `duplicateClient` and `disconnect` are used, so the rest of the interface stays unbuilt.
+  const helper: IRedisHelper = Object.create(Object.prototype);
+
+  Object.assign(helper, {
+    getClient: () => opts.client,
+    duplicateClient: () => {
+      const duplicate = new FakeDuplicate();
+      state.duplicates.push(duplicate);
+
+      return duplicate;
+    },
+    disconnect: async () => {
+      state.isDisconnected = true;
+
+      return true;
+    },
+  });
+
+  return { helper, state };
+};
+
+/** `bullmq` itself, replaced: no Redis, but the real `BullMQHelper` runs and names the queue. */
+const buildFakeBullMQ = () => {
+  const queues: Array<{ name: string; connection: unknown }> = [];
+  const workers: Array<{ name: string; connection: unknown }> = [];
+
+  class FakeQueue {
+    constructor(name: string, options: { connection: unknown }) {
+      queues.push({ name, connection: options.connection });
+    }
+
+    on() {
+      return this;
+    }
+
+    async close() {}
+  }
+
+  class FakeWorker {
+    constructor(name: string, _processor: unknown, options: { connection: unknown }) {
+      workers.push({ name, connection: options.connection });
+    }
+
+    on() {
+      return this;
+    }
+
+    async close() {}
+  }
+
+  return {
+    module: { Queue: FakeQueue, Worker: FakeWorker } as unknown as typeof import('bullmq'),
+    queues,
+    workers,
+  };
+};
+
+describe("BullMQMailExecutorHelper - the Redis helper is the application's", () => {
+  test('a sentinel-shaped helper is used as given, and the queue keeps its plain name', async () => {
+    const client = { sentinels: [{ host: 'sentinel-1', port: 26379 }] };
+    const sentinel = buildRedisHelper({ client });
+    const { module, queues } = buildFakeBullMQ();
+
+    const executor = new BullMQMailExecutorHelper({
+      redis: sentinel.helper,
+      queue: { identifier: 'mail-queue', name: 'mail' },
+      mode: BullMQExecutorModes.QUEUE_ONLY,
+      module,
+    });
+
+    expect(queues).toEqual([{ name: 'mail', connection: sentinel.state.duplicates[0] }]);
+    expect(sentinel.state.duplicates.length).toBe(1);
+
+    await executor.close();
+
+    expect(sentinel.state.duplicates.map((duplicate) => duplicate.quits)).toEqual([1]);
+    expect(sentinel.state.isDisconnected).toBe(false);
+  });
+
+  test('a cluster-shaped helper names the queue with a hash tag so its keys share one slot', async () => {
+    const cluster = buildRedisHelper({ client: { isCluster: true } });
+    const { module, queues, workers } = buildFakeBullMQ();
+
+    const executor = new BullMQMailExecutorHelper({
+      redis: cluster.helper,
+      queue: { identifier: 'mail-queue', name: 'mail' },
+      mode: BullMQExecutorModes.BOTH,
+      module,
+    });
+    await executor.setProcessor(async () => successProcessorResult, {
+      numberOfWorkers: 2,
+    });
+
+    expect(queues.map((queue) => queue.name)).toEqual(['{mail}']);
+    expect(workers.map((worker) => worker.name)).toEqual(['{mail}', '{mail}']);
+    // The queue and both workers each get a duplicate, and `close()` quits every one, so none leaks.
+    expect(cluster.state.duplicates.length).toBe(3);
+
+    await executor.close();
+
+    expect(cluster.state.duplicates.map((duplicate) => duplicate.quits)).toEqual([1, 1, 1]);
+    expect(cluster.state.isDisconnected).toBe(false);
+  });
+
+  test('a name that already carries a hash tag is left alone on a cluster', () => {
+    const cluster = buildRedisHelper({ client: { isCluster: true } });
+    const { module, queues } = buildFakeBullMQ();
+
+    new BullMQMailExecutorHelper({
+      redis: cluster.helper,
+      queue: { identifier: 'mail-queue', name: '{tenant-a}mail' },
+      mode: BullMQExecutorModes.QUEUE_ONLY,
+      module,
+    });
+
+    expect(queues.map((queue) => queue.name)).toEqual(['{tenant-a}mail']);
   });
 });
 
@@ -354,24 +518,15 @@ describe('BullMQMailExecutorHelper - enqueue', () => {
   test('worker-only mode refuses to enqueue', async () => {
     const { executor } = buildBullMQExecutor({ mode: BullMQExecutorModes.WORKER_ONLY });
 
-    let error: AnyType;
-    try {
-      await executor.enqueueVerificationEmail('a@b.com');
-    } catch (caught) {
-      error = caught;
-    }
+    const error = await catchError(() => executor.enqueueVerificationEmail('a@b.com'));
+
     expect(error.message).toContain('Cannot enqueue jobs in worker-only mode');
   });
 
   test('both-mode without a processor throws PROCESSOR_NOT_SET', async () => {
     const { executor } = buildBullMQExecutor({ mode: BullMQExecutorModes.BOTH });
 
-    let error: AnyType;
-    try {
-      await executor.enqueueVerificationEmail('a@b.com');
-    } catch (caught) {
-      error = caught;
-    }
+    const error = await catchError(() => executor.enqueueVerificationEmail('a@b.com'));
 
     expect(error.message).toBe(MailExecutorErrors.PROCESSOR_NOT_SET);
   });
@@ -390,12 +545,25 @@ describe('BullMQMailExecutorHelper - enqueue', () => {
     expect(queueHelper.addedJobs[0].options.attempts).toBe(2);
   });
 
+  test('a failed job is kept for a bounded time and count, not forever', async () => {
+    const { executor, queueHelper } = buildBullMQExecutor({
+      mode: BullMQExecutorModes.QUEUE_ONLY,
+    });
+
+    await executor.enqueueVerificationEmail('a@b.com');
+
+    expect(queueHelper.addedJobs[0].options.removeOnFail).toEqual(
+      MailDefaults.FAILED_JOB_RETENTION,
+    );
+    expect(MailDefaults.FAILED_JOB_RETENTION).toEqual({ age: 7 * 24 * 60 * 60, count: 1000 });
+  });
+
   test('a job without explicit attempts still gets a bounded default', async () => {
     const { executor, queueHelper } = buildBullMQExecutor({
       mode: BullMQExecutorModes.QUEUE_ONLY,
     });
 
     await executor.enqueueVerificationEmail('a@b.com');
-    expect(queueHelper.addedJobs[0].options.attempts).toBe(3);
+    expect(queueHelper.addedJobs[0].options.attempts).toBe(MailDefaults.ATTEMPTS);
   });
 });

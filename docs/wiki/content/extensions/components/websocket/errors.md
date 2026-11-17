@@ -68,7 +68,11 @@ import { WebSocketBindingKeys } from '@venizia/ignis/websocket';
 
 this.bind<TWebSocketAuthenticateFn>({ key: WebSocketBindingKeys.AUTHENTICATE_HANDLER }).toValue(
   async data => {
-    const user = await verifyJWT(data.token as string);
+    if (typeof data.token !== 'string') {
+      return null;
+    }
+
+    const user = await verifyJWT(data.token);
     return user ? { userId: user.id } : null;
   },
 );

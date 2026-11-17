@@ -12,12 +12,14 @@ const BARE_IMPORT = /^import\s+['"]([^'"]+)['"]/gm;
 
 const packageNameOf = (specifier: string): string => {
   const segments = specifier.split('/');
+
   return specifier.startsWith('@') ? `${segments[0]}/${segments[1]}` : segments[0];
 };
 
 const resolveRelative = (opts: { from: string; specifier: string }): string | undefined => {
   const base = resolve(dirname(opts.from), opts.specifier);
   const candidates = [base, `${base}.ts`, resolve(base, 'index.ts')];
+
   return candidates.find((candidate) => candidate.endsWith('.ts') && existsSync(candidate));
 };
 
@@ -29,9 +31,11 @@ const collectLoadTimePackages = (opts: { entry: string }): Set<string> => {
 
   while (queue.length > 0) {
     const file = queue.pop()!;
+
     if (seen.has(file)) {
       continue;
     }
+
     seen.add(file);
 
     const source = readFileSync(file, 'utf8');
@@ -45,14 +49,18 @@ const collectLoadTimePackages = (opts: { entry: string }): Set<string> => {
           ? resolve(PACKAGE_DIRECTORY, 'src', specifier.slice(2))
           : specifier;
         const next = resolveRelative({ from: file, specifier: target });
+
         if (next) {
           queue.push(next);
         }
+
         continue;
       }
+
       if (specifier.startsWith('node:') || builtinModules.includes(specifier)) {
         continue;
       }
+
       packages.add(packageNameOf(specifier));
     }
   }

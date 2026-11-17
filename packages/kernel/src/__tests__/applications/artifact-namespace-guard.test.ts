@@ -9,6 +9,7 @@ class ProbeApplication extends RestApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'namespace-guard-app', version: '0.0.0', description: '' };
   }
+
   preConfigure(): void {}
   postConfigure(): void {}
   staticConfigure(): void {}
@@ -28,6 +29,7 @@ describe('an artifact must register under a namespace', () => {
     expect(() => {
       @service({ binding: { namespace: '', key: 'orphan' } })
       class EmptyNamespaceService {}
+
       return EmptyNamespaceService;
     }).toThrow(/no usable namespace/);
   });
@@ -36,6 +38,7 @@ describe('an artifact must register under a namespace', () => {
     expect(() => {
       @service({ binding: { namespace: 'acme.services', key: 'Thing' } })
       class DottedNamespaceService {}
+
       return DottedNamespaceService;
     }).toThrow(/no usable namespace/);
   });

@@ -6,8 +6,8 @@ import type { TLockStrength } from '../constants';
 import type { TDataWithRange } from './results';
 
 /** Update data supporting both regular fields and JSON path updates via dot notation. */
-export type TUpdateData<T = any> = Partial<T> & {
-  [jsonPath: string]: any;
+export type TUpdateData<T = object> = Partial<T> & {
+  [jsonPath: string]: unknown;
 };
 
 /** Options for Drizzle ORM query building, used internally by FilterBuilder. */
@@ -59,10 +59,10 @@ export interface IExtraOptions extends IWithTransaction {
  * `until(result)` returns false; on exhaustion the last result is returned as-is.
  */
 export interface IReadRetryOptions<TResult> {
-  /** Default 3. */
+  /** @default 3 */
   maxAttempts?: number;
 
-  /** Total budget across attempts AND sleeps. Default: unlimited. */
+  /** Total budget in ms across attempts AND sleeps. Unlimited when omitted. */
   maxTotalMs?: number;
 
   /**
@@ -71,10 +71,16 @@ export interface IReadRetryOptions<TResult> {
    */
   signal?: AbortSignal;
 
-  /** Default: EXPONENTIAL from 50ms, capped at 500ms, EQUAL jitter - tuned for replica lag. */
+  /**
+   * Backoff between attempts, tuned for replica lag.
+   *
+   * @default { strategy: RetryBackoffStrategies.EXPONENTIAL, initialDelayMs: 50, maxDelayMs: 500, jitter: RetryJitterModes.EQUAL }
+   */
   backoff?: IRetryBackoffOptions;
 
-  /** Retry while false. Default per verb: findOne/findById non-null, find non-empty. */
+  /**
+   * Retry while false. With none given, `findOne` and `findById` retry on a null row and `find` on an empty list.
+   */
   until?: (result: TResult) => boolean;
 }
 

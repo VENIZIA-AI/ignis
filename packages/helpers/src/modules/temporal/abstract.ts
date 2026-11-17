@@ -44,7 +44,9 @@ const NAME_LENGTHS: Record<keyof ITemporalLocaleNames, number> = {
   meridiem: 2,
 };
 
-const OUT_OF_RANGE = `outside the years ${TemporalCalendar.MIN_YEAR}-${TemporalCalendar.MAX_YEAR}`; /**
+const OUT_OF_RANGE = `outside the years ${TemporalCalendar.MIN_YEAR}-${TemporalCalendar.MAX_YEAR}`;
+
+/**
  * The machinery every temporal helper shares: the adapter, the zone and locale it holds, reading a
  * zone's offset, turning wall clocks into instants across daylight-saving gaps and repeats, and the
  * input checks. A helper extends this and supplies the operations in `ITemporalHelper`.
@@ -107,6 +109,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
     const wall = TemporalCalendar.wallClockOf({
       parts: this.zonedParts({ epoch: date.getTime(), tz: from }),
     });
+
     return AbstractTemporalHelper.ensureInstant({
       epoch: this.earliestOf({ parts: wall, tz: to }),
     });
@@ -118,11 +121,14 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
   }): Record<string, ITemporalLocaleNames> {
     for (const [locale, names] of Object.entries(opts.names)) {
       AbstractTemporalHelper.ensureLocale({ locale });
+
       for (const [key, length] of Object.entries(NAME_LENGTHS)) {
         const list: unknown = Reflect.get(names, key);
+
         if (list === undefined) {
           continue;
         }
+
         if (
           !Array.isArray(list) ||
           list.length !== length ||
@@ -135,12 +141,14 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
         }
       }
     }
+
     return opts.names;
   }
 
   /** The wording this helper holds for `locale`, if any. */
   protected namesOf(opts: { locale: string }): ITemporalLocaleNames | undefined {
     const { locale } = opts;
+
     if (Object.hasOwn(this.names, locale)) {
       return this.names[locale];
     }
@@ -148,6 +156,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
     if (this.namesByLocale.has(locale)) {
       return this.namesByLocale.get(locale);
     }
+
     // A malformed tag is the caller's 400, before it reaches `Intl.Locale`.
     AbstractTemporalHelper.ensureLocale({ locale });
 
@@ -156,6 +165,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
     const match = Object.keys(this.names).find((key) => new Intl.Locale(key).language === language);
     const names = match === undefined ? undefined : this.names[match];
     this.namesByLocale.set(locale, names);
+
     return names;
   }
 
@@ -169,12 +179,15 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
     fallback?: string;
   }): Date | null {
     const { value, tz } = opts;
+
     if ((opts.fallback ?? this.fallback) !== undefined) {
       return this.tryToDate({ value, tz });
     }
+
     if (value === null || value === undefined) {
       throw AbstractTemporalHelper.notADate({ value });
     }
+
     return this.toDate({ value, tz });
   }
 
@@ -187,6 +200,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
 
   protected static ensureLocale(opts: { locale: string }): string {
     TemporalLocale.of({ locale: opts.locale });
+
     return opts.locale;
   }
 
@@ -197,6 +211,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
 
   protected static ensureTz(opts: { tz: string; statusCode: number }): string {
     const { tz, statusCode } = opts;
+
     if (AbstractTemporalHelper.knownTzs.has(tz)) {
       return tz;
     }
@@ -213,22 +228,27 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
     if (AbstractTemporalHelper.knownTzs.size < MAX_KNOWN_TIME_ZONES) {
       AbstractTemporalHelper.knownTzs.add(tz);
     }
+
     return tz;
   }
 
   protected static ensureUnit(opts: { unit: string; amount?: number }): void {
     const { unit, amount } = opts;
+
     if (!TemporalUnits.isValid(unit)) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
         message: `[TemporalHelper] unknown unit '${unit}' | Supported: ${[...TemporalUnits.SCHEME_SET].join(', ')}`,
       });
     }
+
     if (amount === undefined) {
       return;
     }
+
     // Elapsed time takes a fraction (1.5 hours is 90 minutes); a calendar unit has no half.
     const isElapsed = TemporalCalendar.EXACT_UNIT_MILLISECONDS[unit] !== undefined;
+
     if (isElapsed ? !Number.isFinite(amount) : !Number.isInteger(amount)) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
@@ -242,12 +262,14 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
   /** Every result passes here: an overflowing `add` is refused, never an Invalid Date. */
   protected static ensureInstant(opts: { epoch: number }): Date {
     const { epoch } = opts;
+
     if (!(epoch >= MIN_INSTANT && epoch <= MAX_INSTANT)) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
         message: `[TemporalHelper] ${Number.isNaN(epoch) ? 'invalid date' : OUT_OF_RANGE} - received ${epoch}`,
       });
     }
+
     return new Date(epoch);
   }
 
@@ -282,6 +304,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
       offsetMilliseconds: this.offsetAt(opts),
     });
     AbstractTemporalHelper.ensureYear({ parts });
+
     return parts;
   }
 
@@ -301,12 +324,15 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
 
     const offsets = before === after ? [before] : [before, after];
     const instants: Array<number> = [];
+
     for (const offset of offsets) {
       const candidate = local - offset;
+
       if (this.offsetAt({ epoch: candidate, tz }) === offset) {
         instants.push(candidate);
       }
     }
+
     instants.sort((left, right) => left - right);
 
     return { instants, forward: local - before };
@@ -315,6 +341,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
   /** The instant wall-clock `parts` name: a skipped time moves forward, a repeated one takes the earlier. */
   protected earliestOf(opts: { parts: ITemporalParts; tz: string }): number {
     const { instants, forward } = this.instantsOf(opts);
+
     return instants[0] ?? forward;
   }
 
@@ -336,8 +363,10 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
     AbstractTemporalHelper.ensureYear({ parts: nextParts });
 
     const starts = this.instantsOf({ parts: startParts, tz });
+
     if (TemporalCalendar.EXACT_UNIT_MILLISECONDS[unit] === undefined) {
       const start = starts.instants[0] ?? starts.forward;
+
       return { start, end: this.earliestOf({ parts: nextParts, tz }) };
     }
 
@@ -347,6 +376,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
     const nexts = this.instantsOf({ parts: nextParts, tz });
     const following = nexts.instants.find((instant) => instant > start) ?? nexts.forward;
     const repeated = starts.instants.find((instant) => instant > start);
+
     return { start, end: repeated === undefined ? following : Math.min(repeated, following) };
   }
 
@@ -369,9 +399,11 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
     if (typeof value === 'string') {
       return this.parse({ value, tz: opts.tz });
     }
+
     if (value instanceof Date) {
       return AbstractTemporalHelper.ensureInstant({ epoch: value.getTime() });
     }
+
     if (typeof value === 'number') {
       return AbstractTemporalHelper.ensureInstant({ epoch: value });
     }
@@ -382,6 +414,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
 
   protected static notADate(opts: { value: unknown }) {
     const { value } = opts;
+
     return getError({
       statusCode: HTTP.ResultCodes.RS_4.BadRequest,
       message: `[TemporalHelper] not a date - received ${value === null ? 'null' : typeof value}`,
@@ -393,6 +426,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
     const { value } = opts;
     // Outside the try: a bad zone is the caller's bug, not an unreadable value.
     const tz = this.resolveTz({ tz: opts.tz });
+
     if (value === null || value === undefined) {
       return null;
     }
@@ -403,6 +437,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
       if (AbstractTemporalHelper.isRefusal(error)) {
         return null;
       }
+
       throw error;
     }
   }
@@ -411,6 +446,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
   parts(opts: { value: TTemporalInput; tz?: string }): IZonedTemporalParts {
     const tz = this.resolveTz({ tz: opts.tz });
     const date = this.toDate({ value: opts.value, tz });
+
     return this.zonedParts({ epoch: date.getTime(), tz });
   }
 
@@ -423,6 +459,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
     const { value, other, tz } = opts;
     const valueParts = this.zonedParts({ epoch: value, tz });
     const otherParts = this.zonedParts({ epoch: other, tz });
+
     if (valueParts.day < otherParts.day) {
       return -this.monthGap({ value: other, other: value, tz });
     }
@@ -452,6 +489,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
       amount: months,
       unit: TemporalUnits.MONTH,
     });
+
     return this.earliestOf({ parts: shifted, tz });
   }
 

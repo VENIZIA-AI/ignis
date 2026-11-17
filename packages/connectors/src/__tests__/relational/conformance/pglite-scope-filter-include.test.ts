@@ -5,26 +5,28 @@ import {
   model,
   RelationTypes,
   ScopeFilterMissingBehaviors,
+  ScopeOperations,
+  type TAnyDataSourceSchema,
 } from '@venizia/ignis-kernel';
 import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
 import type { TRelationConfig } from '@/relational/core/repositories/common';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
-import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
+import { PGliteDefaultRepository } from './pglite-repositories';
 import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect/query-dialect';
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { integer, pgTable, serial, text } from 'drizzle-orm/pg-core';
 
 /**
- * `@model` settings.scopeFilter reaches every repository verb (see `pglite-scope-filter.test.ts`)
+ * `@model` settings.access reaches every repository verb (see `pglite-scope-filter.test.ts`)
  * but NEVER reached a relation loaded through `include` - `toInclude()` only ever read
  * `defaultFilter`. A tenant-scoped parent with `include: [...]` handed back every OTHER tenant's
  * child rows. This file proves the leak was real (the `openProducts` sibling relation below has no
  * `scopeFilter` and is the permanent positive control) and that `toInclude()` now closes it by
- * resolving each relation's OWN `scopeFilter` from its OWN `@model` settings.
+ * resolving each relation's OWN `access` from its OWN `@model` settings.
  */
 const MERCHANT_TABLE = 'scope_include_merchant';
 const PRODUCT_TABLE = 'scope_include_product';
@@ -142,6 +144,9 @@ let currentProductTenant: TTenantState = 'tenant-a';
 let currentAllowProductTenant: TNullable<string> = null;
 let currentReviewTenant: TTenantState = 'tenant-a';
 
+/** What the product and review resolvers were called with: an included relation is a READ. */
+let includeCalls: Array<unknown> = [];
+
 @model({
   type: 'entity',
   settings: {
@@ -150,6 +155,7 @@ let currentReviewTenant: TTenantState = 'tenant-a';
         if (currentMerchantTenant === '__throw__') {
           throw new ScopeResolutionError('merchant scope resolution blew up');
         }
+
         return currentMerchantTenant == null
           ? currentMerchantTenant
           : { tenant: currentMerchantTenant };
@@ -157,7 +163,7 @@ let currentReviewTenant: TTenantState = 'tenant-a';
     },
   },
 })
-class ScopeIncludeMerchantEntity extends BasePostgresEntity {
+class ScopeIncludeMerchantEntity extends BasePostgresEntity<typeof merchantTable> {
   static override TABLE_NAME = MERCHANT_TABLE;
   static override schema = merchantTable;
   static override relations = (): TRelationConfig[] => merchantRelationsConfig;
@@ -167,10 +173,13 @@ class ScopeIncludeMerchantEntity extends BasePostgresEntity {
   type: 'entity',
   settings: {
     access: {
-      resolve: () => {
+      resolve: (context) => {
+        includeCalls.push(context);
+
         if (currentProductTenant === '__throw__') {
           throw new ScopeResolutionError('product scope resolution blew up');
         }
+
         return currentProductTenant == null
           ? currentProductTenant
           : { tenant: currentProductTenant };
@@ -180,15 +189,15 @@ class ScopeIncludeMerchantEntity extends BasePostgresEntity {
     query: { filter: { where: { name: { neq: 'hidden-by-default' } } } },
   },
 })
-class ScopeIncludeProductEntity extends BasePostgresEntity {
+class ScopeIncludeProductEntity extends BasePostgresEntity<typeof productTable> {
   static override TABLE_NAME = PRODUCT_TABLE;
   static override schema = productTable;
   static override relations = (): TRelationConfig[] => productRelationsConfig;
 }
 
-/** No `settings.scopeFilter` at all - the control group for "a child with no scopeFilter is unaffected". */
+/** No `settings.access` at all - the control group for "a child with no access is unaffected". */
 @model({ type: 'entity' })
-class ScopeIncludeProductOpenEntity extends BasePostgresEntity {
+class ScopeIncludeProductOpenEntity extends BasePostgresEntity<typeof productOpenTable> {
   static override TABLE_NAME = PRODUCT_OPEN_TABLE;
   static override schema = productOpenTable;
   static override relations = (): TRelationConfig[] => productOpenRelationsConfig;
@@ -206,7 +215,7 @@ class ScopeIncludeProductOpenEntity extends BasePostgresEntity {
     },
   },
 })
-class ScopeIncludeProductAllowEntity extends BasePostgresEntity {
+class ScopeIncludeProductAllowEntity extends BasePostgresEntity<typeof productAllowTable> {
   static override TABLE_NAME = PRODUCT_ALLOW_TABLE;
   static override schema = productAllowTable;
   static override relations = (): TRelationConfig[] => productAllowRelationsConfig;
@@ -220,12 +229,13 @@ class ScopeIncludeProductAllowEntity extends BasePostgresEntity {
         if (currentReviewTenant === '__throw__') {
           throw new ScopeResolutionError('review scope resolution blew up');
         }
+
         return currentReviewTenant == null ? currentReviewTenant : { tenant: currentReviewTenant };
       },
     },
   },
 })
-class ScopeIncludeReviewEntity extends BasePostgresEntity {
+class ScopeIncludeReviewEntity extends BasePostgresEntity<typeof reviewTable> {
   static override TABLE_NAME = REVIEW_TABLE;
   static override schema = reviewTable;
   static override relations = (): TRelationConfig[] => [];
@@ -253,7 +263,7 @@ const reviewRelationsBuilt = RelationsFactory.create({
 });
 
 @datasource({ driver: PGliteDriver })
-class ScopeIncludeDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class ScopeIncludeDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {
   constructor(opts: { client: PGlite }) {
     super({
       name: ScopeIncludeDataSource.name,
@@ -305,7 +315,7 @@ interface IMerchantRow {
 
 let client: PGlite;
 let dataSource: ScopeIncludeDataSource;
-let merchantRepository: DefaultCRUDRepository<typeof merchantTable>;
+let merchantRepository: PGliteDefaultRepository<typeof merchantTable>;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -345,8 +355,8 @@ beforeAll(async () => {
 
   dataSource = new ScopeIncludeDataSource({ client });
 
-  merchantRepository = new DefaultCRUDRepository<typeof merchantTable>(dataSource as AnyType, {
-    entityClass: ScopeIncludeMerchantEntity as AnyType,
+  merchantRepository = new PGliteDefaultRepository<typeof merchantTable>(dataSource, {
+    entityClass: ScopeIncludeMerchantEntity,
   });
 });
 
@@ -398,6 +408,7 @@ beforeEach(async () => {
   currentProductTenant = 'tenant-a';
   currentAllowProductTenant = null;
   currentReviewTenant = 'tenant-a';
+  includeCalls = [];
   await seed();
 });
 
@@ -443,6 +454,20 @@ describe('toInclude - the leak, proven closed', () => {
     });
 
     expect(merchant.products?.map((row) => row.name)).toEqual(['a-product']);
+  });
+});
+
+describe('toInclude - the included relation resolves its scope for a READ', () => {
+  test('the child resolver receives { operation: read }, and only that', async () => {
+    await merchantRepository.find<IMerchantRow>({
+      filter: { where: { id: 1 }, include: [{ relation: 'products' }] },
+    });
+
+    expect(includeCalls.length).toBeGreaterThan(0);
+
+    for (const context of includeCalls) {
+      expect(context).toEqual({ operation: ScopeOperations.READ });
+    }
   });
 });
 

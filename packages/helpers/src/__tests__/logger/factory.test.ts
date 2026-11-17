@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { type AnyType } from '@/common/types';
 import {
   AbstractLogger,
   ConsoleLogger,
@@ -23,10 +22,12 @@ class RecordingProviderLogger extends AbstractLogger {
 
   static get(scope: string): RecordingProviderLogger {
     let logger = this.cache.get(scope);
+
     if (!logger) {
       logger = new RecordingProviderLogger(scope);
       this.cache.set(scope, logger);
     }
+
     return logger;
   }
 
@@ -37,21 +38,27 @@ class RecordingProviderLogger extends AbstractLogger {
   debug(message: string) {
     this.record('debug', message);
   }
+
   info(message: string) {
     this.record('info', message);
   }
+
   warn(message: string) {
     this.record('warn', message);
   }
+
   error(message: string) {
     this.record('error', message);
   }
+
   emerg(message: string) {
     this.record('emerg', message);
   }
+
   log(level: TLogLevel, message: string) {
     this.record(level, message);
   }
+
   for(methodName: string): ILogger {
     return RecordingProviderLogger.get(`${this.scope}-${methodName}`);
   }
@@ -81,12 +88,14 @@ const buildCountingProvider = () => {
   const provider: ILoggerProvider = {
     get: (scope: string) => {
       state.scopes.push(scope);
+
       return {
         info: (message: string) => state.seen.push(`${scope}|${message}`),
       } as unknown as ILogger;
     },
   };
   const getsFor = (scope: string) => state.scopes.filter((seen) => seen === scope).length;
+
   return { state, provider, getsFor };
 };
 
@@ -102,15 +111,15 @@ afterEach(() => {
 
 describe('LoggerFactory - the default provider', () => {
   test('default provider is ConsoleLogger, resolved LAZILY on the first log call', () => {
-    const wrapper = LoggerFactory.getLogger(['SwapDefault']) as AnyType;
+    const wrapper = LoggerFactory.getLogger(['SwapDefault']);
     // No delegate yet - construction must not touch a provider.
-    expect(wrapper['_delegate']).toBeUndefined();
+    expect(Reflect.get(wrapper, '_delegate')).toBeUndefined();
     expect(LoggerFactory.isChosen()).toBe(false);
 
     captureConsoleLog(() => wrapper.info('resolve now'));
 
     expect(LoggerFactory.currentProvider()).toBe(ConsoleLogger);
-    expect(wrapper['_delegate']).toBeInstanceOf(ConsoleLogger);
+    expect(Reflect.get(wrapper, '_delegate')).toBeInstanceOf(ConsoleLogger);
   });
 
   test('without a chosen provider a line goes to the console, scopes joined', () => {
@@ -207,12 +216,12 @@ describe('LoggerFactory - swap-on-use provider registration', () => {
   });
 
   test('use() is idempotent, re-callable, and eagerly re-points EXISTING wrappers', () => {
-    const wrapper = LoggerFactory.getLogger(['SwapBack']) as AnyType;
+    const wrapper = LoggerFactory.getLogger(['SwapBack']);
     LoggerFactory.use({ provider: RecordingProviderLogger });
     LoggerFactory.use({ provider: RecordingProviderLogger });
-    expect(wrapper['_delegate']).toBe(RecordingProviderLogger.get('SwapBack'));
+    expect(Reflect.get(wrapper, '_delegate')).toBe(RecordingProviderLogger.get('SwapBack'));
     LoggerFactory.use({ provider: WinstonLogger });
-    expect(wrapper['_delegate']).toBe(WinstonLogger.get('SwapBack'));
+    expect(Reflect.get(wrapper, '_delegate')).toBe(WinstonLogger.get('SwapBack'));
   });
 
   test('the provider builds a logger once per choice, not once per log call', () => {

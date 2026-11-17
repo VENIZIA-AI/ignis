@@ -75,11 +75,13 @@ class CapturingRepository extends ReadableRepository<any> {
 
   protected override findWithCoreAPI<R = any>(opts: { filter: TFilter<any> }): Promise<Array<R>> {
     this.captured = opts.filter;
+
     return Promise.resolve([] as Array<R>);
   }
 
   protected override findWithQueryAPI<R = any>(opts: { filter: TFilter<any> }): Promise<Array<R>> {
     this.captured = opts.filter;
+
     return Promise.resolve([] as Array<R>);
   }
 }
@@ -109,7 +111,7 @@ describe('ReadableRepository.find - default limit application', () => {
   });
 });
 
-/** find() prefers the model's `settings.defaultLimit` over the global DEFAULT_LIMIT when the query omits an explicit limit. An explicit limit always wins. */
+/** find() prefers the model's `settings.query.limit.default` over the global DEFAULT_LIMIT when the query omits an explicit limit. An explicit limit always wins. */
 class ModelLimitRepository extends CapturingRepository {
   override getDefaultLimit() {
     return 25;

@@ -2,6 +2,7 @@ import { ArtifactTypes, BindingKeys } from '@/helpers/inversion';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 
+/** Valid `BindingNamespaces` values. */
 export type TBindingNamespace = TConstValue<typeof BindingNamespaces>;
 
 /** Static binding namespaces for dependency injection. */
@@ -28,6 +29,7 @@ export class BindingNamespaces {
    */
   static isValid(opts: { name: string }): boolean {
     const { name } = opts;
+
     return typeof name === 'string' && BindingNamespaces.NAME_PATTERN.test(name);
   }
 

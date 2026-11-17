@@ -9,10 +9,9 @@ import type {
   ISearchSynonymScoped,
 } from '@/search/core';
 import { BaseSearchConnector } from '@/search/core';
-import { RecordUtility } from '@/common/internal';
 import { SearchConnectorInternal } from '@/search/core/internal';
 import type { ISynonym } from '@/search/core/models';
-import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
+import { getError, isApplicationError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { Meilisearch } from 'meilisearch';
 import type { IMeilisearchIndexPlan } from './compiler';
@@ -20,7 +19,7 @@ import { MeilisearchInternal } from './internal';
 import type {
   IMeilisearchClientLike,
   IMeilisearchConnectorOptions,
-  IMeilisearchTask,
+  IMeilisearchPolledTask,
 } from './common';
 import {
   MEILISEARCH_DEFAULT_FETCH_PAGE_SIZE,
@@ -138,17 +137,22 @@ export class MeilisearchConnector extends BaseSearchConnector {
   async getHealth(): Promise<{ ok: boolean }> {
     try {
       const health = await this.client.health();
+
       return { ok: health.status === 'available' };
     } catch (error) {
       this.logger
         .for(this.getHealth.name)
         .warn('Health probe failed | error: %s', SearchConnectorInternal.describeError({ error }));
+
       return { ok: false };
     }
   }
 
   /** Writes are invisible until their task succeeds; polls manually against a caller-configured ceiling because the SDK's own `waitForTask` 5 s default is too short for bulk imports. */
-  private async waitForTask(opts: { taskUid: number; method: string }): Promise<IMeilisearchTask> {
+  private async waitForTask(opts: {
+    taskUid: number;
+    method: string;
+  }): Promise<IMeilisearchPolledTask> {
     const { taskUid, method } = opts;
     const deadline = Date.now() + this.taskTimeoutMs;
     // Exponential backoff: a fast task still resolves in the first poll or two, while a long-running one is not polled ~20x/s throughout - the interval doubles up to a 1 s ceiling.
@@ -195,9 +199,10 @@ export class MeilisearchConnector extends BaseSearchConnector {
   private async awaitWrite(opts: {
     method: string;
     run: () => Promise<{ taskUid: number }>;
-  }): Promise<IMeilisearchTask> {
+  }): Promise<IMeilisearchPolledTask> {
     const { method, run } = opts;
     const enqueued = await run();
+
     return this.waitForTask({ taskUid: enqueued.taskUid, method });
   }
 
@@ -269,6 +274,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
       method: this.listCollections.name,
       run: async () => {
         const page = await this.client.getIndexes();
+
         return page.results;
       },
     });
@@ -283,6 +289,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
       method: this.collectionExists.name,
       run: async () => {
         await this.client.getIndex(name);
+
         return true;
       },
       tolerate: this.notFoundFallback({
@@ -315,6 +322,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
           method: this.deleteCollection.name,
           run: () => this.client.deleteIndex(name),
         });
+
         return true;
       },
       tolerate: this.notFoundFallback({
@@ -418,6 +426,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
       run: async () => {
         const result = await this.client.index(collection).getDocument(id);
         const document = result as T;
+
         return document;
       },
       tolerate: this.notFoundTolerance({
@@ -448,6 +457,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
         }
 
         const page = await this.client.index(collection).getDocuments(params);
+
         return page.total;
       },
     });
@@ -468,6 +478,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
     const id = (document as Record<string, unknown>)[primaryKey];
 
     let isExisting = false;
+
     if (id !== undefined) {
       const exists = await this.documentExists({ collection, id: String(id) });
       isExisting = exists;
@@ -490,6 +501,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
       method: this.documentExists.name,
       run: async () => {
         await this.client.index(collection).getDocument(id);
+
         return true;
       },
       tolerate: this.notFoundFallback({
@@ -543,6 +555,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
 
     // Meilisearch's updateDocuments is add-or-update, so a missing id would silently upsert while the neutral contract (and Typesense) throws 404 - existence is checked before any write.
     const result = await this.documentExists({ collection, id });
+
     if (!result) {
       SearchConnectorInternal.throwNotFoundError({
         method: this.updateDocument.name,
@@ -674,6 +687,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
           method: this.deleteDocument.name,
           run: () => this.client.index(collection).deleteDocument(id),
         });
+
         return true;
       },
       tolerate: this.notFoundFallback({
@@ -725,6 +739,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
           method: this.deleteAllDocuments.name,
           run: () => this.client.index(collection).deleteAllDocuments(),
         });
+
         return true;
       },
     });
@@ -840,6 +855,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
         const raw = await this.client
           .index(collection)
           .search(typeof q === 'string' && q !== '*' ? q : null, rest);
+
         return MeilisearchInternal.mapSearchResult<TDocument>({ raw });
       },
       tolerate: {
@@ -848,6 +864,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
           this.logger
             .for(this.search.name)
             .warn('Search on missing collection, returning empty | name: %s', collection);
+
           return { found: 0, isFoundExact: true, hits: [] };
         },
       },
@@ -918,6 +935,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
     }
 
     this.primaryKeyByCollection.set(collection, primaryKey);
+
     return primaryKey;
   }
 }

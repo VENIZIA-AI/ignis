@@ -32,6 +32,7 @@ export class HttpWire {
           : Object.entries(headers);
 
     const merged = new Map<string, string>();
+
     for (const [name, value] of source) {
       merged.set(name.toLowerCase(), value);
     }
@@ -52,6 +53,14 @@ export class HttpWire {
         message: `[${name}] ${HTTP.Headers.REQUEST_COUNT_DATA} is owned by HttpDataSource and always sent as false: rows come back bare, the total in Content-Range.`,
       });
     }
+  }
+
+  /** `baseUrl` (no trailing slash) followed by each path with one leading slash: `('/api/', ['a', '/b'])` is `/api/a/b`. */
+  static toRequestUrl(opts: { baseUrl: string; paths: Array<string> }): string {
+    const { baseUrl, paths } = opts;
+    const base = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+
+    return `${base}${paths.map((path) => (path.startsWith('/') ? path : `/${path}`)).join('')}`;
   }
 
   /**
@@ -152,6 +161,7 @@ export class HttpWire {
     }
 
     const extraHeader: [string, string] = [HttpExtraRequest.HEADER, value];
+
     return [...HttpWire.toHeaderEntries({ headers }), extraHeader];
   }
 

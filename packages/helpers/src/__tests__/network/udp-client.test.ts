@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { type AnyType } from '@/common';
 import { getError } from '@/modules/error';
+import type { ILogger } from '@/modules/logger';
 import { NetworkUdpClient } from '@/modules/network';
 import dgram from 'node:dgram';
 
@@ -21,25 +21,30 @@ const createDeferred = <T>(): IDeferred<T> => {
 
 interface ILoggedError {
   scope: string;
-  args: Array<AnyType>;
+  args: Array<unknown>;
 }
+
+/** A logger that keeps what `error` is handed (the message first), under the scope its `for` was given. */
+const buildErrorRecorder = (opts: { scope: string; recorded: Array<ILoggedError> }): ILogger => {
+  const { scope, recorded } = opts;
+
+  return {
+    debug: () => {},
+    info: () => {},
+    warn: () => {},
+    emerg: () => {},
+    log: () => {},
+    error: (...args: Array<unknown>) => {
+      recorded.push({ scope, args });
+    },
+    for: (nextScope: string) => buildErrorRecorder({ scope: nextScope, recorded }),
+  };
+};
 
 const captureLoggerErrors = (opts: { client: NetworkUdpClient }): Array<ILoggedError> => {
   const recorded: Array<ILoggedError> = [];
 
-  opts.client.logger = {
-    for: (scope: string) => {
-      return {
-        info: () => {},
-        warn: () => {},
-        debug: () => {},
-        fatal: () => {},
-        error: (...args: Array<AnyType>) => {
-          recorded.push({ scope, args });
-        },
-      };
-    },
-  } as AnyType;
+  opts.client.logger = buildErrorRecorder({ scope: '', recorded });
 
   return recorded;
 };
@@ -65,11 +70,13 @@ const openSockets: Array<dgram.Socket> = [];
 
 afterEach(() => {
   const clients = openClients.splice(0);
+
   for (const client of clients) {
     client.disconnect();
   }
 
   const sockets = openSockets.splice(0);
+
   for (const socket of sockets) {
     try {
       socket.close();
@@ -248,10 +255,10 @@ describe('NetworkUdpClient - error paths', () => {
   });
 
   test('a MISSING port creates no socket', () => {
+    // @ts-expect-error - a missing port on purpose: the option type requires one
     const client = NetworkUdpClient.newInstance({
       identifier: 'udp-missing-port',
       host: '127.0.0.1',
-      port: undefined as AnyType,
     });
 
     client.connect();

@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { type AnyType } from '@/common';
 import { NetworkTcpClient, NetworkTcpServer } from '@/modules/network';
 import { type AddressInfo } from 'node:net';
 
@@ -47,13 +46,16 @@ const startServer = (opts: {
 
 afterEach(() => {
   const clients = openClients.splice(0);
+
   for (const client of clients) {
     client.disconnect();
   }
 
   const servers = openServers.splice(0);
+
   for (const server of servers) {
     const clientsValues = Object.values(server.getClients());
+
     for (const client of clientsValues) {
       client.socket.destroy();
     }
@@ -183,7 +185,9 @@ describe('NetworkTcpClient - guards', () => {
   test('connect() with EMPTY options creates no socket', () => {
     const client = NetworkTcpClient.newInstance({
       identifier: 'tcp-client-empty-options',
-      options: {} as AnyType,
+      // An empty options object on purpose; the option type requires a port or a path.
+      // @ts-expect-error - neither a port nor a path
+      options: {},
     });
 
     client.connect({ resetReconnectCounter: true });

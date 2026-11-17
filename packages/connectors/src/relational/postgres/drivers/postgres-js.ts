@@ -1,14 +1,18 @@
 import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import type { TRelationalConnector } from '@/relational/postgres/datasources/common';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
+import { RelationalDialects } from '@/relational/core/drivers';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import type { Sql } from 'postgres';
 import type { TRelationalConnection, TRelationalDriver } from './driver';
 
+/** Driver over a `postgres` (postgres-js) `Sql` client. Throws on construction if the client lacks `reserve()` or `unsafe()`, such as a `pg.Pool`. */
 export class PostgresJsDriver<
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
 > implements TRelationalDriver<Schema, Sql> {
+  /** The engine this driver speaks; the migration ledger reads it (see {@link RelationalDialects}). */
+  readonly dialect = RelationalDialects.POSTGRES;
+
   private readonly client: Sql;
 
   constructor(opts: { client: Sql }) {
@@ -33,13 +37,13 @@ export class PostgresJsDriver<
   async acquire(opts: { schema: Schema }): Promise<TRelationalConnection<Schema>> {
     const reserved = await this.client.reserve();
 
-    const reservedClient = reserved as AnyType;
-    reservedClient.options ??= (this.client as AnyType).options;
+    reserved.options ??= this.client.options;
 
     let connector: TRelationalConnector<Schema>;
+
     try {
       connector = drizzle({
-        client: reservedClient,
+        client: reserved,
         schema: opts.schema,
       }) as TRelationalConnector<Schema>;
     } catch (error) {
@@ -51,11 +55,13 @@ export class PostgresJsDriver<
       connector,
       execute: async (executeOpts: { statement: string }) => {
         const result = await reserved.unsafe(executeOpts.statement);
+
         return { count: result.count ?? 0 };
       },
       query: async <R>(queryOpts: { statement: string }) => {
         // postgres-js resolves an array-like result; spreading it gives the plain rows.
         const result = await reserved.unsafe(queryOpts.statement);
+
         return [...result] as Array<R>;
       },
       release: () => {

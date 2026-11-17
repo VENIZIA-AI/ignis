@@ -57,6 +57,7 @@ const buildCommonPolicyDefinitionColumns = <
   effect: text('effect').$type<TAuthorizationDecision>(),
 });
 
+/** Drizzle column set shared by every policy-definition table; `ExtraVariant` widens the allowed `variant` values and `Metadata` types the `metadata` column. */
 export type TPolicyDefinitionCommonColumns<
   ExtraVariant extends string = never,
   Metadata extends object = TSubsetGrantMetadata,

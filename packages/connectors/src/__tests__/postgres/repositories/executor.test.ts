@@ -26,9 +26,11 @@ const createFakeConnector = () => {
     'set',
     'returning',
   ];
+
   for (const method of methods) {
     chain[method] = (...args: unknown[]) => {
       trail.push(`${method}(${args.length})`);
+
       return chain;
     };
   }
@@ -45,23 +47,28 @@ const createFakeConnector = () => {
     connector: {
       select: (...args: unknown[]) => {
         trail.push(`select(${args.length})`);
+
         return chain;
       },
       insert: () => {
         trail.push('insert');
+
         return chain;
       },
       update: () => {
         trail.push('update');
+
         return chain;
       },
       delete: () => {
         trail.push('delete');
+
         return chain;
       },
       $count: async (_table: unknown, where?: unknown) => {
         trail.push('$count');
         captured.countWhere = where;
+
         return 7;
       },
     },
@@ -78,14 +85,17 @@ const createFakeQueryConnector = (opts: {
   const query: Record<string, unknown> = {};
 
   const entriesKeys = Object.keys(opts.entries);
+
   for (const entityName of entriesKeys) {
     query[entityName] = {
       findMany: (config: unknown) => {
         calls.findMany = config;
+
         return Promise.resolve(opts.findManyResult ?? []);
       },
       findFirst: (config: unknown) => {
         calls.findFirst = config;
+
         return Promise.resolve(opts.findFirstResult ?? null);
       },
     };
@@ -121,7 +131,8 @@ describe('PostgresQueryExecutor', () => {
 
   test('select with a column projection passes the projection to select()', async () => {
     const { connector, trail } = createFakeConnector();
-    await new PostgresQueryExecutor().select({
+    const postgresQueryExecutor = new PostgresQueryExecutor();
+    await postgresQueryExecutor.select({
       connector: connector as never,
       table: usersTable,
       columns: { id: usersTable.id },
@@ -130,13 +141,62 @@ describe('PostgresQueryExecutor', () => {
     expect(trail[0]).toBe('select(1)');
   });
 
+  test('select accepts an SQL expression and an aliased one beside a column', async () => {
+    const { connector, trail } = createFakeConnector();
+    const postgresQueryExecutor = new PostgresQueryExecutor();
+    await postgresQueryExecutor.select({
+      connector: connector as never,
+      table: usersTable,
+      columns: {
+        id: usersTable.id,
+        upper: sql`upper(${usersTable.email})`,
+        lower: sql`lower(${usersTable.email})`.as('lower'),
+      },
+    });
+
+    expect(trail[0]).toBe('select(1)');
+  });
+
+  test('update refuses a returning entry that is not a column or an SQL expression', async () => {
+    const { connector } = createFakeConnector();
+    const postgresQueryExecutor = new PostgresQueryExecutor();
+
+    await RejectionHelper.expectRejection({
+      task: postgresQueryExecutor.update({
+        connector: connector as never,
+        table: usersTable,
+        data: { email: 'new@b.c' },
+        where: sql`id = 1`,
+        returning: { id: usersTable.id, nested: { id: usersTable.id } },
+        shouldReturn: true,
+      }),
+      message:
+        /\[toSelectedFields\] Invalid column selection \| 'nested' must be a Postgres column/,
+    });
+  });
+
+  test('select refuses a projection entry that is not a column or an SQL expression', async () => {
+    const { connector } = createFakeConnector();
+    const postgresQueryExecutor = new PostgresQueryExecutor();
+
+    await RejectionHelper.expectRejection({
+      task: postgresQueryExecutor.select({
+        connector: connector as never,
+        table: usersTable,
+        columns: { id: usersTable.id, bad: 'email' },
+      }),
+      message: /\[toSelectedFields\] Invalid column selection \| 'bad' must be a Postgres column/,
+    });
+  });
+
   // The `where` is what makes this discriminating: without it an executor that dropped the filter
   // and counted the whole table would still satisfy the assertion.
   test('count delegates to $count, passing its where through', async () => {
     const { connector, captured } = createFakeConnector();
     const where = sql`id = 1`;
 
-    const total = await new PostgresQueryExecutor().count({
+    const postgresQueryExecutor = new PostgresQueryExecutor();
+    const total = await postgresQueryExecutor.count({
       connector: connector as never,
       table: usersTable,
       where,
@@ -148,7 +208,8 @@ describe('PostgresQueryExecutor', () => {
 
   test('insert with shouldReturn false never calls returning() and reports the driver count', async () => {
     const { connector, trail } = createFakeConnector();
-    const result = await new PostgresQueryExecutor().insert({
+    const postgresQueryExecutor = new PostgresQueryExecutor();
+    const result = await postgresQueryExecutor.insert({
       connector: connector as never,
       table: usersTable,
       values: { email: 'a@b.c' },
@@ -161,7 +222,8 @@ describe('PostgresQueryExecutor', () => {
 
   test('update applies set, where and returning in order', async () => {
     const { connector, trail } = createFakeConnector();
-    await new PostgresQueryExecutor().update({
+    const postgresQueryExecutor = new PostgresQueryExecutor();
+    await postgresQueryExecutor.update({
       connector: connector as never,
       table: usersTable,
       data: { email: 'new@b.c' },
@@ -174,7 +236,8 @@ describe('PostgresQueryExecutor', () => {
 
   test('update with shouldReturn false never calls returning() and reports the driver count', async () => {
     const { connector, trail } = createFakeConnector();
-    const result = await new PostgresQueryExecutor().update({
+    const postgresQueryExecutor = new PostgresQueryExecutor();
+    const result = await postgresQueryExecutor.update({
       connector: connector as never,
       table: usersTable,
       data: { email: 'new@b.c' },
@@ -188,7 +251,8 @@ describe('PostgresQueryExecutor', () => {
 
   test('remove applies where then returning in order', async () => {
     const { connector, trail } = createFakeConnector();
-    await new PostgresQueryExecutor().remove({
+    const postgresQueryExecutor = new PostgresQueryExecutor();
+    await postgresQueryExecutor.remove({
       connector: connector as never,
       table: usersTable,
       where: sql`id = 1`,
@@ -200,7 +264,8 @@ describe('PostgresQueryExecutor', () => {
 
   test('remove with shouldReturn false never calls returning() and reports the driver count', async () => {
     const { connector, trail } = createFakeConnector();
-    const result = await new PostgresQueryExecutor().remove({
+    const postgresQueryExecutor = new PostgresQueryExecutor();
+    const result = await postgresQueryExecutor.remove({
       connector: connector as never,
       table: usersTable,
       where: sql`id = 1`,
@@ -218,7 +283,8 @@ describe('PostgresQueryExecutor', () => {
     });
     const query = { where: sql`1 = 1`, limit: 5 };
 
-    const rows = await new PostgresQueryExecutor().findMany({
+    const postgresQueryExecutor = new PostgresQueryExecutor();
+    const rows = await postgresQueryExecutor.findMany({
       connector: connector as never,
       entityName: 'users',
       query,
@@ -235,7 +301,8 @@ describe('PostgresQueryExecutor', () => {
     });
     const where = sql`1 = 1`;
 
-    const result = await new PostgresQueryExecutor().findFirst({
+    const postgresQueryExecutor = new PostgresQueryExecutor();
+    const result = await postgresQueryExecutor.findFirst({
       connector: connector as never,
       entityName: 'users',
       query: { where, limit: 1 },

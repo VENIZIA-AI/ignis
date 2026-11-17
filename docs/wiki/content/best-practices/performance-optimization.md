@@ -218,12 +218,12 @@ Connection pooling significantly improves performance by reusing database connec
 ```typescript
 import { Pool } from 'pg';
 import { datasource } from '@venizia/ignis';
-import { BaseRelationalDataSource } from '@venizia/ignis-connectors/postgres';
+import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 
 // IDataSourceConfigs: your settings interface (host/port/user/password/database)
 @datasource({ driver: NodePostgresDriver })
-export class PostgresDataSource extends BaseRelationalDataSource<IDataSourceConfigs> {
+export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
   override configure(): void {
     // Keep the pool on `this.client` - NodePostgresDriver above wires the driver and Drizzle
     // connector from it lazily, on first getConnector()/beginTransaction()

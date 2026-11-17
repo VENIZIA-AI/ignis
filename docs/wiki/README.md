@@ -19,6 +19,8 @@ meant to be imported.
 
 ## Work on the site
 
+Run these from `docs/wiki`:
+
 ```bash
 bun run docs:dev       # dev server
 bun run docs:build     # check the sidebar, then build the static site
@@ -29,8 +31,9 @@ bun run docs:preview   # serve the build
 
 | Folder | Holds |
 | :--- | :--- |
-| `content/guides/` | Getting started, core concepts, tutorials, migrations |
+| `content/guides/` | Getting started, core concepts, tutorials, migrations, reference |
 | `content/references/` | The API: base classes, configuration, utilities |
+| `content/references/api/` | The generated API reference, one page per entry point. Never edit by hand: `make api-gen` writes it from the built `.d.ts`, and `make api-check` fails when it is stale |
 | `content/extensions/` | Components and helpers, one folder each |
 | `content/best-practices/` | Architecture, security, performance, code style |
 | `content/changelogs/` | One entry per change, newest first |

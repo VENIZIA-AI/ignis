@@ -38,6 +38,7 @@ export class EdgeCases extends UserAuditCases {
 
       if (!dbRecord) {
         this.context.logger.error('[CASE 8] FAILED | Record not found');
+
         return;
       }
 
@@ -115,6 +116,7 @@ export class EdgeCases extends UserAuditCases {
       if (!created.data) {
         this.context.logger.error('[CASE 11] FAILED | Create in transaction returned no data');
         await transaction.rollback();
+
         return;
       }
 
@@ -134,6 +136,7 @@ export class EdgeCases extends UserAuditCases {
       if (!found) {
         this.context.logger.error('[CASE 11] FAILED | Record not found in transaction');
         await transaction.rollback();
+
         return;
       }
 
@@ -163,7 +166,7 @@ export class EdgeCases extends UserAuditCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { group: 'AUDIT_TX_TEST' } });
+      await repo.deleteBy({ where: { group: 'AUDIT_TX_TEST' } });
     } catch (error) {
       this.context.logger.error('[CASE 11] FAILED | Error: %s', (error as Error).message);
     }
@@ -203,6 +206,7 @@ export class EdgeCases extends UserAuditCases {
 
       if (!dbRecord) {
         this.context.logger.error('[CASE 12] FAILED | Initial record not created');
+
         return;
       }
 
@@ -253,7 +257,7 @@ export class EdgeCases extends UserAuditCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { group: 'AUDIT_ROLLBACK_TEST' } });
+      await repo.deleteBy({ where: { group: 'AUDIT_ROLLBACK_TEST' } });
     } catch (error) {
       this.context.logger.error('[CASE 12] FAILED | Error: %s', (error as Error).message);
     }
@@ -324,7 +328,7 @@ export class EdgeCases extends UserAuditCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       this.context.logger.error('[CASE 16] FAILED | Error: %s', (error as Error).message);
     }
@@ -356,6 +360,7 @@ export class EdgeCases extends UserAuditCases {
 
       if (!created.data) {
         this.context.logger.error('[CASE 18] FAILED | Record creation failed');
+
         return;
       }
 
@@ -366,6 +371,7 @@ export class EdgeCases extends UserAuditCases {
 
       if (deleted.count !== 1 || !deleted.data) {
         this.context.logger.error('[CASE 18] FAILED | Delete did not return expected count');
+
         return;
       }
 
@@ -466,7 +472,7 @@ export class EdgeCases extends UserAuditCases {
       );
 
       // Cleanup
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       this.context.logger.error(
         '[CASE 19] FAILED | Security test error: %s',
@@ -488,6 +494,7 @@ export class EdgeCases extends UserAuditCases {
 
       // Test 1: Empty string should be rejected by FK constraint
       let emptyStringRejected = false;
+
       try {
         await repo.create({
           data: {
@@ -511,6 +518,7 @@ export class EdgeCases extends UserAuditCases {
 
       // Test 2: Null should be accepted (FK allows null for optional audit fields)
       let nullAccepted = false;
+
       try {
         await repo.create({
           data: {
@@ -550,7 +558,7 @@ export class EdgeCases extends UserAuditCases {
       this.context.logger.info('[CASE 20] PASSED | Null/empty audit field test completed');
 
       // Cleanup
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       this.context.logger.error('[CASE 20] FAILED | Error: %s', (error as Error).message);
     }
@@ -564,13 +572,13 @@ export class EdgeCases extends UserAuditCases {
 
     try {
       // Clean up Configuration records
-      const configDeleted = await this.context.configurationRepository.deleteAll({
+      const configDeleted = await this.context.configurationRepository.deleteBy({
         where: { group: { like: 'AUDIT%' } },
       });
       this.context.logger.info('[CASE 21] Deleted %d Configuration records', configDeleted.count);
 
       // Clean up test users
-      const userDeleted = await this.context.userRepository.deleteAll({
+      const userDeleted = await this.context.userRepository.deleteBy({
         where: { realm: { like: 'AUDIT%' } },
         options: { force: true },
       });

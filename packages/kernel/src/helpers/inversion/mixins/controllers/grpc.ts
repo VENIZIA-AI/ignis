@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+
 import type { TMixinTarget } from '@venizia/ignis-helpers/common';
 import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import { MetadataKeys } from '../../common/keys';
@@ -28,6 +30,7 @@ export const GrpcControllerMetadataMixin = <BaseClass extends TMixinTarget<_Meta
       target: Target;
     }): Map<string | symbol, IRpcMetadata> | undefined {
       const { target } = opts;
+
       return Reflect.getMetadata(MetadataKeys.CONTROLLER_GRPC_ROUTE, target);
     }
 
@@ -37,11 +40,13 @@ export const GrpcControllerMetadataMixin = <BaseClass extends TMixinTarget<_Meta
     }): IRpcMetadata | undefined {
       const { target, methodName } = opts;
       const rpcs = this.getRpcs({ target });
+
       return rpcs?.get(methodName);
     }
 
     hasRpcs<Target extends object = object>(opts: { target: Target }): boolean {
       const rpcs = this.getRpcs(opts);
+
       return rpcs !== undefined && rpcs.size > 0;
     }
   };

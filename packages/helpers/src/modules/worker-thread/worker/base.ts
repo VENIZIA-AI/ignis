@@ -7,6 +7,7 @@ import { getError } from '@/modules/error';
 import { type IWorker } from '../common';
 import { AbstractWorkerHelper } from './abstract';
 
+/** Starts a `Worker` from `path` and routes its events to `eventHandlers`, or logs them when no handler is given. A throwing handler is logged, not rethrown. */
 export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageType> {
   protected eventHandlers?: Partial<
     Pick<IWorker<MessageType>, 'onOnline' | 'onExit' | 'onError' | 'onMessage' | 'onMessageError'>
@@ -45,6 +46,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
         scope: this.onOnline.name,
         execution: () => this.eventHandlers?.onOnline?.(),
       });
+
       return;
     }
 
@@ -57,6 +59,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
         scope: this.onExit.name,
         execution: () => this.eventHandlers?.onExit?.({ code: opts.code }),
       });
+
       return;
     }
 
@@ -69,6 +72,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
         scope: this.onError.name,
         execution: () => this.eventHandlers?.onError?.({ error: opts.error }),
       });
+
       return;
     }
 
@@ -81,6 +85,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
         scope: this.onMessage.name,
         execution: () => this.eventHandlers?.onMessage?.({ message: opts.message }),
       });
+
       return;
     }
 
@@ -93,6 +98,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
         scope: this.onMessageError.name,
         execution: () => this.eventHandlers?.onMessageError?.({ error: opts.error }),
       });
+
       return;
     }
 

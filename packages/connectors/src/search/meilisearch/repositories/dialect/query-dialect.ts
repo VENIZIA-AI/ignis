@@ -159,16 +159,13 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     hiddenFields?: string[];
     capabilities?: ISearchCompileCapabilities;
   }): IMeilisearchSearchQuery {
-    const { filter, capabilities } = opts;
+    const { filter, hiddenFields, capabilities } = opts;
 
-    // `hiddenFields` is accepted and deliberately NOT translated: Meilisearch has no per-query field exclusion, only index-level `displayedAttributes`, so `SearchBaseRepository` strips hidden fields from every returned document one layer up.
+    // Meilisearch has no per-query field EXCLUSION, only the include list `attributesToRetrieve`: so a model that hides fields asks the engine for the visible ones only, and the engine never returns a hidden value (in the document, or in `_formatted`, which holds every retrieved attribute). `SearchBaseRepository` still strips hidden fields from every returned document and highlight, for an index the engine answers differently.
     const { where, fields, order, limit, skip, offset, include } = filter ?? {};
 
     if (include) {
-      throw getError({
-        message:
-          '[MeilisearchQueryDialect][build] search() does not support "include" - relations cannot be translated to a Meilisearch filter',
-      });
+      throw this.includeNotSupportedError();
     }
 
     const query: IMeilisearchSearchQuery = { query: '*' };
@@ -186,7 +183,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     }
 
     if (order) {
-      query.sortBy = this.toOrderBy({ order });
+      query.sortBy = this.toOrderBy({ order, capabilities });
     }
 
     if (limit !== undefined) {
@@ -194,15 +191,54 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     }
 
     const effectiveSkip = skip ?? offset;
+
     if (effectiveSkip !== undefined) {
       query.page = SearchDialectHelper.toSearchPage({ skip: effectiveSkip, limit });
     }
 
-    if (fields) {
-      query.includeFields = SearchDialectHelper.toFieldsCsv({ fields });
+    // An empty selection (`[]`, or an object with no `true`) selects nothing in particular: the engine returns whole documents, so no include list is sent.
+    const requested = fields ? SearchDialectHelper.toFieldsCsv({ fields }) : '';
+    const hidden = new Set(hiddenFields ?? []);
+    const included = this.toIncludedFields({ requested, hidden, declared: capabilities?.fields });
+
+    if (included) {
+      query.includeFields = included;
     }
 
     return query;
+  }
+
+  /**
+   * The include list sent to the engine. A caller's selection loses any hidden field it names (and falls back to the visible
+   * fields when nothing else is left). With no selection, a model that hides fields asks for every declared field that is
+   * visible, plus `id` (the primary key, declared or not). A model that hides nothing, or one whose fields are unknown, sends
+   * the caller's selection as it is.
+   */
+  private toIncludedFields(opts: {
+    requested: string;
+    hidden: ReadonlySet<string>;
+    declared?: ReadonlySet<string>;
+  }): string {
+    const { requested, hidden, declared } = opts;
+
+    if (hidden.size === 0) {
+      return requested;
+    }
+
+    const selected =
+      requested === '' ? [] : requested.split(',').filter((name) => !hidden.has(name));
+
+    if (selected.length > 0) {
+      return selected.join(',');
+    }
+
+    if (!declared || declared.size === 0) {
+      return '';
+    }
+
+    const visible = [...declared].filter((name) => !hidden.has(name));
+
+    return [...new Set(['id', ...visible])].filter((name) => !hidden.has(name)).join(',');
   }
 
   /** Maps the neutral query onto Meilisearch wire params. Pagination always uses the exhaustive `page`/`hitsPerPage` mode (exact `totalHits`), never `offset`/`limit`; `engineParams` merges last, verbatim. */
@@ -217,12 +253,14 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     const wire: Record<string, unknown> = {};
 
     const restEntries = Object.entries(rest);
+
     for (const [key, value] of restEntries) {
       if (value === undefined) {
         continue;
       }
 
       const unsupported = UNSUPPORTED_QUERY_FIELDS[key];
+
       if (unsupported) {
         throw getError({
           message: `[MeilisearchQueryDialect][toWireParams] '${key}' is not supported | ${unsupported}`,
@@ -230,6 +268,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
       }
 
       const arrayKey = CSV_TO_ARRAY_KEYS[key];
+
       if (arrayKey) {
         wire[arrayKey] = String(value).split(',');
         continue;
@@ -257,6 +296,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
         if (input.queryBy) {
           searchQuery.queryBy = input.queryBy.join(',');
         }
+
         break;
       }
       case SearchModes.SEMANTIC: {
@@ -291,6 +331,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
         if (input.nearVector) {
           searchQuery.vector = input.nearVector;
         }
+
         break;
       }
       default: {
@@ -414,10 +455,48 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     }
   }
 
-  private toOrderBy(opts: { order: string[] }): string {
-    return opts.order
+  private jsonPathError(opts: { field: string }): Error {
+    return getError({
+      message: `[MeilisearchQueryDialect][toWhere] search() does not support JSON-path fields | field: '${opts.field}'`,
+    });
+  }
+
+  includeNotSupportedError(): Error {
+    return getError({
+      message:
+        '[MeilisearchQueryDialect][build] search() does not support "include" - relations cannot be translated to a Meilisearch filter',
+    });
+  }
+
+  fieldNotFoundError(opts: { kind: 'where' | 'order'; field: string }): Error {
+    const { kind, field } = opts;
+
+    // A dotted `where` key is refused before the declared fields are looked at, so a hidden one is too.
+    if (kind === 'where' && field.includes('.')) {
+      return this.jsonPathError({ field });
+    }
+
+    return SearchDialectHelper.fieldNotFoundError({
+      field,
+      engine: ENGINE,
+      method: kind === 'order' ? 'toOrderBy' : 'compileWhere',
+    });
+  }
+
+  /** Each order field must be one the collection declares, as in a `where`: an undeclared one is refused before the engine. */
+  private toOrderBy(opts: { order: string[]; capabilities?: ISearchCompileCapabilities }): string {
+    const { order, capabilities } = opts;
+
+    return order
       .map((entry) => {
         const { field, direction } = Sorts.parseEntry({ entry });
+
+        SearchDialectHelper.assertKnownField({
+          field,
+          engine: ENGINE,
+          capabilities,
+          method: 'toOrderBy',
+        });
 
         return `${field}:${direction}`;
       })
@@ -455,9 +534,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     const { field, value, capabilities } = opts;
 
     if (field.includes('.')) {
-      throw getError({
-        message: `[MeilisearchQueryDialect][toWhere] search() does not support JSON-path fields | field: '${field}'`,
-      });
+      throw this.jsonPathError({ field });
     }
 
     SearchDialectHelper.assertKnownField({ field, engine: ENGINE, capabilities });
@@ -548,6 +625,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
         if (Array.isArray(value) && value.length === 0) {
           return { outcome: SearchFilterOutcomes.MATCH_NONE };
         }
+
         return SearchDialectHelper.toFilterClause({
           filterBy: `${field} IN [${this.escapeArray({ field, value })}]`,
         });
@@ -557,6 +635,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
         if (Array.isArray(value) && value.length === 0) {
           return { outcome: SearchFilterOutcomes.MATCH_ALL };
         }
+
         return SearchDialectHelper.toFilterClause({
           filterBy: `${field} NOT IN [${this.escapeArray({ field, value })}]`,
         });
@@ -570,6 +649,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
         // De Morgan: NOT (min <= x <= max) is (x < min) OR (x > max). Exact for any field that
         // HAS a value; see the missing-value note on the Typesense side.
         const [min, max] = this.assertBetweenTuple({ field, value });
+
         return SearchDialectHelper.toFilterClause({
           filterBy: `(${field} < ${this.escapeValue({ field, value: min })} OR ${field} > ${this.escapeValue({ field, value: max })})`,
         });
@@ -591,6 +671,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
             field,
             ENGINE,
           );
+
         return SearchDialectHelper.throwUnsupportedOperator({ operator, field, engine: ENGINE });
       }
     }

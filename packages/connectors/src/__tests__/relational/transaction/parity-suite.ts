@@ -42,6 +42,7 @@ export const ALREADY_ENDED_ROLLBACK = '[Transaction][rollback] Transaction alrea
 export const captureRejection = async (opts: { task: Promise<unknown> }): Promise<unknown> => {
   try {
     await opts.task;
+
     return undefined;
   } catch (error) {
     return error;

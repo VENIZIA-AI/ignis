@@ -9,6 +9,7 @@ export class MembershipRoleManager extends BaseRoleManager implements RoleManage
     string, // child domain
     Set<string> // set of parent domains
   >;
+
   private memberships = new Map<
     string, // user
     Set<string> // set of joined domains
@@ -26,6 +27,7 @@ export class MembershipRoleManager extends BaseRoleManager implements RoleManage
 
   async addLink(user: string, domain: string): Promise<void> {
     const existing = this.memberships.get(user);
+
     if (existing) {
       existing.add(domain);
     } else {
@@ -41,6 +43,7 @@ export class MembershipRoleManager extends BaseRoleManager implements RoleManage
   syncedHasLink(name1: string, name2: string): boolean {
     this.reportGraphOnce(() => {
       const { nodeCount, edgeCount } = MembershipRoleManager.overlayStats(this.overlay);
+
       return {
         message: 'membership role manager initialized | nodes: %d | edges: %d',
         args: [nodeCount, edgeCount],
@@ -48,6 +51,7 @@ export class MembershipRoleManager extends BaseRoleManager implements RoleManage
     });
 
     const joined = this.memberships.get(name1);
+
     if (!joined || joined.size === 0) {
       return false;
     }
@@ -56,6 +60,7 @@ export class MembershipRoleManager extends BaseRoleManager implements RoleManage
       overlay: this.overlay,
       node: name2,
     });
+
     for (const ancestor of ancestors) {
       if (joined.has(ancestor)) {
         return true;

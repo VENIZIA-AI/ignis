@@ -11,6 +11,7 @@ describe('SystemEnvsHelper', () => {
 
   test('lease throws NotSupported', async () => {
     const provider = new SystemEnvsHelper({});
+
     return expect(provider.lease({ path: 'db', key: 'k' })).rejects.toThrow(/not supported/i);
   });
 });

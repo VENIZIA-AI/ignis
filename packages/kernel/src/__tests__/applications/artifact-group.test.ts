@@ -141,6 +141,7 @@ describe('ArtifactGroup.pick', () => {
     ArtifactGroup.setResolver({
       resolve: async () => {
         calls += 1;
+
         return { services: [StockService], controllers: [StockController] };
       },
     });

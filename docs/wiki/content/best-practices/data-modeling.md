@@ -14,7 +14,7 @@ The recommended pattern is to define the schema and relations as **static proper
 **Example (`src/models/entities/user.model.ts`):**
 
 ```typescript
-import { BaseRelationalEntity, extraUserColumns, PostgresIdEnricher, model } from '@venizia/ignis';
+import { AuthModelColumns, BaseRelationalEntity, PostgresIdEnricher, model } from '@venizia/ignis';
 import { pgTable } from 'drizzle-orm/pg-core';
 
 @model()
@@ -22,7 +22,7 @@ export class User extends BaseRelationalEntity<typeof User.schema> {
   // 1. Define schema as a static property
   static override schema = pgTable('User', {
     ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
-    ...extraUserColumns({ idType: 'string' }),
+    ...AuthModelColumns.buildUser({ idType: 'string' }),
   });
 
   // 2. Define relations as a static method (return empty array if none)
@@ -36,7 +36,7 @@ Instead of manually defining common columns like primary keys, timestamps, or au
 
 **Available Enrichers:**
 
-Each enricher is a class with a static `generateColumnDefs` and `enrich` (SQLite has the same under `Sqlite*` names). The old function names (`generateIdColumnDefs`, `enrichTz`, ...) are removed; `devz codemod namespace-functions` moves your calls.
+Each enricher is a class with a static `generateColumnDefs` and `enrich` (SQLite has the same under `Sqlite*` names). The old function names (`generateIdColumnDefs`, `enrichTz`, ...) are removed; `bun run devz codemod namespace-functions` moves your calls.
 
 | Enricher | Description | Columns Added |
 |----------|-------------|---------------|
@@ -45,7 +45,7 @@ Each enricher is a class with a static `generateColumnDefs` and `enrich` (SQLite
 | `PostgresTzEnricher.generateColumnDefs` | Adds timestamps | `createdAt`, `modifiedAt` (auto-updating); `deletedAt` via `{ deleted: { enable: true, ... } }` |
 | `PostgresUserAuditEnricher.generateColumnDefs` | Adds audit fields | `createdBy`, `modifiedBy` (supports `allowAnonymous` option) |
 | `PostgresDataTypeEnricher.generateColumnDefs` | Adds generic value fields | `dataType`, `nValue` (number), `tValue` (text), `bValue` (bytea), `jValue` (jsonb), `boValue` (boolean) |
-| `extraUserColumns` | Auth user fields | `realm`, `status`, `type`, `activatedAt`, `lastLoginAt`, `parentId` |
+| `AuthModelColumns.buildUser` | Auth user fields | `realm`, `status`, `type`, `activatedAt`, `lastLoginAt`, `parentId` |
 
 **Usage Example:**
 
@@ -310,7 +310,7 @@ DataSources automatically discover their schema from the repositories that bind 
 ```typescript
 // src/datasources/postgres.datasource.ts
 import { datasource, ValueOrPromise } from '@venizia/ignis';
-import { BaseRelationalDataSource } from '@venizia/ignis-connectors/postgres';
+import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
 
@@ -323,7 +323,7 @@ interface IDataSourceConfigs {
 }
 
 @datasource({ driver: NodePostgresDriver })
-export class PostgresDataSource extends BaseRelationalDataSource<IDataSourceConfigs> {
+export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -391,7 +391,7 @@ Protect sensitive data by configuring properties that are excluded at the SQL le
 ```typescript
 @model({
   settings: {
-    hiddenProperties: ['password', 'secret'],
+    properties: { hidden: ['password', 'secret'] },
   },
 })
 export class User extends BaseRelationalEntity<typeof User.schema> {
@@ -407,7 +407,7 @@ export class User extends BaseRelationalEntity<typeof User.schema> {
 **Key points:**
 
 - Hidden properties are excluded from SELECT, INSERT RETURNING, UPDATE RETURNING, DELETE RETURNING
-- You can still **filter by** hidden properties in where clauses
+- **Server code** can still filter and sort by hidden properties. A filter that comes from a client request cannot: a generated controller answers `400`, the error of a column that does not exist, when the request's `where`, `order` or an include scope names one
 - Hidden properties are **recursively excluded** from included relations
 - Use the connector directly when you need to access hidden data (e.g., password verification)
 
@@ -421,7 +421,7 @@ Declare your model's authorization principal in `@model` settings to make the mo
 @model({
   settings: {
     authorize: { principal: 'user' },
-    hiddenProperties: ['password'],
+    properties: { hidden: ['password'] },
   },
 })
 export class User extends BaseRelationalEntity<typeof User.schema> {

@@ -49,6 +49,7 @@ export class ArtifactScanCache {
   static location(opts: { root: string }): string {
     const root = resolve(opts.root);
     const key = ArtifactScanCache.digest({ text: root }).slice(0, 16);
+
     return join(dirname(root), 'node_modules', '.cache', 'ignis-artifacts', `${key}.json`);
   }
 
@@ -56,28 +57,36 @@ export class ArtifactScanCache {
   static fingerprint(opts: { root: string }): string {
     const root = resolve(opts.root);
     const entries: string[] = [];
+
     for (const relativePath of globSync(ArtifactStereotypes.SOURCE_GLOB, { cwd: root })) {
       const stats = statSync(join(root, relativePath));
       entries.push(`${relativePath}:${stats.size}:${stats.mtimeMs}`);
     }
+
     entries.sort();
 
     const extras = [join(dirname(root), 'package.json')];
     let directory = dirname(root);
+
     while (true) {
       const lockfile = ['bun.lock', 'bun.lockb', 'package-lock.json']
         .map((name) => join(directory, name))
         .find(existsSync);
+
       if (lockfile) {
         extras.push(lockfile);
         break;
       }
+
       const parent = dirname(directory);
+
       if (parent === directory) {
         break;
       }
+
       directory = parent;
     }
+
     for (const file of extras.filter(existsSync)) {
       const stats = statSync(file);
       entries.push(`${file}:${stats.size}:${stats.mtimeMs}`);
@@ -91,10 +100,13 @@ export class ArtifactScanCache {
   /** The cached scan, or `undefined` for a missing, stale or unreadable cache - never an error. */
   static read(opts: { root: string }): IScannedArtifact[] | undefined {
     const file = ArtifactScanCache.location(opts);
+
     if (!existsSync(file)) {
       return undefined;
     }
+
     let stored: { fingerprint?: unknown; artifacts?: unknown };
+
     try {
       stored = JSON.parse(readFileSync(file, 'utf8'));
       // eslint-disable-next-line venizia/no-silent-catch -- a corrupt cache is a miss; the cause is not reported and the only cost is one fresh scan
@@ -102,12 +114,14 @@ export class ArtifactScanCache {
       // A corrupt cache is a miss: the caller scans and rewrites it.
       return undefined;
     }
+
     if (
       stored.fingerprint !== ArtifactScanCache.fingerprint(opts) ||
       !Array.isArray(stored.artifacts)
     ) {
       return undefined;
     }
+
     return stored.artifacts;
   }
 
@@ -115,6 +129,7 @@ export class ArtifactScanCache {
   static write(opts: { root: string; artifacts: IScannedArtifact[] }): boolean {
     const file = ArtifactScanCache.location(opts);
     const temporary = `${file}.${process.pid}.tmp`;
+
     try {
       mkdirSync(dirname(file), { recursive: true });
       writeFileSync(
@@ -125,6 +140,7 @@ export class ArtifactScanCache {
         }),
       );
       renameSync(temporary, file);
+
       return true;
       // eslint-disable-next-line venizia/no-silent-catch -- the `false` returned below is the report; the cause of the failed write is lost and the next start pays one scan
     } catch {

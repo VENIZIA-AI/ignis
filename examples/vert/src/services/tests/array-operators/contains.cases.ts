@@ -112,6 +112,7 @@ export class ContainsCases extends BaseTestCases {
 
       if (results.length === 2) {
         const names = results.map((r) => r.name).sort();
+
         if (names.includes('Product A') && names.includes('Product C')) {
           this.context.logger.info('[CASE 3] PASSED | Found 2 products with featured tag');
           this.context.logger.info('[CASE 3] Products: %j', names);

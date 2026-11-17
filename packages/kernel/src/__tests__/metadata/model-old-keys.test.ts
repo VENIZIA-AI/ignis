@@ -63,6 +63,22 @@ describe('@model - the removed keys are type errors', () => {
     expect(D).toBeDefined();
   });
 
+  test('settings.hiddenProperties', () => {
+    const declare = () => {
+      // @ts-expect-error hiddenProperties is not a key of IModelSettings: use settings.properties.hidden
+      @model({ settings: { hiddenProperties: ['secret'] } })
+      class H extends AbstractEntity {
+        getSchema<T>(): T {
+          return {} as T;
+        }
+      }
+
+      return H;
+    };
+
+    expect(declare).toThrow('hiddenProperties was replaced by properties.hidden');
+  });
+
   test('skipMigrate', () => {
     // @ts-expect-error skipMigrate is not a key of IModelMetadata: use migration: { use: false }
     @model({ skipMigrate: true })
@@ -77,6 +93,21 @@ describe('@model - the removed keys are type errors', () => {
 });
 
 describe('@model - an untyped caller loses the runtime error', () => {
+  test('settings read from a variable still throw for hiddenProperties, which would otherwise stop hiding', () => {
+    const settings: Record<string, unknown> = { hiddenProperties: ['secret'] };
+
+    expect(() => {
+      @model({ settings })
+      class Untyped extends AbstractEntity {
+        getSchema<T>(): T {
+          return {} as T;
+        }
+      }
+
+      return Untyped;
+    }).toThrow('hiddenProperties was replaced by properties.hidden');
+  });
+
   test.each([
     ['defaultFilter', { settings: { defaultFilter: { where: {} } } }],
     ['defaultLimit', { settings: { defaultLimit: 20 } }],

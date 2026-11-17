@@ -1,21 +1,29 @@
 import { describe, expect, test } from 'bun:test';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { pgTable, serial, text } from 'drizzle-orm/pg-core';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { TWhere } from '@venizia/ignis-kernel';
 import { PostgresFilterBuilder } from '@/relational/postgres/repositories/dialect/filter';
 
 /**
- * A `@model` `defaultFilter` is a SCOPE (soft-delete, tenant, ownership): a caller filter may only
+ * A `@model` `settings.query.filter` is a SCOPE (soft-delete, tenant, ownership): a caller filter may only
  * NARROW it - dropping a default condition is a data-leak primitive.
  */
-const mergeWhere = (defaultWhere: AnyType, userWhere: AnyType): AnyType => {
-  const builder = new PostgresFilterBuilder() as AnyType;
-  return builder.mergeWhere({ defaultWhere, userWhere });
+const mergeWhere = (defaultWhere: TWhere, userWhere: TWhere): TWhere => {
+  const builder = new PostgresFilterBuilder();
+  // `mergeWhere` is private; the test reads it by name.
+  const merge: unknown = Reflect.get(builder, 'mergeWhere');
+
+  if (typeof merge !== 'function') {
+    throw new Error('[mergeWhere] FilterBuilder has no mergeWhere');
+  }
+
+  return Reflect.apply(merge, builder, [{ defaultWhere, userWhere }]);
 };
 
 /** Flattens the merge result into the set of conditions that must ALL hold. */
-const conjuncts = (merged: AnyType): AnyType[] => {
+const conjuncts = (merged: TWhere): TWhere[] => {
   const { and: andGroup, ...rest } = merged;
+
   return [...Object.entries(rest).map(([key, value]) => ({ [key]: value })), ...(andGroup ?? [])];
 };
 
@@ -70,8 +78,8 @@ describe('an EMPTY logical group', () => {
 
   const dialect = new PgDialect();
 
-  const compile = (where: AnyType): string => {
-    const builder = new PostgresFilterBuilder() as AnyType;
+  const compile = (where: TWhere): string => {
+    const builder = new PostgresFilterBuilder();
     const condition = builder.toWhere({ tableName: 'articles', schema: table, where });
 
     return condition ? dialect.sqlToQuery(condition).sql : 'NO CONDITION';
@@ -94,11 +102,15 @@ describe('an EMPTY logical group', () => {
 });
 
 describe('mergeWhere - the established rules still hold', () => {
-  test('a scalar-over-scalar collision is still a caller override (opting out of soft delete)', () => {
+  test('a scalar-over-scalar collision composes: the caller cannot opt out of soft delete', () => {
     const merged = mergeWhere({ isDeleted: false }, { isDeleted: true });
 
-    expect(merged.isDeleted).toBe(true);
-    expect(merged.and).toBeUndefined();
+    expect(merged.isDeleted).toBeUndefined();
+    expect(merged.and).toEqual([{ isDeleted: false }, { isDeleted: true }]);
+  });
+
+  test('the caller restating the default scalar is a no-op', () => {
+    expect(mergeWhere({ isDeleted: false }, { isDeleted: false })).toEqual({ isDeleted: false });
   });
 
   test('an operator-object collision is still AND-composed', () => {

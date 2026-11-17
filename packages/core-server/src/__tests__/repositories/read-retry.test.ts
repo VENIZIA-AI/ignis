@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { RetryBackoffStrategies, RetryJitterModes } from '@venizia/ignis-helpers';
 
@@ -21,7 +20,7 @@ abstract class ReadRetryProbeBase extends ReadableRelationalRepository {
   calls = 0;
   total = 0;
 
-  override applyDefaultFilter<DataObject = AnyType>(opts: {
+  override applyDefaultFilter<DataObject = unknown>(opts: {
     userFilter?: TFilter<DataObject>;
   }): TFilter<DataObject> {
     return opts.userFilter ?? {};
@@ -42,18 +41,20 @@ class RetryProbeRepository extends ReadRetryProbeBase {
 
   protected override validateLockOptions(): void {}
 
-  protected override async findWithCoreAPI<R = AnyType>(): Promise<Array<R>> {
+  protected override async findWithCoreAPI<R = unknown>(): Promise<Array<R>> {
     const index = Math.min(this.calls, this.responses.length - 1);
     this.calls += 1;
+
     return this.responses[index] as Array<R>;
   }
 }
 
 /** Keeps the REAL `validateLockOptions` - `RetryProbeRepository` no-ops it, hiding that invariant. */
 class LockAwareRetryProbeRepository extends ReadRetryProbeBase {
-  protected override async findWithCoreAPI<R = AnyType>(): Promise<Array<R>> {
+  protected override async findWithCoreAPI<R = unknown>(): Promise<Array<R>> {
     this.calls += 1;
-    return [] as Array<R>;
+
+    return [];
   }
 }
 
@@ -61,7 +62,7 @@ class LockAwareRetryProbeRepository extends ReadRetryProbeBase {
 class ThrowingRetryProbeRepository extends ReadRetryProbeBase {
   protected override validateLockOptions(): void {}
 
-  protected override async findWithCoreAPI<R = AnyType>(): Promise<Array<R>> {
+  protected override async findWithCoreAPI<R = unknown>(): Promise<Array<R>> {
     this.calls += 1;
     throw getError({ message: '[ThrowingRetryProbeRepository] connection reset by peer' });
   }
@@ -117,7 +118,12 @@ describe('AbstractRepository read-retry engine', () => {
       filter: {},
       options: {
         retry: { maxAttempts: 5, backoff: FAST_RETRY_BACKOFF },
-        transaction: {} as AnyType,
+        transaction: {
+          isActive: true,
+          connector: {},
+          commit: async () => {},
+          rollback: async () => {},
+        },
       },
     });
 
@@ -357,9 +363,9 @@ describe('postgres readable retry wiring', () => {
 /** Never executed. Write verbs must reject `retry` - deleting any marker below must break the build. */
 export const writeVerbsRejectRetryGuard = (repository: RetryProbeRepository) => [
   // @ts-expect-error - create options never accept retry
-  repository.create({ data: {} as AnyType, options: { retry: {} } }),
+  repository.create({ data: {}, options: { retry: {} } }),
   // @ts-expect-error - updateById options never accept retry
-  repository.updateById({ id: 1, data: {} as AnyType, options: { retry: {} } }),
+  repository.updateById({ id: 1, data: {}, options: { retry: {} } }),
   // @ts-expect-error - deleteById options never accept retry
   repository.deleteById({ id: 1, options: { retry: {} } }),
 ];

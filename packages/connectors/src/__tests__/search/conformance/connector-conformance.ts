@@ -155,7 +155,7 @@ export const runConnectorConformance = (opts: {
       expect(result2).toBe(0);
     });
 
-    test('deleteAll() empties the collection', async () => {
+    test('deleteBy() empties the collection', async () => {
       await seed([{ id: '1', title: 'a', score: 1 }]);
 
       await connector.document.deleteAll({ collection });
@@ -191,6 +191,7 @@ export const runConnectorConformance = (opts: {
       await seed([{ id: '1', title: 'first', score: 1 }]);
 
       let caught: unknown;
+
       try {
         await connector.document.create<IConformanceDocument>({
           collection,
@@ -217,6 +218,7 @@ export const runConnectorConformance = (opts: {
       await seed([{ id: '1', title: 'first', score: 1 }]);
 
       let caught: unknown;
+
       try {
         await connector.document.create<IConformanceDocument>({
           collection,

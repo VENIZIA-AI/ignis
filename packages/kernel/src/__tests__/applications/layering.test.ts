@@ -30,6 +30,7 @@ const REST_APPLICATION_MEMBERS = [
   'configuration',
   'constructor',
   'controller',
+  'createRouter',
   'dataSource',
   'drainByTag',
   'generateRequestId',
@@ -53,6 +54,7 @@ const REST_APPLICATION_MEMBERS = [
   'registerDiscoveredArtifacts',
   'registerDynamicBindings',
   'repository',
+  'resolveBodyLimit',
   'runApplicationHook',
   'runBootSequence',
   'service',
@@ -128,6 +130,7 @@ describe('the kernel application layering - what left, not only what arrived', (
     });
 
     const members = ABSTRACT_APPLICATION_MEMBERS.filter((name) => name !== 'constructor');
+
     for (const member of members) {
       expect(typeof (application as unknown as Record<string, unknown>)[member]).toBe('function');
     }

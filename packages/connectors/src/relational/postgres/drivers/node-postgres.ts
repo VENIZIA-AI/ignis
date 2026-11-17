@@ -1,14 +1,19 @@
 import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import type { TRelationalConnector } from '@/relational/postgres/datasources/common';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
+import { DuckTypingUtility } from '@/common/internal';
+import { RelationalDialects } from '@/relational/core/drivers';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 import type { TRelationalConnection, TRelationalDriver } from './driver';
 
+/** Driver over a `pg` `Pool`. Throws on construction if given anything without pool accounting, such as a bare `pg.Client`. */
 export class NodePostgresDriver<
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
 > implements TRelationalDriver<Schema, Pool> {
+  /** The engine this driver speaks; the migration ledger reads it (see {@link RelationalDialects}). */
+  readonly dialect = RelationalDialects.POSTGRES;
+
   private readonly client: Pool;
 
   constructor(opts: { client: Pool }) {
@@ -16,9 +21,10 @@ export class NodePostgresDriver<
 
     // A bare `pg.Client` also exposes connect(), so only the pool accounting tells the two apart -
     // and a Client cannot hand out a dedicated connection per transaction.
-    const isPool =
-      typeof (client as AnyType)?.connect === 'function' &&
-      typeof (client as AnyType)?.totalCount === 'number';
+    const isPool = DuckTypingUtility.hasMembers({
+      value: client,
+      members: { connect: 'function', totalCount: 'number' },
+    });
 
     if (!isPool) {
       throw getError({
@@ -44,6 +50,7 @@ export class NodePostgresDriver<
     }
 
     let connector: TRelationalConnector<Schema>;
+
     try {
       connector = drizzle({ client, schema: opts.schema }) as TRelationalConnector<Schema>;
     } catch (error) {
@@ -55,10 +62,12 @@ export class NodePostgresDriver<
       connector,
       execute: async (executeOpts: { statement: string }) => {
         const result = await client.query(executeOpts.statement);
+
         return { count: result.rowCount ?? 0 };
       },
       query: async <R>(queryOpts: { statement: string }) => {
         const result = await client.query(queryOpts.statement);
+
         return (result.rows ?? []) as Array<R>;
       },
       release: (releaseOpts?: { destroy?: boolean }) => {

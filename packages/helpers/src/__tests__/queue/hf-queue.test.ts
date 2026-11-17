@@ -54,15 +54,19 @@ describe('HfQueueHelper — generic FIFO queue (O(1) enqueue/dequeue/cancel)', (
   test('large burst (> compaction threshold) preserves strict FIFO order', () => {
     const q = new HfQueueHelper<number>();
     const count = 1000; // exceeds the 256 compaction threshold, exercising splice-compaction
+
     for (let i = 0; i < count; i += 1) {
       q.enqueue({ value: i });
     }
+
     expect(q.size).toBe(count);
 
     const out: number[] = [];
+
     for (let i = 0; i < count; i += 1) {
       out.push(q.dequeue() as number);
     }
+
     expect(out).toEqual(Array.from({ length: count }, (_, i) => i));
     expect(q.size).toBe(0);
     expect(q.dequeue()).toBeNull();

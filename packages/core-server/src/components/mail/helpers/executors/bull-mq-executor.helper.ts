@@ -1,5 +1,5 @@
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
-import { RedisSingleHelper } from '@venizia/ignis-helpers';
+import type { IRedisHelper } from '@venizia/ignis-helpers';
 import type { TConstValue } from '@/helpers';
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 import type {
@@ -13,11 +13,14 @@ import type {
 import {
   BullMQExecutorModes,
   MailBackoffTypes,
+  MailDefaults,
   MailErrorCodes,
   MailExecutorErrors,
+  MailQueueJobNames,
 } from '../../common';
 import type { Job } from 'bullmq';
 
+/** Mail queue executor backed by BullMQ. The `mode` option decides whether this process holds the queue, the workers, or both; a processor returning `success: false` fails the job so BullMQ retries it. */
 export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {
   private queueIdentifier: string;
   private queueName: string;
@@ -25,7 +28,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
 
   private queueHelper?: BullMQHelper<IQueueJobPayload, IMailQueueResult>;
   private workerHelpers: BullMQHelper<IQueueJobPayload, IMailProcessorResult>[] = [];
-  private redisConnection: RedisSingleHelper;
+  private redisConnection: IRedisHelper;
   private readonly bullmqModule?: typeof import('bullmq');
   private jobIdCounter = 0;
 
@@ -36,10 +39,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
 
     this.mode = opts.mode;
 
-    this.redisConnection = new RedisSingleHelper({
-      ...opts.redis,
-      maxRetry: undefined,
-    });
+    this.redisConnection = opts.redis;
 
     this.bullmqModule = opts.module;
     this.queueIdentifier = opts.queue.identifier;
@@ -97,6 +97,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
       this.logger
         .for(this.setProcessor.name)
         .warn('Skipping worker creation in queue-only mode. Workers will not be started.');
+
       return;
     }
 
@@ -142,7 +143,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
       numberOfWorker: concurrency,
       lockDuration,
       onWorkerData: async (job: Job<IQueueJobPayload, IMailProcessorResult>) => {
-        const maxAttempts = job.data.options?.attempts ?? 3;
+        const maxAttempts = job.data.options?.attempts ?? MailDefaults.ATTEMPTS;
 
         this.logger
           .for('onWorkerData')
@@ -190,7 +191,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
         error: Error,
       ) => {
         if (job) {
-          const maxAttempts = job.data.options?.attempts ?? 3;
+          const maxAttempts = job.data.options?.attempts ?? MailDefaults.ATTEMPTS;
           this.logger
             .for('onWorkerDataFail')
             .error(
@@ -229,12 +230,13 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
   async removeWorker(index: number): Promise<boolean> {
     if (index < 0 || index >= this.workerHelpers.length) {
       this.logger.for(this.removeWorker.name).warn('Invalid worker index: %d', index);
+
       return false;
     }
 
-    // Dropped from the list BEFORE the close is awaited: a rejecting close must not leave a half-closed worker still counted and still handed jobs.
+    // The helper closes the worker, then quits the connections it handed to BullMQ. Dropped from the list BEFORE the close is awaited: a rejecting close must not leave a half-closed worker still counted and still handed jobs.
     const [workerHelper] = this.workerHelpers.splice(index, 1);
-    await workerHelper.worker.close();
+    await workerHelper.close();
 
     this.logger
       .for(this.removeWorker.name)
@@ -249,7 +251,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
     this.workerHelpers = [];
 
     const results = await Promise.allSettled(
-      workerHelpers.map((workerHelper) => workerHelper.worker.close()),
+      workerHelpers.map((workerHelper) => workerHelper.close()),
     );
 
     const failures: Error[] = [];
@@ -278,29 +280,19 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
     this.logger.for(this.clearWorkers.name).info('All workers cleared | Count: %d', count);
   }
 
-  /** Full teardown: workers -> queue -> Redis. Every step runs even if an earlier one failed (skipping leaks a queue client + Redis socket); failures are reported once, at the end. */
+  /** Closes the workers, then the queue. Every step runs even if an earlier one failed; failures are reported once, at the end. The Redis helper is the application's, so it stays open. */
   async close(): Promise<void> {
     const result = await this.closeWorkers();
     const failures: Error[] = [...result];
 
     if (this.queueHelper) {
       try {
-        await this.queueHelper.queue.close();
+        await this.queueHelper.close();
       } catch (error) {
         const closeError = error instanceof Error ? error : getError({ message: String(error) });
         failures.push(closeError);
         this.logger.for(this.close.name).error('Failed to close queue | error: %s', closeError);
       }
-    }
-
-    try {
-      await this.redisConnection.disconnect();
-    } catch (error) {
-      const disconnectError = error instanceof Error ? error : getError({ message: String(error) });
-      failures.push(disconnectError);
-      this.logger
-        .for(this.close.name)
-        .error('Failed to disconnect redis | error: %s', disconnectError);
     }
 
     if (failures.length > 0) {
@@ -353,24 +345,24 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
 
     this.logger
       .for(this.enqueueVerificationEmail.name)
-      .info(
-        'Queuing email to BullMQ/Redis | jobId: %s | email: %s | mode: %s',
-        jobId,
-        email,
-        this.mode,
-      );
+      .debug('Queuing email to BullMQ/Redis | jobId: %s | mode: %s', jobId, this.mode);
 
-    const bullJob = await this.queueHelper.queue.add('send-verification-email', job, {
-      priority: options?.priority,
-      delay: options?.delay,
-      attempts: options?.attempts ?? 3,
-      backoff: {
-        type: options?.backoff?.type ?? MailBackoffTypes.EXPONENTIAL,
-        delay: options?.backoff?.delay ?? 1000,
+    const bullJob = await this.queueHelper.queue.add(
+      MailQueueJobNames.SEND_VERIFICATION_EMAIL,
+      job,
+      {
+        priority: options?.priority,
+        delay: options?.delay,
+        attempts: options?.attempts ?? MailDefaults.ATTEMPTS,
+        backoff: {
+          type: options?.backoff?.type ?? MailBackoffTypes.EXPONENTIAL,
+          delay: options?.backoff?.delay ?? MailDefaults.BACKOFF_DELAY_MS,
+        },
+        removeOnComplete: true,
+        // Bounded: a failed job holds the recipient's address, and `false` kept every one forever.
+        removeOnFail: MailDefaults.FAILED_JOB_RETENTION,
       },
-      removeOnComplete: true,
-      removeOnFail: false,
-    });
+    );
 
     return {
       jobId: bullJob.id ?? jobId,

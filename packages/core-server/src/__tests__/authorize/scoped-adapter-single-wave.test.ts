@@ -86,6 +86,7 @@ describe('ScopedCasbinAdapter - queryPrincipalPolicies', () => {
         const { sql: text, params } = dialect.sqlToQuery(query);
         capturedStatement = `${text} ${JSON.stringify(params)}`;
         const rows = text.includes('WITH RECURSIVE') ? PRINCIPAL_POLICY_ROWS : [];
+
         return { rows };
       },
     };
@@ -93,6 +94,7 @@ describe('ScopedCasbinAdapter - queryPrincipalPolicies', () => {
     // `'metadataColumnName' in opts` distinguishes "not passed" (default 'metadata') from "explicitly undefined" - `??` alone cannot tell those apart.
     const metadataColumnName = 'metadataColumnName' in opts ? opts.metadataColumnName : 'metadata';
     const dataSource = { connector } as ICasbinPolicySource;
+
     return new ScopedCasbinAdapter({
       dataSource,
       entities: entities({ metadataColumnName }),
@@ -168,10 +170,12 @@ describe('ScopedCasbinAdapter - queryPrincipalPolicies domain_closure shape', ()
       execute: async (query: SQL) => {
         const { sql: text, params } = dialect.sqlToQuery(query);
         capturedStatement = `${text} ${JSON.stringify(params)}`;
+
         return { rows: [] };
       },
     };
     const dataSource = { connector } as ICasbinPolicySource;
+
     return new ScopedCasbinAdapter({ dataSource, entities: entities() });
   };
 
@@ -238,10 +242,12 @@ describe('ScopedCasbinAdapter - domainEdge rows become g3 lines', () => {
     const connector = {
       execute: async (query: SQL) => {
         const { sql: text } = dialect.sqlToQuery(query);
+
         return { rows: text.includes('WITH RECURSIVE') ? rows : [] };
       },
     };
     const dataSource = { connector } as ICasbinPolicySource;
+
     return new ScopedCasbinAdapter({ dataSource, entities: entities() });
   };
 
@@ -262,12 +268,15 @@ describe('ScopedCasbinAdapter - domainEdge rows become g3 lines', () => {
   const capturedLinesFor = async (rows: TPrincipalPolicyRow[]): Promise<string[]> => {
     const adapter = buildAdapterWithRows(rows);
     let captured: string[] = [];
+
     adapter['loadLines'] = async (opts: { model: Model; lines: string[] }): Promise<void> => {
       captured = opts.lines;
     };
+
     const { newModelFromString } = await import('casbin');
     const model = newModelFromString(CASBIN_RBAC_DOMAIN_SCOPED_MODEL);
     await adapter.loadFilteredPolicy(model, { principal: { type: 'User', id: 'u1' } });
+
     return captured;
   };
 
@@ -399,12 +408,14 @@ describe('ScopedCasbinAdapter - loadFilteredPolicy issues one wave', () => {
         const { sql: text } = dialect.sqlToQuery(query);
         const rows = text.includes('WITH RECURSIVE') ? SINGLE_WAVE_ROWS : [];
         inFlight -= 1;
+
         return { rows };
       },
     };
 
     const dataSource = { connector } as ICasbinPolicySource;
     adapter = new ScopedCasbinAdapter({ dataSource, entities: entities() });
+
     adapter['loadLines'] = async (opts: { model: Model; lines: string[] }): Promise<void> => {
       captured = opts.lines;
     };
@@ -415,8 +426,10 @@ describe('ScopedCasbinAdapter - loadFilteredPolicy issues one wave', () => {
 
   const getExecuteCalls = (): number => executeCalls;
   const getMaxConcurrentInFlight = (): number => maxInFlight;
+
   const capturedLines = async (): Promise<string[]> => {
     await adapter.loadFilteredPolicy(model, { principal: { type: 'User', id: 'u1' } });
+
     return captured;
   };
 

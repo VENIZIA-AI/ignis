@@ -14,7 +14,28 @@ import { AbstractBearerTokenService } from './abstract.service';
 
 /** Symmetric JWT (JWS) token service with optional AES-encrypted payloads. */
 export class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenService<E> {
+  /** The shortest `jwtSecret` accepted, in bytes: an HMAC key is as strong as it is long, and 32 bytes is the size of a SHA-256 output. */
+  static readonly MIN_SECRET_BYTES = 32;
+
   protected jwtSecret: Uint8Array;
+
+  /**
+   * Refuses a `jwtSecret` shorter than {@link JWSTokenService.MIN_SECRET_BYTES} (counted in UTF-8 bytes, not
+   * characters), saying how to make one. The secret is never echoed. The component calls it at boot and the
+   * service when it is built.
+   */
+  static assertSecretStrength(opts: { scope: string; secret: string }): void {
+    const bytes = new TextEncoder().encode(opts.secret).length;
+
+    if (bytes >= JWSTokenService.MIN_SECRET_BYTES) {
+      return;
+    }
+
+    throw getError({
+      statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+      message: `[${opts.scope}] jwtSecret is too short: ${bytes} bytes, at least ${JWSTokenService.MIN_SECRET_BYTES} are required | Generate one with: openssl rand -base64 48`,
+    });
+  }
 
   constructor(
     @inject({ key: AuthenticateBindingKeys.JWT_OPTIONS })
@@ -38,11 +59,16 @@ export class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenSer
       });
     }
 
+    this.configureClaims({
+      options,
+      pinnedAlgorithms: [options.headerAlgorithm ?? 'HS256'],
+    });
+    JWSTokenService.assertSecretStrength({ scope: JWSTokenService.name, secret: jwtSecret });
+
     this.configurePayloadEncryption({
       aesAlgorithm,
       applicationSecret,
       fieldCodecs: options.fieldCodecs,
-      sign: options.sign,
     });
     this.jwtSecret = new TextEncoder().encode(this.options.jwtSecret);
   }
@@ -52,8 +78,9 @@ export class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenSer
     const decodedToken = await jwtVerify<IJWTTokenPayload>(
       token,
       this.jwtSecret,
-      this.options.verify,
+      this.verifyOptions!,
     );
+
     return this.decryptPayload({ result: decodedToken });
   }
 

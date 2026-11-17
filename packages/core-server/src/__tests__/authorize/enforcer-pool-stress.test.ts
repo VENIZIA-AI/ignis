@@ -29,9 +29,11 @@ class CountingPerUserAdapter implements FilteredAdapter {
     this.loadCounts.set(key, (this.loadCounts.get(key) ?? 0) + 1);
 
     const { Helper } = await import('casbin');
+
     if (this.delayMs > 0) {
       await new Promise((resolve) => setTimeout(resolve, this.delayMs));
     }
+
     Helper.loadPolicyLine(
       `p, ${filter.principal.type}_${filter.principal.id}, SYSTEM_WIDE, ${filter.principal.id}_secret, read, allow`,
       model,
@@ -41,9 +43,11 @@ class CountingPerUserAdapter implements FilteredAdapter {
   isFiltered(): boolean {
     return true;
   }
+
   async savePolicy(): Promise<boolean> {
     return true;
   }
+
   async addPolicy(): Promise<void> {}
   async removePolicy(): Promise<void> {}
   async removeFilteredPolicy(): Promise<void> {}
@@ -61,9 +65,11 @@ class ThrowingAdapter implements FilteredAdapter {
     filter: { principal: { type: string; id: string | number } },
   ): Promise<void> {
     this.calls += 1;
+
     if (this.shouldThrow) {
       throw new Error('adapter boom');
     }
+
     const { Helper } = await import('casbin');
     Helper.loadPolicyLine(
       `p, ${filter.principal.type}_${filter.principal.id}, SYSTEM_WIDE, ${filter.principal.id}_secret, read, allow`,
@@ -74,9 +80,11 @@ class ThrowingAdapter implements FilteredAdapter {
   isFiltered(): boolean {
     return true;
   }
+
   async savePolicy(): Promise<boolean> {
     return true;
   }
+
   async addPolicy(): Promise<void> {}
   async removePolicy(): Promise<void> {}
   async removeFilteredPolicy(): Promise<void> {}
@@ -93,25 +101,31 @@ class FakeRedisClient {
     if (this.throwOnGet) {
       throw new Error('redis get down');
     }
+
     return this.store.get(key) ?? null;
   }
 
   async set(key: string, value: string): Promise<'OK'> {
     this.setCalls += 1;
+
     if (this.throwOnSet) {
       throw new Error('redis set down');
     }
+
     this.store.set(key, value);
+
     return 'OK';
   }
 
   async del(...keys: string[]): Promise<number> {
     let deleted = 0;
+
     for (const key of keys) {
       if (this.store.delete(key)) {
         deleted += 1;
       }
     }
+
     return deleted;
   }
 }
@@ -169,6 +183,7 @@ async function decide(e: CasbinAuthorizationEnforcer, userId: string, obj: strin
     user: { principalType: 'User', userId },
     context: ContextUtility.asTypedContext({ context: {} }),
   });
+
   return e.evaluate({
     rules,
     request: { resource: obj, action: 'read', domain: 'SYSTEM_WIDE' },
@@ -180,6 +195,7 @@ async function decide(e: CasbinAuthorizationEnforcer, userId: string, obj: strin
 
 describe('enforcer-pool-stress — cross-user isolation under high concurrency', () => {
   const poolSizes = [1, 2, 16];
+
   for (const poolSize of poolSizes) {
     test(`poolSize ${poolSize}: every decision is correct for its own user (no contamination)`, async () => {
       const e = poolEnforcer(new CountingPerUserAdapter(5), poolSize);
@@ -190,6 +206,7 @@ describe('enforcer-pool-stress — cross-user isolation under high concurrency',
 
       // For each user, fire one OWN (must allow) + one CROSS (must deny against a neighbour secret).
       const tasks: Promise<{ kind: 'own' | 'cross'; uid: string; decision: string }>[] = [];
+
       for (const uid of userIds) {
         const other = `U${(Number(uid.slice(1)) + 1) % userCount}`;
         tasks.push(
@@ -201,6 +218,7 @@ describe('enforcer-pool-stress — cross-user isolation under high concurrency',
       }
 
       const results = await Promise.all(tasks);
+
       for (const r of results) {
         if (r.kind === 'own') {
           expect(r.decision).toBe('allow');
@@ -218,6 +236,7 @@ describe('enforcer-pool-stress — cross-user isolation under high concurrency',
     await e.configure();
 
     const users = ['A', 'B', 'C'];
+
     for (let i = 0; i < 30; i++) {
       const self = users[i % users.length];
       const other = users[(i + 1) % users.length];
@@ -257,6 +276,7 @@ describe('enforcer-pool-stress — single-flight on cache miss', () => {
 
     // All N callers see identical lines.
     const expected = ['p, User_X, SYSTEM_WIDE, X_secret, read, allow'];
+
     for (const b of builds) {
       expect(b.lines).toEqual(expected);
     }
@@ -358,6 +378,7 @@ describe('enforcer-pool-stress — pool exhaustion', () => {
     );
 
     const results = await Promise.all(burst);
+
     // No error path may silently ALLOW: every settled result is a real 'allow'/'deny' decision or a rejection.
     for (const r of results) {
       if (r.ok) {
@@ -412,6 +433,7 @@ describe('enforcer-pool-stress — redis fault injection', () => {
     await e.configure();
 
     let error: unknown;
+
     try {
       await e.buildRules({
         user: { principalType: 'User', userId: 'G' },
@@ -420,6 +442,7 @@ describe('enforcer-pool-stress — redis fault injection', () => {
     } catch (err) {
       error = err;
     }
+
     expect(error).toBeDefined(); // fail-closed: does NOT silently fall through to allow
     // Adapter never reached (we failed before the miss path).
     expect(adapter.loadCounts.get('G')).toBeUndefined();
@@ -443,6 +466,7 @@ describe('enforcer-pool-stress — redis fault injection', () => {
     await e.configure();
 
     let error: unknown;
+
     try {
       await e.buildRules({
         user: { principalType: 'User', userId: 'S' },
@@ -451,6 +475,7 @@ describe('enforcer-pool-stress — redis fault injection', () => {
     } catch (err) {
       error = err;
     }
+
     expect(error).toBeDefined();
 
     // Inflight cleaned → a retry (set now healthy) succeeds and the adapter is hit again.
@@ -474,6 +499,7 @@ describe('enforcer-pool-stress — keyFn faults (fail-closed)', () => {
     await e.configure();
 
     let error: unknown;
+
     try {
       await e.buildRules({
         user: { principalType: 'User', userId: 'K' },
@@ -482,6 +508,7 @@ describe('enforcer-pool-stress — keyFn faults (fail-closed)', () => {
     } catch (err) {
       error = err;
     }
+
     expect(error).toBeDefined();
     expect(client.store.has('')).toBe(false);
     expect(adapter.loadCounts.get('K')).toBeUndefined();
@@ -501,6 +528,7 @@ describe('enforcer-pool-stress — keyFn faults (fail-closed)', () => {
     await e.configure();
 
     let error: unknown;
+
     try {
       await e.buildRules({
         user: { principalType: 'User', userId: 'K' },
@@ -509,6 +537,7 @@ describe('enforcer-pool-stress — keyFn faults (fail-closed)', () => {
     } catch (err) {
       error = err;
     }
+
     expect(error).toBeDefined();
 
     e.destroy();
@@ -522,6 +551,7 @@ describe('enforcer-pool-stress — extractUserLines adapter throws (no-cache pat
     await e.configure();
 
     let error: unknown;
+
     try {
       await e.buildRules({
         user: { principalType: 'User', userId: 'N' },
@@ -530,6 +560,7 @@ describe('enforcer-pool-stress — extractUserLines adapter throws (no-cache pat
     } catch (err) {
       error = err;
     }
+
     expect(error).toBeDefined();
 
     e.destroy();
@@ -555,6 +586,7 @@ class FailNTimesPoolEnforcer extends CasbinAuthorizationEnforcer {
       this.failsRemaining -= 1;
       throw new Error('forced load failure');
     }
+
     return super.loadPolicyLinesIntoModel(opts);
   }
 }

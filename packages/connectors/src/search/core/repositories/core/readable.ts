@@ -62,6 +62,7 @@ export class ReadableSearchRepository<
 
   async existsWith(opts: { where: TWhere; options?: IExtraOptions }): Promise<boolean> {
     const { count } = await this.count(opts);
+
     return count > 0;
   }
 
@@ -96,7 +97,7 @@ export class ReadableSearchRepository<
     this.assertNoTransaction(options);
     this.assertNoLock(options);
 
-    // An omitted limit falls back to @model settings.defaultLimit then DEFAULT_LIMIT - leaving
+    // An omitted limit falls back to @model settings.query.limit.default then DEFAULT_LIMIT - leaving
     // `per_page` unset would be an unbounded query.
     const effectiveFilter: TFilter = {
       ...filter,
@@ -110,9 +111,16 @@ export class ReadableSearchRepository<
 
     // No round-trip for an absorbing where: with no filterBy the engine would happily return the
     // whole collection, which is the opposite of what the filter asked for.
-    let result: Pick<ISearchResult<TDocument>, 'hits' | 'found'> = { hits: [], found: 0 };
+    // The connector types its documents `object`; the row a caller selects is one.
+    type TRowDocument = TRow<TDocument, R, F> & object;
+
+    let result: Pick<ISearchResult<TRowDocument>, 'hits' | 'found'> = {
+      hits: [],
+      found: 0,
+    };
+
     if (!query.matchNone) {
-      const searched = await this.connector.search<TDocument>({
+      const searched = await this.connector.search<TRowDocument>({
         collection: this.collectionName,
         params: this.queryDialect.toWireParams({ query }),
       });
@@ -121,10 +129,12 @@ export class ReadableSearchRepository<
 
     const { hits, found } = result;
 
-    // The cast is the caller's own unchecked assertion when they pass an explicit `find<Other>()`.
     // Hidden fields are stripped in JS too, not only engine-side: Typesense honours
     // `exclude_fields`, Meilisearch has no per-query exclusion at all.
-    const data = this.omitHiddenFieldsAll((hits ?? []).map((hit) => hit.document)) as any;
+    const data = this.shapeDocuments(
+      (hits ?? []).map((hit) => hit.document),
+      { fields: filter?.fields },
+    );
 
     if (!options?.shouldQueryRange) {
       return data;
@@ -164,7 +174,7 @@ export class ReadableSearchRepository<
 
   /**
    * Delegates to findOne with id in where - routing through buildQuery is what makes
-   * hiddenFields/defaultFilter apply, so a soft-deleted document resolves to null. `where` is spread
+   * hiddenFields/settings.query.filter apply, so a soft-deleted document resolves to null. `where` is spread
    * away last so a projection can never widen the id lookup.
    */
   findById<R = unknown, const F extends TFields<TDocument> = TFields<TDocument>>(opts: {
@@ -179,7 +189,7 @@ export class ReadableSearchRepository<
 
   /**
    * Unified search entry discriminated by `mode`: `raw` is a full passthrough - no dialect, no
-   * defaultFilter, no hiddenFields - while keyword/semantic/hybrid translate through the dialect
+   * settings.query.filter, no hiddenFields - while keyword/semantic/hybrid translate through the dialect
    * like `find()`. Nothing engine-specific lives here; `ISearchQueryDialect.applySearchInput`
    * owns it.
    */
@@ -221,7 +231,9 @@ export class ReadableSearchRepository<
       ...result,
       hits: (result.hits ?? []).map((hit) => ({
         ...hit,
-        document: this.omitHiddenFields(hit.document),
+        document: this.shapeDocument(hit.document, { fields: opts.filter?.fields }),
+        // Built from the document's own fields, so it loses the hidden ones the document loses.
+        ...(hit.highlight === undefined ? {} : { highlight: this.shapeHighlight(hit.highlight) }),
       })),
     };
   }
@@ -347,22 +359,48 @@ export class ReadableSearchRepository<
       return;
     }
 
-    const named: Array<{ param: string; field: string }> = [];
+    const named: Array<{ param: string; field: string; isWildcard: boolean }> = [];
+
+    // An engine reads a field list as a comma-joined string, so one element can name several fields: each part is checked.
+    // A part may carry facet parameters after the name (`secret(sort_by:_alpha:asc)`): the name is what comes before the
+    // parenthesis. A wildcard (`*`, `sec*`) names fields the check cannot list, hidden ones included, so it is refused.
+    const addFields = (entry: { param: string; value: string }) => {
+      for (const part of entry.value.split(',')) {
+        named.push({
+          param: entry.param,
+          field: (part.split('(')[0] ?? '').trim(),
+          isWildcard: part.includes('*'),
+        });
+      }
+    };
 
     for (const param of ['facetBy', 'groupBy', 'highlightFields', 'highlightFullFields'] as const) {
-      for (const field of input[param] ?? []) {
-        named.push({ param, field });
+      for (const value of input[param] ?? []) {
+        addFields({ param, value });
       }
     }
 
     if (input.facetQuery !== undefined) {
-      named.push({ param: 'facetQuery', field: input.facetQuery.split(':')[0]?.trim() ?? '' });
+      addFields({ param: 'facetQuery', value: input.facetQuery.split(':')[0] ?? '' });
     }
 
     if ('queryBy' in input) {
-      for (const field of input.queryBy ?? []) {
-        named.push({ param: 'queryBy', field });
+      for (const value of input.queryBy ?? []) {
+        addFields({ param: 'queryBy', value });
       }
+    }
+
+    // The vector field of a semantic or hybrid search is a field name too.
+    if ('vectorField' in input && typeof input.vectorField === 'string') {
+      addFields({ param: 'vectorField', value: input.vectorField });
+    }
+
+    const wildcard = named.find(({ isWildcard }) => isWildcard);
+
+    if (wildcard) {
+      throw getError({
+        message: `[${this.constructor.name}][search] '${wildcard.param}' uses a wildcard | field: '${wildcard.field}' | a model with hidden fields must name the fields it searches, facets, groups and highlights`,
+      });
     }
 
     const hidden = named.find(({ field }) => this.hiddenFields.includes(field));
@@ -449,17 +487,13 @@ export class ReadableSearchRepository<
     return this.denyOperation({ methodName: this.updateById.name });
   }
 
-  /**
-   * @throws Error - disabled in a read-only repository. `where` is optional where the base contract
-   * requires it: the `@model` defaultFilter alone can supply the effective filter, and Persistable
-   * refuses the write outright when neither is present.
-   */
-  updateAll(_opts: {
+  /** @throws Error - disabled in a read-only repository. */
+  updateBy(_opts: {
     data: Partial<TDocument>;
-    where?: TWhere;
+    where: TWhere;
     options?: Omit<IExtraOptions, 'shouldReturn'> & { force?: boolean };
   }): Promise<TCount & { data: null }> {
-    return this.denyOperation({ methodName: this.updateAll.name });
+    return this.denyOperation({ methodName: this.updateBy.name });
   }
 
   /** @throws Error - disabled in a read-only repository. */
@@ -479,10 +513,10 @@ export class ReadableSearchRepository<
   }
 
   /** @throws Error - disabled in a read-only repository. Unlocked by DefaultSearchRepository. */
-  deleteAll(_opts?: {
-    where?: TWhere;
+  deleteBy(_opts: {
+    where: TWhere;
     options?: Omit<IExtraOptions, 'shouldReturn'> & { force?: boolean };
   }): Promise<TCount & { data: null }> {
-    return this.denyOperation({ methodName: this.deleteAll.name });
+    return this.denyOperation({ methodName: this.deleteBy.name });
   }
 }

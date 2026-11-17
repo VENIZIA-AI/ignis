@@ -8,6 +8,7 @@ import {
 } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import { describe, expect, test } from 'bun:test';
 
 const buildConfigs = (opts?: Partial<IApplicationConfigs>): IApplicationConfigs => {
@@ -76,6 +77,21 @@ describe('application hierarchy', () => {
     expect(surface).toContain('getServerHost');
     expect(surface).toContain('getServerPort');
     expect(surface).toContain('getServerAddress');
+  });
+
+  // The kernel's routers are plain Hono unless the REST controller layer happens to be loaded; the API
+  // reference reads `rootRouter.openAPIRegistry`, so a server must not depend on that.
+  test('ServerApplication builds both routers itself as OpenAPIHono', () => {
+    expect(Object.getOwnPropertyNames(ServerApplication.prototype)).toContain('createRouter');
+
+    const serverApplication = new ConcreteServerApplication({
+      scope: 'ConcreteServerApplication',
+      config: buildConfigs(),
+    });
+
+    expect(serverApplication.getServer()).toBeInstanceOf(OpenAPIHono);
+    expect(serverApplication.getRootRouter()).toBeInstanceOf(OpenAPIHono);
+    expect(serverApplication.getRootRouter()).not.toBe(serverApplication.getServer());
   });
 
   test('asyncContext.enable defaults to false on RestApplication and true on ServerApplication', () => {

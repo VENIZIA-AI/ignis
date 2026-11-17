@@ -70,7 +70,7 @@ of a package path.
 
 | Import | What it gives | Extra peers |
 |---|---|---|
-| `@venizia/ignis-kernel` | Everything: `Container`, `AbstractApplication`, `RestApplication`, `BaseRestController`, `ControllerFactory`, `BaseComponent`, `BaseService`, the route and artifact decorators, `AbstractRepository`, `CoreBindings`, the auth seams | `hono`, `@hono/zod-openapi` |
+| `@venizia/ignis-kernel` | Everything: `Container`, `AbstractApplication`, `RestApplication`, `BaseRestController`, `CrudControllerFactory`, `BaseComponent`, `BaseService`, the route and artifact decorators, `AbstractRepository`, `CoreBindings`, the auth seams | `hono`, `@hono/zod-openapi` |
 | `@venizia/ignis-kernel/metadata` | How a class is marked as an artifact: `@injectable`, `@service`, `@component`, `@configuration`, `@provide`, `@model`, `@datasource`, `@repository`, `@inject`, `BindingNamespaces`, `BindingKeys`, `ArtifactTypes`, `MetadataRegistry` | none |
 | `@venizia/ignis-kernel/repository` | The persistence contract without the OpenAPI layer: `AbstractRepository`, `AbstractDataSource`, `AbstractEntity`, the CRUD repository interfaces, `DEFAULT_LIMIT`, `DEFAULT_MAX_LIMIT`, the repository error codes, and the `TFilter`/`TWhere` vocabulary from `@venizia/ignis-filter` | none |
 
@@ -82,10 +82,11 @@ Use `./repository` to put another transport behind the repository contract. The 
 
 ## Logging
 
-With the kernel alone, loggers write to the console. To get the configured logger, import
-`LoggerFactory` from `@venizia/ignis-helpers` once at startup. A logger created before that import
-switches to the configured one on its next call - nothing needs rebuilding. `@venizia/ignis` does this
-for you.
+With the kernel alone, loggers write to the console. To choose another provider, call
+`LoggerFactory.use({ provider })` once at startup (`PinoLogger` from `@venizia/ignis-helpers/pino`,
+`WinstonLogger` from `@venizia/ignis-helpers/winston`). A logger created before that call switches to
+the chosen provider on its next call - nothing needs rebuilding. `@venizia/ignis` selects Winston at
+start when no provider was chosen and `winston` is installed.
 
 ## Where it sits
 

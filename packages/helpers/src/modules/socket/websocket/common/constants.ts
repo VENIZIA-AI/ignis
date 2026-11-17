@@ -1,5 +1,6 @@
 import { type TConstValue } from '@/common/types';
 
+/** Event names of the WebSocket protocol. `isValid` narrows a string to one of them. */
 export class WebSocketEvents {
   static readonly AUTHENTICATE = 'authenticate';
   static readonly CONNECTED = 'connected';
@@ -25,8 +26,10 @@ export class WebSocketEvents {
     return this.SCHEME_SET.has(input);
   }
 }
+/** One of the `WebSocketEvents` values. */
 export type TWebSocketEvent = TConstValue<typeof WebSocketEvents>;
 
+/** Redis channel names used to route WebSocket messages across server instances; the `for*` methods build a channel from an id, and the `for*Pattern` methods build the matching subscription pattern. */
 export class WebSocketChannels {
   static readonly BROADCAST = 'ws:broadcast';
   static readonly ROOM_PREFIX = 'ws:room:';
@@ -58,6 +61,7 @@ export class WebSocketChannels {
   }
 }
 
+/** Default WebSocket server settings. Timeouts of `AUTH_TIMEOUT`, `HEARTBEAT_INTERVAL` and `HEARTBEAT_TIMEOUT` are milliseconds, `IDLE_TIMEOUT` is seconds, and payload and backpressure limits are bytes. */
 export class WebSocketDefaults {
   static readonly PATH = '/ws';
 
@@ -76,6 +80,7 @@ export class WebSocketDefaults {
   static readonly ENCRYPTED_BATCH_LIMIT = 10; // Max concurrent encryption operations
 }
 
+/** Delivery target types of a WebSocket message. `isValid` narrows a string to one of them. */
 export class WebSocketMessageTypes {
   static readonly CLIENT = 'client';
   static readonly USER = 'user';
@@ -88,8 +93,10 @@ export class WebSocketMessageTypes {
     return this.SCHEME_SET.has(input);
   }
 }
+/** One of the `WebSocketMessageTypes` values. */
 export type TWebSocketMessageType = TConstValue<typeof WebSocketMessageTypes>;
 
+/** Connection states of a WebSocket client. `isValid` narrows a string to one of them. */
 export class WebSocketClientStates {
   static readonly UNAUTHORIZED = 'unauthorized';
   static readonly AUTHENTICATING = 'authenticating';

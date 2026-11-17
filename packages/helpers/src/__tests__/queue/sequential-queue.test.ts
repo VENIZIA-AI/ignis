@@ -1,4 +1,3 @@
-import { type AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
 import {
   QueueStatuses,
@@ -14,6 +13,7 @@ interface IDeferred<T> {
 
 const createDeferred = <T>(): IDeferred<T> => {
   let resolve: (value: T) => void = () => {};
+
   const promise = new Promise<T>((innerResolve) => {
     resolve = innerResolve;
   });
@@ -23,6 +23,7 @@ const createDeferred = <T>(): IDeferred<T> => {
 
 /** The queue drives itself via a generator whose promise nobody awaits, so tests wait on a queue callback instead of awaiting processing; the timeout exists only so a stall regression fails fast instead of hanging. */
 const SETTLE_TIMEOUT = 300;
+
 const withTimeout = <T>(opts: { promise: Promise<T> }): Promise<T | 'TIMED_OUT'> => {
   const { promise } = opts;
 
@@ -48,6 +49,7 @@ const flush = async (): Promise<void> => {
 
 describe('SequentialQueueHelper — state machine', () => {
   const unhandledRejections: unknown[] = [];
+
   const onUnhandledRejection = (reason: unknown) => {
     unhandledRejections.push(reason);
   };
@@ -249,6 +251,7 @@ describe('SequentialQueueHelper — state machine', () => {
       },
       onDataDequeue: () => {
         dequeueCount += 1;
+
         if (dequeueCount === 2) {
           drained.resolve();
         }
@@ -351,7 +354,7 @@ describe('SequentialQueueHelper — state machine', () => {
   });
 
   test('falsy payloads are rejected before reaching storage', async () => {
-    const queue = new SequentialQueueHelper<AnyType>({
+    const queue = new SequentialQueueHelper<unknown>({
       identifier: 'tc-falsy',
       autoDispatch: false,
       onMessage: () => {},

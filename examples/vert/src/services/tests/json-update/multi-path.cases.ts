@@ -51,7 +51,7 @@ export class MultiPathCases extends BaseTestCases {
         this.context.logger.error('[CASE 5] FAILED | Update count: %d', updateResult.count);
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[CASE 5] FAILED | Error: %s', (error as Error).message);
     }
@@ -106,7 +106,7 @@ export class MultiPathCases extends BaseTestCases {
         this.context.logger.error('[CASE 6] FAILED | Update count: %d', updateResult.count);
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[CASE 6] FAILED | Error: %s', (error as Error).message);
     }
@@ -167,7 +167,7 @@ export class MultiPathCases extends BaseTestCases {
         this.context.logger.error('[CASE 7] FAILED | Update count: %d', updateResult.count);
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[CASE 7] FAILED | Error: %s', (error as Error).message);
     }

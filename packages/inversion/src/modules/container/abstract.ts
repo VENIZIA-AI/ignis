@@ -40,7 +40,7 @@ export abstract class AbstractContainer extends BaseHelper implements IContainer
   abstract resolve<T>(cls: TClass<T>): T;
   abstract instantiate<T>(cls: TClass<T>): T;
 
-  abstract findByTag<T = any>(opts: {
+  abstract findByTag<T = unknown>(opts: {
     tag: string;
     exclude?: Array<string> | Set<string>;
   }): IBinding<T>[];

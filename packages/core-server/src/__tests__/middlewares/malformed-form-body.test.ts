@@ -3,8 +3,7 @@ import { BaseApplication } from '@/base/applications';
 import type { TRouteContext } from '@/base/controllers';
 import { BaseRestController } from '@/base/controllers';
 import { controller } from '@/base/metadata';
-import { AssetControllerFactory } from '@/components/static-asset/controller';
-import { StaticAssetStorageTypes } from '@/components/static-asset/common';
+import { StaticAssetControllerFactory } from '@/components/static-asset/controller';
 import { RequestTrackerComponent } from '@/components/request-tracker';
 import { z } from '@hono/zod-openapi';
 import type { OpenAPIHono } from '@hono/zod-openapi';
@@ -50,6 +49,7 @@ class HandParsedController extends BaseRestController {
     }).to({
       handler: async (context: TRouteContext) => {
         const { files } = await RequestUtility.parseMultipartBody({ context });
+
         return context.json({ count: files.length }, 200);
       },
     });
@@ -60,6 +60,7 @@ class MalformedBodyApplication extends BaseApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'malformed-body-app', version: '0.0.0', description: '' };
   }
+
   staticConfigure() {}
   preConfigure() {}
   postConfigure() {}
@@ -77,20 +78,28 @@ const boot = async (opts: { environment: string; helper: FakeStorageHelper }) =>
   });
   application.init();
   await application['registerDefaultMiddlewares']();
-  await new RequestTrackerComponent(application).configure();
+  const requestTrackerComponent = new RequestTrackerComponent(application);
+  await requestTrackerComponent.configure();
 
   application.controller(HandParsedController);
   application.controller(
-    AssetControllerFactory.defineAssetController({
-      controller: { name: 'MalformedAssetController', basePath: '/assets', bucket: 'images' },
-      storage: StaticAssetStorageTypes.DISK,
-      helper: opts.helper,
+    StaticAssetControllerFactory.build({
+      key: 'malformed',
+      entry: {
+        basePath: '/assets',
+        bucket: 'images',
+        serverUpload: { use: true },
+        directUpload: { use: false },
+        metaLink: { use: false },
+        helper: opts.helper as never,
+      },
     }),
   );
   await application['registerControllers']();
 
   const server = application.getServer() as OpenAPIHono;
   server.route(TEST_CONFIGS.path.base, application.getRootRouter());
+
   return server;
 };
 
@@ -108,8 +117,10 @@ describe('a malformed multipart body is a 400 in every environment', () => {
   afterEach(() => {
     if (ORIGINAL_NODE_ENV === undefined) {
       delete process.env.NODE_ENV;
+
       return;
     }
+
     process.env.NODE_ENV = ORIGINAL_NODE_ENV;
   });
 

@@ -20,6 +20,7 @@ describe('ReadableSearchRepository - the collection declares what searching it m
 
   const queryByOf = (): unknown => {
     const [call] = dataSource.fakeConnector.searchCalls;
+
     return (call.params as Record<string, unknown>)['query_by'];
   };
 

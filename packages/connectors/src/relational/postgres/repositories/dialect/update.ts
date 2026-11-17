@@ -21,7 +21,7 @@ export class UpdateBuilder extends RelationalUpdateBuilder {
    * bound parameter arrives as untyped text. Safe only because the base has already run every path
    * component through `JsonPathUtility.validateJsonPathComponents`, whose pattern admits no quote.
    */
-  protected override composeJsonSet(opts: { target: SQL; path: string[]; value: any }): SQL {
+  protected override composeJsonSet(opts: { target: SQL; path: string[]; value: unknown }): SQL {
     const { target, path, value } = opts;
 
     const valueLiteral = sql.raw(this.serializeJsonValue(value));
@@ -34,6 +34,7 @@ export class UpdateBuilder extends RelationalUpdateBuilder {
     // parent, a missing parent read as `{}`. `target` is aliased once so a chained target is not
     // repeated per level.
     let composed = valueLiteral;
+
     for (let depth = path.length; depth > 0; depth--) {
       const parent = this.toParentNode({ path: path.slice(0, depth - 1) });
       const key = this.toPathLiteral({ path: [path[depth - 1]] });
@@ -62,7 +63,7 @@ export class UpdateBuilder extends RelationalUpdateBuilder {
   }
 
   /** Serializes a JavaScript value to a PostgreSQL JSONB literal. */
-  private serializeJsonValue(value: any): string {
+  private serializeJsonValue(value: unknown): string {
     if (value === null) {
       return "'null'::jsonb";
     }

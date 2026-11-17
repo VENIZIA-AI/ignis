@@ -14,6 +14,7 @@ logger.log = () => undefined;
 /** Reads a Hono Response body as a loosely-typed JSON object (Response.json() is `unknown`). */
 const readJson = async (res: Response): Promise<Record<string, any>> => {
   const result = await res.json();
+
   return result as Record<string, any>;
 };
 
@@ -26,18 +27,22 @@ const mount = (opts: { rootKey?: string; thrower: () => void }) => {
   });
   app.get('/x', () => {
     opts.thrower();
+
     return new Response('unreachable');
   });
   app.onError(new AppErrorMiddleware({ logger, rootKey: opts.rootKey }).value());
+
   return app;
 };
 
 /** Builds a thrower that parses `input` with `schema` and throws the resulting ZodError. */
 const zodThrower = (schema: z.ZodType, input: unknown) => () => {
   const r = schema.safeParse(input);
+
   if (r.success) {
     throw new Error('expected validation to fail');
   }
+
   throw r.error;
 };
 
@@ -145,12 +150,15 @@ describe('isDatabaseClientError — DB constraint errors map to HTTP 400', () =>
         code?: string;
         cause?: unknown;
       };
+
       if (opts.code) {
         e.code = opts.code;
       }
+
       if (opts.cause) {
         e.cause = opts.cause;
       }
+
       throw e;
     };
   };
@@ -220,6 +228,41 @@ describe('isDatabaseClientError — DB constraint errors map to HTTP 400', () =>
     expect(res.status).toBe(500);
     const body = await readJson(res);
     expect(body.message).toBe('connection terminated');
+  });
+
+  test('non-prod: a Postgres error two levels deep in cause (ORM wrapper around a driver wrapper) is a 400 with its context', async () => {
+    const driver = {
+      code: '23505',
+      detail: 'Key (email)=(a@b.com) already exists.',
+      table: 'users',
+      constraint: 'users_email_key',
+    };
+    const res = await mount({
+      thrower: () => {
+        const orm = new Error('Failed query', { cause: new Error('pool', { cause: driver }) });
+
+        throw orm;
+      },
+    }).request('/x', undefined, { NODE_ENV: 'development' });
+    expect(res.status).toBe(400);
+    const body = await readJson(res);
+    expect(body.message).toContain('Unique constraint violation');
+    expect(body.message).toContain('Table: users');
+    expect(body.message).toContain('Constraint: users_email_key');
+  });
+
+  test('a deadlock three levels deep in cause is a 409 retryable conflict', async () => {
+    const res = await mount({
+      thrower: () => {
+        const inner = Object.assign(new Error('deadlock detected'), { code: '40P01' });
+        const middle = new Error('pool', { cause: inner });
+
+        throw new Error('Failed query', { cause: new Error('orm', { cause: middle }) });
+      },
+    }).request('/x');
+    expect(res.status).toBe(409);
+    const body = await readJson(res);
+    expect(body.normalized.code).toBe('database.conflict');
   });
 
   test('production: client DB error returns only the base message (no detail/table/constraint)', async () => {
@@ -417,6 +460,7 @@ describe('AppErrorMiddleware — the NODE_ENV leak boundary', () => {
     const res = await mount({ thrower: leakyDatabaseThrower }).request('/x', undefined, {
       NODE_ENV: nodeEnv,
     });
+
     return readJson(res);
   };
 
@@ -451,6 +495,7 @@ describe('AppErrorMiddleware — the NODE_ENV leak boundary', () => {
 
   test('the env name is matched case-insensitively (DEV, Development)', async () => {
     const nodeEnvs = ['DEV', 'Development', 'LOCAL'];
+
     for (const nodeEnv of nodeEnvs) {
       const body = await requestUnder(nodeEnv);
       expect(body.message).toContain('a@b.com');
@@ -565,6 +610,7 @@ describe('AppErrorMiddleware - every branch emits normalized', () => {
     );
     app.get('/', () => {
       thrower();
+
       return new Response('unreachable');
     });
 
@@ -623,10 +669,12 @@ describe('AppErrorMiddleware - the thrown error picks its own log level', () => 
     app.onError(new AppErrorMiddleware({ logger: recordingLogger }).value());
     app.get('/', () => {
       thrower();
+
       return new Response('unreachable');
     });
 
     await app.request('/', undefined, { NODE_ENV: 'development' });
+
     return levels;
   };
 

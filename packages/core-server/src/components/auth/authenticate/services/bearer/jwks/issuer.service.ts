@@ -16,6 +16,7 @@ import { readFile } from 'node:fs/promises';
 import { JoseLoader } from '../../jose-loader';
 import { AbstractJWKSTokenService } from './abstract.service';
 
+/** Signs tokens with a private key loaded from `IJWKSIssuerOptions` and exposes the matching public keys as a JWKS via `getJWKSAsync()`. */
 export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTokenService<E> {
   protected privateKey: TNullable<CryptoKey | Uint8Array> = null;
   protected publicKey: TNullable<CryptoKey | Uint8Array> = null;
@@ -27,11 +28,11 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
   ) {
     super({ scope: JWKSIssuerTokenService.name });
 
+    this.configureClaims({ options: this.options, pinnedAlgorithms: [this.options.algorithm] });
     this.configurePayloadEncryption({
       aesAlgorithm: this.options.aesAlgorithm,
       applicationSecret: this.options.applicationSecret,
       fieldCodecs: this.options.fieldCodecs,
-      sign: this.options.sign,
     });
   }
 
@@ -79,6 +80,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
           readFile(keys.private, 'utf-8'),
           readFile(keys.public, 'utf-8'),
         ]);
+
         return { priv, pub };
       }
       case JWKSKeyDrivers.TEXT: {
@@ -113,6 +115,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
     const PRIVATE_MEMBERS = ['d', 'p', 'q', 'dp', 'dq', 'qi', 'k'] as const;
 
     const present = PRIVATE_MEMBERS.filter((member) => opts.jwk[member] !== undefined);
+
     if (present.length === 0) {
       return;
     }
@@ -150,6 +153,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
       case JWKSKeyFormats.PEM: {
         const priv = await importPKCS8(raw.priv, algorithm);
         const pub = await importSPKI(raw.pub, algorithm);
+
         return { priv, pub };
       }
       case JWKSKeyFormats.JWK: {
@@ -163,6 +167,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
 
           const priv = await importJWK(parsed.priv, algorithm);
           const pub = await importJWK(parsed.pub, algorithm);
+
           return { priv, pub };
         } catch (error) {
           this.logger
@@ -186,7 +191,8 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
   protected override async doVerify(token: string): Promise<IJWTTokenPayload> {
     await this.ensureInitialized();
     const { jwtVerify } = await JoseLoader.load();
-    const result = await jwtVerify<IJWTTokenPayload>(token, this.publicKey!, this.options.verify);
+    const result = await jwtVerify<IJWTTokenPayload>(token, this.publicKey!, this.verifyOptions!);
+
     return this.decryptPayload({ result });
   }
 
@@ -237,6 +243,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
 
   async getJWKSAsync(): Promise<{ keys: JWK[] }> {
     await this.ensureInitialized();
+
     return this.jwks!;
   }
 }

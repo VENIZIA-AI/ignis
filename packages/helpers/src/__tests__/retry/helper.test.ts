@@ -1,13 +1,47 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
+import type { ILogger, TLogLevel } from '@/modules/logger';
 import { RetryBackoffStrategies, RetryHelper, RetryJitterModes } from '@/modules/retry';
 
 const NO_JITTER = { jitter: RetryJitterModes.NONE } as const;
 
+/** Records every call as `{ level, message }`; `for()` returns the same recorder. */
+class RecordingLogger implements ILogger {
+  readonly records: Array<{ level: string; message: string }> = [];
+
+  debug(message: string): void {
+    this.records.push({ level: 'debug', message });
+  }
+
+  info(message: string): void {
+    this.records.push({ level: 'info', message });
+  }
+
+  warn(message: string): void {
+    this.records.push({ level: 'warn', message });
+  }
+
+  error(message: string): void {
+    this.records.push({ level: 'error', message });
+  }
+
+  emerg(message: string): void {
+    this.records.push({ level: 'emerg', message });
+  }
+
+  log(level: TLogLevel, message: string): void {
+    this.records.push({ level, message });
+  }
+
+  for(): ILogger {
+    return this;
+  }
+}
+
 describe('computeBackoffDelayMs', () => {
   test('FIXED returns initialDelayMs for every attempt', () => {
     const attempts = [1, 2, 5];
+
     for (const attempt of attempts) {
       expect(
         RetryHelper.computeBackoffDelayMs({
@@ -98,6 +132,7 @@ describe('runWithTimeout', () => {
 
   test('times out a slow execution with a detectable timeout error', async () => {
     let caught: unknown;
+
     try {
       await RetryHelper.runWithTimeout({
         operation: 'slow',
@@ -119,6 +154,7 @@ describe('runWithTimeout', () => {
 
   test('a synchronously-throwing execution rejects instead of escaping the race', async () => {
     let caught: unknown;
+
     try {
       await RetryHelper.runWithTimeout({
         operation: 'sync-throw',
@@ -150,6 +186,7 @@ describe('executeWithRetry', () => {
       operation: 'first-try',
       execution: () => {
         calls += 1;
+
         return 'ok';
       },
     });
@@ -167,9 +204,11 @@ describe('executeWithRetry', () => {
       backoff: instantBackoff,
       execution: ({ attempt }) => {
         attempts.push(attempt);
+
         if (attempt < 3) {
           throw new Error(`fail ${attempt}`);
         }
+
         return 'ok';
       },
     });
@@ -180,6 +219,7 @@ describe('executeWithRetry', () => {
 
   test('exhaustion throws the LAST error', async () => {
     let caught: unknown;
+
     try {
       await RetryHelper.executeWithRetry({
         operation: 'always-fails',
@@ -201,6 +241,7 @@ describe('executeWithRetry', () => {
     const permanent = new Error('permanent');
 
     let caught: unknown;
+
     try {
       await RetryHelper.executeWithRetry({
         operation: 'permanent',
@@ -225,6 +266,7 @@ describe('executeWithRetry', () => {
     const startedAt = Date.now();
 
     let caught: unknown;
+
     try {
       await RetryHelper.executeWithRetry({
         operation: 'budgeted',
@@ -249,6 +291,7 @@ describe('executeWithRetry', () => {
     const startedAt = Date.now();
 
     let caught: unknown;
+
     try {
       await RetryHelper.executeWithRetry({
         operation: 'overshoot',
@@ -272,6 +315,7 @@ describe('executeWithRetry', () => {
     const startedAt = Date.now();
 
     let caught: unknown;
+
     try {
       await RetryHelper.executeWithRetry({
         operation: 'hang',
@@ -302,6 +346,7 @@ describe('executeWithRetry', () => {
         if (attempt < 3) {
           throw new Error('transient');
         }
+
         return 'ok';
       },
     });
@@ -318,12 +363,14 @@ describe('executeWithRetry', () => {
     controller.abort('shutdown');
 
     let caught: unknown;
+
     try {
       await RetryHelper.executeWithRetry({
         operation: 'aborted',
         signal: controller.signal,
         execution: () => {
           calls += 1;
+
           return 'never';
         },
       });
@@ -352,6 +399,7 @@ describe('executeWithRetry', () => {
     setTimeout(() => controller.abort('shutdown'), 20);
 
     let caught: unknown;
+
     try {
       await pending;
     } catch (error) {
@@ -364,6 +412,7 @@ describe('executeWithRetry', () => {
 
   test('maxAttempts < 1 throws a named configuration error', async () => {
     let caught: unknown;
+
     try {
       await RetryHelper.executeWithRetry({
         operation: 'bad',
@@ -378,13 +427,7 @@ describe('executeWithRetry', () => {
   });
 
   test('logger.warn fires on exhaustion, debug per retry', async () => {
-    const events: string[] = [];
-    const fakeLogger = {
-      for: () => ({
-        debug: () => events.push('debug'),
-        warn: () => events.push('warn'),
-      }),
-    } as AnyType;
+    const fakeLogger = new RecordingLogger();
 
     try {
       await RetryHelper.executeWithRetry({
@@ -401,7 +444,7 @@ describe('executeWithRetry', () => {
       expect(error).toBeInstanceOf(Error);
     }
 
-    expect(events).toEqual(['debug', 'debug', 'warn']);
+    expect(fakeLogger.records.map((record) => record.level)).toEqual(['debug', 'debug', 'warn']);
   });
 });
 
@@ -410,6 +453,7 @@ describe('executeWithRetry - an exhausted or zero time budget', () => {
     let attempts = 0;
 
     let caught: unknown;
+
     try {
       await RetryHelper.executeWithRetry({
         operation: 'zero-budget',
@@ -434,6 +478,7 @@ describe('executeWithRetry - an exhausted or zero time budget', () => {
     let attempts = 0;
 
     let caught: unknown;
+
     try {
       await RetryHelper.executeWithRetry({
         operation: 'expired-budget',
@@ -442,6 +487,7 @@ describe('executeWithRetry - an exhausted or zero time budget', () => {
         maxTotalMs: -10,
         execution: () => {
           attempts += 1;
+
           return 'never';
         },
       });
@@ -460,6 +506,7 @@ describe('executeWithRetry - an exhausted or zero time budget', () => {
     let attempts = 0;
 
     let caught: unknown;
+
     try {
       await RetryHelper.executeWithRetry({
         operation: 'live-budget',
@@ -495,6 +542,7 @@ describe('executeWithRetryUntil', () => {
       backoff: FAST_BACKOFF,
       execution: () => {
         calls += 1;
+
         return 'ok';
       },
       until: (attemptResult) => attemptResult === 'ok',
@@ -515,6 +563,7 @@ describe('executeWithRetryUntil', () => {
       execution: () => {
         const response = responses[calls];
         calls += 1;
+
         return response;
       },
       until: (attemptResult) => attemptResult !== null,
@@ -533,6 +582,7 @@ describe('executeWithRetryUntil', () => {
       backoff: FAST_BACKOFF,
       execution: () => {
         calls += 1;
+
         return 'stale';
       },
       until: () => false,
@@ -550,6 +600,7 @@ describe('executeWithRetryUntil', () => {
       backoff: FAST_BACKOFF,
       execution: () => {
         calls += 1;
+
         return null;
       },
       until: (attemptResult) => attemptResult !== null,
@@ -593,9 +644,11 @@ describe('executeWithRetryUntil', () => {
         backoff: FAST_BACKOFF,
         execution: () => {
           calls += 1;
+
           if (calls === 1) {
             return 'not-yet';
           }
+
           throw getError({ message: 'connection refused' });
         },
         until: (attemptResult) => attemptResult === 'done',
@@ -610,15 +663,7 @@ describe('executeWithRetryUntil', () => {
   });
 
   test('exhaustion warns exactly once; real errors never warn', async () => {
-    const warnCalls: string[] = [];
-    const fakeLogger = {
-      for: () => ({
-        warn: (message: string) => {
-          warnCalls.push(message);
-        },
-        debug: () => {},
-      }),
-    } as AnyType;
+    const fakeLogger = new RecordingLogger();
 
     await RetryHelper.executeWithRetryUntil<null>({
       operation: 'warn-once',
@@ -629,8 +674,9 @@ describe('executeWithRetryUntil', () => {
       until: (attemptResult) => attemptResult !== null,
     });
 
+    const warnCalls = fakeLogger.records.filter((record) => record.level === 'warn');
     expect(warnCalls.length).toBe(1);
-    expect(warnCalls[0]).toContain('Exhausted retries');
+    expect(warnCalls[0]?.message).toContain('Exhausted retries');
   });
 
   test('a slow read is never aborted by maxTotalMs - the budget only gates new attempts', async () => {
@@ -644,6 +690,7 @@ describe('executeWithRetryUntil', () => {
       execution: async () => {
         executions += 1;
         await new Promise((resolve) => setTimeout(resolve, 60));
+
         return 'fresh';
       },
       until: (attemptResult) => attemptResult === 'fresh',
@@ -663,6 +710,7 @@ describe('executeWithRetryUntil', () => {
       backoff: FAST_BACKOFF,
       execution: () => {
         executions += 1;
+
         return 'stale';
       },
       until: () => false,
@@ -680,6 +728,7 @@ describe('executeWithRetryUntil', () => {
       backoff: FAST_BACKOFF,
       execution: () => {
         negativeExecutions += 1;
+
         return 'stale';
       },
       until: () => false,
@@ -700,6 +749,7 @@ describe('executeWithRetryUntil', () => {
       execution: async () => {
         executions += 1;
         await new Promise((resolve) => setTimeout(resolve, 20));
+
         return 'stale';
       },
       until: () => false,
@@ -721,6 +771,7 @@ describe('executeWithRetryUntil', () => {
         backoff: { strategy: RetryBackoffStrategies.SCHEDULE },
         execution: () => {
           executions += 1;
+
           return 'value';
         },
         until: () => false,

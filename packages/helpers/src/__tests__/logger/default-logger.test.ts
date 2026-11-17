@@ -18,6 +18,7 @@ const renderThroughTransport = (opts: {
   const seed = { ...info, [LEVEL]: info.level } as winston.Logform.TransformableInfo;
   const loggerFormat = logger.format;
   const prepped = loggerFormat ? loggerFormat.transform(seed, loggerFormat.options) : seed;
+
   if (typeof prepped === 'boolean') {
     throw new Error('logger format filtered the info');
   }
@@ -26,6 +27,7 @@ const renderThroughTransport = (opts: {
   const finalized = transportFormat
     ? transportFormat.transform({ ...prepped }, transportFormat.options)
     : prepped;
+
   if (typeof finalized === 'boolean') {
     throw new Error('transport format filtered the info');
   }
@@ -36,6 +38,7 @@ const renderThroughTransport = (opts: {
 const findConsoleTransport = (logger: winston.Logger): winston.transport => {
   const transport = logger.transports.find((el) => el instanceof winston.transports.Console);
   expect(transport).toBeDefined();
+
   return transport!;
 };
 
@@ -44,6 +47,7 @@ const findFileTransport = (logger: winston.Logger): winston.transport => {
     (el) => el instanceof winston.transports.DailyRotateFile,
   );
   expect(transport).toBeDefined();
+
   return transport!;
 };
 
@@ -150,8 +154,10 @@ describe('resolveDefaultTransportOptions - file logging is opt-in', () => {
   afterEach(() => {
     if (savedFolderPath === undefined) {
       delete process.env.APP_ENV_LOGGER_FOLDER_PATH;
+
       return;
     }
+
     process.env.APP_ENV_LOGGER_FOLDER_PATH = savedFolderPath;
   });
 

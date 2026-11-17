@@ -12,6 +12,7 @@ import {
 } from '@venizia/ignis-kernel';
 import { JWSTokenService } from '../services';
 
+/** JWT authentication strategy that verifies the bearer token with `JWSTokenService` (JWS, HS256 by default). */
 export class JWSAuthenticationStrategy<E extends Env = Env>
   extends BaseHelper
   implements IAuthenticationStrategy<E>
@@ -33,6 +34,7 @@ export class JWSAuthenticationStrategy<E extends Env = Env>
 
   authenticate(context: TContext<E, string>): Promise<IAuthUser> {
     const token = this.service.extractCredentials(context);
+
     return this.service.verify(token);
   }
 }

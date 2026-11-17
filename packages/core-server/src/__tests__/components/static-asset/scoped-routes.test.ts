@@ -1,22 +1,28 @@
 import 'reflect-metadata';
 import { BaseApplication } from '@/base/applications';
 import { AppErrorMiddleware } from '@/base/middlewares';
-import { AssetControllerFactory } from '@/components/static-asset/controller';
-import { MetaLinkRecreateActions, StaticAssetStorageTypes } from '@/components/static-asset/common';
+import { StaticAssetControllerFactory } from '@/components/static-asset/controller';
+import { MetaLinkRecreateActions } from '@/components/static-asset/common';
 import type {
   TMetaLinkConfig,
-  TObjectNameResolver,
-  TStaticAssetExtraOptions,
-  TStaticAssetsComponentOptions,
+  TStaticAssetDirectUploadOptions,
+  TStaticAssetEntry,
+  TStaticAssetRoutes,
+  TStaticAssetServerUploadOptions,
 } from '@/components/static-asset/common';
-import { BaseMetaLinkModel } from '@/components/static-asset/models';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { ControllerTransports } from '@venizia/ignis-kernel';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { StorageTypes } from '@venizia/ignis-helpers';
+import type { TTableInsert } from '@venizia/ignis-connectors/postgres';
+import type { TMetaLinkSchema } from '@/components/static-asset/models';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
+import { readJson } from '../../helpers/json-shape';
+import { FakeMetaLinkRepository } from './fake-meta-link.repository';
+import { buildDirectUploadServices } from './direct-upload-services';
 import { FakeStorageHelper } from './fake-storage.helper';
 
 const TEST_CONFIGS: IApplicationConfigs = {
@@ -32,71 +38,52 @@ class ScopedAssetApplication extends BaseApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'scoped-asset-app', version: '0.0.0', description: '' };
   }
+
   staticConfigure() {}
   preConfigure() {}
   postConfigure() {}
   setupMiddlewares() {}
 }
 
-type TMetaLinkRow = Record<string, AnyType>;
-
-/** The repository calls the component makes: create, and the updates over the (bucket, object) pair. */
-class FakeMetaLinkRepository {
-  readonly rows: TMetaLinkRow[] = [];
-  readonly updateCalls: string[] = [];
-
-  private matchRows(opts: { where: TMetaLinkRow }) {
-    return this.rows.filter((row) =>
-      Object.entries(opts.where).every(([key, value]) => row[key] === value),
-    );
-  }
-
-  async create(opts: { data: TMetaLinkRow }) {
-    const row = { id: String(this.rows.length + 1), ...opts.data };
-    this.rows.push(row);
-    return { count: 1, data: row };
-  }
-
-  async updateById(opts: { id: string; data: TMetaLinkRow }) {
-    this.updateCalls.push('updateById');
-    const [row] = this.matchRows({ where: { id: opts.id } });
-    Object.assign(row, opts.data);
-    return { count: 1, data: row };
-  }
-
-  async updateAll(opts: { data: TMetaLinkRow; where: TMetaLinkRow }) {
-    this.updateCalls.push('updateAll');
-    const matched = this.matchRows({ where: opts.where });
-    for (const row of matched) {
-      Object.assign(row, opts.data);
-    }
-    return { count: matched.length, data: matched };
-  }
-}
-
-/** The component reads `repository` through `ResolverUtility.resolveValueAsync`, so a resolver stands in for the class a fake cannot structurally be. */
+/** The component reads `repository` through `ResolverUtility.resolveValueAsync`, so a resolver is the form a test hands it. */
 const toRepositoryResolver = (opts: {
   repository: FakeMetaLinkRepository;
-}): TMetaLinkConfig<AnyType>['repository'] => {
-  const resolveRepository = (): AnyType => opts.repository;
+}): TMetaLinkConfig['repository'] => {
+  const resolveRepository = (): FakeMetaLinkRepository => opts.repository;
+
   return resolveRepository;
 };
 
+type TCreateMetaLinkOptions = Parameters<NonNullable<TMetaLinkConfig['createMetaLink']>>[0];
+
+/** The row a `createMetaLink` hook writes for one upload. */
+const insertFor = (opts: TCreateMetaLinkOptions): TTableInsert<TMetaLinkSchema> => ({
+  bucketName: opts.uploadResult.bucket.name,
+  objectName: opts.uploadResult.object.key,
+  link: opts.uploadResult.link,
+  mimetype: opts.uploadResult.object.contentType,
+  size: opts.uploadResult.object.size,
+  storageType: StorageTypes.BUN_S3,
+});
+
 const toMetaLinkConfig = (opts: {
   repository: FakeMetaLinkRepository;
-  createMetaLink?: TMetaLinkConfig<AnyType>['createMetaLink'];
-}): TMetaLinkConfig<AnyType> => ({
-  model: BaseMetaLinkModel,
+  createMetaLink?: TMetaLinkConfig['createMetaLink'];
+}): TMetaLinkConfig => ({
   repository: toRepositoryResolver({ repository: opts.repository }),
   createMetaLink: opts.createMetaLink,
 });
 
 const mount = async (opts: {
   helper: FakeStorageHelper;
-  controller?: Partial<TStaticAssetsComponentOptions[string]['controller']>;
-  metaLink?: TMetaLinkConfig<AnyType>;
-  resolveObjectName?: TObjectNameResolver;
-  options?: TStaticAssetExtraOptions;
+  entry?: {
+    keyPrefix?: string;
+    rawObjectPath?: boolean;
+    routes?: TStaticAssetRoutes;
+    directUpload?: Omit<TStaticAssetDirectUploadOptions, 'validation'>;
+  };
+  serverUpload?: TStaticAssetServerUploadOptions;
+  metaLink?: TMetaLinkConfig;
 }): Promise<OpenAPIHono> => {
   MetadataRegistry.getInstance().clearAll();
   const application = new ScopedAssetApplication({
@@ -105,21 +92,30 @@ const mount = async (opts: {
   });
   application.init();
 
+  const { keyPrefix, rawObjectPath, routes, directUpload } = opts.entry ?? {};
+  const base = {
+    basePath: '/assets',
+    bucket: 'images',
+    helper: opts.helper as never,
+    rawObjectPath,
+    routes,
+    serverUpload: { use: true as const, ...opts.serverUpload },
+    metaLink: opts.metaLink ? { use: true as const, ...opts.metaLink } : { use: false as const },
+  };
+  const entry: TStaticAssetEntry =
+    keyPrefix !== undefined && directUpload
+      ? {
+          ...base,
+          keyPrefix,
+          directUpload: { use: true, ...directUpload, validation: { use: false } },
+        }
+      : { ...base, keyPrefix, directUpload: { use: false } };
+
   application.controller(
-    AssetControllerFactory.defineAssetController({
-      controller: {
-        name: 'ScopedAssetController',
-        basePath: '/assets',
-        isStrict: false,
-        bucket: 'images',
-        ...opts.controller,
-      },
-      storage: StaticAssetStorageTypes.DISK,
-      helper: opts.helper,
-      useMetaLink: opts.metaLink !== undefined,
-      metaLink: opts.metaLink,
-      resolveObjectName: opts.resolveObjectName,
-      options: opts.options,
+    StaticAssetControllerFactory.build({
+      key: 'scoped',
+      entry,
+      ...buildDirectUploadServices({ key: 'scoped', entry }),
     }),
   );
   await application['registerControllers']();
@@ -127,6 +123,7 @@ const mount = async (opts: {
   const server = application.getServer() as OpenAPIHono;
   server.onError(new AppErrorMiddleware({ logger: application.logger }).value());
   server.route(TEST_CONFIGS.path.base, application.getRootRouter());
+
   return server;
 };
 
@@ -137,6 +134,7 @@ const upload = (opts: {
 }) => {
   const form = new FormData();
   form.append('files', new File(['hello'], opts.fileName ?? 'photo.jpg', { type: 'image/jpeg' }));
+
   for (const [key, value] of Object.entries(opts.labels ?? {})) {
     form.append(key, value);
   }
@@ -150,12 +148,12 @@ const objectPath = (opts: { route: string; key: string }) =>
 const storageMethods = (helper: FakeStorageHelper) => helper.calls.map((call) => call.method);
 
 describe('a route can be switched off one by one', () => {
-  test('enabled: false leaves the route unregistered, and the storage is never asked', async () => {
+  test('a route switched off is left unregistered, and the storage is never asked', async () => {
     const helper = new FakeStorageHelper();
     helper.seedObject({ bucket: 'images', key: 'photo.jpg' });
     const router = await mount({
       helper,
-      controller: { routes: { deleteObject: { enabled: false } } },
+      entry: { routes: { deleteObject: { use: false } } },
     });
 
     const response = await router.request(objectPath({ route: 'objects', key: 'photo.jpg' }), {
@@ -169,13 +167,13 @@ describe('a route can be switched off one by one', () => {
     );
   });
 
-  test('the other routes stay registered, and enabled: true changes nothing', async () => {
+  test('the other routes stay registered, and a route switched on changes nothing', async () => {
     const helper = new FakeStorageHelper();
     helper.seedObject({ bucket: 'images', key: 'photo.jpg', mimetype: 'image/jpeg' });
     const router = await mount({
       helper,
-      controller: {
-        routes: { deleteObject: { enabled: false }, getObjectByName: { enabled: true } },
+      entry: {
+        routes: { deleteObject: { use: false }, getObjectByName: { use: true } },
       },
     });
 
@@ -184,35 +182,28 @@ describe('a route can be switched off one by one', () => {
     expect(response.status).toBe(200);
   });
 
-  test('every switchable route honours it, bucket routes and recreate included', async () => {
+  test('every switchable route honours it, recreate included', async () => {
     const helper = new FakeStorageHelper();
     const router = await mount({
       helper,
       metaLink: toMetaLinkConfig({ repository: new FakeMetaLinkRepository() }),
-      controller: {
-        bucket: undefined,
+      entry: {
         routes: {
-          getBuckets: { enabled: false },
-          listObjects: { enabled: false },
-          upload: { enabled: false },
-          recreateMetaLink: { enabled: false },
+          listObjects: { use: false },
+          upload: { use: false },
+          recreateMetaLink: { use: false },
         },
       },
     });
 
-    const buckets = await router.request('/assets/buckets');
-    const list = await router.request('/assets/buckets/images/objects');
-    const uploaded = await router.request('/assets/buckets/images/objects', {
+    const list = await router.request('/assets/objects');
+    const uploaded = await router.request('/assets/objects', {
       method: 'POST',
       body: new FormData(),
     });
-    const recreated = await router.request('/assets/buckets/images/meta-links/a.png', {
-      method: 'PUT',
-    });
+    const recreated = await router.request('/assets/meta-links/a.png', { method: 'PUT' });
 
-    expect([buckets.status, list.status, uploaded.status, recreated.status]).toEqual([
-      404, 404, 404, 404,
-    ]);
+    expect([list.status, uploaded.status, recreated.status]).toEqual([404, 404, 404]);
     expect(helper.calls).toEqual([]);
   });
 });
@@ -235,7 +226,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
       seedBoth(helper);
       const router = await mount({
         helper,
-        controller: { keyPrefix: 'tenant-a' },
+        entry: { keyPrefix: 'tenant-a' },
         metaLink: toMetaLinkConfig({ repository: new FakeMetaLinkRepository() }),
       });
 
@@ -256,7 +247,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
   test('a prefix without its slash does not own a sibling that merely starts the same', async () => {
     const helper = new FakeStorageHelper();
     seedBoth(helper);
-    const router = await mount({ helper, controller: { keyPrefix: 'tenant-a' } });
+    const router = await mount({ helper, entry: { keyPrefix: 'tenant-a' } });
 
     const response = await router.request(
       objectPath({ route: 'objects', key: 'tenant-ab/photo.jpg' }),
@@ -268,7 +259,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
   test('a key inside the prefix is served as before', async () => {
     const helper = new FakeStorageHelper();
     seedBoth(helper);
-    const router = await mount({ helper, controller: { keyPrefix: '/tenant-a/' } });
+    const router = await mount({ helper, entry: { keyPrefix: '/tenant-a/' } });
 
     const response = await router.request(
       objectPath({ route: 'objects', key: 'tenant-a/photo.jpg' }),
@@ -279,21 +270,23 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
 
   test('the prefix does not count against maxFolderDepth: the caller keeps its own depth', async () => {
     const helper = new FakeStorageHelper();
-    const router = await mount({ helper, controller: { keyPrefix: 'inventory/material-images' } });
+    const router = await mount({ helper, entry: { keyPrefix: 'inventory/material-images' } });
 
-    const uploaded = await upload({ router, labels: { folderPath: 'shop/2024' } });
+    const uploaded = await upload({ router, labels: { folderPath: 'shop' } });
     const uploadedBody = await uploaded.json();
     const [result] = uploadedBody as Array<{ object: { key: string } }>;
     const served = await router.request(objectPath({ route: 'objects', key: result.object.key }));
 
-    expect(result.object.key).toBe('inventory/material-images/shop/2024/photo.jpg');
+    expect(result.object.key).toMatch(
+      /^inventory\/material-images\/shop\/[0-9a-f-]{36}\/photo\.jpg$/,
+    );
     expect(served.status).toBe(200);
   });
 
   test('listObjects without a prefix lists only the scope', async () => {
     const helper = new FakeStorageHelper();
     seedBoth(helper);
-    const router = await mount({ helper, controller: { keyPrefix: 'tenant-a' } });
+    const router = await mount({ helper, entry: { keyPrefix: 'tenant-a' } });
 
     const response = await router.request('/assets/objects');
     const result = await response.json();
@@ -305,7 +298,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
   test('listObjects narrows a wider prefix to the scope and keeps a narrower one', async () => {
     const helper = new FakeStorageHelper();
     seedBoth(helper);
-    const router = await mount({ helper, controller: { keyPrefix: 'tenant-a' } });
+    const router = await mount({ helper, entry: { keyPrefix: 'tenant-a' } });
 
     await router.request('/assets/objects?prefix=tenant');
     await router.request(`/assets/objects?prefix=${encodeURIComponent('tenant-a/pho')}`);
@@ -319,7 +312,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
   test('listObjects outside the scope is empty, and the storage is never asked', async () => {
     const helper = new FakeStorageHelper();
     seedBoth(helper);
-    const router = await mount({ helper, controller: { keyPrefix: 'tenant-a' } });
+    const router = await mount({ helper, entry: { keyPrefix: 'tenant-a' } });
 
     const response = await router.request('/assets/objects?prefix=tenant-b/');
 
@@ -331,24 +324,27 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
 
   test('the default upload key is placed under the prefix', async () => {
     const helper = new FakeStorageHelper();
-    const router = await mount({ helper, controller: { keyPrefix: 'tenant-a' } });
+    const router = await mount({ helper, entry: { keyPrefix: 'tenant-a' } });
 
     const response = await upload({ router, labels: { folderPath: 'photos' } });
     const responseBody = await response.json();
     const [result] = responseBody as Array<{ object: { key: string } }>;
 
-    expect(result.object.key).toBe('tenant-a/photos/photo.jpg');
+    expect(result.object.key).toMatch(/^tenant-a\/photos\/[0-9a-f-]{36}\/photo\.jpg$/);
   });
 
-  test('resolveObjectName is offered the scoped default and may return a key inside the prefix', async () => {
+  test('serverUpload.objectKey is offered the scoped default and may return a key inside the prefix', async () => {
     const helper = new FakeStorageHelper();
     const offered: string[] = [];
     const router = await mount({
       helper,
-      controller: { keyPrefix: 'tenant-a' },
-      resolveObjectName: ({ defaultKey }) => {
-        offered.push(defaultKey);
-        return 'tenant-a/generated.jpg';
+      entry: { keyPrefix: 'tenant-a' },
+      serverUpload: {
+        objectKey: ({ defaultKey }) => {
+          offered.push(defaultKey);
+
+          return 'tenant-a/generated.jpg';
+        },
       },
     });
 
@@ -356,16 +352,17 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const responseBody = await response.json();
     const [result] = responseBody as Array<{ object: { key: string } }>;
 
-    expect(offered).toEqual(['tenant-a/photo.jpg']);
+    expect(offered).toHaveLength(1);
+    expect(offered[0]).toMatch(/^tenant-a\/[0-9a-f-]{36}\/photo\.jpg$/);
     expect(result.object.key).toBe('tenant-a/generated.jpg');
   });
 
-  test('a resolveObjectName key outside the prefix is refused, and nothing is written', async () => {
+  test('a serverUpload.objectKey key outside the prefix is refused, and nothing is written', async () => {
     const helper = new FakeStorageHelper();
     const router = await mount({
       helper,
-      controller: { keyPrefix: 'tenant-a' },
-      resolveObjectName: () => 'tenant-b/escaped.jpg',
+      entry: { keyPrefix: 'tenant-a' },
+      serverUpload: { objectKey: () => 'tenant-b/escaped.jpg' },
     });
 
     const response = await upload({ router });
@@ -380,9 +377,11 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const helper = new FakeStorageHelper();
     const router = await mount({
       helper,
-      controller: { keyPrefix: 'tenant-a' },
-      resolveObjectName: ({ file, defaultKey }) =>
-        file.originalName === 'second.jpg' ? 'tenant-b/second.jpg' : defaultKey,
+      entry: { keyPrefix: 'tenant-a' },
+      serverUpload: {
+        objectKey: ({ file, defaultKey }) =>
+          file.originalName === 'second.jpg' ? 'tenant-b/second.jpg' : defaultKey,
+      },
     });
 
     const form = new FormData();
@@ -399,12 +398,12 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     ).toBe(false);
   });
 
-  test('an extra.normalizeNameFn key outside the prefix is refused the same way', async () => {
+  test('a second objectKey that ignores the default and lands outside the prefix is refused the same way', async () => {
     const helper = new FakeStorageHelper();
     const router = await mount({
       helper,
-      controller: { keyPrefix: 'tenant-a' },
-      options: { normalizeNameFn: () => 'elsewhere.jpg' },
+      entry: { keyPrefix: 'tenant-a' },
+      serverUpload: { objectKey: () => 'elsewhere.jpg' },
     });
 
     const response = await upload({ router });
@@ -417,9 +416,14 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const helper = new FakeStorageHelper();
     const router = await mount({
       helper,
-      controller: {
+      entry: {
         keyPrefix: 'tenant-a',
-        directUpload: { authorize: () => true, secretKey: 'a-secret', maxBytes: 1024 },
+        directUpload: {
+          authorize: () => true,
+          resolvers: { owner: () => 'user-a' },
+          secretKey: 'a-secret',
+          maxBytes: 1024,
+        },
       },
     });
 
@@ -444,8 +448,8 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const committed = result as { object: { key: string } };
 
     expect(policy.objectName).toStartWith('pending/tenant-a/');
-    expect(helper.calls.find((call) => call.method === 'presignPost')?.args['keyPrefix']).toBe(
-      'pending/tenant-a/',
+    expect(helper.calls.find((call) => call.method === 'presignPost')?.args['key']).toBe(
+      policy.objectName,
     );
     expect(committed.object.key).toStartWith('tenant-a/');
   });
@@ -455,7 +459,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
 
     for (const controller of [{ keyPrefix: 'tenant-a' }, {}]) {
       const helper = new FakeStorageHelper();
-      const router = await mount({ helper, controller });
+      const router = await mount({ helper, entry: controller });
 
       const response = await upload({ router, fileName: 'evil/x.jpg' });
       const result = await response.json();
@@ -477,23 +481,13 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const helper = new FakeStorageHelper();
     const router = await mount({
       helper,
-      controller: { keyPrefix: 'tenant-a' },
-      resolveObjectName: () => 'tenant-a/generated.jpg',
+      entry: { keyPrefix: 'tenant-a' },
+      serverUpload: { objectKey: () => 'tenant-a/generated.jpg' },
     });
 
     const response = await upload({ router, fileName: 'evil/x.jpg' });
 
     expect(response.status).toBe(200);
-  });
-
-  test('keyPrefix without controller.bucket is refused when the controller is defined', () => {
-    expect(() =>
-      AssetControllerFactory.defineAssetController({
-        controller: { name: 'UnboundScope', basePath: '/assets', keyPrefix: 'tenant-a' },
-        storage: StaticAssetStorageTypes.DISK,
-        helper: new FakeStorageHelper(),
-      }),
-    ).toThrow('keyPrefix needs controller.bucket');
   });
 
   /** A tenant-b object is seeded under both; the scope must never let a request reach it. */
@@ -516,7 +510,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
       seedBoth(helper);
       const router = await mount({
         helper,
-        controller: { keyPrefix: 'tenant-a', rawObjectPath: true },
+        entry: { keyPrefix: 'tenant-a', rawObjectPath: true },
       });
 
       const response = await router.request(`/assets/objects/${path}`);
@@ -534,7 +528,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     test(`encoded path: the key ${key} answers ${status}, never reaching another tenant`, async () => {
       const helper = new FakeStorageHelper();
       seedBoth(helper);
-      const router = await mount({ helper, controller: { keyPrefix: 'tenant-a' } });
+      const router = await mount({ helper, entry: { keyPrefix: 'tenant-a' } });
 
       const response = await router.request(objectPath({ route: 'objects', key }));
 
@@ -546,17 +540,24 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
   for (const keyPrefix of ['', '/', 'a/../b', 'tenant;a']) {
     test(`an unusable keyPrefix '${keyPrefix}' is refused when the controller is defined`, () => {
       expect(() =>
-        AssetControllerFactory.defineAssetController({
-          controller: { name: 'BadScope', basePath: '/assets', bucket: 'images', keyPrefix },
-          storage: StaticAssetStorageTypes.DISK,
-          helper: new FakeStorageHelper(),
+        StaticAssetControllerFactory.build({
+          key: 'badScope',
+          entry: {
+            basePath: '/assets',
+            bucket: 'images',
+            keyPrefix,
+            serverUpload: { use: true },
+            directUpload: { use: false },
+            metaLink: { use: false },
+            helper: new FakeStorageHelper() as never,
+          },
         }),
-      ).toThrow('controller.keyPrefix');
+      ).toThrow('[BadScopeController] keyPrefix must be');
     });
   }
 });
 
-describe('extra.maxBytes refuses a declared length before the body is read', () => {
+describe('serverUpload.maxBytes refuses a declared length before the body is read', () => {
   /** A body that counts how often it was pulled: zero means nothing buffered it. */
   const countingBody = () => {
     const state = { pulled: 0 };
@@ -571,12 +572,13 @@ describe('extra.maxBytes refuses a declared length before the body is read', () 
       },
       { highWaterMark: 0 },
     );
+
     return { state, body };
   };
 
   test('an oversized content-length is a 413 and the body is never pulled', async () => {
     const helper = new FakeStorageHelper();
-    const router = await mount({ helper, options: { maxBytes: 16 } });
+    const router = await mount({ helper, serverUpload: { maxBytes: 16 } });
     const { state, body } = countingBody();
 
     const response = await router.request('/assets/objects', {
@@ -588,7 +590,7 @@ describe('extra.maxBytes refuses a declared length before the body is read', () 
 
     expect(response.status).toBe(HTTP.ResultCodes.RS_4.ContentTooLarge);
     const result = await response.json();
-    expect(JSON.stringify(result)).toContain('core.static_asset.upload_too_large');
+    expect(JSON.stringify(result)).toContain('core.request.body_too_large');
     expect(state.pulled).toBe(0);
   });
 
@@ -597,10 +599,11 @@ describe('extra.maxBytes refuses a declared length before the body is read', () 
     const seen: string[] = [];
     const router = await mount({
       helper,
-      options: { maxBytes: 16 },
-      controller: {
+      serverUpload: { maxBytes: 16 },
+      entry: {
         routes: {
           upload: {
+            use: true,
             middleware: async (_context, next) => {
               seen.push('application');
               await next();
@@ -624,7 +627,7 @@ describe('extra.maxBytes refuses a declared length before the body is read', () 
 describe('recreate-metalink refreshes every row of the pair, or creates one the upload way', () => {
   const seedRows = (repository: FakeMetaLinkRepository) => {
     for (const principalId of ['product-1', 'variant-7']) {
-      repository.rows.push({
+      repository.seed({
         id: principalId,
         bucketName: 'images',
         objectName: 'photo.jpg',
@@ -632,7 +635,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
         mimetype: 'application/octet-stream',
         size: 1,
         etag: 'old-etag',
-        storageType: 's3',
+        storageType: StorageTypes.BUN_S3,
         isSynced: false,
         principalType: 'Product',
         principalId,
@@ -650,8 +653,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
     const router = await mount({ helper, metaLink: toMetaLinkConfig({ repository }) });
 
     const response = await router.request('/assets/meta-links/photo.jpg', { method: 'PUT' });
-    const result = await response.json();
-    const body = result as Record<string, AnyType>;
+    const body = await readJson<{ metaLinks: unknown[] }>(response);
 
     expect(response.status).toBe(200);
     expect(body).toMatchObject({
@@ -660,19 +662,21 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
       count: 2,
     });
     expect(body.metaLinks).toHaveLength(2);
+
     for (const row of repository.rows) {
       expect(row).toMatchObject({
         link: '/assets/objects/photo.jpg',
         mimetype: 'image/jpeg',
         size: 'seeded'.length,
-        etag: 'fake-etag',
+        etag: expect.stringContaining('fake-etag'),
         isSynced: true,
-        storageType: 's3',
+        storageType: StorageTypes.BUN_S3,
         principalType: 'Product',
         variant: 'thumbnail',
         sequence: 3,
       });
     }
+
     expect(repository.rows.map((row) => row.principalId)).toEqual(['product-1', 'variant-7']);
   });
 
@@ -693,29 +697,27 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
     const helper = new FakeStorageHelper();
     helper.seedObject({ bucket: 'images', key: 'photo.jpg', mimetype: 'image/jpeg' });
     const repository = new FakeMetaLinkRepository();
-    const hookCalls: AnyType[] = [];
+    const hookCalls: TCreateMetaLinkOptions[] = [];
     const router = await mount({
       helper,
       metaLink: toMetaLinkConfig({
         repository,
         createMetaLink: async (hookOptions) => {
           hookCalls.push(hookOptions);
-          return repository.create({
-            data: { objectName: hookOptions.uploadResult.object.key, storageType: 's3' },
-          });
+
+          return repository.create({ data: insertFor(hookOptions) });
         },
       }),
     });
 
     const response = await router.request('/assets/meta-links/photo.jpg', { method: 'PUT' });
-    const result = await response.json();
-    const body = result as Record<string, AnyType>;
+    const body = await readJson<unknown>(response);
 
     expect(body).toMatchObject({
       success: true,
       action: MetaLinkRecreateActions.CREATED,
       count: 1,
-      metaLink: { storageType: 's3' },
+      metaLink: { storageType: StorageTypes.BUN_S3 },
     });
     expect(hookCalls).toHaveLength(1);
     expect(hookCalls[0]).toMatchObject({
@@ -725,7 +727,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
         link: '/assets/objects/photo.jpg',
       },
       fileStat: { size: 'seeded'.length },
-      query: {},
+      labels: {},
     });
   });
 
@@ -734,30 +736,32 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
     helper.seedObject({ bucket: 'images', key: 'photo.jpg', mimetype: 'image/jpeg' });
     const repository = new FakeMetaLinkRepository();
     seedRows(repository);
+
     for (const row of repository.rows) {
       row.link = 'https://cdn.example.com/photo.jpg';
       row.metadata = { width: 640, height: 480, placeholder: 'LKO2?U%2Tw=w' };
     }
+
     const router = await mount({
       helper,
       metaLink: toMetaLinkConfig({
         repository,
-        createMetaLink: async (hookOptions) =>
-          repository.create({ data: { objectName: hookOptions.uploadResult.object.key } }),
+        createMetaLink: async (hookOptions) => repository.create({ data: insertFor(hookOptions) }),
       }),
     });
 
     const response = await router.request('/assets/meta-links/photo.jpg', { method: 'PUT' });
 
     expect(response.status).toBe(200);
-    expect(repository.updateCalls).toEqual(['updateAll']);
+    expect(repository.updateCalls).toEqual(['updateBy']);
+
     for (const row of repository.rows) {
       expect(row).toMatchObject({
         link: 'https://cdn.example.com/photo.jpg',
         metadata: { width: 640, height: 480, placeholder: 'LKO2?U%2Tw=w' },
         mimetype: 'image/jpeg',
         size: 'seeded'.length,
-        etag: 'fake-etag',
+        etag: expect.stringContaining('fake-etag'),
         isSynced: true,
       });
     }
@@ -773,11 +777,10 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
     const router = await mount({ helper, metaLink: toMetaLinkConfig({ repository }) });
 
     const response = await router.request('/assets/meta-links/photo.jpg', { method: 'PUT' });
-    const result = await response.json();
-    const body = result as Record<string, AnyType>;
+    const body = await readJson<unknown>(response);
 
     expect(body).toMatchObject({ action: MetaLinkRecreateActions.REFRESHED, count: 2 });
-    expect(repository.updateCalls).toEqual(['updateAll', 'updateById', 'updateById']);
+    expect(repository.updateCalls).toEqual(['updateBy', 'updateById', 'updateById']);
     expect(repository.rows[0].metadata).toEqual({
       width: 640,
       mimetype: 'image/jpeg',
@@ -812,7 +815,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
     );
   });
 
-  test('with no row and no hook, the default row carries the configured storage type', async () => {
+  test('with no row and no hook, the default row carries the storage type the helper declares', async () => {
     const helper = new FakeStorageHelper();
     helper.seedObject({ bucket: 'images', key: 'photo.jpg', mimetype: 'image/jpeg' });
     const repository = new FakeMetaLinkRepository();
@@ -825,7 +828,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
     expect(repository.rows[0]).toMatchObject({
       bucketName: 'images',
       objectName: 'photo.jpg',
-      storageType: StaticAssetStorageTypes.DISK,
+      storageType: StorageTypes.BUN_S3,
       mimetype: 'image/jpeg',
       isSynced: true,
     });

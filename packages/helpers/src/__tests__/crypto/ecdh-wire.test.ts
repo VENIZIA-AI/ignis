@@ -74,6 +74,7 @@ const importPrivate = (source: {
   readonly y: string;
 }): Promise<CryptoKey> => {
   const jwk: webcrypto.JsonWebKey = { ...source, ext: true };
+
   return crypto.subtle.importKey('jwk', jwk, CURVE, false, ['deriveBits']);
 };
 
@@ -110,6 +111,7 @@ const referenceKey = async (opts: {
     false,
     ['encrypt', 'decrypt'],
   );
+
   return key;
 };
 
@@ -134,6 +136,7 @@ const exchange = async (opts?: {
     peerPublicKey: serverPublic,
     salt: opts?.clientSalt ?? serverSide.salt,
   });
+
   return { server, client, serverPair, clientPair, serverSide, clientSide };
 };
 
@@ -250,6 +253,7 @@ describe('ECDH wire format', () => {
       for (const field of [payload.iv, payload.ct, serverSide.salt, serverPair.publicKeyB64]) {
         expect(toBuffer(field).toString('base64')).toBe(field);
       }
+
       expect(toBuffer(payload.iv).length).toBe(12);
       expect(toBuffer(serverSide.salt).length).toBe(32);
       expect(toBuffer(serverPair.publicKeyB64).length).toBe(65);

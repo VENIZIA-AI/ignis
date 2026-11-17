@@ -139,6 +139,7 @@ describe('UuidHelper.v5', () => {
     hash[6] = (hash[6] & 0x0f) | 0x50;
     hash[8] = (hash[8] & 0x3f) | 0x80;
     const hex = toHex({ bytes: hash.subarray(0, 16) });
+
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
   };
 
@@ -170,6 +171,7 @@ describe('UuidHelper.v5', () => {
 
     const bound = 5_000_000;
     let growth = Number.POSITIVE_INFINITY;
+
     for (let attempt = 0; attempt < 40 && growth >= bound; attempt += 1) {
       Bun.gc(true);
       growth = process.memoryUsage().external - before;

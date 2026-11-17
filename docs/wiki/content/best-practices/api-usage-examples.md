@@ -126,31 +126,32 @@ export class TestController extends BaseRestController {
 
 ### Example 3: Auto-Generated CRUD Controller
 
-For standard database entities, you can use `ControllerFactory.defineCrudController` to instantly generate a controller with a full set of CRUD endpoints.
+For standard database entities, you can use `CrudControllerFactory.build` to instantly generate a controller with the CRUD endpoints you list.
 
 **`src/controllers/configuration.controller.ts`**
 ```typescript
-import { Configuration } from '@/models';
 import { ConfigurationRepository } from '@/repositories';
-import { controller, ControllerFactory } from '@venizia/ignis';
+import { controller, CrudControllerFactory, CrudRoutes } from '@venizia/ignis';
 
 const BASE_PATH = '/configurations';
 
-// 1. The factory generates a controller class with all CRUD routes
-const _Controller = ControllerFactory.defineCrudController({
-  repository: { name: ConfigurationRepository.name },
-  controller: {
-    name: 'ConfigurationController',
-    basePath: BASE_PATH,
+// 1. The factory generates a controller class with the routes you list.
+//    The entity (for the OpenAPI schemas) comes from @repository({ model }) on the repository.
+const _Controller = CrudControllerFactory.build({
+  repository: ConfigurationRepository,
+  routes: {
+    ...CrudRoutes.READ,
+    create: true,
+    updateById: true,
+    deleteById: true,
   },
-  entity: () => Configuration, // The entity is used to generate OpenAPI schemas
 });
 
-// 2. Extend it - the container injects the repository named in repository.name
+// 2. Extend it - the container injects the repository class; the path is only here
 @controller({ path: BASE_PATH })
 export class ConfigurationController extends _Controller {}
 ```
-This automatically creates endpoints like `GET /configurations`, `POST /configurations`, `GET /configurations/:id`, etc.
+This creates `GET /configurations`, `POST /configurations`, `GET /configurations/:id`, and the other listed routes. A route you do not list does not exist.
 
 ## Repository (Data Access) Usage
 
@@ -265,6 +266,7 @@ Create reusable middleware using Hono's `createMiddleware` helper.
 ### Basic Middleware Pattern
 
 ```typescript
+import { HTTP } from '@venizia/ignis-helpers';
 import { createMiddleware } from 'hono/factory';
 import type { MiddlewareHandler } from 'hono';
 
@@ -278,7 +280,7 @@ export const rateLimiter = (opts: { maxRequests: number }): MiddlewareHandler =>
     const count = requests.get(ip) ?? 0;
 
     if (count >= maxRequests) {
-      return context.json({ error: 'Too many requests' }, 429);
+      return context.json({ error: 'Too many requests' }, HTTP.ResultCodes.RS_4.TooManyRequests);
     }
 
     requests.set(ip, count + 1);
@@ -423,7 +425,7 @@ export class UserController extends BaseRestController {
     const result = await this.userService.getUserWithOrders(id);
 
     if (!result) {
-      throw getError({ statusCode: 404, message: 'User not found' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'User not found' });
     }
 
     return context.json(result, HTTP.ResultCodes.RS_2.Ok);
@@ -528,7 +530,7 @@ async getUser(context: TRouteContext) {
 
   if (!user) {
     throw getError({
-      statusCode: 404,
+      statusCode: HTTP.ResultCodes.RS_4.NotFound,
       message: `User with ID '${id}' not found`,
     });
   }
@@ -591,7 +593,7 @@ async processOrder(context: Context) {
     }
 
     throw getError({
-      statusCode: 500,
+      statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
       message: 'Failed to process order',
     });
   }

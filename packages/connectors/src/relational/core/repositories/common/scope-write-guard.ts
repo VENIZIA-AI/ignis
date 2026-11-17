@@ -1,15 +1,20 @@
-import { ScopeWriteOperations, type TScopeWriteOperation } from './constants';
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import {
   QueryOperators,
   RepositoryErrorCodes,
   ScopeFilterMissingBehaviors,
   ScopeFilters,
+  ScopeOperations,
   ScopeWriteGuards,
 } from '@venizia/ignis-kernel';
-import type { IModelAccessSettings, TWhere } from '@venizia/ignis-kernel';
+import type {
+  IModelAccessSettings,
+  TModelAccessSettings,
+  TScopeOperation,
+  TWhere,
+} from '@venizia/ignis-kernel';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { ScopeFilterDenial } from './scope-filter';
+import { ScopeFilterDenial, ScopeResolution } from './scope-filter';
 
 type TScalar = string | number | bigint | boolean | Date | null;
 
@@ -34,10 +39,6 @@ const isScalar = (value: unknown): value is TScalar => {
     value instanceof Date ||
     ['string', 'number', 'bigint', 'boolean'].includes(typeof value)
   );
-};
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 };
 
 const normalise = (value: TScalar): string | null => {
@@ -92,6 +93,7 @@ export class ScopeWriteGuard {
             where: part as Record<string, unknown>,
             constraints,
           });
+
           if (reason !== undefined) {
             return reason;
           }
@@ -102,6 +104,7 @@ export class ScopeWriteGuard {
 
       if (key === 'or') {
         const union = ScopeWriteGuard.unionOfBranches({ branches: value });
+
         if (typeof union === 'string') {
           return union;
         }
@@ -119,6 +122,7 @@ export class ScopeWriteGuard {
       }
 
       const allowed = ScopeWriteGuard.allowedValues({ value });
+
       if (typeof allowed === 'string') {
         return `column '${key}': ${allowed}`;
       }
@@ -150,11 +154,13 @@ export class ScopeWriteGuard {
 
     for (const branch of branches) {
       const entries = Object.entries((branch ?? {}) as Record<string, unknown>);
+
       if (entries.length !== 1) {
         return "an 'or' branch with several conditions cannot be checked on a write";
       }
 
       const [key, value] = entries[0];
+
       if (key === 'and' || key === 'or' || key.includes('.')) {
         return `an 'or' branch over '${key}' cannot be checked on a write`;
       }
@@ -165,6 +171,7 @@ export class ScopeWriteGuard {
 
       column = key;
       const values = ScopeWriteGuard.allowedValues({ value });
+
       if (typeof values === 'string') {
         return `column '${key}': ${values}`;
       }
@@ -194,6 +201,7 @@ export class ScopeWriteGuard {
     }
 
     const operators = Object.keys(value as object);
+
     if (operators.length !== 1) {
       return `a condition with ${operators.length} operators cannot be checked on a write`;
     }
@@ -228,17 +236,16 @@ export class ScopeWriteGuard {
    * the shared rows, so the mutation is refused, as an update with a payload already is.
    */
   static mutationWhere(opts: {
-    settings: IModelAccessSettings;
+    settings: TModelAccessSettings;
     model: string;
-    operation: string;
+    operation: TScopeOperation;
     scopeWhere: TWhere;
   }): TWhere {
     const { settings, model, operation, scopeWhere } = opts;
 
-    if (settings.write?.sharedRows === true) {
-      return scopeWhere;
-    }
+    ScopeWriteGuard.assertWrite({ model, operation });
 
+    // Checked with `sharedRows` too: it lets the null branch through, not a shape the guard cannot read.
     const narrowed = ScopeWriteGuard.withoutShared({ where: scopeWhere });
 
     if (narrowed.kind === 'unverifiable') {
@@ -247,6 +254,10 @@ export class ScopeWriteGuard {
         operation,
         detail: `the resolved scope cannot be verified on a write | ${narrowed.reason}`,
       });
+    }
+
+    if (settings.write?.sharedRows === true) {
+      return scopeWhere;
     }
 
     return narrowed.kind === 'none' ? ScopeFilterDenial.where() : narrowed.where;
@@ -266,14 +277,18 @@ export class ScopeWriteGuard {
         // could match a shared row without a null in sight.
         if (key === 'or') {
           const union = ScopeWriteGuard.unionOfBranches({ branches: value });
+
           if (typeof union === 'string') {
             return { kind: 'unverifiable', reason: union };
           }
         }
 
         const kept: TWhere[] = [];
+
         for (const part of value) {
-          const narrowed = ScopeWriteGuard.withoutShared({ where: isRecord(part) ? part : {} });
+          const narrowed = ScopeWriteGuard.withoutShared({
+            where: RecordUtility.isPlainRecord(part) ? part : {},
+          });
 
           if (narrowed.kind === 'unverifiable') {
             return narrowed;
@@ -284,6 +299,7 @@ export class ScopeWriteGuard {
             if (key === 'and') {
               return narrowed;
             }
+
             continue;
           }
 
@@ -306,6 +322,7 @@ export class ScopeWriteGuard {
       }
 
       const narrowed = ScopeWriteGuard.conditionWithoutNull({ value });
+
       if (narrowed.kind !== 'condition') {
         return narrowed.kind === 'none'
           ? { kind: 'none' }
@@ -333,6 +350,7 @@ export class ScopeWriteGuard {
       }
 
       const kept = entries.filter((entry) => entry !== null);
+
       return kept.length === 0
         ? { kind: 'none' as const }
         : { kind: 'condition' as const, value: kept };
@@ -346,11 +364,12 @@ export class ScopeWriteGuard {
       return list(value);
     }
 
-    if (!isRecord(value)) {
+    if (!RecordUtility.isPlainRecord(value)) {
       return { kind: 'unverifiable', reason: 'an unsupported condition' };
     }
 
     const operators = Object.keys(value);
+
     if (operators.length !== 1) {
       return {
         kind: 'unverifiable',
@@ -370,6 +389,7 @@ export class ScopeWriteGuard {
       Array.isArray(operand)
     ) {
       const narrowed = list(operand);
+
       return narrowed.kind === 'condition'
         ? { kind: 'condition', value: { [operator]: narrowed.value } }
         : narrowed;
@@ -390,10 +410,13 @@ export class ScopeWriteGuard {
     settings: IModelAccessSettings;
     model: string;
     rows: Row[];
-    operation: TScopeWriteOperation;
+    operation: TScopeOperation;
   }): Row[] {
     const { settings, model, rows, operation } = opts;
-    const scope = settings.resolve();
+
+    ScopeWriteGuard.assertWrite({ model, operation });
+
+    const scope = ScopeResolution.normalize({ value: settings.resolve({ operation }) });
 
     if (scope === ScopeFilters.UNRESTRICTED) {
       return rows;
@@ -404,7 +427,7 @@ export class ScopeWriteGuard {
       // guard adds nothing there. A create has no such `where`, so an unresolved scope refuses it.
       if (
         settings.onMissing === ScopeFilterMissingBehaviors.ALLOW ||
-        operation === ScopeWriteOperations.UPDATE
+        operation !== ScopeOperations.CREATE
       ) {
         return rows;
       }
@@ -417,6 +440,7 @@ export class ScopeWriteGuard {
     }
 
     const extraction = ScopeWriteGuard.extractConstraints({ where: scope });
+
     if (!extraction.isVerifiable) {
       throw ScopeWriteGuard.denied({
         model,
@@ -430,6 +454,7 @@ export class ScopeWriteGuard {
 
     if (declared) {
       const undeclared = [...constraints.keys()].find((column) => !declared.includes(column));
+
       if (undeclared !== undefined) {
         throw ScopeWriteGuard.denied({
           model,
@@ -439,7 +464,8 @@ export class ScopeWriteGuard {
       }
     }
 
-    const isAssign = settings.write?.mode === ScopeWriteGuards.ASSIGN && operation === 'create';
+    const isAssign =
+      settings.write?.mode === ScopeWriteGuards.ASSIGN && operation === ScopeOperations.CREATE;
     const sharedRows = settings.write?.sharedRows === true;
 
     return rows.map((row) => {
@@ -449,12 +475,13 @@ export class ScopeWriteGuard {
         const value = (row as Record<string, unknown>)[column];
 
         if (value === undefined) {
-          if (operation === 'update') {
+          if (operation !== ScopeOperations.CREATE) {
             continue;
           }
 
           // `assign` first: stamping gives the row an owner, which is safer than leaving it shared.
           const only = allowed.size === 1 ? [...allowed][0] : undefined;
+
           if (isAssign && only !== undefined && only !== null) {
             result = { ...result, [column]: only };
             continue;
@@ -492,10 +519,49 @@ export class ScopeWriteGuard {
     });
   }
 
+  /**
+   * The write guard runs for a write only. A READ reaching it is a bug in the caller, not a request,
+   * so it throws a plain error rather than a refusal the caller could map to a status.
+   */
+  private static assertWrite(opts: { model: string; operation: TScopeOperation }): void {
+    const { model, operation } = opts;
+
+    if (ScopeOperations.includes({ group: ScopeOperations.WRITE, operation })) {
+      return;
+    }
+
+    throw getError({
+      message: `[ScopeWriteGuard] the write guard runs for a write operation only | entity: ${model} | operation: ${operation}`,
+    });
+  }
+
+  /**
+   * A write to a `through` model named no parent, a parent that does not exist, or one outside the caller's scope. One
+   * message for all three, so a foreign parent's existence does not leak.
+   */
+  static parentDenied(opts: { model: string; operation: TScopeOperation; column: string }) {
+    return ScopeWriteGuard.denied({
+      ...opts,
+      detail: "the parent is missing or outside the caller's scope",
+    });
+  }
+
+  /**
+   * An upsert met a row holding its key that the caller may not update: outside the scope, or hidden by the default
+   * filter. The row is left as it is; the refusal is the same one an out-of-scope write gets.
+   */
+  static conflictDenied(opts: { model: string }) {
+    return ScopeWriteGuard.denied({
+      model: opts.model,
+      operation: ScopeOperations.UPDATE,
+      detail: "the row holding this key is outside the caller's scope",
+    });
+  }
+
   /** Names the model and the column, never a value: the caller may be a request. */
   private static denied(opts: {
     model: string;
-    operation: string;
+    operation: TScopeOperation;
     column?: string;
     detail: string;
   }) {

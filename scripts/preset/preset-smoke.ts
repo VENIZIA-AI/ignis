@@ -644,7 +644,7 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
   step({ label: 'bun install, vulcan sync' });
   await run({ command: ['git', 'init', '-q', '-b', 'develop'], cwd: projectDir });
   await run({ command: ['bun', 'install'], cwd: projectDir });
-  await run({ command: ['bun', 'x', 'vulcan', 'sync'], cwd: projectDir });
+  await run({ command: ['bun', 'run', 'vulcan', 'sync'], cwd: projectDir });
 
   step({ label: 'the app: typecheck, lint, test, then test again with .env.example as its .env' });
   for (const check of ['typecheck', 'lint', 'test']) {
@@ -664,8 +664,11 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
   assertStampBaked({ binary: join(appDir, BINARY) });
 
   step({ label: 'the project: vulcan doctor, okf check' });
-  await run({ command: ['bun', 'x', 'vulcan', 'doctor'], cwd: projectDir });
-  await run({ command: ['bun', 'x', 'vulcan', 'x', 'okf', 'check', '--strict'], cwd: projectDir });
+  await run({ command: ['bun', 'run', 'vulcan', 'doctor'], cwd: projectDir });
+  await run({
+    command: ['bun', 'run', 'vulcan', 'x', 'okf', 'check', '--strict'],
+    cwd: projectDir,
+  });
 
   step({ label: 'the scaffold: renamed dotfile, dev port, no leftover tokens' });
   assertScaffold({ appDir });

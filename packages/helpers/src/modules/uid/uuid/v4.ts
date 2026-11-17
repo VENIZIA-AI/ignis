@@ -2,6 +2,7 @@ import { UUID_HEX_OCTETS } from './common/constants';
 
 const POOL_SIZE = 16 * 256;
 
+/** Random UUID v4 generator. Use `generate()` for the shared instance or `create()` for one of your own. */
 export class UuidV4Generator {
   /**
    * Builds a v4 generator. `crypto.randomUUID` is captured once - whether a realm is a secure context
@@ -10,8 +11,10 @@ export class UuidV4Generator {
    */
   static create(): () => string {
     const randomUuid = globalThis.crypto?.randomUUID;
+
     if (typeof randomUuid === 'function') {
       const native = randomUuid.bind(globalThis.crypto);
+
       return () => native();
     }
 

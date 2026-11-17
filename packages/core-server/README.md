@@ -110,6 +110,7 @@ Register a component with `this.component(...)` in `preConfigure()`.
 |---|---|---|
 | `ApiReferenceComponent` | `@venizia/ignis` | The OpenAPI document and a Scalar or Swagger UI explorer (`@scalar/hono-api-reference` or `@hono/swagger-ui`) |
 | `HealthCheckComponent` | `@venizia/ignis` | `GET /health`, `POST /health/ping`, and `GET /health/stats` (closed outside development unless you enable it) |
+| `ServerInfoComponent` | `@venizia/ignis` | `GET /server/info/time`, a public route that carries only data safe to publish (the server clock) |
 | `AuthenticateComponent` | `@venizia/ignis` | JWT, Basic, and service-to-service authentication strategies |
 | `AuthorizeComponent` | `@venizia/ignis` | Casbin-based authorization (`casbin`) |
 | `RequestTrackerComponent` | `@venizia/ignis` | Logs each request and response - registered for you by `BaseApplication` |
@@ -130,28 +131,20 @@ you use.
 
 | Import | What it gives | Extra peers |
 |---|---|---|
-| `@venizia/ignis` | `BaseApplication`, the kernel in full, the root components, and everything in `/postgres` | none |
-| `/postgres` | Postgres datasources, entities, repositories, `ModelFactory` | none |
-| `/postgres/node-postgres` | `NodePostgresDriver` | `pg` |
-| `/postgres/postgres-js` | `PostgresJsDriver` | `postgres` |
-| `/postgres/pglite` | `PGliteDriver` | `@electric-sql/pglite` |
-| `/postgres/supabase` | Supabase auth context and pooler helpers | none |
-| `/relational` | The engine-neutral SQL tier (`DefaultRelationalRepository`, `BaseRelationalDataSource`) | none |
-| `/sqlite` | SQLite datasources and repositories | none |
-| `/sqlite/libsql` | `LibSqlDriver` | `@libsql/client` |
-| `/search`, `/search/controllers` | The engine-neutral search tier and its controllers | none |
-| `/typesense`, `/typesense/controllers` | The Typesense engine, and the search controllers | `typesense` for `/typesense` |
-| `/meilisearch` | The Meilisearch engine | `meilisearch` |
+| `@venizia/ignis` | `BaseApplication`, the kernel in full, the root components, and the Postgres entry of `@venizia/ignis-connectors` (`/postgres`) | none |
 | `/grpc` | `GrpcComponent` (`BaseGrpcController` and `@rpc` come from the root) | none to load |
 | `/mail` | `MailComponent` | none to load |
 | `/socket-io` | `SocketIOComponent` | `socket.io`, `@socket.io/redis-adapter`, `@socket.io/redis-emitter` |
 | `/websocket` | `WebSocketComponent` | none |
 | `/static-asset` | `StaticAssetComponent` | none |
+| `/testing` | Test-only: the `@venizia/ignis-connectors/testing` doubles and the application boot helper; never in the root barrel | none |
 
 "None to load" means the entry imports cleanly; the component loads its client library (for example
 `nodemailer` or `@connectrpc/connect`) when you configure it.
 
-The connector entries re-export `@venizia/ignis-connectors` under the same names. The kernel is
+The root re-exports the Postgres entry of `@venizia/ignis-connectors` and nothing else of it. Every other
+connector (a Postgres driver, SQLite, PGlite, search, `/raw-sql`, `/http`) is imported from
+`@venizia/ignis-connectors`, so an app that uses one lists that package as a dependency. The kernel is
 re-exported in full from the root.
 
 ## Where it sits
@@ -169,7 +162,7 @@ Top of the chain. Depends on `@venizia/ignis-kernel`, `@venizia/ignis-connectors
 - [Components](https://ignis.venizia.ai/extensions/components/)
 - [All changelogs](https://ignis.venizia.ai/changelogs/)
 
-IGNIS is 0.x: a minor version can break. Pin exact versions and read the changelog before upgrading.
+IGNIS is 0.x: a patch release can carry a breaking change. Pin exact versions and read the changelog before upgrading.
 
 MIT licensed - see [LICENSE.md](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/LICENSE.md).
 

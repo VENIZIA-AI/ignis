@@ -60,6 +60,7 @@ const SOURCE_ENTRIES: Record<string, () => Promise<Record<string, unknown>>> = {
 
 const loadModule = async (specifier: string): Promise<Record<string, unknown>> => {
   const load = SOURCE_ENTRIES[specifier];
+
   if (!load) {
     throw new Error(`no source entry known for ${specifier}`);
   }
@@ -74,11 +75,13 @@ const readExportsMap = (packageFolder: string): string[] => {
   const parsed: { exports: Record<string, unknown> } = JSON.parse(
     readFileSync(join(REPOSITORY_ROOT, 'packages', packageFolder, 'package.json'), 'utf8'),
   );
+
   return Object.keys(parsed.exports);
 };
 
 const toSubpath = (opts: { specifier: string; base: string }) => {
   const { specifier, base } = opts;
+
   return specifier === base ? '.' : `.${specifier.slice(base.length)}`;
 };
 
@@ -109,9 +112,11 @@ describe('the mapping table of this package', () => {
     for (const mapping of CONNECTORS_MAPPINGS) {
       for (const specifier of mapping.modules) {
         const key = `${specifier}#${mapping.oldName}`;
+
         if (seen.has(key)) {
           repeated.push(key);
         }
+
         seen.add(key);
       }
     }
@@ -147,6 +152,7 @@ describe('the old name and the class, per mapping entry', () => {
 
       test('the class has the static method', async () => {
         const specifier = (mapping.newModules ?? mapping.modules).find(isConnectorsModule);
+
         if (!specifier) {
           throw new Error(`${mapping.className}.${mapping.method} lists no connectors module`);
         }

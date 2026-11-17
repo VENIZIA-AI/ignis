@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
-import { type AnyType } from '@/common';
 import { type IUploadFile } from '@/modules/storage/common';
 import { DiskHelper } from '@/modules/storage/disk';
 
@@ -9,6 +8,7 @@ import { DiskHelper } from '@/modules/storage/disk';
 const captureError = async (opts: { task: Promise<unknown> }): Promise<string> => {
   try {
     await opts.task;
+
     return '';
   } catch (error) {
     return (error as Error).message;
@@ -41,9 +41,12 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
 
     spies.push(
       spyOn(fsp, 'access').mockImplementation(async () => undefined),
-      spyOn(fsp, 'stat').mockImplementation(async () => ({ isDirectory: () => true }) as AnyType),
+      spyOn(fsp, 'stat').mockResolvedValue(
+        Object.assign(fs.statSync('.'), { isDirectory: () => true }),
+      ),
       spyOn(fsp, 'mkdir').mockImplementation(async () => undefined),
-      spyOn(fsp, 'writeFile').mockImplementation(async (objectPath: AnyType) => {
+      spyOn(fsp, 'realpath').mockImplementation((async (target: string) => target) as never),
+      spyOn(fsp, 'writeFile').mockImplementation(async (objectPath) => {
         writtenPaths.push(String(objectPath));
       }),
     );
@@ -68,7 +71,7 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
   test('a MISSING size is still rejected', async () => {
     const task = helper.upload({
       bucket: { name: 'assets' },
-      files: [buildFile({ size: undefined as AnyType })],
+      files: [buildFile({ size: undefined })],
     });
 
     const result = await captureError({ task });
@@ -117,6 +120,32 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
 
     const result = await captureError({ task });
     expect(result).toMatch(/Invalid folder path/);
+    expect(writtenPaths).toHaveLength(0);
+  });
+
+  test('maxKeyDepth lets a scope the naming adds sit on top of the caller folders', async () => {
+    const results = await helper.upload({
+      bucket: { name: 'assets' },
+      files: [buildFile({ folderPath: 'x/y' })],
+      maxFolderDepth: 2,
+      maxKeyDepth: 4,
+      normalizeNameFn: ({ file }) => `a/b/${file.folderPath}/${file.originalName}`,
+    });
+
+    expect(results).toHaveLength(1);
+  });
+
+  test('a folderPath over maxFolderDepth keeps its code even when maxKeyDepth is wider', async () => {
+    const task = helper.upload({
+      bucket: { name: 'assets' },
+      files: [buildFile({ folderPath: 'x/y/z' })],
+      maxFolderDepth: 2,
+      maxKeyDepth: 4,
+      normalizeNameFn: ({ file }) => `a/b/${file.folderPath}/${file.originalName}`,
+    });
+
+    const result = await captureError({ task });
+    expect(result).toMatch(/Invalid folder path \| depth: 3 \| max: 2/);
     expect(writtenPaths).toHaveLength(0);
   });
 

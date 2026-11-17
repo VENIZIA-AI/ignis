@@ -1,5 +1,6 @@
 import { type TConstValue } from '@/common';
 
+/** Consumer group protocol: `classic` or `consumer`. */
 export class KafkaGroupProtocol {
   static readonly CLASSIC = 'classic';
   static readonly CONSUMER = 'consumer';
@@ -11,8 +12,10 @@ export class KafkaGroupProtocol {
   }
 }
 
+/** A {@link KafkaGroupProtocol} value. */
 export type TKafkaGroupProtocol = TConstValue<typeof KafkaGroupProtocol>;
 
+/** Producer acknowledgment level, as the Kafka `acks` number: `0` none, `1` leader, `-1` all in-sync replicas. */
 export class KafkaAcks {
   static readonly NONE = 0; // No acknowledgment — fire-and-forget
   static readonly LEADER = 1; // Leader acknowledgment only
@@ -25,22 +28,20 @@ export class KafkaAcks {
   }
 }
 
+/** A {@link KafkaAcks} value. */
 export type TKafkaAcks = TConstValue<typeof KafkaAcks>;
 
+/** Connection health of a Kafka helper, as reported by `getHealthStatus()`. */
 export class KafkaHealthStatuses {
   static readonly CONNECTED = 'connected';
   static readonly DISCONNECTED = 'disconnected';
   static readonly UNKNOWN = 'unknown';
-
-  static readonly SCHEME_SET = new Set([this.CONNECTED, this.DISCONNECTED, this.UNKNOWN]);
-
-  static isValid(status: string): boolean {
-    return this.SCHEME_SET.has(status);
-  }
 }
 
+/** A {@link KafkaHealthStatuses} value. */
 export type TKafkaHealthStatus = TConstValue<typeof KafkaHealthStatuses>;
 
+/** Names of the `@platformatic/kafka` client, consumer-group and stream events the helpers listen to. */
 export class KafkaClientEvents {
   static readonly BROKER_CONNECT = 'client:broker:connect';
   static readonly BROKER_DISCONNECT = 'client:broker:disconnect';
@@ -57,6 +58,7 @@ export class KafkaClientEvents {
   static readonly STREAM_ERROR = 'error';
 }
 
+/** The option values the Kafka helpers use for a field the caller leaves unset. Timeouts, delays and intervals are in milliseconds; `MAX_BYTES` is in bytes. */
 export class KafkaDefaults {
   // Shared
   static readonly RETRIES = 3;
@@ -90,12 +92,6 @@ export class KafkaDefaults {
 export class KafkaBrokersDownReasons {
   static readonly DISCONNECTED = 'disconnected';
   static readonly FAILED = 'failed';
-
-  static readonly SCHEME_SET = new Set<string>([this.DISCONNECTED, this.FAILED]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** Valid Kafka brokers-down reason values. */

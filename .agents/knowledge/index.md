@@ -23,9 +23,9 @@ re-deriving the project from the source each session.
 **The code is ground truth.** These concepts are curated prose over the code. When the two disagree,
 the code wins and the concept is a bug - fix it.
 
-Served over MCP by `atlas`, which `vulcan sync` registers in each machine's `.mcp.json`; it runs VULCAN's atlas (`bun x --no-install
-vulcan x atlas mcp`). `search` with `corpus: "knowledge"` finds a concept, `get` reads one by the id a
-search hit returned. Outside this repo the same server is `@venizia/vulcan-atlas`.
+Served over MCP by `atlas`, which `vulcan sync` registers in each machine's `.mcp.json`; it runs VULCAN's atlas
+(`bun node_modules/.bin/vulcan x atlas mcp --root .`). `search` with `corpus: "knowledge"` finds a concept,
+`get` reads one by the id a search hit returned. Outside this repo the same server is `@venizia/vulcan-atlas`.
 
 ## Start here
 
@@ -62,6 +62,7 @@ How the pieces fit.
 - [Application lifecycle](/architecture/application-lifecycle.md) - the startup sequence
 - [Artifact registration](/architecture/boot-lifecycle.md) - stereotype -> generated index -> configs.artifacts -> registerArtifacts step
 - [Component model](/architecture/component-model.md) - what a component is and how it wires
+- [Server info component](/architecture/server-info.md) - the public server-time route and the rule that keeps it safe to publish
 - [Controller system](/architecture/controller-system.md) - the route APIs over Hono
 - [Repository hierarchy](/architecture/repository-hierarchy.md) - abstract to CRUD, plus mixins
 - [DataSource hierarchy](/architecture/datasource-hierarchy.md) - the connector and driver seams
@@ -80,6 +81,7 @@ How the pieces fit.
 How the code is written. Read before writing any.
 
 - [Options objects](/conventions/options-objects.md)
+- [Callback dependencies](/conventions/callback-dependencies.md)
 - [Coding style](/conventions/coding-style.md)
 - [Error handling](/conventions/error-handling.md)
 - [Const classes](/conventions/const-classes.md)

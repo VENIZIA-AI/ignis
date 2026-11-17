@@ -1,4 +1,4 @@
-import type { AbstractDataSource } from '@/base/datasources';
+import type { DataSourceRoot } from '@/base/datasources';
 import type { AbstractEntity, IdType } from '@/base/models';
 import type { TByIdFilter, TFields, TFilter, TRow, TWhere } from '@venizia/ignis-filter';
 import type { TNullable } from '@venizia/ignis-helpers/common';
@@ -10,7 +10,7 @@ import type { TCount, TDataWithRange } from './results';
  * `getEntitySchema()`/`getConnector()`) stay on the connector's own repository tier.
  */
 export interface IRepository {
-  dataSource: AbstractDataSource;
+  dataSource: DataSourceRoot;
   entity: AbstractEntity;
   getEntity(): AbstractEntity;
 }
@@ -90,26 +90,12 @@ export interface IUpdatableRepository<
     options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
 
-  updateAll(opts: {
-    data: Partial<TPersistObject>;
-    where: TWhere<TDataObject>;
-    options: ExtraOptions & { shouldReturn: false; force?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-
-  updateAll<R = TDataObject>(opts: {
-    data: Partial<TPersistObject>;
-    where: TWhere<TDataObject>;
-    options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> | null }>;
-
-  /** Alias for updateAll. */
   updateBy(opts: {
     data: Partial<TPersistObject>;
     where: TWhere<TDataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
 
-  /** Alias for updateAll. */
   updateBy<R = TDataObject>(opts: {
     data: Partial<TPersistObject>;
     where: TWhere<TDataObject>;
@@ -132,27 +118,31 @@ export interface IDeletableRepository<
     options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
 
-  deleteAll(opts: {
-    where?: TWhere<TDataObject>;
-    options: ExtraOptions & { shouldReturn: false; force?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-
-  deleteAll<R = TDataObject>(opts: {
-    where?: TWhere<TDataObject>;
-    options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> | null }>;
-
-  /** Alias for deleteAll. */
   deleteBy(opts: {
-    where?: TWhere<TDataObject>;
+    where: TWhere<TDataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
 
-  /** Alias for deleteAll. */
   deleteBy<R = TDataObject>(opts: {
-    where?: TWhere<TDataObject>;
+    where: TWhere<TDataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> | null }>;
+}
+
+/** Interface for a repository that can undo a soft delete. */
+export interface IRestorableRepository<
+  TDataObject extends object = object,
+  ExtraOptions extends IExtraOptions = IExtraOptions,
+> extends IRepository {
+  restoreById<R = TDataObject>(opts: {
+    id: IdType;
+    options?: ExtraOptions & { shouldReturn?: boolean };
+  }): Promise<TCount & { data: TNullable<R> }>;
+
+  restoreBy<R = TDataObject>(opts: {
+    where: TWhere<TDataObject>;
+    options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
+  }): Promise<TCount & { data: TNullable<Array<R>> }>;
 }
 
 /** Interface for full CRUD repository operations - reads plus create, update, and delete. */

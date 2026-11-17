@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-inversion",
-  "version": "0.4.6",
+  "version": "0.4.7-5",
   "description": "A small, standalone Dependency Injection and Inversion of Control container for TypeScript. Features decorator-based constructor and property injection, fluent Binding API, singleton/transient scoping, namespace auto-tagging, Provider pattern, tag-based discovery, and reflect-metadata integration. Zero framework lock-in — works standalone or with Ignis.",
   "keywords": [
     "architecture",
@@ -27,7 +27,6 @@
     "lightweight",
     "loose-coupling",
     "metadata",
-    "nodejs",
     "property-injection",
     "provider",
     "reflect-metadata",
@@ -63,6 +62,7 @@
     "LICENSE.md",
     "dist",
     "!**/__tests__",
+    "!**/*.d.ts.map",
     "!**/*.tsbuildinfo"
   ],
   "sideEffects": [

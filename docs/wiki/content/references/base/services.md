@@ -20,7 +20,8 @@ Technical reference for `BaseService` - the foundation for the business logic la
 | **Registration** | `@service()` on the class + `artifacts: AutoArtifacts` in the app config |
 | **Binding key** | `services.{ClassName}` (e.g., `services.AuthenticationService`) |
 | **Binding scope** | **Transient.** Every resolution builds a fresh instance |
-| **DI decorator** | `@inject` on constructor parameters or properties. `@service({ ... })` on the class marks it for registration and carries its registration defaults |
+| **DI decorator** | `@inject` on constructor parameters or properties |
+| **Registration decorator** | `@service({ ... })` marks the class for registration and carries its defaults |
 | **CRUD service** | Removed - use `DefaultCRUDRepository` for data access |
 
 ---

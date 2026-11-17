@@ -10,7 +10,7 @@ import type {
   INodemailerMailOptions,
   TMailOptions,
 } from '../common';
-import { MailErrorCodes, MailProviders } from '../common';
+import { MailErrors, MailProviders } from '../common';
 import {
   AmazonSesTransportHelper,
   MailgunTransportHelper,
@@ -18,8 +18,10 @@ import {
 } from '../helpers';
 import { MailTypeUtility } from '../utilities';
 
+/** Builds the transport for the given mail options; throws on an unsupported provider. */
 export type TGetMailTransportFn = (options: TMailOptions) => IMailTransport;
 
+/** Provides the `TGetMailTransportFn` factory bound at `MailKeys.MAIL_TRANSPORT_PROVIDER`. */
 export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
   constructor() {
     super({ scope: MailTransportProvider.name });
@@ -51,7 +53,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
         default: {
           throw getError({
             statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-            messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+            error: MailErrors.INVALID_CONFIGURATION,
             message: `Unsupported mail provider: ${options.provider}`,
           });
         }
@@ -64,12 +66,13 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
       this.logger
         .for(this.createNodemailerTransport.name)
         .info('Initializing Nodemailer transport');
+
       return new NodemailerTransportHelper({ config: options.config, module: options.module });
     }
 
     throw getError({
       statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-      messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+      error: MailErrors.INVALID_CONFIGURATION,
       message: 'Invalid Nodemailer configuration',
     });
   }
@@ -77,12 +80,13 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
   private createMailgunTransport(options: TMailOptions): MailgunTransportHelper {
     if (this.isMailgunOptions(options)) {
       this.logger.for(this.createMailgunTransport.name).info('Initializing Mailgun transport');
+
       return new MailgunTransportHelper({ config: options.config, module: options.module });
     }
 
     throw getError({
       statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-      messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+      error: MailErrors.INVALID_CONFIGURATION,
       message: 'Invalid Mailgun configuration',
     });
   }
@@ -90,12 +94,13 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
   private createAmazonSesTransport(options: TMailOptions): AmazonSesTransportHelper {
     if (this.isAmazonSesOptions(options)) {
       this.logger.for(this.createAmazonSesTransport.name).info('Initializing Amazon SES transport');
+
       return new AmazonSesTransportHelper({ config: options.config, module: options.module });
     }
 
     throw getError({
       statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-      messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+      error: MailErrors.INVALID_CONFIGURATION,
       message: 'Invalid Amazon SES configuration',
     });
   }
@@ -104,7 +109,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
     if (!this.isCustomOptions(options)) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+        error: MailErrors.INVALID_CONFIGURATION,
         message: 'Invalid custom mail provider configuration',
       });
     }
@@ -123,12 +128,13 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
 
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+        error: MailErrors.INVALID_CONFIGURATION,
         message: `Custom mail provider must implement IMailTransport interface. Missing methods: ${missingMethods.join(', ')}`,
       });
     }
 
     this.logger.for(this.createCustomTransport.name).info('Using custom mail transport');
+
     return options.config;
   }
 

@@ -1,7 +1,7 @@
+import { EchoUtility } from '@/common/internal';
 import { HttpReadShapes, type THttpReadShape } from './common/constants';
-import { AbstractDataSource } from '@venizia/ignis-kernel/repository';
+import { DataSourceRoot } from '@venizia/ignis-kernel/repository';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { NodeFetchNetworkRequest } from '@venizia/ignis-helpers/core';
 import { getError } from '@venizia/ignis-helpers/core';
 import { HttpResponseReader } from './common/readers';
 import type {
@@ -19,13 +19,24 @@ import { HttpWire } from './common/wire';
 /** A scheme and `//` make a URL absolute - `localhost:3000` has neither. Read by pattern: `URL.canParse` needs Safari 17 or Chrome 120, and this runs in pages. */
 const ABSOLUTE_URL_PATTERN = /^[a-z][a-z\d+.-]*:\/\//i;
 
+/** A backslash is a separator to the URL parser, and a control character (a tab or a newline inside `.<TAB>.`) is dropped by it: neither may hide a dot segment. `%5c` is the encoded backslash. */
+const UNSAFE_REQUEST_PATH_PATTERN = /[\p{Cc}\\]|%5c/iu;
+
+/** What ends a path segment for the URL parser: a slash, a `?` or a `#` (it ends the path itself, so `..?` is a `..` segment), and the encoded slash, which a server may decode into a separator. */
+const REQUEST_PATH_SEPARATOR_PATTERN = /[/?#]|%2f/i;
+
+/** The longest part of a refused path an error message copies: a huge path is not copied whole into the error and the log. */
+const MAX_ECHOED_PATH_LENGTH = 200;
+
+/** A segment that is `.` or `..` once its `%2e` is decoded. */
+const DOT_SEGMENT_PATTERN = /^(?:\.|%2e){1,2}$/i;
+
 /** Reads an IGNIS REST server through the repository contract. Targets IGNIS, not any REST API. */
-export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> {
+export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
   override name: string;
   override settings: IHttpDataSourceSettings;
   override schema = {} as never;
 
-  protected network: NodeFetchNetworkRequest;
   /** Normalised once: every request copies these, never re-parses `settings.headers`. */
   protected configuredHeaders: Array<[string, string]>;
   /** Decided once: a relative baseUrl (`/api`) is resolved against the page origin on every request. */
@@ -49,13 +60,17 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
       });
     }
 
+    // A `?` or `#` in the base would swallow the request paths into the query or the fragment.
+    if (/[?#]/.test(settings.baseUrl)) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        message: `[${name}] baseUrl must not carry a query or a fragment: the request paths would end up inside it | Pass the base without '?' or '#', and use the call's query option`,
+      });
+    }
+
     this.configuredHeaders = configured;
     this.name = name;
     this.settings = settings;
-    this.network = new NodeFetchNetworkRequest({
-      name,
-      networkOptions: { baseUrl: settings.baseUrl },
-    });
   }
 
   async configure(): Promise<void> {}
@@ -71,6 +86,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
   /** Re-run on every send, so a header the app changed since the last request is the one sent. */
   protected resolveHeaders(opts: { context: IHttpRequestContext }): Array<[string, string]> {
     const resolver = this.settings.headersResolver;
+
     if (!resolver) {
       return [];
     }
@@ -124,6 +140,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
   /** The browser global `location` is not declared for a server build, so it is probed, not assumed. */
   protected resolveLocationOrigin(): string | undefined {
     const location: unknown = Reflect.get(globalThis, 'location');
+
     if (typeof location !== 'object' || location === null || !('origin' in location)) {
       return undefined;
     }
@@ -131,12 +148,59 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     return typeof location.origin === 'string' ? location.origin : undefined;
   }
 
+  /** The path as an error message quotes it: cut at 200 characters, with an ellipsis. */
+  protected static toEchoedPath(opts: { path: string }): string {
+    const { path } = opts;
+
+    return path.length > MAX_ECHOED_PATH_LENGTH
+      ? `${path.slice(0, MAX_ECHOED_PATH_LENGTH)}…`
+      : path;
+  }
+
+  /** The request paths name a place under the base path, so none may be a dot segment, hide one, or carry a separator the URL parser would read differently from a server. */
+  protected assertPathsStayUnderBase(opts: { paths: Array<string> }): void {
+    for (const path of opts.paths) {
+      const segments = path.split(REQUEST_PATH_SEPARATOR_PATTERN);
+      const isEscaping =
+        UNSAFE_REQUEST_PATH_PATTERN.test(path) ||
+        // A trailing space is stripped from the whole URL by the parser, so `.. ` ends as `..`.
+        segments.some((segment) => DOT_SEGMENT_PATTERN.test(segment.trimEnd()));
+
+      if (isEscaping) {
+        throw getError({
+          statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+          message: `[${this.name}] A request path must stay under the base path: no dot segment, backslash or control character | path: '${EchoUtility.toSafeEcho({ value: HttpDataSource.toEchoedPath({ path }) })}'`,
+        });
+      }
+    }
+  }
+
+  /** The resolved URL, whatever built it, is on the base's origin and under its path: the check that holds when the text checks above miss a form. */
+  protected assertUnderBase(opts: { url: URL; origin?: string }): void {
+    const { url, origin } = opts;
+    const base = new URL(this.settings.baseUrl, origin);
+    const basePath = base.pathname.replace(/\/+$/, '');
+    const isUnderBase =
+      url.origin === base.origin &&
+      (url.pathname === basePath || url.pathname.startsWith(`${basePath}/`));
+
+    if (!isUnderBase) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: `[${this.name}] A request path must stay under the base path: the URL left the origin or the base path`,
+      });
+    }
+  }
+
   buildUrl(opts: { paths: Array<string>; query?: Record<string, unknown> }): string {
     const { paths, query } = opts;
-    const requestUrl = this.network.getRequestUrl({ paths });
+    this.assertPathsStayUnderBase({ paths });
+
+    const requestUrl = HttpWire.toRequestUrl({ baseUrl: this.settings.baseUrl, paths });
 
     // A page or a Web Worker has an origin to resolve '/api' against; a server has none.
     const origin = this.isRelativeBaseUrl ? this.resolveLocationOrigin() : undefined;
+
     if (this.isRelativeBaseUrl && !origin) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
@@ -145,8 +209,10 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     }
 
     const url = new URL(requestUrl, origin);
+    this.assertUnderBase({ url, origin });
 
     const parameters = Object.entries(query ?? {});
+
     for (const [key, value] of parameters) {
       if (value === undefined) {
         continue;
@@ -197,9 +263,9 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
 
     // Both hooks run inside `send`, so the retry sends what they answer after the refresh.
     const send = () =>
-      this.network.getNetworkService().send({
-        url,
-        method: method as never,
+      // The platform `fetch` unless the settings name a sender; looked up per call, so a test that swaps the global is heard.
+      (this.settings.fetch ?? fetch)(url, {
+        method: method.toUpperCase(),
         body: payload,
         signal,
         headers: this.buildHeaders({
@@ -233,20 +299,11 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
    */
   protected async readJsonBody(opts: { response: Response; url: string; verb: string }) {
     const { response, url, verb } = opts;
-    const text = await response.text();
 
-    if (!text) {
-      return null;
-    }
-
-    try {
-      return JSON.parse(text);
-    } catch {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_5.BadGateway,
-        message: `[${this.name}][${verb}] ${response.status} | ${HttpWire.describeUrl({ url, status: response.status })} | The response body is not JSON (${text.length} chars, content-type: ${response.headers.get(HTTP.Headers.CONTENT_TYPE) ?? 'none'})`,
-      });
-    }
+    return HttpResponseReader.readJson({
+      response,
+      context: `[${this.name}][${verb}] ${response.status} | ${HttpWire.describeUrl({ url, status: response.status })}`,
+    });
   }
 
   /**
@@ -343,7 +400,8 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     // A 204, or a route that answers nothing, has no body to parse.
     const parsed = await this.readJsonBody({ response, url, verb: 'write' });
     const { extra } = HttpResponseReader.readExtra({ body: parsed, headers: response.headers });
-    const data = extra ? parsed.data : parsed;
+    // `extra` is only read off an object body, which carries the rows under `data`.
+    const data = (extra && HttpResponseReader.isPlainObject(parsed) ? parsed.data : parsed) as R;
 
     const countHeader = response.headers.get(HTTP.Headers.RESPONSE_COUNT_DATA);
     const counted = countHeader === null ? Number.NaN : Number(countHeader);

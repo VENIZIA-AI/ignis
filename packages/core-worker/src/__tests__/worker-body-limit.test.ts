@@ -26,6 +26,7 @@ class BodyLimitWorkerApplication extends WorkerApplication {
   setupMiddlewares() {
     this.getServer().post('/echo', async (context) => {
       const text = await context.req.text();
+
       return context.json({ length: text.length });
     });
   }
@@ -80,6 +81,7 @@ describe('WorkerApplication - configs.middlewares.bodyLimit', () => {
     const { port1 } = new MessageChannel();
 
     let refusal: unknown;
+
     try {
       await application.listen({ scope: port1 });
     } catch (error) {

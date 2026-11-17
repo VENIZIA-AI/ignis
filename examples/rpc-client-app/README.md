@@ -39,7 +39,7 @@ bun run compile    # bun check, then vite build - fails where the client no long
 |---|---|
 | `bun run server:dev` | Vite dev server on port 5173 |
 | `bun run compile` | Typecheck, then bundle into `dist/` |
-| `bun x vite preview` | Serve `dist/`, with the same `/api` forwarding |
+| `bun run vite preview` | Serve `dist/`, with the same `/api` forwarding |
 | `bun run generate` | Rewrite `src/api/schema.d.ts` from the running server |
 | `bun run typecheck` / `bun run lint` | `bun check` / `eslint .` |
 

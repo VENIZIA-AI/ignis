@@ -42,6 +42,7 @@ const makeAdapter = (
       executeCalls += 1;
       const { sql: text } = dialect.sqlToQuery(query);
       captured.push(text);
+
       return { rows: catalogRows };
     },
   };
@@ -51,13 +52,16 @@ const makeAdapter = (
     dataSource,
     entities: entities({ metadataColumnName: opts.metadataColumnName }),
   });
+
   return { adapter, captured, getExecuteCalls: () => executeCalls };
 };
 
 /** Fully implements ILogger (not a `.for()`-only partial) so no cast is needed to assign it. */
 const makeCapturingLogger = (): { logger: ILogger; messages: string[] } => {
   const messages: string[] = [];
+
   const noop = (): void => {};
+
   const logger: ILogger = {
     debug: noop,
     info: noop,
@@ -69,6 +73,7 @@ const makeCapturingLogger = (): { logger: ILogger; messages: string[] } => {
     log: noop,
     for: () => logger,
   };
+
   return { logger, messages };
 };
 
@@ -553,6 +558,7 @@ const adapterFor = (opts: {
 
   const grantQueryRows = opts.grantRows.map((row) => {
     const catalogEntry = catalogByCode.get(String(row.targetId));
+
     if (catalogEntry) {
       return {
         subjectId: row.subjectId,
@@ -582,6 +588,7 @@ const adapterFor = (opts: {
   });
 
   const { adapter } = makeAdapter({ catalogRows: opts.catalog, metadataColumnName: 'metadata' });
+
   return { adapter, rows: grantQueryRows };
 };
 

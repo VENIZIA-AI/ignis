@@ -198,6 +198,12 @@ const recentOrders = await orderRepository.find({
 
 Notice: `between` needs exactly two elements - `FilterBuilder` throws on any other array length.
 
+A request cannot send a `Date`, so an HTTP caller writes the same window with strings or numbers; the filter builder parses them (see [Timestamp and date values](./index#timestamp-and-date-values)).
+
+```json
+{ "where": { "eventDate": { "between": ["2024-12-29", "2025-01-04T23:59:59Z"] } } }
+```
+
 ## Inventory low-stock alert
 
 Goal: active products at or under a reorder threshold, flagged critical below 5 units or fast-moving stock at 10 or fewer.

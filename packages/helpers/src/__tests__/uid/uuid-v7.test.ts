@@ -8,11 +8,13 @@ const timestampOf = (opts: { id: string }): number =>
 
 const firstUnordered = (opts: { ids: string[] }): number => {
   const { ids } = opts;
+
   for (let index = 1; index < ids.length; index++) {
     if (ids[index] <= ids[index - 1]) {
       return index;
     }
   }
+
   return -1;
 };
 

@@ -63,6 +63,10 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: make okf-check-strict
 
+      - name: Changelog migration blocks
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: make changelog-check
+
       - name: Agent setup (VULCAN)
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: make vulcan-sync vulcan-doctor
@@ -112,8 +116,9 @@ jobs:
       - name: Link workspace bins
         run: bun install --frozen-lockfile
 
-      # A published map must resolve without src/ in the tarball, or a Vite app warns once per file.
-      - name: Sourcemaps are self-contained
+      # A published map must resolve without src/ in the tarball, or a Vite app warns once per file; and every value a
+      # package entry types must exist at runtime (a declaration with nothing behind it reads undefined in a consumer).
+      - name: Built output checks
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make build-checks
 
@@ -138,6 +143,10 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make test-inversion
 
+      - name: Test - filter
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: make test-filter
+
       - name: Test - helpers
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make test-helpers
@@ -161,6 +170,10 @@ jobs:
       - name: Test - core-server
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make test-core-server
+
+      - name: Test - dev-configs
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: make test-dev-configs
 
       - name: Temp folders - verify
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}

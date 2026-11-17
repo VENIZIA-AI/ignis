@@ -37,6 +37,7 @@ const PUBLIC = [
 const captureMessage = (task: () => unknown): string => {
   try {
     task();
+
     return '';
   } catch (error) {
     return (error as Error).message;
@@ -158,5 +159,212 @@ describe('UrlPolicy.assertSafeUrl - addresses the URL parser rewrites', () => {
     // Pins the reason the earlier suite was green over a hole.
     expect(new URL('http://[::ffff:169.254.169.254]/').hostname).toBe('[::ffff:a9fe:a9fe]');
     expect(UrlPolicy.isNonPublicAddress({ address: '::ffff:a9fe:a9fe' })).toBe(true);
+  });
+});
+
+/** The IPv6 ranges the prefix test missed (#939), each with the spelling a direct caller may use. */
+const NON_PUBLIC_IPV6 = [
+  '64:ff9b::a9fe:a9fe', // NAT64 of 169.254.169.254
+  '64:ff9b::169.254.169.254',
+  '64:ff9b::7f00:1', // NAT64 of 127.0.0.1
+  '64:ff9b::a00:1', // NAT64 of 10.0.0.1
+  '0064:ff9b:0000:0000:0000:0000:a9fe:a9fe',
+  '64:ff9b:1::1', // local-use NAT64
+  'ff02::1', // multicast
+  'ff00::',
+  'FF02::1',
+  '2001:db8::1', // documentation
+  '2001:0db8:0:0:0:0:0:1',
+  '2001::1', // Teredo
+  '2002:a9fe:a9fe::1', // 6to4 of 169.254.169.254
+  '2002:7f00:1::', // 6to4 of 127.0.0.1
+  '::127.0.0.1', // IPv4-compatible
+  '::7f00:1',
+  '::10.0.0.1',
+  '::169.254.169.254',
+  '0:0:0:0:0:0:0:1', // loopback, spelled out
+  '0000:0000:0000:0000:0000:0000:0000:0001',
+  '0:0:0:0:0:0:0:0',
+  '::0001',
+  '0:0:0:0:0:ffff:a9fe:a9fe', // v4-mapped, spelled out
+  '0:0:0:0:0:ffff:169.254.169.254',
+  'FE80::1', // link-local, upper case
+  'febf::1',
+  'fc00::1',
+  'FD00::1',
+  '::2', // reserved ::/8
+  'fe80::1%eth0', // a zone id is dropped, the address still counts
+  'fec0::1', // site-local, deprecated
+  'feff::1',
+  '3fff::1', // documentation 3fff::/20
+  '3fff:fff::1',
+  '2001:1::1', // IETF protocol assignments 2001::/23
+  '2001:2::1',
+  '2001:3::1',
+  '2001:4:112::1',
+  '2001:10::1',
+  '2001:1ff::1',
+  '100::1', // discard-only 100::/64
+  '100:0:0:0:1::1',
+  '5f00::1', // SRv6 segment identifiers
+  '::ffff:127.000.000.001', // leading zeros: octal to some parsers, so refused
+];
+
+const MALFORMED_IPV6 = [
+  '1::2::3',
+  ':1',
+  '1:',
+  ':::',
+  '1:2:3:4:5:6:7:8:9',
+  '1:2:3:4:5:6:7',
+  '12345::1',
+  'g::1',
+  '::1.2.3',
+  '::256.0.0.1',
+  '1.2.3.4:5',
+];
+
+const PUBLIC_IPV6 = [
+  '2001:4860:4860::8888',
+  '2606:4700:4700::1111',
+  '2a00:1450:4001::200e',
+  '64:ff9b::808:808', // NAT64 of 8.8.8.8
+  '64:ff9b::8.8.8.8',
+  '2002:808:808::1', // 6to4 of 8.8.8.8
+  '::ffff:8.8.8.8',
+  '::8.8.8.8', // IPv4-compatible of a public address
+  '2001:200::1', // just outside 2001::/23
+  '2001:db9::1', // next to documentation
+  '3ffe::1', // not 3fff::/20
+  '100:0:0:1::1', // only 100::/64 is discard
+  '2003::1',
+];
+
+const NON_CANONICAL_IPV4 = [
+  '0177.0.0.1',
+  '1e2.0.0.1',
+  '08.8.8.8',
+  '01.1.1.1',
+  '1.2.3.0000',
+  '1.2.3.',
+  '1.2.3',
+  '256.1.1.1',
+  '1.2.3.4.5',
+  ' 8.8.8.8',
+];
+
+describe('UrlPolicy.isNonPublicAddress - canonical text only (#939)', () => {
+  test.each(NON_CANONICAL_IPV4)('refuses the non-canonical IPv4 text %j', (address) => {
+    expect(UrlPolicy.isNonPublicAddress({ address })).toBe(true);
+  });
+
+  test('a canonical public IPv4 still passes', () => {
+    expect(UrlPolicy.isNonPublicAddress({ address: '8.8.8.8' })).toBe(false);
+    expect(UrlPolicy.isNonPublicAddress({ address: '203.0.113.10' })).toBe(false);
+  });
+
+  test('a string longer than any IPv6 text answers at once, however it is built', () => {
+    const started = performance.now();
+    const hostile = `::${'1'.repeat(160_000)}.1.1.1x`;
+
+    expect(UrlPolicy.isNonPublicAddress({ address: hostile })).toBe(true);
+    expect(performance.now() - started).toBeLessThan(100);
+  });
+});
+
+describe('UrlPolicy.isNonPublicAddress - IPv6 ranges and spellings (#939)', () => {
+  test.each(NON_PUBLIC_IPV6)('rejects %s', (address) => {
+    expect(UrlPolicy.isNonPublicAddress({ address })).toBe(true);
+  });
+
+  test.each(MALFORMED_IPV6)('a string that is not an IPv6 literal fails closed: %s', (address) => {
+    expect(UrlPolicy.isNonPublicAddress({ address })).toBe(true);
+  });
+
+  test.each(PUBLIC_IPV6)('accepts %s', (address) => {
+    expect(UrlPolicy.isNonPublicAddress({ address })).toBe(false);
+  });
+
+  test('every spelling of one address gets one answer', () => {
+    const spellings = [
+      '::1',
+      '0:0:0:0:0:0:0:1',
+      '0000:0000:0000:0000:0000:0000:0000:0001',
+      '::0:1',
+    ];
+
+    expect(spellings.map((address) => UrlPolicy.isNonPublicAddress({ address }))).toEqual([
+      true,
+      true,
+      true,
+      true,
+    ]);
+  });
+
+  test('a domain name is not an IP literal and answers true', () => {
+    expect(UrlPolicy.isNonPublicAddress({ address: 'example.com' })).toBe(true);
+  });
+});
+
+describe('UrlPolicy.assertSafeUrl - IPv6 literals through NAT64 and 6to4 (#939)', () => {
+  test.each([
+    'https://[64:ff9b::a9fe:a9fe]/',
+    'https://[64:ff9b::169.254.169.254]/latest/meta-data',
+    'https://[2002:a9fe:a9fe::1]/',
+    'https://[ff02::1]/',
+    'https://[2001:db8::1]/',
+    'https://[::127.0.0.1]/',
+    'https://[0:0:0:0:0:0:0:1]/',
+  ])('refuses %s', (url) => {
+    expect(captureMessage(() => UrlPolicy.assertSafeUrl({ url }))).toContain('non-public address');
+  });
+
+  test('a NAT64 or 6to4 address of a PUBLIC host passes', () => {
+    expect(() => UrlPolicy.assertSafeUrl({ url: 'https://[64:ff9b::808:808]/' })).not.toThrow();
+    expect(() => UrlPolicy.assertSafeUrl({ url: 'https://[2002:808:808::1]/' })).not.toThrow();
+  });
+});
+
+describe('UrlPolicy.assertSafeUrl - userinfo (#939)', () => {
+  const refuse = (
+    url: string,
+    policy?: Parameters<typeof UrlPolicy.assertSafeUrl>[0]['policy'],
+  ) => {
+    let thrown: unknown;
+
+    try {
+      UrlPolicy.assertSafeUrl({ url, policy });
+    } catch (error) {
+      thrown = error;
+    }
+
+    return thrown;
+  };
+
+  test.each([
+    'https://user:pass@example.com/x',
+    'https://user@example.com/x',
+    'https://:pass@example.com/x',
+    'https://evil.com@example.com/x',
+    'https://example.com:443@evil.com/x',
+  ])('refuses %s with URL_REFUSED', (url) => {
+    const error = refuse(url);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(UrlPolicy.isRefusedError({ error })).toBe(true);
+    expect((error as Error).message).toContain('username or a password');
+  });
+
+  test('no policy flag lets userinfo through', () => {
+    const error = refuse('https://user:pass@example.com/x', {
+      allowPrivateAddress: true,
+      allowedHosts: ['example.com'],
+    });
+
+    expect(UrlPolicy.isRefusedError({ error })).toBe(true);
+  });
+
+  test('a url without userinfo, with an @ in the path or query, still passes', () => {
+    expect(() => UrlPolicy.assertSafeUrl({ url: 'https://example.com/a@b?x=y@z' })).not.toThrow();
   });
 });

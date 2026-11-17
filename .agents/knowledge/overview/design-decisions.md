@@ -42,8 +42,9 @@ and parameter index - never a silent `undefined`.
 
 `@repository({ model, dataSource })` auto-injects the DataSource at constructor param[0] unless an
 explicit `@inject` already claims that slot. Source: `registerDataSourceInjection` in
-`packages/kernel/src/base/metadata/persistents.ts` validates the first parameter type extends
-`AbstractDataSource` and checks compatibility with the declared `dataSource` before wiring it.
+`packages/kernel/src/base/metadata/persistents/repository/injection.ts` calls
+`validateFirstConstructorParameter` (`repository/validate.ts`), which checks the first parameter type
+extends `AbstractDataSource` and is compatible with the declared `dataSource`, before wiring it.
 This removes the single most repetitive line in every repository class without hiding what gets
 injected - the type check still fails loudly on a mismatched constructor.
 
@@ -86,9 +87,9 @@ must not be able to compose its way out of them.
 
 ## Hidden fields excluded at the SQL level
 
-`@model({ settings: { hiddenProperties: ['password'] } })` excludes those columns from the SQL
+`@model({ settings: { properties: { hidden: ['password'] } } })` excludes those columns from the SQL
 projection itself, not from the response after the query returns - `AbstractRepository` reads
-`hiddenProperties` from `modelSettings` to build the query, not to post-filter a result.
+`properties.hidden` from `modelSettings` to build the query, not to post-filter a result.
 Post-processing exclusion is a data leak waiting to happen: one code path forgets to call the
 filter and a password hash ships to a client. Excluding at the SQL layer means there is no such
 path, because the column was never fetched.

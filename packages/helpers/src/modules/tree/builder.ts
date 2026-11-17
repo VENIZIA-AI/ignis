@@ -27,6 +27,7 @@ export class TreeBuilder extends BaseHelper {
 
       for (const childValue of childValues) {
         const key = getKey(childValue);
+
         if (seen.has(key)) {
           continue;
         }
@@ -76,6 +77,7 @@ export class TreeBuilder extends BaseHelper {
       };
 
       walk(root);
+
       return results;
     }
 
@@ -83,6 +85,7 @@ export class TreeBuilder extends BaseHelper {
 
     const walk = (node: ITreeNode<T>, path: T[]): void => {
       const nextPath = [...path, node.value];
+
       if (matches(node)) {
         results.push({ node, path: nextPath });
       }
@@ -93,6 +96,7 @@ export class TreeBuilder extends BaseHelper {
     };
 
     walk(root, []);
+
     return results;
   }
 
@@ -110,6 +114,7 @@ export class TreeBuilder extends BaseHelper {
     };
 
     walk(root, '');
+
     return lines.join('\n');
   }
 }

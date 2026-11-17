@@ -1,6 +1,5 @@
 /** Storage Upload Characterization Test Suite */
 
-import { type AnyType } from '@/common';
 import { BunS3Helper } from '@/modules/storage/bun-s3';
 import { type IUploadFile } from '@/modules/storage/common';
 import { DiskHelper } from '@/modules/storage/disk';
@@ -24,6 +23,7 @@ const captureErrorMessage = async (opts: { task: Promise<unknown> }): Promise<st
 
   try {
     await task;
+
     return '';
   } catch (error) {
     return (error as Error).message;
@@ -34,7 +34,7 @@ interface IWriteRecord {
   bucket: string;
   objectName: string;
   buffer: Buffer;
-  metadata?: Record<string, AnyType>;
+  metadata?: Record<string, unknown>;
 }
 
 describe('Storage - upload', () => {
@@ -59,15 +59,20 @@ describe('Storage - upload', () => {
             throw new Error('ENOENT');
           }
         }),
-        spyOn(fsp, 'stat').mockImplementation(
-          async () => ({ isDirectory: () => bucketExists }) as AnyType,
+        spyOn(fsp, 'stat').mockResolvedValue(
+          Object.assign(fs.statSync('.'), { isDirectory: () => bucketExists }),
         ),
         spyOn(fsp, 'mkdir').mockImplementation(async () => undefined),
-        spyOn(fsp, 'writeFile').mockImplementation(async (objectPath: AnyType, data: AnyType) => {
+        spyOn(fsp, 'realpath').mockImplementation((async (target: string) => target) as never),
+        spyOn(fsp, 'writeFile').mockImplementation(async (objectPath, data) => {
+          if (!Buffer.isBuffer(data)) {
+            throw new Error('[writeFile] The upload wrote something other than a buffer');
+          }
+
           writes.push({
             bucket: 'n/a',
             objectName: String(objectPath),
-            buffer: data as Buffer,
+            buffer: data,
           });
         }),
       );
@@ -124,7 +129,7 @@ describe('Storage - upload', () => {
       const message = await captureErrorMessage({
         task: helper.upload({
           bucket: { name: 'assets' },
-          files: [buildFile({ size: undefined as AnyType })],
+          files: [buildFile({ size: undefined })],
         }),
       });
 
@@ -189,7 +194,7 @@ describe('Storage - upload', () => {
         endpoint: { default: 'http://localhost:9000' },
       });
 
-      helper['client'] = {
+      Reflect.set(helper, 'client', {
         list: async () => {
           if (!bucketExists) {
             throw new Error('NoSuchBucket');
@@ -209,7 +214,7 @@ describe('Storage - upload', () => {
             metadata: { type: options.type },
           });
         },
-      } as AnyType;
+      });
     });
 
     test('returns empty array when no files provided', async () => {

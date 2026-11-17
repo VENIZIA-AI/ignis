@@ -1,22 +1,57 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { DataSourceDrivers } from '@venizia/ignis-kernel';
+import type { TAnyDataSourceSchema, TDataSourceDriverClass } from '@venizia/ignis-kernel';
 import { datasource } from '@/base/metadata';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
+import type { TRelationalConnector } from '@venizia/ignis-connectors/postgres';
+import type { IRelationalDriver } from '@venizia/ignis-connectors/relational';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { FakePool } from './fake-pg-client';
 import { runTransactionContract } from './transaction-contract';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { wrongShape } from '../helpers/json-shape';
+
+/** A relational driver that records every control statement and hands back a real (unconnected) drizzle connector. */
+const buildRecordingDriver = (opts: {
+  executed: string[];
+  connector: TRelationalConnector;
+}): IRelationalDriver<TRelationalConnector> => {
+  const { executed, connector } = opts;
+
+  return {
+    createConnector: () => connector,
+    acquire: async () => ({
+      connector,
+      execute: async (executeOpts) => {
+        executed.push(executeOpts.statement);
+
+        return { count: 0 };
+      },
+      query: async () => [],
+      release: () => undefined,
+    }),
+    getClient: () => 'raw-client',
+    end: async () => undefined,
+  };
+};
+
+abstract class PoolDataSource extends BasePostgresDataSource<
+  {},
+  TAnyDataSourceSchema,
+  {},
+  FakePool
+> {}
 
 @datasource({ driver: NodePostgresDriver })
-class ProbeDataSource extends BasePostgresDataSource<{}> {
+class ProbeDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, FakePool> {
   constructor(private readonly fakePool: FakePool) {
     super({ name: 'probe', config: {} });
   }
 
   configure(): void {
     // The pool is injected; this fixture never opens a real connection.
-    this.client = this.fakePool as AnyType;
+    this.client = this.fakePool;
   }
 
   getConnectionString(): string {
@@ -28,6 +63,7 @@ const buildDataSource = (failOn?: string) => {
   const pool = new FakePool({ failOn });
   const dataSource = new ProbeDataSource(pool);
   dataSource.configure();
+
   return { pool, dataSource };
 };
 
@@ -69,6 +105,7 @@ describe('beginTransaction - failure paths', () => {
     const transaction = await dataSource.beginTransaction();
 
     let caught: unknown;
+
     try {
       await transaction.commit();
     } catch (error) {
@@ -101,6 +138,7 @@ describe('beginTransaction - failure paths', () => {
     const transaction = await dataSource.beginTransaction();
 
     let caught: unknown;
+
     try {
       await transaction.rollback();
     } catch (error) {
@@ -133,6 +171,7 @@ describe('beginTransaction - already-ended guard', () => {
     await transaction.commit();
 
     let caught: unknown;
+
     try {
       await transaction.commit();
     } catch (error) {
@@ -148,6 +187,7 @@ describe('beginTransaction - already-ended guard', () => {
     await transaction.commit();
 
     let caught: unknown;
+
     try {
       await transaction.rollback();
     } catch (error) {
@@ -171,6 +211,7 @@ describe('getClient', () => {
       configure(): void {
         // assigns no pool
       }
+
       getConnectionString(): string {
         return '';
       }
@@ -179,6 +220,7 @@ describe('getClient', () => {
     const dataSource = new UnconfiguredDataSource({ name: 'unconfigured', config: {} });
 
     let caught: unknown;
+
     try {
       dataSource.getClient();
     } catch (error) {
@@ -195,11 +237,13 @@ describe('beginTransaction - rollback after a failure-ended transaction', () => 
     const transaction = await dataSource.beginTransaction();
 
     let caught: unknown;
+
     try {
       await transaction.commit();
     } catch (error) {
       caught = error;
     }
+
     expect((caught as Error).message).toBe('COMMIT exploded');
 
     // In the canonical `catch { await tx.rollback(); throw error; }`, a rollback throwing 'already
@@ -219,11 +263,13 @@ describe('beginTransaction - rollback after a failure-ended transaction', () => 
     const transaction = await dataSource.beginTransaction();
 
     let caught: unknown;
+
     try {
       await transaction.rollback();
     } catch (error) {
       caught = error;
     }
+
     expect(caught).toBeDefined();
 
     await transaction.rollback();
@@ -243,6 +289,7 @@ describe('beginTransaction - rollback after a failure-ended transaction', () => 
     }
 
     let caught: unknown;
+
     try {
       await transaction.commit();
     } catch (error) {
@@ -258,6 +305,7 @@ describe('beginTransaction - acquisition and concurrency', () => {
     const { pool, dataSource } = buildDataSource('BEGIN');
 
     let caught: unknown;
+
     try {
       await dataSource.beginTransaction();
     } catch (error) {
@@ -346,9 +394,9 @@ describe('beginTransaction - driver wiring', () => {
   });
 
   test('a datasource with no @datasource({ driver }) throws instead of guessing', async () => {
-    class UndecoratedDataSource extends BasePostgresDataSource<{}> {
+    class UndecoratedDataSource extends PoolDataSource {
       configure(): void {
-        this.client = new FakePool() as AnyType;
+        this.client = new FakePool();
       }
 
       getConnectionString(): string {
@@ -366,12 +414,12 @@ describe('beginTransaction - driver wiring', () => {
   });
 
   test('a driver-name STRING is refused - a string carries no module into the bundle', async () => {
-    // The cast reproduces an untyped JavaScript caller, which the runtime must refuse too: a string
+    // The wrong-shape value reproduces an untyped JavaScript caller, which the runtime must refuse too: a string
     // names a driver without referencing it, so the bundler would never package the driver module.
-    @datasource({ driver: DataSourceDrivers.NODE_POSTGRES as AnyType })
-    class StringDriverDataSource extends BasePostgresDataSource<{}> {
+    @datasource({ driver: wrongShape<TDataSourceDriverClass>(DataSourceDrivers.NODE_POSTGRES) })
+    class StringDriverDataSource extends PoolDataSource {
       configure(): void {
-        this.client = new FakePool() as AnyType;
+        this.client = new FakePool();
       }
 
       getConnectionString(): string {
@@ -393,19 +441,10 @@ describe('beginTransaction - driver wiring', () => {
 
     class ExplicitDriverDataSource extends BasePostgresDataSource<{}> {
       configure(): void {
-        this.driver = {
-          createConnector: () => ({}) as AnyType,
-          acquire: async () => ({
-            connector: {} as AnyType,
-            execute: async (opts: { statement: string }) => {
-              acquired.push(opts.statement);
-              return undefined;
-            },
-            release: () => undefined,
-          }),
-          getClient: () => 'raw-client',
-          end: async () => undefined,
-        } as AnyType;
+        this.driver = buildRecordingDriver({
+          executed: acquired,
+          connector: drizzle.mock<TAnyDataSourceSchema>(),
+        });
       }
 
       getConnectionString(): string {
@@ -422,7 +461,7 @@ describe('beginTransaction - driver wiring', () => {
     expect(acquired).toEqual(['BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE', 'COMMIT']);
     // No pg pool was ever assigned; the driver owned the whole path.
     expect(Reflect.get(dataSource, 'pool')).toBeUndefined();
-    expect(dataSource.getClient()).toBe('raw-client' as AnyType);
+    expect<unknown>(dataSource.getClient()).toBe('raw-client');
   });
 
   test('no driver and no pool throws a message naming configure()', async () => {
@@ -430,6 +469,7 @@ describe('beginTransaction - driver wiring', () => {
       configure(): void {
         // deliberately assigns neither this.client nor this.driver
       }
+
       getConnectionString(): string {
         return '';
       }
@@ -438,6 +478,7 @@ describe('beginTransaction - driver wiring', () => {
     const dataSource = new BareDataSource({ name: 'bare', config: {} });
 
     let caught: unknown;
+
     try {
       await dataSource.beginTransaction();
     } catch (error) {
@@ -449,10 +490,15 @@ describe('beginTransaction - driver wiring', () => {
 
   test('a client the named driver cannot use is refused by that driver, not silently adopted', async () => {
     @datasource({ driver: NodePostgresDriver })
-    class UnrecognizedPoolDataSource extends BasePostgresDataSource<{}> {
+    class UnrecognizedPoolDataSource extends BasePostgresDataSource<
+      {},
+      TAnyDataSourceSchema,
+      {},
+      { end: () => Promise<undefined> }
+    > {
       configure(): void {
         // No connect(), no pool accounting: not a `pg.Pool`.
-        this.client = { end: async () => undefined } as AnyType;
+        this.client = { end: async () => undefined };
       }
 
       getConnectionString(): string {
@@ -464,6 +510,7 @@ describe('beginTransaction - driver wiring', () => {
     dataSource.configure();
 
     let caught: unknown;
+
     try {
       await dataSource.beginTransaction();
     } catch (error) {
@@ -475,31 +522,22 @@ describe('beginTransaction - driver wiring', () => {
   });
 
   test('a bare pg.Client is refused - it has connect() but cannot pool', () => {
-    const bareClient = { connect: async () => ({}), end: async () => undefined } as AnyType;
+    const bareClient = { connect: async () => ({}), end: async () => undefined };
 
-    expect(() => new NodePostgresDriver({ client: bareClient })).toThrow(/Expected a `pg` Pool/);
+    // Reflect.construct takes untyped arguments: the constructor's `Pool` type is what this test bypasses on purpose.
+    expect(() => Reflect.construct(NodePostgresDriver, [{ client: bareClient }])).toThrow(
+      /Expected a `pg` Pool/,
+    );
   });
 
   test('useDriver() wires the driver AND the connector in one step', async () => {
     const executed: string[] = [];
-    const fakeConnector = { marker: 'from-driver' } as AnyType;
+    const fakeConnector = drizzle.mock<TAnyDataSourceSchema>();
 
     class UseDriverDataSource extends BasePostgresDataSource<{}> {
       configure(): void {
         this.useDriver({
-          driver: {
-            createConnector: () => fakeConnector,
-            acquire: async () => ({
-              connector: fakeConnector,
-              execute: async (executeOpts: { statement: string }) => {
-                executed.push(executeOpts.statement);
-                return { count: 0 };
-              },
-              release: () => undefined,
-            }),
-            getClient: () => 'raw-client',
-            end: async () => undefined,
-          } as AnyType,
+          driver: buildRecordingDriver({ executed, connector: fakeConnector }),
           schema: {},
         });
       }
@@ -527,6 +565,7 @@ runTransactionContract({
   probe: {
     begin: async (opts?: { failOn?: 'COMMIT' | 'ROLLBACK' }) => {
       const { dataSource } = buildDataSource(opts?.failOn);
+
       return dataSource.beginTransaction();
     },
   },

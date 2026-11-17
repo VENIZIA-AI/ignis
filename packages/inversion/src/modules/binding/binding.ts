@@ -10,7 +10,8 @@ import {
   type TBindingResolverValue,
 } from './common/types';
 
-export class Binding<T = any> extends BaseHelper implements IBinding<T> {
+/** One container entry under `key`, resolved to a class, a value or a provider (set with `toClass`, `toValue`, `toProvider`). Scope is transient unless `setScope` selects singleton; a key with a dot gets its first segment as a tag. */
+export class Binding<T = unknown> extends BaseHelper implements IBinding<T> {
   key: string;
 
   private bindScope: TBindingScope = BindingScopes.TRANSIENT;
@@ -30,28 +31,32 @@ export class Binding<T = any> extends BaseHelper implements IBinding<T> {
     this.key = opts.key;
 
     const keyParts = this.key.split('.');
+
     if (keyParts.length > 1) {
       const [namespace] = keyParts;
       this.setTags(namespace);
     }
   }
 
-  static override bind<T = any>(opts: { key: string }): Binding<T> {
+  static override bind<T = unknown>(opts: { key: string }): Binding<T> {
     return new Binding<T>(opts);
   }
 
   toClass(value: TClass<T>): this {
     this.resolver = { type: BindingValueTypes.CLASS, value };
+
     return this;
   }
 
   toValue(value: T): this {
     this.resolver = { type: BindingValueTypes.VALUE, value };
+
     return this;
   }
 
   toProvider(value: TBindingProvider<T>): this {
     this.resolver = { type: BindingValueTypes.PROVIDER, value };
+
     return this;
   }
 
@@ -72,11 +77,13 @@ export class Binding<T = any> extends BaseHelper implements IBinding<T> {
 
   setScope(scope: TBindingScope): this {
     this.bindScope = scope;
+
     return this;
   }
 
   setTags(...tags: string[]): this {
     tags.forEach((t) => this.tags.add(t));
+
     return this;
   }
 
@@ -108,6 +115,7 @@ export class Binding<T = any> extends BaseHelper implements IBinding<T> {
     let instance: T;
 
     const { type: resolverType } = this.resolver;
+
     switch (resolverType) {
       case BindingValueTypes.VALUE: {
         instance = this.resolver.value;

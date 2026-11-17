@@ -1,12 +1,13 @@
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import { type IRedisHelper } from '@/modules/redis';
+import { type IRedisHelper, RedisDefaults, type TRedisClient } from '@/modules/redis';
 import { ErrorUtility } from '@/utilities/error.utility';
 import { ModuleUtility } from '@/utilities/module.utility';
 import type { Job, Processor, Queue, QueueOptions, Worker, WorkerOptions } from 'bullmq';
-import { HookUtility, type TBullQueueRole } from '../common';
+import { BullMQDefaults, BullQueueRoles, HookUtility, type TBullQueueRole } from '../common';
 
-export interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
+/** Options for {@link BullMQHelper}. `role` decides whether a `Queue` or a `Worker` is built. */
+export interface IBullMQOptions<TQueueElement = unknown, TQueueResult = unknown> {
   queueName: string;
   identifier: string;
   role: TBullQueueRole;
@@ -15,7 +16,15 @@ export interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
   /** `bullmq` itself, for a `bun build --compile` binary that has no `node_modules` to load it from. Omitted, it is loaded when a queue or worker is built. */
   module?: typeof import('bullmq');
 
+  /**
+   * Worker concurrency.
+   * @default BullMQDefaults.NUMBER_OF_WORKER
+   */
   numberOfWorker?: number;
+  /**
+   * How long a worker holds a job's lock, in milliseconds.
+   * @default BullMQDefaults.LOCK_DURATION_MS
+   */
   lockDuration?: number;
 
   /** Merged over the framework defaults, under the fields the helper owns (`connection`) - see `queueOptionsFor`. */
@@ -23,15 +32,22 @@ export interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
   /** Merged under the fields the helper owns (`connection`, `concurrency`, `lockDuration`) - see `workerOptionsFor`. */
   workerOptions?: Omit<WorkerOptions, 'connection' | 'concurrency' | 'lockDuration'>;
 
-  onWorkerData?: (job: Job<TQueueElement, TQueueResult>) => Promise<any>;
-  onWorkerDataCompleted?: (job: Job<TQueueElement, TQueueResult>, result: any) => Promise<void>;
+  onWorkerData?: (job: Job<TQueueElement, TQueueResult>) => Promise<TQueueResult>;
+  onWorkerDataCompleted?: (
+    job: Job<TQueueElement, TQueueResult>,
+    result: TQueueResult,
+  ) => Promise<void>;
   onWorkerDataFail?: (
     job: Job<TQueueElement, TQueueResult> | undefined,
     error: Error,
   ) => Promise<void>;
 }
 
-export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseHelper {
+/**
+ * Wraps a BullMQ `Queue` or `Worker` (per `role`) on one Redis connection.
+ * Worker concurrency is `numberOfWorker`; `lockDuration` is in milliseconds.
+ */
+export class BullMQHelper<TQueueElement = unknown, TQueueResult = unknown> extends BaseHelper {
   protected queueName: string;
   protected role: TBullQueueRole;
   protected redisConnection: IRedisHelper;
@@ -39,23 +55,27 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
   queue: Queue<TQueueElement, TQueueResult>;
   worker: Worker<TQueueElement, TQueueResult>;
 
-  protected numberOfWorker = 1;
-  protected lockDuration = 90 * 60 * 1000;
+  protected numberOfWorker: number;
+  protected lockDuration: number;
 
   protected queueOptions?: Omit<QueueOptions, 'connection'>;
   protected workerOptions?: Omit<WorkerOptions, 'connection' | 'concurrency' | 'lockDuration'>;
 
-  protected onWorkerData?: (job: Job<TQueueElement, TQueueResult>) => Promise<any>;
+  protected onWorkerData?: (job: Job<TQueueElement, TQueueResult>) => Promise<TQueueResult>;
   protected onWorkerDataCompleted?: (
     job: Job<TQueueElement, TQueueResult>,
-    result: any,
+    result: TQueueResult,
   ) => Promise<void>;
+
   protected onWorkerDataFail?: (
     job: Job<TQueueElement, TQueueResult> | undefined,
     error: Error,
   ) => Promise<void>;
 
   private readonly bullmqModule?: typeof import('bullmq');
+  private isClosing = false;
+  /** Every duplicate this helper handed to BullMQ: BullMQ never quits a client it is given, so `close()` does. */
+  private readonly duplicates: TRedisClient[] = [];
 
   constructor(options: IBullMQOptions<TQueueElement, TQueueResult>) {
     super({ scope: BullMQHelper.name, identifier: options.identifier });
@@ -63,8 +83,8 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
       queueName,
       redisConnection,
       role,
-      numberOfWorker = 1,
-      lockDuration = 90 * 60 * 1000,
+      numberOfWorker = BullMQDefaults.NUMBER_OF_WORKER,
+      lockDuration = BullMQDefaults.LOCK_DURATION_MS,
       queueOptions,
       workerOptions,
       onWorkerData,
@@ -92,7 +112,19 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     this.configure();
   }
 
-  static newInstance<T = any, R = any>(opts: IBullMQOptions<T, R>) {
+  /** BullMQ never reconnects a client: once ioredis stops reconnecting (`maxRetry` attempts used up) it is `end` for good, no job moves, and nothing else says so. */
+  protected reportClientEnded() {
+    this.logger
+      .for(this.reportClientEnded.name)
+      .error(
+        'The Redis client ended, so BullMQ can no longer move jobs on queue %s | ioredis stopped reconnecting after maxRetry attempts | Back BullMQ with a helper whose maxRetry is %d (forever) | ID: %s',
+        this.queueName,
+        RedisDefaults.RETRY_FOREVER,
+        this.identifier,
+      );
+  }
+
+  static newInstance<T = unknown, R = unknown>(opts: IBullMQOptions<T, R>) {
     return new BullMQHelper<T, R>(opts);
   }
 
@@ -120,6 +152,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
       this.logger
         .for(this.configureQueue.name)
         .error('Invalid queue name | ID: %s', this.identifier);
+
       return;
     }
 
@@ -151,8 +184,25 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
         removeOnFail: true,
       },
       ...this.queueOptions,
-      connection: this.redisConnection.duplicateClient(),
+      connection: this.createConnection(),
     };
+  }
+
+  /**
+   * The connection BullMQ owns: a duplicate of the helper's client, so the queue or worker connects it by itself
+   * whatever state the shared client is in. BullMQ treats a client it is handed as shared and never quits it, so the
+   * helper keeps the duplicate and quits it in `close()`.
+   */
+  protected createConnection(): TRedisClient {
+    const connection = this.redisConnection.duplicateClient();
+    this.duplicates.push(connection);
+    connection.once('end', () => {
+      if (!this.isClosing) {
+        this.reportClientEnded();
+      }
+    });
+
+    return connection;
   }
 
   /** Full `Worker` options: `this.workerOptions`, then the connection/concurrency/lock fields the helper owns - in that precedence order. */
@@ -166,7 +216,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
 
     return {
       ...this.workerOptions,
-      connection: this.redisConnection.duplicateClient(),
+      connection: this.createConnection(),
       concurrency: this.numberOfWorker,
       lockDuration: this.lockDuration,
     };
@@ -182,6 +232,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
   /** Client factory seam - overridden in tests to run the helper without Redis. */
   protected buildQueue(opts: { queueName: string }): Queue<TQueueElement, TQueueResult> {
     const bullmq = this.loadBullMQ();
+
     return new bullmq.Queue<TQueueElement, TQueueResult>(
       opts.queueName,
       this.queueOptionsFor(opts),
@@ -194,6 +245,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     processor: Processor<TQueueElement, TQueueResult>;
   }): Worker<TQueueElement, TQueueResult> {
     const bullmq = this.loadBullMQ();
+
     return new bullmq.Worker<TQueueElement, TQueueResult>(
       opts.queueName,
       opts.processor,
@@ -206,6 +258,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
       this.logger
         .for(this.configureWorker.name)
         .error('Invalid worker name | ID: %s', this.identifier);
+
       return;
     }
 
@@ -214,8 +267,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
       queueName,
       processor: async (job) => {
         if (this.onWorkerData) {
-          const result = await this.onWorkerData(job);
-          return result;
+          return this.onWorkerData(job);
         }
 
         const { id, name, data } = job;
@@ -271,22 +323,39 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
           'Invalid client role to configure | Valid roles: [queue|worker] | ID: %s',
           this.identifier,
         );
+
       return;
     }
 
     switch (this.role) {
-      case 'queue': {
+      case BullQueueRoles.QUEUE: {
         this.configureQueue();
         break;
       }
-      case 'worker': {
+      case BullQueueRoles.WORKER: {
         this.configureWorker();
         break;
       }
     }
   }
 
+  /** `quit()` waits for the replies in flight; a client BullMQ already closed is left alone. */
+  private static async release(opts: { connection: TRedisClient }) {
+    const { connection } = opts;
+
+    if (connection.status === 'end') {
+      return;
+    }
+
+    try {
+      await connection.quit();
+    } catch {
+      connection.disconnect();
+    }
+  }
+
   async close() {
+    this.isClosing = true;
     const failures: string[] = [];
 
     // Both connections must be released even when the first close fails - otherwise a failing worker close silently leaks the queue's Redis connection forever.
@@ -306,6 +375,17 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
         .for(this.close.name)
         .error('Error closing BullMQ queue: %s | ID: %s', error, this.identifier);
       failures.push(ErrorUtility.toError({ error }).message);
+    }
+
+    for (const connection of this.duplicates.splice(0)) {
+      try {
+        await BullMQHelper.release({ connection });
+      } catch (error) {
+        this.logger
+          .for(this.close.name)
+          .error('Error closing the BullMQ connection: %s | ID: %s', error, this.identifier);
+        failures.push(ErrorUtility.toError({ error }).message);
+      }
     }
 
     if (failures.length) {

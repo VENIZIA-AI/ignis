@@ -1,49 +1,18 @@
-import { getError } from '@/modules/error';
-import { type AbstractRedisHelper } from './base';
-import { RedisClusterHelper } from './cluster';
-import { RedisModes } from './common';
-import type {
-  IRedisClusterHelperOptions,
-  IRedisSentinelHelperOptions,
-  IRedisSingleHelperOptions,
-} from './common';
-import { RedisSentinelHelper } from './sentinel';
-import { RedisSingleHelper } from './single';
+import { RedisClusterHelper, type IRedisClusterHelperOptions } from './cluster';
+import { RedisSentinelHelper, type IRedisSentinelHelperOptions } from './sentinel';
+import { RedisSingleHelper, type IRedisSingleHelperOptions } from './single';
 
-export type TCreateRedisHelperOptions =
-  | ({ mode: typeof RedisModes.SINGLE } & IRedisSingleHelperOptions)
-  | ({ mode: typeof RedisModes.CLUSTER } & IRedisClusterHelperOptions)
-  | ({ mode: typeof RedisModes.SENTINEL } & IRedisSentinelHelperOptions);
-
+/** Creates the Redis helper of one topology: `single`, `cluster` or `sentinel`. Each returns its concrete helper type. */
 export class RedisHelperFactory {
-  static create(
-    opts: { mode: typeof RedisModes.SINGLE } & IRedisSingleHelperOptions,
-  ): RedisSingleHelper;
+  static single(opts: IRedisSingleHelperOptions) {
+    return new RedisSingleHelper(opts);
+  }
 
-  static create(
-    opts: { mode: typeof RedisModes.CLUSTER } & IRedisClusterHelperOptions,
-  ): RedisClusterHelper;
+  static cluster(opts: IRedisClusterHelperOptions) {
+    return new RedisClusterHelper(opts);
+  }
 
-  static create(
-    opts: { mode: typeof RedisModes.SENTINEL } & IRedisSentinelHelperOptions,
-  ): RedisSentinelHelper;
-
-  static create(opts: TCreateRedisHelperOptions): AbstractRedisHelper;
-
-  static create(opts: TCreateRedisHelperOptions): AbstractRedisHelper {
-    switch (opts.mode) {
-      case RedisModes.SINGLE: {
-        return new RedisSingleHelper(opts);
-      }
-      case RedisModes.CLUSTER: {
-        return new RedisClusterHelper(opts);
-      }
-      case RedisModes.SENTINEL: {
-        return new RedisSentinelHelper(opts);
-      }
-      default: {
-        throw getError({ message: '[RedisHelperFactory.create] Unsupported redis mode!' });
-      }
-    }
+  static sentinel(opts: IRedisSentinelHelperOptions) {
+    return new RedisSentinelHelper(opts);
   }
 }

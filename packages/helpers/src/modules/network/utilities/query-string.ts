@@ -1,4 +1,4 @@
-import { type AnyObject, type TConstValue } from '@/common/types';
+import { type TConstValue } from '@/common/types';
 
 /** The punctuation of a query string, named so a reader sees the role rather than the character. */
 export class QueryStringSeparators {
@@ -17,6 +17,7 @@ export class QueryStringNullishModes {
   /** The pair is left out. */
   static readonly SKIP = 'skip';
 }
+/** What {@link QueryStringNullishModes} selects: `empty` or `skip`. */
 export type TQueryStringNullishMode = TConstValue<typeof QueryStringNullishModes>;
 
 /** What an object or an array value becomes. */
@@ -26,14 +27,24 @@ export class QueryStringNestedModes {
   /** One JSON-encoded parameter (`ids=[1,2]`, `filter={"where":{}}`), the shape a JSON filter travels in. */
   static readonly JSON = 'json';
 }
+/** What {@link QueryStringNestedModes} selects: `drop` or `json`. */
 export type TQueryStringNestedMode = TConstValue<typeof QueryStringNestedModes>;
 
-/** How {@link QueryStringUtility.toQueryString} treats the values `node:querystring` has no answer for. Both default to its behavior. */
+/** How {@link QueryStringUtility.toQueryString} treats the values `node:querystring` has no answer for. */
 export interface IQueryStringOptions {
+  /**
+   * What a `null` or `undefined` value becomes.
+   * @default QueryStringNullishModes.EMPTY
+   */
   nullish?: TQueryStringNullishMode;
+  /**
+   * What an object or an array value becomes.
+   * @default QueryStringNestedModes.DROP
+   */
   nested?: TQueryStringNestedMode;
 }
 
+/** Builds a query string without a node builtin, so the network layer stays browser-safe. */
 export class QueryStringUtility {
   /**
    * `node:querystring`'s `stringify`, written out so nothing on the HTTP path carries a node builtin -
@@ -49,9 +60,9 @@ export class QueryStringUtility {
    *
    * `nullish: 'skip'` leaves a null or undefined pair out. `nested: 'json'` sends an object or an
    * array as ONE JSON parameter instead (an array does not repeat its key), so a filter object survives
-   * the trip. The defaults keep the behavior above.
+   * the trip. Without them the behavior is the one above.
    */
-  static toQueryString(opts: { params: AnyObject } & IQueryStringOptions): string {
+  static toQueryString(opts: { params: Record<string, unknown> } & IQueryStringOptions): string {
     const {
       params,
       nullish = QueryStringNullishModes.EMPTY,
@@ -70,6 +81,7 @@ export class QueryStringUtility {
         : encodeURIComponent(String(value));
 
     const entries = Object.entries(params);
+
     for (const [key, value] of entries) {
       const name = encodeURIComponent(key);
 

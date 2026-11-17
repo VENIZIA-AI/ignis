@@ -3,11 +3,10 @@ import 'reflect-metadata';
 import { model } from '@/base/metadata';
 import type { BaseApplication } from '@/base/applications';
 import { StaticAssetComponent } from '@/components/static-asset';
-import { StaticAssetStorageTypes } from '@/components/static-asset/common';
 import type { DiskHelper } from '@venizia/ignis-helpers';
 import type {
   TMetaLinkConfig,
-  TStaticAssetsComponentOptions,
+  TStaticAssetComponentOptions,
 } from '@/components/static-asset/common';
 import { BaseMetaLinkModel } from '@/components/static-asset/models';
 import {
@@ -80,37 +79,35 @@ declare const application: BaseApplication;
 export const metaLinkTypeAssertions = () => {
   /** The framework's own table keeps working with no type argument at all. */
   const defaultTable: TMetaLinkConfig = {
-    model: BaseMetaLinkModel,
     repository: defaultRepository,
   };
 
   /** The same columns under `commerce` are accepted. */
   const namespacedTable: TMetaLinkConfig<typeof NamespacedMetaLinkModel.schema> = {
-    model: NamespacedMetaLinkModel,
     repository: namespacedRepository,
   };
 
   /** And the component options carry that table through, which is the shape an application binds. */
-  const namespacedOptions: TStaticAssetsComponentOptions<typeof NamespacedMetaLinkModel.schema> = {
+  const namespacedOptions: TStaticAssetComponentOptions<typeof NamespacedMetaLinkModel.schema> = {
     asset: {
-      controller: { name: 'AssetController', basePath: '/assets' },
-      storage: StaticAssetStorageTypes.DISK,
+      basePath: '/assets',
       helper: diskHelper,
-      useMetaLink: true,
-      metaLink: namespacedTable,
+      bucket: 'assets',
+      serverUpload: { use: true },
+      directUpload: { use: false },
+      metaLink: { use: true, ...namespacedTable },
     },
   };
 
   /**
    * The shape a consumer reaches for after `component(Ctor, { options })` landed: options carrying
    * a namespaced table, handed straight to the component. The class has to be generic for this -
-   * a bare `BaseComponent<TStaticAssetsComponentOptions>` pins the options to the shipped table.
+   * a bare `BaseComponent<TStaticAssetComponentOptions>` pins the options to the shipped table.
    */
   const componentRegistration = () =>
     application.component(StaticAssetComponent, { options: namespacedOptions });
 
   const incompleteTable = {
-    model: IncompleteMetaLinkModel,
     repository: incompleteRepository,
     // @ts-expect-error a table missing a MetaLink column stays refused, whatever its Postgres schema
   } satisfies TMetaLinkConfig<typeof IncompleteMetaLinkModel.schema>;

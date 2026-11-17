@@ -5,6 +5,7 @@ import type { AbstractEntity } from '@/base/models';
 import type { AbstractRepository } from '@/base/repositories';
 import type { TRouteContext } from '@/base/controllers/common';
 import { ReadableCrudController } from '@/base/controllers/factory/crud';
+import { controller as controllerDecorator } from '@/base/metadata';
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
 
 type TRow = { id: string; tenantId: string; status?: string };
@@ -33,26 +34,31 @@ class RecordingRepository {
 
   async count(opts: { where?: TWhere<TRow> }) {
     this.calls.push({ method: 'count', args: { ...opts } });
+
     return { count: this.rows.filter((row) => matches({ row, where: opts.where })).length };
   }
 
   async find(opts: { filter?: TFilter<TRow> }) {
     this.calls.push({ method: 'find', args: { ...opts } });
     const data = this.rows.filter((row) => matches({ row, where: opts.filter?.where }));
+
     return { data, range: { start: 0, end: Math.max(data.length - 1, 0), total: data.length } };
   }
 
   async findOne(opts: { filter?: TFilter<TRow> }) {
     this.calls.push({ method: 'findOne', args: { ...opts } });
+
     return this.rows.find((row) => matches({ row, where: opts.filter?.where })) ?? null;
   }
 
   async findById(opts: { id: string }) {
     this.calls.push({ method: 'findById', args: { ...opts } });
+
     return this.rows.find((row) => row.id === opts.id) ?? null;
   }
 }
 
+@controllerDecorator({ path: '/items' })
 class ItemsController extends ReadableCrudController<
   AbstractEntity<TAnyObjectSchema>,
   Env,
@@ -65,7 +71,6 @@ class ItemsController extends ReadableCrudController<
   constructor(repository: RecordingRepository) {
     super({
       scope: 'ItemsController',
-      path: '/items',
       // The recorder implements the four read verbs under test, not the whole persistable contract.
       repository: repository as unknown as AbstractRepository<TRow, TRow>,
       definitions: {},
@@ -95,6 +100,7 @@ const fakeContext = (opts: { query?: unknown; param?: unknown } = {}) => {
     header: () => undefined,
     json: (body: unknown) => {
       bodies.push(body);
+
       return body;
     },
   };
@@ -241,10 +247,106 @@ describe('ReadableCrudController base where - overridden', () => {
     const missing = fakeContext({ param: { id: 'missing' } });
     const outOfScope = fakeContext({ param: { id: 'r1' } });
 
-    await new ItemsController(repository).findById({ context: missing.context });
-    await new TenantItemsController(repository).findById({ context: outOfScope.context });
+    const itemsController = new ItemsController(repository);
+    await itemsController.findById({ context: missing.context });
+    const tenantItemsController = new TenantItemsController(repository);
+    await tenantItemsController.findById({ context: outOfScope.context });
 
     expect(outOfScope.bodies[0]).toEqual(missing.bodies[0]);
     expect(outOfScope.bodies[0]).toEqual({ count: 0, data: null });
+  });
+});
+
+/** A repository that holds the request's filter to the model's hidden fields, the way `AbstractRepository.assertRequestFilter` does. */
+class HidingRepository extends RecordingRepository {
+  assertRequestFilter(opts: { filter?: { where?: Record<string, unknown> } }) {
+    this.calls.push({ method: 'assertRequestFilter', args: { ...opts } });
+
+    if (opts.filter?.where && 'secret' in opts.filter.where) {
+      throw new Error('Column NOT FOUND | key: secret');
+    }
+  }
+}
+
+describe('ReadableCrudController - a request filter naming a hidden field', () => {
+  const build = () => {
+    const repository = new HidingRepository();
+    const controller = new ItemsController(repository);
+
+    return { repository, controller };
+  };
+
+  test.each(['find', 'findOne', 'count'] as const)(
+    '%s refuses it before the repository reads anything',
+    async (verb) => {
+      const { repository, controller } = build();
+      const query =
+        verb === 'count' ? { where: { secret: 'x' } } : { filter: { where: { secret: 'x' } } };
+
+      let failure: unknown;
+
+      try {
+        await controller[verb]({ context: fakeContext({ query }).context });
+      } catch (error) {
+        failure = error;
+      }
+
+      expect(String(failure)).toContain('Column NOT FOUND');
+
+      expect(repository.calls.map((call) => call.method)).toEqual(['assertRequestFilter']);
+    },
+  );
+
+  test('findById holds its filter to the check too', async () => {
+    const { repository, controller } = build();
+
+    await controller.findById({
+      context: fakeContext({ query: { filter: { include: [] } }, param: { id: '1' } }).context,
+    });
+
+    expect(repository.calls[0]?.method).toBe('assertRequestFilter');
+  });
+
+  test('findById checks the filter without its where, which the read by id never reads', async () => {
+    const { repository, controller } = build();
+
+    await controller.findById({
+      context: fakeContext({
+        query: { filter: { where: { secret: 'x' }, order: ['name ASC'] } },
+        param: { id: '1' },
+      }).context,
+    });
+
+    expect(repository.calls[0]?.args).toEqual({
+      filter: { where: undefined, order: ['name ASC'] },
+    });
+    expect(repository.calls.map((call) => call.method)).toEqual([
+      'assertRequestFilter',
+      'findById',
+    ]);
+  });
+
+  test('the check sees what the client sent, not the base where joined to it', async () => {
+    const repository = new HidingRepository();
+    const controller = new TenantItemsController(repository);
+
+    await controller.find({
+      context: fakeContext({ query: { filter: { where: { status: 'open' } } } }).context,
+    });
+
+    const checked = repository.calls.find((call) => call.method === 'assertRequestFilter');
+
+    expect(checked?.args).toEqual({ filter: { where: { status: 'open' } } });
+  });
+
+  test('a repository without the check (a stand-in) is served as before', async () => {
+    const repository = new RecordingRepository();
+    const controller = new ItemsController(repository);
+
+    await controller.find({
+      context: fakeContext({ query: { filter: { where: { secret: 'x' } } } }).context,
+    });
+
+    expect(repository.calls.map((call) => call.method)).toEqual(['find']);
   });
 });

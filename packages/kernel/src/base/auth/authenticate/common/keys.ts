@@ -1,3 +1,4 @@
+/** Container binding keys under which the authenticate component stores each strategy's options and the service-certs controller path. */
 export class AuthenticateBindingKeys {
   static readonly REST_OPTIONS = '@app/authenticate/rest-options';
   static readonly JWT_OPTIONS = '@app/authenticate/jwt-options';

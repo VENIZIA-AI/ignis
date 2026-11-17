@@ -204,18 +204,17 @@ authorize: { action: AuthorizationActions.DELETE, resource: 'Article', allowedRo
 
 ## CRUD factory integration
 
-**Apply to every generated route.** Set `authorize` at the controller level in `defineCrudController`. A write route (`create`, `updateById`, `updateBy`, `deleteById`, `deleteBy`) must not inherit a `read` spec, so give each write route its own, or make the controller `readonly`.
+**Apply to every listed route.** Set `authorize` at the controller level in `CrudControllerFactory.build`. A write route (`create`, `updateById`, `updateBy`, `deleteById`, `deleteBy`) must not inherit a `read` spec, so give each listed write route its own, or do not list it.
 
 ```typescript
-import { AuthorizationActions } from '@venizia/ignis';
+import { AuthorizationActions, CrudRoutes } from '@venizia/ignis';
 
-ControllerFactory.defineCrudController({
-  entity: Article,
-  repository: { name: 'ArticleRepository' },
-  controller: { name: 'ArticleController', basePath: '/articles' },
+CrudControllerFactory.build({
+  repository: ArticleRepository,
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   authorize: { action: AuthorizationActions.READ, resource: 'Article' },
   routes: {
+    ...CrudRoutes.READ,
     create: { authorize: { action: AuthorizationActions.CREATE, resource: 'Article' } },
     updateById: { authorize: { action: AuthorizationActions.UPDATE, resource: 'Article' } },
     updateBy: { authorize: { action: AuthorizationActions.UPDATE, resource: 'Article' } },
@@ -226,7 +225,7 @@ ControllerFactory.defineCrudController({
 ```
 
 > [!WARNING] A write route cannot inherit a `read` authorize
-> `defineCrudController` throws at boot when an enabled write route would inherit a controller-level spec whose action is `read` (every spec, for an array). The error names the controller and the routes. Declare `routes.<route>.authorize` (a spec, an array or `{ skip: true }`), set `controller.readonly: true`, or leave the route out of `controller.enabledRoutes`.
+> `CrudControllerFactory.build` throws at boot when a listed write route would inherit a controller-level spec whose action is `read` (every spec, for an array). The error names the repository and the routes. Declare `routes.<route>.authorize` (a spec, an array or `{ skip: true }`), or leave the route out of `routes`.
 
 **Override per endpoint.** `routes.<endpoint>.authorize` takes precedence over the controller-level spec.
 
@@ -466,7 +465,7 @@ You have two ways to get there:
 
 | Approach | Setup | Matchers |
 |---|---|---|
-| **Scoped model (recommended)** | `isScoped: true` + `ScopedCasbinAdapter` + `CASBIN_RBAC_DOMAIN_SCOPED_MODEL`. Supply the domain per route via `spec.domain`, or globally via `domainResolver`. | Registered for you |
+| **Scoped model (recommended)** | `isScoped: true` + `ScopedCasbinAdapter` + `CASBIN_RBAC_DOMAIN_SCOPED_MODEL` | Registered for you |
 | **Manual flat model (lower-level)** | Keep a flat `g + p` model. See [The flat model](#the-flat-model). | Register `domainMatching` and `normalizePayloadFn` yourself |
 
 ### Scoped model + per-route domain (recommended)
@@ -583,7 +582,7 @@ AuthorizationEnforcerRegistry.getInstance().register({
 |------|--------------|---------|---------|
 | Scoped role (owner in a tenant) | `g, User_u, Role_owner, Merchant_A`<br/>`p, Role_owner, *, Material.find, read, allow` | `(User_u, Merchant_A, Material.find, read)` | allow |
 | Scoped role - isolation | (same as above) | `(User_u, Merchant_B, Material.find, read)` | deny (`g` domain doesn't match) |
-| Multi-tenant role | `g, User_u, Role_owner, Merchant_A`<br/>`g, User_u, Role_owner, Merchant_B`<br/>`p, Role_owner, *, Material.find, read, allow` | `(User_u, Merchant_B, Material.find, read)` | allow (one `g` line per tenant; a single `p` line) |
+| Multi-tenant role (one `g` line per tenant) | `g, User_u, Role_owner, Merchant_A`<br/>`g, User_u, Role_owner, Merchant_B`<br/>(same `p` line) | `(User_u, Merchant_B, Material.find, read)` | allow |
 | Global role (for example, guest/onboarding) | `g, User_u, Role_guest, *`<br/>`p, Role_guest, *, Organizer.onBoarding, create, allow` | `(User_u, Merchant_anything, Organizer.onBoarding, create)` | allow (wildcard `g` domain) |
 | Direct user permission (scoped) | `p, User_u, Merchant_A, Report.read, read, allow` | `(User_u, Merchant_A, Report.read, read)` | allow (reflexive `g(u,u,dom)` + `keyMatch`) |
 | Direct user permission - isolation | (same as above) | `(User_u, Merchant_B, Report.read, read)` | deny |

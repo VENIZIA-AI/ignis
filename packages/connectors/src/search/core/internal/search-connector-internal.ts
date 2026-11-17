@@ -1,9 +1,8 @@
-import { RecordUtility } from '@/common/internal';
 import { SearchErrorCodes } from '@venizia/ignis-kernel/repository';
 import { SearchErrors } from '@/search/core/common';
 import type { ILogger } from '@venizia/ignis-helpers/core';
 import type { ApplicationError } from '@venizia/ignis-helpers/core';
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 
 /** Engine-agnostic error plumbing shared by every search connector; backend-specific classification (what counts as 404/409) lives in each backend's own internal helper. */
@@ -11,6 +10,7 @@ export class SearchConnectorInternal {
   // Error/stack are non-enumerable, so `%j` on a raw Error yields `{}` - extract them so logs retain detail.
   static describeError(opts: { error: unknown }): unknown {
     const { error } = opts;
+
     return error instanceof Error ? (error.stack ?? error.message) : error;
   }
 
@@ -27,6 +27,7 @@ export class SearchConnectorInternal {
     }
 
     const response = error['response'];
+
     return RecordUtility.isRecord(response) && typeof response['status'] === 'number'
       ? response['status']
       : undefined;
@@ -41,12 +42,14 @@ export class SearchConnectorInternal {
     }
 
     const message = error['message'];
+
     if (typeof message === 'string' && message.trim() !== '') {
       return message;
     }
 
     const cause = error['cause'];
     const causeMessage = RecordUtility.isRecord(cause) ? cause['message'] : undefined;
+
     return typeof causeMessage === 'string' && causeMessage.trim() !== ''
       ? causeMessage
       : undefined;
@@ -115,6 +118,7 @@ export class SearchConnectorInternal {
       );
 
     const clientError = SearchConnectorInternal.getClientError({ method, error, details });
+
     if (clientError) {
       Reflect.set(clientError, 'cause', error);
       throw clientError;

@@ -8,6 +8,7 @@ const PLACEHOLDER_PATTERN = /%[sjdifoOc%]/g;
 /** How deep an object is inspected before it collapses to `[Object]`: Node's default of 2 hides nested data (e.g. wrapped `cause`), 5 reaches it while staying bounded. `APP_ENV_LOGGER_INSPECT_DEPTH` overrides with a NON-NEGATIVE number - no unlimited setting. */
 const DEFAULT_INSPECT_DEPTH = 5;
 
+/** Renders a log message and its arguments to one string, redacting secret keys and inspecting objects to a bounded depth (`APP_ENV_LOGGER_INSPECT_DEPTH`, default 5). */
 export class LogFormatUtility {
   private static resolveDepth(): number {
     const configured = process.env.APP_ENV_LOGGER_INSPECT_DEPTH;
@@ -53,7 +54,8 @@ export class LogFormatUtility {
       const isInspectable = typeof arg === 'object' && arg !== null;
 
       if (!isInspectable) {
-        return arg;
+        // A string argument (`%s`, or none) is printed as written: the credentials it carries are masked first.
+        return typeof arg === 'string' ? RedactUtility.scrubText({ value: arg }) : arg;
       }
 
       // `%j` runs JSON.stringify, which answers `[Circular]` for the WHOLE argument when one cycle sits anywhere inside it - a transaction handle in the payload wipes out every other field. It also has no notion of secret keys, and no depth limit of its own. Project the value first, under the same depth cap `%s` gets.

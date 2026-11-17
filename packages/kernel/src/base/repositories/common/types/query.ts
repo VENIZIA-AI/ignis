@@ -1,19 +1,13 @@
-import type { AnyType } from '@venizia/ignis-helpers/common';
-import type { Column, SQL } from 'drizzle-orm';
+import type { SQL, SQLWrapper } from 'drizzle-orm';
 
-/** Options passed to query operator handler functions. */
-export interface IQueryHandlerOptions<T = any> {
-  column: Column;
+/** Options passed to query operator handler functions. `column` is a `Column` or, on the JSON-path branch, a raw `#>>` extraction expression: both are `SQLWrapper`. */
+export interface IQueryHandlerOptions<T = unknown> {
+  column: SQLWrapper;
   value: T;
 }
 
-/**
- * Operator-name to SQL-handler table a relational dialect translates with, so a second SQL engine
- * swaps the whole table without touching the walk that reaches it. `column` is wider than
- * `IQueryHandlerOptions` names it: the JSON-path branch hands handlers a raw `#>>` extraction
- * expression, not a `Column`.
- */
+/** Operator-name to SQL-handler table a relational dialect translates with, so a second SQL engine swaps the whole table without touching the walk that reaches it. */
 export type TQueryOperatorHandlers = Record<
   string,
-  (opts: { column: AnyType; value: AnyType }) => SQL | undefined
+  (opts: IQueryHandlerOptions) => SQL | undefined
 >;

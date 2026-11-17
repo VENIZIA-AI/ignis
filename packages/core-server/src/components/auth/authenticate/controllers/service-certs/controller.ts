@@ -31,6 +31,7 @@ export class ServiceCertsController extends BaseRestController {
       handler: async (context) => {
         const jwks = await this.signer.getPublicJWKS();
         context.header('Cache-Control', 'public, max-age=600, stale-while-revalidate=86400');
+
         return context.json(jwks, HTTP.ResultCodes.RS_2.Ok);
       },
     });

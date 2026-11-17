@@ -80,8 +80,14 @@ Two component families do not follow that shape. Check them before you assume a 
 
 | Component | Where its source really is |
 |---|---|
-| Authentication, Authorization | Split across two packages. The contract - constants, binding keys, option types, providers, the registries - is in `packages/kernel/src/base/auth/{authenticate,authorize}/`. The component, services, strategies, controllers, adapters and entity column helpers are in `packages/core-server/src/components/auth/`. Each package re-exports the other's half |
+| Authentication, Authorization | Split across two packages |
 | Controller (gRPC) | `packages/core-server/src/components/controller/grpc/` - there is no `common/keys.ts` at the `controller/` level |
+
+Authentication and Authorization are split like this:
+
+- The contract is in `packages/kernel/src/base/auth/{authenticate,authorize}/`: constants, binding keys, option types, providers and the registries.
+- The component, services, strategies, controllers, adapters and entity column helpers are in `packages/core-server/src/components/auth/`.
+- Each package re-exports the other's half.
 
 ## Callout Standard
 

@@ -1,4 +1,3 @@
-import type { AnyType } from '@/common/types';
 import { afterEach, describe, expect, it } from 'bun:test';
 import { RedisClusterHelper } from '@/modules/redis';
 
@@ -19,15 +18,22 @@ describe('RedisClusterHelper', () => {
       ],
       clusterOptions: { lazyConnect: true },
     });
-    const nodes = (
-      helper.getClient() as AnyType as {
-        startupNodes: Array<{ host: string; port: number; password?: string }>;
-      }
-    ).startupNodes;
+    const nodes = Reflect.get(helper.getClient(), 'startupNodes');
     expect(nodes).toEqual([
-      { host: '127.0.0.1', port: 7000, password: undefined },
-      { host: '127.0.0.2', port: 7001, password: undefined },
+      { host: '127.0.0.1', port: 7000 },
+      { host: '127.0.0.2', port: 7001 },
     ]);
+  });
+
+  it('defaults a startup node port to 6379', () => {
+    helper = new RedisClusterHelper({
+      name: 'cluster-port',
+      nodes: [{ host: '127.0.0.1' }],
+      clusterOptions: { lazyConnect: true },
+    });
+    const nodes = Reflect.get(helper.getClient(), 'startupNodes');
+
+    expect(nodes).toEqual([{ host: '127.0.0.1', port: 6379 }]);
   });
 
   it('duplicateClient returns a fresh Cluster', () => {
@@ -39,6 +45,121 @@ describe('RedisClusterHelper', () => {
     const dup = helper.duplicateClient();
     expect(dup).not.toBe(helper.getClient());
     dup.disconnect();
+  });
+});
+
+describe('RedisClusterHelper reconnect policy', () => {
+  const build = (
+    opts: {
+      maxRetry?: number;
+      username?: string;
+      password?: string;
+      clusterOptions?: ConstructorParameters<typeof RedisClusterHelper>[0]['clusterOptions'];
+    } = {},
+  ) =>
+    new RedisClusterHelper({
+      name: 'cluster-retry',
+      nodes: [{ host: '127.0.0.1', port: 7000 }],
+      autoConnect: false,
+      ...opts,
+    });
+
+  it('reconnects with the same default and backoff as the other modes, and BullMQ-safe requests', () => {
+    const client = build({}).getClient();
+    const strategy = client.options.clusterRetryStrategy!;
+
+    expect(strategy(5, new Error('down'))).toBeNumber();
+    expect(strategy(6, new Error('down'))).toBeUndefined();
+    expect(client.options.redisOptions?.maxRetriesPerRequest).toBeNull();
+    client.disconnect();
+  });
+
+  it('maxRetry 0 never reconnects, and a bad value is refused', () => {
+    const client = build({ maxRetry: 0 }).getClient();
+
+    expect(client.options.clusterRetryStrategy!(1, new Error('down'))).toBeUndefined();
+    expect(() => build({ maxRetry: -3 })).toThrow(/maxRetry must be 0/);
+    client.disconnect();
+  });
+
+  it('an app redisOptions (a password) keeps maxRetriesPerRequest null', () => {
+    const client = build({ clusterOptions: { redisOptions: { password: 'secret' } } }).getClient();
+
+    expect(client.options.redisOptions?.password).toBe('secret');
+    expect(client.options.redisOptions?.maxRetriesPerRequest).toBeNull();
+    client.disconnect();
+  });
+
+  it('sends username and password through redisOptions, so every node gets them', () => {
+    const client = build({ username: 'acl-user', password: 'acl-secret' }).getClient();
+
+    expect(client.options.redisOptions?.username).toBe('acl-user');
+    expect(client.options.redisOptions?.password).toBe('acl-secret');
+    expect(client.options.redisOptions?.maxRetriesPerRequest).toBeNull();
+    client.disconnect();
+  });
+
+  it('leaves the credentials unset when none is given', () => {
+    const client = build().getClient();
+
+    expect(client.options.redisOptions?.username ?? null).toBeNull();
+    expect(client.options.redisOptions?.password ?? null).toBeNull();
+    client.disconnect();
+  });
+
+  it('a given first-class credential wins over clusterOptions.redisOptions, as in Sentinel', () => {
+    const client = build({
+      username: 'acl-user',
+      password: 'acl-secret',
+      clusterOptions: { redisOptions: { username: 'raw-user', password: 'raw-secret' } },
+    }).getClient();
+
+    expect(client.options.redisOptions?.username).toBe('acl-user');
+    expect(client.options.redisOptions?.password).toBe('acl-secret');
+    client.disconnect();
+  });
+
+  it('clusterOptions.redisOptions fills a credential the first-class field leaves unset', () => {
+    const client = build({
+      username: 'acl-user',
+      clusterOptions: { redisOptions: { username: 'raw-user', password: 'raw-secret' } },
+    }).getClient();
+
+    expect(client.options.redisOptions?.username).toBe('acl-user');
+    expect(client.options.redisOptions?.password).toBe('raw-secret');
+    client.disconnect();
+  });
+
+  it('an undefined clusterOptions.redisOptions credential does not clobber the first-class one', () => {
+    const client = build({
+      username: 'acl-user',
+      password: 'acl-secret',
+      clusterOptions: { redisOptions: { username: undefined, password: undefined } },
+    }).getClient();
+
+    expect(client.options.redisOptions?.username).toBe('acl-user');
+    expect(client.options.redisOptions?.password).toBe('acl-secret');
+    client.disconnect();
+  });
+
+  it('duplicateClient keeps the credentials', () => {
+    const source = build({ username: 'acl-user', password: 'acl-secret' });
+    const copy = source.duplicateClient();
+
+    expect(copy.options.redisOptions?.username).toBe('acl-user');
+    expect(copy.options.redisOptions?.password).toBe('acl-secret');
+    copy.disconnect();
+    source.getClient().disconnect();
+  });
+
+  it('clusterOptions still overrides the defaults', () => {
+    const client = build({
+      clusterOptions: { clusterRetryStrategy: () => 7, redisOptions: { maxRetriesPerRequest: 2 } },
+    }).getClient();
+
+    expect(client.options.clusterRetryStrategy!(1, new Error('down'))).toBe(7);
+    expect(client.options.redisOptions?.maxRetriesPerRequest).toBe(2);
+    client.disconnect();
   });
 });
 
@@ -91,5 +212,35 @@ describe('RedisClusterHelper connection timing', () => {
 
     expect(helper.getClient().options.lazyConnect).toBe(true);
     expect(helper.getClient().options.enableOfflineQueue).toBe(false);
+  });
+});
+
+describe('RedisClusterHelper.connect is safe to call twice', () => {
+  // ioredis rejects a second connect() while a cluster is in `connect`, the step between `connecting` and `ready`.
+  it('answers false without calling the client while the cluster is between connecting and ready', async () => {
+    const helper = new RedisClusterHelper({
+      name: 'cluster-connect-twice',
+      nodes: [{ host: '127.0.0.1', port: 7000 }],
+      autoConnect: false,
+    });
+    const client = helper.getClient();
+    let calls = 0;
+    const original = client.connect.bind(client);
+
+    client.connect = () => {
+      calls += 1;
+
+      return original();
+    };
+
+    Reflect.set(client, 'status', 'connect');
+
+    const connected = await helper.connect();
+
+    expect(connected).toBe(false);
+    expect(calls).toBe(0);
+
+    Reflect.set(client, 'status', 'wait');
+    client.disconnect();
   });
 });

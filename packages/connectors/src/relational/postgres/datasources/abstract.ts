@@ -29,11 +29,13 @@ export abstract class AbstractPostgresDataSource<
 
   override getQueryDialect(): IRelationalQueryDialect {
     AbstractPostgresDataSource.queryDialect ??= new PostgresQueryDialect();
+
     return AbstractPostgresDataSource.queryDialect;
   }
 
   override getQueryExecutor(): IRelationalQueryExecutor<TRelationalConnector<Schema>> {
     AbstractPostgresDataSource.queryExecutor ??= new PostgresQueryExecutor();
+
     return AbstractPostgresDataSource.queryExecutor as IRelationalQueryExecutor<
       TRelationalConnector<Schema>
     >;

@@ -24,12 +24,14 @@ const roots: string[] = [];
 const makeRoot = (opts: { prefix: string }): string => {
   const root = mkdtempSync(join(tmpdir(), opts.prefix));
   roots.push(root);
+
   return root;
 };
 
 const manifestRoot = (opts: { name: string; version: string }): string => {
   const root = makeRoot({ prefix: 'ignis-build-info-' });
   writeFileSync(join(root, 'package.json'), JSON.stringify(opts));
+
   return root;
 };
 

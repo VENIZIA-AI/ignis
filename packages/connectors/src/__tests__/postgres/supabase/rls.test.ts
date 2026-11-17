@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import { DuckTypingUtility } from '@/common/internal';
+import type { IDatabaseTransaction } from '@/relational/postgres/datasources/common';
 import { SupabaseRls } from '@/relational/postgres/supabase';
 import type { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
@@ -9,24 +10,35 @@ const dialect = new PgDialect();
 /** Renders a captured statement exactly as the driver would send it, params separated from text. */
 const compile = (statement: SQL) => dialect.sqlToQuery(statement);
 
+/** The members the fake transaction carries, stated as a guard so it can be handed over as one. */
+const isTransaction = (value: unknown): value is IDatabaseTransaction =>
+  DuckTypingUtility.hasMembers({
+    value,
+    members: { isolationLevel: 'string', commit: 'function', rollback: 'function' },
+  });
+
 const buildTransaction = () => {
   const executed: SQL[] = [];
 
-  return {
-    executed,
-    transaction: {
-      isActive: true,
-      isolationLevel: 'READ COMMITTED',
-      connector: {
-        execute: async (statement: SQL) => {
-          executed.push(statement);
-          return undefined;
-        },
+  const transaction = {
+    isActive: true,
+    isolationLevel: 'READ COMMITTED',
+    connector: {
+      execute: async (statement: SQL) => {
+        executed.push(statement);
+
+        return undefined;
       },
-      commit: async () => undefined,
-      rollback: async () => undefined,
-    } as AnyType,
+    },
+    commit: async () => undefined,
+    rollback: async () => undefined,
   };
+
+  if (!isTransaction(transaction)) {
+    throw new Error('[buildTransaction] The fake lacks the members of a transaction');
+  }
+
+  return { executed, transaction };
 };
 
 describe('SupabaseRls.withAuthContext', () => {
@@ -74,12 +86,14 @@ describe('SupabaseRls.withAuthContext', () => {
     'Authenticated',
     '',
   ];
+
   for (const role of rolesList) {
     test(`rejects the role ${JSON.stringify(role)} before any statement runs`, async () => {
       const { transaction, executed } = buildTransaction();
 
       // `set local role $1` is not valid SQL, so the role must be interpolated - an unvalidated role taken from a JWT would be a direct privilege-escalation vector.
       let caught: unknown;
+
       try {
         await SupabaseRls.withAuthContext({ transaction, claims: {}, role });
       } catch (error) {
@@ -118,10 +132,12 @@ describe('SupabaseRls.withAuthContext', () => {
 
   test('no role argument and no usable role claim throws before any statement runs', async () => {
     const claimses = [{}, { role: 42 }, { role: null }] as const;
+
     for (const claims of claimses) {
       const { transaction, executed } = buildTransaction();
 
       let caught: unknown;
+
       try {
         await SupabaseRls.withAuthContext({
           transaction,
@@ -140,6 +156,7 @@ describe('SupabaseRls.withAuthContext', () => {
     const { transaction, executed } = buildTransaction();
 
     let caught: unknown;
+
     try {
       await SupabaseRls.withAuthContext({
         transaction,
@@ -169,6 +186,7 @@ describe('SupabaseRls.withAuthContext', () => {
 
   test('accepts the Supabase roles it exists to serve', async () => {
     const roles = ['anon', 'authenticated', 'service_role', 'supabase_auth_admin'];
+
     for (const role of roles) {
       const { transaction } = buildTransaction();
 

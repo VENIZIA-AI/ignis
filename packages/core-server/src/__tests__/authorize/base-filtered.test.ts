@@ -40,8 +40,8 @@ class TestFilteredAdapter extends BaseFilteredAdapter {
   }
 
   // Expose protected members for direct testing.
-  public exposeConnector(): unknown {
-    return this.connector;
+  public exposeConnector(): Promise<unknown> {
+    return this.resolveConnector();
   }
 }
 
@@ -75,11 +75,13 @@ describe('BaseFilteredAdapter - FilteredAdapter contract', () => {
 });
 
 describe('BaseFilteredAdapter - datasource plumbing', () => {
-  test('connector getter returns the datasource connector', () => {
+  test('the connector resolved is the datasource connector', async () => {
     const connector = { id: 'pg' };
-    expect(createAdapter({ dataSource: fakeDataSource(connector) }).exposeConnector()).toBe(
-      connector,
-    );
+    const resolved = await createAdapter({
+      dataSource: fakeDataSource(connector),
+    }).exposeConnector();
+
+    expect(resolved).toBe(connector);
   });
 });
 

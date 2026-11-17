@@ -130,6 +130,7 @@ describe('devz codemod connector-imports: the command', () => {
     for (const [path, content] of Object.entries(files)) {
       writeFileSync(join(root, path), content);
     }
+
     execFileSync('git', ['add', '-A'], { cwd: root });
     execFileSync(
       'git',
@@ -146,6 +147,7 @@ describe('devz codemod connector-imports: the command', () => {
       { cwd: root },
     );
   };
+
   const read = (path: string) => readFileSync(join(root, path), 'utf8');
   const OLD = `import { X } from '@venizia/ignis/postgres';\n`;
   const NEW = `import { X } from '@venizia/ignis-connectors/postgres';\n`;

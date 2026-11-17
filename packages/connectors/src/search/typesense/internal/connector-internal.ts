@@ -8,7 +8,7 @@ export class TypesenseInternal {
   private static readonly CACHE_PARAMS = new Set(['use_cache', 'cache_ttl']);
 
   /** Splits a search's wire params into the cache switches (multi-search common params) and the rest (the per-search body). */
-  static splitCacheParams(opts: { params: Record<string, unknown> }) {
+  static splitCacheParams(opts: { params: object }) {
     const common: Record<string, unknown> = {};
     const body: Record<string, unknown> = {};
 
@@ -38,6 +38,7 @@ export class TypesenseInternal {
     const { error } = opts;
 
     const candidate = this.asHttpLike({ error });
+
     if (typeof candidate.message === 'string') {
       return candidate.message.toLowerCase();
     }
@@ -54,6 +55,7 @@ export class TypesenseInternal {
     const { error, status, phrase } = opts;
 
     const httpStatus = this.asHttpLike({ error }).httpStatus;
+
     if (typeof httpStatus === 'number') {
       return httpStatus === status;
     }
@@ -99,17 +101,21 @@ export class TypesenseInternal {
       pending += typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
 
       let newline = pending.indexOf('\n');
+
       while (newline >= 0) {
         const line = pending.slice(0, newline);
         pending = pending.slice(newline + 1);
+
         if (line.trim() !== '') {
           yield line;
         }
+
         newline = pending.indexOf('\n');
       }
     }
 
     pending += decoder.decode();
+
     if (pending.trim() !== '') {
       yield pending;
     }
@@ -117,6 +123,7 @@ export class TypesenseInternal {
 
   static isAlreadyExistsError(opts: { error: unknown }): boolean {
     const { error } = opts;
+
     return this.classify({
       error,
       status: HTTP.ResultCodes.RS_4.Conflict,
@@ -126,6 +133,7 @@ export class TypesenseInternal {
 
   static isNotFoundError(opts: { error: unknown }): boolean {
     const { error } = opts;
+
     return this.classify({ error, status: HTTP.ResultCodes.RS_4.NotFound, phrase: 'not found' });
   }
 

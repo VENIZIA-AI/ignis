@@ -1,11 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 import { BasePostgresEntity } from '@/relational/postgres/models';
 import { PersistableRepository } from '@/relational/postgres/repositories';
-import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect/query-dialect';
-import { PostgresQueryExecutor } from '@/relational/postgres/repositories/executor';
 import { buildFakeConnector } from './fake-connector';
+import { StubDataSource } from './stub-data-source';
 
 /**
  * The `shouldReturn: false` branches never call `.returning()`, so `{ count }` comes entirely from
@@ -27,13 +25,9 @@ class PersistableCountFixtureEntity extends BasePostgresEntity {
 /** `resolveConnector()` falls back to `dataSource.getConnector()` when no transaction is passed. */
 const buildRepository = (opts: { result: unknown }) => {
   const connector = buildFakeConnector({ result: opts.result });
-  const dataSource = {
-    getQueryDialect: () => new PostgresQueryDialect(),
-    getConnector: () => connector,
-    getQueryExecutor: () => new PostgresQueryExecutor(),
-  } as AnyType;
+  const dataSource = new StubDataSource({ connector: () => connector });
 
-  return new PersistableRepository<AnyType>(dataSource, {
+  return new PersistableRepository(dataSource, {
     entityClass: PersistableCountFixtureEntity,
   });
 };
@@ -68,11 +62,11 @@ describe('PersistableRepository - create() reports count from the driver result 
   });
 });
 
-describe('PersistableRepository - updateAll() reports count from the driver result (no RETURNING)', () => {
+describe('PersistableRepository - updateBy() reports count from the driver result (no RETURNING)', () => {
   test('a pg.QueryResult shape ({ rows, rowCount }) reports count from rowCount', async () => {
     const repository = buildRepository({ result: pgQueryResult });
 
-    const result = await repository.updateAll({
+    const result = await repository.updateBy({
       data: { name: 'updated' },
       where: { status: 'active' },
       options: { shouldReturn: false },
@@ -84,7 +78,7 @@ describe('PersistableRepository - updateAll() reports count from the driver resu
   test('a postgres-js RowList shape (array + count) reports count from count', async () => {
     const repository = buildRepository({ result: postgresJsRowList });
 
-    const result = await repository.updateAll({
+    const result = await repository.updateBy({
       data: { name: 'updated' },
       where: { status: 'active' },
       options: { shouldReturn: false },
@@ -94,11 +88,11 @@ describe('PersistableRepository - updateAll() reports count from the driver resu
   });
 });
 
-describe('PersistableRepository - deleteAll() reports count from the driver result (no RETURNING)', () => {
+describe('PersistableRepository - deleteBy() reports count from the driver result (no RETURNING)', () => {
   test('a pg.QueryResult shape ({ rows, rowCount }) reports count from rowCount', async () => {
     const repository = buildRepository({ result: pgQueryResult });
 
-    const result = await repository.deleteAll({
+    const result = await repository.deleteBy({
       where: { status: 'active' },
       options: { shouldReturn: false },
     });
@@ -109,7 +103,7 @@ describe('PersistableRepository - deleteAll() reports count from the driver resu
   test('a postgres-js RowList shape (array + count) reports count from count', async () => {
     const repository = buildRepository({ result: postgresJsRowList });
 
-    const result = await repository.deleteAll({
+    const result = await repository.deleteBy({
       where: { status: 'active' },
       options: { shouldReturn: false },
     });

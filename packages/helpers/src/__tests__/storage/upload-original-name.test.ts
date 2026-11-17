@@ -14,6 +14,7 @@ import { DiskHelper } from '@/modules/storage/disk';
 const captureError = async (opts: { task: Promise<unknown> }): Promise<string> => {
   try {
     await opts.task;
+
     return '';
   } catch (error) {
     return error instanceof Error ? error.message : String(error);
@@ -31,6 +32,7 @@ const buildFile = (opts: { originalName: string }): IUploadFile => ({
 const generateKey = (opts: { file: { originalName: string } }): string => {
   const lastDot = opts.file.originalName.lastIndexOf('.');
   const extension = lastDot === -1 ? '' : opts.file.originalName.slice(lastDot).toLowerCase();
+
   return `inventory/2f9c41d0${extension}`;
 };
 
@@ -58,6 +60,7 @@ describe('BaseStorageHelper.upload - the original name when the key is generated
     spies.push(
       spyOn(helper, 'hasBucket').mockResolvedValue(true),
       spyOn(fsp, 'mkdir').mockImplementation(async () => undefined),
+      spyOn(fsp, 'realpath').mockImplementation((async (target: string) => target) as never),
       spyOn(fsp, 'writeFile').mockImplementation(async (objectPath) => {
         writtenPaths.push(String(objectPath));
       }),

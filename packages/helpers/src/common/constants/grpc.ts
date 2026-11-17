@@ -1,5 +1,6 @@
 import { type ValueOf } from '../types';
 
+/** gRPC constants: call kinds, protocol headers and header values, and the numeric status codes by name. */
 export class GRPC {
   /** Standard gRPC methods (lowercase). */
   static readonly Methods = {
@@ -64,5 +65,7 @@ export class GRPC {
   } as const;
 }
 
+/** A gRPC call kind from `GRPC.Methods`, lowercase. */
 export type TGrpcMethod = ValueOf<typeof GRPC.Methods>;
+/** A numeric gRPC status code from `GRPC.ResultCodes` (`0` is OK). */
 export type TGrpcResultCode = ValueOf<typeof GRPC.ResultCodes>;

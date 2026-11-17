@@ -1,21 +1,42 @@
 import { DurationMultipliers, type IDuration } from '@/common';
 import { HTTP } from '@/common/constants';
 import { getError } from '@/modules/error';
-import { StoragePresignLimits } from './constants';
+import { S3Defaults, StoragePresignLimits } from './constants';
 
+/** Backend-neutral checks shared by storage helpers: recognising a "not found" error and turning an `IDuration` into presign seconds. */
 export class StorageUtility {
   /** "Not there", across SDKs. Both minio and Bun report `S3Error` in `name`, so `code` and status decide. */
   static isNotFoundError(opts: { error: unknown }): boolean {
     const { error } = opts;
     const source = error as { statusCode?: number; status?: number; code?: string; name?: string };
 
-    if (source?.statusCode === HTTP.ResultCodes.RS_4.NotFound || source?.status === 404) {
+    if (
+      source?.statusCode === HTTP.ResultCodes.RS_4.NotFound ||
+      source?.status === HTTP.ResultCodes.RS_4.NotFound
+    ) {
       return true;
     }
 
     const marker = `${source?.code ?? ''} ${source?.name ?? ''}`.toLowerCase();
 
     return ['nosuchkey', 'nosuchbucket', 'notfound'].some((needle) => marker.includes(needle));
+  }
+
+  /** A version id that names a version. S3 and MinIO answer the literal `null`, or nothing, for an object in a bucket where versioning is off or suspended. */
+  static realVersionId(opts: { value?: string | null }): string | undefined {
+    const { value } = opts;
+
+    return !value || value === S3Defaults.NULL_VERSION_ID ? undefined : value;
+  }
+
+  /** "The expected content is gone", across SDKs: S3 and MinIO answer 412. */
+  static isPreconditionFailedError(opts: { error: unknown }): boolean {
+    const source = opts.error as { statusCode?: number; status?: number } | null | undefined;
+
+    return (
+      source?.statusCode === HTTP.ResultCodes.RS_4.PreconditionFailed ||
+      source?.status === HTTP.ResultCodes.RS_4.PreconditionFailed
+    );
   }
 
   /** S3 presigns in whole seconds. An unknown unit is refused; `null` would read as "no expiry". */

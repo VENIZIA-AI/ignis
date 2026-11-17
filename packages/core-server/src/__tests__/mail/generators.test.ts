@@ -5,23 +5,29 @@ import { RandomTokenGenerator } from '@/components/mail/services/generators/rand
 
 /** The values of `crypto.getRandomValues` the next calls return, one array of bytes per call; real bytes after that. */
 const realGetRandomValues = crypto.getRandomValues.bind(crypto);
+
 const scriptDraws = (draws: ReadonlyArray<ReadonlyArray<number>>): { calls: () => number } => {
   let call = 0;
+
   const patched = <T extends ArrayBufferView | null>(array: T): T => {
     const scripted = draws[call];
     call += 1;
+
     if (!scripted || array === null) {
       return realGetRandomValues(array);
     }
 
     new Uint8Array(array.buffer, array.byteOffset, array.byteLength).set(scripted);
+
     return array;
   };
+
   Object.defineProperty(crypto, 'getRandomValues', {
     value: patched,
     configurable: true,
     writable: true,
   });
+
   return { calls: () => call };
 };
 
@@ -86,6 +92,7 @@ describe('NumericCodeGenerator', () => {
   test('every digit comes up about equally often (chi-square, 9 degrees of freedom)', () => {
     const counts = new Array<number>(10).fill(0);
     const draws = 30_000;
+
     for (let i = 0; i < draws; i++) {
       counts[Number(generator.generateCode(1))] += 1;
     }
@@ -122,20 +129,34 @@ describe('RandomTokenGenerator', () => {
     expect(generator.generateToken(16)).not.toBe(generator.generateToken(16));
   });
 
-  test('a size that is not a non-negative integer is refused, not turned into an empty token', () => {
+  test('a size that is not an integer is refused, not turned into an empty token', () => {
     for (const size of [Number.NaN, Number.POSITIVE_INFINITY, -1, 1.5, undefined, null, '8']) {
       expect(() => generator.generateToken(size as unknown as number)).toThrow();
     }
   });
 
-  test('no bytes is the empty text', () => {
-    expect(generator.generateToken(0)).toBe('');
+  test('fewer than 16 bytes is refused, and 16 is the smallest token', () => {
+    for (const size of [0, 1, 8, 15]) {
+      expect(() => generator.generateToken(size)).toThrow(/at least 16/);
+    }
+
+    expect(Buffer.from(generator.generateToken(16), 'base64url')).toHaveLength(16);
+  });
+
+  test('the output has no prefix and no padding, the format it always had', () => {
+    for (const size of [16, 17, 32, 33]) {
+      const token = generator.generateToken(size);
+
+      expect(token).toMatch(/^[A-Za-z0-9_-]+$/);
+      expect(token).toBe(Buffer.from(token, 'base64url').toString('base64url'));
+    }
   });
 
   test('a token longer than one fill of getRandomValues is random all the way through', () => {
     const bytes = Buffer.from(generator.generateToken(150_000), 'base64url');
 
     expect(bytes).toHaveLength(150_000);
+
     for (const start of [0, 65_536, 131_072]) {
       expect(bytes.subarray(start, start + 1_000).some((byte) => byte !== 0)).toBe(true);
     }
@@ -153,6 +174,7 @@ describe('the MIME message ids', () => {
         html: '<p>html</p>',
       },
     });
+
     return raw.toString('utf-8');
   };
 
@@ -166,9 +188,9 @@ describe('the MIME message ids', () => {
     expect(idOf(first)).not.toBe(idOf(second));
   });
 
-  test('a multipart boundary is 12 random bytes in hex after its label', async () => {
+  test('a multipart boundary is 16 random bytes in hex after its label', async () => {
     const raw = await buildRaw();
 
-    expect(raw).toMatch(/boundary="?----=_Alt_[0-9a-f]{24}"?/);
+    expect(raw).toMatch(/boundary="?----=_Alt_[0-9a-f]{32}"?/);
   });
 });

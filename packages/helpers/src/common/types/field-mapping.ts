@@ -7,57 +7,48 @@ export class FieldMappingDataTypes {
   static readonly STRINGS = 'strings';
   static readonly NUMBERS = 'numbers';
   static readonly BOOLEAN = 'boolean';
-
-  static readonly SCHEME_SET = new Set<string>([
-    this.STRING,
-    this.NUMBER,
-    this.STRINGS,
-    this.NUMBERS,
-    this.BOOLEAN,
-  ]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** Valid field mapping data type values. */
 export type TFieldMappingDataType = TConstValue<typeof FieldMappingDataTypes>;
 
+/** Describes one field to read: its `name`, its value `type`, and an optional `default`. */
 export interface IFieldMapping {
   name: string;
   type: TFieldMappingDataType;
   default?: string | number | Array<string> | Array<number> | boolean;
 }
 
+/** The union of `name` values in a list of field mappings. */
 export type TFieldMappingNames<T extends Array<IFieldMapping>> = Extract<
   T[number],
   { type: Exclude<T[number]['type'], undefined> }
 >['name'];
 
+/** The object a list of field mappings yields: one key per `name`, typed from its `type` (`string`, `number`, `boolean`, `strings` or `numbers`). Needs the list typed as a literal (`as const`) to narrow. */
 export type TObjectFromFieldMappings<
   T extends readonly {
     name: string;
     type: string;
-    [extra: string | symbol]: any;
+    [extra: string | symbol]: unknown;
   }[],
 > = {
   [K in T[number]['name']]: T extends {
     name: K;
     type: 'string';
-    [extra: string | symbol]: any;
+    [extra: string | symbol]: unknown;
   }
     ? string
-    : T extends { name: K; type: 'number'; [extra: string | symbol]: any }
+    : T extends { name: K; type: 'number'; [extra: string | symbol]: unknown }
       ? number
-      : T extends { name: K; type: 'boolean'; [extra: string | symbol]: any }
+      : T extends { name: K; type: 'boolean'; [extra: string | symbol]: unknown }
         ? boolean
-        : T extends { name: K; type: 'strings'; [extra: string | symbol]: any }
+        : T extends { name: K; type: 'strings'; [extra: string | symbol]: unknown }
           ? string[]
           : T extends {
                 name: K;
                 type: 'numbers';
-                [extra: string | symbol]: any;
+                [extra: string | symbol]: unknown;
               }
             ? number[]
             : never;

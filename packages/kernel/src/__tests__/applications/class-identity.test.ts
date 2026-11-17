@@ -21,6 +21,7 @@ class IdentityApplication extends RestApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'identity-app', version: '0.0.0', description: '' };
   }
+
   preConfigure(): void {}
   postConfigure(): void {}
   staticConfigure(): void {}
@@ -33,6 +34,7 @@ const buildApplication = () => {
     config: { path: { base: '/', isStrict: false } } as IApplicationConfigs,
   });
   application.init();
+
   return application;
 };
 
@@ -43,6 +45,7 @@ const twoClassesNamedZz = () => {
     class zz {
       readonly from = 'first';
     }
+
     return zz;
   })();
 
@@ -51,6 +54,7 @@ const twoClassesNamedZz = () => {
     class zz {
       readonly from = 'second';
     }
+
     return zz;
   })();
 
@@ -62,6 +66,7 @@ describe('two classes that derive one binding key fail registration, naming the 
     const { first, second } = twoClassesNamedZz();
 
     let failure = 'registered';
+
     try {
       await buildApplication().registerArtifacts({ services: [first, second] });
     } catch (error) {
@@ -75,11 +80,13 @@ describe('two classes that derive one binding key fail registration, naming the 
     const first = (() => {
       @service()
       class zz {}
+
       return zz;
     })();
     const second = (() => {
       @service({ binding: { namespace: BindingNamespaces.SERVICE, key: 'Pinned' } })
       class zz {}
+
       return zz;
     })();
 
@@ -117,6 +124,7 @@ describe('two classes that derive one binding key fail registration, naming the 
       class PolicyService {
         readonly from: string = 'parent';
       }
+
       return PolicyService;
     })();
     const child = (() => {
@@ -124,6 +132,7 @@ describe('two classes that derive one binding key fail registration, naming the 
       class PolicyService extends parent {
         override readonly from: string = 'child';
       }
+
       return PolicyService;
     })();
 
@@ -188,6 +197,7 @@ describe('@repository injects its datasource by the class, so a pinned key survi
       constructor() {
         super({ scope: 'zz' });
       }
+
       async configure(): Promise<void> {}
     }
 
@@ -217,6 +227,7 @@ describe('@repository injects its datasource by the class, so a pinned key survi
       constructor() {
         super({ scope: 'zz' });
       }
+
       async configure(): Promise<void> {}
     }
 
@@ -245,6 +256,7 @@ describe('@repository injects its datasource by the class, so a pinned key survi
       constructor() {
         super({ scope: 'RawDataSource' });
       }
+
       async configure(): Promise<void> {}
     }
 
@@ -273,6 +285,7 @@ describe('@repository injects its datasource by the class, so a pinned key survi
       constructor() {
         super({ scope: 'ProbeDataSource' });
       }
+
       async configure(): Promise<void> {}
     }
 
@@ -285,6 +298,7 @@ describe('@repository injects its datasource by the class, so a pinned key survi
       class InterfaceTypedRepository {
         constructor(@inject({ target: ProbeDataSource }) readonly dataSource: IDataSourceShape) {}
       }
+
       return InterfaceTypedRepository;
     }).not.toThrow();
   });
@@ -295,6 +309,7 @@ describe('@repository injects its datasource by the class, so a pinned key survi
       constructor() {
         super({ scope: 'catalog' });
       }
+
       async configure(): Promise<void> {}
     }
 
@@ -305,6 +320,7 @@ describe('@repository injects its datasource by the class, so a pinned key survi
           @inject({ target: CatalogDataSource }) readonly dataSource: CatalogDataSource,
         ) {}
       }
+
       return CatalogRepository;
     }).not.toThrow();
   });
@@ -318,14 +334,17 @@ describe('the registry keeps repositories and datasources apart by class, not by
       class xx extends AbstractDataSource {
         async configure(): Promise<void> {}
       }
+
       return xx;
     })();
     const second = (() => {
       class xx extends AbstractDataSource {
         async configure(): Promise<void> {}
       }
+
       return xx;
     })();
+
     return { first, second };
   };
 

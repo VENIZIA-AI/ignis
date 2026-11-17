@@ -6,3 +6,5 @@ export * from './no-restricted-properties.rule';
 export * from './no-unused-vars.rule';
 export * from './prefer-nullish-coalescing.rule';
 export * from './switch-case-braces.rule';
+export * from './lines-between-class-members.rule';
+export * from './padding-line-between-statements.rule';

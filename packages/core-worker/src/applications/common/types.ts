@@ -5,6 +5,10 @@ import type { IApplicationConfigs } from '@venizia/ignis-kernel';
  * interface on purpose - `@venizia/ignis`'s `IServerApplicationConfigs` is the one with a socket.
  */
 export interface IWorkerApplicationConfigs extends IApplicationConfigs {
-  /** Bound as `CoreBindings.APPLICATION_PROJECT_ROOT` when `getProjectRoot()` resolves it, and shared with `ModuleUtility`; default is the host's own working directory when one exists, else `''`. */
+  /**
+   * Bound as `CoreBindings.APPLICATION_PROJECT_ROOT` when `getProjectRoot()` resolves it, and shared with `ModuleUtility`.
+   *
+   * @default the host's working directory (`process.cwd()`) when one exists, else `''`
+   */
   projectRoot?: string;
 }

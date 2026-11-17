@@ -29,7 +29,7 @@ export class CreateCases extends BaseTestCases {
         this.context.logger.error('[case1CreateSingle] FAILED | Unexpected result: %j', result);
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[case1CreateSingle] FAILED | Error: %s', error);
     }
@@ -67,7 +67,7 @@ export class CreateCases extends BaseTestCases {
         this.context.logger.error('[case2CreateAll] FAILED | Expected 3 records | got: %j', result);
       }
 
-      await repo.deleteAll({ where: { group: 'REPO_BATCH_TEST' } });
+      await repo.deleteBy({ where: { group: 'REPO_BATCH_TEST' } });
     } catch (error) {
       this.context.logger.error('[case2CreateAll] FAILED | Error: %s', error);
     }
@@ -105,6 +105,7 @@ export class CreateCases extends BaseTestCases {
 
       // Verify null values are stored correctly
       const found = await repo.findOne({ filter: { where: { code } } });
+
       if (found?.nValue === null && found?.description === null) {
         this.context.logger.info(
           '[case9CreateWithNullValues] PASSED | Null values persisted correctly',
@@ -117,7 +118,7 @@ export class CreateCases extends BaseTestCases {
         );
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[case9CreateWithNullValues] FAILED | Error: %s', error);
     }
@@ -191,6 +192,7 @@ export class CreateCases extends BaseTestCases {
 
       // Verify all records exist
       const allRecords = await repo.find({ filter: { where: { group } } });
+
       if (allRecords.length === concurrentCount) {
         this.context.logger.info(
           '[case16ConcurrentCreates] PASSED | All %d records persisted',
@@ -204,7 +206,7 @@ export class CreateCases extends BaseTestCases {
         );
       }
 
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
 
       // Test 2: Race condition with duplicate codes (tests unique constraint handling)
       const duplicateCode = `RACE_DUP_${ParseUtility.getUID()}`;
@@ -248,6 +250,7 @@ export class CreateCases extends BaseTestCases {
       const duplicateRecords = await repo.find({
         filter: { where: { code: duplicateCode } },
       });
+
       if (duplicateRecords.length === 1) {
         this.context.logger.info(
           '[case16ConcurrentCreates] PASSED | Only 1 record with duplicate code',
@@ -259,7 +262,7 @@ export class CreateCases extends BaseTestCases {
         );
       }
 
-      await repo.deleteAll({ where: { code: duplicateCode } });
+      await repo.deleteBy({ where: { code: duplicateCode } });
     } catch (error) {
       this.context.logger.error('[case16ConcurrentCreates] FAILED | Error: %s', error);
     }

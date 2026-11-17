@@ -1,15 +1,15 @@
-import type { IRelationalTransaction } from '@/relational/core/datasources/common';
-import { datasource, model } from '@venizia/ignis-kernel';
+import type { ISqliteTransaction } from '@/relational/sqlite/datasources/common';
+import { datasource, model, type TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { BaseSqliteDataSource } from '@/relational/sqlite/datasources';
 import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
 import { BaseSqliteEntity } from '@/relational/sqlite/models';
 import { DefaultSqliteRepository } from '@/relational/sqlite/repositories';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll } from 'bun:test';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import type { IConformanceHarness, TConformanceRepository } from './repository-conformance';
+import type { IConformanceHarness } from './repository-conformance';
 import { runRepositoryConformance } from './repository-conformance';
 
 /**
@@ -31,7 +31,7 @@ const conformanceTable = sqliteTable(TABLE_NAME, {
   metadata: text('metadata', { mode: 'json' }),
 });
 
-@model({ type: 'entity', settings: { hiddenProperties: ['secret'] } })
+@model({ type: 'entity', settings: { properties: { hidden: ['secret'] } } })
 class ConformanceEntity extends BaseSqliteEntity {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = conformanceTable;
@@ -39,7 +39,10 @@ class ConformanceEntity extends BaseSqliteEntity {
 
 @model({
   type: 'entity',
-  settings: { hiddenProperties: ['secret'], query: { filter: { where: { tenant: 'acme' } } } },
+  settings: {
+    properties: { hidden: ['secret'] },
+    query: { filter: { where: { tenant: 'acme' } } },
+  },
 })
 class ScopedConformanceEntity extends BaseSqliteEntity {
   static override TABLE_NAME = TABLE_NAME;
@@ -49,7 +52,7 @@ class ScopedConformanceEntity extends BaseSqliteEntity {
 @datasource({ driver: LibSqlDriver })
 class ConformanceSqliteDataSource extends BaseSqliteDataSource<
   { url: string },
-  AnyType,
+  TAnyDataSourceSchema,
   {},
   Client
 > {
@@ -68,7 +71,7 @@ class ConformanceSqliteDataSource extends BaseSqliteDataSource<
 
 /** ONE `:memory:` libsql database for the whole suite; every test re-seeds the single table. */
 let client: Client;
-let harness: IConformanceHarness;
+let harness: IConformanceHarness<ISqliteTransaction>;
 
 beforeAll(async () => {
   client = createClient({ url: ':memory:' });
@@ -88,13 +91,13 @@ beforeAll(async () => {
   const dataSource = new ConformanceSqliteDataSource({ client });
 
   harness = {
-    repository: new DefaultSqliteRepository<AnyType>(dataSource as AnyType, {
+    repository: new DefaultSqliteRepository(dataSource, {
       entityClass: ConformanceEntity,
-    }) as TConformanceRepository,
-    scopedRepository: new DefaultSqliteRepository<AnyType>(dataSource as AnyType, {
+    }),
+    scopedRepository: new DefaultSqliteRepository(dataSource, {
       entityClass: ScopedConformanceEntity,
-    }) as TConformanceRepository,
-    beginTransaction: (): Promise<IRelationalTransaction<AnyType>> => dataSource.beginTransaction(),
+    }),
+    beginTransaction: () => dataSource.beginTransaction(),
   };
 });
 

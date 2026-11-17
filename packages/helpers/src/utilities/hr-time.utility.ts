@@ -1,5 +1,6 @@
 import { ParseUtility } from './parse.utility';
 
+/** Elapsed-time measurement from the Node high-resolution clock. */
 export class HrTimeUtility {
   /**
    * Seconds from the process's high-resolution clock, to nine decimals - for measuring, not for dates.
@@ -7,6 +8,7 @@ export class HrTimeUtility {
    */
   static getSeconds() {
     const current = process.hrtime();
+
     return ParseUtility.toFloat({ input: current[0] + current[1] / 10 ** 9, digit: 9 });
   }
 }

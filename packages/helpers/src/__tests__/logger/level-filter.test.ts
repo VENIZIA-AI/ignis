@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, describe, expect, spyOn, test } from 'bun:test';
 import pino from 'pino';
-import { type AnyType } from '@/common/types';
+import type { Logger } from 'winston';
 import {
   AbstractLogger,
   ConsoleLogger,
@@ -54,21 +54,27 @@ class FakeProviderLogger extends AbstractLogger {
   debug(message: string) {
     FakeProviderLogger.messages.push(message);
   }
+
   info(message: string) {
     FakeProviderLogger.messages.push(message);
   }
+
   warn(message: string) {
     FakeProviderLogger.messages.push(message);
   }
+
   error(message: string) {
     FakeProviderLogger.messages.push(message);
   }
+
   emerg(message: string) {
     FakeProviderLogger.messages.push(message);
   }
+
   log(_level: TLogLevel, message: string) {
     FakeProviderLogger.messages.push(message);
   }
+
   for(): ILogger {
     return this;
   }
@@ -107,10 +113,18 @@ const winstonFixture = (): IObservedProvider & { restore(): void } => {
   const backing = WinstonLoggerFactory.defaultLogger();
   // Precondition: the backing passes every level, so what is dropped is dropped by the wrapper or the gate.
   expect(backing.level).toBe(LogLevels.DEBUG);
-  const spy = spyOn(backing, 'log').mockImplementation(((_level: string, line: string) => {
-    lines.push(stripPrefix(line));
+
+  // `log` is overloaded (an entry object, or a level and a message), so the stand-in declares both forms.
+  function capture(entry: object): Logger;
+  function capture(level: string, line: string, ...rest: Array<unknown>): Logger;
+
+  function capture(first: object | string, line?: string): Logger {
+    lines.push(stripPrefix(typeof first === 'string' ? (line ?? '') : ''));
+
     return backing;
-  }) as AnyType);
+  }
+
+  const spy = spyOn(backing, 'log').mockImplementation(capture);
 
   return {
     name: 'WinstonLogger',
@@ -125,9 +139,14 @@ const winstonFixture = (): IObservedProvider & { restore(): void } => {
 const pinoFixture = (): IObservedProvider => {
   const lines: Array<string> = [];
   PinoBackingLogger.set({
-    instance: pino({ name: 'APP', level: LogLevels.DEBUG, customLevels: PINO_CUSTOM_LEVELS }, {
-      write: (line: string) => lines.push(line),
-    } as never) as AnyType,
+    instance: pino(
+      { name: 'APP', level: LogLevels.DEBUG, customLevels: PINO_CUSTOM_LEVELS },
+      {
+        write: (line: string) => {
+          lines.push(line);
+        },
+      },
+    ),
   });
 
   return {
@@ -224,6 +243,7 @@ describe('LoggerFactory level filtering - a level dropped by the wrapper never r
       provider: {
         get: (scope) => {
           scopes.push(scope);
+
           return FakeProviderLogger.get(scope);
         },
       },

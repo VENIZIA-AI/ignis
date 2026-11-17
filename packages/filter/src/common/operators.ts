@@ -44,6 +44,7 @@ export class Sorts {
       }
       default: {
         const lowered = direction.toLowerCase();
+
         return lowered === Sorts.ASC || lowered === Sorts.DESC ? lowered : undefined;
       }
     }
@@ -67,6 +68,7 @@ export class Sorts {
     }
 
     let fieldEnd = 0;
+
     while (fieldEnd < length && !Sorts.isSeparator(trimmed.charCodeAt(fieldEnd))) {
       fieldEnd++;
     }
@@ -77,11 +79,13 @@ export class Sorts {
 
     // `trimmed` ends on a non-separator, so a direction token follows the gap.
     let directionStart = fieldEnd + 1;
+
     while (Sorts.isSeparator(trimmed.charCodeAt(directionStart))) {
       directionStart++;
     }
 
     let directionEnd = directionStart + 1;
+
     while (directionEnd < length && !Sorts.isSeparator(trimmed.charCodeAt(directionEnd))) {
       directionEnd++;
     }

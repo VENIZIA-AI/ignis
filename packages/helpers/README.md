@@ -16,15 +16,14 @@ Choose a logger provider once at the entrypoint, then take scoped loggers and he
 
 ```typescript
 // bun add pino ioredis
-import { LoggerFactory, RedisHelperFactory, RedisModes } from '@venizia/ignis-helpers';
+import { LoggerFactory, RedisHelperFactory } from '@venizia/ignis-helpers';
 import { PinoLogger } from '@venizia/ignis-helpers/pino';
 
 LoggerFactory.use({ provider: PinoLogger });
 
 const logger = LoggerFactory.getLogger(['CacheService']);
 
-const redis = RedisHelperFactory.create({
-  mode: RedisModes.SINGLE,
+const redis = RedisHelperFactory.single({
   name: 'cache',
   host: '127.0.0.1',
   port: 6379,
@@ -45,9 +44,9 @@ Dates and IDs need no peer at all:
 import { TemporalHelper } from '@venizia/ignis-helpers/temporal';
 import { UuidHelper } from '@venizia/ignis-helpers/uuid';
 
-const temporal = new TemporalHelper({ timeZone: 'Asia/Ho_Chi_Minh' });
+const temporal = new TemporalHelper({ tz: 'UTC' });
 const paidAt = temporal.parse({ value: '20260919120000', pattern: 'YYYYMMDDHHmmss' });
-paidAt.toISOString(); // '2026-09-19T05:00:00.000Z'
+paidAt.toISOString(); // '2026-09-19T12:00:00.000Z'
 
 UuidHelper.getInstance().v7(); // time-ordered, for a database key
 ```
@@ -72,6 +71,7 @@ A helper that imports an optional peer as a value lives only on its own sub-path
 | `./kafka` | `KafkaProducerHelper`, `KafkaConsumerHelper`, `KafkaAdminHelper`, schema registry, bundler plugins | `@platformatic/kafka` |
 | `./bun-s3` | `BunS3Helper` | none - Bun's native S3 client (Bun only) |
 | `./socket-io` | `SocketIOServerHelper`, `SocketIOClientHelper` | `socket.io`, `@socket.io/redis-adapter`, `@socket.io/redis-emitter`; `socket.io-client` for the client |
+| `./socket-io/client` | The browser-safe client: `SocketIOClientHelper` with nothing from node in its graph, and the event names and option types it speaks | none - you pass `{ io }` from `socket.io-client` |
 | `./axios` | `AxiosFetcher`, `AxiosNetworkRequest` | `axios` |
 | `./cron` | `CronHelper` | `cron` |
 | `./hashicorp-vault` | `HashiCorpVaultHelper` | `node-vault` |

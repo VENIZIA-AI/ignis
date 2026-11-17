@@ -18,7 +18,7 @@ database server. Its smoke test runs with `bun test` inside the example folder, 
   sign-in and change-password live in `src/services/authentication.service.ts`, hashing with
   `Bun.password` and signing with `JWSTokenService`.
 - **CRUD behind the token** - `src/controllers/configuration.controller.ts` is an unmodified
-  `ControllerFactory.defineCrudController` output, every route requiring `authenticate: {
+  `CrudControllerFactory.build` output, every route requiring `authenticate: {
   strategies: [Authentication.STRATEGY_JWT] }`. `createdBy` is always the signed-in user: the CRUD
   factory drops the audit keys from its default request bodies.
 - **Server-side JSX** - `src/controllers/view.controller.tsx` renders `/` and `/about` with

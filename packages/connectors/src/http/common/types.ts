@@ -1,7 +1,13 @@
 import type { TFilter } from '@venizia/ignis-filter';
 
+/** A credential the HTTP datasource attaches to a request: `Authorization: <type> <value>`, and `provider`, when set, as the `x-auth-provider` header. */
 export interface IAuthToken {
   value: string;
+  /**
+   * The authorization scheme.
+   *
+   * @default 'Bearer'
+   */
   type?: string;
   provider?: string;
 }
@@ -40,6 +46,7 @@ export interface IHttpCallOptions {
   signal?: AbortSignal;
 }
 
+/** Settings of the HTTP datasource: where to send, which headers and token to attach, and what to do on a 401. */
 export interface IHttpDataSourceSettings {
   /** An absolute URL, or a path from the page origin (`/api`). A path-relative one is refused. */
   baseUrl: string;
@@ -65,7 +72,13 @@ export interface IHttpDataSourceSettings {
 
   /** Runs on a 401: `true` retries once (re-resolving the token), `false` lets the 401 stand. */
   onUnauthorized?: (context: IHttpRequestContext) => Promise<boolean> | boolean;
+
+  /** What sends a request: the platform `fetch` when unset. Name one to route through a test double, a proxy or an instrumented client. */
+  fetch?: THttpFetch;
 }
+
+/** The part of `fetch` the data source uses: a URL and its init, a `Response` back. */
+export type THttpFetch = (url: string, init: RequestInit) => Promise<Response>;
 
 /** A list with no `Content-Range` has no total - `hasRange` says so rather than using the page size. */
 export interface IHttpReadResult<R> {
@@ -88,6 +101,7 @@ export interface IHttpWriteResult<R> {
   extra?: Record<string, unknown>;
 }
 
+/** The query a repository call sends: an optional `filter` typed against the entity `E`. */
 export type THttpQuery<E extends object> = { filter?: TFilter<E> };
 
 /** Query parameters a route takes beside `filter` or `where` - a keyword, a scope. The filter and `where` win over a key of the same name. */

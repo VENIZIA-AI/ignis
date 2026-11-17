@@ -43,8 +43,8 @@ export class JsonUpdateTestService extends BaseTestService {
     // Missing intermediate keys
     await integrityCases.case10CreatesMissingIntermediateKeys();
 
-    // updateAll with JSON paths
-    await integrityCases.case11UpdateAllWithJsonPaths();
+    // updateBy with JSON paths
+    await integrityCases.case11UpdateByWithJsonPaths();
 
     // Error handling
     await edgeCases.case12ErrorNonExistentColumn();

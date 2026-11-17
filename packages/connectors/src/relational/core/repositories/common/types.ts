@@ -1,10 +1,17 @@
 import type {
   IExtraOptions,
+  IModelAccessThroughSettings,
   RelationTypes,
+  ScopeFilters,
   TDrizzleQueryOptions,
   TFilter,
+  TModelAccessSettings,
+  TScopeOperation,
   TWhere,
 } from '@venizia/ignis-kernel';
+import type { TNullable } from '@venizia/ignis-helpers/common';
+import type { ScopeThroughLink } from './scope-through';
+import type { RelationalUpdateBuilder } from '../dialect/update';
 import type {
   IRelationalDataSource,
   IRelationalTransaction,
@@ -41,11 +48,26 @@ export type TRelationConfig = {
     }
 );
 
+/** The column map of a table, as returned by Drizzle's `getTableColumns`. */
 export type TTableColumns = ReturnType<typeof getTableColumns>;
 
 /** The engine-neutral query-dialect surface a repository consumes via `dataSource.getQueryDialect()`, never constructed inside the repository. */
 export interface IRelationalQueryDialect {
-  mergeFilter<T = any>(opts: { defaultFilter?: TFilter<T>; userFilter?: TFilter<T> }): TFilter<T>;
+  /** The relations a schema declares, by name. */
+  resolveRelations(opts: { schema: TTableSchemaWithId }): Record<string, TRelationConfig>;
+  /** The relation one `include` entry names; throws the query's refusal of a malformed entry or an undeclared relation. */
+  resolveInclusion(opts: { inclusion: unknown; relations: Record<string, TRelationConfig> }): {
+    relationName: string;
+    relationConfig: TRelationConfig;
+  };
+  /** The error the query gives for a `where` key or an `order` field that names no column. */
+  columnNotFoundError(opts: { kind: 'where' | 'order'; key: string; tableName: string }): Error;
+  /** The fields the model of a schema hides. */
+  resolveHiddenProperties(opts: { schema: TTableSchemaWithId }): Set<string>;
+  /** The engine's update transform; an engine without one leaves it out. */
+  readonly updateBuilder?: RelationalUpdateBuilder;
+  mergeFilter<T>(opts: { defaultFilter?: TFilter<T>; userFilter?: TFilter<T> }): TFilter<T>;
+  composeScope<T>(opts: { scopeWhere: TWhere<T>; userFilter?: TFilter<T> }): TFilter<T>;
   build<Schema extends TTableSchemaWithId>(opts: {
     tableName: string;
     schema: Schema;
@@ -73,6 +95,32 @@ export interface IRelationalQueryDialect {
 
   /** Flattens a transform result into the object handed to the driver's `set()`. */
   toUpdateData(opts: { transformed: ITransformedUpdateData }): Record<string, unknown>;
+
+  /** The foreign key link of a `through` model and the scope its parent resolves for `operation`: what a write must check its rows against. */
+  resolveThrough(opts: {
+    settings: IModelAccessThroughSettings;
+    schema: TTableSchemaWithId;
+    operation: TScopeOperation;
+  }): {
+    link: ReturnType<typeof ScopeThroughLink.of>;
+    scope: TNullable<TWhere> | typeof ScopeFilters.UNRESTRICTED;
+  };
+
+  /** The parent's scope as a `where` on the parent table. */
+  toParentWhere(opts: {
+    link: ReturnType<typeof ScopeThroughLink.of>;
+    scope: TWhere;
+  }): ReturnType<IRelationalQueryDialect['toWhere']>;
+
+  /**
+   * The scope of a model for one call: what its `resolve` answers, or, for a `through` model, a `where` on its
+   * foreign key built from its parent's own scope (`UNRESTRICTED` or null when the parent's is).
+   */
+  resolveAccessScope(opts: {
+    settings: TModelAccessSettings;
+    schema: TTableSchemaWithId;
+    operation: TScopeOperation;
+  }): TNullable<TWhere> | typeof ScopeFilters.UNRESTRICTED;
 }
 
 /** The SQL branch's `IExtraOptions`: narrows `transaction` to a connector-bearing SQL handle so `options.transaction.connector` needs no cast. An engine binds `TConnector` to keep that access typed; unbound it is `unknown`, which is all neutral code can know. */
@@ -95,10 +143,17 @@ export type TRelationalTransactionOf<TDataSource extends IRelationalDataSource> 
   ReturnType<TDataSource['beginTransaction']>
 >;
 
+/** Update data split into plain column values and JSON-path updates that need SQL expressions. */
 export interface ITransformedUpdateData {
   /** Regular field updates (non-JSON-path keys) */
-  regularFields: Record<string, any>;
+  regularFields: Record<string, unknown>;
 
   /** SQL expressions for JSON path updates, keyed by the schema PROPERTY name - not the column name, which is what the emitted SQL quotes. The two diverge whenever a column is declared as `jsonb('meta_data')` under a property called `metadata`. */
   jsonExpressions: Record<string, SQL>;
 }
+
+/** A column an upsert's update branch may write: any insert property but the creation audit columns, which only the insert sets. */
+export type TUpsertUpdateKey<PersistObject> = Exclude<
+  keyof PersistObject & string,
+  'createdAt' | 'createdBy'
+>;

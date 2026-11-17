@@ -7,14 +7,20 @@ Quick reference for key terms in IGNIS documentation.
 
 | Term | Description |
 |------|-------------|
-| **Application** | Main entry point extending `BaseApplication`. Its config sets `artifacts: AutoArtifacts`, which registers every decorated class. |
-| **Controller** | Handles HTTP/gRPC requests, defines API endpoints. REST controllers extend `BaseRestController`, gRPC controllers extend `BaseGrpcController`. Uses `@controller`, `@get`, `@post` decorators |
+| **Application** | Main entry point extending `BaseApplication` |
+| **Controller** | Handles HTTP/gRPC requests and defines API endpoints |
 | **Service** | Contains business logic between controllers and repositories |
 | **Repository** | Database operations for one entity (`find`, `create`, `updateById`, etc.) |
 | **DataSource** | Database connection configuration (host, port, credentials) |
 | **Model/Entity** | Defines data structure and relationships using Drizzle schema |
 | **Component** | Reusable plugin that bundles related functionality |
 | **DI Container** | Central registry that stores and resolves dependencies. The `Application` class acts as the container. |
+
+Details on a few terms:
+
+- **Application:** its config sets `artifacts: AutoArtifacts`, which registers every decorated class.
+- **Controller:** REST controllers extend `BaseRestController`, gRPC controllers extend `BaseGrpcController`. Routes use the `@controller`, `@get` and `@post` decorators.
+
 
 ```typescript
 // Decorators mark the classes; the config registers them all
@@ -121,7 +127,7 @@ class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {}
 | **Drizzle ORM** | Type-safe ORM library. [Docs](https://orm.drizzle.team/) |
 | **Schema** | Table structure definition using Drizzle syntax |
 | **Migration** | Script that creates/modifies tables. Version control for database structure. |
-| **Connector** | Database driver that executes queries (via `dataSource.connector`) |
+| **Connector** | Database driver that executes queries (via `dataSource.getConnector()`) |
 | **Relations** | Connections between tables (hasMany, belongsTo, hasOne) |
 
 ```typescript
@@ -218,15 +224,16 @@ class TodoController extends BaseRestController {
 }
 ```
 
-Plain CRUD like this needs no hand-written controller: [`ControllerFactory.defineCrudController`](../core-concepts/rest-controllers#controllerfactory-for-crud-operations) generates all five routes from the model.
+Plain CRUD like this needs no hand-written controller: [`CrudControllerFactory.build`](../core-concepts/rest-controllers#crudcontrollerfactory-for-crud-operations) generates the routes you list from the model of the repository.
 
 | Term | Description |
 |------|-------------|
 | **Endpoint** | URL path that API responds to (e.g., `GET /todos`) |
 | **Route Parameter** | Variable in URL wrapped in braces (e.g., `{id}` in OpenAPI route configs) |
 | **Request Body** | JSON data sent with POST/PATCH requests |
-| **OpenAPI/Swagger** | Auto-generated API docs. `ApiReferenceComponent` registers the explorer at `/doc/explorer` on the root router, so the browser URL is `<path.base>/doc/explorer`. The default UI is Scalar |
+| **OpenAPI/Swagger** | Auto-generated API docs, served by `ApiReferenceComponent` |
 
+`ApiReferenceComponent` registers the explorer at `/doc/explorer` on the root router, so the browser URL is `<path.base>/doc/explorer`. The default UI is Scalar.
 
 ## Environment & Configuration
 

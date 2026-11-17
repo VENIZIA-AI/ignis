@@ -10,17 +10,21 @@ interface IBaseControllerMetadata extends IArtifactRegistrationOptions {
   description?: string;
 }
 
+/** Metadata of a REST controller; `transport` may be left out. */
 export interface IRestControllerMetadata extends IBaseControllerMetadata {
   transport?: typeof ControllerTransports.REST;
 }
 
+/** Metadata of a gRPC controller; `service` is the gRPC service definition it implements. */
 export interface IGrpcControllerMetadata<ServiceType = unknown> extends IBaseControllerMetadata {
   transport: typeof ControllerTransports.GRPC;
   service: ServiceType;
 }
 
+/** Metadata accepted by `@controller`, discriminated on `transport`. */
 export type TControllerMetadata = IRestControllerMetadata | IGrpcControllerMetadata;
 
+/** Metadata of one gRPC method on a controller. */
 export interface IRpcMetadata {
   /** Proto method name. */
   name: string;

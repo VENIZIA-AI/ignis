@@ -1,5 +1,6 @@
-import type { ITransaction } from '@venizia/ignis-kernel';
-import type { TFilter, TLockOptions, TWhere } from '@venizia/ignis-kernel';
+import type { IRequestFilterJudge, ITransaction, TRequestFilterPart } from '@venizia/ignis-kernel';
+import { RequestFilterParts } from '@venizia/ignis-kernel/repository';
+import type { TFields, TFilter, TLockOptions, TWhere } from '@venizia/ignis-kernel';
 import { AbstractRepository } from '@venizia/ignis-kernel/repository';
 import { DEFAULT_MAX_LIMIT } from '@venizia/ignis-kernel/repository';
 import { SearchErrors } from '@/search/core/common';
@@ -14,6 +15,13 @@ import type {
   TCompiledWhere,
 } from '@/search/core/repositories/common';
 import { SearchFilterOutcomes } from '@/search/core/repositories/common';
+import { SearchDialectHelper } from '@/search/core/repositories/common/dialect-helpers';
+
+/** The order a search query reads a filter in: `build` reads the order entries, then the caller's where is compiled. */
+const SEARCH_READ_ORDER: ReadonlyArray<TRequestFilterPart> = [
+  RequestFilterParts.ORDER,
+  RequestFilterParts.WHERE,
+];
 
 /** Search-repository plumbing on `AbstractRepository`. `TDataSource` carries the concrete connector type through `this.connector`, so a concretely-bound repository reaches its engine's verbs uncast while an engine-agnostic one is forced to write `connector.alias?.…`. */
 export abstract class SearchBaseRepository<
@@ -55,6 +63,52 @@ export abstract class SearchBaseRepository<
     return this.dataSource.getQueryDialect();
   }
 
+  /**
+   * A request filter naming a hidden field is refused with the error the engine's dialect gives for a field the collection does
+   * not declare. The filter is read as `buildQuery` reads it: an `include` is refused first, then the order entries, then the
+   * where keys; a piece the dialect refuses on its own is refused with the dialect's error.
+   */
+  protected override createRequestFilterJudge(): IRequestFilterJudge {
+    const judge = super.createRequestFilterJudge();
+
+    return {
+      ...judge,
+      refuse: ({ kind, key }) => this.queryDialect.fieldNotFoundError({ kind, field: key }),
+      readOrder: () => SEARCH_READ_ORDER,
+      filterRefusal: ({ filter }) =>
+        filter.include ? this.queryDialect.includeNotSupportedError() : undefined,
+      queryRefusal: ({ part, value }) =>
+        SearchBaseRepository.refusalOf({
+          task: () => {
+            if (part === RequestFilterParts.WHERE) {
+              this.queryDialect.compileWhere({
+                where: value,
+                capabilities: { fields: this.collectionFields },
+              });
+            } else if (part === RequestFilterParts.ORDER) {
+              this.queryDialect.build({
+                filter: { order: [value] },
+                capabilities: { fields: this.collectionFields },
+              });
+            }
+          },
+        }),
+    };
+  }
+
+  /** The error `task` throws, or `undefined`. */
+  private static refusalOf(opts: { task: () => void }): Error | undefined {
+    try {
+      opts.task();
+    } catch (error) {
+      return error instanceof Error
+        ? error
+        : getError({ message: 'A value that is not an Error was thrown', cause: error });
+    }
+
+    return undefined;
+  }
+
   get multiSearch(): TDataSource['multiSearch'] {
     return this.dataSource.multiSearch.bind(this.dataSource);
   }
@@ -63,7 +117,7 @@ export abstract class SearchBaseRepository<
     super.setDataSource(opts);
   }
 
-  /** WRITE responses never pass through the engine's exclude-fields filter, so hiddenProperties are stripped here - the relational branch gets the same guarantee from `.returning(visibleProperties)`. */
+  /** WRITE responses never pass through the engine's exclude-fields filter, so the hidden properties are stripped here - the relational branch gets the same guarantee from `.returning(visibleProperties)`. */
   protected omitHiddenFields<R>(document: R): R {
     const hiddenFields = this.hiddenFields;
 
@@ -71,21 +125,91 @@ export abstract class SearchBaseRepository<
       return document;
     }
 
-    const visible: Record<string, unknown> = { ...(document as Record<string, unknown>) };
+    const visible = { ...document };
 
     for (const field of hiddenFields) {
-      delete visible[field];
+      Reflect.deleteProperty(visible, field);
     }
 
-    return visible as R;
+    return visible;
   }
 
-  protected omitHiddenFieldsAll<R>(documents: R[]): R[] {
-    if (this.hiddenFields.length === 0) {
+  private _nullableFields?: readonly string[];
+
+  /** Names of the fields declared `nullable`: the engine keeps no null, so a read puts it back. Memoized per repository instance, like `collectionFields`. */
+  protected get nullableFields(): readonly string[] {
+    this._nullableFields ??= (this.entity?.schema?.fields ?? [])
+      .filter((item) => item.nullable)
+      .map((item) => item.name);
+
+    return this._nullableFields;
+  }
+
+  /**
+   * The nullable fields a read fills: with a selection (`filter.fields`, which becomes the engine's
+   * include list) only the selected ones, because every other key is absent by the caller's own
+   * choice and `TRow` says so. No selection, or an empty one the engine reads as none: all of them.
+   */
+  protected selectedNullableFields(opts: { fields?: TFields }): readonly string[] {
+    const names = opts.fields ? SearchDialectHelper.toFieldNames({ fields: opts.fields }) : [];
+
+    return names.length === 0
+      ? this.nullableFields
+      : this.nullableFields.filter((name) => names.includes(name));
+  }
+
+  /** A document as it leaves the repository: a nullable field the engine dropped is `null` again, a hidden field is gone. The engine's own object is not changed. Writes have no selection. */
+  protected shapeDocument<R>(document: R, opts: { fields?: TFields } = {}): R {
+    return this.shapeWith({ document, nullable: this.selectedNullableFields(opts) });
+  }
+
+  /**
+   * A hit's `highlight` as it leaves the repository: it is built from the document's own fields (Meilisearch copies `_formatted`,
+   * which holds every retrieved attribute), so it loses the hidden fields the document loses. A record loses its hidden keys;
+   * a list of entries loses those whose `field` is hidden. Anything else is returned as it is.
+   */
+  protected shapeHighlight<R>(highlight: R): R {
+    const hiddenFields = this.hiddenFields;
+
+    if (hiddenFields.length === 0 || highlight === null || typeof highlight !== 'object') {
+      return highlight;
+    }
+
+    if (Array.isArray(highlight)) {
+      return highlight.filter((entry) => {
+        const name =
+          entry !== null && typeof entry === 'object' ? Reflect.get(entry, 'field') : undefined;
+
+        return typeof name !== 'string' || !hiddenFields.includes(name.split('.')[0] ?? name);
+      }) as R;
+    }
+
+    return this.omitHiddenFields(highlight);
+  }
+
+  protected shapeDocuments<R>(documents: R[], opts: { fields?: TFields } = {}): R[] {
+    if (this.hiddenFields.length === 0 && this.nullableFields.length === 0) {
       return documents;
     }
 
-    return documents.map((document) => this.omitHiddenFields(document));
+    const nullable = this.selectedNullableFields(opts);
+
+    return documents.map((document) => this.shapeWith({ document, nullable }));
+  }
+
+  private shapeWith<R>(opts: { document: R; nullable: readonly string[] }): R {
+    const { document, nullable } = opts;
+
+    if (nullable.length === 0 || document === null || typeof document !== 'object') {
+      return this.omitHiddenFields(document);
+    }
+
+    const missing = nullable.filter((name) => Reflect.get(document, name) == null);
+
+    return this.omitHiddenFields({
+      ...document,
+      ...Object.fromEntries(missing.map((name) => [name, null])),
+    });
   }
 
   /** No search engine here has a transaction primitive (this tier is engine-neutral - Typesense and Meilisearch both inherit it) - a caller-supplied options.transaction is rejected loudly instead of silently running outside the transaction the caller expects. */
@@ -141,7 +265,7 @@ export abstract class SearchBaseRepository<
    * combined after, rather than merged into one tree first. Merging first makes the two
    * indistinguishable, and the repository's own clause would then have to satisfy the
    * caller-facing field check: `SprocketDocument` in integration-wiring.test.ts declares
-   * [title, secretCode] but carries `defaultFilter: { where: { isActive: true } }`, so every
+   * [title, secretCode] but carries `query.filter: { where: { isActive: true } }`, so every
    * request through it would 400 ITSELF. Compiling separately makes the trust boundary a matter
    * of WHICH CALL IS MADE, which - unlike a flag threaded through the recursion - cannot be wrong
    * at a nested level.
@@ -222,7 +346,7 @@ export abstract class SearchBaseRepository<
 
     throw getError({
       error: SearchErrors.PAGE_TOO_LARGE,
-      message: `[${this.constructor.name}][buildQuery] Requested page exceeds this model's limit | collection: '${this.collectionName}' | requested: ${limit} | maximum: ${ceiling} | raise it with @model settings.maxLimit if larger pages are genuinely needed`,
+      message: `[${this.constructor.name}][buildQuery] Requested page exceeds this model's limit | collection: '${this.collectionName}' | requested: ${limit} | maximum: ${ceiling} | raise it with @model settings.query.limit.max if larger pages are genuinely needed`,
     });
   }
 

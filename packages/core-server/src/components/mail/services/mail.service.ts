@@ -8,14 +8,16 @@ import type {
   IMailTransport,
   TMailOptions,
 } from '../common';
-import { MailDefaults, MailErrorCodes, MailErrors, MailKeys } from '../common';
+import { MailDefaults, MailErrorCodes, MailErrors, MailKeys, MailTemplateFormats } from '../common';
 import { inject } from '@/base/metadata';
 import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
-import { type AnyType } from '@venizia/ignis-helpers/common';
-import { PromiseUtility } from '@venizia/ignis-helpers';
+import { ErrorUtility, PromiseUtility } from '@venizia/ignis-helpers';
 import { MailAttachmentUtility } from '../utilities/attachment.utility';
 import { MailBodyUtility } from '../utilities/body.utility';
+import { MailHeaderUtility } from '../utilities/header.utility';
+import { MailMimeUtility } from '../utilities/mime.utility';
 
+/** Sends mail through the bound transport. `send` validates the message, applies the attachment policy and defaults `from`; failures are thrown as application errors with a mail message code, except `sendBatch`, which reports each failure in its result. */
 export class MailService extends BaseService implements IMailService {
   constructor(
     @inject({ key: MailKeys.MAIL_OPTIONS })
@@ -94,11 +96,12 @@ export class MailService extends BaseService implements IMailService {
       const tasks = messages.map((message) => async () => {
         try {
           const result = await this.send(message);
+
           return result;
         } catch (error) {
           return {
             success: false,
-            error: error instanceof Error ? error.message : 'Unknown error',
+            error: ErrorUtility.toError({ error }).message,
           };
         }
       });
@@ -131,7 +134,7 @@ export class MailService extends BaseService implements IMailService {
 
   async sendTemplate(opts: {
     templateName: string;
-    data: Record<string, AnyType>;
+    data: Record<string, unknown>;
     recipients: string | string[];
     options?: Partial<IMailMessage>;
   }): Promise<IMailSendResult> {
@@ -141,36 +144,37 @@ export class MailService extends BaseService implements IMailService {
       if (!this.templateEngine) {
         throw getError({
           statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-          messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+          error: MailErrors.INVALID_CONFIGURATION,
           message: 'Template engine not configured',
         });
       }
 
+      // `rest` goes first below: the recipients, the subject and the body this call rendered are not the options' to replace, and `requireValidate` is a render switch, not a message field.
+      const { requireValidate, subject, ...rest } = options ?? {};
+
       this.logger.for(this.sendTemplate.name).debug('Rendering template: %s', templateName);
-      const html = this.templateEngine.render({
-        templateName,
-        data,
-        requireValidate: options?.requireValidate,
-      });
+      const html = this.templateEngine.render({ templateName, data, requireValidate });
 
       const templateData = this.templateEngine.getTemplate(templateName);
+      const renderedSubject =
+        templateData?.subject === undefined
+          ? MailDefaults.SUBJECT
+          : this.templateEngine.render({
+              templateData: templateData.subject,
+              data,
+              requireValidate,
+              format: MailTemplateFormats.TEXT,
+            });
 
       const message: IMailMessage = {
+        ...rest,
         to: recipients,
-        subject:
-          options?.subject ??
-          (templateData?.subject !== undefined
-            ? this.templateEngine.render({
-                templateData: templateData.subject,
-                data,
-                requireValidate: options?.requireValidate,
-              })
-            : 'No Subject'),
+        subject: subject ?? renderedSubject,
         html,
-        ...options,
       };
 
       const result = await this.send(message);
+
       return result;
     } catch (error) {
       this.logger.for(this.sendTemplate.name).error('Error sending template email: %s', error);
@@ -183,6 +187,7 @@ export class MailService extends BaseService implements IMailService {
       this.logger.for(this.verify.name).debug('Verifying mail transport connection');
       const isValid = await this.transport.verify();
       this.logger.for(this.verify.name).debug('Verification result: %s', isValid);
+
       return isValid;
     } catch (error) {
       this.logger.for(this.verify.name).error('Verification failed: %s', error);
@@ -218,6 +223,7 @@ export class MailService extends BaseService implements IMailService {
     }
 
     MailBodyUtility.assertIsText({ message });
+    MailHeaderUtility.assert({ message });
   }
 
   protected getDefaultFrom(): string {
@@ -232,6 +238,6 @@ export class MailService extends BaseService implements IMailService {
       return from;
     }
 
-    return `"${fromName}" <${from}>`;
+    return `"${MailMimeUtility.escapeQuotedString({ value: fromName })}" <${from}>`;
   }
 }

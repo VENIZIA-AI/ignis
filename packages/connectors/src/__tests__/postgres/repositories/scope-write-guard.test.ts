@@ -1,15 +1,14 @@
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { model, RepositoryErrorCodes, ScopeFilters } from '@venizia/ignis-kernel';
+import type { TWhere } from '@venizia/ignis-kernel';
 import { BaseRelationalEntity } from '@/relational/core/models';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
-import { SoftDeletableRelationalRepository } from '@/relational/core/repositories/core/soft-deletable';
-import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
-import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect/query-dialect';
-import { PostgresQueryExecutor } from '@/relational/postgres/repositories/executor';
+import { DefaultCRUDRepository, SoftDeletableRepository } from '@/relational/postgres/repositories';
+import { StubDataSource } from './stub-data-source';
 
 /**
  * The write side of `scopeFilter`, against a real PGlite: a create or an update payload that lands a
@@ -23,7 +22,7 @@ const itemsTable = pgTable('write_guard_items', {
 });
 
 /** What `resolve()` returns right now: the test sets it per case. */
-let scope: AnyType = { merchantId: 'm-a' };
+let scope: TNullable<TWhere> | typeof ScopeFilters.UNRESTRICTED = { merchantId: 'm-a' };
 const resolve = () => scope;
 
 @model({ type: 'entity', settings: { access: { resolve } } })
@@ -71,6 +70,8 @@ class SoftSharedItem extends BaseRelationalEntity<typeof itemsTable> {
   static override TABLE_NAME = 'write_guard_items';
 }
 
+type TItemEntityClass = TClass<BaseRelationalEntity<typeof itemsTable>>;
+
 const refusal = async (task: Promise<unknown>) => {
   try {
     await task;
@@ -87,17 +88,16 @@ const refusal = async (task: Promise<unknown>) => {
 
 describe('scopeFilter write guard', () => {
   const client = new PGlite();
-  let driver: PGliteDriver<AnyType>;
+  let driver: PGliteDriver;
 
-  const build = (entityClass: AnyType, repositoryClass: AnyType = DefaultCRUDRepository) => {
-    const dataSource = {
-      getQueryDialect: () => new PostgresQueryDialect(),
-      getQueryExecutor: () => new PostgresQueryExecutor(),
-      getConnector: () => driver.createConnector({ schema: { itemsTable } }),
-    } as AnyType;
+  const buildDataSource = () =>
+    new StubDataSource({ connector: () => driver.createConnector({ schema: { itemsTable } }) });
 
-    return new repositoryClass(dataSource, { entityClass }) as AnyType;
-  };
+  const build = (entityClass: TItemEntityClass) =>
+    new DefaultCRUDRepository<typeof itemsTable>(buildDataSource(), { entityClass });
+
+  const buildSoft = (entityClass: TItemEntityClass) =>
+    new SoftDeletableRepository<typeof itemsTable>(buildDataSource(), { entityClass });
 
   const allRows = async () => {
     const result = await client.query<{
@@ -107,17 +107,19 @@ describe('scopeFilter write guard', () => {
     }>(
       'SELECT merchant_id AS "merchantId", name, deleted_at AS "deletedAt" FROM write_guard_items ORDER BY id',
     );
+
     return result.rows;
   };
 
   const rows = async () => {
     const all = await allRows();
+
     return all.map(({ merchantId, name }) => ({ merchantId, name }));
   };
 
   beforeAll(async () => {
     await client.waitReady;
-    driver = new PGliteDriver<AnyType>({ client });
+    driver = new PGliteDriver({ client });
     await client.exec(
       'CREATE TABLE write_guard_items (id serial primary key, merchant_id text, name text, deleted_at timestamp)',
     );
@@ -587,21 +589,21 @@ describe('scopeFilter write guard', () => {
       expect(result).toEqual([]);
     });
 
-    test('updateById, updateAll and updateBy: a payload naming another scope is refused', async () => {
+    test('updateById, updateBy and updateBy: a payload naming another scope is refused', async () => {
       const { repository, mine } = await seed();
 
       await refusal(repository.updateById({ id: mine, data: { merchantId: 'm-b' } }));
-      await refusal(repository.updateAll({ where: { name: 'mine' }, data: { merchantId: 'm-b' } }));
+      await refusal(repository.updateBy({ where: { name: 'mine' }, data: { merchantId: 'm-b' } }));
       await refusal(repository.updateBy({ where: { name: 'mine' }, data: { merchantId: 'm-b' } }));
 
       const result = await rows();
       expect(result.map((row) => row.merchantId)).toEqual(['m-a', 'm-b']);
     });
 
-    test('updateAll and updateBy with a payload that stays in scope touch only the scoped rows', async () => {
+    test('updateBy and updateBy with a payload that stays in scope touch only the scoped rows', async () => {
       const { repository } = await seed();
 
-      await repository.updateAll({
+      await repository.updateBy({
         where: {},
         data: { name: 'renamed' },
         options: { force: true },
@@ -616,14 +618,14 @@ describe('scopeFilter write guard', () => {
       expect(result.map((row) => row.name)).toEqual(['renamed-by', 'theirs']);
     });
 
-    test('deleteById, deleteAll and deleteBy only reach rows inside the scope', async () => {
+    test('deleteById, deleteBy and deleteBy only reach rows inside the scope', async () => {
       const { repository, mine, theirs } = await seed();
 
       const result = await repository.deleteById({ id: theirs });
       expect(result.count).toBe(0);
       const result2 = await repository.deleteBy({ where: { name: 'theirs' } });
       expect(result2.count).toBe(0);
-      const result3 = await repository.deleteAll({ where: {}, options: { force: true } });
+      const result3 = await repository.deleteBy({ where: {}, options: { force: true } });
       expect(result3.count).toBe(1);
       expect(mine).toBeDefined();
       const result4 = await rows();
@@ -631,7 +633,7 @@ describe('scopeFilter write guard', () => {
     });
 
     test('soft delete and restore go through the guarded update', async () => {
-      const soft = build(SoftItem, SoftDeletableRelationalRepository);
+      const soft = buildSoft(SoftItem);
       const created = await soft.create({ data: { merchantId: 'm-a', name: 'soft' } });
 
       await soft.deleteById({ id: created.data.id });
@@ -648,8 +650,9 @@ describe('scopeFilter write guard', () => {
     const sharedScope = { or: [{ merchantId: { in: ['m-a'] } }, { merchantId: null }] };
 
     /** Three rows, written without a scope: mine (m-a), shared (null) and theirs (m-b). */
-    const seed = async (entity: AnyType = RejectItem, repositoryClass?: AnyType) => {
-      const repository = build(entity, repositoryClass);
+    const seed = async <Repository extends DefaultCRUDRepository<typeof itemsTable>>(
+      repository: Repository,
+    ) => {
       scope = ScopeFilters.UNRESTRICTED;
       const mine = await repository.create({ data: { merchantId: 'm-a', name: 'mine' } });
       const shared = await repository.create({ data: { merchantId: null, name: 'shared' } });
@@ -661,19 +664,20 @@ describe('scopeFilter write guard', () => {
 
     const names = async () => {
       const found = await rows();
+
       return found.map((row) => row.name);
     };
 
     test('reads still return my rows and the shared rows, never the other merchant', async () => {
-      const { repository } = await seed();
+      const { repository } = await seed(build(RejectItem));
 
       const found = await repository.find({ filter: {} });
 
-      expect(found.map((row: AnyType) => row.name).sort()).toEqual(['mine', 'shared']);
+      expect(found.map((row) => row.name).sort()).toEqual(['mine', 'shared']);
     });
 
     test('updateById changes my row, and a shared row stays untouched (count 0)', async () => {
-      const { repository, mine, shared, theirs } = await seed();
+      const { repository, mine, shared, theirs } = await seed(build(RejectItem));
 
       const result = await repository.updateById({ id: mine, data: { name: 'mine-2' } });
       expect(result.count).toBe(1);
@@ -687,7 +691,7 @@ describe('scopeFilter write guard', () => {
     });
 
     test('deleteById removes my row, and a shared row stays (count 0)', async () => {
-      const { repository, mine, shared } = await seed();
+      const { repository, mine, shared } = await seed(build(RejectItem));
 
       const result = await repository.deleteById({ id: shared });
       expect(result.count).toBe(0);
@@ -698,10 +702,10 @@ describe('scopeFilter write guard', () => {
       expect(result3).toEqual(['shared', 'theirs']);
     });
 
-    test('updateAll and updateBy touch only my rows', async () => {
-      const { repository } = await seed();
+    test('updateBy and updateBy touch only my rows', async () => {
+      const { repository } = await seed(build(RejectItem));
 
-      await repository.updateAll({ where: {}, data: { name: 'all' }, options: { force: true } });
+      await repository.updateBy({ where: {}, data: { name: 'all' }, options: { force: true } });
       const result = await names();
       expect(result).toEqual(['all', 'shared', 'theirs']);
 
@@ -710,10 +714,10 @@ describe('scopeFilter write guard', () => {
       expect(result2).toEqual(['by', 'shared', 'theirs']);
     });
 
-    test('deleteAll and deleteBy touch only my rows', async () => {
-      const { repository } = await seed();
+    test('deleteBy and deleteBy touch only my rows', async () => {
+      const { repository } = await seed(build(RejectItem));
 
-      const result = await repository.deleteAll({ where: {}, options: { force: true } });
+      const result = await repository.deleteBy({ where: {}, options: { force: true } });
       expect(result.count).toBe(1);
       const result2 = await names();
       expect(result2).toEqual(['shared', 'theirs']);
@@ -725,9 +729,9 @@ describe('scopeFilter write guard', () => {
     });
 
     test('a payload that does not name the scope column cannot reach a shared row through a name filter either', async () => {
-      const { repository } = await seed();
+      const { repository } = await seed(build(RejectItem));
 
-      const result = await repository.updateAll({ where: { name: 'shared' }, data: { name: 'x' } });
+      const result = await repository.updateBy({ where: { name: 'shared' }, data: { name: 'x' } });
 
       expect(result.count).toBe(0);
       const result2 = await names();
@@ -735,7 +739,7 @@ describe('scopeFilter write guard', () => {
     });
 
     test('soft delete and restore reach my row only, not a shared one', async () => {
-      const { repository, mine, shared } = await seed(SoftItem, SoftDeletableRelationalRepository);
+      const { repository, mine, shared } = await seed(buildSoft(SoftItem));
 
       const result = await repository.deleteById({ id: shared });
       expect(result.count).toBe(0);
@@ -759,7 +763,7 @@ describe('scopeFilter write guard', () => {
     });
 
     test('with sharedRows true the shared row can be changed, deleted, soft deleted and restored', async () => {
-      const { repository, shared, theirs } = await seed(SharedItem);
+      const { repository, shared, theirs } = await seed(build(SharedItem));
 
       const result = await repository.updateById({ id: shared, data: { name: 'shared-2' } });
       expect(result.count).toBe(1);
@@ -770,7 +774,7 @@ describe('scopeFilter write guard', () => {
       const result4 = await names();
       expect(result4).toEqual(['mine', 'theirs']);
 
-      const soft = await seed(SoftSharedItem, SoftDeletableRelationalRepository);
+      const soft = await seed(buildSoft(SoftSharedItem));
       const result5 = await soft.repository.deleteById({ id: soft.shared });
       expect(result5.count).toBe(1);
       const result6 = await soft.repository.restoreById({ id: soft.shared });
@@ -778,7 +782,7 @@ describe('scopeFilter write guard', () => {
     });
 
     test('UNRESTRICTED still reaches every row', async () => {
-      const { repository, shared, theirs } = await seed();
+      const { repository, shared, theirs } = await seed(build(RejectItem));
 
       scope = ScopeFilters.UNRESTRICTED;
       const result = await repository.updateById({ id: shared, data: { name: 'a' } });
@@ -788,7 +792,7 @@ describe('scopeFilter write guard', () => {
     });
 
     test('a scope that only allows null matches no row for a write', async () => {
-      const { repository, shared } = await seed();
+      const { repository, shared } = await seed(build(RejectItem));
       scope = { merchantId: null };
 
       const result = await repository.updateById({ id: shared, data: { name: 'a' } });
@@ -800,7 +804,7 @@ describe('scopeFilter write guard', () => {
     });
 
     test('a null inside a list is dropped for a write and the other values stay', async () => {
-      const { repository, mine, shared } = await seed();
+      const { repository, mine, shared } = await seed(build(RejectItem));
       scope = { merchantId: { inq: ['m-a', null] } };
 
       const result = await repository.updateById({ id: shared, data: { name: 'a' } });
@@ -810,7 +814,7 @@ describe('scopeFilter write guard', () => {
     });
 
     test('a scope the guard cannot read refuses a delete instead of leaving shared rows reachable', async () => {
-      const { repository, shared } = await seed();
+      const { repository, shared } = await seed(build(RejectItem));
       scope = { or: [{ merchantId: 'm-a' }, { name: 'shared' }] };
 
       const error = await refusal(repository.deleteById({ id: shared }));

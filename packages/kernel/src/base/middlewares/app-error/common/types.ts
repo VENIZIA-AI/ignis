@@ -1,14 +1,16 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import type { ApplicationErrorTypes } from '../definition';
 
-export interface IDatabaseError extends Error {
-  code?: string;
-  cause?: {
-    code?: string;
-    detail?: string;
-    table?: string;
-    constraint?: string;
-  };
+/** A Postgres error as every driver reports it, under one set of names. Only `code` is always there; the rest is what the server sent for that error. */
+export interface IPostgresError {
+  /** The 5-character SQLSTATE (`23505`, `40P01`, ...); compare it with `PostgresErrorCodes`. */
+  code: string;
+  constraint?: string;
+  detail?: string;
+  table?: string;
+  column?: string;
+  schema?: string;
+  message?: string;
 }
 
 export interface IZodIssueLike {

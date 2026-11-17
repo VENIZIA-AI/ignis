@@ -16,6 +16,7 @@ export class RecursiveTreeDirections {
   }
 }
 
+/** `UP` or `DOWN`; see {@link RecursiveTreeDirections}. */
 export type TRecursiveTreeDirection = TConstValue<typeof RecursiveTreeDirections>;
 
 /** Internal only - not part of {@link IRecursiveTreeOptions}. Derived from `table`, never accepted as an option. */
@@ -36,6 +37,7 @@ const IDENTIFIER_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
  */
 const SQLITE_PATH_DELIMITER = sql.raw('char(31)');
 
+/** Options for the recursive CTE fragment that walks a parent/child tree, up to ancestors or down to descendants. */
 export interface IRecursiveTreeOptions {
   /** CTE name the caller references in the SELECT it writes around this fragment. */
   name: string;

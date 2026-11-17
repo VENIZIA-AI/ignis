@@ -26,6 +26,7 @@ class GuardedApplication extends BaseApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'guarded', version: '0.0.0', description: '' };
   }
+
   staticConfigure(): void {}
   preConfigure(): ValueOrPromise<void> {}
   postConfigure(): ValueOrPromise<void> {}
@@ -67,6 +68,7 @@ describe('ServerApplication - start()', () => {
     const application = new GuardedApplication(NODE);
 
     let result: unknown;
+
     try {
       await application.start();
     } catch (error) {

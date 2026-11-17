@@ -1,6 +1,7 @@
 import { connect, type Socket, type TcpSocketConnectOpts } from 'node:net';
 import { BaseNetworkTcpClient, type INetworkTcpClientProps } from './base-tcp-client.helper';
 
+/** `BaseNetworkTcpClient` over a plain `node:net` socket. */
 export class NetworkTcpClient extends BaseNetworkTcpClient<TcpSocketConnectOpts, Socket> {
   constructor(opts: Omit<INetworkTcpClientProps<TcpSocketConnectOpts, Socket>, 'createClientFn'>) {
     super({

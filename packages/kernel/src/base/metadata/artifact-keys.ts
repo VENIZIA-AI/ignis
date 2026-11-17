@@ -42,12 +42,14 @@ export class ArtifactBindingKeys {
 
     for (const entry of opts.entries) {
       const { key, isDerived } = ArtifactBindingKeys.resolve(entry);
+
       if (!isDerived) {
         continue;
       }
 
       const owner = owners.get(key);
       const isOverride = owner !== undefined && entry.target.prototype instanceof owner;
+
       if (owner && owner !== entry.target && !isOverride) {
         collisions.add(key);
       }
@@ -68,6 +70,7 @@ export class ArtifactBindingKeys {
     caller: string;
   }): void {
     const [key] = ArtifactBindingKeys.findDerivedCollisions({ entries: opts.entries });
+
     if (key === undefined) {
       return;
     }

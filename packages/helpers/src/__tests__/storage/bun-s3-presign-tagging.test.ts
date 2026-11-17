@@ -1,6 +1,5 @@
 /** BunS3Helper - presignPut/presignGet (real S3Client, no network) and getObjectTags/replaceObjectTags (stubbed fetch) (Task 4) */
 
-import { type AnyType } from '@/common';
 import { BunS3Helper } from '@/modules/storage/bun-s3';
 import { DurationUnits } from '@/common';
 import { StoragePresignDefaults, StorageUtility } from '@/modules/storage/common';
@@ -11,6 +10,13 @@ const originalFetch = globalThis.fetch;
 afterEach(() => {
   globalThis.fetch = originalFetch;
 });
+
+/** Replaces `fetch` with `handler`; the replacement keeps the real `preconnect` so it still has the full `typeof fetch` shape. */
+const stubFetch = (
+  handler: (input: Parameters<typeof fetch>[0], init?: RequestInit) => Promise<Response>,
+) => {
+  globalThis.fetch = Object.assign(handler, { preconnect: originalFetch.preconnect });
+};
 
 const buildHelper = (): BunS3Helper =>
   new BunS3Helper({
@@ -100,13 +106,14 @@ describe('BunS3Helper.getObjectTags / replaceObjectTags - stubbed fetch', () => 
     let capturedUrl = '';
     let capturedMethod = '';
 
-    globalThis.fetch = ((input: AnyType, init?: RequestInit) => {
+    stubFetch((input, init) => {
       capturedUrl = String(input);
       capturedMethod = init?.method ?? '';
       const xml =
         '<Tagging><TagSet><Tag><Key>temp</Key><Value>true</Value></Tag></TagSet></Tagging>';
+
       return Promise.resolve(new Response(xml, { status: 200 }));
-    }) as AnyType;
+    });
 
     const tags = await buildHelper().getObjectTags({
       bucket: { name: 'assets' },
@@ -120,7 +127,7 @@ describe('BunS3Helper.getObjectTags / replaceObjectTags - stubbed fetch', () => 
   });
 
   test('getObjectTags returns an empty object on a 404 - not a throw', async () => {
-    globalThis.fetch = (() => Promise.resolve(new Response('', { status: 404 }))) as AnyType;
+    stubFetch(() => Promise.resolve(new Response('', { status: 404 })));
 
     const tags = await buildHelper().getObjectTags({
       bucket: { name: 'assets' },
@@ -131,10 +138,10 @@ describe('BunS3Helper.getObjectTags / replaceObjectTags - stubbed fetch', () => 
   });
 
   test('getObjectTags throws a getError carrying the status and body on a 500', async () => {
-    globalThis.fetch = (() =>
-      Promise.resolve(new Response('internal error', { status: 500 }))) as AnyType;
+    stubFetch(() => Promise.resolve(new Response('internal error', { status: 500 })));
 
     let error: unknown;
+
     try {
       await buildHelper().getObjectTags({
         bucket: { name: 'assets' },
@@ -154,12 +161,13 @@ describe('BunS3Helper.getObjectTags / replaceObjectTags - stubbed fetch', () => 
     let capturedMethod = '';
     let capturedBody = '';
 
-    globalThis.fetch = ((input: AnyType, init?: RequestInit) => {
+    stubFetch((input, init) => {
       capturedUrl = String(input);
       capturedMethod = init?.method ?? '';
       capturedBody = String(init?.body ?? '');
+
       return Promise.resolve(new Response('', { status: 200 }));
-    }) as AnyType;
+    });
 
     await buildHelper().replaceObjectTags({
       bucket: { name: 'assets' },
@@ -176,9 +184,10 @@ describe('BunS3Helper.getObjectTags / replaceObjectTags - stubbed fetch', () => 
   });
 
   test('replaceObjectTags throws a getError carrying the status and body on a non-2xx response', async () => {
-    globalThis.fetch = (() => Promise.resolve(new Response('denied', { status: 403 }))) as AnyType;
+    stubFetch(() => Promise.resolve(new Response('denied', { status: 403 })));
 
     let error: unknown;
+
     try {
       await buildHelper().replaceObjectTags({
         bucket: { name: 'assets' },

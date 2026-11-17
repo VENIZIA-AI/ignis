@@ -16,7 +16,7 @@ The smallest working server: construct with a Redis connection and an `authentic
 
 ```typescript
 import { Server as BunEngine } from '@socket.io/bun-engine';
-import { RedisSingleHelper } from '@venizia/ignis-helpers';
+import { HTTP, RedisSingleHelper } from '@venizia/ignis-helpers';
 import { SocketIOServerHelper } from '@venizia/ignis-helpers/socket-io';
 
 const engine = new BunEngine({ path: '/socket.io/' });
@@ -41,7 +41,7 @@ await socketServer.configure();
 
 Bun.serve({
   port: 3000,
-  fetch: (req, server) => engine.handleRequest(req, server) ?? new Response(null, { status: 404 }),
+  fetch: (req, server) => engine.handleRequest(req, server) ?? new Response(null, { status: HTTP.ResultCodes.RS_4.NotFound }),
   websocket: engine.handler().websocket,
 });
 ```

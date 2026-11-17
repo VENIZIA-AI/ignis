@@ -7,6 +7,7 @@ export interface ISynonym {
   root?: string;
 }
 
+/** Engine-neutral definition of one search collection; an engine's collection compiler turns it into that engine's schema. `defaultSort` names one of `fields`. */
 export interface ISearchCollectionDefinition {
   name: string;
   fields: readonly ISearchFieldDefinition[];
@@ -25,4 +26,5 @@ export interface ISearchCollectionDefinition {
   } & { [engine: string]: object | undefined };
 }
 
+/** Collection definitions, each an `ISearchCollectionDefinition`, keyed by a caller-chosen name. */
 export type TSearchSchema = Record<string, ISearchCollectionDefinition>;

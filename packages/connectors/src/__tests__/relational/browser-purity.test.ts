@@ -16,6 +16,7 @@ const BUILTIN_MODULE_NAMES = new Set(builtinModules);
 const isBuiltinSpecifier = (opts: { specifier: string }): boolean => {
   const { specifier } = opts;
   const bareName = specifier.startsWith('node:') ? specifier.slice('node:'.length) : specifier;
+
   return BUILTIN_MODULE_NAMES.has(bareName);
 };
 
@@ -61,6 +62,7 @@ const listBundledBuiltins = async (opts: { entry: string }): Promise<string[]> =
     const builtins = new Set<string>();
 
     const metafileInputsEntries = Object.entries(metafile.inputs);
+
     for (const [inputPath, input] of metafileInputsEntries) {
       if (isBuiltinSpecifier({ specifier: inputPath })) {
         builtins.add(inputPath);
@@ -68,6 +70,7 @@ const listBundledBuiltins = async (opts: { entry: string }): Promise<string[]> =
 
       for (const dependency of input.imports) {
         const specifier = dependency.original ?? dependency.path;
+
         if (isBuiltinSpecifier({ specifier })) {
           builtins.add(specifier);
         }

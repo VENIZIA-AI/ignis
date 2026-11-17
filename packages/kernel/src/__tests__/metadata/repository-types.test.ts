@@ -41,6 +41,7 @@ const ownInjectAt = (opts: { target: Function; index: number }): IInjectMetadata
     MetadataKeys.INJECT,
     opts.target,
   );
+
   return injects?.[opts.index];
 };
 
@@ -122,6 +123,7 @@ describe(`@repository({ type: ${RepositoryTypes.REMOTE} }) - no model`, () => {
         dataSource: TypesProbeDataSource,
       })
       class RemoteWithModel {}
+
       return RemoteWithModel;
     }).toThrow(
       `[validateRepositoryMetadata][@repository][RemoteWithModel] Invalid metadata | A '${RepositoryTypes.REMOTE}' repository takes no 'model'`,
@@ -151,6 +153,7 @@ describe(`@repository({ type: ${RepositoryTypes.MODEL} }) - the default`, () => 
       // @ts-expect-error - a RepositoryTypes.MODEL repository requires a model
       @repository({ type: RepositoryTypes.MODEL, dataSource: TypesProbeDataSource })
       class ExplicitDefaultWithoutModel {}
+
       return ExplicitDefaultWithoutModel;
     }).toThrow(
       "[validateRepositoryMetadata][@repository][ExplicitDefaultWithoutModel] Invalid metadata | Missing 'model'",
@@ -162,6 +165,7 @@ describe(`@repository({ type: ${RepositoryTypes.MODEL} }) - the default`, () => 
       // @ts-expect-error - no type means RepositoryTypes.MODEL, which requires a model
       @repository({ dataSource: TypesProbeDataSource })
       class DefaultWithoutModel {}
+
       return DefaultWithoutModel;
     }).toThrow(
       "[validateRepositoryMetadata][@repository][DefaultWithoutModel] Invalid metadata | Missing 'model'",
@@ -175,6 +179,7 @@ describe('@repository with an unknown type', () => {
       // @ts-expect-error - 'relational' is not a repository type
       @repository({ type: 'relational', model: TypesProbeModel, dataSource: TypesProbeDataSource })
       class UnknownType {}
+
       return UnknownType;
     }).toThrow(
       `[validateRepositoryMetadata][@repository][UnknownType] Invalid metadata | Unknown 'type': relational | Expected one of: ${RepositoryTypes.MODEL}, ${RepositoryTypes.REMOTE}`,

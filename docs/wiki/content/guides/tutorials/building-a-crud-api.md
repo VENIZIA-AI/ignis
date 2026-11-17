@@ -41,7 +41,7 @@ HTTP Request (GET /api/todos/{id})
    ┌─────────────────┐
    │ TodoRepository  │  ← Type-safe data access
    └────────┬────────┘
-            │ uses dataSource.connector
+            │ uses dataSource.getConnector()
             ▼
    ┌─────────────────┐
    │PostgresDataSource│ ← Database connection (Drizzle ORM)
@@ -61,9 +61,11 @@ HTTP Request (GET /api/todos/{id})
 | Layer | Responsibility |
 |-------|----------------|
 | **Controller** | Entry point for HTTP requests |
-| **Repository** | Abstracts database operations (swap one engine for another, such as PostgreSQL, PGlite or SQLite, by changing the datasource, not the controller) |
+| **Repository** | Abstracts database operations (swap the engine by changing the datasource, not the controller) |
 | **DataSource** | Manages connection to database |
 | **Model** | Defines what the data looks like |
+
+The engine behind the repository can be PostgreSQL, PGlite or SQLite.
 
 **Benefits of this separation:**
 - **Testable** - Mock repository in tests
@@ -283,9 +285,9 @@ export class TodoRepository extends DefaultCRUDRepository<typeof todoTable> {
 | `findOne()` | Get single record by filter |
 | `findById()` | Get record by ID |
 | `updateById()` | Update record by ID |
-| `updateAll()` | Update multiple records |
+| `updateBy()` | Update multiple records |
 | `deleteById()` | Delete record by ID |
-| `deleteAll()` | Delete multiple records |
+| `deleteBy()` | Delete multiple records |
 | `count()` | Count matching records |
 
 Reads return their result directly: `find()` returns an array of rows, `findOne()` and `findById()` return a row or `null`. The `{ count, data }` shape is what the generated HTTP routes answer (and what write methods such as `create()` return), not what `find()` returns.
@@ -305,26 +307,27 @@ Dependency Injection (DI) is a design pattern where objects receive their depend
 [Learn more →](/guides/core-concepts/dependency-injection)
 :::
 
-`ControllerFactory` generates a full CRUD controller with automatic validation and OpenAPI docs.
+`CrudControllerFactory` generates a full CRUD controller with automatic validation and OpenAPI docs.
 
 Create `src/controllers/todo/definitions.ts`:
 
 ```typescript
 // src/controllers/todo/definitions.ts
-import { Todo } from '@/models/todo.model';
 import { TodoRepository } from '@/repositories/todo.repository';
-import { ControllerFactory } from '@venizia/ignis';
+import { CrudControllerFactory, CrudRoutes } from '@venizia/ignis';
 
 export const BASE_PATH = '/todos';
 
-// The factory generates a controller class with all CRUD routes
-export const _Controller = ControllerFactory.defineCrudController({
-  repository: { name: TodoRepository.name },
-  controller: {
-    name: 'TodoController',
-    basePath: BASE_PATH,
+// The factory generates a controller class with the routes you list.
+// The entity (for the OpenAPI schemas) comes from @repository({ model }) on TodoRepository.
+export const _Controller = CrudControllerFactory.build({
+  repository: TodoRepository,
+  routes: {
+    ...CrudRoutes.READ,
+    create: true,
+    updateById: true,
+    deleteById: true,
   },
-  entity: () => Todo, // The entity is used to generate OpenAPI schemas
 });
 ```
 
@@ -335,7 +338,7 @@ Create `src/controllers/todo/todo.controller.ts`:
 import { controller } from '@venizia/ignis';
 import { BASE_PATH, _Controller } from './definitions';
 
-// No constructor: the container injects the repository named in repository.name
+// No constructor: the container injects the repository class
 @controller({ path: BASE_PATH })
 export class TodoController extends _Controller {}
 ```
@@ -359,7 +362,7 @@ export * from './todo.controller';
 | DELETE | `/todos/{id}` | Delete todo by ID (deleteById) |
 | DELETE | `/todos` | Delete multiple todos by filter (deleteBy) |
 
-> **Deep Dive:** See [ControllerFactory Reference](/references/base/controllers#controllerfactory) for customization options.
+> **Deep Dive:** See [CrudControllerFactory Reference](/references/base/controllers#crudcontrollerfactory) for customization options.
 
 ## Step 6: Register Components
 
@@ -580,7 +583,7 @@ Now that you've built the Todo API, try building a **User** feature on your own!
 **Requirements:**
 - Create `/api/users` endpoint
 - Users should have: `id`, `email`, `name`, `createdAt`, `modifiedAt`
-- Use `ControllerFactory` for CRUD operations
+- Use `CrudControllerFactory` for CRUD operations
 
 **Challenge checklist:**
 
@@ -619,7 +622,7 @@ export class TodoService extends BaseService {
     super({ scope: TodoService.name });
   }
 
-  async createTodo(data: any) {
+  async createTodo(data: { title: string; description?: string }) {
     // Business logic validation
     if (data.title.length < 3) {
       throw getError({ message: 'Title too short' });

@@ -4,14 +4,15 @@ import { inject } from '@/base/metadata';
 import { CoreBindings } from '@venizia/ignis-kernel';
 import { Binding } from '@venizia/ignis-kernel';
 import { type ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { StaticAssetComponentBindingKeys, type TStaticAssetsComponentOptions } from './common';
+import { StaticAssetBindingKeys, type TStaticAssetComponentOptions } from './common';
 import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from './models';
-import { AssetControllerFactory } from './controller';
+import { StaticAssetControllerFactory } from './controller';
+import { StaticAssetEntryUtility, type IStaticAssetResolvedEntry } from './utilities/entry.utility';
 
 /** `Schema` is the MetaLink table the application binds. It has to live on the CLASS, not only on the options: `component(Ctor, { options })` infers the options from the class, so a class pinned to the shipped table can only carry options for that table. */
 export class StaticAssetComponent<
   Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema,
-> extends BaseComponent<TStaticAssetsComponentOptions<Schema>> {
+> extends BaseComponent<TStaticAssetComponentOptions<Schema>> {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
   ) {
@@ -19,10 +20,9 @@ export class StaticAssetComponent<
       scope: StaticAssetComponent.name,
       initDefault: { enable: true, container: application },
       bindings: {
-        [StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS]:
-          Binding.bind<TStaticAssetsComponentOptions>({
-            key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
-          }).toValue({}),
+        [StaticAssetBindingKeys.STATIC_ASSET_OPTIONS]: Binding.bind<TStaticAssetComponentOptions>({
+          key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
+        }).toValue({}),
       },
     });
   }
@@ -32,55 +32,48 @@ export class StaticAssetComponent<
     // through `configs.artifacts`, where an index carries classes and no options.
     const componentOptions =
       this.options ??
-      this.application.get<TStaticAssetsComponentOptions<Schema>>({
-        key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+      this.application.get<TStaticAssetComponentOptions<Schema>>({
+        key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
       });
 
-    const componentOptionsEntries = Object.entries(componentOptions);
-    for (const [key, opt] of componentOptionsEntries) {
-      const {
-        storage,
-        controller,
-        helper,
-        extra,
-        resolveObjectName,
-        defineRoutesBefore,
-        defineExtraRoutes,
-      } = opt;
+    for (const [key, entry] of Object.entries(componentOptions)) {
+      const resolved = StaticAssetEntryUtility.resolve({ key, entry });
+      const services = this.bindDirectUploadServices({ key, resolved });
 
       this.application.controller(
-        AssetControllerFactory.defineAssetController({
-          controller,
-          storage,
-          helper,
-          useMetaLink: opt.useMetaLink,
-          metaLink: opt.useMetaLink ? opt.metaLink : undefined,
-          resolveObjectName,
-          defineRoutesBefore,
-          defineExtraRoutes,
-          options: {
-            ...extra,
-            normalizeLinkFn:
-              extra?.normalizeLinkFn ??
-              // The link follows the URL shape the controller serves: `{objectName}` is one Hono path segment unless `rawObjectPath` widens it, and a configured bucket leaves the path.
-              ((linkOptions) =>
-                AssetControllerFactory.buildObjectLink({
-                  basePath: controller.basePath,
-                  bucket: linkOptions.bucket,
-                  object: linkOptions.object,
-                  hasConfiguredBucket: controller.bucket !== undefined,
-                  rawObjectPath: controller.rawObjectPath,
-                })),
-          },
-        }),
+        StaticAssetControllerFactory.build<Schema>({ key, entry, ...services }),
       );
 
       this.application.logger.info(
-        `[binding] Asset storage is bound | Key: %s | Storage type: %s | UseMetaLink: %s`,
+        `[binding] Asset storage is bound | Key: %s | Mount: %s | Storage type: %s | Direct upload: %s | MetaLink: %s`,
         key,
-        storage,
-        Boolean(opt.useMetaLink),
+        resolved.basePath,
+        resolved.storage,
+        resolved.directUpload !== undefined,
+        resolved.metaLink !== undefined,
       );
     }
+  }
+
+  /** One pair of services per entry that turns direct upload on. The routes run the very objects an application's service resolves from the keys. */
+  private bindDirectUploadServices(opts: {
+    key: string;
+    resolved: IStaticAssetResolvedEntry<Schema>;
+  }) {
+    const { key, resolved } = opts;
+    const services = StaticAssetEntryUtility.buildDirectUploadServices({ resolved });
+
+    if (!services) {
+      return undefined;
+    }
+
+    this.application
+      .bind({ key: StaticAssetBindingKeys.policyService({ name: key }) })
+      .toValue(services.policyService);
+    this.application
+      .bind({ key: StaticAssetBindingKeys.commitService({ name: key }) })
+      .toValue(services.commitService);
+
+    return services;
   }
 }

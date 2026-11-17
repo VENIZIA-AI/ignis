@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+
 import type { AbstractEntity } from '@/base/models';
 import type { TMixinTarget } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
@@ -24,6 +26,7 @@ const collectAuthorizeEntries = (opts: {
 
   for (const [name, entry] of opts.modelRegistry) {
     const authorize = entry.metadata.settings?.authorize;
+
     if (!authorize) {
       continue;
     }
@@ -42,6 +45,7 @@ const collectAuthorizePrincipals = (opts: {
 
   for (const [name, entry] of opts.modelRegistry) {
     const principal = entry.metadata.settings?.authorize?.principal;
+
     if (!principal) {
       continue;
     }
@@ -71,6 +75,7 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
       target: Target;
     }): IModelMetadata | undefined {
       const { target } = opts;
+
       return Reflect.getMetadata(MetadataKeys.MODEL, target);
     }
 
@@ -101,8 +106,10 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
       this.modelRegistry.set(tableName, entry);
 
       const { schema } = modelClass;
+
       if (schema && typeof schema === 'object') {
         const claimed = this.modelsBySchema.get(schema);
+
         if (claimed && claimed.target !== modelClass) {
           this.modelsBySchema.delete(schema);
         } else {
@@ -128,6 +135,7 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
 
     getModelAuthorizeSettings(opts: { name: string }): IModelAuthorizeSettings | undefined {
       const entry = this.getModelEntry(opts);
+
       return entry?.metadata?.settings?.authorize;
     }
 
@@ -149,6 +157,7 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
           const authorizePrincipals = collectAuthorizePrincipals({
             modelRegistry: this.modelRegistry,
           });
+
           for (const item of authorizePrincipals) {
             record[item.name] = item.principal;
           }
@@ -183,6 +192,7 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
           > = {};
 
           const authorizeEntries = collectAuthorizeEntries({ modelRegistry: this.modelRegistry });
+
           for (const item of authorizeEntries) {
             record[item.name] = { authorize: item.authorize, entry: item.entry };
           }

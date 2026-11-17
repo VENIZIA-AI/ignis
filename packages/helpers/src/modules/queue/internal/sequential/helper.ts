@@ -9,6 +9,10 @@ import {
   type TQueueStatus,
 } from './common';
 
+/**
+ * In-memory FIFO queue that hands one element at a time to `onMessage`.
+ * A throwing handler is logged and its element dropped, so the queue keeps moving.
+ */
 export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
   public storage: Array<TQueueElement<TElementPayload>>;
   protected processingEvents: Set<TQueueElement<TElementPayload>>;
@@ -86,16 +90,20 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
 
   protected async handleMessage() {
     const current = this.getElementAt(0);
+
     if (!current) {
       this.logger
         .for(this.handleMessage.name)
         .warn('current: %j | Invalid current message to handle!', current);
+
       return;
     }
 
     const { isLocked, payload } = current;
+
     if (isLocked) {
       this.logger.for('handle').info('Skip LOCKED message | Payload: %j', payload);
+
       return;
     }
 
@@ -118,6 +126,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     });
 
     const doneElement = this.dequeue();
+
     if (doneElement) {
       this.processingEvents.delete(doneElement);
     }
@@ -146,6 +155,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
       this.logger
         .for('_messageListener')
         .warn('Queue has no onMessage listener | Skip initializing message iterator!');
+
       return;
     }
 
@@ -162,6 +172,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
           'SKIP request next message | Invalid queue state to request next message | currentState: %s',
           this.state,
         );
+
       return;
     }
 
@@ -177,6 +188,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
           this.isSettleRequested,
           this.state,
         );
+
       return;
     }
 
@@ -225,6 +237,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
           this.isSettleRequested,
           this.state,
         );
+
       return;
     }
 
@@ -242,6 +255,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
           this.isSettleRequested,
           this.state,
         );
+
       return;
     }
 

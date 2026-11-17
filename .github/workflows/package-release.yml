@@ -97,6 +97,9 @@ jobs:
       targets: ${{ steps.plan.outputs.targets }}
       # The head of develop the merge trial read (empty for a prerelease): the publish job stops if develop moved.
       develop_sha: ${{ steps.trial.outputs.develop_sha }}
+      # The previous stable tag of the package the Release is made on (empty for a prerelease, or with none): the history
+      # check of the `scripts` job measures from it.
+      changelog_base: ${{ steps.plan.outputs.changelog_base }}
 
     steps:
       # Full history: the merge trial of a stable needs the branches and their common ancestor.
@@ -279,7 +282,7 @@ jobs:
       # release died here. Checking every PUBLISHED target is also strictly stronger than checking
       # one index - a sub-path whose file never got emitted fails here instead of at a consumer's
       # first import.
-      - name: Sourcemaps are self-contained
+      - name: Built output checks
         run: make build-checks
 
       - name: Validate build artifacts
@@ -355,7 +358,7 @@ jobs:
         run: |
           VULCAN_CMD="bun x @venizia/vulcan@$(jq -r '.devDependencies["@venizia/vulcan"]' package.json)" make preset-smoke
 
-      # The package's own unit tests, before a version is cut. A package without a test target (`filter`) says so.
+      # The package's own unit tests, before a version is cut. A package without a test target says so.
       - name: Unit tests
         run: |
           if make -n test-$PACKAGE > /dev/null 2>&1; then
@@ -367,7 +370,7 @@ jobs:
   # ---------------------------------------------------------------------------------------------
   # SCRIPTS - once per run, not once per package: the repository scripts' own tests, the release workflow guards
   # among them. A develop head that dropped a guard (the provenance flag, the checksum, the token rule) stops here,
-  # before a version is cut. No secret, no write access.
+  # before a version is cut. A stable also checks the changelog history here, once. No secret, no write access.
   # ---------------------------------------------------------------------------------------------
   scripts:
     name: Test the repository scripts
@@ -377,11 +380,12 @@ jobs:
       contents: read
 
     steps:
+      # The whole history and its tags: the changelog history check of a stable reads the previous stable tag.
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 1
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Setup Node.js
@@ -409,6 +413,14 @@ jobs:
 
       - name: Test the repository scripts
         run: make test-scripts
+
+      # A stable releases a version folder: no released folder changed since the previous stable, and no dated entry
+      # was added or edited. The default check already runs in CI; this one reads the history against the tag.
+      - name: Changelog history (a stable)
+        if: ${{ needs.plan.outputs.kind == 'stable' && needs.plan.outputs.changelog_base != '' }}
+        env:
+          CHANGELOG_BASE: ${{ needs.plan.outputs.changelog_base }}
+        run: bun node_modules/.bin/vulcan changelog check --history --base "$CHANGELOG_BASE"
 
   # ---------------------------------------------------------------------------------------------
   # APPROVE - the one human stop, for a stable only: the plan says so, and the job is skipped for a prerelease. It
@@ -541,7 +553,10 @@ jobs:
       # then the release commit, the push and the tag. The publish is the only step that cannot be undone, so git is
       # written only after the package is installable; a stop in pass one still records what was published, and the
       # same plan dispatched again records the rest without a second publish. Reported, never repaired: npm cannot
-      # un-publish, and force-pushing develop to chase a live version does more damage than the gap.
+      # un-publish, and force-pushing develop to chase a live version does more damage than the gap. A stable also
+      # dates its version folder: the release commit of the last package of the plan (the one the GitHub Release is made
+      # on) carries `released: <date>` in changelogs/<version>/log.md (scripts/release/stamp-release.ts, run by the loop
+      # itself, so a dispatch of the same plan on a later day never meets a folder dated by the first).
       - name: Release the plan
         env:
           PLAN: ${{ needs.plan.outputs.plan }}
@@ -552,13 +567,14 @@ jobs:
       # -------------------------------------------------------------------------
       # GITHUB RELEASE
       # -------------------------------------------------------------------------
-      # One Release for the run, on the tag of the last package of the plan (core-server when it is in the plan): a
-      # stable is marked Latest only when that package is core-server and its newest stable, and carries the
-      # changelog entries added since the previous stable (or a line saying there is no change for users, when there is none); a
-      # prerelease is marked Pre-release, never Latest, and lists its commits. A tag that has a Release is skipped, so
-      # dispatching the same plan again makes a missing one and never a second. A failure is reported in the run
-      # summary and never fails or undoes a publish. The script refuses the tag of the atlas index, whose release is
-      # not a publish's. No secret: the job's own token, which has `contents: write`, is all it uses.
+      # One Release for the run of a STABLE, on the tag of the last package of the plan (core-server when it is in the
+      # plan): marked Latest only when that package is core-server and its newest stable, with the notes of its version
+      # folder (the body of changelogs/<version>/log.md, and migration.yaml attached when it holds a block) or, for a
+      # version with no folder, the dated entries added since the previous stable (or a line saying there is no change
+      # for users, when there is none). A prerelease has no Release: the script says so and succeeds. A tag that has a
+      # Release is skipped, so dispatching the same plan again makes a missing one and never a second. A failure is
+      # reported in the run summary and never fails or undoes a publish. The script refuses the tag of the atlas index,
+      # whose release is not a publish's. No secret: the job's own token, which has `contents: write`, is all it uses.
       - name: Create the GitHub Release
         continue-on-error: true
         timeout-minutes: 5
@@ -677,8 +693,35 @@ jobs:
 
       - name: Publish the atlas index of the tag
         if: ${{ steps.tag.outputs.tag != '' }}
-        uses: VENIZIA-AI/vulcan/.github/actions/atlas-index@7197538a8a67238a91f02abbfee792b7632d358c # vulcan-v0.4.9-4
+        uses: VENIZIA-AI/vulcan/.github/actions/atlas-index@6d44ecc0aa6292a41b162f74c7f62a1c9fa13211 # vulcan-v0.4.10-18
         with:
           ref: ${{ steps.tag.outputs.tag }}
         env:
           ATLAS_INDEX_KEY: ${{ secrets.ATLAS_INDEX_KEY }}
+
+  # ---------------------------------------------------------------------------------------------
+  # DOCS DEPLOY - the version box of the changelog names the newest prerelease, read from the release tags. The release
+  # commits and tags are pushed with the Actions token, and GitHub starts no workflow from such a push, so
+  # `deploy-docs.yml` would not run for them. A manual dispatch made with that token does start a run, so this job
+  # dispatches the docs deploy on develop (the merge back of a stable is already there) after the publish, whether it
+  # ended well or failed (a tag stays). It holds `actions: write` and nothing else: no `contents`, no `id-token`, no
+  # environment, no secret, no checkout, so the publish identity never shares a job with it and the publish job gains
+  # no permission. A dispatch that fails is a warning: the release has published, and `gh workflow run deploy-docs.yml
+  # --ref develop` deploys by hand.
+  # ---------------------------------------------------------------------------------------------
+  docs-deploy:
+    name: Deploy the wiki
+    needs: publish
+    if: ${{ !cancelled() && contains(fromJSON('["success","failure"]'), needs.publish.result) }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    continue-on-error: true
+    permissions:
+      actions: write
+
+    steps:
+      - name: Dispatch the docs deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run deploy-docs.yml --ref develop

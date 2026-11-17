@@ -45,6 +45,7 @@ export class RestComponent<
       configured: new Set<string>(),
       onEach: async ({ binding }) => {
         const target = binding.getBindingMeta({ type: BindingValueTypes.CLASS });
+
         if (!target) {
           return;
         }
@@ -70,6 +71,7 @@ export class RestComponent<
 
         if (!instance) {
           logger.debug('No binding instance | key: %s', binding.key);
+
           return;
         }
 

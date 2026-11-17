@@ -28,6 +28,7 @@ The framework's `AppErrorMiddleware` catches `ApplicationError` instances and fo
 |---|---|
 | Throw a one-off error with a status code | [Throw a free-form error](#throw-a-free-form-error) |
 | Re-throw an error you already caught and shaped | [Recognize an already-shaped error in a catch block](#recognize-an-already-shaped-error-in-a-catch-block) |
+| Wrap whatever a `catch` caught, even a string or `null` | [Wrap a caught value of any type](#wrap-a-caught-value-of-any-type) |
 | Declare a reusable, i18n-ready error once | [Catalog a reusable error](#catalog-a-reusable-error) |
 | Get autocomplete on `messageCode` | [Register catalog keys for messageCode autocomplete](#register-catalog-keys-for-messagecode-autocomplete) |
 | Build a message code outside a catalog | [Build a code outside a catalog](#build-a-code-outside-a-catalog) |
@@ -74,14 +75,21 @@ The framework's `AppErrorMiddleware` catches `ApplicationError` instances and fo
 | Option          | Type                                  | Description                                                                                                     |
 | --------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `message`       | `string \| { text, code?, args? }`     | Required on the free-form branch; a **partial** override on the catalogued branch (definition supplies what's omitted) |
-| `messageCode`   | `string`                               | Free-form only, sibling to a string `message`. Lowest precedence - `message.code` and the definition's `message.code` both win over it |
+| `messageCode`   | `string`                               | Free-form only, sibling to a string `message`. Lowest precedence |
 | `statusCode`    | `number`                               | Defaults to `400`, or the definition's `statusCode` for the catalogued form                                     |
 | `messageArgs`   | `Record<string, unknown>`              | Interpolation values. Reaches `normalized.args` - never `extra`. Lowest precedence, same rule as `messageCode`  |
-| `cause`         | `unknown`                              | The wrapped failure - reaches `Error.cause`. Use this to wrap a caught error; `error` is refused on the free-form branch for exactly this case |
+| `cause`         | `unknown`                              | The wrapped failure - reaches `Error.cause` |
 | `extra`         | `Record<string, unknown>`              | Explicit context, merged with any swept keys - and it wins on a clash                                           |
-| `transform`     | `TErrorNormalizeTransformFn`           | Builds `normalized` in place of the default. Receives `{ message: TErrorNormalized, statusCode, extra? }` - `message` is the default normalized being replaced, so `s => ({ ...s.message, text: 'x' })` amends one field |
-| `logLevel`      | `error \| emerg \| warn \| info \| debug` | The level the error handler logs this at. Defaults to `error`; lower it for an expected failure (`getError({ message, statusCode: 404, logLevel: 'warn' })`), or raise it to `emerg`. Steers the server log only - never the response |
+| `transform`     | `TErrorNormalizeTransformFn`           | Builds `normalized` in place of the default |
+| `logLevel`      | `error \| emerg \| warn \| info \| debug` | The level the error handler logs this at. Defaults to `error` |
 | _anything else_ | `unknown`                              | Rides into `extra` under its own name. `getError({ message, transaction })` lands at `error.extra.transaction`  |
+
+Notes on the options:
+
+- `messageCode`: `message.code` and the definition's `message.code` both win over it.
+- `cause`: use it to wrap a caught error. `error` is refused on the free-form branch for exactly this case.
+- `transform`: receives `{ message: TErrorNormalized, statusCode, extra? }`. `message` is the default normalized being replaced, so `s => ({ ...s.message, text: 'x' })` amends one field.
+- `logLevel`: lower it for an expected failure (`getError({ message, statusCode: 404, logLevel: 'warn' })`), or raise it to `emerg`. It steers the server log only, never the response.
 
 > [!WARNING]
 > Spreading a definition is not the same as passing it as `error`. `getError({ error: DEF })` consumes the whole definition under one known key. `getError({ ...DEF })` hands its fields over individually. `category` and `description` are not in the consumed set, so they ride into `error.extra` under their own names. From there they reach the client response.
@@ -95,13 +103,15 @@ The consumed keys are `error`, `message`, `messageCode`, `statusCode`, `messageA
 Every row below is the real output, and the catalogued rows all use this definition:
 
 ```typescript
+import { HTTP } from '@venizia/ignis-helpers/common';
+
 const DEF = {
   message: {
     text: 'A category named "%{name}" already exists.',
     code: 'server.commerce.category.duplicate',
     args: { name: '?' },
   },
-  statusCode: 409,
+  statusCode: HTTP.ResultCodes.RS_4.Conflict,
 } as const satisfies TErrorDefinition;
 ```
 
@@ -199,6 +209,34 @@ try {
   });
 }
 ```
+
+### Wrap a caught value of any type
+
+A `catch` variable is `unknown`: it can be an `Error`, a string, `null` or anything else that was thrown. `ApplicationError.fromUnknown({ error })` turns it into an `ApplicationError` and never throws, so the `catch` block cannot fail on the way out.
+
+```typescript
+import { ApplicationError } from '@venizia/ignis-helpers';
+
+try {
+  await someOperation();
+} catch (error) {
+  throw ApplicationError.fromUnknown({ error });
+}
+```
+
+| The caught value | The result |
+|---|---|
+| An `ApplicationError` (also one from another installed copy of the package) | The same instance, untouched |
+| Anything else | A new `ApplicationError` with the original as `cause` |
+
+The new error is built from three reads, each guarded so a throwing getter or a Proxy reads as absent:
+
+- **`statusCode`.** The value's `statusCode` when it is an integer from 400 to 599, else its `status` (what Hono's `HTTPException` and an HTTP client's error carry) when it is an integer from 400 to 499. Anything else, such as `200`, `404.5`, `'404'` or a `status` of `502`, gives `500` and an unexpected error (see below).
+- **Message.** The value's `message` when it is a non-blank string. Otherwise the fixed text `An unknown value was thrown`. The value is never turned into text with `String()`, so a thrown object or symbol is not printed. A control character in the message, such as a newline, is escaped as `\u000a`, so the message stays on one line.
+- **`cause`.** The original value, as thrown. A thrown `undefined` leaves `cause` unset.
+
+> [!WARNING]
+> What a client reads depends on the value. A value that carries a valid HTTP status (above) keeps that status and its message: whoever threw it chose to answer with it. Any other value (a driver error, a string, an error with no status) becomes a 500 that the error middleware answers as an UNEXPECTED error: `Internal Server Error` in production, with nothing from the value in the response. Its real message (one line, control characters escaped), the original as `cause` and the stack stay in the log only. Outside production the message is shown, as for any unexpected error. To answer a client with a message you chose, build the error yourself with `getError`.
 
 ### Catalog a reusable error
 
@@ -309,10 +347,12 @@ The handler is fail-closed on environment. It exposes `stack` and `cause` in `de
 `error.message` stays the template, so a reader that only knows `.message` - a job queue's failure reason, a third-party log - shows `%{key}`. Fill it where you hand the error over:
 
 ```typescript
+import { HTTP } from '@venizia/ignis-helpers/common';
+
 const error = getError({
   message: { text: 'Only %{available} left of %{sku}.', code: 'stock.unavailable' },
   messageArgs: { available: 2, sku: 'TRA-01' },
-  statusCode: 409,
+  statusCode: HTTP.ResultCodes.RS_4.Conflict,
 });
 
 error.toFilledText(); // 'Only 2 left of TRA-01.'
@@ -409,7 +449,7 @@ a parse failure.
 
 - [`packages/helpers/src/modules/error/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/error/index.ts) - module barrel
 - [`packages/kernel/src/base/models/common/schemas.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/schemas.ts) - `ErrorSchema`, `TErrorResponse` (the RESPONSE schema, for OpenAPI)
-- [`packages/inversion/src/modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts) - `ApplicationError`, `getError`, `fromError`, `isApplicationError`
+- [`packages/inversion/src/modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts) - `ApplicationError` (with `fromError` and `fromUnknown`), `getError`, `fromError`, `isApplicationError`
 - [`packages/inversion/src/modules/error/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/common/types.ts) - `TError`, `TErrorDefinition`, `TErrorNormalized`, `TResponsedError`, `IErrorKeyRegistry`, `TRegisterErrors`
 - [`packages/inversion/src/modules/error/definition.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/definition.ts) - `ErrorScopes`, `TErrorScope`
 - [`packages/inversion/src/modules/error/message-code.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/message-code.ts) - `MessageCode`

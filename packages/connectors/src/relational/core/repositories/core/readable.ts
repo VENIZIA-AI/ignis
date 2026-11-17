@@ -1,6 +1,8 @@
-import { ObjectUtility } from '@venizia/ignis-helpers/common';
+import { HTTP, ObjectUtility } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import type {
   IExtraOptions,
+  IRequestFilterJudge,
   TByIdFilter,
   TCount,
   TDataWithRange,
@@ -9,10 +11,17 @@ import type {
   TFindOneOptions,
   TFindOptions,
   TFindRangeOptions,
+  TRequestFilterPart,
   TRow,
   TWhere,
 } from '@venizia/ignis-kernel';
-import { DataRangeUtility, DEFAULT_LIMIT, RepositoryOperationScopes } from '@venizia/ignis-kernel';
+import {
+  DataRangeUtility,
+  DEFAULT_LIMIT,
+  DEFAULT_MAX_LIMIT,
+  RepositoryOperationScopes,
+  RequestFilterParts,
+} from '@venizia/ignis-kernel';
 import type { IRelationalDataSource } from '@/relational/core/datasources/common';
 import type {
   BaseRelationalEntity,
@@ -23,6 +32,13 @@ import type {
 import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
 import type { IRelationalExtraOptions } from '../common';
 import { RelationalBaseRepository } from './base';
+
+/** The order the Core API reads a filter in: where, then order. */
+const CORE_API_READ_ORDER: ReadonlyArray<TRequestFilterPart> = [
+  RequestFilterParts.WHERE,
+  RequestFilterParts.ORDER,
+  RequestFilterParts.INCLUDE,
+];
 
 /** Read-only repository. Write operations throw errors. */
 export class ReadableRelationalRepository<
@@ -58,6 +74,45 @@ export class ReadableRelationalRepository<
         : Object.keys(filter.fields).length > 0);
 
     return !hasInclude && !hasFields;
+  }
+
+  /**
+   * A request filter is read as `find` reads it: through the Core API (where, then order) when the filter merged with the
+   * model's default filter selects no fields and includes nothing, and through `build` (order, where, include) otherwise.
+   * Merging with the default filter comes first, so its refusal of a `where` key is the first.
+   */
+  protected override createRequestFilterJudge(): IRequestFilterJudge {
+    const judge = super.createRequestFilterJudge();
+
+    const merge = (filter: unknown): { merged?: TFilter<DataObject>; error?: Error } => {
+      try {
+        return {
+          merged: this.queryDialect.mergeFilter({
+            defaultFilter: this.getDefaultFilter(),
+            // The request filter is unvalidated here; `mergeFilter` is what rejects a malformed one.
+            userFilter: filter as TFilter<DataObject>,
+          }),
+        };
+      } catch (error) {
+        return {
+          error:
+            error instanceof Error
+              ? error
+              : getError({ message: 'A value that is not an Error was thrown', cause: error }),
+        };
+      }
+    };
+
+    return {
+      ...judge,
+      filterRefusal: (opts) => merge(opts.filter).error,
+      readOrder: (opts) => {
+        const { merged } = merge(opts.filter);
+        const isCoreAPI = merged !== undefined && this.canUseCoreAPI(merged);
+
+        return isCoreAPI ? CORE_API_READ_ORDER : (judge.readOrder?.(opts) ?? CORE_API_READ_ORDER);
+      },
+    };
   }
 
   /** Executes a query through the executor's Core-API `select`. */
@@ -96,8 +151,10 @@ export class ReadableRelationalRepository<
     const limit = isFindOne ? 1 : mergedFilter.limit;
     const offset = mergedFilter.skip ?? mergedFilter.offset;
 
+    const connector = await this.acquireConnector({ transaction: options?.transaction });
+
     return this.queryExecutor.select<R>({
-      connector: this.resolveConnector({ transaction: options?.transaction }),
+      connector,
       table: schema,
       columns: this.getVisibleProperties(),
       where,
@@ -115,14 +172,29 @@ export class ReadableRelationalRepository<
   }): Promise<Array<R>> {
     const queryOptions = this.buildQuery({ filter: opts.filter });
 
+    const connector = await this.acquireConnector({ transaction: opts.options?.transaction });
+
     return this.queryExecutor.findMany<R>({
-      connector: this.resolveConnector({ transaction: opts.options?.transaction }),
+      connector,
       entityName: this.entity.name,
       query: queryOptions,
       scope: this.constructor.name,
     });
   }
 
+  /**
+   * Returns the rows matching `filter`; `options.shouldQueryRange` returns them with their range.
+   * @example
+   * ```typescript
+   * import { ReadableRepository } from '@venizia/ignis-connectors/postgres';
+   * import { integer, pgTable, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: integer('id').primaryKey(), status: text('status') });
+   * declare const repo: ReadableRepository<typeof users>;
+   * const rows = await repo.find({ filter: { where: { status: 'ACTIVE' }, order: ['id DESC'], limit: 10 } });
+   * const page = await repo.find({ filter: { limit: 10 }, options: { shouldQueryRange: true } });
+   * ```
+   */
   override find<R = unknown, const F extends TFields<DataObject> = TFields<DataObject>>(opts: {
     filter: TFilter<DataObject, F>;
     options: TFindRangeOptions<ExtraOptions, TRow<DataObject, R, F>>;
@@ -224,7 +296,125 @@ export class ReadableRelationalRepository<
     };
   }
 
-  /** Auto-selects Core API or Query API based on filter complexity. */
+  /**
+   * Yields the rows matching `filter` as pages of `pageSize` rows (default 500), ascending by `id`; each page is a `find`
+   * for `id` above the last one read. The first iteration throws a 400 for `order`, `limit`, `skip`, `offset` or `include`
+   * in `filter`, a `pageSize` outside 1 to min(10 000, `limit.max` or 1000), a hidden `id` or a composite primary key.
+   * @example
+   * ```typescript
+   * import { ReadableRepository } from '@venizia/ignis-connectors/postgres';
+   * import { integer, pgTable, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: integer('id').primaryKey(), status: text('status') });
+   * declare const repo: ReadableRepository<typeof users>;
+   * for await (const page of repo.findEvery({ filter: { where: { status: 'ACTIVE' } }, pageSize: 200 })) {
+   *   console.log(page.length);
+   * }
+   * ```
+   */
+  findEvery<R = unknown, const F extends TFields<DataObject> = TFields<DataObject>>(opts: {
+    filter?: Omit<TFilter<DataObject, F>, 'order' | 'limit' | 'skip' | 'offset' | 'include'>;
+    pageSize?: number;
+    options?: ExtraOptions;
+  }): AsyncGenerator<Array<TRow<DataObject, R, F>>, void, undefined>;
+
+  async *findEvery(opts: {
+    filter?: TFilter<DataObject>;
+    pageSize?: number;
+    options?: ExtraOptions;
+  }): AsyncGenerator<Array<unknown>, void, undefined> {
+    const { filter = {}, options } = opts;
+    const scope = `[${this.constructor.name}][findEvery]`;
+    const refused = (['order', 'limit', 'skip', 'offset', 'include'] as const).filter(
+      (key) => filter[key] !== undefined,
+    );
+
+    if (refused.length > 0) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: `${scope} Refused filter key(s): ${refused.join(', ')} | The key cursor owns the order and the window of every page`,
+      });
+    }
+
+    const ceiling = Math.min(10_000, this.maxLimit ?? DEFAULT_MAX_LIMIT);
+    const { pageSize = Math.min(500, ceiling) } = opts;
+
+    if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > ceiling) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: `${scope} Invalid 'pageSize' | Expected an integer from 1 to ${ceiling} | Got: ${pageSize}`,
+      });
+    }
+
+    const key = this.entity.schema.id;
+
+    if (!key.primary && !key.isUnique) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: `${scope} Needs a single-column primary key | 'id' alone does not identify a row of '${this.entity.name}'`,
+      });
+    }
+
+    if (this.getHiddenProperties().has('id')) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: `${scope} The key 'id' of '${this.entity.name}' is a hidden property | A page cannot continue from a key it never reads`,
+      });
+    }
+
+    const { where, fields } = filter;
+    const isColumn = (name: string): name is Extract<keyof DataObject, string> =>
+      Object.hasOwn(this.entity.schema, name);
+    const selected = Array.isArray(fields)
+      ? fields
+      : Object.entries(fields ?? {}).flatMap(([name, isSelected]) =>
+          isSelected === true && isColumn(name) ? [name] : [],
+        );
+    const isKeyAdded = selected.length > 0 && !selected.includes('id');
+    let keyset: Pick<TWhere<DataObject>, 'id'> | undefined;
+
+    while (true) {
+      const afterLast: Pick<TWhere<DataObject>, 'and'> | undefined = keyset && {
+        and: where ? [where, keyset] : [keyset],
+      };
+      const page = await this.find<Pick<DataObject, 'id'>>({
+        filter: {
+          where: afterLast ?? where,
+          fields: isKeyAdded ? [...selected, 'id'] : fields,
+          order: ['id ASC'],
+          limit: pageSize,
+        },
+        options: options && { ...options, shouldQueryRange: false, retry: undefined },
+      });
+
+      if (page.length === 0) {
+        return;
+      }
+
+      yield isKeyAdded
+        ? page.map((row) => ObjectUtility.omit({ source: row, keys: ['id'] }))
+        : page;
+
+      if (page.length < pageSize) {
+        return;
+      }
+
+      keyset = { id: { gt: page[page.length - 1].id } };
+    }
+  }
+
+  /**
+   * Auto-selects Core API or Query API based on filter complexity.
+   * @example
+   * ```typescript
+   * import { ReadableRepository } from '@venizia/ignis-connectors/postgres';
+   * import { integer, pgTable, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: integer('id').primaryKey(), status: text('status') });
+   * declare const repo: ReadableRepository<typeof users>;
+   * const user = await repo.findOne({ filter: { where: { status: 'ACTIVE' } } });
+   * ```
+   */
   override async findOne<
     R = unknown,
     const F extends TFields<DataObject> = TFields<DataObject>,
@@ -254,6 +444,7 @@ export class ReadableRelationalRepository<
         isFindOne: true,
         options: opts?.options,
       });
+
       return results[0] ?? null;
     }
 
@@ -267,15 +458,28 @@ export class ReadableRelationalRepository<
       keys: ['limit'],
     });
 
+    const connector = await this.acquireConnector({ transaction: opts?.options?.transaction });
+
     return this.queryExecutor.findFirst<TRow<DataObject, R, F>>({
-      connector: this.resolveConnector({ transaction: opts?.options?.transaction }),
+      connector,
       entityName: this.entity.name,
       query: queryOptions,
       scope: this.constructor.name,
     });
   }
 
-  /** Delegates to findOne with id in the where clause. */
+  /**
+   * Delegates to findOne with id in the where clause.
+   * @example
+   * ```typescript
+   * import { ReadableRepository } from '@venizia/ignis-connectors/postgres';
+   * import { integer, pgTable, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: integer('id').primaryKey(), status: text('status') });
+   * declare const repo: ReadableRepository<typeof users>;
+   * const user = await repo.findById({ id: 1 });
+   * ```
+   */
   override findById<R = unknown, const F extends TFields<DataObject> = TFields<DataObject>>(opts: {
     id: DataObject['id'];
     filter?: TByIdFilter<DataObject, F>;
@@ -290,6 +494,18 @@ export class ReadableRelationalRepository<
     });
   }
 
+  /**
+   * Counts the rows matching `where`.
+   * @example
+   * ```typescript
+   * import { ReadableRepository } from '@venizia/ignis-connectors/postgres';
+   * import { integer, pgTable, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: integer('id').primaryKey(), status: text('status') });
+   * declare const repo: ReadableRepository<typeof users>;
+   * const { count } = await repo.count({ where: { status: 'ACTIVE' } });
+   * ```
+   */
   override async count(opts: {
     where: TWhere<DataObject>;
     options?: ExtraOptions;
@@ -305,8 +521,10 @@ export class ReadableRelationalRepository<
       where: mergedFilter.where ?? {},
     });
 
+    const connector = await this.acquireConnector({ transaction: opts.options?.transaction });
+
     const count = await this.queryExecutor.count({
-      connector: this.resolveConnector({ transaction: opts.options?.transaction }),
+      connector,
       table: this.entity.schema,
       where,
     });
@@ -314,11 +532,24 @@ export class ReadableRelationalRepository<
     return { count };
   }
 
+  /**
+   * Tells whether at least one row matches `where`.
+   * @example
+   * ```typescript
+   * import { ReadableRepository } from '@venizia/ignis-connectors/postgres';
+   * import { integer, pgTable, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: integer('id').primaryKey(), status: text('status') });
+   * declare const repo: ReadableRepository<typeof users>;
+   * const found = await repo.existsWith({ where: { status: 'ACTIVE' } });
+   * ```
+   */
   override async existsWith(opts: {
     where: TWhere<DataObject>;
     options?: ExtraOptions;
   }): Promise<boolean> {
     const rs = await this.count(opts);
+
     return rs.count > 0;
   }
 
@@ -374,22 +605,22 @@ export class ReadableRelationalRepository<
   }
 
   /** @throws Error - disabled in read-only repository. */
-  override updateAll(opts: {
+  override updateBy(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
-  override updateAll<R = DataObject>(opts: {
+  override updateBy<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
-  override updateAll<R = DataObject>(_opts: {
+  override updateBy<R = DataObject>(_opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    return this.denyOperation({ methodName: this.updateAll.name });
+    return this.denyOperation({ methodName: this.updateBy.name });
   }
 
   /** @throws Error - disabled in read-only repository. */
@@ -409,18 +640,18 @@ export class ReadableRelationalRepository<
   }
 
   /** @throws Error - disabled in read-only repository. */
-  override deleteAll(opts: {
-    where?: TWhere<DataObject>;
+  override deleteBy(opts: {
+    where: TWhere<DataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
-  override deleteAll<R = DataObject>(opts: {
-    where?: TWhere<DataObject>;
+  override deleteBy<R = DataObject>(opts: {
+    where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
-  override deleteAll<R = DataObject>(_opts: {
-    where?: TWhere<DataObject>;
+  override deleteBy<R = DataObject>(_opts: {
+    where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    return this.denyOperation({ methodName: this.deleteAll.name });
+    return this.denyOperation({ methodName: this.deleteBy.name });
   }
 }

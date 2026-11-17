@@ -44,6 +44,7 @@ export class SqliteDataSource extends BaseSqliteDataSource<
     // libsql opens a database file but never creates its parent, so a missing `app_data/database`
     // is a `SQLITE_CANTOPEN` at boot rather than a fresh database.
     const filePath = url.replace(/^file:/, '');
+
     if (filePath !== url) {
       mkdirSync(dirname(filePath), { recursive: true });
     }

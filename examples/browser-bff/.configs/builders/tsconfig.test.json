@@ -9,9 +9,17 @@
     "moduleResolution": "bundler",
 
     /* The smoke test runs in Bun and loads the Worker by URL, so it needs Bun's types and none of
-       the application's. */
+       the application's. `lazy-open.test.ts` imports the Worker's own classes in-process, so this project also
+       reads them: the `@` alias, Vite's `?raw` and `import.meta.env` declarations, and the decorator settings of
+       `tsconfig.app.json`. */
     "lib": ["ES2025", "DOM"],
-    "types": ["bun"]
+    "types": ["bun", "vite/client"],
+    "paths": {
+      "@/*": ["../../src/worker/*"]
+    },
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": false,
+    "useDefineForClassFields": false
   },
   "include": ["../../test"],
   "exclude": ["../../node_modules", "../../dist"]

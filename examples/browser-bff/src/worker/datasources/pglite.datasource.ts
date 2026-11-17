@@ -21,7 +21,9 @@ const MIGRATIONS: IMigration[] = [
  * The schema is discovered from the repositories bound to this datasource. The fourth type
  * parameter is the raw client `getClient()` returns.
  */
-@datasource({ driver: PGliteDriver })
+// `first-use`: the Worker starts and answers without PGlite. The ~16 MB WASM boot, and the migrations, run when the
+// first request that needs the database arrives, so the first screen does not wait for them.
+@datasource({ driver: PGliteDriver, open: { on: 'first-use' } })
 export class PGliteDataSource extends BasePostgresDataSource<
   IPGliteSettings,
   TAnyDataSourceSchema,
@@ -41,12 +43,13 @@ export class PGliteDataSource extends BasePostgresDataSource<
     this.client = client;
 
     try {
-      await new RelationalMigrationRunner({
+      const runner = new RelationalMigrationRunner({
         driver: this.resolveDriver(),
         // Kept from earlier versions of this example, so a database already in OPFS stays readable.
-        ledgerTable: 'ignis_browser_migrations',
+        ledger: { schema: 'public', table: 'ignis_browser_migrations' },
         scope: PGliteDataSource.name,
-      }).run({ migrations: MIGRATIONS });
+      });
+      await runner.run({ migrations: MIGRATIONS });
     } catch (error) {
       // OPFS access handles are exclusive: an instance left open makes every retry fail until the
       // site data is cleared by hand. A failed close is logged so it cannot hide the real cause.
@@ -55,6 +58,7 @@ export class PGliteDataSource extends BasePostgresDataSource<
       } catch (closeError: unknown) {
         this.logger.error('[configure] Failed to close PGlite | error: %s', closeError);
       }
+
       throw error;
     }
   }

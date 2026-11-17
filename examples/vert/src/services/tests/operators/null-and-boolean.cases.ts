@@ -22,6 +22,7 @@ export class NullAndBooleanCases extends BaseTestCases {
 
       // Should find 2 records with null nValue
       const allNull = results.every((r) => r.nValue === null);
+
       if (allNull && results.length === 2) {
         this.context.logger.info(
           '[IS] PASSED | Found %d records with nValue IS NULL',
@@ -51,6 +52,7 @@ export class NullAndBooleanCases extends BaseTestCases {
 
       // Should find all non-null nValue records: 11 total - 2 null = 9 records
       const allNotNull = results.every((r) => r.nValue !== null);
+
       if (allNotNull && results.length === 9) {
         this.context.logger.info(
           '[ISN] PASSED | Found %d records with nValue IS NOT NULL',
@@ -79,6 +81,7 @@ export class NullAndBooleanCases extends BaseTestCases {
       });
 
       const allNull = results.every((r) => r.tValue === null);
+
       if (allNull && results.length >= 1) {
         this.context.logger.info(
           '[EQ-NULL] PASSED | eq(null) correctly becomes IS NULL | count: %d',
@@ -108,6 +111,7 @@ export class NullAndBooleanCases extends BaseTestCases {
       // Should find all non-null tValue records: 11 total - 1 null = 10 records
       // (only COMP_NULL_1 has tValue = null)
       const allNotNull = results.every((r) => r.tValue !== null);
+
       if (allNotNull && results.length === 10) {
         this.context.logger.info(
           '[NEQ-NULL] PASSED | neq(null) correctly becomes IS NOT NULL | count: %d',
@@ -135,7 +139,7 @@ export class NullAndBooleanCases extends BaseTestCases {
     try {
       const results = await repo.find({
         filter: {
-          where: { group: 'COMPREHENSIVE_TEST', 'jValue.priority': null } as any,
+          where: { group: 'COMPREHENSIVE_TEST', 'jValue.priority': null },
         },
       });
 
@@ -173,7 +177,7 @@ export class NullAndBooleanCases extends BaseTestCases {
       // Query for boolean true - Note: JSON #>> returns text, so we compare as string
       const results = await repo.find({
         filter: {
-          where: { code, 'jValue.active': 'true' } as any,
+          where: { code, 'jValue.active': 'true' },
         },
       });
 
@@ -186,7 +190,7 @@ export class NullAndBooleanCases extends BaseTestCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[JSON-BOOL] FAILED | Error: %s', (error as Error).message);
     }

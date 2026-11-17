@@ -75,14 +75,14 @@ export class UserRepository extends ReadableRepository<typeof User.schema> {
 
 ```
 AbstractRepository (engine-neutral base in src/base - lazy dataSource/entity resolution,
-                    @model settings getters: hiddenProperties, query.filter, query.limit.default)
+                    @model settings getters: properties.hidden, query.filter, query.limit.default)
   ↓
 PostgresBaseRepository (postgres connector - filter building, hidden-column exclusion,
                         default-filter merging, transaction-aware connector resolution)
   ↓
-ReadableRepository (read-only: find, findOne, findById, count, existsWith)
+ReadableRepository (read-only: find, findOne, findById, findEvery, count, existsWith)
   ↓
-PersistableRepository (+ create, createAll, updateById, updateAll, deleteById, deleteAll)
+PersistableRepository (+ create, createAll, updateById, updateEach, updateBy, deleteById, deleteBy)
   ↓
 DefaultCRUDRepository (no additional methods - recommended default)
   ↓
@@ -153,6 +153,88 @@ const { data: updatedConfig } = await repo.updateById({
 await repo.deleteById({ id: 'uuid-here' });
 ```
 
+### Different data for each row with `updateEach`
+
+`updateBy` writes one `data` to every row it matches. `updateEach` gives each row its own:
+
+```typescript
+const { count, data } = await repo.updateEach({
+  rows: [
+    { id: 'uuid-1', data: { description: 'First' } },
+    { id: 'uuid-2', data: { description: 'Second' } },
+  ],
+});
+```
+
+It runs one update per row, in the order given, inside one transaction: a refused payload or a failed statement writes nothing. Pass `options: { transaction }` to join yours, and the repository leaves the commit to you. Each row goes through the same rules as `updateById` - the default filter, the row scope, hidden fields and the audit stamps - so `data[i]` is `null` and the row adds 0 to `count` when it does not match (missing, outside the scope, soft deleted). A repeated `id` runs once per occurrence and adds to `count` each time. `updateEach` is N statements, not one; `shouldReturn: false` returns `data: null`, and empty `rows` return `{ count: 0, data: [] }` without opening a transaction. Relational repositories only.
+
+### Upsert
+
+`upsert` inserts a row, or updates the row that already holds its key. It is one statement, `INSERT ... ON CONFLICT (key) DO UPDATE`, with no read before it, on Postgres, PGlite and SQLite. Relational repositories only.
+
+The key is a handle declared once with `UniqueKeys.of` (see [Unique Keys](./models#unique-keys)). Without `on`, the key is the primary key.
+
+```typescript
+const cache = this.get<SelfOrderCacheRepository>({ key: 'repositories.SelfOrderCacheRepository' });
+
+// `merchantId` is not named: `write.mode: 'assign'` fills it from the scope.
+const { data } = await cache.upsert({
+  data: { cacheKey, value, expiresAt },
+  on: SelfOrderCache.keys.merchantCacheKey,
+});
+
+// Only `value` is refreshed when the row exists; `expiresAt` is written on insert only.
+await cache.upsert({
+  data: { cacheKey, value, expiresAt },
+  on: SelfOrderCache.keys.merchantCacheKey,
+  update: ['value'],
+});
+
+// By primary key.
+await settingRepo.upsert({ data: { id: 'theme', value: 'dark' } });
+```
+
+It returns `{ count, data }` like `create`: the written row, without hidden fields. `options` takes what `create` takes (`transaction`, `shouldReturn`, `log`).
+
+`update` lists the columns the update branch writes. Without it, every column `data` sets, except the key's columns, the primary key and `createdAt`/`createdBy`. The compiler refuses an unknown column and `createdAt`/`createdBy`. A column of the key, a primary key column, or one `data` does not set, is refused when the call runs, before any SQL. A hand-built key that names a column the table does not have is refused the same way.
+
+The rules are the rules of `create` and `update`:
+
+- **Both branches are guarded.** The new row passes the write guard as a create, before any SQL. Under `write.mode: 'assign'`, a missing scope column is filled from the scope. The columns the update branch writes pass it as an update.
+- **The existing row must be yours.** The update branch only touches a row inside your scope and the model's default filter. If the row holding the key is outside them (another merchant's, or soft deleted), it is left as it is and the call fails with the same 403 write-denied error an out-of-scope write gets. `shouldSkipDefaultFilter` is ignored.
+- **Every key column needs a value.** A null never conflicts in SQLite or in default Postgres, so the upsert would insert a duplicate each time. A null or missing key column is refused with a 400, unless the key is a `nullsNotDistinct()` unique constraint (Postgres 15+). A scope column that `assign` fills counts as set.
+- **A partial index** sends its `where` with the conflict target, so a soft-deleted twin is not a conflict: a new row is inserted next to it. A row you send with the soft-delete column already set does not satisfy a partial key's predicate either, so it never conflicts: it is inserted as a new, already-deleted row.
+- **Defaults** apply on insert. `$onUpdate` columns (`modifiedAt`, `modifiedBy`) apply on the update branch, as in `update`. `createdAt` and `createdBy` never change.
+- **Hidden fields** are written like `create` writes them, and never returned.
+- A `through` model checks its parents and writes in one transaction, as `create` does.
+- As the first call on a datasource that opens on first use, it opens it.
+
+Two upserts of one key at the same time leave one row: the database resolves the conflict inside the statement. There is no `upsertAll` yet.
+
+### Reading every row, a page at a time
+
+A batch job or an export has to read every row a filter matches without loading them all at once. `findEvery` is an async iterator that yields one page (an array of rows) per iteration:
+
+```typescript
+for await (const page of repo.findEvery({
+  filter: { where: { status: 'ACTIVE' }, fields: ['id', 'email'] },
+  pageSize: 200,
+})) {
+  await exportRows(page);
+}
+```
+
+Each page reads the rows whose `id` is above the last `id` of the page before, in ascending `id` order. A row inserted or deleted while the loop runs never shifts the window and no offset grows: a new row with a smaller `id` than the last one read is not visited, one with a larger `id` is, and no row comes twice.
+
+- **Pages.** Every page holds `pageSize` rows except the last, which may be shorter. An empty result yields no page. When the last page is full, one more query runs, finds nothing and yields nothing.
+- **Same rules as `find`.** Every page is a `find`, so the default filter, the row scope (`access`) and the hidden fields apply to each one. `options` is passed to every page: `transaction` (every page reads through it), `shouldSkipDefaultFilter`, `lock`.
+- **The key owns the order and the window.** A filter with `order`, `limit`, `skip`, `offset` or `include` is refused with a 400. `where` and `fields` work. `id` is read for the cursor even when `fields` leaves it out, and is not in the rows then. The type of a page follows `fields`, as with `find`.
+- **`pageSize`** is an integer: 500 when omitted, at least 1, at most 10 000 and at most the model's `limit.max` (1000 unless the model sets it). A value outside that is a 400, and a model whose `limit.max` is below 500 lowers the default to it.
+- **Stopping.** `break`, `return` or a throw in the loop ends it, and no further query is made.
+- **One key.** The model's `id` must be a single-column primary key and must not be a hidden property; anything else is a 400.
+- **Where it throws.** Every refusal surfaces on the first iteration, not when `findEvery` is called.
+- **Relational repositories only.**
+
 ## Extra Options
 
 All repository operations accept an `options` parameter with these fields:
@@ -163,9 +245,11 @@ All repository operations accept an `options` parameter with these fields:
 | `shouldReturn` | `boolean` | Write methods only - whether to return created/updated data (default: `true`) |
 | `shouldQueryRange` | `boolean` | `find` only - return `{ data, range: { start, end, total } }` for pagination |
 | `shouldSkipDefaultFilter` | `boolean` | Bypass the model's default filter (e.g., soft delete) |
-| `force` | `boolean` | `updateAll`/`deleteAll` only - allow an empty `where` (table-wide operation) |
-| `lock` | `TLockOptions` | Row-level locking for reads (`{ strength: 'update' }`, ...). Requires a transaction; incompatible with `include`/`fields` |
+| `force` | `boolean` | `updateBy`/`deleteBy` only - allow an empty `where` (table-wide operation) |
+| `lock` | `TLockOptions` | Row-level locking for reads (`{ strength: 'update' }`, ...) |
 | `log` | `TRepositoryLogOptions` | Per-operation logging (`{ use: true, level?: 'info' }`) |
+
+`lock` requires a transaction and is incompatible with `include` and `fields`.
 
 ```typescript
 // Create without returning data (faster)
@@ -238,7 +322,7 @@ import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 @model({
   settings: {
-    hiddenProperties: ['deletedAt'],
+    properties: { hidden: ['deletedAt'] },
     query: { filter: { where: { deletedAt: null } } },
   },
 })
@@ -255,7 +339,7 @@ export class Category extends BasePostgresEntity<typeof Category.schema> {
 export class CategoryRepository extends SoftDeletableRepository<typeof Category.schema> {}
 ```
 
-Delete operations accept `shouldHardDelete: true` in options to physically remove a row, and soft-deleted records can be restored via `restoreById`/`restoreAll`.
+Delete operations accept `shouldHardDelete: true` in options to physically remove a row, and soft-deleted records can be restored via `restoreById`/`restoreBy`.
 
 ## Repository Template
 

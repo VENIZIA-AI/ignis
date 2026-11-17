@@ -2,6 +2,23 @@ import { describe, expect, test } from 'bun:test';
 import { MeilisearchCollectionCompiler } from '@/search/meilisearch/compiler';
 import { SearchCollectionFactory, field } from '@/search/core/models';
 
+describe('MeilisearchCollectionCompiler.compile - nullable', () => {
+  test('a nullable field changes nothing in the plan', () => {
+    const plain = SearchCollectionFactory.define({
+      name: 'notes',
+      fields: [field.string('note', { optional: true, filterable: true })],
+    });
+    const nullable = SearchCollectionFactory.define({
+      name: 'notes',
+      fields: [field.string('note', { optional: true, nullable: true, filterable: true })],
+    });
+
+    expect(MeilisearchCollectionCompiler.compile({ definition: nullable })).toEqual(
+      MeilisearchCollectionCompiler.compile({ definition: plain }),
+    );
+  });
+});
+
 describe('MeilisearchCollectionCompiler.compile', () => {
   test('searchable/filterable/sortable flags become index settings', () => {
     const definition = SearchCollectionFactory.define({

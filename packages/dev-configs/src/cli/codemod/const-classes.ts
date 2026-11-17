@@ -61,6 +61,7 @@ interface IEdit {
 /** The plural of a PascalCase word, for the class that holds its values. */
 const pluralize = (word: string): string => {
   const alreadyPlural = /[^uis]s$/.test(word) || /ings$/.test(word);
+
   if (alreadyPlural) {
     return word;
   }
@@ -149,6 +150,7 @@ export class ConstClasses {
 
       if (override.skip) {
         handled.add(node);
+
         return;
       }
 
@@ -168,13 +170,16 @@ export class ConstClasses {
         taken,
         mayRenameType: planOpts.mayRenameType,
       });
+
       if (problem) {
         report(node, `${problem}; left untouched (name it in the mapping file: ${id})`);
         handled.add(node);
+
         return;
       }
 
       taken.add(className);
+
       if (planOpts.mayRenameType) {
         taken.add(typeName);
       }
@@ -202,6 +207,7 @@ export class ConstClasses {
           end: node.end,
           text: `${typeName}${nullishText}`,
         });
+
         return;
       }
 
@@ -221,6 +227,7 @@ export class ConstClasses {
 
       if (typescript.isTypeAliasDeclaration(statement)) {
         const union = typescript.isUnionTypeNode(statement.type) ? statement.type : undefined;
+
         if (union && ConstClasses.isEnumerable({ typescript, node: union })) {
           const base = statement.name.text.replace(/^T(?=[A-Z])/, '');
           plan({
@@ -268,11 +275,13 @@ export class ConstClasses {
 
     // Last, so that at the top of a file the import lands above the class inserted at the same place.
     const importEdit = ConstClasses.planImport({ typescript, sourceFile, importFrom });
+
     if (importEdit) {
       edits.push(importEdit);
     }
 
     let output = source;
+
     for (const edit of edits.sort((a, b) => b.start - a.start || b.end - a.end)) {
       output = output.slice(0, edit.start) + edit.text + output.slice(edit.end);
     }
@@ -311,6 +320,7 @@ export class ConstClasses {
       }
 
       const property = typescript.isIdentifier(member.name) ? member.name.text : undefined;
+
       if (!property) {
         continue;
       }
@@ -337,6 +347,7 @@ export class ConstClasses {
     for (const statement of sourceFile.statements) {
       if (typescript.isImportDeclaration(statement) && statement.importClause) {
         const { name, namedBindings } = statement.importClause;
+
         if (name) {
           names.add(name.text);
         }
@@ -350,6 +361,7 @@ export class ConstClasses {
             names.add(element.name.text);
           }
         }
+
         continue;
       }
 
@@ -359,6 +371,7 @@ export class ConstClasses {
             names.add(declaration.name.text);
           }
         }
+
         continue;
       }
 
@@ -382,6 +395,7 @@ export class ConstClasses {
   private static isExported(opts: { typescript: TTypeScript; node: ts.Node }): boolean {
     const { typescript, node } = opts;
     const modifiers = typescript.canHaveModifiers(node) ? typescript.getModifiers(node) : undefined;
+
     return (
       modifiers?.some((modifier) => modifier.kind === typescript.SyntaxKind.ExportKeyword) === true
     );
@@ -401,6 +415,7 @@ export class ConstClasses {
         if (!values.includes(member.literal.text)) {
           values.push(member.literal.text);
         }
+
         continue;
       }
 
@@ -435,6 +450,7 @@ export class ConstClasses {
         member.kind === typescript.SyntaxKind.NullKeyword ||
         (typescript.isLiteralTypeNode(member) &&
           member.literal.kind === typescript.SyntaxKind.NullKeyword);
+
       if (!isNullish) {
         return false;
       }
@@ -461,6 +477,7 @@ export class ConstClasses {
     }
 
     const keys = new Set<string>();
+
     for (const { value, key } of members) {
       if (key === '') {
         return `no member name can be made from ${JSON.stringify(value)}`;
@@ -517,6 +534,7 @@ export class ConstClasses {
         if (node.initializer) {
           walk(node.initializer);
         }
+
         return;
       }
 
@@ -581,6 +599,7 @@ export class ConstClasses {
 
       lastImportEnd = statement.end;
       const bindings = statement.importClause?.namedBindings;
+
       if (bindings && typescript.isNamedImports(bindings)) {
         if (bindings.elements.some((element) => element.name.text === 'TConstValue')) {
           return undefined;
@@ -596,6 +615,7 @@ export class ConstClasses {
     }
 
     const bindings = sameModule?.importClause?.namedBindings;
+
     if (
       sameModule &&
       bindings &&
@@ -604,6 +624,7 @@ export class ConstClasses {
     ) {
       const last = bindings.elements[bindings.elements.length - 1];
       const typeOnly = sameModule.importClause?.isTypeOnly === true;
+
       return {
         start: last?.end ?? bindings.end,
         end: last?.end ?? bindings.end,
@@ -612,6 +633,7 @@ export class ConstClasses {
     }
 
     const line = `import type { TConstValue } from '${importFrom}';`;
+
     if (lastImportEnd > 0) {
       return { start: lastImportEnd, end: lastImportEnd, text: `\n${line}` };
     }
@@ -687,6 +709,7 @@ export class ConstClassesCommand {
 
     if (args.includes(ConstClassFlags.HELP) || args.includes(ConstClassFlags.HELP_SHORT)) {
       console.log(USAGE);
+
       return 0;
     }
 
@@ -700,12 +723,14 @@ export class ConstClassesCommand {
 
       if (name !== undefined && ConstClassFlags.WITH_VALUE.has(name)) {
         const value = inline ?? args[index + 1];
+
         if (inline === undefined) {
           index += 1;
         }
 
         if (!value || value.startsWith('-')) {
           console.error(`devz codemod: ${name} needs a value\n${USAGE}`);
+
           return USAGE_ERROR_CODE;
         }
 
@@ -721,10 +746,12 @@ export class ConstClassesCommand {
     }
 
     const unknown = flags.filter((flag) => !ConstClassFlags.isValid(flag));
+
     if (unknown.length > 0) {
       console.error(
         `devz codemod: unknown option ${unknown.map((flag) => `"${flag}"`).join(', ')}\n${USAGE}`,
       );
+
       return USAGE_ERROR_CODE;
     }
 
@@ -737,29 +764,36 @@ export class ConstClassesCommand {
       isAll: flags.includes(ConstClassFlags.ALL),
       paths,
     });
+
     if (refusal) {
       console.error(`${refusal}\n${USAGE}`);
+
       return USAGE_ERROR_CODE;
     }
+
     const includeTests = flags.includes(ConstClassFlags.INCLUDE_TESTS);
 
     if (isWrite && isCheck) {
       console.error(
         `devz codemod: ${ConstClassFlags.WRITE} and ${ConstClassFlags.CHECK} contradict each other\n${USAGE}`,
       );
+
       return USAGE_ERROR_CODE;
     }
 
     let overrides: TConstClassMap = {};
     const mapPath = values.get(ConstClassFlags.MAP);
+
     if (mapPath) {
       let parsed: unknown;
+
       try {
         parsed = JSON.parse(readFileSync(resolve(root, mapPath), 'utf8'));
       } catch (error) {
         console.error(
           `devz codemod: cannot read the mapping file ${mapPath}: ${error instanceof Error ? error.message : String(error)}`,
         );
+
         return USAGE_ERROR_CODE;
       }
 
@@ -767,6 +801,7 @@ export class ConstClassesCommand {
         console.error(
           `devz codemod: cannot read the mapping file ${mapPath}: the file must hold one JSON object`,
         );
+
         return USAGE_ERROR_CODE;
       }
 
@@ -774,11 +809,13 @@ export class ConstClassesCommand {
     }
 
     let typescript: TTypeScript;
+
     try {
       const result2 = await import('typescript');
       typescript = result2.default;
     } catch {
       console.error('devz codemod: the "typescript" package is required to read your sources');
+
       return 1;
     }
 
@@ -800,11 +837,13 @@ export class ConstClassesCommand {
 
       for (const file of files) {
         const relativePath = relative(root, file).split('\\').join('/');
+
         if (!includeTests && TEST_FILE_PATTERN.test(relativePath)) {
           continue;
         }
 
         const source = readFileSync(file, 'utf8');
+
         if (!UNION_TEXT.test(source)) {
           continue;
         }
@@ -838,6 +877,7 @@ export class ConstClassesCommand {
 
         if (result.changed) {
           changedFiles += 1;
+
           if (isWrite) {
             writeFileSync(file, result.output);
           }
@@ -846,6 +886,7 @@ export class ConstClassesCommand {
     }
 
     const emitPath = values.get(ConstClassFlags.EMIT_MAP);
+
     if (emitPath) {
       writeFileSync(resolve(root, emitPath), `${JSON.stringify(emitted, null, 2)}\n`);
       console.log(

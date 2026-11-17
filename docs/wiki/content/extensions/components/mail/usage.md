@@ -24,7 +24,7 @@ export class UserService extends BaseService {
     const result = await this._mailService.send({
       to: opts.userEmail,
       subject: 'Welcome to Our App!',
-      html: `<h1>Welcome ${opts.userName}!</h1><p>Thanks for joining us.</p>`,
+      html: `<h1>Welcome ${Bun.escapeHTML(opts.userName)}!</h1><p>Thanks for joining us.</p>`,
       text: `Welcome ${opts.userName}! Thanks for joining us.`,
     });
 
@@ -49,7 +49,7 @@ async sendBulkNotifications(users: Array<{ email: string; name: string }>) {
   const messages = users.map(user => ({
     to: user.email,
     subject: 'Important Update',
-    html: `<p>Hello ${user.name}, we have an important update for you.</p>`,
+    html: `<p>Hello ${Bun.escapeHTML(user.name)}, we have an important update for you.</p>`,
   }));
 
   const results = await this.mailService.sendBatch(messages, {
@@ -76,10 +76,13 @@ async sendBulkNotifications(users: Array<{ email: string; name: string }>) {
 
 | Condition | Error code | Message |
 |-----------|-----------|---------|
-| `to` is missing or an empty array | `MailErrorCodes.INVALID_RECIPIENT` | `Recipient email address is required` |
-| `subject` is missing | `MailErrorCodes.INVALID_CONFIGURATION` | `Email subject is required` |
-| Both `text` and `html` are missing | `MailErrorCodes.INVALID_CONFIGURATION` | `Email must have either text or html content` |
-| `text` or `html` is neither a string nor `null` (a `Buffer`, a stream, `{ path }`, `{ href }`) | `MailErrorCodes.BODY_SOURCE_REFUSED` | `Mail body refused \| text and html must be strings; ...` |
+| `to` is missing or an empty array | `MailErrors.INVALID_RECIPIENT` | `Recipient email address is required` |
+| `subject` is missing | `MailErrors.INVALID_CONFIGURATION` | `Email subject is required` |
+| Both `text` and `html` are missing | `MailErrors.INVALID_CONFIGURATION` | `Email must have either text or html content` |
+| An address, the subject or a header is malformed (see below) | `MailErrors.INVALID_HEADER` | `Invalid mail header \| ...` |
+| `text` or `html` is neither a string nor `null` (a `Buffer`, a stream, `{ path }`, `{ href }`) | `MailErrors.BODY_SOURCE_REFUSED` | `Mail body refused \| text and html must be strings; ...` |
+
+A header is malformed when an address, the subject or a header value has a line break, CR or NUL, when a header value is not a string, or when a header name is not printable ASCII without a colon.
 
 ```typescript
 // Throws before reaching the transport
@@ -159,16 +162,16 @@ Both options are checked when the component starts. `maxAttachmentBytes` must be
 
 ### Register and send a template
 
-Inject both `IMailTemplateEngine` and `IMailService`. `sendTemplate()` renders through the engine and sends via `IMailService` -- it never bypasses `send()`.
+Inject both `TemplateEngineService` and `IMailService`. `sendTemplate()` renders through the engine and sends via `IMailService` -- it never bypasses `send()`.
 
 ```typescript
 import { BaseService, inject } from '@venizia/ignis';
-import { MailKeys, type IMailTemplateEngine, type IMailService } from '@venizia/ignis/mail';
+import { MailKeys, type TemplateEngineService, type IMailService } from '@venizia/ignis/mail';
 
 export class NotificationService extends BaseService {
   constructor(
     @inject({ key: MailKeys.MAIL_TEMPLATE_ENGINE })
-    private templateEngine: IMailTemplateEngine,
+    private templateEngine: TemplateEngineService,
     @inject({ key: MailKeys.MAIL_SERVICE })
     private mailService: IMailService,
   ) {
@@ -209,14 +212,15 @@ export class NotificationService extends BaseService {
 }
 ```
 
-- **Subject resolution order.** `options.subject` wins if you pass it. Otherwise the template's own `subject` wins, rendered through the same engine. If neither is set, the subject falls back to the literal `'No Subject'`.
+- **Subject resolution order.** `options.subject` wins if you pass it. Otherwise the template's own `subject` wins, rendered as plain text (never HTML-escaped). If neither is set, the subject is `MailDefaults.SUBJECT` (`'No Subject'`). The recipients (`recipients`) and the rendered body are the call's own: `options.to` and `options.html` do not replace them, and `options.requireValidate` only controls rendering.
 - **`sendTemplate()` requires the template engine binding.** It throws `INVALID_CONFIGURATION` ("Template engine not configured") if `MailKeys.MAIL_TEMPLATE_ENGINE` was never injected. The constructor parameter is `isOptional: true`, so a service still compiles without it - but the first `sendTemplate()` call then fails.
 
 ### How rendering works
 
-`TemplateEngineService` keeps templates in an in-memory `Map<string, ITemplate>`. It substitutes <code v-pre>{{variable}}</code> placeholders using the regex `/\{\{(\s*[\w.]+\s*)\}\}/g`.
+`TemplateEngineService` keeps templates in an in-memory `Map<string, ITemplate>`. It substitutes <code v-pre>{{variable}}</code> and <code v-pre>{{{variable}}}</code> placeholders; one regex serves both rendering and `validateTemplateData()`.
 
-- **Nested lookup.** A key is trimmed, then resolved by splitting on `.` and walking the data object (`user.profile.name`).
+- **Escaping.** <code v-pre>{{variable}}</code> is HTML-escaped with `Bun.escapeHTML`, so a user name such as `<a href=...>` cannot become live markup in a mail. <code v-pre>{{{variable}}}</code> inserts the value as it is: use it only for markup you wrote. `render()` takes `format: MailTemplateFormats.HTML` (the default) or `MailTemplateFormats.TEXT`, which escapes nothing; `sendTemplate()` renders the subject as `TEXT`.
+- **Nested lookup.** A key is trimmed, then resolved by splitting on `.` and walking the data object (`user.profile.name`). Only own properties are read: <code v-pre>{{constructor}}</code> stays unresolved.
 - **Missing values are preserved, not blanked.** If a resolved value is `undefined` or `null`, the original <code v-pre>{{placeholder}}</code> text stays in the output, and a warning is logged. The engine never replaces it with an empty string.
 - **String coercion.** The engine converts a resolved value with `String(value)`.
 
@@ -260,8 +264,16 @@ try {
 ### Sync templates from a database
 
 ```typescript
+import { z } from '@hono/zod-openapi';
+
+const templateSchema = z.object({
+  content: z.string(),
+  subject: z.string().optional(),
+  description: z.string().optional(),
+});
+
 async syncTemplatesFromDatabase() {
-  const templateEngine = this.application.get<IMailTemplateEngine>({
+  const templateEngine = this.application.get<TemplateEngineService>({
     key: MailKeys.MAIL_TEMPLATE_ENGINE,
   });
 
@@ -274,10 +286,18 @@ async syncTemplatesFromDatabase() {
   });
 
   templateConfigs.forEach(config => {
+    // jValue is a TJsonValue: parse it, never read its keys unchecked
+    const parsed = templateSchema.safeParse(config.jValue);
+
+    if (!parsed.success) {
+      this.logger.warn('[syncTemplates] Skipped template %s: its jValue is not a template', config.code);
+      return;
+    }
+
     templateEngine.registerTemplate({
       name: config.code,
-      content: config.jValue.content,
-      options: { subject: config.jValue.subject, description: config.jValue.description },
+      content: parsed.data.content,
+      options: { subject: parsed.data.subject, description: parsed.data.description },
     });
     this.logger.info('[syncTemplates] Registered template: %s', config.code);
   });
@@ -305,7 +325,7 @@ The internal queue executor is in-memory and single-instance, backed by `Sequent
 - Job IDs follow `job_<counter>_<timestamp>`.
 - A `delay` option schedules the enqueue itself via `setTimeout`, tracked in a `delayedJobs` map.
 - On failure - a thrown error, or the processor returning `{ success: false }` - it retries up to `options.attempts` (default `3`).
-- Does not persist jobs across restarts. `close()` clears every pending delayed/retry timer.
+- Does not persist jobs across restarts. `close()` clears every pending delayed/retry timer, and `enqueueVerificationEmail()` throws `MailExecutorErrors.CLOSED` once the executor is closed.
 
 Retry backoff:
 
@@ -317,7 +337,7 @@ Retry backoff:
 
 ### BullMQ executor
 
-Redis-backed, distributed, backed by `BullMQHelper`. Job persistence, worker concurrency, prioritization, and delayed execution come from BullMQ itself. `removeOnComplete: true`, `removeOnFail: false` (failed jobs stay for debugging). Default enqueue options: `attempts: 3`, `backoff: { type: 'exponential', delay: 1000 }`.
+Redis-backed, distributed, backed by `BullMQHelper`. Job persistence, worker concurrency, prioritization, and delayed execution come from BullMQ itself. `removeOnComplete: true`, and `removeOnFail` keeps a failed job for `MailDefaults.FAILED_JOB_RETENTION` (7 days, at most 1000 jobs). Default enqueue options: `attempts: 3`, `backoff: { type: 'exponential', delay: 1000 }`.
 
 **Mode gates what the executor can do:**
 
@@ -329,6 +349,29 @@ Redis-backed, distributed, backed by `BullMQHelper`. Job persistence, worker con
 
 > [!IMPORTANT]
 > `'queue-only'` mode is the one exception to "call `setProcessor()` before you enqueue." In that mode, `enqueueVerificationEmail()` does not need a processor. A producer instance can enqueue jobs that a separate `worker-only` instance later processes.
+
+**The Redis connection is yours.** Pass a ready helper - single, sentinel or cluster - as `redis`. The queue and each worker duplicate its client, and the executor never closes it: close the helper when your application shuts down. On a cluster the queue is named `{mail-queue}` so its keys share one slot (a name that already starts with `{` is left alone).
+
+```typescript
+import { RedisSentinelHelper } from '@venizia/ignis-helpers';
+import { BullMQExecutorModes, MailKeys, MailQueueExecutorTypes } from '@venizia/ignis/mail';
+
+this.bind({ key: MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG }).toValue({
+  type: MailQueueExecutorTypes.BULLMQ,
+  options: {
+    redis: new RedisSentinelHelper({
+      name: 'mail-redis',
+      sentinel: { masterName: 'mymaster', nodes: [{ host: 'sentinel-1', port: 26379 }] },
+      maxRetry: -1,
+    }),
+    queue: { identifier: 'mail-queue', name: 'mail-queue' },
+    mode: BullMQExecutorModes.BOTH,
+  },
+});
+```
+
+> [!IMPORTANT]
+> Give the helper an unbounded `maxRetry` (`-1`) so it keeps reconnecting. The default is 5 attempts, which rides out a restart of a few seconds; a longer Sentinel failover or network drop would end the queue until the process restarts.
 
 **Dynamic worker management.** Get the bound instance and manage workers at runtime - no restart required:
 
@@ -368,9 +411,15 @@ await executor.setProcessor(
 
 | Generator | Implements | Behavior |
 |-----------|-----------|----------|
-| `NumericCodeGenerator` | `IVerificationCodeGenerator` | a uniform random integer in `[0, 10^length)` from `crypto.getRandomValues` (rejection sampling, so no code is likelier), zero-padded via `padStart()` -- e.g. code `42` at length `6` becomes `"000042"` |
-| `RandomTokenGenerator` | `IVerificationTokenGenerator` | `bytes` random bytes from `crypto.getRandomValues`, as base64url -- 32 bytes produces a 43-character string, URL-safe, no padding |
-| `DefaultVerificationDataGenerator` | `IVerificationDataGenerator` | Composes both generators via `@inject`, producing a full `IVerificationData` with separate expiries |
+| `NumericCodeGenerator` | `IVerificationCodeGenerator` | A uniform random integer in `[0, 10^length)`, zero-padded |
+| `RandomTokenGenerator` | `IVerificationTokenGenerator` | `bytes` random bytes as a base64url string |
+| `DefaultVerificationDataGenerator` | `IVerificationDataGenerator` | Composes both generators into a full `IVerificationData` with separate expiries |
+
+`NumericCodeGenerator` draws from `crypto.getRandomValues` with rejection sampling, so no code is likelier than another, and pads with `padStart()`: code `42` at length `6` becomes `"000042"`.
+
+`RandomTokenGenerator` reads `crypto.getRandomValues` and encodes through `TokenUidHelper`: 32 bytes produce a 43-character string, URL-safe, no padding. `bytes` must be an integer of at least `16`.
+
+`DefaultVerificationDataGenerator` composes the two generators via `@inject`.
 
 `DefaultVerificationDataGenerator.generateVerificationData()` returns:
 
@@ -426,7 +475,7 @@ export class AuthService extends BaseService {
 `MailComponent.createAndBindInstances()` logs only `mailOptions.provider` and `queueExecutorConfig.type`, at `info` level. It never logs the full config objects, by design. That keeps SMTP passwords, OAuth2 secrets, API keys, and Redis passwords out of the log sink - at least through the component itself.
 
 > [!WARNING]
-> That guarantee only covers what `MailComponent` logs internally. If your own wrapper component or bootstrap code logs the `TMailOptions` or `IMailQueueExecutorConfig` object directly, you reintroduce the leak yourself. This commonly happens while debugging a binding. Log individual safe fields (`provider`, `type`) instead of the whole object.
+> That guarantee only covers what `MailComponent` logs internally. If your own wrapper component or bootstrap code logs the `TMailOptions` or `TMailQueueExecutorConfig` object directly, you reintroduce the leak yourself. This commonly happens while debugging a binding. Log individual safe fields (`provider`, `type`) instead of the whole object.
 
 ## See also
 

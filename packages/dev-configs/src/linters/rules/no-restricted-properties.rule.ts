@@ -28,6 +28,7 @@ export class NoRestrictedPropertiesRule {
     opts: { severity?: TRuleSeverity; extraProperties?: IRestrictedProperty[] } = {},
   ): TOxlintRuleEntry<'no-restricted-properties'> {
     const { severity = 'error', extraProperties = [] } = opts;
+
     return [severity, ...NoRestrictedPropertiesRule.SECURE_CONTEXT, ...extraProperties];
   }
 }

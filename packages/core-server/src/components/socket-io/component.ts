@@ -21,6 +21,7 @@ import {
 } from './common';
 import { SocketIOBunHandler } from './handlers';
 
+/** Starts a Socket.IO server on Bun after the application starts. Requires a Redis helper at `SocketIOBindingKeys.REDIS_CONNECTION` and an authenticate handler at `AUTHENTICATE_HANDLER`; binding throws without them. */
 export class SocketIOComponent extends BaseComponent {
   protected serverOptions: Partial<IServerOptions>;
 
@@ -66,6 +67,7 @@ export class SocketIOComponent extends BaseComponent {
     const redisConnection = this.application.get<AbstractRedisHelper>({
       key: SocketIOBindingKeys.REDIS_CONNECTION,
     });
+
     if (!isRedisHelper(redisConnection)) {
       throw getError({
         message:
@@ -76,6 +78,7 @@ export class SocketIOComponent extends BaseComponent {
     const authenticateFn = this.application.get<TSocketIOAuthenticateFn>({
       key: SocketIOBindingKeys.AUTHENTICATE_HANDLER,
     });
+
     if (!authenticateFn) {
       throw getError({
         message: '[DANGER][SocketIOComponent] Invalid authenticateFn to setup io socket server!',

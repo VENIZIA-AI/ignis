@@ -1,6 +1,5 @@
 import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import type { IRelationalConnection, IRelationalDriver } from '@/relational/core/drivers';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 
 export type { IStatementResult } from '@/relational/core/drivers';
@@ -11,7 +10,7 @@ export type { IStatementResult } from '@/relational/core/drivers';
  * disagree on, and pinning it would drag an optional peer's types into this tier.
  */
 export type TSqliteConnector<DataSourceSchema extends TAnyDataSourceSchema = TAnyDataSourceSchema> =
-  BaseSQLiteDatabase<'async', AnyType, DataSourceSchema>;
+  BaseSQLiteDatabase<'async', unknown, DataSourceSchema>;
 
 /**
  * SQLite narrowing: the neutral `IRelationalConnection<TConnector>` is parameterized by the

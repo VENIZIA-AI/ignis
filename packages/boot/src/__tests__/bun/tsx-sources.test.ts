@@ -27,9 +27,11 @@ describe('a decorated class in a .tsx file', () => {
 
   test('maps to its compiled .js copy when the application runs from dist', () => {
     const app = mkdtempSync(resolve(tmpdir(), 'ignis-tsx-'));
+
     try {
       cpSync(APP, app, { recursive: true });
       mkdirSync(resolve(app, 'dist', 'controllers'), { recursive: true });
+
       for (const name of ['list', 'view']) {
         writeFileSync(resolve(app, 'dist', 'controllers', `${name}.controller.js`), '');
       }

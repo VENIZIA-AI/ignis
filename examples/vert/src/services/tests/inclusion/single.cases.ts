@@ -81,10 +81,12 @@ export class SingleCases extends BaseTestCases {
 
       if (!productA) {
         this.context.logger.error('[CASE 2] FAILED | Product A not found');
+
         return;
       }
 
       const saleChannelProducts = (productA as any).saleChannelProducts;
+
       if (saleChannelProducts?.length === 2) {
         const channelNames = saleChannelProducts.map((scp: any) => scp.saleChannel?.name);
         this.context.logger.info(
@@ -127,10 +129,12 @@ export class SingleCases extends BaseTestCases {
 
       if (!onlineStore) {
         this.context.logger.error('[CASE 3] FAILED | Online Store not found');
+
         return;
       }
 
       const saleChannelProducts = (onlineStore as any).saleChannelProducts;
+
       if (saleChannelProducts?.length === 2) {
         const productNames = saleChannelProducts.map((scp: any) => scp.product?.name);
         this.context.logger.info(

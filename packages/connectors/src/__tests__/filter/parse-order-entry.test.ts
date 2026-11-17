@@ -142,6 +142,7 @@ describe('Sorts.parseEntry - rejected entries are 400s', () => {
 const hasControlCharacter = (text: string): boolean => {
   for (let index = 0; index < text.length; index++) {
     const code = text.charCodeAt(index);
+
     if (code < 32) {
       return true;
     }

@@ -21,6 +21,7 @@ let script = '';
 
 const runNode = () => {
   const node = Bun.which('node');
+
   if (!node) {
     // A missing node must fail this test, not skip it: skipping is how the original break got through.
     throw new Error('[vite-under-node] `node` is not on the PATH | this test needs a real Node');
@@ -32,6 +33,7 @@ const runNode = () => {
     stdout: 'pipe',
     stderr: 'pipe',
   });
+
   return {
     exitCode: result.exitCode,
     stdout: result.stdout.toString(),

@@ -7,7 +7,8 @@ import { UuidV7Generator } from './v7';
 
 /**
  * One door for every UUID IGNIS mints: `v7()` for a database key, `v5()` for a deterministic key,
- * `v4()` for a random token.
+ * `v4()` for a random public identifier. For a secret (a verification link, an API key, a session id)
+ * use `TokenUidHelper` instead: a UUID v4 carries 122 random bits and a fixed, recognisable shape.
  *
  * A facade over {@link UuidV4Generator}, {@link UuidV5Generator} and {@link UuidV7Generator} - importing one of those from
  * `@venizia/ignis-helpers/uuid` leaves the other two out of a browser bundle.
@@ -35,6 +36,7 @@ export class UuidHelper extends BaseHelper {
 
   static getInstance(): UuidHelper {
     UuidHelper.instance ??= new UuidHelper();
+
     return UuidHelper.instance;
   }
 
@@ -52,11 +54,13 @@ export class UuidHelper extends BaseHelper {
     }
 
     const version = Number.parseInt(value[14], 16);
+
     if (version !== 7) {
       return { version };
     }
 
     const milliseconds = Number.parseInt(value.slice(0, 8) + value.slice(9, 13), 16);
+
     return { version, createdAt: new Date(milliseconds) };
   }
 }

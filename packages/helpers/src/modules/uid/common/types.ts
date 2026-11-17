@@ -1,5 +1,5 @@
 import type { ValueOrPromise } from '@/common/types';
-import type { TUidCaseForm } from './constants';
+import type { TUidCaseForm, TUidTokenEncoding } from './constants';
 
 /**
  * A segment an id may or may not carry. `enable` decides; `value` survives being turned off, so a
@@ -13,23 +13,40 @@ export interface IUidSegment {
   value?: string;
 }
 
+/** Options for generating an opaque id. Every field is optional. */
 export interface IOpaqueUidOptions {
-  /** Defaults to disabled. */
+  /** @default { enable: false } */
   prefix?: IUidSegment;
 
-  /** Defaults to disabled, with `_` ready. Meaningless without a prefix, and refused there. */
+  /**
+   * Meaningless without a prefix, and refused there. Enabled without a `value`, it is {@link DEFAULT_UID_DELIMITER}.
+   *
+   * @default { enable: false }
+   */
   delimiter?: IUidSegment;
 
-  /** Characters in the BODY. The prefix and the delimiter are not counted. */
+  /**
+   * Characters in the BODY. The prefix and the delimiter are not counted.
+   *
+   * @default DEFAULT_UID_LENGTH
+   */
   length?: number;
 
-  /** Defaults to `upper` - the alphabet default is uppercase-only, so anything else would widen it. */
+  /**
+   * Upper is the default because the default alphabet is uppercase-only, so anything else would widen it.
+   *
+   * @default UidCaseForms.UPPER
+   */
   caseForm?: TUidCaseForm;
 
-  /** Defaults to `UidAlphabets.CROCKFORD`. */
+  /** @default UidAlphabets.CROCKFORD */
   alphabet?: string;
 
-  /** Removed from `alphabet` on top of whatever the set already drops. */
+  /**
+   * Removed from `alphabet` on top of whatever the set already drops.
+   *
+   * @default ''
+   */
   exclude?: string;
 }
 
@@ -57,6 +74,61 @@ export interface INextOpaqueUidOptions<
    */
   isAvailable?: (id: string) => TVerdict;
 
-  /** Draws before giving up, when `isAvailable` is supplied. Defaults to {@link DEFAULT_UID_MAX_ATTEMPTS}. */
+  /**
+   * Draws before giving up, when `isAvailable` is supplied.
+   *
+   * @default DEFAULT_UID_MAX_ATTEMPTS
+   */
   maxAttempts?: number;
+}
+
+/** Options for generating a secret token. Every field is optional. */
+export interface ITokenUidOptions {
+  /**
+   * Random bytes before encoding. At least `MIN_TOKEN_BYTES`.
+   *
+   * @default DEFAULT_TOKEN_BYTES
+   */
+  bytes?: number;
+
+  /** @default UidTokenEncodings.BASE62 */
+  encoding?: TUidTokenEncoding;
+
+  /** Same rules as {@link IOpaqueUidOptions.prefix}. @default { enable: false } */
+  prefix?: IUidSegment;
+
+  /**
+   * Same rules as {@link IOpaqueUidOptions.delimiter}, checked against the characters of `encoding`:
+   * `_` (the default) and `-` work with `base62` and `hex`. `base64url` holds both, so with it only a
+   * character outside `A-Z a-z 0-9 - _` (for example `.`) is accepted.
+   *
+   * @default { enable: false }
+   */
+  delimiter?: IUidSegment;
+
+  /**
+   * Appends a fixed-width CRC-32 of the body, GitHub-style: 6 base62 characters (`base62`) or 8 hex
+   * characters (`hex`). `isWellFormed` then rejects a mistyped token without a database lookup, and a
+   * secret scanner can spot the token by its shape. Refused with `base64url`, whose alphabet has no
+   * fixed width to give it. The checksum covers the body only, never the prefix.
+   *
+   * @default false
+   */
+  checksum?: boolean;
+}
+
+/** Per-call options of `TokenUidHelper.nextId`. */
+export interface INextTokenUidOptions {
+  /** Replaces the configured prefix for this call and turns it on. An empty string is refused. */
+  prefix?: string;
+}
+
+/** Options for generating a numeric code. */
+export interface INumericUidOptions {
+  /**
+   * Digits in the code. `10 ** length` must not exceed `2 ** 48`, so 14 at most.
+   *
+   * @default DEFAULT_NUMERIC_LENGTH
+   */
+  length?: number;
 }

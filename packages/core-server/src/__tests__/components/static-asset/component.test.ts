@@ -5,8 +5,8 @@ import { ControllerTransports } from '@venizia/ignis-kernel';
 import { AppErrorMiddleware } from '@/base/middlewares';
 import { StaticAssetComponent } from '@/components/static-asset';
 import {
-  StaticAssetComponentBindingKeys,
-  type TStaticAssetsComponentOptions,
+  StaticAssetBindingKeys,
+  type TStaticAssetComponentOptions,
 } from '@/components/static-asset/common';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 import type { OpenAPIHono } from '@hono/zod-openapi';
@@ -46,17 +46,20 @@ const bootStaticAssetApplication = async (opts: {
   });
   application.init();
 
-  const componentOptions: TStaticAssetsComponentOptions = {
+  const componentOptions: TStaticAssetComponentOptions = {
     default: {
-      storage: 'disk',
       helper: helper as never,
-      controller: { name: 'AssetController', basePath, isStrict: false },
+      basePath,
+      bucket: 'images',
+      serverUpload: { use: true },
+      directUpload: { use: false },
+      metaLink: { use: false },
     },
   };
 
   application
-    .bind<TStaticAssetsComponentOptions>({
-      key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+    .bind<TStaticAssetComponentOptions>({
+      key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
     })
     .toValue(componentOptions);
 
@@ -67,6 +70,7 @@ const bootStaticAssetApplication = async (opts: {
   const server = application.getServer() as OpenAPIHono;
   server.onError(new AppErrorMiddleware({ logger: application.logger }).value());
   server.route(TEST_CONFIGS.path.base, application.getRootRouter());
+
   return server;
 };
 
@@ -81,9 +85,12 @@ describe('StaticAssetComponent takes its options directly', () => {
     const component = new StaticAssetComponent(application);
     await component.configure({
       default: {
-        storage: 'disk',
         helper: helper as never,
-        controller: { name: 'DirectAssetController', basePath: '/direct', isStrict: false },
+        basePath: '/direct',
+        bucket: 'images',
+        serverUpload: { use: true },
+        directUpload: { use: false },
+        metaLink: { use: false },
       },
     });
     await application['registerControllers']();
@@ -94,7 +101,7 @@ describe('StaticAssetComponent takes its options directly', () => {
 
     const formData = new FormData();
     formData.append('files', new File(['direct'], 'photo.jpg', { type: 'image/jpeg' }));
-    const response = await server.request('/direct/buckets/images/objects', {
+    const response = await server.request('/direct/objects', {
       method: 'POST',
       body: formData,
     });
@@ -111,7 +118,7 @@ describe('StaticAssetComponent', () => {
     const formData = new FormData();
     formData.append('files', new File(['flat'], 'photo.jpg', { type: 'image/jpeg' }));
 
-    const uploadResponse = await router.request('/assets/buckets/images/objects', {
+    const uploadResponse = await router.request('/assets/objects', {
       method: 'POST',
       body: formData,
     });
@@ -131,9 +138,9 @@ describe('StaticAssetComponent', () => {
 
     const formData = new FormData();
     formData.append('files', new File(['nested'], 'photo.jpg', { type: 'image/jpeg' }));
-    formData.append('folderPath', 'photos/2024');
+    formData.append('folderPath', 'photos');
 
-    const uploadResponse = await router.request('/assets/buckets/images/objects', {
+    const uploadResponse = await router.request('/assets/objects', {
       method: 'POST',
       body: formData,
     });
@@ -144,21 +151,11 @@ describe('StaticAssetComponent', () => {
       link: string;
       object: { key: string };
     }>;
-    expect(uploaded[0].object.key).toBe('photos/2024/photo.jpg');
+    expect(uploaded[0].object.key).toMatch(/^photos\/[0-9a-f-]{36}\/photo\.jpg$/);
 
     const getResponse = await router.request(uploaded[0].link);
     expect(getResponse.status).toBe(200);
     const result2 = await getResponse.text();
     expect(result2).toBe('nested');
-  });
-
-  test('a bucket name that fails validation never reaches the storage backend', async () => {
-    const helper = new FakeStorageHelper();
-    const router = await bootStaticAssetApplication({ helper });
-
-    const response = await router.request('/assets/buckets/%2e%2e%2fetc/objects/photo.jpg');
-    expect(response.status).toBeGreaterThanOrEqual(400);
-    expect(response.status).toBeLessThan(500);
-    expect(helper.calls).toEqual([]);
   });
 });

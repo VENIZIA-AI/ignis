@@ -100,6 +100,7 @@ const assertVectorDistance = (opts: { field: ISearchFieldDefinition }): void => 
   });
 };
 
+/** Compiles the engine-neutral collection DSL into a Meilisearch index plan. Meilisearch supports only cosine vector distance. */
 export class MeilisearchCollectionCompiler {
   /** Compiles the neutral collection DSL into a Meilisearch index plan. */
   static compile(opts: { definition: ISearchCollectionDefinition }): IMeilisearchIndexPlan {

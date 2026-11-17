@@ -149,6 +149,12 @@
       "min": 1
     },
     {
+      "gate": "exports parity",
+      "file": "scripts/build/build-checks/exports-parity.test.ts",
+      "titlePattern": "^positive control",
+      "min": 5
+    },
+    {
       "gate": "atlas index workflow guards",
       "file": "scripts/release/__tests__/docs-workflow.test.ts",
       "titlePattern": "the key is read only by the step that publishes",

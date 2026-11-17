@@ -1,5 +1,4 @@
 import { BaseApplication } from '@/base/applications/base';
-import { type AnyType } from '@venizia/ignis-helpers/common';
 import {
   AbstractSecretsHelper,
   SecretProviders,
@@ -24,9 +23,11 @@ class SystemEnvsBackedApp extends BaseApplication {
   override getProjectRoot() {
     return process.cwd();
   }
+
   override getAppInfo() {
-    return { name: 'probe', version: '0', description: '' } as AnyType;
+    return { name: 'probe', version: '0', description: '' };
   }
+
   override staticConfigure() {}
   override preConfigure() {}
   override postConfigure() {}
@@ -51,6 +52,7 @@ afterEach(() => {
 /** Formats each captured log call the way the framework logger would and asserts the secret VALUES never reach the line, while the diagnostic message still does. An Error at `%s` is projected by `ErrorPrettier`, so the credential-bearing `config`/`response` are dropped outright rather than redacted in place. */
 const assertRedactedThroughLogger = (calls: unknown[][]) => {
   expect(calls.length).toBeGreaterThan(0);
+
   for (const [message, ...args] of calls) {
     const rendered = LogFormatUtility.formatMessage({ message: String(message), args });
     expect(rendered).not.toContain('super-secret');
@@ -68,6 +70,7 @@ describe('hydrateSecrets does not leak raw error objects to the logger', () => {
         throw new FakeSensitiveTransportError();
       },
     );
+
     try {
       const app = new SystemEnvsBackedApp({
         scope: 'probe',
@@ -95,6 +98,7 @@ describe('hydrateSecrets does not leak raw error objects to the logger', () => {
         throw new FakeSensitiveTransportError();
       },
     );
+
     try {
       const app = new SystemEnvsBackedApp({
         scope: 'probe',

@@ -7,6 +7,7 @@ import type { TRedisClient } from './common';
 
 const REDIS_READY_TIMEOUT = 30_000;
 
+/** Static helpers for working with ioredis clients. */
 export class RedisUtility {
   /** Resolves once the client reaches `ready`; rejects on the first client error or when `timeoutMs` elapses. */
   static waitForReady(opts: { client: TRedisClient; timeoutMs?: number }): Promise<void> {
@@ -15,6 +16,7 @@ export class RedisUtility {
     return new Promise<void>((resolve, reject) => {
       if (client.status === 'ready') {
         resolve();
+
         return;
       }
 
@@ -22,6 +24,7 @@ export class RedisUtility {
 
       /** Run by every terminal branch: clients are long-lived and re-`configure()`d, so an unbound listener leaks (EventEmitter warns) and could fire on an already-settled promise. */
       const cleanups: Array<() => void> = [];
+
       const detach = () => {
         for (const cleanup of cleanups) {
           cleanup();

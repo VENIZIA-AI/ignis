@@ -21,7 +21,7 @@ The secret signs every token. A new secret on each start signs every user out; p
 |---|---|
 | `src/application.ts` | Binds the JWT options, mounts the auth routes, registers the `jwt` strategy |
 | `src/services/authentication.service.ts` | Sign-up, sign-in and change-password: hashes with `Bun.password`, signs with `JWSTokenService` |
-| `src/controllers/configuration.controller.ts` | CRUD routes from `ControllerFactory.defineCrudController`, all behind `authenticate: { strategies: [Authentication.STRATEGY_JWT] }` |
+| `src/controllers/configuration.controller.ts` | CRUD routes from `CrudControllerFactory.build`, all behind `authenticate: { strategies: [Authentication.STRATEGY_JWT] }` |
 | `src/controllers/view.controller.tsx` | Two HTML pages declared with `defineJSXRoute`; the pages live in `src/views` |
 | `src/models/*.ts` | The `users` and `configurations` tables and their entities |
 | `src/models/auth.schema.ts` | Response schemas of the auth routes, which type the generated client |
@@ -35,16 +35,23 @@ Every route sits under `/api`. A lock marks a route that needs `Authorization: B
 |---|---|---|
 | `GET` | `/`, `/about` | JSX pages |
 | `POST` | `/auth/sign-up` | Create a user: `{ username, credential }`, 8 characters or more each |
-| `POST` | `/auth/sign-in` | Answer `{ token }` for a valid username and password |
+| `POST` | `/auth/sign-in` | Answer `{ token }` for a valid username and password; both values need 8 characters or more |
 | `GET` | `/auth/who-am-i` (lock) | The token's payload |
 | `POST` | `/auth/change-password` (lock) | Change the signed-in user's password |
+| `POST` | `/auth/token/refresh` (lock) | Answers `501`: `AuthenticationService` has no `refreshToken` |
+| `GET` | `/auth/me` (lock) | Answers `501`: `AuthenticationService` has no `getUserInformation` |
 | `GET` | `/configurations` (lock) | List rows; takes a `filter` query |
 | `POST` | `/configurations` (lock) | Create a row; `createdBy` is always the signed-in user, and the body cannot set it |
 | `GET` | `/configurations/{id}` (lock) | One row |
 | `PATCH` | `/configurations/{id}` (lock) | Update one row |
 | `DELETE` | `/configurations/{id}` (lock) | Delete one row |
 | `GET` | `/health` | Liveness check |
+| `POST` | `/health/ping` | Answers `{ type: "PONG", date, message }` for a body of `{ message }` |
 | `GET` | `/doc/openapi.json` | The OpenAPI document the client generates its types from |
+
+The change-password body is `{ scheme, oldCredential, newCredential, userId }`. `scheme` is a
+string (the schema example uses `basic`), each credential is 8 characters or more, and `userId` is required by the schema
+but not read: the service takes the user from the token.
 
 `/configurations` also has `/count`, `/find-one` and the bulk `PATCH` / `DELETE` with `where`, as in
 [`pglite-quickstart`](../pglite-quickstart).

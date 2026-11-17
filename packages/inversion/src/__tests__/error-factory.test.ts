@@ -15,10 +15,13 @@ const expectApplicationError = (fn: () => unknown, pattern: RegExp): void => {
     if (!isApplicationError(error)) {
       throw error;
     }
+
     expect(error.statusCode).toBe(400);
     expect(error.message).toMatch(pattern);
+
     return;
   }
+
   throw new Error('[error-factory] expected the callback to throw');
 };
 
@@ -38,6 +41,7 @@ describe('MessageCode.build throws ApplicationError, unbundled', () => {
 describe('MessageCode.build throws ApplicationError, bundled for the browser', () => {
   test('a browser bundle of the package entry keeps the error-factory registration', async () => {
     const entryPath = path.resolve(process.cwd(), 'dist/esm/index.js');
+
     if (!existsSync(entryPath)) {
       throw new Error(
         '[error-factory] packages/inversion/dist/esm/index.js is missing - run `make inversion` first.',
@@ -45,6 +49,7 @@ describe('MessageCode.build throws ApplicationError, bundled for the browser', (
     }
 
     const probeDirectory = await mkdtemp(path.join(tmpdir(), 'ignis-error-factory-probe-'));
+
     try {
       const probePath = path.join(probeDirectory, 'probe.ts');
       const outPath = path.join(probeDirectory, 'out.js');
@@ -63,6 +68,7 @@ describe('MessageCode.build throws ApplicationError, bundled for the browser', (
         stdout: 'pipe',
         stderr: 'pipe',
       });
+
       if (!build.success) {
         throw new Error(`[error-factory] bundle failed: ${build.stderr.toString()}`);
       }

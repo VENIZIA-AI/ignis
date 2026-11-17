@@ -1,6 +1,7 @@
 /** Long enough for a cold `bun build` under a loaded parallel run; it bounds a stall, not a slow run. */
 export const SPAWN_TIMEOUT_MS = 120_000;
 
+/** Bounded wrappers around `Bun.spawn*` for tests, so a stuck child cannot stall a suite. */
 export class SpawnHelper {
   /**
    * `Bun.spawnSync`, bounded. A sync spawn blocks the worker thread, so bun's own test timeout cannot

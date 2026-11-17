@@ -34,7 +34,10 @@ const where: TWhere<Product> = { 'metadata.a.b': 'value' }; // compiles - metada
 
 | Checked | Not checked |
 |---|---|
-| The column part of the key. A typo (`'metdata.a'`) or a path on a non-JSON column (`'score.a'` when `score` is a number) is a compile error. | The value on a JSON path - its type is `unknown`, so any value compiles. Runtime validation ([Path Validation](#path-validation), [Numeric Casting](#numeric-casting)) still checks it at query time. |
+| The column part of the key | The value on a JSON path |
+
+- A typo (`'metdata.a'`) or a path on a non-JSON column (`'score.a'` when `score` is a number) is a compile error.
+- The value on a JSON path has type `unknown`, so any value compiles. Runtime validation ([Path Validation](#path-validation), [Numeric Casting](#numeric-casting)) still checks it at query time.
 
 A column counts as a JSON column when its value can hold JSON: `unknown`, `any`, or an object other than `Date` or `TIsoTimestamp`.
 

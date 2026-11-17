@@ -18,6 +18,7 @@ const copyApp = (name: string): string => {
     recursive: true,
     filter: (path) => !path.includes('app_data'),
   });
+
   return root;
 };
 
@@ -71,10 +72,13 @@ describe('a source start with a warm cache', () => {
       probe,
       `import auto from ${JSON.stringify(AUTO)};\nconst index = await auto.resolve();\nconst names = Object.values(index).flat().map(target => target.name).sort().join(',');\nconst typescript = Object.keys(require.cache).some(key => /[\\\\/]typescript[\\\\/]lib[\\\\/]/.test(key));\nconsole.log('names=' + names + ' typescript=' + typescript);\n`,
     );
+
     const run = () => {
       const result = Bun.spawnSync(['bun', '--preload', STUB, probe], { cwd: workspace });
+
       return result.stdout.toString() + result.stderr.toString();
     };
+
     expect(run()).toContain('names=AlphaService,BetaRepository typescript=true');
     expect(run()).toContain('names=AlphaService,BetaRepository typescript=false');
   });

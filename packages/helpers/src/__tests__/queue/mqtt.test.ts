@@ -1,6 +1,6 @@
-import { type AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
 import { type IMQTTClientOptions, MQTTClientHelper } from '@/modules/queue/mqtt';
+import type { MqttClient } from 'mqtt';
 import { EventEmitter } from 'node:events';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
@@ -28,7 +28,7 @@ class FakeMqttClient extends EventEmitter {
     callback(this.publishError);
   }
 
-  end(isForce?: boolean, _options?: AnyType, callback?: () => void): void {
+  end(isForce?: boolean, _options?: unknown, callback?: () => void): void {
     this.endCalls.push({ isForce: isForce ?? false });
     this.connected = false;
 
@@ -40,14 +40,30 @@ class FakeMqttClient extends EventEmitter {
   }
 }
 
+const isMqttClient = (value: unknown): value is MqttClient => {
+  return value instanceof FakeMqttClient;
+};
+
 class TestMQTTClientHelper extends MQTTClientHelper {
   // A getter, not a field: the base constructor calls configure() before subclass fields initialize.
   get fakeClient(): FakeMqttClient {
-    return this.getClient() as AnyType;
+    const client = this.getClient();
+
+    if (!(client instanceof FakeMqttClient)) {
+      throw getError({ message: 'Expected the helper client to be the FakeMqttClient' });
+    }
+
+    return client;
   }
 
-  protected override createClient(): AnyType {
-    return new FakeMqttClient();
+  protected override createClient(): MqttClient {
+    const client = new FakeMqttClient();
+
+    if (!isMqttClient(client)) {
+      throw getError({ message: 'Expected the fake to stand in for an mqtt client' });
+    }
+
+    return client;
   }
 }
 
@@ -70,6 +86,7 @@ const flush = async (): Promise<void> => {
 /** Awaits a rejection explicitly: bun's `expect(...).rejects` is typed as non-thenable in this repo. */
 const captureRejection = async (opts: { promise: Promise<unknown> }): Promise<Error> => {
   let outcome: Error | null = null;
+
   try {
     await opts.promise;
   } catch (error) {
@@ -85,6 +102,7 @@ const captureRejection = async (opts: { promise: Promise<unknown> }): Promise<Er
 
 describe('MQTTClientHelper — hooks, subscribe/publish guards, teardown', () => {
   const unhandledRejections: unknown[] = [];
+
   const onUnhandledRejection = (reason: unknown) => {
     unhandledRejections.push(reason);
   };

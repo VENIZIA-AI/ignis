@@ -48,6 +48,7 @@ export class StringCases extends BaseTestCases {
       });
 
       const noneAlpha = results.every((r) => !r.tValue?.includes('alpha'));
+
       if (noneAlpha && results.length >= 5) {
         this.context.logger.info(
           '[NLIKE] PASSED | Found %d records NOT containing "alpha"',
@@ -105,6 +106,7 @@ export class StringCases extends BaseTestCases {
       });
 
       const noneBeta = results.every((r) => !r.tValue?.toLowerCase().includes('beta'));
+
       if (noneBeta && results.length >= 5) {
         this.context.logger.info(
           '[NILIKE] PASSED | Found %d records NOT containing "beta" (case-insensitive)',
@@ -235,7 +237,7 @@ export class StringCases extends BaseTestCases {
       // Query for JSON field containing single quote
       const results = await repo.find({
         filter: {
-          where: { group: 'COMPREHENSIVE_TEST', 'jValue.name': { like: "%'%" } } as any,
+          where: { group: 'COMPREHENSIVE_TEST', 'jValue.name': { like: "%'%" } },
         },
       });
 

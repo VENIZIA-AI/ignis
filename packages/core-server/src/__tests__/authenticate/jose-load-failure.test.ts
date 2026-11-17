@@ -27,6 +27,7 @@ const JWT_OPTIONS: TJWTTokenServiceOptions = {
   options: {
     jwtSecret: 'probe-secret-that-is-long-enough-for-hs256',
     getTokenExpiresFn: () => 60,
+    claims: { issuer: 'test-issuer', audience: 'test-audience' },
   },
 };
 
@@ -80,6 +81,7 @@ const buildApplication = (opts: {
   }
 
   application.component(AuthenticateComponent);
+
   return application;
 };
 
@@ -103,16 +105,19 @@ describe('a jose that cannot load', () => {
     useImporter({
       importer: () => {
         attempts += 1;
+
         return attempts === 1 ? Promise.reject(MISSING_JOSE) : defaultImporter();
       },
     });
 
     let firstLoad: unknown;
+
     try {
       await JoseLoader.load();
     } catch (error) {
       firstLoad = error;
     }
+
     const jose = await JoseLoader.load();
 
     expect(firstLoad).toBe(MISSING_JOSE);
@@ -129,6 +134,7 @@ describe('a jose that cannot load', () => {
       useImporter({ importer: () => Promise.reject(MISSING_JOSE) });
 
       let failure: unknown;
+
       try {
         await buildApplication(options).initialize();
       } catch (error) {
@@ -149,6 +155,7 @@ describe('a jose that cannot load', () => {
     useImporter({
       importer: () => {
         attempts += 1;
+
         return defaultImporter();
       },
     });
@@ -163,6 +170,7 @@ describe('a jose that cannot load', () => {
     useImporter({
       importer: () => {
         attempts += 1;
+
         return Promise.reject(MISSING_JOSE);
       },
     });

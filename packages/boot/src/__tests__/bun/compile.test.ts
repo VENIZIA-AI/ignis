@@ -30,6 +30,7 @@ const stage = (opts: { name: string; app: string }): string => {
   cpSync(join(FIXTURES, 'groups', 'core'), join(root, 'core'), { recursive: true });
   mkdirSync(join(root, 'app', 'node_modules', '@fixture'), { recursive: true });
   symlinkSync(join(root, 'core'), join(root, 'app', 'node_modules', '@fixture', 'core'));
+
   return join(root, 'app');
 };
 
@@ -143,6 +144,7 @@ describe('a compiled binary', () => {
       join(app, 'src', 'lazy.ts'),
       "import auto from '@venizia/ignis-boot/auto';\nconsole.log('imported');\nawait auto.resolve();\nconsole.log('resolved');\n",
     );
+
     const order = async (opts: { lazyIndex?: boolean; out: string }): Promise<string[]> => {
       const result = await Bun.build({
         entrypoints: [join(app, 'src', 'lazy.ts')],
@@ -155,11 +157,13 @@ describe('a compiled binary', () => {
         throw: false,
       });
       expect(result.success).toBe(true);
+
       return Bun.spawnSync(['bun', join(app, opts.out, 'lazy.js')], { cwd: tmpdir() })
         .stdout.toString()
         .split('\n')
         .filter(Boolean);
     };
+
     const result2 = await order({ out: 'out-default' });
     expect(result2).toEqual(['evaluated', 'imported', 'resolved']);
     const result3 = await order({ lazyIndex: true, out: 'out-lazy' });

@@ -15,6 +15,7 @@ interface IBuilderSlot {
   builder: TRelationBuilder | undefined;
 }
 
+/** Process-wide slot where the relational connector installs its relation builder; `resolve()` is `undefined` until one is set. */
 export class RelationBuilderRegistry {
   static readonly SINGLETON_REAL_KEY = 'relation-builder';
 

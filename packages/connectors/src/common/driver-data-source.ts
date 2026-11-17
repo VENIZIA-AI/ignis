@@ -1,9 +1,10 @@
-import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
+import type { IDataSourceOpening, TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { AbstractDataSource } from '@venizia/ignis-kernel/repository';
 import { MetadataRegistry } from '@venizia/ignis-kernel/metadata';
-import type { AnyObject, AnyType, TClass } from '@venizia/ignis-helpers/common';
+import type { TClass } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IConnectorDriver } from './driver';
+import { DuckTypingUtility } from './internal';
 
 /**
  * A datasource that holds one client and a connector built over it through a driver: the lifecycle
@@ -22,9 +23,9 @@ export abstract class AbstractDriverDataSource<
   ConfigurableOptions extends object = {},
   Client = unknown,
   TConnector = unknown,
-  TDriver extends IConnectorDriver<TConnector, AnyType> = IConnectorDriver<TConnector, Client>,
+  TDriver extends IConnectorDriver<TConnector, unknown> = IConnectorDriver<TConnector, Client>,
 > extends AbstractDataSource<Settings, Schema, ConfigurableOptions> {
-  connector: TConnector;
+  connector?: TConnector;
 
   protected client?: Client;
   protected driver?: TDriver;
@@ -33,16 +34,18 @@ export abstract class AbstractDriverDataSource<
 
   /**
    * Lazy and idempotent: builds the driver named by `@datasource({ driver })` over the client
-   * `configure()` assigned, then the connector from it.
+   * `configure()` assigned, then the connector from it. Returns the connector.
    */
-  protected wireDriverFromMetadata(): void {
+  protected wireDriverFromMetadata(): TConnector {
     if (this.connector) {
-      return;
+      return this.connector;
     }
 
     if (this.driver) {
-      this.connector = this.driver.createConnector({ schema: this.getSchema() });
-      return;
+      const connector = this.driver.createConnector({ schema: this.getSchema() });
+      this.connector = connector;
+
+      return connector;
     }
 
     if (!this.client) {
@@ -52,7 +55,11 @@ export abstract class AbstractDriverDataSource<
     }
 
     const DriverClass = this.resolveDriverClass();
-    this.useDriver({ driver: new DriverClass({ client: this.client }) });
+
+    // `TClass` takes `never[]`, so any driver constructor fits; Reflect.construct passes the client through.
+    const driver: TDriver = Reflect.construct(DriverClass, [{ client: this.client }]);
+
+    return this.useDriver({ driver });
   }
 
   /**
@@ -76,22 +83,61 @@ export abstract class AbstractDriverDataSource<
 
   protected resolveDriver(): TDriver {
     this.wireDriverFromMetadata();
+
     return this.driver as TDriver;
   }
 
   /**
    * Assigns `this.driver` AND builds `this.connector` in one step - a
-   * driver without its connector is silently bypassed on pooled queries.
+   * driver without its connector is silently bypassed on pooled queries. Returns the connector.
    */
-  protected useDriver(opts: { driver: TDriver; schema?: Schema }): void {
+  protected useDriver(opts: { driver: TDriver; schema?: Schema }): TConnector {
     this.driver = opts.driver;
-    this.connector = opts.driver.createConnector({ schema: opts.schema ?? this.getSchema() });
+    const connector = opts.driver.createConnector({ schema: opts.schema ?? this.getSchema() });
+    this.connector = connector;
+
+    return connector;
+  }
+
+  /** A datasource that opens on first use has no client, driver or connector until the first call that needs it has awaited `ensureOpen()`. */
+  private assertOpenForSyncUse(opts: { member: string }): void {
+    if (!this.isOpenDeferred()) {
+      return;
+    }
+
+    if (this.isClosed()) {
+      throw getError({
+        message: `[${this.constructor.name}][${opts.member}] The datasource is closed | It opens on first use only before close()`,
+      });
+    }
+
+    if (this.isOpening()) {
+      throw getError({
+        message: `[${this.constructor.name}][${opts.member}] The datasource is still opening | Inside configure() use the opening argument (opening.${opts.member}()); outside it, await ensureOpen()`,
+      });
+    }
+
+    if (!this.isOpen()) {
+      throw getError({
+        message: `[${this.constructor.name}][${opts.member}] The datasource opens on first use and is not open | Await ensureOpen() first; repository calls do it for you`,
+      });
+    }
+  }
+
+  /** The handles `configure()` is given: the connector and the client through the ungated internals, so its own database work (migrations, seeding) needs no gate. */
+  protected override createOpening(): IDataSourceOpening<TConnector, Client> {
+    return {
+      ...super.createOpening(),
+      getConnector: () => this.wireDriverFromMetadata(),
+      getClient: () => this.readClient(),
+    };
   }
 
   /** Wires the driver on first use, so a `configure()` that only builds `this.client` is enough. */
   getConnector(): TConnector {
-    this.wireDriverFromMetadata();
-    return this.connector;
+    this.assertOpenForSyncUse({ member: this.getConnector.name });
+
+    return this.wireDriverFromMetadata();
   }
 
   /**
@@ -99,6 +145,12 @@ export abstract class AbstractDriverDataSource<
    * than handing back an `undefined` typed as `Client`.
    */
   getClient(): Client {
+    this.assertOpenForSyncUse({ member: this.getClient.name });
+
+    return this.readClient();
+  }
+
+  private readClient(): Client {
     if (this.driver) {
       return this.driver.getClient() as Client;
     }
@@ -118,8 +170,34 @@ export abstract class AbstractDriverDataSource<
    * engine's whole teardown - PGlite also clears the exit status it plants on the host process.
    */
   override close(): Promise<void> {
-    this.closePromise ??= this.endConnection();
+    // A stop that arrives while the first use is still opening waits for that open, then closes what it built.
+    this.closePromise ??= this.settleOpening().then(() => this.endConnection());
+
     return this.closePromise;
+  }
+
+  /** Ends a client that a failed open left half-built and forgets the driver and connector, so the next open starts from nothing. */
+  protected override async discardPartialOpen(): Promise<void> {
+    const { client, driver } = this;
+
+    this.client = undefined;
+    this.driver = undefined;
+    this.connector = undefined;
+
+    // A close() that is waiting for this open owns the slot: clearing it would let a second close end the connection twice.
+    if (!this.isClosed()) {
+      this.closePromise = undefined;
+    }
+
+    if (driver && typeof driver.end === 'function') {
+      await driver.end();
+
+      return;
+    }
+
+    if (client !== undefined) {
+      await this.drainClient({ client });
+    }
   }
 
   private async endConnection(): Promise<void> {
@@ -128,6 +206,7 @@ export abstract class AbstractDriverDataSource<
     }
 
     let driver: TDriver;
+
     try {
       driver = this.resolveDriver();
     } catch (error) {
@@ -135,6 +214,7 @@ export abstract class AbstractDriverDataSource<
         .for(this.close.name)
         .warn('No driver to end the connection with | draining the client | error: %s', error);
       await this.drainClient({ client: this.client });
+
       return;
     }
 
@@ -142,6 +222,7 @@ export abstract class AbstractDriverDataSource<
     if (typeof driver.end !== 'function') {
       this.logger.for(this.close.name).warn('The driver has no end() | draining the client');
       await this.drainClient({ client: this.client });
+
       return;
     }
 
@@ -155,26 +236,39 @@ export abstract class AbstractDriverDataSource<
    */
   async onSecretRotated(opts: { key: string; secret: Record<string, string> }): Promise<void> {
     const logger = this.logger.for(this.onSecretRotated.name);
-    const oldClient = this.getClient() as AnyType;
+
+    // Nothing is open yet, so there is no pool to swap: the rotated credentials wait in the settings for the first use.
+    if (this.isOpenDeferred() && !this.isOpen()) {
+      Object.assign(this.settings, this.mapSecretToSettings({ secret: opts.secret }));
+      logger.info(
+        'Datasource not open yet; credentials kept for its first use | key: %s',
+        opts.key,
+      );
+
+      return;
+    }
+
+    const oldClient = this.getClient();
 
     // Snapshot so a failed rebuild restores the datasource verbatim;
     // `settings` is copied because rotation mutates it in place.
     const savedClient = this.client;
-    const savedSettings = { ...(this.settings as AnyObject) };
+    const savedSettings = { ...this.settings };
 
     // Rotation only takes effect through this.settings + configure(); a configure() that
     // hard-codes its connection string or reads the environment directly rebuilds with stale credentials.
-    Object.assign(this.settings as AnyObject, this.mapSecretToSettings({ secret: opts.secret }));
+    Object.assign(this.settings, this.mapSecretToSettings({ secret: opts.secret }));
 
     // configure() overwrites this.client, so the new pool is captured
     // into a local and the old client restored at once - live fields
     // are never nulled and the old pool keeps serving until the swap.
     let newClient: Client;
+
     try {
       await this.configure();
       newClient = this.client as Client;
     } catch (error) {
-      const halfBuilt = this.client as AnyType;
+      const halfBuilt = this.client;
       this.client = savedClient;
       this.restoreSettings({ saved: savedSettings });
 
@@ -191,9 +285,10 @@ export abstract class AbstractDriverDataSource<
     // Wired into locals: live state must stay on the old pool until the swap below.
     let newDriver: TDriver;
     let newConnector: TConnector;
+
     try {
       const DriverClass = this.resolveDriverClass();
-      newDriver = new DriverClass({ client: newClient as AnyType });
+      newDriver = Reflect.construct(DriverClass, [{ client: newClient }]);
       newConnector = newDriver.createConnector({ schema: this.getSchema() });
     } catch (error) {
       this.restoreSettings({ saved: savedSettings });
@@ -205,23 +300,24 @@ export abstract class AbstractDriverDataSource<
 
     // Commit the live fields in one synchronous step so there is no null window,
     // then soft-evict the old pool so its in-flight transactions can finish.
-    this.client = newClient as AnyType;
+    this.client = newClient;
     this.driver = newDriver;
-    this.connector = newConnector as AnyType;
+    this.connector = newConnector;
 
     const isDrained = await this.drainClient({ client: oldClient });
+
     if (isDrained) {
       logger.info('Old pool drained after secret rotation | key: %s', opts.key);
     }
   }
 
   /** Puts `settings` back to the snapshot: a key the failed rotation added (the rotated `password`) is removed, not left behind. */
-  private restoreSettings(opts: { saved: AnyObject }): void {
-    const settings = this.settings as AnyObject;
+  private restoreSettings(opts: { saved: Settings }): void {
+    const { settings } = this;
 
     for (const key of Object.keys(settings)) {
       if (!(key in opts.saved)) {
-        delete settings[key];
+        Reflect.deleteProperty(settings, key);
       }
     }
 
@@ -235,30 +331,34 @@ export abstract class AbstractDriverDataSource<
    * client left undrained keeps a WASM instance or file handle alive forever.
    */
   protected async drainClient(opts: { client: unknown }): Promise<boolean> {
-    const client = opts.client as AnyType;
+    const { client } = opts;
 
-    const drain = typeof client?.end === 'function' ? client.end : client?.close;
+    const drain =
+      DuckTypingUtility.getMethod({ value: client, name: 'end' }) ??
+      DuckTypingUtility.getMethod({ value: client, name: 'close' });
 
-    if (typeof drain !== 'function') {
+    if (!drain) {
       this.logger
         .for(this.drainClient.name)
         .warn('Client exposes neither end() nor close(); nothing to drain');
+
       return false;
     }
 
-    await drain.call(client);
+    await drain();
 
     return true;
   }
 
   /** Vault's database engine returns `{ username, password }`; pg expects `{ user, password }`. */
-  protected mapSecretToSettings(opts: { secret: Record<string, string> }): AnyObject {
+  protected mapSecretToSettings(opts: { secret: Record<string, string> }): Record<string, unknown> {
     const { username, password } = opts.secret;
-    const mapped: AnyObject = {};
+    const mapped: Record<string, unknown> = {};
 
     if (username !== undefined) {
       mapped.user = username;
     }
+
     if (password !== undefined) {
       mapped.password = password;
     }

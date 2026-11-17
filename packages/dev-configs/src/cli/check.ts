@@ -76,6 +76,7 @@ const parsePurityArguments = (args: string[]): IPurityArguments | string => {
 
     if (arg === '--claims') {
       const value = args[index + 1];
+
       if (value === undefined || value.startsWith('--')) {
         return '--claims needs a file';
       }
@@ -114,11 +115,13 @@ const parseRepeatable = (opts: {
 
     if (arg.startsWith('--')) {
       const name = arg.slice(2);
+
       if (!repeatable.includes(name) && !single.includes(name)) {
         return `unknown option "${arg}"`;
       }
 
       const value = args[index + 1];
+
       if (value === undefined || value.startsWith('--')) {
         return `${arg} needs a value`;
       }
@@ -138,27 +141,33 @@ const parseRepeatable = (opts: {
 export class CheckCommand {
   private static runTestWeight(opts: { root: string; args: string[] }): number {
     const parsed = parseRepeatable({ args: opts.args, repeatable: [], single: ['top'] });
+
     if (typeof parsed === 'string' || parsed.positionals.length === 0) {
       console.error(
         `devz check test-weight: ${typeof parsed === 'string' ? parsed : 'give at least one JUnit file'}\n${USAGE}`,
       );
+
       return USAGE_ERROR_CODE;
     }
 
     const reports = parsed.positionals.map((file) => {
       const path = resolve(opts.root, file);
+
       return {
         label: basename(file).replace(/\.xml$/, ''),
         xml: existsSync(path) ? readFileSync(path, 'utf8') : '',
       };
     });
     const missing = parsed.positionals.filter((file) => !existsSync(resolve(opts.root, file)));
+
     if (missing.length > 0) {
       console.error(`devz check test-weight: not found: ${missing.join(', ')}`);
+
       return USAGE_ERROR_CODE;
     }
 
     const top = parsed.values.top?.[0] === undefined ? undefined : Number(parsed.values.top[0]);
+
     for (const line of TestWeightCheck.formatReport({
       report: TestWeightCheck.analyseJunit({ reports }),
       top,
@@ -172,17 +181,21 @@ export class CheckCommand {
   private static runTestDeadCode(opts: { root: string; args: string[] }): number {
     if (opts.args.length > 0) {
       console.error(`devz check test-dead-code: unexpected argument "${opts.args[0]}"\n${USAGE}`);
+
       return USAGE_ERROR_CODE;
     }
 
     const candidates = DeadTestCodeCheck.find({ root: opts.root });
+
     for (const kind of ['unreferenced', 'folder-referenced'] as const) {
       const own = candidates.filter((candidate) => candidate.kind === kind);
       console.log(`${kind}: ${own.length}`);
+
       for (const candidate of own) {
         console.log(`  ${candidate.file}`);
       }
     }
+
     console.log(
       '\nThese are candidates: delete one, run the package suite, and keep it if anything fails or loads it by a built path.',
     );
@@ -192,24 +205,31 @@ export class CheckCommand {
 
   private static runTestMutate(opts: { root: string; args: string[] }): number {
     const [file, ...extra] = opts.args;
+
     if (file === undefined || extra.length > 0) {
       console.error(`devz check test-mutate: give one ledger file\n${USAGE}`);
+
       return USAGE_ERROR_CODE;
     }
 
     const path = resolve(opts.root, file);
+
     if (!existsSync(path)) {
       console.error(`devz check test-mutate: ledger not found: ${file}`);
+
       return USAGE_ERROR_CODE;
     }
 
     const ledger: ILedger = JSON.parse(readFileSync(path, 'utf8'));
+
     if (!Array.isArray(ledger.mutants)) {
       console.error(`devz check test-mutate: ${file} has no "mutants" array`);
+
       return USAGE_ERROR_CODE;
     }
 
     const results = TestMutateCheck.replayLedger({ root: opts.root, ledger });
+
     for (const line of TestMutateCheck.formatLedgerResults({ results })) {
       console.log(line);
     }
@@ -219,32 +239,41 @@ export class CheckCommand {
 
   private static async runTestControls(opts: { root: string; args: string[] }): Promise<number> {
     const [file, ...extra] = opts.args;
+
     if (file === undefined || extra.length > 0) {
       console.error(`devz check test-controls: give one registry file\n${USAGE}`);
+
       return USAGE_ERROR_CODE;
     }
 
     const path = resolve(opts.root, file);
+
     if (!existsSync(path)) {
       console.error(`devz check test-controls: registry not found: ${file}`);
+
       return USAGE_ERROR_CODE;
     }
 
     const registry: { controls?: IControlEntry[] } = JSON.parse(readFileSync(path, 'utf8'));
+
     if (!Array.isArray(registry.controls)) {
       console.error(`devz check test-controls: ${file} has no "controls" array`);
+
       return USAGE_ERROR_CODE;
     }
 
     const report = await TestControlsCheck.run({ root: opts.root, controls: registry.controls });
+
     if (report.problems.length === 0) {
       console.log(`test-controls: OK - ${report.checked} registered controls found`);
+
       return 0;
     }
 
     console.error(
       `test-controls: ${report.problems.length} of ${report.checked} registered controls are gone:`,
     );
+
     for (const problem of report.problems) {
       console.error(`  [${problem.entry.gate}] ${problem.message}`);
     }
@@ -254,8 +283,10 @@ export class CheckCommand {
 
   private static runSplitReport(opts: { root: string; args: string[] }): number {
     const parsed = parseRepeatable({ args: opts.args, repeatable: [], single: ['dist'] });
+
     if (typeof parsed === 'string') {
       console.error(`devz check split-report: ${parsed}\n${USAGE}`);
+
       return USAGE_ERROR_CODE;
     }
 
@@ -276,10 +307,12 @@ export class CheckCommand {
       repeatable: ['glob', 'pinned'],
       single: ['preset-prefix'],
     });
+
     if (typeof parsed === 'string' || parsed.positionals.length > 0) {
       console.error(
         `devz check catalog: ${typeof parsed === 'string' ? parsed : `unexpected argument "${parsed.positionals[0]}"`}\n${USAGE}`,
       );
+
       return USAGE_ERROR_CODE;
     }
 
@@ -292,15 +325,18 @@ export class CheckCommand {
 
     if (report.noCatalog) {
       console.error('check-catalog: no `workspaces.catalog` in the root package.json');
+
       return 1;
     }
 
     if (report.problems.length === 0) {
       console.log(`check-catalog: OK - ${report.entries} entries, ${report.referenced} referenced`);
+
       return 0;
     }
 
     console.error(`check-catalog: ${report.problems.length} problem(s):`);
+
     for (const problem of report.problems) {
       console.error(`  ${problem.file}: ${problem.message}`);
     }
@@ -314,6 +350,7 @@ export class CheckCommand {
 
     if (name === undefined || name === '--help' || name === '-h') {
       console.log(USAGE);
+
       return name === undefined ? USAGE_ERROR_CODE : 0;
     }
 
@@ -351,36 +388,45 @@ export class CheckCommand {
 
     if (name !== 'purity') {
       console.error(`devz check: unknown check "${name}"\n${USAGE}`);
+
       return USAGE_ERROR_CODE;
     }
 
     if (rest.includes('--help') || rest.includes('-h')) {
       console.log(USAGE);
+
       return 0;
     }
 
     const parsed = parsePurityArguments(rest);
+
     if (typeof parsed === 'string') {
       console.error(`devz check purity: ${parsed}\n${USAGE}`);
+
       return USAGE_ERROR_CODE;
     }
 
     if (parsed.claimsFile === undefined) {
       console.error(`devz check purity: --claims <file> is required\n${USAGE}`);
+
       return USAGE_ERROR_CODE;
     }
 
     const claimsPath = isAbsolute(parsed.claimsFile)
       ? parsed.claimsFile
       : resolve(root, parsed.claimsFile);
+
     if (!existsSync(claimsPath)) {
       console.error(`devz check purity: claims file not found: ${parsed.claimsFile}`);
+
       return USAGE_ERROR_CODE;
     }
 
     const claimsModule: IClaimsModule = await import(claimsPath);
+
     if (!Array.isArray(claimsModule.PURITY_CLAIMS)) {
       console.error(`devz check purity: ${parsed.claimsFile} does not export PURITY_CLAIMS`);
+
       return USAGE_ERROR_CODE;
     }
 

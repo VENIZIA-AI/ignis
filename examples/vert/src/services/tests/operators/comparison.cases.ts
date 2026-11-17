@@ -42,6 +42,7 @@ export class ComparisonCases extends BaseTestCases {
 
       // Should find all non-NULL records where nValue != 20
       const allNot20 = results.every((r) => r.nValue !== 20);
+
       if (allNot20 && results.length > 0) {
         this.context.logger.info(
           '[NE] PASSED | Found %d records with nValue != 20',
@@ -67,6 +68,7 @@ export class ComparisonCases extends BaseTestCases {
       });
 
       const allNot30 = results.every((r) => r.nValue !== 30);
+
       if (allNot30 && results.length > 0) {
         this.context.logger.info(
           '[NEQ] PASSED | Found %d records with nValue != 30',
@@ -93,6 +95,7 @@ export class ComparisonCases extends BaseTestCases {
 
       // Should find records with nValue > 30: 40, 50, 100, 2147483647 = 4 records
       const allGreater = results.every((r) => r.nValue !== null && r.nValue > 30);
+
       if (allGreater && results.length === 4) {
         this.context.logger.info('[GT] PASSED | Found %d records with nValue > 30', results.length);
         this.context.logger.info(
@@ -120,6 +123,7 @@ export class ComparisonCases extends BaseTestCases {
 
       // Should find records with nValue >= 30: 30, 40, 50, 100, 2147483647 = 5 records
       const allGte = results.every((r) => r.nValue !== null && r.nValue >= 30);
+
       if (allGte && results.length === 5) {
         this.context.logger.info(
           '[GTE] PASSED | Found %d records with nValue >= 30',
@@ -146,6 +150,7 @@ export class ComparisonCases extends BaseTestCases {
 
       // Should find: -100, 0, 10, 20 = 4 records
       const allLess = results.every((r) => r.nValue !== null && r.nValue < 30);
+
       if (allLess && results.length === 4) {
         this.context.logger.info('[LT] PASSED | Found %d records with nValue < 30', results.length);
         this.context.logger.info(
@@ -173,6 +178,7 @@ export class ComparisonCases extends BaseTestCases {
 
       // Should find: -100, 0, 10, 20, 30 = 5 records
       const allLte = results.every((r) => r.nValue !== null && r.nValue <= 30);
+
       if (allLte && results.length === 5) {
         this.context.logger.info(
           '[LTE] PASSED | Found %d records with nValue <= 30',
@@ -205,6 +211,7 @@ export class ComparisonCases extends BaseTestCases {
 
       // Should find 20, 30, 40
       const allInRange = results.every((r) => r.nValue !== null && r.nValue > 10 && r.nValue < 50);
+
       if (allInRange && results.length === 3) {
         this.context.logger.info('[MULTI-OP] PASSED | Found 3 records with 10 < nValue < 50');
         this.context.logger.info(
@@ -237,6 +244,7 @@ export class ComparisonCases extends BaseTestCases {
       const allInRange = results.every(
         (r) => r.nValue !== null && r.nValue >= 20 && r.nValue <= 40,
       );
+
       if (allInRange && results.length === 3) {
         this.context.logger.info('[RANGE] PASSED | gte+lte works like between | Found 3 records');
       } else {

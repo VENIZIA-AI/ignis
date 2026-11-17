@@ -1,4 +1,3 @@
-import { type AnyType } from '@/common/types';
 import { BaseLogger } from '../base';
 import { type ILogger, type TLogLevel } from '../common';
 import { LogFormatUtility } from '../formatting';
@@ -14,6 +13,7 @@ export class PinoLogger extends BaseLogger {
 
   static get(scope: string): PinoLogger {
     let cached = this.cache.get(scope);
+
     if (!cached) {
       cached = new PinoLogger(scope);
       this.cache.set(scope, cached);
@@ -23,13 +23,13 @@ export class PinoLogger extends BaseLogger {
   }
 
   /** Resolves the backing instance at WRITE time and never caches it, so `PinoBackingLogger.set()` takes effect for every already-issued scope immediately. */
-  protected write(opts: { level: TLogLevel; message: string; args: Array<AnyType> }) {
+  protected write(opts: { level: TLogLevel; message: string; args: unknown[] }) {
     const line =
       opts.args.length > 0
         ? LogFormatUtility.formatMessage({ message: opts.message, args: opts.args })
         : opts.message;
 
-    const backing = PinoBackingLogger.get() as AnyType;
+    const backing = PinoBackingLogger.get();
     backing[opts.level](this._formattedPrefix + line);
   }
 

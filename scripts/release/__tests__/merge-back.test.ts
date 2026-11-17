@@ -74,6 +74,8 @@ const fixture = (opts: { developVersion: string }): string => {
   const root = scratch();
 
   run({ cwd: root, args: ['init', '-q', '-b', 'main'] });
+  // Git would start a detached maintenance run after a commit and write into the folder while the test removes it.
+  run({ cwd: root, args: ['config', 'maintenance.auto', 'false'] });
   write({
     root,
     path: 'package.json',
@@ -355,6 +357,212 @@ describe('ReleaseMergeBack.mergeInto', () => {
 
     expect(result.problems).toEqual([]);
     expect(result.head).toBe(head);
+  });
+});
+
+describe('ReleaseMergeBack.resolveStampConflict', () => {
+  const front = (...lines: string[]): string => `---\n${lines.join('\n')}\n---\nBody.\n`;
+  const resolve = (opts: { base: string; ours: string; theirs: string }) =>
+    ReleaseMergeBack.resolveStampConflict({ ...opts, scratchRoot: scratch() });
+  const BASE = front('title: 0.4.9', "version: '0.4.9'");
+
+  test('keeps the edit of develop and the released: line of the release', () => {
+    const resolved = resolve({
+      base: BASE,
+      ours: front('title: 0.4.9', 'version: 0.4.9'),
+      theirs: front('title: 0.4.9', "version: '0.4.9'", 'released: 2026-11-20'),
+    });
+
+    expect(resolved).toEqual({
+      text: front('title: 0.4.9', 'version: 0.4.9', 'released: 2026-11-20'),
+    });
+  });
+
+  test('stops when other lines conflict, when the base is already released, when neither side is, or when the dates differ', () => {
+    expect(
+      resolve({
+        base: BASE,
+        ours: front('title: 0.4.9', 'version: a'),
+        theirs: front('title: 0.4.9', 'version: b', 'released: 2026-11-20'),
+      }).problem,
+    ).toContain('other lines conflict');
+    expect(
+      resolve({ base: front('released: 2026-11-19'), ours: BASE, theirs: BASE }).problem,
+    ).toContain('frozen');
+    expect(resolve({ base: BASE, ours: BASE, theirs: BASE }).problem).toContain('not a stamp');
+    expect(
+      resolve({
+        base: BASE,
+        ours: front('title: 0.4.9', "version: '0.4.9'", 'released: 2026-11-19'),
+        theirs: front('title: 0.4.9', "version: '0.4.9'", 'released: 2026-11-20'),
+      }).problem,
+    ).toContain('differently');
+  });
+});
+
+describe('ReleaseMergeBack.mergeInto: a version folder that develop edited next to the stamp', () => {
+  const LOG_PATH = 'docs/changelogs/0.4.9/log.md';
+  const front = (version: string, released?: string): string =>
+    `---\ntitle: 0.4.9\nversion: ${version}\n${released === undefined ? '' : `released: ${released}\n`}---\nBody.\n`;
+
+  /** `main` and `develop` share the folder; the release stamps it on `release`, develop edits its last frontmatter line. */
+  const prepared = (): string => {
+    const root = fixture({ developVersion: '0.4.9-3' });
+
+    write({ root, path: LOG_PATH, text: front("'0.4.9'") });
+    run({ cwd: root, args: ['add', '-A'] });
+    run({ cwd: root, args: ['commit', '-q', '-m', 'the folder'] });
+    run({ cwd: root, args: ['checkout', '-q', 'develop'] });
+    run({ cwd: root, args: ['merge', '-q', '--no-edit', 'main'] });
+    run({ cwd: root, args: ['checkout', '-q', '-b', 'release', 'main'] });
+    release({ root, version: '0.4.9', message: 'chore(release): v' });
+    write({ root, path: LOG_PATH, text: front("'0.4.9'", '2026-11-20') });
+    run({ cwd: root, args: ['commit', '-q', '-am', 'the stamp'] });
+    run({ cwd: root, args: ['checkout', '-q', 'develop'] });
+    write({ root, path: LOG_PATH, text: front('0.4.9') });
+    run({ cwd: root, args: ['commit', '-q', '-am', 'develop edits the last frontmatter line'] });
+
+    return root;
+  };
+
+  test('resolves the conflict: the edit of develop and the released: line both stay', () => {
+    const root = prepared();
+    const result = ReleaseMergeBack.mergeInto({
+      cwd: root,
+      from: 'release',
+      scratchRoot: scratch(),
+      commit: { message: 'Merge main into develop' },
+    });
+
+    expect(result.problems).toEqual([]);
+    expect(result.resolved).toContain(LOG_PATH);
+    expect(readFileSync(join(root, LOG_PATH), 'utf8')).toBe(front('0.4.9', '2026-11-20'));
+  });
+
+  test('an edit of another frontmatter key by develop merges with the stamp, and the resolver is not needed for it', () => {
+    const root = prepared();
+
+    write({ root, path: LOG_PATH, text: front('0.4.9').replace('title: 0.4.9', 'title: other') });
+    run({ cwd: root, args: ['commit', '-q', '-am', 'develop edits the title too'] });
+
+    const result = ReleaseMergeBack.mergeInto({
+      cwd: root,
+      from: 'release',
+      scratchRoot: scratch(),
+      commit: { message: 'Merge main into develop' },
+    });
+
+    expect(result.problems).toEqual([]);
+    expect(readFileSync(join(root, LOG_PATH), 'utf8')).toContain('released: 2026-11-20');
+  });
+});
+
+describe('ReleaseMergeBack.trial: the stamp the release commit of core-server writes', () => {
+  const LOG_PATH = 'docs/changelogs/0.4.9/log.md';
+  const front = (opts: { version?: string; released?: string }): string =>
+    `---\ntitle: 0.4.9\nversion: ${opts.version ?? "'0.4.9'"}\n${opts.released === undefined ? '' : `released: ${opts.released}\n`}---\nBody.\n`;
+
+  /** `main` and `develop` share a core-server package and its version folder; `mainLog` is the folder on main. */
+  const prepared = (opts: { mainLog?: string } = {}): string => {
+    const root = fixture({ developVersion: '0.4.9-3' });
+
+    write({
+      root,
+      path: '.agents/vulcan.manifest.json',
+      text: '{"knowledge":{"changelogs":"docs/changelogs"}}\n',
+    });
+    write({
+      root,
+      path: 'packages/core-server/package.json',
+      text: manifest({ name: '@fixture/core', version: '0.4.9-2' }),
+    });
+    write({ root, path: LOG_PATH, text: opts.mainLog ?? front({}) });
+    run({ cwd: root, args: ['add', '-A'] });
+    run({ cwd: root, args: ['commit', '-q', '-m', 'core-server and its folder'] });
+    run({ cwd: root, args: ['checkout', '-q', 'develop'] });
+    run({ cwd: root, args: ['merge', '-q', '--no-edit', 'main'] });
+
+    return root;
+  };
+  const trial = (root: string) =>
+    ReleaseMergeBack.trial({
+      cwd: root,
+      versions: { 'core-server': '0.4.9' },
+      lock: 'keep',
+      main: 'main',
+      develop: 'develop',
+      scratchRoot: scratch(),
+      date: '2026-11-20',
+    });
+  const onDevelop = (opts: { root: string; text?: string; remove?: boolean }): void => {
+    if (opts.remove === true) {
+      run({ cwd: opts.root, args: ['rm', '-q', LOG_PATH] });
+    } else {
+      write({ root: opts.root, path: LOG_PATH, text: opts.text ?? '' });
+    }
+
+    run({ cwd: opts.root, args: ['commit', '-q', '-am', 'develop changes the folder'] });
+  };
+
+  test('goes through when develop did not touch the folder, and when it edited the line next to the stamp', () => {
+    expect(trial(prepared()).problems).toEqual([]);
+
+    const root = prepared();
+
+    onDevelop({ root, text: front({ version: '0.4.9' }) });
+    expect(trial(root).problems).toEqual([]);
+  });
+
+  test('stops, before anyone approves, when develop deleted the folder log, dated it another day or removed its frontmatter', () => {
+    const deleted = prepared();
+    const dated = prepared();
+    const bare = prepared();
+
+    onDevelop({ root: deleted, remove: true });
+    onDevelop({ root: dated, text: front({ released: '2026-11-19' }) });
+    onDevelop({ root: bare, text: 'Body only.\n' });
+
+    expect(trial(deleted).problems.join('\n')).toContain(LOG_PATH);
+    expect(trial(dated).problems.join('\n')).toContain('differently');
+    expect(trial(bare).problems.join('\n')).toContain('frontmatter');
+  });
+
+  test('a folder main already dated on an earlier day is not stamped again (a repeated run): no crash, no problem', () => {
+    const root = prepared({ mainLog: front({ released: '2026-11-10' }) });
+
+    expect(trial(root).problems).toEqual([]);
+  });
+
+  test('a folder with an empty released: line is a problem of the plan, not a crash', () => {
+    const root = prepared({ mainLog: front({ released: '' }) });
+
+    expect(trial(root).problems.join('\n')).toContain('already says released');
+  });
+});
+
+describe('merge-back.ts is copied alone to the runner', () => {
+  const FILE = join(import.meta.dir, '..', 'merge-back.ts');
+
+  test('it has no relative import', () => {
+    expect(readFileSync(FILE, 'utf8')).not.toMatch(
+      /^\s*(?:import|export)\b[^;]*\bfrom\s+['"]\.\.?\//m,
+    );
+  });
+
+  test('a copy of it alone in an empty folder runs: usage, exit 2, not a missing module', () => {
+    const directory = scratch();
+
+    writeFileSync(join(directory, 'merge-back.ts'), readFileSync(FILE, 'utf8'));
+
+    const child = Bun.spawnSync(['bun', join(directory, 'merge-back.ts')], {
+      cwd: directory,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+
+    expect(child.stderr.toString()).not.toContain('Cannot find module');
+    expect(child.stderr.toString()).toContain('merge-back: trial');
+    expect(child.exitCode).toBe(2);
   });
 });
 

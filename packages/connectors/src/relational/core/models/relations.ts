@@ -20,6 +20,7 @@ export const one = <Schema extends TTableSchemaWithId>(
   metadata?: TRelationMetadata<typeof RelationTypes.ONE>,
 ): IOneRelation<Schema> => ({ type: RelationTypes.ONE, schema, metadata });
 
+/** Converts relations declared with `many()` and `one()` into the config array the query dialect reads. */
 export class RelationDeclarations {
   /** Flattens the keyed form into the array shape the query dialect reads, taking each relation's name from its key. */
   static toRelationConfigs(opts: { relations: TRelationDefinitions }): Array<TRelationConfig> {

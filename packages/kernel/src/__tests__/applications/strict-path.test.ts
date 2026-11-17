@@ -7,6 +7,7 @@ class StrictPathApplication extends RestApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'strict-path-app', version: '0.0.0', description: '' };
   }
+
   preConfigure(): void {}
   postConfigure(): void {}
   staticConfigure(): void {}
@@ -26,6 +27,7 @@ const requestStatus = async (opts: { config: IApplicationConfigs; path: string }
   application.getServer().route(opts.config.path.base, rootRouter);
 
   const response = await application.getServer().request(opts.path);
+
   return response.status;
 };
 

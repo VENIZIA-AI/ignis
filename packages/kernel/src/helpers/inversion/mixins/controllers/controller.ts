@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+
 import { ControllerTransports } from '@/base/controllers/common/constants';
 import type { TMixinTarget } from '@venizia/ignis-helpers/common';
 import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
@@ -29,6 +31,7 @@ export const ControllerMetadataMixin = <BaseClass extends TMixinTarget<_Metadata
       target: Target;
     }): TControllerMetadata | undefined {
       const { target } = opts;
+
       return Reflect.getMetadata(MetadataKeys.CONTROLLER, target);
     }
 
@@ -36,9 +39,11 @@ export const ControllerMetadataMixin = <BaseClass extends TMixinTarget<_Metadata
       target: Target;
     }): IRestControllerMetadata | undefined {
       const metadata = this.getControllerMetadata(opts);
+
       if (!metadata || metadata.transport === ControllerTransports.GRPC) {
         return undefined;
       }
+
       return metadata as IRestControllerMetadata;
     }
 
@@ -46,9 +51,11 @@ export const ControllerMetadataMixin = <BaseClass extends TMixinTarget<_Metadata
       target: Target;
     }): IGrpcControllerMetadata | undefined {
       const metadata = this.getControllerMetadata(opts);
+
       if (metadata?.transport !== ControllerTransports.GRPC) {
         return undefined;
       }
+
       return metadata as IGrpcControllerMetadata;
     }
   };

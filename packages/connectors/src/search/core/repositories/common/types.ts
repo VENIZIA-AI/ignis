@@ -23,8 +23,10 @@ export class SearchFilterOutcomes {
     return this.SCHEME_SET.has(input);
   }
 }
+/** Union of the `SearchFilterOutcomes` values. */
 export type TSearchFilterOutcome = TConstValue<typeof SearchFilterOutcomes>;
 
+/** Result of compiling a `where` tree: `filterBy` is present only when `outcome` is `filter`; `matchAll` and `matchNone` carry no filter string. */
 export type TCompiledWhere =
   | { outcome: typeof SearchFilterOutcomes.FILTER; filterBy: string }
   | { outcome: typeof SearchFilterOutcomes.MATCH_ALL }
@@ -97,11 +99,18 @@ export interface ISearchQueryDialect {
   }): ISearchQuery;
 
   /**
-   * cannot. This signature has no representation for "matches nothing" - it returned `''`, which
-   * the caller could not tell from "no constraint", so an empty `or` widened the query it was
-   * meant to narrow. It now THROWS on that input rather than answering wrongly.
+   * The filter string of a `where`. A filter string cannot say "matches nothing" and `''` cannot be told from "no
+   * constraint", so a `where` that matches nothing (an empty `or`) THROWS instead of answering wrongly.
+   *
+   * @deprecated Use {@link compileWhere}, which answers match-all and match-none explicitly.
    */
   toWhere(opts: { where: TWhere }): string;
+
+  /** The error this engine gives for a `where` key or an `order` field that names no field: a request guard throws it for a hidden field, so the two cannot be told apart. */
+  fieldNotFoundError(opts: { kind: 'where' | 'order'; field: string }): Error;
+
+  /** The error `build` throws for a filter with an `include`: no search query reads relations. */
+  includeNotSupportedError(): Error;
 
   /**
    * Compiles a `where` tree, resolving what a filter string cannot express. `capabilities` is

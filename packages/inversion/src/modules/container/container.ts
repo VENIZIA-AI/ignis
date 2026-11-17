@@ -1,5 +1,5 @@
 import { getError } from '../error';
-import { type AnyType, type TBindingKey, type TClass, type TInjectTarget } from '@/common/types';
+import { type TBindingKey, type TClass, type TInjectTarget } from '@/common/types';
 import { ResolverUtility } from '@/common/utilities';
 import { BaseContainer } from './base';
 
@@ -20,7 +20,7 @@ export class Container extends BaseContainer {
     key?: TBindingKey;
     target?: TInjectTarget;
     isOptional?: boolean;
-    cls: TClass<AnyType>;
+    cls: TClass<unknown>;
     at: string;
   }): TBindingKey | undefined {
     const { key, target: declared, isOptional = false, cls, at } = opts;
@@ -36,6 +36,7 @@ export class Container extends BaseContainer {
     }
 
     const target = ResolverUtility.resolveInjectTarget({ target: declared });
+
     if (target === undefined) {
       throw getError({
         message: `[${cls.name}] ${at} names a function that did not return a class`,
@@ -43,6 +44,7 @@ export class Container extends BaseContainer {
     }
 
     const recorded = this.getMetadataRegistry().getBindingKey({ target }) ?? key;
+
     if (recorded === undefined && isOptional) {
       return undefined;
     }
@@ -56,6 +58,7 @@ export class Container extends BaseContainer {
 
     // A same-name class records the same derived key (a library's own copy of a class the application registers): resolving it would hand back the OTHER class without a word.
     const bound = this.getBinding({ key: recorded })?.boundClass();
+
     if (bound && bound !== target && !(bound.prototype instanceof target)) {
       throw getError({
         message: `[${cls.name}] ${at} names '${target.name}', but '${String(recorded)}' is bound to a different class named '${bound.name}' | Two classes share one name and so one key - rename one, re-export the registered one, or inject by key`,
@@ -72,7 +75,7 @@ export class Container extends BaseContainer {
       target: cls,
     });
 
-    const args: any[] = [];
+    const args: unknown[] = [];
 
     for (let index = 0; index < (injectMetadata?.length ?? 0); index++) {
       const meta = injectMetadata?.[index];
@@ -95,10 +98,16 @@ export class Container extends BaseContainer {
       args[meta.index] = key === undefined ? undefined : this.get({ key, isOptional });
     }
 
-    const instance = new cls(...args);
+    // `TClass` takes `never[]`, so any constructor fits; Reflect.construct is how the arguments reach it.
+    const instance: T = Reflect.construct(cls, args);
+
+    // A constructor always answers an object (or a function); the guard narrows `T` to something `Reflect.set` takes.
+    if ((typeof instance !== 'object' && typeof instance !== 'function') || instance === null) {
+      return instance;
+    }
 
     const propertyMetadata = registry.getPropertiesMetadata({
-      target: instance as object,
+      target: instance,
     });
 
     if (!propertyMetadata?.size) {
@@ -106,6 +115,7 @@ export class Container extends BaseContainer {
     }
 
     const properties = propertyMetadata.entries();
+
     for (const [propertyKey, metadata] of properties) {
       const isOptional = metadata.isOptional ?? false;
       const key = this.resolveBindingKey({
@@ -116,8 +126,18 @@ export class Container extends BaseContainer {
         at: `Property '${String(propertyKey)}'`,
       });
 
-      (instance as any)[propertyKey] =
-        key === undefined ? undefined : this.get({ key, isOptional });
+      const assigned = Reflect.set(
+        instance,
+        propertyKey,
+        key === undefined ? undefined : this.get({ key, isOptional }),
+      );
+
+      // Assigning to a read-only property threw; Reflect.set only answers false, so keep the throw.
+      if (!assigned) {
+        throw getError({
+          message: `[${cls.name}] Property '${String(propertyKey)}' cannot be injected | It is read-only`,
+        });
+      }
     }
 
     return instance;

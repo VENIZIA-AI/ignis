@@ -16,14 +16,17 @@ const createTableSql = (table: SQLiteTable) => {
   const columns = config.columns.map((column) => {
     const notNull = column.notNull ? ' NOT NULL' : '';
     const hasDefault = column.hasDefault ? ` DEFAULT '${String(column.default)}'` : '';
+
     return `"${column.name}" ${column.getSQLType()}${notNull}${hasDefault}`;
   });
+
   return `CREATE TABLE "${config.name}" (${columns.join(', ')})`;
 };
 
 const open = (table: SQLiteTable) => {
   const sqlite = new Database(':memory:');
   sqlite.run(createTableSql(table));
+
   return { sqlite, db: drizzle(sqlite) };
 };
 

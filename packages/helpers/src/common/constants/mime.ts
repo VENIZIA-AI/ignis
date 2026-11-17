@@ -1,17 +1,13 @@
 import { type TConstValue } from '../types';
 
+/** The top-level part of a MIME type (`image`, `video`, `text`), plus `unknown`. For the full content type see `ContentTypes`. */
 export class MimeTypes {
   static readonly UNKNOWN = 'unknown';
   static readonly IMAGE = 'image';
   static readonly VIDEO = 'video';
   static readonly TEXT = 'text';
-
-  static readonly SCHEME_SET = new Set<string>([this.UNKNOWN, this.IMAGE, this.VIDEO, this.TEXT]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
+/** One of the `MimeTypes` values. */
 export type TMimeTypes = TConstValue<typeof MimeTypes>;
 
 /** The leading dot is part of the value: `path.extname` returns one. */
@@ -78,6 +74,7 @@ export class FileExtensions {
     return this.SCHEME_SET.has(value);
   }
 }
+/** One of the `FileExtensions` values, with its leading dot. */
 export type TFileExtension = TConstValue<typeof FileExtensions>;
 
 /** Full content types, as they go on the wire. `MimeTypes` holds only the top-level part. */
@@ -107,6 +104,7 @@ export class ContentTypes {
   static readonly DOC = 'application/msword';
   static readonly PPTX =
     'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+
   static readonly PPT = 'application/vnd.ms-powerpoint';
   static readonly ODT = 'application/vnd.oasis.opendocument.text';
   static readonly ODS = 'application/vnd.oasis.opendocument.spreadsheet';
@@ -145,6 +143,7 @@ export class ContentTypes {
     return this.SCHEME_SET.has(value);
   }
 }
+/** One of the `ContentTypes` values. */
 export type TContentType = TConstValue<typeof ContentTypes>;
 
 /** The extension table and the lookup that reads it, together - the `DurationMultipliers` shape. */

@@ -33,6 +33,10 @@ interface INetworkUdpClientProps {
   }) => ValueOrPromise<void>;
 }
 
+/**
+ * UDP (`udp4`) socket that binds to `host`/`port` and optionally joins multicast groups.
+ * Port `0` asks the OS for a port; a negative or non-integer port is logged and ignored. Without `onConnected`/`onData`/`onClosed`/`onError`, the built-in handlers log.
+ */
 export class NetworkUdpClient extends BaseHelper {
   private host?: string;
   private port: number;
@@ -49,6 +53,7 @@ export class NetworkUdpClient extends BaseHelper {
     message: string | Buffer;
     remoteInfo: dgram.RemoteInfo;
   }) => void;
+
   private onClosed?: (opts: { identifier: string; host?: string; port: number }) => void;
   private onError?: (opts: {
     identifier: string;
@@ -56,6 +61,7 @@ export class NetworkUdpClient extends BaseHelper {
     port: number;
     error: Error;
   }) => void;
+
   private onBind?: (opts: {
     identifier: string;
     socket: dgram.Socket;
@@ -136,6 +142,7 @@ export class NetworkUdpClient extends BaseHelper {
       this.logger
         .for(this.connect.name)
         .info('[%s] UdpClient is already initialized!', this.identifier);
+
       return;
     }
 
@@ -148,6 +155,7 @@ export class NetworkUdpClient extends BaseHelper {
           this.identifier,
           this.port,
         );
+
       return;
     }
 
@@ -232,6 +240,7 @@ export class NetworkUdpClient extends BaseHelper {
       this.logger
         .for(this.disconnect.name)
         .info('[%s] UdpClient is not initialized yet!', this.identifier);
+
       return;
     }
 

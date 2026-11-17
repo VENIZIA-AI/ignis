@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { TClass } from '@venizia/ignis-helpers/common';
 import { model } from '@venizia/ignis-kernel';
 import { DEFAULT_MAX_LIMIT } from '@venizia/ignis-kernel';
 import { BaseSearchEntity, SearchCollectionFactory, field } from '@/search/core/models';
@@ -57,15 +57,15 @@ class LoweredCeilingDocument extends BaseSearchEntity {
   });
 }
 
-const buildRepository = (entityClass: AnyType) => {
+const buildRepository = (entityClass: TClass<BaseSearchEntity>) => {
   const dataSource = new FakeSearchDataSource({ name: 'ceiling-ds', config: {} });
   const repository = new DefaultSearchRepository(dataSource, { entityClass });
 
-  return { repository: repository as AnyType, connector: dataSource.fakeConnector as AnyType };
+  return { repository, connector: dataSource.fakeConnector };
 };
 
 describe('page-size ceiling - the framework default', () => {
-  test(`a model declaring no maxLimit gets ${DEFAULT_MAX_LIMIT}`, async () => {
+  test(`a model declaring no query.limit.max gets ${DEFAULT_MAX_LIMIT}`, async () => {
     const { repository, connector } = buildRepository(DefaultCeilingDocument);
 
     await RejectionHelper.expectRejection({

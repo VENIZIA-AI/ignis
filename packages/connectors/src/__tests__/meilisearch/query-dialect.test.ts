@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { MeilisearchQueryDialect } from '@/search/meilisearch';
 import { SearchModes } from '@/search/core/repositories/common';
+import type { TSearchInput } from '@/search/core/repositories/common';
 
 describe('MeilisearchQueryDialect.toWhere', () => {
   const dialect = new MeilisearchQueryDialect();
@@ -161,18 +161,20 @@ describe('MeilisearchQueryDialect.applySearchInput', () => {
   test('an explicitly set Typesense-only knob throws NotSupported rather than being dropped', () => {
     const query = dialect.build({});
 
-    // These knobs moved to engineParams, so a typed caller cannot set them; the cast simulates a raw JS caller reaching the defensive guard.
+    // These knobs moved to engineParams, so a typed caller cannot set them; adding one after the typed input is built simulates a raw JS caller reaching the defensive guard.
+    const keywordInput: TSearchInput = { mode: SearchModes.KEYWORD, query: 'shoes' };
+
     expect(() =>
       dialect.applySearchInput({
         query,
-        input: { mode: SearchModes.KEYWORD, query: 'shoes', numTypos: 2 } as AnyType,
+        input: Object.assign({}, keywordInput, { numTypos: 2 }),
       }),
     ).toThrow(/numTypos/);
 
     expect(() =>
       dialect.applySearchInput({
         query,
-        input: { mode: SearchModes.KEYWORD, query: 'shoes', pinnedHits: '1:1' } as AnyType,
+        input: Object.assign({}, keywordInput, { pinnedHits: '1:1' }),
       }),
     ).toThrow(/pinnedHits/);
   });
@@ -195,6 +197,7 @@ describe('MeilisearchQueryDialect.applySearchInput - keyword highlight', () => {
       query,
       input: { mode: SearchModes.KEYWORD, query: 'sho', ...input },
     });
+
     return dialect.toWireParams({ query });
   };
 
@@ -214,5 +217,23 @@ describe('MeilisearchQueryDialect.applySearchInput - keyword highlight', () => {
     const wire = apply({ highlightFields: ['title'] });
 
     expect(wire['attributesToHighlight']).toEqual(['title']);
+  });
+});
+
+describe('MeilisearchQueryDialect.build - an empty field selection', () => {
+  const dialect = new MeilisearchQueryDialect();
+
+  test('[] and an object with no true key send no attributesToRetrieve', () => {
+    const emptyList = dialect.toWireParams({ query: dialect.build({ filter: { fields: [] } }) });
+    const noTrueKey = dialect.toWireParams({
+      query: dialect.build({ filter: { fields: { title: false } } }),
+    });
+    const selected = dialect.toWireParams({
+      query: dialect.build({ filter: { fields: ['title'] } }),
+    });
+
+    expect(emptyList).not.toHaveProperty('attributesToRetrieve');
+    expect(noTrueKey).not.toHaveProperty('attributesToRetrieve');
+    expect(selected['attributesToRetrieve']).toEqual(['title']);
   });
 });

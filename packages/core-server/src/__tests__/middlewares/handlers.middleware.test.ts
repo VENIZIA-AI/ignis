@@ -16,6 +16,7 @@ logger.info = () => undefined;
 
 const readJson = async (response: Response): Promise<Record<string, any>> => {
   const result = await response.json();
+
   return result as Record<string, any>;
 };
 
@@ -79,12 +80,14 @@ describe('AppErrorMiddleware - internal detail must never leak outside a develop
       throw new Error(RAW_MESSAGE);
     });
     application.onError(new AppErrorMiddleware({ logger }).value());
+
     return application;
   };
 
   const readBody = async (opts: { env?: Record<string, string> }) => {
     const response = await mountRaw().request('/x', undefined, opts.env);
     const result = await readJson(response);
+
     return { response, body: result };
   };
 
@@ -114,6 +117,7 @@ describe('AppErrorMiddleware - internal detail must never leak outside a develop
       expect(body.details.stack).toBeUndefined();
     } finally {
       process.env.NODE_ENV = originalNodeEnv;
+
       if (originalNodeEnv === undefined) {
         delete process.env.NODE_ENV;
       }
@@ -136,6 +140,7 @@ describe('AppErrorMiddleware - intentional ApplicationError identity', () => {
 
   afterEach(() => {
     process.env.NODE_ENV = originalNodeEnv;
+
     if (originalNodeEnv === undefined) {
       delete process.env.NODE_ENV;
     }
@@ -149,9 +154,11 @@ describe('AppErrorMiddleware - intentional ApplicationError identity', () => {
     });
     application.get('/x', () => {
       opts.thrower();
+
       return new Response('unreachable');
     });
     application.onError(new AppErrorMiddleware({ logger, rootKey: opts.rootKey }).value());
+
     return application;
   };
 

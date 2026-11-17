@@ -7,7 +7,6 @@ import type {
   OpenAPIHono,
   z,
 } from '@hono/zod-openapi';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import type { Env, Schema } from 'hono';
 import type { TRouteHandler } from './context';
 
@@ -66,13 +65,18 @@ export type TResponseHeaders = Record<string, TResponseHeaderObject>;
 
 // Response body types derived from route definitions; a distributive conditional applies z.infer to each schema of the union separately.
 type TInferDistributive<S> = S extends z.ZodType ? z.infer<S> : never;
-export type TResponseBodyOf<R extends { responses: AnyType }> = TInferDistributive<
-  R['responses'][keyof R['responses']]['content']['application/json']['schema']
+type TJsonSchemaOf<Response> = Response extends {
+  content: { 'application/json': { schema: infer JsonSchema } };
+}
+  ? JsonSchema
+  : never;
+/** The JSON response body type of a route config `R`: the union of the schemas under `application/json` across all its response codes. */
+export type TResponseBodyOf<R extends { responses: object }> = TInferDistributive<
+  TJsonSchemaOf<R['responses'][keyof R['responses']]>
 >;
 
+/** What a CRUD route lets a caller override: auth, the request schemas (params, query, body, headers) and the response schema and headers. */
 export type TCustomizableRouteConfig = TRouteAuthConfig & {
-  /** Whether this route is registered. Defaults to true. */
-  enabled?: boolean;
   request?: {
     params?: TAnyObjectSchema;
     query?: TAnyObjectSchema;
@@ -98,4 +102,19 @@ export interface ICustomizableRoutes<
   updateBy?: RouteConfig;
   deleteById?: RouteConfig;
   deleteBy?: RouteConfig;
+  restoreById?: RouteConfig;
+  restoreBy?: RouteConfig;
 }
+
+/**
+ * The routes of a CRUD controller: only a listed route exists, as `true` (on, with its defaults) or a config
+ * (on, with overrides). `restoreById` and `restoreBy` are listed only for a repository that has both methods.
+ */
+export type TCrudRoutes<Repository extends object = { restoreById: unknown; restoreBy: unknown }> =
+  {
+    [Key in keyof ICustomizableRoutes]?: Key extends 'restoreById' | 'restoreBy'
+      ? Repository extends { restoreById: unknown; restoreBy: unknown }
+        ? true | TCustomizableRouteConfig
+        : never
+      : true | TCustomizableRouteConfig;
+  };

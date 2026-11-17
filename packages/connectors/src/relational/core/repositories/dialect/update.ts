@@ -19,13 +19,13 @@ export abstract class RelationalUpdateBuilder extends BaseHelper {
    * Wraps `target` so the value lands at `path`. Called once per path, each call receiving the
    * expression built so far, so two paths on one column nest instead of discarding each other.
    */
-  protected abstract composeJsonSet(opts: { target: SQL; path: string[]; value: any }): SQL;
+  protected abstract composeJsonSet(opts: { target: SQL; path: string[]; value: unknown }): SQL;
 
   /** Separates regular fields from JSON path updates and builds the SQL expressions. */
   transform<Schema extends TTableSchemaWithId>(opts: {
     tableName: string;
     schema: Schema;
-    data: Record<string, any>;
+    data: Record<string, unknown>;
   }): ITransformedUpdateData {
     const { tableName, schema, data } = opts;
     const columns = TableColumnCache.get(schema);
@@ -36,18 +36,17 @@ export abstract class RelationalUpdateBuilder extends BaseHelper {
       });
     }
 
-    const regularFields: Record<string, any> = {};
+    const regularFields: Record<string, unknown> = {};
     const jsonExpressions: Record<string, SQL> = {};
 
-    for (const key in data) {
-      const value = data[key];
-
+    // Own entries only: `for...in` would also walk keys inherited through a replaced prototype.
+    for (const [key, value] of Object.entries(data)) {
       if (value === undefined) {
         continue;
       }
 
       if (!JsonPathUtility.isJsonPath({ key })) {
-        if (!columns[key]) {
+        if (!Object.hasOwn(columns, key)) {
           throw getError({
             message: `[${this.scope}][transform] Table: ${tableName} | Column NOT FOUND | key: '${EchoUtility.toSafeEcho({ value: key })}'`,
           });
@@ -72,7 +71,7 @@ export abstract class RelationalUpdateBuilder extends BaseHelper {
   }
 
   /** Combines regular fields and JSON expressions into the final payload for Drizzle's `.set()`. */
-  toUpdateData(opts: { transformed: ITransformedUpdateData }): Record<string, any> {
+  toUpdateData(opts: { transformed: ITransformedUpdateData }): Record<string, unknown> {
     const { regularFields, jsonExpressions } = opts.transformed;
 
     return { ...regularFields, ...jsonExpressions };
@@ -89,7 +88,9 @@ export abstract class RelationalUpdateBuilder extends BaseHelper {
     const { key, columns, tableName } = opts;
 
     const parsed = JsonPathUtility.parseJsonPath({ key });
-    const column = columns[parsed.columnName];
+    const column = Object.hasOwn(columns, parsed.columnName)
+      ? columns[parsed.columnName]
+      : undefined;
 
     if (!column) {
       throw getError({

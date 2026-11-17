@@ -13,7 +13,6 @@ import { ServiceAssertion } from '@venizia/ignis-kernel';
 import type { IServiceAuthOptions } from '@venizia/ignis-kernel';
 import { ServiceAssertionSignerService } from '@/components/auth/authenticate/services/service/signer.service';
 import { ServiceAssertionVerifierService } from '@/components/auth/authenticate/services/service/verifier.service';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
 
 /**
@@ -31,10 +30,10 @@ let jwksUrl: string;
 
 /** `@inject` is dropped by bun's transpiler, so options are passed positionally. */
 const buildSigner = (options: IServiceAuthOptions): ServiceAssertionSignerService =>
-  new ServiceAssertionSignerService(options as AnyType);
+  new ServiceAssertionSignerService(options);
 
 const buildVerifier = (options: IServiceAuthOptions): ServiceAssertionVerifierService =>
-  new ServiceAssertionVerifierService(options as AnyType);
+  new ServiceAssertionVerifierService(options);
 
 /**
  * The window tests sit exactly on a second boundary, and jose reads the verifier's clock from
@@ -84,6 +83,7 @@ beforeAll(async () => {
     port: 0,
     fetch: async () => {
       const jwks = await signer.getPublicJWKS();
+
       return Response.json(jwks);
     },
   });
@@ -108,6 +108,7 @@ describe('the published key set', () => {
     const verifyOnly = buildSigner({ name: CALLEE, resolvePrincipal: async () => ({ userId: 1 }) });
 
     expect(verifyOnly.isEnabled()).toBe(false);
+
     return expect(verifyOnly.getPublicJWKS()).rejects.toThrow(/no signing keys/);
   });
 });
@@ -199,7 +200,7 @@ describe('a callee refuses everything else', () => {
   test('a caller named after an Object.prototype member', async () => {
     const prototypeIssuer = buildSigner({
       name: 'constructor',
-      keys: (signer as AnyType).options.keys,
+      keys: signer['options'].keys,
       resolvePrincipal: async () => ({ userId: 1 }),
     });
 
@@ -219,8 +220,8 @@ describe('a callee refuses everything else', () => {
 
     // Minted directly so `iat` can be backdated: `maxTokenAge` measures against `iat`, and the
     // service always stamps "now".
-    const privateKey = await (signer as AnyType).resolvePrivateKey();
-    const token = await new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
+    const privateKey = await signer['resolvePrivateKey']();
+    const jwt = new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({
         alg: ServiceAssertion.ALGORITHM,
         typ: ServiceAssertion.TYP,
@@ -230,8 +231,8 @@ describe('a callee refuses everything else', () => {
       .setAudience(CALLEE)
       .setJti('stale-1')
       .setIssuedAt(stale)
-      .setExpirationTime(stale + 3600)
-      .sign(privateKey);
+      .setExpirationTime(stale + 3600);
+    const token = await jwt.sign(privateKey);
 
     return expect(
       buildVerifier(calleeOptions()).verify({ token, method: 'GET', path: '/v1/api/x' }),
@@ -249,13 +250,13 @@ describe('a callee refuses everything else', () => {
   });
 
   test('an assertion with no iss', async () => {
-    const privateKey = await (signer as AnyType).resolvePrivateKey();
-    const token = await new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
+    const privateKey = await signer['resolvePrivateKey']();
+    const jwt = new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({ alg: ServiceAssertion.ALGORITHM, typ: ServiceAssertion.TYP })
       .setAudience(CALLEE)
       .setIssuedAt()
-      .setExpirationTime('60s')
-      .sign(privateKey);
+      .setExpirationTime('60s');
+    const token = await jwt.sign(privateKey);
 
     return expect(
       buildVerifier(calleeOptions()).verify({ token, method: 'GET', path: '/v1/api/x' }),
@@ -271,8 +272,8 @@ describe('the callee decides the window, per caller', () => {
   test('a per-caller override widens the window for that caller alone', async () => {
     const stale = Math.floor(Date.now() / 1000) - 300;
 
-    const privateKey = await (signer as AnyType).resolvePrivateKey();
-    const token = await new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
+    const privateKey = await signer['resolvePrivateKey']();
+    const jwt = new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({
         alg: ServiceAssertion.ALGORITHM,
         typ: ServiceAssertion.TYP,
@@ -282,8 +283,8 @@ describe('the callee decides the window, per caller', () => {
       .setAudience(CALLEE)
       .setJti('batch-1')
       .setIssuedAt(stale)
-      .setExpirationTime(stale + 3600)
-      .sign(privateKey);
+      .setExpirationTime(stale + 3600);
+    const token = await jwt.sign(privateKey);
 
     // Default window: refused.
     const result = await RejectionHelper.rejectionOf({
@@ -337,7 +338,7 @@ describe('the clock tolerance window', () => {
 
   const mint = async (opts: { iatOffsetSeconds: number }) => {
     const iat = FROZEN_NOW_SECONDS + opts.iatOffsetSeconds;
-    const privateKey = await (signer as AnyType).resolvePrivateKey();
+    const privateKey = await signer['resolvePrivateKey']();
 
     return new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({
@@ -367,6 +368,7 @@ describe('the clock tolerance window', () => {
     expect(result).toMatchObject({ issuer: CALLER });
 
     const farToken = await mint({ iatOffsetSeconds: 6 });
+
     return expect(
       verifier().verify({
         token: farToken,
@@ -391,6 +393,7 @@ describe('the clock tolerance window', () => {
     expect(result).toMatchObject({ issuer: CALLER });
 
     const olderToken = await mint({ iatOffsetSeconds: -65 });
+
     return expect(
       verifier().verify({
         token: olderToken,
@@ -414,7 +417,7 @@ describe('the replay window is wider than the acceptance window', () => {
 
   const mintSkewed = async (opts: { mintedAgoOnOurClock: number; callerSkewSeconds: number }) => {
     const iat = FROZEN_NOW_SECONDS - opts.mintedAgoOnOurClock + opts.callerSkewSeconds;
-    const privateKey = await (signer as AnyType).resolvePrivateKey();
+    const privateKey = await signer['resolvePrivateKey']();
 
     return new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({
@@ -435,6 +438,7 @@ describe('the replay window is wider than the acceptance window', () => {
       await buildVerifier(
         calleeOptions({ acceptMaxAgeSeconds: 60, clockToleranceSeconds: 5 }),
       ).verify({ token, method: 'GET', path: '/v1/api/x' });
+
       return true;
       // eslint-disable-next-line venizia/no-silent-catch -- a refused token IS the answer this probe gives (false); the tests assert only accepted or refused, not why
     } catch {

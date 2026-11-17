@@ -38,7 +38,7 @@ export class CommitCases extends BaseTestCases {
         this.context.logger.error('[CASE 1] FAILED - Records not found after commit');
       }
 
-      await repo.deleteAll({ where: { group: 'TX_TEST' } });
+      await repo.deleteBy({ where: { group: 'TX_TEST' } });
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 1] FAILED with error: %o', error);
@@ -65,13 +65,13 @@ export class CommitCases extends BaseTestCases {
     const transaction = await repo.beginTransaction();
 
     try {
-      await repo.updateAll({
+      await repo.updateBy({
         where: { code: code1 },
         data: { nValue: 999 },
         options: { transaction },
       });
 
-      await repo.deleteAll({
+      await repo.deleteBy({
         where: { code: code2 },
         options: { transaction },
       });
@@ -87,11 +87,11 @@ export class CommitCases extends BaseTestCases {
         this.context.logger.error('[CASE 5] FAILED - updated: %j, deleted: %j', updated, deleted);
       }
 
-      await repo.deleteAll({ where: { code: code1 } });
+      await repo.deleteBy({ where: { code: code1 } });
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 5] FAILED with error: %o', error);
-      await repo.deleteAll({ where: { group: 'TX_TEST' } });
+      await repo.deleteBy({ where: { group: 'TX_TEST' } });
     }
   }
 
@@ -134,7 +134,7 @@ export class CommitCases extends BaseTestCases {
         this.context.logger.error('[CASE 10] FAILED - Expected 3 records, got: %d', results.length);
       }
 
-      await repo.deleteAll({ where: { group: 'TX_BATCH_TEST' } });
+      await repo.deleteBy({ where: { group: 'TX_BATCH_TEST' } });
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 10] FAILED with error: %o', error);

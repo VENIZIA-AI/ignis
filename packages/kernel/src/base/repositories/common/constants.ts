@@ -5,7 +5,7 @@ import { MessageCode } from '@venizia/ignis-helpers/core';
 export const DEFAULT_LIMIT = 10;
 
 /**
- * Largest `limit` a caller may ask for when a model declares no `maxLimit`.
+ * Largest `limit` a caller may ask for when a model declares no `query.limit.max`.
  *
  * POLICY, not capacity - it sits far below what an engine can physically serve. It exists because
  * removing an accidental guardrail without replacing it would leave the framework less safe than
@@ -32,7 +32,7 @@ export class RepositoryOperationScopes {
 /** Valid repository operation scope values. */
 export type TRepositoryOperationScope = TConstValue<typeof RepositoryOperationScopes>;
 
-/** What `@repository` binds: MODEL, a model this application declares (the default); REMOTE, data behind another service's API, with no model. */
+/** What `@repository` binds: MODEL, a model this application declares; REMOTE, data behind another service's API, with no model. */
 export class RepositoryTypes {
   static readonly MODEL = 'model';
   static readonly REMOTE = 'remote';
@@ -68,7 +68,7 @@ export type TScopeFilterMissingBehavior = TConstValue<typeof ScopeFilterMissingB
  * passes either way.
  */
 export class ScopeWriteGuards {
-  /** Default. A row whose scope column disagrees, or is absent on create, is refused and nothing is written. */
+  /** A row whose scope column disagrees, or is absent on create, is refused and nothing is written. */
   static readonly REJECT = 'reject';
   /** An ABSENT scope column is filled from an equality scope; a value that disagrees is still refused. */
   static readonly ASSIGN = 'assign';
@@ -148,3 +148,71 @@ export class LockStrengths {
 
 /** Valid lock strength values. */
 export type TLockStrength = TConstValue<typeof LockStrengths>;
+
+/**
+ * What a repository call does to rows, as the row scope (`@model` settings.access) sees it.
+ * `access.resolve` receives one CONCRETE operation (READ, CREATE, UPDATE or DELETE), never a group,
+ * so one function can answer a wide scope for a read and a narrow one for a write. WRITE and ALL
+ * are groups of concrete operations, for application code that asks "is this a write?".
+ */
+export class ScopeOperations {
+  // concrete: what a repository call is
+  static readonly READ = 'read';
+  static readonly CREATE = 'create';
+  static readonly UPDATE = 'update';
+  static readonly DELETE = 'delete';
+
+  // groups: sets of concrete operations
+  /** CREATE, UPDATE and DELETE. */
+  static readonly WRITE = 'write';
+  /** Every concrete operation. */
+  static readonly ALL = 'all';
+
+  /** All six values: the four concrete operations and the two groups. */
+  static readonly SCHEME_SET = new Set<string>([
+    this.READ,
+    this.CREATE,
+    this.UPDATE,
+    this.DELETE,
+    this.WRITE,
+    this.ALL,
+  ]);
+
+  /** The concrete operations: what `access.resolve` can receive. */
+  static readonly OPERATION_SET = new Set<string>([
+    this.READ,
+    this.CREATE,
+    this.UPDATE,
+    this.DELETE,
+  ]);
+
+  /** Which concrete operations each group holds. */
+  static readonly GROUP_MAP: ReadonlyMap<string, ReadonlySet<string>> = new Map([
+    [this.WRITE, new Set<string>([this.CREATE, this.UPDATE, this.DELETE])],
+    [this.ALL, this.OPERATION_SET],
+  ]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+
+  /**
+   * Whether `operation` belongs to `group`. A concrete operation includes itself and nothing else;
+   * WRITE includes CREATE, UPDATE and DELETE; ALL includes all four.
+   */
+  static includes(opts: { group: TScopeOperationGroup; operation: TScopeOperation }): boolean {
+    const { group, operation } = opts;
+
+    return group === operation || (this.GROUP_MAP.get(group)?.has(operation) ?? false);
+  }
+}
+
+/** The four concrete operations: what `access.resolve` receives. Never WRITE or ALL. */
+export type TScopeOperation =
+  | typeof ScopeOperations.READ
+  | typeof ScopeOperations.CREATE
+  | typeof ScopeOperations.UPDATE
+  | typeof ScopeOperations.DELETE;
+
+/** All six values: a concrete operation or a group. What `ScopeOperations.includes` takes as its group. */
+export type TScopeOperationGroup = TConstValue<typeof ScopeOperations>;

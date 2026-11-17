@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import { Hono } from 'hono';
 import type { ILogger, TLogLevel } from '@venizia/ignis-helpers/core';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { Authentication } from '@/base/auth/authenticate/common/constants';
@@ -64,29 +64,29 @@ class TestAuthorizationEnforcer implements IAuthorizationEnforcer {
 
 /** Records instead of printing: the ALLOW-path assertions below are about which LEVEL the no-enforcer branch logs at, which a silenced logger cannot answer. */
 class RecordingLogger implements ILogger {
-  readonly lines: Array<{ sink: TLogLevel; message: string; args: AnyType[] }> = [];
+  readonly lines: Array<{ sink: TLogLevel; message: string; args: unknown[] }> = [];
 
-  debug(message: string, ...args: AnyType[]): void {
+  debug(message: string, ...args: unknown[]): void {
     this.lines.push({ sink: 'debug', message, args });
   }
 
-  info(message: string, ...args: AnyType[]): void {
+  info(message: string, ...args: unknown[]): void {
     this.lines.push({ sink: 'info', message, args });
   }
 
-  warn(message: string, ...args: AnyType[]): void {
+  warn(message: string, ...args: unknown[]): void {
     this.lines.push({ sink: 'warn', message, args });
   }
 
-  error(message: string, ...args: AnyType[]): void {
+  error(message: string, ...args: unknown[]): void {
     this.lines.push({ sink: 'error', message, args });
   }
 
-  emerg(message: string, ...args: AnyType[]): void {
+  emerg(message: string, ...args: unknown[]): void {
     this.lines.push({ sink: 'emerg', message, args });
   }
 
-  log(level: TLogLevel, message: string, ...args: AnyType[]): void {
+  log(level: TLogLevel, message: string, ...args: unknown[]): void {
     this.lines.push({ sink: level, message, args });
   }
 
@@ -95,21 +95,13 @@ class RecordingLogger implements ILogger {
   }
 }
 
-const createContext = (opts: { user?: IAuthUser; path?: string }) => {
-  const store = new Map<string, unknown>();
+/** What the request context carries: the authenticated user, if any, and the request path. */
+const createContext = (opts: { user?: IAuthUser; path?: string }) => ({
+  user: opts.user,
+  path: opts.path ?? '/orders',
+});
 
-  if (opts.user !== undefined) {
-    store.set(Authentication.CURRENT_USER, opts.user);
-  }
-
-  return {
-    get: (key: string) => store.get(key),
-    set: (key: string, value: unknown) => store.set(key, value),
-    req: { path: opts.path ?? '/orders' },
-    _store: store,
-  };
-};
-
+/** Runs the middleware inside a real Hono app, so it sees a real `Context`. */
 const run = async (opts: {
   provider: AuthorizationProvider;
   spec: IAuthorizationSpec;
@@ -118,18 +110,34 @@ const run = async (opts: {
   const middleware = opts.provider.value()({ spec: opts.spec });
 
   let hasCalledNext = false;
-  const next = async () => {
-    hasCalledNext = true;
-  };
+  let thrown: unknown;
+  let hasThrown = false;
 
-  try {
-    // Partial fake cast to the real Hono Context the middleware expects, matching the existing
-    // provider test style rather than reimplementing the full Context shape.
-    await middleware(opts.context as AnyType, next);
-    return { hasCalledNext };
-  } catch (error) {
-    return { hasCalledNext, error };
-  }
+  const application = new Hono();
+
+  application.use('*', async (context, next) => {
+    if (opts.context.user !== undefined) {
+      context.set(Authentication.CURRENT_USER, opts.context.user);
+    }
+
+    await next();
+  });
+  application.use('*', middleware);
+  application.all('*', (context) => {
+    hasCalledNext = true;
+
+    return context.text('next');
+  });
+  application.onError((error) => {
+    hasThrown = true;
+    thrown = error;
+
+    return new Response('error', { status: 500 });
+  });
+
+  await application.request(`http://ignis.internal${opts.context.path}`);
+
+  return hasThrown ? { hasCalledNext, error: thrown } : { hasCalledNext };
 };
 
 describe('AuthorizationProvider - no-enforcer branch honours defaultDecision', () => {
@@ -157,6 +165,7 @@ describe('AuthorizationProvider - no-enforcer branch honours defaultDecision', (
 
     expect(hasCalledNext).toBe(false);
     expect(isApplicationError(error)).toBe(true);
+
     if (isApplicationError(error)) {
       expect(error.statusCode).toBe(403);
       expect(error.normalized.code).toBe('core.authorization.enforcer_not_registered');
@@ -279,6 +288,7 @@ describe('AuthorizationProvider - no-enforcer branch honours defaultDecision', (
 
     expect(hasCalledNext).toBe(false);
     expect(isApplicationError(error)).toBe(true);
+
     if (isApplicationError(error)) {
       expect(error.normalized.code).toBe('core.authorization.denied');
     }

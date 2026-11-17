@@ -33,7 +33,8 @@ parity: aggregating several upstreams into the one shape a UI renders is the poi
 class BrowserBffApplication extends WorkerApplication {
   /* configure, bind controllers */
 }
-await new BrowserBffApplication().listen();
+const application = new BrowserBffApplication();
+await application.listen();
 
 // bff.ts - on the page
 export const bff = new SharedBffTransport({
@@ -54,6 +55,8 @@ Eighteen source files, three subsystems, one export entry.
 | `transport/` | `IBffTransport` and its three implementations - `WorkerBffTransport` (one Worker), `SharedBffTransport` (one Worker per origin), `InProcessBffTransport` (no Worker at all) - plus `BffFetchBridge` |
 
 Everything else comes from the kernel. `hono` and `@hono/zod-openapi` are the only peers.
+
+**A worker with no controller bundles no zod.** `RestApplication` builds plain `Hono` routers; the OpenAPI layer (zod, zod-to-openapi, `OpenAPIHono`) arrives only with `AbstractRestController`, which registers `OpenAPIHono` in the kernel's internal `RouterFactories` as it loads. Measured 2026-11-07 (Bun 1.4.4, `--target=browser --minify`) for a worker with no controller: 568,535 B raw / 145,890 B gzip before, 136,953 B raw / 44,828 B gzip after. `src/__tests__/worker-bundle-budget.test.ts` bundles a minimal worker and a one-controller worker (the control): no zod, zod-to-openapi or `@hono/zod-openapi` input in the first, 56 KB gzip / 170 KB raw ceilings, and all three in the second. On a worker with controllers `getServer()` and `getRootRouter()` stay `OpenAPIHono` at run time, but their type is `Hono`; a worker that calls `.openapi()` or `.doc()` on the root without a controller module in the program overrides `createRouter()`.
 
 ## The HTTP contract is the seam
 

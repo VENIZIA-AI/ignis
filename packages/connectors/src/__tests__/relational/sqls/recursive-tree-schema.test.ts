@@ -130,6 +130,7 @@ describe('RecursiveTreeSql.walk - against a real Postgres (PGlite)', () => {
     });
 
     const result = await database.execute(sql`${walk} SELECT id FROM walked ORDER BY id`);
+
     return result.rows.map((row) => row.id as string);
   };
 

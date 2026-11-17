@@ -1,7 +1,36 @@
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig, type DefaultTheme } from 'vitepress';
 import { withMermaid } from 'vitepress-plugin-mermaid';
+import { changelogPageData } from './theme/shared/changelog-entries.ts';
 import { writeChangelogFeed } from './theme/shared/changelog-loader.ts';
 import { venziaCodeTheme } from './theme/shared/code-theme.ts';
+import { WikiTheme } from './theme/shared/wiki-theme.ts';
+
+// The colours of the wiki are the project's resolved theme, as `vulcan sync` wrote it to the manifest.
+const THEME = WikiTheme.read({
+  manifest: new URL('../../../../.agents/vulcan.manifest.json', import.meta.url).pathname,
+});
+const ACCENT_2 = '#d98e6a';
+
+// ── API reference pages: written by `vulcan x atlas api gen`, one per package entry; none before the first run ──
+const apiReferenceItems = (): DefaultTheme.SidebarItem[] => {
+  const directory = join(dirname(fileURLToPath(import.meta.url)), '../../content/references/api');
+
+  if (!existsSync(directory)) {
+    return [];
+  }
+
+  return readdirSync(directory)
+    .filter((file) => file.endsWith('.md') && file !== 'index.md')
+    .map((file) => {
+      const title = readFileSync(join(directory, file), 'utf8').match(/^title: "?([^"\n]+)"?$/m)?.[1];
+
+      return { text: title ?? file.replace(/\.md$/, ''), link: `/references/api/${file.replace(/\.md$/, '')}` };
+    })
+    .sort((a, b) => a.text.localeCompare(b.text));
+};
 
 // ── Sidebar: Core API ──
 // Shown for: /references/, /references/base/*, /references/configuration/*, /references/utilities/*
@@ -12,6 +41,11 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Overview', link: '/references/' },
       { text: '⚡ Quick Reference', link: '/references/quick-reference' },
     ],
+  },
+  {
+    text: 'Exports by package',
+    collapsed: true,
+    items: [{ text: 'Overview', link: '/references/api/' }, ...apiReferenceItems()],
   },
   {
     text: 'Configuration',
@@ -165,6 +199,7 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
         ],
       },
       { text: 'Health Check', link: '/extensions/components/health-check' },
+      { text: 'Server Info', link: '/extensions/components/server-info' },
       {
         text: 'Mail',
         collapsed: true,
@@ -190,11 +225,15 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
         text: 'Static Asset',
         collapsed: true,
         items: [
-          { text: 'Setup & Configuration', link: '/extensions/components/static-asset/' },
-          { text: 'Usage & Examples', link: '/extensions/components/static-asset/usage' },
+          { text: 'Overview', link: '/extensions/components/static-asset/' },
+          { text: 'Getting Started', link: '/extensions/components/static-asset/getting-started' },
+          { text: 'Server Upload', link: '/extensions/components/static-asset/server-upload' },
           { text: 'Direct Upload', link: '/extensions/components/static-asset/direct-upload' },
-          { text: 'API Reference', link: '/extensions/components/static-asset/api' },
+          { text: 'Security', link: '/extensions/components/static-asset/security' },
+          { text: 'Usage & Examples', link: '/extensions/components/static-asset/usage' },
+          { text: 'Configuration Reference', link: '/extensions/components/static-asset/api' },
           { text: 'Error Reference', link: '/extensions/components/static-asset/errors' },
+          { text: 'Migration', link: '/extensions/components/static-asset/migration' },
         ],
       },
       { text: 'API Reference', link: '/extensions/components/api-reference' },
@@ -340,10 +379,17 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
 const config = defineConfig({
   base: '/',
   appearance: 'dark',
+  // A version folder keeps its page as changelogs/<X.Y.Z>/log.md; the site serves it at /changelogs/<X.Y.Z>, and the
+  // upgrade page of a version (changelogs/upgrade/[version].md) at /changelogs/<X.Y.Z>/upgrade.
+  rewrites: {
+    'changelogs/:version/log.md': 'changelogs/:version.md',
+    'changelogs/upgrade/:version.md': 'changelogs/:version/upgrade.md',
+  },
+  transformPageData: (pageData) => changelogPageData({ pageData }),
   markdown: {
     // The code windows are dark in both themes (theme/shared/tokens.css), so one dark theme serves both: the
-    // shared theme built from IGNIS's accent on dark (the same value as --accent-on-dark in theme/product.css).
-    theme: venziaCodeTheme({ accent: '#c98a8a' }),
+    // shared theme built from the accent on dark of the manifest theme (the value of --accent-on-dark).
+    theme: venziaCodeTheme({ accent: THEME.dark.accent ?? '' }),
   },
   srcDir: '../content',
   outDir: './.vitepress/dist',
@@ -362,6 +408,7 @@ const config = defineConfig({
   },
   description: 'A TypeScript Server Infrastructure with Hono Framework',
   head: [
+    WikiTheme.head({ theme: THEME, accent2: ACCENT_2 }),
     // The home page and its terminal hide their reveal states only under this class, set before first paint.
     ['script', {}, "document.documentElement.classList.add('js');"],
     // Favicon + PWA
@@ -439,10 +486,12 @@ const config = defineConfig({
               ) {
                 return 'mermaid';
               }
+
               // Split search functionality
               if (id.includes('minisearch') || id.includes('mark.js')) {
                 return 'search';
               }
+
               // Split Vue core
               if (id.includes('@vue/')) {
                 return 'vue-vendor';
@@ -454,6 +503,8 @@ const config = defineConfig({
     },
   },
   themeConfig: {
+    // The guide to moving an app between releases is VULCAN's (`vulcan migrate plan`): one home, linked from here.
+    migrateGuide: 'https://vulcan.venizia.ai/guides/core-concepts/migrate-between-releases',
     logo: '/logo.svg',
     search: {
       provider: 'local',
@@ -649,7 +700,7 @@ const config = defineConfig({
           collapsed: true,
           items: [
             {
-              text: 'Unified Connectors (BANA)',
+              text: 'Unified Connectors (downstream upgrade)',
               link: '/guides/migrations/unified-connectors-migration',
             },
             {
@@ -661,7 +712,7 @@ const config = defineConfig({
               link: '/guides/migrations/redis-helpers-migration',
             },
             {
-              text: 'Boot API removal (BANA upgrade)',
+              text: 'Boot API removal (downstream upgrade)',
               link: '/guides/migrations/boot-api-removal-migration',
             },
           ],

@@ -90,30 +90,38 @@ describe('RestApplication boot sequence', () => {
     staticConfigure(): void {
       this.order.push('staticConfigure');
     }
+
     preConfigure(): void {
       this.order.push('preConfigure');
     }
+
     postConfigure(): void {
       this.order.push('postConfigure');
     }
+
     setupMiddlewares(): void {}
 
     override async registerConfiguredArtifacts(): Promise<void> {
       this.order.push('registerArtifacts');
       await super.registerConfiguredArtifacts();
     }
+
     override async registerConfigurations(): Promise<void> {
       this.order.push('registerConfigurations');
     }
+
     override async registerDataSources(): Promise<void> {
       this.order.push('registerDataSources');
     }
+
     override async registerComponents(): Promise<void> {
       this.order.push('registerComponents');
     }
+
     override async registerContributedDataSources(): Promise<void> {
       this.order.push('registerContributedDataSources');
     }
+
     override async registerControllers(): Promise<void> {
       this.order.push('registerControllers');
     }
@@ -204,6 +212,7 @@ describe('RestApplication boot sequence', () => {
     app['logger'] = logger;
 
     let failure: unknown;
+
     try {
       await app.initialize();
     } catch (error) {
@@ -267,10 +276,12 @@ describe('component nesting - arbitrary depth', () => {
     getAppInfo(): ValueOrPromise<IApplicationInfo> {
       return { name: 'nested-component-app', version: '0.0.0', description: '' };
     }
+
     staticConfigure(): void {}
     preConfigure(): void {
       this.component(RootComponent);
     }
+
     postConfigure(): void {}
     setupMiddlewares(): void {}
     override async registerControllers(): Promise<void> {}

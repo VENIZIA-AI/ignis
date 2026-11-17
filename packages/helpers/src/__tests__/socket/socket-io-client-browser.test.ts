@@ -1,18 +1,31 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@/common/types';
 import { SocketIOClientHelper as NodeSocketIOClientHelper } from '@/modules/socket/socket-io';
 import { SocketIOClientHelper } from '@/modules/socket/socket-io/browser';
 
+type TSocketIOModule = typeof import('socket.io-client');
+
+const isSocketIOModule = (value: unknown): value is TSocketIOModule =>
+  typeof value === 'object' && value !== null && 'io' in value && typeof value.io === 'function';
+
 const buildModule = () => {
   const handlers = new Map<string, (...args: unknown[]) => void>();
-  const socket = { on: (event: string, handler: AnyType) => handlers.set(event, handler) };
+  const socket = {
+    on: (event: string, handler: (...args: unknown[]) => void) => handlers.set(event, handler),
+  };
   const calls: Array<{ host: string }> = [];
-  const module = {
+  const candidate: unknown = {
     io: (host: string) => {
       calls.push({ host });
+
       return socket;
     },
-  } as AnyType;
+  };
+
+  if (!isSocketIOModule(candidate)) {
+    throw new Error('The fake socket.io-client module lost its io function');
+  }
+
+  const module = candidate;
 
   return { handlers, calls, module };
 };
@@ -20,7 +33,7 @@ const buildModule = () => {
 const baseOptions = {
   identifier: 'browser-io',
   host: 'http://example.test',
-  options: {} as AnyType,
+  options: { path: '/socket.io', extraHeaders: {} },
 };
 
 describe('SocketIOClientHelper - browser entry', () => {

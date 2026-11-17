@@ -27,6 +27,20 @@ export class ModelFactory {
    * The table comes first, as a plain drizzle table (`pgTable`, `pgSchema(...).table`,
    * `sqliteTable`): relations point at TABLES, so two entities that relate to each other never
    * import each other, and the compiler keeps both row types.
+   *
+   * @example
+   * ```typescript
+   * import { ModelFactory, one } from '@venizia/ignis-connectors/relational';
+   * import { integer, pgTable } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: integer('id').primaryKey() });
+   * const posts = pgTable('Post', { id: integer('id').primaryKey(), authorId: integer('author_id') });
+   *
+   * export class Post extends ModelFactory.defineEntity({
+   *   table: posts,
+   *   relations: () => ({ author: one(users, { fields: [posts.authorId], references: [users.id] }) }),
+   * }) {}
+   * ```
    */
   static defineEntity<
     Schema extends TTableSchemaWithId,
@@ -43,6 +57,7 @@ export class ModelFactory {
       if (definitions === undefined && relations) {
         definitions = relations();
       }
+
       return definitions;
     };
 
@@ -56,6 +71,7 @@ export class ModelFactory {
 
       static override readonly relations: TValueOrResolver<Array<TRelationConfig>> = () => {
         configs ??= RelationDeclarations.toRelationConfigs({ relations: readDefinitions() ?? {} });
+
         return configs;
       };
     }

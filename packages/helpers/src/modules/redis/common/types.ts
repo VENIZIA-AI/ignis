@@ -1,43 +1,25 @@
-import type { Cluster, ClusterOptions, Redis, RedisOptions } from 'ioredis';
-import type { TRedisSentinelRole } from './constants';
+import type { Cluster, Redis } from 'ioredis';
 import type { IRedisHelper } from './interfaces';
 
+/** The ioredis client a helper wraps: a single or Sentinel `Redis`, or a `Cluster`. */
 export type TRedisClient = Redis | Cluster;
 
-export interface IRedisSingleHelperProps {
-  name: string;
+/** The address of one Redis node. A node has no credentials of its own: ioredis reads only the host and port of a Sentinel endpoint, and applies a cluster node's credentials to the startup nodes only. */
+export interface IRedisNode {
   host: string;
-  port: string | number;
-  user?: string;
+  /** @default RedisDefaults.PORT (6379), or RedisSentinelDefaults.PORT (26379) for a Sentinel node */
+  port?: string | number;
+}
+
+/** An ACL user and its password. Omit both to authenticate as the `default` user with no password. */
+export interface IRedisCredentials {
+  /** The Redis ACL user, with `password`. Omit it to authenticate as the `default` user. */
+  username?: string;
   /** Omit it for a Redis with no password. */
   password?: string;
-  database?: number;
-  autoConnect?: boolean;
-  maxRetry?: number;
 }
 
-export interface IRedisClusterHelperProps {
-  name: string;
-  nodes: Array<{ host: string; port: string | number; password?: string }>;
-  /** Same meaning as on single and sentinel: `false` holds the client open for a later `connect()`. */
-  autoConnect?: boolean;
-  clusterOptions?: ClusterOptions;
-}
-
-export interface IRedisSentinelHelperProps {
-  name: string;
-  sentinels: Array<{ host: string; port?: string | number }>;
-  masterName: string;
-  role?: TRedisSentinelRole;
-  password?: string;
-  sentinelPassword?: string;
-  sentinelUsername?: string;
-  database?: number;
-  autoConnect?: boolean;
-  maxRetry?: number;
-  redisOptions?: Partial<RedisOptions>;
-}
-
+/** Lifecycle hooks a Redis helper calls; each receives the helper name and the helper itself. */
 export interface IRedisHelperCallbacks {
   onInitialized?: (opts: { name: string; helper: IRedisHelper }) => void;
   onConnected?: (opts: { name: string; helper: IRedisHelper }) => void;
@@ -53,12 +35,3 @@ export interface IRedisHelperCallbacks {
 export interface IRedisModuleOption {
   module?: typeof import('ioredis');
 }
-
-export interface IRedisSingleHelperOptions
-  extends IRedisSingleHelperProps, IRedisHelperCallbacks, IRedisModuleOption {}
-
-export interface IRedisClusterHelperOptions
-  extends IRedisClusterHelperProps, IRedisHelperCallbacks, IRedisModuleOption {}
-
-export interface IRedisSentinelHelperOptions
-  extends IRedisSentinelHelperProps, IRedisHelperCallbacks, IRedisModuleOption {}

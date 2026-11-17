@@ -25,11 +25,13 @@ export class IntlTemporalAdapter implements ITemporalAdapter {
   } {
     const { tz } = opts;
     const cached = IntlTemporalAdapter.formatters.get(tz);
+
     if (cached) {
       return cached;
     }
 
     let formatter: Intl.DateTimeFormat;
+
     try {
       formatter = new Intl.DateTimeFormat('en-US', {
         timeZone: tz,
@@ -56,12 +58,15 @@ export class IntlTemporalAdapter implements ITemporalAdapter {
     // Full: the oldest zone makes room, so zone 257 is not rebuilt on every call.
     if (IntlTemporalAdapter.formatters.size >= MAX_CACHED_FORMATTERS) {
       const oldest = IntlTemporalAdapter.formatters.keys().next().value;
+
       if (oldest !== undefined) {
         IntlTemporalAdapter.formatters.delete(oldest);
       }
     }
+
     const entry = { formatter, commonEra };
     IntlTemporalAdapter.formatters.set(tz, entry);
+
     return entry;
   }
 
@@ -72,11 +77,13 @@ export class IntlTemporalAdapter implements ITemporalAdapter {
     const fields = { year: 0, month: 1, day: 1, hour: 0, minute: 0, second: 0 };
     let isBeforeCommonEra = false;
     const { formatter, commonEra } = IntlTemporalAdapter.formatterOf({ tz });
+
     for (const part of formatter.formatToParts(value)) {
       if (part.type === 'era') {
         isBeforeCommonEra = commonEra !== undefined && part.value !== commonEra;
         continue;
       }
+
       if (part.type in fields) {
         Reflect.set(fields, part.type, Number(part.value));
       }
@@ -94,6 +101,7 @@ export class IntlTemporalAdapter implements ITemporalAdapter {
     // The formatter writes whole seconds: compare against the instant truncated the same way.
     const wholeSecond =
       epoch - (((epoch % SECOND_MILLISECONDS) + SECOND_MILLISECONDS) % SECOND_MILLISECONDS);
+
     return wallClock.getTime() - wholeSecond;
   }
 }

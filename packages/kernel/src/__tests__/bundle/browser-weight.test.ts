@@ -26,6 +26,7 @@ const bundle = async (entrypoint: string) => {
   const [output] = built.outputs;
   const result = await output.arrayBuffer();
   const result2 = await output.text();
+
   return { bytes: result.byteLength, text: result2 };
 };
 
@@ -138,5 +139,46 @@ describe('the repository entry stays free of the schema layer', () => {
     const { text } = await bundle(REPOSITORY_ENTRY);
 
     expect(text.includes('ZodObject'), 'zod reached the repository entry').toBe(false);
+  });
+});
+
+/**
+ * `RestApplication` is the base of the browser Worker host, and it used to `new OpenAPIHono` for its two
+ * routers: `@hono/zod-openapi` loads at import and takes zod (about 394 KB) and zod-to-openapi (about 33 KB)
+ * with it, for a worker that declares no validated or OpenAPI route at all. The routers are plain `Hono`
+ * now, and the OpenAPI layer arrives only with the REST controller module (`RouterFactories`).
+ */
+describe('the application entry stays free of the OpenAPI layer', () => {
+  const APPLICATION_ENTRY = join(process.cwd(), 'src/base/applications/rest.ts');
+
+  test('no zod and no zod-to-openapi reach it', async () => {
+    const { text } = await bundle(APPLICATION_ENTRY);
+
+    expect(text.includes('ZodObject'), 'zod reached the RestApplication entry').toBe(false);
+    expect(
+      text.includes('OpenApiGeneratorV3'),
+      'zod-to-openapi reached the RestApplication entry',
+    ).toBe(false);
+  });
+});
+
+/** The status codes import nothing, so their entry is the one a browser bundle takes for a constant. */
+describe('the statuses entry carries the status codes and nothing else', () => {
+  const STATUSES_ENTRY = join(process.cwd(), 'src/statuses.ts');
+  const STATUSES_CEILING_BYTES = 4 * 1024;
+
+  test(`it bundles under ${STATUSES_CEILING_BYTES / 1024} KB minified`, async () => {
+    const { bytes } = await bundle(STATUSES_ENTRY);
+
+    expect(
+      bytes,
+      `kernel/statuses bundles to ${bytes} bytes. Something it exports now imports another module - check src/statuses.ts and common/statuses/common.ts.`,
+    ).toBeLessThan(STATUSES_CEILING_BYTES);
+  });
+
+  test('it exports Statuses and CommonStatuses only', async () => {
+    const entry = await import('../../statuses.js');
+
+    expect(Object.keys(entry).sort()).toEqual(['CommonStatuses', 'Statuses']);
   });
 });

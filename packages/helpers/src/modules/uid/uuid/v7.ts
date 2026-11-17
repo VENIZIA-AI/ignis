@@ -9,6 +9,7 @@ const SHARED_SLOT = Symbol.for('@venizia/ignis-helpers:uuid-v7');
 const POOL_SIZE = 8 * 256;
 const MAX_COUNTER = 0xfff;
 
+/** Time-ordered UUID v7 generator. Use `generate()` for the shared instance or `create()` for one with its own clock state and counter. */
 export class UuidV7Generator {
   /**
    * Builds a v7 generator with its own clock state and counter. Never `Bun.randomUUIDv7`: it is
@@ -30,6 +31,7 @@ export class UuidV7Generator {
 
       const seed = ((pool[offset] << 8) | pool[offset + 1]) & 0x7ff;
       offset += 2;
+
       return seed;
     };
 
@@ -99,6 +101,7 @@ export class UuidV7Generator {
   private static resolveShared(): () => string {
     const shared: (() => string) | undefined = Reflect.get(globalThis, SHARED_SLOT);
     const resolved = shared ?? UuidV7Generator.create();
+
     if (!shared) {
       Reflect.set(globalThis, SHARED_SLOT, resolved);
     }

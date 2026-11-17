@@ -1,10 +1,11 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { ModuleUtility, type AnyType } from '@venizia/ignis-helpers';
+import { ErrorUtility, ModuleUtility } from '@venizia/ignis-helpers';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import {
-  MailErrorCodes,
+  MailErrors,
   type IMailMessage,
   type IMailSendResult,
+  type IAmazonSesClient,
   type IMailTransport,
   type TAmazonSesClient,
   type TAmazonSesConfig,
@@ -13,11 +14,12 @@ import {
 import { MailAddressUtility, MailMimeUtility } from '../../utilities';
 import { MailAttachmentUtility } from '../../utilities/attachment.utility';
 
+/** Amazon SES transport over the HTTPS API (`@aws-sdk/client-sesv2`), sending each message as a raw MIME body. */
 export class AmazonSesTransportHelper extends BaseHelper implements IMailTransport {
-  private client: AnyType;
-  private sendEmailCommandConstructor: AnyType;
-  private getAccountCommandConstructor: AnyType;
-  private module?: TAmazonSesModule<TAmazonSesConfig>;
+  private client: IAmazonSesClient;
+  private sendEmailCommandConstructor: TAmazonSesClient['SendEmailCommand'];
+  private getAccountCommandConstructor: TAmazonSesClient['GetAccountCommand'];
+  private module?: TAmazonSesModule;
 
   constructor(opts: { config: TAmazonSesConfig; module?: TAmazonSesModule }) {
     super({ scope: AmazonSesTransportHelper.name });
@@ -61,9 +63,14 @@ export class AmazonSesTransportHelper extends BaseHelper implements IMailTranspo
 
       const result = await this.client.send(command);
 
+      const messageId: unknown =
+        typeof result === 'object' && result !== null
+          ? Reflect.get(result, 'MessageId')
+          : undefined;
+
       return {
         success: true,
-        messageId: result.MessageId,
+        messageId: typeof messageId === 'string' ? messageId : undefined,
         response: result,
       };
     } catch (error) {
@@ -75,7 +82,7 @@ export class AmazonSesTransportHelper extends BaseHelper implements IMailTranspo
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: ErrorUtility.toError({ error }).message,
       };
     }
   }
@@ -89,7 +96,10 @@ export class AmazonSesTransportHelper extends BaseHelper implements IMailTranspo
 
       const command = new this.getAccountCommandConstructor({});
       const result = await this.client.send(command);
-      const enabled = result.SendingEnabled === true;
+      const enabled =
+        typeof result === 'object' &&
+        result !== null &&
+        Reflect.get(result, 'SendingEnabled') === true;
 
       logger.info('Amazon SES account status: %s', enabled ? 'enabled' : 'disabled');
 
@@ -147,7 +157,7 @@ export class AmazonSesTransportHelper extends BaseHelper implements IMailTranspo
 
     throw getError({
       statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-      messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+      error: MailErrors.INVALID_CONFIGURATION,
       message: 'Invalid Amazon SES Configuration | Missing region',
     });
   }

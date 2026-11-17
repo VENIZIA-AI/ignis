@@ -69,13 +69,13 @@ A `bun build --compile` binary has no `node_modules` for that lookup, and withou
 ### Constructor
 
 ```typescript
-import { RedisSingleHelper } from '@venizia/ignis-helpers';
+import { BullQueueRoles, RedisSingleHelper } from '@venizia/ignis-helpers';
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 
 const worker = new BullMQHelper({
   queueName: 'email-queue',
   identifier: 'email-worker',
-  role: 'worker',
+  role: BullQueueRoles.WORKER,
   redisConnection: redisHelper,
   numberOfWorker: 3,
   lockDuration: 10 * 60 * 1000,
@@ -96,23 +96,23 @@ const worker = new BullMQHelper({
 
 ### IBullMQOptions
 
-`IBullMQOptions<TQueueElement = any, TQueueResult = any>`
+`IBullMQOptions<TQueueElement = unknown, TQueueResult = unknown>`
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `queueName` | `string` | - | BullMQ queue name. Must be non-empty. |
 | `identifier` | `string` | - | Scoped-logging identifier. |
 | `role` | `TBullQueueRole` (`'queue' \| 'worker'`) | - | `'queue'` initializes a producer; `'worker'` initializes a consumer. |
-| `redisConnection` | `IRedisHelper` | - | Connection backend. The helper calls `duplicateClient()` on it - never a raw ioredis client. |
+| `redisConnection` | `IRedisHelper` | - | Connection backend. The helper passes a `duplicateClient()` of it to BullMQ - never a raw ioredis client. |
 | `module` | `typeof import('bullmq')` | loaded by name | `bullmq` itself, for a compiled binary. Omitted, it is loaded when the queue or worker is built. |
 | `numberOfWorker` | `number` | `1` | Worker concurrency (BullMQ `Worker` `concurrency` option). Ignored for `role: 'queue'`. |
 | `lockDuration` | `number` | `5400000` (90 minutes) | Job lock duration in milliseconds. Ignored for `role: 'queue'`. |
-| `onWorkerData` | `(job: Job<TQueueElement, TQueueResult>) => Promise<any>` | - | Job processor. If omitted, the worker logs `id`, `name`, `data` at info level and resolves `undefined`. |
-| `onWorkerDataCompleted` | `(job, result) => Promise<void>` | - | Fired on the BullMQ `Worker` `'completed'` event. |
+| `onWorkerData` | `(job: Job<TQueueElement, TQueueResult>) => Promise<TQueueResult>` | - | Job processor. If omitted, the worker logs `id`, `name`, `data` at info level and resolves `undefined`. |
+| `onWorkerDataCompleted` | `(job, result: TQueueResult) => Promise<void>` | - | Fired on the BullMQ `Worker` `'completed'` event. |
 | `onWorkerDataFail` | `(job \| undefined, error: Error) => Promise<void>` | - | Fired on the BullMQ `Worker` `'failed'` event. `job` may be `undefined`. |
 
 > [!IMPORTANT]
-> Pass an `IRedisHelper` instance to `redisConnection`, **not** the raw ioredis client. `BullMQHelper` calls `redisConnection.duplicateClient()` internally to get a dedicated connection per role. One shared Redis helper can back any number of queues and workers.
+> Pass an `IRedisHelper` instance to `redisConnection`, **not** the raw ioredis client. `BullMQHelper` passes a `duplicateClient()` of it to BullMQ for each queue and each worker, and quits it in `close()`. One shared Redis helper can back any number of queues and workers. Give the Redis helper `maxRetry: -1`: BullMQ never reconnects a client that ioredis stopped reconnecting, and the helper logs an error when that happens.
 
 ### Run it in a compiled binary
 
@@ -121,7 +121,7 @@ A `bun build --compile` binary ships without `node_modules`, so neither `ioredis
 ```typescript
 import * as bullmq from 'bullmq';
 import * as ioredis from 'ioredis';
-import { RedisSingleHelper } from '@venizia/ignis-helpers';
+import { BullQueueRoles, RedisSingleHelper } from '@venizia/ignis-helpers';
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 
 const redisConnection = new RedisSingleHelper({
@@ -135,7 +135,7 @@ const redisConnection = new RedisSingleHelper({
 const producer = new BullMQHelper({
   identifier: 'email-producer',
   queueName: 'emails',
-  role: 'queue',
+  role: BullQueueRoles.QUEUE,
   redisConnection,
   module: bullmq,
 });
@@ -166,7 +166,7 @@ The constructor calls `configure()`, which switches on `role`:
 
 ### Cluster queue name wrapping
 
-- **Detects cluster mode.** `resolveQueueName()` checks whether `redisConnection.getClient()` is an ioredis `Cluster` instance.
+- **Detects cluster mode.** `resolveQueueName()` checks whether `redisConnection.getClient()` is a cluster client: `isCluster === true`, or a `nodes` function (a structural check, not `instanceof Cluster`).
 - **Wraps the name in a hash-tag.** When the connection is a cluster and `queueName` does not already start with `{`, the name is wrapped: `email-queue` becomes `{email-queue}`.
 - **Why.** This forces BullMQ's queue keys onto a single cluster slot, which BullMQ requires for cluster mode. You do not need to wrap the name yourself.
 
@@ -185,10 +185,10 @@ BullMQ does not retain job records after they finish (success or failure).
 
 ### Redis Cluster setup
 
-`RedisClusterHelper` does not set `maxRetriesPerRequest: null` automatically - set it inside `clusterOptions.redisOptions` yourself, since BullMQ requires it:
+`RedisClusterHelper` sets `maxRetriesPerRequest: null` by default, which BullMQ requires. It merges that key with your `clusterOptions.redisOptions`, so TLS and the like keep it; an explicit value of yours wins. The password is top-level, for every node:
 
 ```typescript
-import { RedisClusterHelper } from '@venizia/ignis-helpers';
+import { BullQueueRoles, RedisClusterHelper } from '@venizia/ignis-helpers';
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 
 const redisHelper = new RedisClusterHelper({
@@ -198,21 +198,18 @@ const redisHelper = new RedisClusterHelper({
     { host: 'node2.redis.example.com', port: 6379 },
     { host: 'node3.redis.example.com', port: 6379 },
   ],
+  password: 'your-password',
   clusterOptions: {
     enableReadyCheck: true,
     scaleReads: 'slave',
-    redisOptions: {
-      password: 'your-password',
-      tls: {},
-      maxRetriesPerRequest: null, // required by BullMQ
-    },
+    redisOptions: { tls: {} },
   },
 });
 
 const worker = BullMQHelper.newInstance({
   queueName: 'my-queue',
   identifier: 'cluster-worker',
-  role: 'worker',
+  role: BullQueueRoles.WORKER,
   redisConnection: redisHelper,
   onWorkerData: async job => {
     // process job
@@ -227,7 +224,7 @@ await producer.close();
 await consumer.close();
 ```
 
-Calls `worker?.close()` then `queue?.close()` in sequence. Both run even if the first fails, so a failing worker close never leaks the queue's Redis connection. If either fails, `close()` throws one `ApplicationError` aggregating both failure messages - only after both close attempts have run.
+Calls `worker?.close()` then `queue?.close()` in sequence, then quits every connection it handed to BullMQ (BullMQ never quits a client it is given). All of it runs even if a step fails, so a failing worker close never leaks a Redis connection. If either fails, `close()` throws one `ApplicationError` aggregating both failure messages - only after both close attempts have run.
 
 ### API summary
 
@@ -312,7 +309,6 @@ WAITING ──enqueue──> PROCESSING ──done──> WAITING
 | `QueueStatuses.SETTLED` | `'300_SETTLED'` | Terminal. No further elements accepted. |
 
 - **Why numeric prefixes.** `'000_...'` through `'300_...'` make `state >= QueueStatuses.LOCKED` and `state > QueueStatuses.LOCKED` valid string comparisons. `lock()` and `unlock()` use exactly that to guard against re-entering from an invalid state.
-- **Validate an arbitrary string** with `QueueStatuses.isValid(value)`.
 
 ### Processing loop
 
@@ -337,18 +333,24 @@ A failing `onMessage` handler is logged and swallowed by the same hook wrapper d
 
 | Method | Returns | Description |
 |--------|---------|--------------|
-| `enqueue(payload)` | `Promise<void>` | Pushes an element onto `storage`. No-ops (logs an error) if `state === SETTLED` or settle was requested. No-ops silently if `payload` is falsy. Calls `nextMessage()` when `autoDispatch` is `true`. |
+| `enqueue(payload)` | `Promise<void>` | Pushes an element onto `storage`; guarded (see below) |
 | `dequeue()` | `TQueueElement<T> \| undefined` | Shifts the head element off `storage` and fires `onDataDequeue`. |
 | `nextMessage()` | `void` | Advances the generator. Only effective when `state === WAITING`; otherwise logs a warning and returns. |
 | `lock()` | `void` | Transitions to `LOCKED`. No-ops (logs an error) if already `LOCKED` or `SETTLED`. |
-| `unlock(opts)` | `void` | `opts: { shouldProcessNextElement?: boolean }` (default `true`). Transitions to `WAITING`; no-ops (logs an error) if `state > LOCKED` (i.e. already `SETTLED`). Calls `nextMessage()` unless `shouldProcessNextElement: false`. |
-| `settle()` | `void` | Sets the settle flag. Transitions immediately to `SETTLED` unless currently `PROCESSING`, in which case `handleMessage()` finishes the transition once `storage` empties. |
+| `unlock(opts)` | `void` | Transitions to `WAITING`; guarded (see below) |
+| `settle()` | `void` | Sets the settle flag and moves toward `SETTLED` |
 | `isSettled()` | `boolean` | `true` when `state === SETTLED` and `storage` is empty. |
 | `close()` | `void` | Calls `settle()`, then terminates the generator via `generator.return(...)`. |
 | `getElementAt(position)` | `TQueueElement<T>` | Peek at an element by index (`storage[position]`). |
 | `getState()` | `TQueueStatus` | Current state. |
 | `getTotalEvent()` | `number` | Total elements ever enqueued (monotonic counter, not decremented on dequeue). |
 | `getProcessingEvents()` | `Set<TQueueElement<T>>` | The element(s) currently mid-`onMessage`. |
+
+`enqueue()` no-ops (logs an error) if `state === SETTLED` or settle was requested, and no-ops silently if `payload` is falsy. It calls `nextMessage()` when `autoDispatch` is `true`.
+
+`unlock(opts)` takes `opts: { shouldProcessNextElement?: boolean }` (default `true`). It no-ops (logs an error) if `state > LOCKED` (that is, already `SETTLED`), and calls `nextMessage()` unless `shouldProcessNextElement` is `false`.
+
+`settle()` transitions immediately to `SETTLED` unless the state is `PROCESSING`; in that case `handleMessage()` finishes the transition once `storage` empties.
 
 > [!NOTE]
 > Once `SETTLED`, `enqueue()` permanently rejects new elements - there is no way to reopen a settled queue. Construct a new `SequentialQueueHelper` instance instead.
@@ -433,11 +435,15 @@ The constructor calls `configure()` automatically, which connects via `mqtt.conn
 
 | Method | Returns | Description |
 |--------|---------|--------------|
-| `configure()` | `void` | Connects to the broker and wires `connect`/`disconnect`/`message`/`error`/`close` listeners. Called automatically by the constructor. A no-op if `this.client` already exists. |
+| `configure()` | `void` | Connects to the broker and wires the client listeners; the constructor calls it |
 | `getClient()` | `mqtt.MqttClient \| undefined` | The underlying MQTT.js client. |
 | `subscribe(opts)` | `Promise<string[]>` | `opts: { topics: string[] }`. Rejects with an `ApplicationError` (status 400) if the client is not connected. |
-| `publish(opts)` | `Promise<{ topic, message }>` | `opts: { topic: string; message: string \| Buffer }`. Rejects with an `ApplicationError` (status 400) if the client is not connected. |
-| `close(opts?)` | `Promise<void>` | `opts?: { isForce?: boolean }` (default `false`). Ends the client via `client.end(isForce, undefined, callback)`, resolving once the driver reports the connection ended. Safe to call more than once. |
+| `publish({ topic, message })` | `Promise<{ topic, message }>` | Rejects with an `ApplicationError` (status 400) if the client is not connected. |
+| `close(opts?)` | `Promise<void>` | Ends the client; resolves once the driver reports the connection ended |
+
+`configure()` wires the `connect`, `disconnect`, `message`, `error` and `close` listeners, and is a no-op if `this.client` already exists.
+
+`close(opts?)` takes `opts?: { isForce?: boolean }` (default `false`) and ends the client via `client.end(isForce, undefined, callback)`. It is safe to call more than once.
 
 ## Troubleshooting
 

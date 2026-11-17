@@ -2,23 +2,55 @@
   Shared by the three wikis (IGNIS, ARDOR, VULCAN): a byte-identical copy in each, kept in step by
   scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
 
-  The changelog index: the newest entry set apart as "Latest", filter tabs with the count, and the rest
-  of the entries grouped by year. Every entry is in the HTML (the tabs only hide rows), so the page reads
-  without script. The entries come from the build-time loader (changelog.data.ts); a wiki mounts this
-  from changelogs/index.md.
+  The changelog index. A wiki that keeps a folder per version shows one box per version, newest first: the version, whether
+  it is stable or a prerelease, its summary and highlights, the make-up of the release, and links to its details and to its
+  upgrade guide. The dated entries follow as the history, with filter tabs and the count, grouped by year. A wiki with no
+  version folder shows the newest dated entry set apart as "Latest" above the same history. Every entry is in the HTML (the
+  tabs only hide rows), so the page reads without script. The entries come from the build-time loaders (changelog.data.ts,
+  changelog-versions.data.ts, changelog-guide-counts.data.ts). A wiki mounts this from changelogs/index.md with a local import
+  in a `<script setup>`, never as a global component: the build check fails when it is in the script every page loads.
 -->
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { data } from './changelog.data';
-import { FILTERS, formatDate, matchesFilter, type TChangelogEntry } from './changelog-entries';
+import { data as guideCounts } from './changelog-guide-counts.data';
+import { data as versions } from './changelog-versions.data';
+import ChangelogCounts from './ChangelogCounts.vue';
+import {
+  FILTERS,
+  formatDate,
+  matchesFilter,
+  type TChangelogEntry,
+  type TVersionEntry,
+} from './changelog-entries';
+import { latestPrerelease } from './changelog-prerelease-lookup';
+import { renderInline } from './changelog-items';
+import PrereleaseLatest from './PrereleaseLatest.vue';
 
-withDefaults(defineProps<{ lede?: string; feed?: string }>(), {
+const props = withDefaults(defineProps<{ lede?: string; feed?: string; packageName?: string }>(), {
   lede: 'What changed, who is affected and what to do about it.',
   feed: '/changelog.xml',
+  packageName: undefined,
 });
 
 const entries: TChangelogEntry[] = data;
-const latest = entries[0];
+const hasVersions = versions.length > 0;
+
+const guideOf = (version: TVersionEntry) =>
+  guideCounts.find((candidate) => candidate.version === version.version);
+
+/** The newest prerelease of a version still in progress; a stable version and a line with no prerelease tag have none. */
+const prereleaseOf = (version: TVersionEntry) =>
+  version.released === null
+    ? latestPrerelease({ line: version.version, packageName: props.packageName })
+    : undefined;
+
+const dateLine = (version: TVersionEntry): string =>
+  version.released === null
+    ? 'In progress, on the next tag'
+    : `Released ${formatDate(version.released)}`;
+// With version folders the dated entries are the history below them; without, the newest one is the Latest card.
+const latest = hasVersions ? undefined : entries[0];
 const filter = ref('all');
 
 /** Entries newest first, grouped by year, after the filter. */
@@ -36,7 +68,7 @@ const years = computed(() => {
   return [...groups];
 });
 
-const shown = computed(() => years.value.reduce((sum, [, list]) => sum + list.length, 0));
+const count = computed(() => years.value.reduce((sum, [, list]) => sum + list.length, 0));
 
 const meta = (entry: TChangelogEntry): string =>
   [entry.packages.join(', '), entry.version]
@@ -54,6 +86,77 @@ const meta = (entry: TChangelogEntry): string =>
       <a class="cl-rss" :href="feed">RSS</a>
     </header>
 
+    <p v-if="hasVersions && packageName" class="cx-tip">
+      <span class="cx-label">Upgrading across several versions, from the project root</span>
+      <code>bun node_modules/.bin/vulcan migrate plan --package {{ packageName }} --to latest</code>
+    </p>
+
+    <div v-if="hasVersions" class="cx-list">
+      <article
+        v-for="(version, index) in versions"
+        :key="version.version"
+        :class="['cx-vcard', { 'cx-vcard--latest': index === 0 }]"
+      >
+        <a class="cx-stretch" :href="version.url" :aria-label="`${version.version}: details`"></a>
+        <div class="cx-v">
+          <b>{{ version.version }}</b>
+          <span
+            :class="['cx-chip', version.released === null ? 'cx-chip--pre' : 'cx-chip--stable']"
+            >{{ version.released === null ? 'Prerelease' : 'Stable' }}</span
+          >
+          <small>{{ dateLine(version) }}</small>
+          <PrereleaseLatest
+            v-if="prereleaseOf(version)"
+            :package-name="prereleaseOf(version)?.packageName ?? ''"
+            :version="prereleaseOf(version)?.prerelease.version ?? ''"
+            :date="prereleaseOf(version)?.prerelease.date ?? ''"
+            part="line"
+          />
+        </div>
+        <div>
+          <p
+            v-if="version.summary"
+            class="cx-sum"
+            v-html="renderInline({ text: version.summary })"
+          ></p>
+          <ul v-if="version.highlights.length" class="cx-hl">
+            <li
+              v-for="(line, at) in version.highlights"
+              :key="at"
+              v-html="renderInline({ text: line })"
+            ></li>
+          </ul>
+          <PrereleaseLatest
+            v-if="prereleaseOf(version)"
+            :package-name="prereleaseOf(version)?.packageName ?? ''"
+            :version="prereleaseOf(version)?.prerelease.version ?? ''"
+            :date="prereleaseOf(version)?.prerelease.date ?? ''"
+            part="command"
+          />
+        </div>
+        <div class="cx-aside">
+          <ChangelogCounts :counts="version.counts" />
+          <div class="cx-actions">
+            <a
+              v-if="guideOf(version)"
+              class="cx-btn cx-btn--primary cx-btn--sm"
+              :href="`${version.url}/upgrade`"
+              >Upgrade guide</a
+            >
+            <a class="cx-btn cx-btn--sm" :href="version.url">Details</a>
+          </div>
+          <small v-if="guideOf(version)" class="cx-label">
+            {{ guideOf(version)?.ids.length }} step{{ guideOf(version)?.ids.length === 1 ? '' : 's'
+            }}<template v-if="guideOf(version)?.codemods.length"
+              >, {{ guideOf(version)?.codemods.length }} codemod{{
+                guideOf(version)?.codemods.length === 1 ? '' : 's'
+              }}</template
+            >
+          </small>
+        </div>
+      </article>
+    </div>
+
     <a v-if="latest" class="cl-latest" :href="latest.url">
       <span class="cl-latest-line">
         <span class="cl-chip cl-chip--latest">Latest</span>
@@ -66,7 +169,11 @@ const meta = (entry: TChangelogEntry): string =>
       <span class="cl-arrow" aria-hidden="true"></span>
     </a>
 
-    <div class="cl-bar">
+    <h2 v-if="hasVersions && entries.length" id="history" class="cl-history-title">
+      Earlier entries
+    </h2>
+
+    <div class="cl-bar" v-if="entries.length">
       <div class="cl-tabs" role="group" aria-label="Filter the changelog">
         <button
           v-for="tab in FILTERS"
@@ -79,7 +186,7 @@ const meta = (entry: TChangelogEntry): string =>
           {{ tab.label }}
         </button>
       </div>
-      <span class="cl-count">{{ shown }} {{ shown === 1 ? 'entry' : 'entries' }}</span>
+      <span class="cl-count">{{ count }} {{ count === 1 ? 'entry' : 'entries' }}</span>
     </div>
 
     <section v-for="[year, list] in years" :key="year" class="cl-year">
@@ -99,6 +206,6 @@ const meta = (entry: TChangelogEntry): string =>
       </ol>
     </section>
 
-    <p v-if="shown === 0" class="cl-empty">No entry matches this filter.</p>
+    <p v-if="entries.length && count === 0" class="cl-empty">No entry matches this filter.</p>
   </div>
 </template>

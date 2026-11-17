@@ -19,6 +19,7 @@ class ProbeApplication extends RestApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'inject-by-class-app', version: '0.0.0', description: '' };
   }
+
   preConfigure(): void {}
   postConfigure(): void {}
   staticConfigure(): void {}
@@ -177,6 +178,7 @@ class NamedDataSource extends AbstractDataSource {
   constructor() {
     super({ scope: NamedDataSource.name });
   }
+
   configure(): void {}
 }
 
@@ -185,6 +187,7 @@ class ImperativeDataSource extends AbstractDataSource {
   constructor() {
     super({ scope: ImperativeDataSource.name });
   }
+
   configure(): void {}
 }
 
@@ -195,6 +198,7 @@ describe('a repository may name its datasource by class at parameter 0', () => {
       class NamedRepository {
         constructor(@inject({ target: NamedDataSource }) readonly dataSource: NamedDataSource) {}
       }
+
       return NamedRepository;
     }).not.toThrow();
   });
@@ -208,6 +212,7 @@ describe('a repository may name its datasource by class at parameter 0', () => {
           @inject({ target: ImperativeDataSource }) readonly dataSource: ImperativeDataSource,
         ) {}
       }
+
       return UnkeyedRepository;
     }).not.toThrow();
   });
@@ -255,6 +260,7 @@ describe('a repository may name its datasource by class at parameter 0', () => {
           @inject({ target: DecoratedService }) readonly dataSource: AbstractDataSource,
         ) {}
       }
+
       return KeyedServiceRepository;
     }).toThrow(/First parameter must be a DataSource/);
 
@@ -265,6 +271,7 @@ describe('a repository may name its datasource by class at parameter 0', () => {
           @inject({ target: UnregisteredHelper }) readonly dataSource: AbstractDataSource,
         ) {}
       }
+
       return UnkeyedServiceRepository;
     }).toThrow(/First parameter must be a DataSource/);
   });

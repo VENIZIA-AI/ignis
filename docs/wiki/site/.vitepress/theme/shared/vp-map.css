@@ -2,7 +2,7 @@
  * Shared by the three wikis (IGNIS, ARDOR, VULCAN): a byte-identical copy in each, kept in step by
  * scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
  *
- * Maps the tokens of tokens.css and the accent of the wiki's product.css onto the variables of the
+ * Maps the tokens of tokens.css and the colours of the manifest theme (wiki-theme.ts) onto the variables of the
  * VitePress default theme, so every default piece takes the Venizia look without being rewritten.
  * It is imported after the wiki's own tokens, so it wins over any older mapping.
  *

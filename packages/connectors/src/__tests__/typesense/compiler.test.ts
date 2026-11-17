@@ -3,6 +3,20 @@ import { describe, expect, test } from 'bun:test';
 import { TypesenseCollectionCompiler } from '@/search/typesense/compiler';
 import { SearchCollectionFactory, field } from '@/search/core/models';
 
+describe('TypesenseCollectionCompiler.compile - nullable', () => {
+  test('a nullable field compiles like an optional one: nullable is never sent', () => {
+    const definition = SearchCollectionFactory.define({
+      name: 'notes',
+      fields: [field.string('note', { optional: true, nullable: true })],
+    });
+
+    const schema = TypesenseCollectionCompiler.compile({ definition });
+
+    expect(schema.fields).toEqual([{ name: 'note', type: 'string', optional: true }]);
+    expect(JSON.stringify(schema)).not.toContain('nullable');
+  });
+});
+
 describe('TypesenseCollectionCompiler.compile', () => {
   test('compiles a full definition to the exact expected CollectionCreateSchema', () => {
     const definition = SearchCollectionFactory.define({

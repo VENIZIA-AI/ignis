@@ -1,7 +1,6 @@
 import type { IRepository } from '@venizia/ignis-kernel';
 import { AbstractEntity } from '@venizia/ignis-kernel/repository';
 import type { TSchemaType } from '@venizia/ignis-kernel/repository';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { BaseHelper } from '@venizia/ignis-helpers/core';
 import type { IRawSqlConnector, IRawSqlResult, TRawSqlQuery } from './common';
 import type { BaseRawSqlDataSource } from './datasource';
@@ -25,10 +24,10 @@ export abstract class BaseRawSqlRepository<TConnector extends IRawSqlConnector =
   extends BaseHelper
   implements IRepository
 {
-  dataSource: BaseRawSqlDataSource<AnyType, AnyType, TConnector>;
+  dataSource: BaseRawSqlDataSource<object, unknown, TConnector>;
   entity: AbstractEntity;
 
-  constructor(dataSource: BaseRawSqlDataSource<AnyType, AnyType, TConnector>) {
+  constructor(dataSource: BaseRawSqlDataSource<object, unknown, TConnector>) {
     super({ scope: new.target.name });
 
     this.dataSource = dataSource;

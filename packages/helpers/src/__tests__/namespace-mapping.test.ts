@@ -41,6 +41,7 @@ const SOURCES: Record<string, string> = {
 
 const loadModule = async (specifier: string): Promise<Record<string, unknown>> => {
   const source = SOURCES[specifier];
+
   if (!source) {
     throw new Error(`no source file is mapped to ${specifier}`);
   }
@@ -60,9 +61,11 @@ describe('the helpers entries of the namespace-functions table', () => {
     for (const entry of HELPERS_MAPPINGS) {
       for (const specifier of entry.modules) {
         const key = `${specifier}#${entry.oldName}`;
+
         if (seen.has(key)) {
           repeated.push(key);
         }
+
         seen.add(key);
       }
     }

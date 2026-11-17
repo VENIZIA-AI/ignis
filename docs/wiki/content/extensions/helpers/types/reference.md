@@ -28,6 +28,7 @@ Exhaustive reference for every utility type, resolver function, and constant cla
 | A value that may be absent, or a callback that may be async | [Nullable and Promise Types](#nullable-and-promise-types) |
 | A constructor or class type parameter | [Class and Constructor Types](#class-and-constructor-types) |
 | Telling a class from a plain function at runtime | [isClass](#isclass) |
+| A value any JSON column or payload can hold | [JSON Value Types](#json-value-types) |
 | Making object keys optional or required, or flattening `A & B` | [Object Utility Types](#object-utility-types) |
 | A union type derived from a const class | [Const Value Extraction Types](#const-value-extraction-types) |
 | An option that accepts an eager value or a resolver function | [Value Resolution Types and Functions](#value-resolution-types-and-functions) |
@@ -46,12 +47,11 @@ Exhaustive reference for every utility type, resolver function, and constant cla
 
 ## Import paths
 
+<!-- docs-code: off -->
 ```typescript
 // Types
 import type {
   TNullable,
-  AnyType,
-  AnyObject,
   TOptions,
   ValueOrPromise,
   ValueOf,
@@ -62,8 +62,12 @@ import type {
   TAbstractConstructor,
   TClass,
   TAbstractClass,
+  TMixinConstructor,
+  TAbstractMixinConstructor,
   TMixinTarget,
   TAbstractMixinTarget,
+  TJsonPrimitive,
+  TJsonValue,
   TResolver,
   TAsyncResolver,
   TValueOrResolver,
@@ -83,7 +87,6 @@ import type {
 import { isClass } from '@venizia/ignis-helpers';
 // Resolver classes
 import { ResolverUtility, ClassResolver } from '@venizia/ignis-helpers';
-import { resolveValue, resolveValueAsync, ClassResolver } from '@venizia/ignis-helpers';
 
 // Constants
 import {
@@ -123,6 +126,7 @@ import type {
 // JSX types (re-exported from hono/jsx)
 import type { Child, FC, PropsWithChildren } from '@venizia/ignis-helpers';
 ```
+<!-- docs-code: on -->
 
 All of the above resolve through the root `@venizia/ignis-helpers` barrel. It re-exports `./common` in full, which includes `./common/types` and `./common/constants`.
 
@@ -130,16 +134,14 @@ All of the above resolve through the root `@venizia/ignis-helpers` barrel. It re
 
 `Source ->` [`types/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/utility.ts)
 
+<!-- docs-code: off -->
 ```typescript
-type AnyType = any;
-type AnyObject = Record<string | symbol | number, any>;
 type TOptions<T extends object = {}> = T;
 ```
+<!-- docs-code: on -->
 
 | Type | Meaning | Use |
 |------|---------|-----|
-| `AnyType` | Alias for `any` | Escape hatch when a shape truly cannot be known at compile time |
-| `AnyObject` | Loosely-typed record | Objects whose keys and value types are not known at compile time |
 | `TOptions<T>` | Identity wrapper around `T` (defaults to `{}`) | Semantic marker that a parameter follows the framework's options-object pattern |
 
 ## Nullable and Promise Types
@@ -161,22 +163,33 @@ type ValueOrPromise<T> = T | Promise<T>;
 `Source ->` [`types/class.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/class.ts)
 
 ```typescript
-type TConstructor<T> = new (...args: any[]) => T;
-type TAbstractConstructor<T> = abstract new (...args: any[]) => T;
-type TClass<T> = TConstructor<T> & { [property: string]: any };
-type TAbstractClass<T> = TAbstractConstructor<T> & { [property: string]: any };
-type TMixinTarget<T> = TConstructor<{ [P in keyof T]: T[P] }>;
-type TAbstractMixinTarget<T> = TAbstractConstructor<{ [P in keyof T]: T[P] }>;
+type TConstructor<T> = new (...args: never[]) => T;
+type TAbstractConstructor<T> = abstract new (...args: never[]) => T;
+type TClass<T> = TConstructor<T>;
+type TAbstractClass<T> = TAbstractConstructor<T>;
 ```
+
+The mixin types keep `any[]` because TypeScript requires it of a mixin base (error TS2545):
+
+<!-- docs-code: off -->
+```typescript
+type TMixinConstructor<T> = new (...args: any[]) => T;
+type TAbstractMixinConstructor<T> = abstract new (...args: any[]) => T;
+type TMixinTarget<T> = TMixinConstructor<{ [P in keyof T]: T[P] }>;
+type TAbstractMixinTarget<T> = TAbstractMixinConstructor<{ [P in keyof T]: T[P] }>;
+```
+<!-- docs-code: on -->
 
 | Type | Meaning | Use |
 |------|---------|-----|
-| `TConstructor<T>` | A concrete `new (...args) => T` constructor | Typing a parameter that must be `new`-able |
+| `TConstructor<T>` | A concrete constructor producing `T`; its arguments are `never[]`, so every constructor fits | Typing a parameter that must be `new`-able. Build an instance with `Reflect.construct` |
 | `TAbstractConstructor<T>` | An `abstract new (...args) => T` constructor | Typing a parameter that accepts an abstract class reference |
-| `TClass<T>` | `TConstructor<T>` plus an index signature for static members | The most commonly used class type - a concrete class with arbitrary static properties |
-| `TAbstractClass<T>` | `TAbstractConstructor<T>` plus an index signature for static members | Same as `TClass`, for abstract classes |
-| `TMixinTarget<T>` | `TConstructor` over a mapped-identity copy of `T` | Types a mixin factory's `Base` parameter so the returned class keeps `T`'s shape |
-| `TAbstractMixinTarget<T>` | `TAbstractConstructor` over a mapped-identity copy of `T` | Same as `TMixinTarget`, for mixins over an abstract base |
+| `TClass<T>` | Same as `TConstructor<T>` | The most commonly used class type. Read statics through `typeof MyClass`, not through `TClass` |
+| `TAbstractClass<T>` | Same as `TAbstractConstructor<T>` | Same as `TClass`, for abstract classes |
+| `TMixinConstructor<T>` | `new (...args: any[]) => T`, the shape TypeScript requires of a mixin base | The base of `TMixinTarget`; use it for a mixin constructor parameter |
+| `TAbstractMixinConstructor<T>` | The `abstract new (...args: any[]) => T` form | Same, for an abstract base |
+| `TMixinTarget<T>` | `TMixinConstructor` over a mapped-identity copy of `T` | Types a mixin factory's `Base` parameter so the returned class keeps `T`'s shape |
+| `TAbstractMixinTarget<T>` | `TAbstractMixinConstructor` over a mapped-identity copy of `T` | Same as `TMixinTarget`, for mixins over an abstract base |
 
 ```typescript
 function MyMixin<T extends TMixinTarget<BaseClass>>(Base: T) {
@@ -191,7 +204,7 @@ function MyMixin<T extends TMixinTarget<BaseClass>>(Base: T) {
 `Source ->` [`packages/inversion/src/common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/utilities.ts)
 
 ```typescript
-const isClass: <T>(target: any) => target is TClass<T>;
+declare const isClass: <T>(target: unknown) => target is TClass<T>;
 ```
 
 Declared in `@venizia/ignis-inversion` and re-exported by `helpers`. It's the single predicate that tells a constructor from a resolver function. Controller factories and `resolveValue`/`resolveValueAsync`/`ClassResolver.resolveClass` all branch on it.
@@ -218,14 +231,30 @@ type TPrettify<T> = { [K in keyof T]: T[K] } & {};
 | `ValueOptionalExcept<T, K>` | `T` with everything optional except keys `K` | The inverse - only `K` stays required |
 | `TPrettify<T>` | Flattens an intersection (`A & B`) into one object type | Readable IDE hover tooltips when combining types with `&` |
 
+## JSON Value Types
+
+`Source ->` [`types/json.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/json.ts)
+
+```typescript
+type TJsonPrimitive = string | number | boolean | null;
+type TJsonValue = TJsonPrimitive | TJsonValue[] | { [key: string]: TJsonValue };
+```
+
+| Type | Meaning | Use |
+|------|---------|-----|
+| `TJsonPrimitive` | A JSON scalar | A leaf of a JSON value |
+| `TJsonValue` | Any value JSON can hold: a scalar, an array of JSON values, or an object of them | A `jsonb` or JSON column that stores whatever the app puts in it, such as `jValue` of the data-type enrichers |
+
+A value typed as an `interface` is not assignable to `TJsonValue`, because an interface has no index signature: spread it (`{ ...meta }`) or declare its shape as a `type`. A `readonly` array is refused too, at any depth (0.4.7 accepted one): copy each array with `[...list]`. An `as const` object of scalars is accepted, but one that holds a readonly array needs its arrays copied. A `Date` and an `undefined` member are not JSON either.
+
 ## Const Value Extraction Types
 
 `Source ->` [`types/const-value.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/const-value.ts)
 
 ```typescript
-type TStringConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string> & {};
-type TNumberConstValue<T extends TClass<any>> = Extract<ValueOf<T>, number> & {};
-type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number> & {};
+type TStringConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string> & {};
+type TNumberConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, number> & {};
+type TConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string | number> & {};
 ```
 
 The `& {}` keeps the union literal: a value copied into an object literal, a `let` or an inferred generic stays `'bun'`, not `string`.
@@ -250,8 +279,8 @@ Types and functions for lazy/deferred value resolution - a core pattern in the f
 `Source ->` [`types/resolver.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/resolver.ts)
 
 ```typescript
-type TResolver<T> = (...args: any[]) => T;
-type TAsyncResolver<T> = (...args: any[]) => T | Promise<T>;
+type TResolver<T> = (...args: never[]) => T;
+type TAsyncResolver<T> = (...args: never[]) => T | Promise<T>;
 type TValueOrResolver<T> = T | TResolver<T>;
 type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>;
 ```
@@ -271,7 +300,7 @@ type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>;
 ResolverUtility.resolveValue<T>(opts: { value: TValueOrResolver<T> }): T;
 ```
 
-Synchronously resolves a lazy value. The old free functions `resolveValue` and `resolveValueAsync` are gone; `devz codemod namespace-functions` moves their callers.
+Synchronously resolves a lazy value. The old free functions `resolveValue` and `resolveValueAsync` are gone; `bun run devz codemod namespace-functions` moves their callers.
 
 | Input | Result |
 |---|---|
@@ -338,7 +367,7 @@ const resolved = await ResolverUtility.resolveValueAsync({ value: config3 });
 Types for declarative field-to-type mappings, used for configuration-driven data transformation.
 
 ```typescript
-type TFieldMappingDataType = 'string' | 'number' | 'strings' | 'numbers' | 'boolean';
+type TFieldMappingDataType = TConstValue<typeof FieldMappingDataTypes>; // 'string' | 'number' | 'strings' | 'numbers' | 'boolean'
 
 interface IFieldMapping {
   name: string;
@@ -355,7 +384,7 @@ type TObjectFromFieldMappings<
   T extends readonly {
     name: string;
     type: string;
-    [extra: string | symbol]: any;
+    [extra: string | symbol]: unknown;
   }[],
 > = {
   [K in T[number]['name']]: /* mapped to the declared type */
@@ -367,7 +396,9 @@ type TObjectFromFieldMappings<
 | `TFieldMappingDataType` | Union of the five supported field kinds | Constrains `IFieldMapping.type` |
 | `IFieldMapping` | `{ name, type, default? }` | Declares one field's name, runtime type, and optional default |
 | `TFieldMappingNames<T>` | Union of `name` values from a field-mapping array type | Extracts the set of declared field names |
-| `TObjectFromFieldMappings<T>` | An object type keyed by `T[number]['name']` | Maps each declared type to its runtime TypeScript equivalent: `'string'` -> `string`, `'number'` -> `number`, `'strings'` -> `string[]`, `'numbers'` -> `number[]`, `'boolean'` -> `boolean` |
+| `TObjectFromFieldMappings<T>` | An object type keyed by `T[number]['name']` | Maps each declared type to its runtime type |
+
+The runtime types are `'string'` -> `string`, `'number'` -> `number`, `'strings'` -> `string[]`, `'numbers'` -> `number[]` and `'boolean'` -> `boolean`.
 
 ## DI and Lifecycle Types
 
@@ -376,7 +407,7 @@ type TObjectFromFieldMappings<
 ```typescript
 type TInjectionGetter = <T>(opts: { key: string | symbol }) => T;
 
-interface IConfigurable<Options extends object = any, Result = any> {
+interface IConfigurable<Options extends object = object, Result = unknown> {
   configure(opts?: Options): ValueOrPromise<Result>;
 }
 ```
@@ -465,63 +496,105 @@ The `HTTP` class groups all HTTP-related constants into nested objects: `Headers
 
 Grouped by category, matching the source file's comments:
 
-| Group | Constant | Value |
-|-------|----------|-------|
-| **Content** | `CONTENT_DISPOSITION` | `'content-disposition'` |
-| | `CONTENT_ENCODING` | `'content-encoding'` |
-| | `CONTENT_LENGTH` | `'content-length'` |
-| | `CONTENT_TYPE` | `'content-type'` |
-| | `CONTENT_RANGE` | `'content-range'` |
-| | `CONTENT_SECURITY_POLICY` | `'content-security-policy'` |
-| **Request** (content negotiation & conditionals) | `ACCEPT` | `'accept'` |
-| | `ACCEPT_ENCODING` | `'accept-encoding'` |
-| | `ACCEPT_LANGUAGE` | `'accept-language'` |
-| | `AUTHORIZATION` | `'authorization'` |
-| | `COOKIE` | `'cookie'` |
-| | `HOST` | `'host'` |
-| | `IF_MODIFIED_SINCE` | `'if-modified-since'` |
-| | `IF_NONE_MATCH` | `'if-none-match'` |
-| | `ORIGIN` | `'origin'` |
-| | `REFERER` | `'referer'` |
-| | `USER_AGENT` | `'user-agent'` |
-| **Response** (caching, auth challenges & redirects) | `ALLOW` | `'allow'` |
-| | `CACHE_CONTROL` | `'cache-control'` |
-| | `ETAG` | `'etag'` |
-| | `LAST_MODIFIED` | `'last-modified'` |
-| | `LOCATION` | `'location'` |
-| | `RETRY_AFTER` | `'retry-after'` |
-| | `SET_COOKIE` | `'set-cookie'` |
-| | `VARY` | `'vary'` |
-| | `WWW_AUTHENTICATE` | `'www-authenticate'` |
-| **CORS** (RFC 6454 / Fetch spec) | `ACCESS_CONTROL_ALLOW_CREDENTIALS` | `'access-control-allow-credentials'` |
-| | `ACCESS_CONTROL_ALLOW_HEADERS` | `'access-control-allow-headers'` |
-| | `ACCESS_CONTROL_ALLOW_METHODS` | `'access-control-allow-methods'` |
-| | `ACCESS_CONTROL_ALLOW_ORIGIN` | `'access-control-allow-origin'` |
-| | `ACCESS_CONTROL_EXPOSE_HEADERS` | `'access-control-expose-headers'` |
-| | `ACCESS_CONTROL_MAX_AGE` | `'access-control-max-age'` |
-| | `ACCESS_CONTROL_REQUEST_HEADERS` | `'access-control-request-headers'` |
-| | `ACCESS_CONTROL_REQUEST_METHOD` | `'access-control-request-method'` |
-| **Transport** | `CONNECTION` | `'connection'` |
-| | `TRANSFER_ENCODING` | `'transfer-encoding'` |
-| | `UPGRADE` | `'upgrade'` |
-| **Security** | `STRICT_TRANSPORT_SECURITY` | `'strict-transport-security'` |
-| | `X_CONTENT_TYPE_OPTIONS` | `'x-content-type-options'` |
-| | `X_FRAME_OPTIONS` | `'x-frame-options'` |
-| **Proxy / forwarding** (de facto standard) | `FORWARDED` | `'forwarded'` |
-| | `X_FORWARDED_FOR` | `'x-forwarded-for'` |
-| | `X_FORWARDED_HOST` | `'x-forwarded-host'` |
-| | `X_FORWARDED_PROTO` | `'x-forwarded-proto'` |
-| **Rate limiting** (de facto standard) | `X_RATELIMIT_LIMIT` | `'x-ratelimit-limit'` |
-| | `X_RATELIMIT_REMAINING` | `'x-ratelimit-remaining'` |
-| | `X_RATELIMIT_RESET` | `'x-ratelimit-reset'` |
-| **IGNIS custom** | `REQUEST_TRACING_ID` | `'x-request-id'` |
-| | `REQUEST_DEVICE_INFO` | `'x-device-info'` |
-| | `REQUEST_CHANNEL` | `'x-request-channel'` |
-| | `REQUEST_COUNT_DATA` | `'x-request-count'` |
-| | `REQUEST_EXTRA` | `'x-request-extra'` |
-| | `RESPONSE_COUNT_DATA` | `'x-response-count'` |
-| | `RESPONSE_FORMAT` | `'x-response-format'` |
-| | `RESPONSE_EXTRA` | `'x-response-extra'` |
+##### Content
+
+| Constant | Value |
+|---|---|
+| `CONTENT_DISPOSITION` | `'content-disposition'` |
+| `CONTENT_ENCODING` | `'content-encoding'` |
+| `CONTENT_LENGTH` | `'content-length'` |
+| `CONTENT_TYPE` | `'content-type'` |
+| `CONTENT_RANGE` | `'content-range'` |
+| `CONTENT_SECURITY_POLICY` | `'content-security-policy'` |
+
+##### Request (content negotiation & conditionals)
+
+| Constant | Value |
+|---|---|
+| `ACCEPT` | `'accept'` |
+| `ACCEPT_ENCODING` | `'accept-encoding'` |
+| `ACCEPT_LANGUAGE` | `'accept-language'` |
+| `AUTHORIZATION` | `'authorization'` |
+| `COOKIE` | `'cookie'` |
+| `HOST` | `'host'` |
+| `IF_MODIFIED_SINCE` | `'if-modified-since'` |
+| `IF_NONE_MATCH` | `'if-none-match'` |
+| `ORIGIN` | `'origin'` |
+| `REFERER` | `'referer'` |
+| `USER_AGENT` | `'user-agent'` |
+
+##### Response (caching, auth challenges & redirects)
+
+| Constant | Value |
+|---|---|
+| `ALLOW` | `'allow'` |
+| `CACHE_CONTROL` | `'cache-control'` |
+| `ETAG` | `'etag'` |
+| `LAST_MODIFIED` | `'last-modified'` |
+| `LOCATION` | `'location'` |
+| `RETRY_AFTER` | `'retry-after'` |
+| `SET_COOKIE` | `'set-cookie'` |
+| `VARY` | `'vary'` |
+| `WWW_AUTHENTICATE` | `'www-authenticate'` |
+
+##### CORS (RFC 6454 / Fetch spec)
+
+| Constant | Value |
+|---|---|
+| `ACCESS_CONTROL_ALLOW_CREDENTIALS` | `'access-control-allow-credentials'` |
+| `ACCESS_CONTROL_ALLOW_HEADERS` | `'access-control-allow-headers'` |
+| `ACCESS_CONTROL_ALLOW_METHODS` | `'access-control-allow-methods'` |
+| `ACCESS_CONTROL_ALLOW_ORIGIN` | `'access-control-allow-origin'` |
+| `ACCESS_CONTROL_EXPOSE_HEADERS` | `'access-control-expose-headers'` |
+| `ACCESS_CONTROL_MAX_AGE` | `'access-control-max-age'` |
+| `ACCESS_CONTROL_REQUEST_HEADERS` | `'access-control-request-headers'` |
+| `ACCESS_CONTROL_REQUEST_METHOD` | `'access-control-request-method'` |
+
+##### Transport
+
+| Constant | Value |
+|---|---|
+| `CONNECTION` | `'connection'` |
+| `TRANSFER_ENCODING` | `'transfer-encoding'` |
+| `UPGRADE` | `'upgrade'` |
+
+##### Security
+
+| Constant | Value |
+|---|---|
+| `STRICT_TRANSPORT_SECURITY` | `'strict-transport-security'` |
+| `X_CONTENT_TYPE_OPTIONS` | `'x-content-type-options'` |
+| `X_FRAME_OPTIONS` | `'x-frame-options'` |
+
+##### Proxy / forwarding (de facto standard)
+
+| Constant | Value |
+|---|---|
+| `FORWARDED` | `'forwarded'` |
+| `X_FORWARDED_FOR` | `'x-forwarded-for'` |
+| `X_FORWARDED_HOST` | `'x-forwarded-host'` |
+| `X_FORWARDED_PROTO` | `'x-forwarded-proto'` |
+
+##### Rate limiting (de facto standard)
+
+| Constant | Value |
+|---|---|
+| `X_RATELIMIT_LIMIT` | `'x-ratelimit-limit'` |
+| `X_RATELIMIT_REMAINING` | `'x-ratelimit-remaining'` |
+| `X_RATELIMIT_RESET` | `'x-ratelimit-reset'` |
+
+##### IGNIS custom
+
+| Constant | Value |
+|---|---|
+| `REQUEST_TRACING_ID` | `'x-request-id'` |
+| `REQUEST_DEVICE_INFO` | `'x-device-info'` |
+| `REQUEST_CHANNEL` | `'x-request-channel'` |
+| `REQUEST_COUNT_DATA` | `'x-request-count'` |
+| `REQUEST_EXTRA` | `'x-request-extra'` |
+| `RESPONSE_COUNT_DATA` | `'x-response-count'` |
+| `RESPONSE_FORMAT` | `'x-response-format'` |
+| `RESPONSE_EXTRA` | `'x-response-extra'` |
 
 #### HTTP.CorsHeaders
 
@@ -534,32 +607,49 @@ The headers IGNIS adds, for a CORS configuration that lists headers by hand - sp
 
 #### HTTP.HeaderValues
 
-| Group | Constant | Value |
-|-------|----------|-------|
-| **Application** | `APPLICATION_FORM_URLENCODED` | `'application/x-www-form-urlencoded'` |
-| | `APPLICATION_GRAPHQL_JSON` | `'application/graphql+json'` |
-| | `APPLICATION_GZIP` | `'application/gzip'` |
-| | `APPLICATION_JAVASCRIPT` | `'application/javascript'` |
-| | `APPLICATION_JSON` | `'application/json'` |
-| | `APPLICATION_MSGPACK` | `'application/msgpack'` |
-| | `APPLICATION_NDJSON` | `'application/x-ndjson'` |
-| | `APPLICATION_OCTET_STREAM` | `'application/octet-stream'` |
-| | `APPLICATION_PDF` | `'application/pdf'` |
-| | `APPLICATION_PROTOBUF` | `'application/x-protobuf'` |
-| | `APPLICATION_XML` | `'application/xml'` |
-| | `APPLICATION_ZIP` | `'application/zip'` |
-| **Multipart** | `MULTIPART_FORM_DATA` | `'multipart/form-data'` |
-| **Text** | `TEXT_CSS` | `'text/css'` |
-| | `TEXT_CSV` | `'text/csv'` |
-| | `TEXT_EVENT_STREAM` | `'text/event-stream'` |
-| | `TEXT_HTML` | `'text/html'` |
-| | `TEXT_PLAIN` | `'text/plain'` |
-| | `TEXT_XML` | `'text/xml'` |
-| **Image** | `IMAGE_GIF` | `'image/gif'` |
-| | `IMAGE_JPEG` | `'image/jpeg'` |
-| | `IMAGE_PNG` | `'image/png'` |
-| | `IMAGE_SVG` | `'image/svg+xml'` |
-| | `IMAGE_WEBP` | `'image/webp'` |
+##### Application
+
+| Constant | Value |
+|---|---|
+| `APPLICATION_FORM_URLENCODED` | `'application/x-www-form-urlencoded'` |
+| `APPLICATION_GRAPHQL_JSON` | `'application/graphql+json'` |
+| `APPLICATION_GZIP` | `'application/gzip'` |
+| `APPLICATION_JAVASCRIPT` | `'application/javascript'` |
+| `APPLICATION_JSON` | `'application/json'` |
+| `APPLICATION_MSGPACK` | `'application/msgpack'` |
+| `APPLICATION_NDJSON` | `'application/x-ndjson'` |
+| `APPLICATION_OCTET_STREAM` | `'application/octet-stream'` |
+| `APPLICATION_PDF` | `'application/pdf'` |
+| `APPLICATION_PROTOBUF` | `'application/x-protobuf'` |
+| `APPLICATION_XML` | `'application/xml'` |
+| `APPLICATION_ZIP` | `'application/zip'` |
+
+##### Multipart
+
+| Constant | Value |
+|---|---|
+| `MULTIPART_FORM_DATA` | `'multipart/form-data'` |
+
+##### Text
+
+| Constant | Value |
+|---|---|
+| `TEXT_CSS` | `'text/css'` |
+| `TEXT_CSV` | `'text/csv'` |
+| `TEXT_EVENT_STREAM` | `'text/event-stream'` |
+| `TEXT_HTML` | `'text/html'` |
+| `TEXT_PLAIN` | `'text/plain'` |
+| `TEXT_XML` | `'text/xml'` |
+
+##### Image
+
+| Constant | Value |
+|---|---|
+| `IMAGE_GIF` | `'image/gif'` |
+| `IMAGE_JPEG` | `'image/jpeg'` |
+| `IMAGE_PNG` | `'image/png'` |
+| `IMAGE_SVG` | `'image/svg+xml'` |
+| `IMAGE_WEBP` | `'image/webp'` |
 
 #### HTTP.Methods
 
@@ -590,59 +680,81 @@ Every IGNIS network fetcher uppercases the method at the wire boundary, via `met
 
 Status codes are grouped by class under `HTTP.ResultCodes.RS_1` through `HTTP.ResultCodes.RS_5` - for example, `HTTP.ResultCodes.RS_4.NotFound`.
 
-| Group | Constant | Value |
-|-------|----------|-------|
-| **RS_1** (1xx) | `Continue` | `100` |
-| | `SwitchingProtocols` | `101` |
-| | `EarlyHints` | `103` |
-| **RS_2** (2xx) | `Ok` | `200` |
-| | `Created` | `201` |
-| | `Accepted` | `202` |
-| | `NonAuthoritativeInformation` | `203` |
-| | `NoContent` | `204` |
-| | `ResetContent` | `205` |
-| | `PartialContent` | `206` |
-| | `MultiStatus` | `207` |
-| **RS_3** (3xx) | `MovedPermanently` | `301` |
-| | `Found` | `302` |
-| | `NotModified` | `304` |
-| | `TemporaryRedirect` | `307` |
-| | `PermanentRedirect` | `308` |
-| **RS_4** (4xx) | `BadRequest` | `400` |
-| | `Unauthorized` | `401` |
-| | `PaymentRequired` | `402` |
-| | `Forbidden` | `403` |
-| | `NotFound` | `404` |
-| | `MethodNotAllowed` | `405` |
-| | `NotAcceptable` | `406` |
-| | `RequestTimeout` | `408` |
-| | `Conflict` | `409` |
-| | `Gone` | `410` |
-| | `LengthRequired` | `411` |
-| | `PreconditionFailed` | `412` |
-| | `ContentTooLarge` | `413` |
-| | `URITooLong` | `414` |
-| | `UnsupportedMediaType` | `415` |
-| | `RangeNotSatisfiable` | `416` |
-| | `ExpectationFailed` | `417` |
-| | `UnprocessableEntity` | `422` |
-| | `Locked` | `423` |
-| | `FailedDependency` | `424` |
-| | `TooEarly` | `425` |
-| | `UpgradeRequired` | `426` |
-| | `PreconditionRequired` | `428` |
-| | `TooManyRequests` | `429` |
-| | `RequestHeaderFieldsTooLarge` | `431` |
-| | `UnavailableForLegalReasons` | `451` |
-| **RS_5** (5xx) | `InternalServerError` | `500` |
-| | `NotImplemented` | `501` |
-| | `BadGateway` | `502` |
-| | `ServiceUnavailable` | `503` |
-| | `GatewayTimeout` | `504` |
-| | `HTTPVersionNotSupported` | `505` |
-| | `InsufficientStorage` | `507` |
-| | `LoopDetected` | `508` |
-| | `NetworkAuthenticationRequired` | `511` |
+##### RS_1 (1xx)
+
+| Constant | Value |
+|---|---|
+| `Continue` | `100` |
+| `SwitchingProtocols` | `101` |
+| `EarlyHints` | `103` |
+
+##### RS_2 (2xx)
+
+| Constant | Value |
+|---|---|
+| `Ok` | `200` |
+| `Created` | `201` |
+| `Accepted` | `202` |
+| `NonAuthoritativeInformation` | `203` |
+| `NoContent` | `204` |
+| `ResetContent` | `205` |
+| `PartialContent` | `206` |
+| `MultiStatus` | `207` |
+
+##### RS_3 (3xx)
+
+| Constant | Value |
+|---|---|
+| `MovedPermanently` | `301` |
+| `Found` | `302` |
+| `NotModified` | `304` |
+| `TemporaryRedirect` | `307` |
+| `PermanentRedirect` | `308` |
+
+##### RS_4 (4xx)
+
+| Constant | Value |
+|---|---|
+| `BadRequest` | `400` |
+| `Unauthorized` | `401` |
+| `PaymentRequired` | `402` |
+| `Forbidden` | `403` |
+| `NotFound` | `404` |
+| `MethodNotAllowed` | `405` |
+| `NotAcceptable` | `406` |
+| `RequestTimeout` | `408` |
+| `Conflict` | `409` |
+| `Gone` | `410` |
+| `LengthRequired` | `411` |
+| `PreconditionFailed` | `412` |
+| `ContentTooLarge` | `413` |
+| `URITooLong` | `414` |
+| `UnsupportedMediaType` | `415` |
+| `RangeNotSatisfiable` | `416` |
+| `ExpectationFailed` | `417` |
+| `UnprocessableEntity` | `422` |
+| `Locked` | `423` |
+| `FailedDependency` | `424` |
+| `TooEarly` | `425` |
+| `UpgradeRequired` | `426` |
+| `PreconditionRequired` | `428` |
+| `TooManyRequests` | `429` |
+| `RequestHeaderFieldsTooLarge` | `431` |
+| `UnavailableForLegalReasons` | `451` |
+
+##### RS_5 (5xx)
+
+| Constant | Value |
+|---|---|
+| `InternalServerError` | `500` |
+| `NotImplemented` | `501` |
+| `BadGateway` | `502` |
+| `ServiceUnavailable` | `503` |
+| `GatewayTimeout` | `504` |
+| `HTTPVersionNotSupported` | `505` |
+| `InsufficientStorage` | `507` |
+| `LoopDetected` | `508` |
+| `NetworkAuthenticationRequired` | `511` |
 
 #### Derived types
 
@@ -728,7 +840,7 @@ class MimeTypes {
 type TMimeTypes = TConstValue<typeof MimeTypes>; // 'unknown' | 'image' | 'video' | 'text'
 ```
 
-Content type classification constants. `MimeTypes.isValid(value)` returns `true` for one of the four.
+Content type classification constants.
 
 ### Content types and file extensions
 
@@ -738,9 +850,11 @@ The same file carries three more const classes, for the concrete extension and M
 
 | Const class | Derived type | Holds |
 |---|---|---|
-| `FileExtensions` | `TFileExtension` | 19 lowercase extensions, leading dot included - `'.png'`, `'.mp4'`, `'.xml'`. The dot is part of the value, because `path.extname` returns one |
+| `FileExtensions` | `TFileExtension` | 19 lowercase extensions, dot included (`'.png'`, `'.mp4'`, `'.xml'`) |
 | `ContentTypes` | `TContentType` | 19 MIME strings - `'image/png'`, `'application/json'`, plus `OCTET_STREAM` as the fallback |
 | `ContentTypeTable` | - | `BY_EXTENSION`, the extension-to-content-type map, and `resolve()` over it |
+
+The dot is part of each `FileExtensions` value, because `path.extname` returns one.
 
 ```typescript
 import { ContentTypeTable, ContentTypes, FileExtensions } from '@venizia/ignis-helpers';

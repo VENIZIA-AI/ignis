@@ -1,29 +1,34 @@
 import { describe, expect, test } from 'bun:test';
 import { MailComponent } from '@/components/mail/component';
-import { MailKeys, type IMailTransport, type TMailOptions } from '@/components/mail/common';
+import {
+  MailKeys,
+  MailQueueExecutorTypes,
+  type ICustomMailOptions,
+  type IMailQueueExecutor,
+  type IMailTransport,
+  type TMailOptions,
+  type TMailQueueExecutorConfig,
+} from '@/components/mail/common';
 import {
   DirectMailExecutorHelper,
   InternalQueueMailExecutorHelper,
 } from '@/components/mail/helpers';
-import { Container } from '@venizia/ignis-kernel';
-import type { AnyType } from '@venizia/ignis-helpers/common';
-import { FakeLogger, FakeMailTransport } from './fakes';
+import { catchError, FakeLogger, FakeMailTransport, MailTestApplication } from './fakes';
 
-/** The component only ever talks to the container (isBound/bind/get), so a plain Container stands in for the application; the transport is bound through the `custom` provider, so no SMTP peer is needed. */
+/** The component only ever talks to the container (isBound/bind/get), so a bare application stands in for a full one; the transport is bound through the `custom` provider, so no SMTP peer is needed. */
 const buildComponent = (opts: {
   mailOptions?: TMailOptions | null;
-  queueConfig?: AnyType | null;
+  queueConfig?: TMailQueueExecutorConfig | Record<string, unknown> | null;
   transport?: FakeMailTransport;
 }) => {
-  const container = new Container({ scope: 'MailComponentTest' });
+  const container = new MailTestApplication({ scope: 'MailComponentTest' });
   const transport = opts.transport ?? new FakeMailTransport();
 
   if (opts.mailOptions !== null) {
     container
       .bind({ key: MailKeys.MAIL_OPTIONS })
       .toValue(
-        opts.mailOptions ??
-          ({ provider: 'custom', config: transport, from: 'sender@example.com' } as TMailOptions),
+        opts.mailOptions ?? { provider: 'custom', config: transport, from: 'sender@example.com' },
       );
   }
 
@@ -33,12 +38,33 @@ const buildComponent = (opts: {
       .toValue(opts.queueConfig ?? { type: 'direct' });
   }
 
-  const component = new MailComponent(container as AnyType);
+  const component = new MailComponent(container);
   const fakeLogger = new FakeLogger();
-  component['logger'] = fakeLogger as AnyType;
+  Reflect.set(component, 'logger', fakeLogger);
 
-  return { container, component, transport, fakeLogger };
+  return { container, component, transport, fakeLogger, stopHooks: container.stopHooks };
 };
+
+describe('MailComponent - stop', () => {
+  test('the stop hooks close the executor, then the transport', async () => {
+    const { component, transport, stopHooks } = buildComponent({
+      queueConfig: { type: 'internal-queue', options: { identifier: 'component-stop' } },
+    });
+
+    await component.configure();
+
+    expect(stopHooks.map((entry) => entry.identifier)).toEqual([
+      'mail.queue-executor.close',
+      'mail.transport.close',
+    ]);
+
+    for (const entry of stopHooks) {
+      await entry.hook();
+    }
+
+    expect(transport.closeCallCount).toBe(1);
+  });
+});
 
 describe('MailComponent - wiring', () => {
   test('binds the transport instance, the executor and every declared service', async () => {
@@ -47,7 +73,7 @@ describe('MailComponent - wiring', () => {
     await component.configure();
 
     expect(container.get<IMailTransport>({ key: MailKeys.MAIL_TRANSPORT_INSTANCE })).toBe(
-      transport as AnyType,
+      transport,
     );
     expect(container.get({ key: MailKeys.MAIL_QUEUE_EXECUTOR_INSTANCE })).toBeInstanceOf(
       DirectMailExecutorHelper,
@@ -63,6 +89,7 @@ describe('MailComponent - wiring', () => {
       MailKeys.MAIL_TRANSPORT_PROVIDER,
       MailKeys.MAIL_QUEUE_EXECUTOR_PROVIDER,
     ];
+
     for (const key of keys) {
       expect(container.isBound({ key })).toBe(true);
     }
@@ -70,7 +97,7 @@ describe('MailComponent - wiring', () => {
 
   test('the internal-queue executor config is honoured', async () => {
     const { container, component } = buildComponent({
-      queueConfig: { type: 'internal-queue', internalQueue: { identifier: 'component-queue' } },
+      queueConfig: { type: 'internal-queue', options: { identifier: 'component-queue' } },
     });
 
     await component.configure();
@@ -86,12 +113,8 @@ describe('MailComponent - wiring', () => {
   test('missing mail options fail loudly', async () => {
     const { component } = buildComponent({ mailOptions: null });
 
-    let error: AnyType;
-    try {
-      await component.configure();
-    } catch (caught) {
-      error = caught;
-    }
+    const error = await catchError(() => component.configure());
+
     expect(error.message).toContain('Mail options not configured');
   });
 
@@ -124,16 +147,20 @@ describe('MailComponent - wiring', () => {
     const { container, component, transport } = buildComponent({});
 
     await component.configure();
-    const firstTransport = container.get<AnyType>({ key: MailKeys.MAIL_TRANSPORT_INSTANCE });
-    const firstExecutor = container.get<AnyType>({ key: MailKeys.MAIL_QUEUE_EXECUTOR_INSTANCE });
+    const firstTransport = container.get<IMailTransport>({ key: MailKeys.MAIL_TRANSPORT_INSTANCE });
+    const firstExecutor = container.get<IMailQueueExecutor>({
+      key: MailKeys.MAIL_QUEUE_EXECUTOR_INSTANCE,
+    });
     const firstOptions = container.get<TMailOptions>({ key: MailKeys.MAIL_OPTIONS });
 
     await component.configure();
     // A second call CARRYING options must not swap them under the transport already built.
     await component.configure({ provider: 'custom', config: transport, from: 'late@example.com' });
 
-    expect(container.get<AnyType>({ key: MailKeys.MAIL_TRANSPORT_INSTANCE })).toBe(firstTransport);
-    expect(container.get<AnyType>({ key: MailKeys.MAIL_QUEUE_EXECUTOR_INSTANCE })).toBe(
+    expect(container.get<IMailTransport>({ key: MailKeys.MAIL_TRANSPORT_INSTANCE })).toBe(
+      firstTransport,
+    );
+    expect(container.get<IMailQueueExecutor>({ key: MailKeys.MAIL_QUEUE_EXECUTOR_INSTANCE })).toBe(
       firstExecutor,
     );
     expect(container.get<TMailOptions>({ key: MailKeys.MAIL_OPTIONS })).toBe(firstOptions);
@@ -142,14 +169,13 @@ describe('MailComponent - wiring', () => {
 
 describe('MailComponent - confidentiality', () => {
   test('the SMTP password is never written to the logs', async () => {
-    const { component, fakeLogger } = buildComponent({
-      mailOptions: {
-        provider: 'custom',
-        config: new FakeMailTransport(),
-        from: 'sender@example.com',
-        auth: { user: 'mailer', pass: 'super-secret-pass' },
-      } as AnyType,
-    });
+    const mailOptions: ICustomMailOptions & { auth: { user: string; pass: string } } = {
+      provider: 'custom',
+      config: new FakeMailTransport(),
+      from: 'sender@example.com',
+      auth: { user: 'mailer', pass: 'super-secret-pass' },
+    };
+    const { component, fakeLogger } = buildComponent({ mailOptions });
 
     await component.configure();
 
@@ -162,7 +188,10 @@ describe('MailComponent - confidentiality', () => {
       queueConfig: {
         type: 'direct',
         bullmq: {
-          redis: { host: 'localhost', port: 6379, password: 'super-secret-redis' },
+          redis: {
+            getClient: () => ({ options: { password: 'super-secret-redis' } }),
+            duplicateClient: () => ({}),
+          },
           queue: { identifier: 'mail', name: 'mail' },
           mode: 'both',
         },
@@ -173,5 +202,30 @@ describe('MailComponent - confidentiality', () => {
 
     const logged = fakeLogger.lines.join('\n');
     expect(logged).not.toContain('super-secret-redis');
+  });
+});
+
+describe('TMailQueueExecutorConfig', () => {
+  test('each variant requires the options its executor needs, and direct takes none', () => {
+    const direct: TMailQueueExecutorConfig = { type: MailQueueExecutorTypes.DIRECT };
+    const internal: TMailQueueExecutorConfig = {
+      type: MailQueueExecutorTypes.INTERNAL_QUEUE,
+      options: { identifier: 'mail' },
+    };
+
+    // @ts-expect-error the internal queue needs its options
+    const missingOptions: TMailQueueExecutorConfig = {
+      type: MailQueueExecutorTypes.INTERNAL_QUEUE,
+    };
+
+    // @ts-expect-error the direct executor takes no options
+    const directWithOptions: TMailQueueExecutorConfig = {
+      type: MailQueueExecutorTypes.DIRECT,
+      options: { identifier: 'mail' },
+    };
+
+    expect([direct.type, internal.type, missingOptions.type, directWithOptions.type]).toHaveLength(
+      4,
+    );
   });
 });

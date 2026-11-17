@@ -1,20 +1,21 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
-import { ModuleUtility } from '@venizia/ignis-helpers';
+import { ErrorUtility, ModuleUtility } from '@venizia/ignis-helpers';
 import type {
   IMailAttachment,
+  IMailgunMessagesClient,
   IMailMessage,
   IMailSendResult,
   IMailTransport,
   TMailgunConfig,
   TMailgunModule,
 } from '../../common';
-import { MailErrorCodes } from '../../common';
+import { MailErrors } from '../../common';
 import { MailAttachmentUtility } from '../../utilities/attachment.utility';
 
+/** Mailgun transport (`mailgun.js`). The constructor throws when `username`, `key` or `domain` is missing. */
 export class MailgunTransportHelper extends BaseHelper implements IMailTransport {
-  private client: AnyType; // IMessagesClient from mailgun.js
+  private client: IMailgunMessagesClient;
   private domain: string;
   private module?: TMailgunModule;
 
@@ -48,14 +49,14 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
 
     throw getError({
       statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-      messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+      error: MailErrors.INVALID_CONFIGURATION,
       message: `Invalid Mailgun configuration | Missing required keys: ${missingKeys.join(', ')}`,
     });
   }
 
   /** Client factory seam - overridden in tests to run the helper without the mailgun.js peer. */
-  protected buildClient(config: TMailgunConfig): AnyType {
-    const Mailgun = this.module ?? ModuleUtility.loadSync<AnyType>({ module: 'mailgun.js' });
+  protected buildClient(config: TMailgunConfig): IMailgunMessagesClient {
+    const Mailgun = this.module ?? ModuleUtility.loadSync<TMailgunModule>({ module: 'mailgun.js' });
     const mailgun = new Mailgun(FormData);
     const client = mailgun.client(config);
 
@@ -64,7 +65,7 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
 
   async send(message: IMailMessage): Promise<IMailSendResult> {
     try {
-      const mailgunMessage: AnyType = {
+      const mailgunMessage: Record<string, unknown> = {
         from: message.from,
         to: Array.isArray(message.to) ? message.to : [message.to],
         subject: message.subject,
@@ -90,13 +91,23 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
           attachments: message.attachments,
         });
 
-        mailgunMessage.attachment = attachments.map((attachment: IMailAttachment) => {
-          return { filename: attachment.filename, data: attachment.content };
+        // Mailgun reads `inline` parts by file name: `cid:<name>` in the HTML, so the cid is the name.
+        const toPart = (attachment: IMailAttachment, filename?: string) => ({
+          filename: filename ?? attachment.filename,
+          data: attachment.content,
+          contentType: attachment.contentType,
         });
+
+        mailgunMessage.attachment = attachments
+          .filter((attachment) => !attachment.cid)
+          .map((attachment) => toPart(attachment));
+        mailgunMessage.inline = attachments
+          .filter((attachment) => attachment.cid)
+          .map((attachment) => toPart(attachment, attachment.cid));
       }
 
       this.logger.for(this.send.name).debug('Sending email with Mailgun to: %s', mailgunMessage.to);
-      const result: AnyType = await this.client.create(this.domain, mailgunMessage);
+      const result = await this.client.create(this.domain, mailgunMessage);
 
       return {
         success: true,
@@ -106,9 +117,10 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
     } catch (error) {
       this.logger.for(this.send.name).error('Mailgun send failed: %s', error);
       MailAttachmentUtility.release({ attachments: message.attachments });
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: ErrorUtility.toError({ error }).message,
       };
     }
   }
@@ -126,9 +138,11 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
       });
 
       this.logger.for(this.verify.name).info('Mailgun API connection verified successfully');
+
       return true;
     } catch (error) {
       this.logger.for(this.verify.name).error('Mailgun API verification failed: %s', error);
+
       return false;
     }
   }

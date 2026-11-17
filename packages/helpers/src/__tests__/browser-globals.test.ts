@@ -37,6 +37,7 @@ const buildBrowserText = async (opts: { entry: string; files?: Record<string, st
 /** Web globals kept, Node's removed. */
 const createBrowserContext = () => {
   const sandbox: Record<string, unknown> = {};
+
   for (const name of Object.getOwnPropertyNames(globalThis)) {
     if (!NODE_ONLY_GLOBALS.has(name)) {
       sandbox[name] = Reflect.get(globalThis, name);
@@ -150,9 +151,11 @@ describe('ECDH runs with no Buffer', () => {
     // over through a plain function and checks `Buffer` and `process` by bare name, which the scope really lacks.
     const context = createBrowserContext();
     let pending: unknown;
+
     context.report = (value: unknown) => {
       pending = value;
     };
+
     vm.runInContext(text, context);
     const result = await pending;
 

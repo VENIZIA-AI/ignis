@@ -1,8 +1,7 @@
 /** WebSocketServerHelper user-hook safety suite, complementing websocket.test.ts (happy/async-rejection paths): covers hooks that throw SYNCHRONOUSLY, which would otherwise escape the Bun socket handlers and take the process down. */
 
-import type { AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
-import type { IRedisHelper } from '@/modules/redis';
+import { AbstractRedisHelper, type IRedisHelper, type TRedisClient } from '@/modules/redis';
 import {
   type IWebSocketClient,
   type IWebSocketServerOptions,
@@ -23,16 +22,34 @@ class MockRedisClient extends EventEmitter {
   psubscribe = mock(() => Promise.resolve(1));
 }
 
+const toRedisClient = (client: MockRedisClient): TRedisClient => {
+  const isRedisClient = (value: unknown): value is TRedisClient => value instanceof EventEmitter;
+
+  if (!isRedisClient(client)) {
+    throw new Error('[toRedisClient] The fake is not an event emitter');
+  }
+
+  return client;
+};
+
 const createMockRedisHelper = () => {
   const clients: MockRedisClient[] = [];
 
-  const helper = {
-    duplicateClient: () => {
+  /** A real helper over a fake client that hands out, and records, a fake client per `duplicateClient()`. */
+  class MockRedisHelper extends AbstractRedisHelper {
+    override duplicateClient(): TRedisClient {
       const client = new MockRedisClient();
       clients.push(client);
-      return client;
-    },
-  } as AnyType as IRedisHelper;
+
+      return toRedisClient(client);
+    }
+  }
+
+  const helper: IRedisHelper = new MockRedisHelper({
+    scope: 'MockRedisHelper',
+    identifier: 'mock-redis',
+    client: toRedisClient(new MockRedisClient()),
+  });
 
   return { helper, clients };
 };
@@ -65,6 +82,7 @@ const createHelper = (opts?: Partial<IWebSocketServerOptions>) => {
   } as IWebSocketServerOptions);
 
   helpers.push(helper);
+
   return { helper, redisClients: clients };
 };
 
@@ -153,6 +171,7 @@ describe('WebSocketServerHelper | synchronously throwing hooks', () => {
     helpers.pop();
 
     expect((helper.getClients() as Map<string, IWebSocketClient>).size).toBe(0);
+
     for (const client of redisClients) {
       expect(client.quit).toHaveBeenCalledTimes(1);
     }

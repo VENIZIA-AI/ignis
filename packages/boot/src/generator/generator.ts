@@ -4,11 +4,16 @@ import type { IScanReport, IScannedArtifact } from './common';
 import { ArtifactIndexEmitter } from './emitter';
 import { ArtifactScanner } from './scanner';
 
+/** Options for writing or checking the artifact index file. */
 export interface IGenerateOptions {
   root: string;
   out: string;
   ignore?: string[];
-  /** Name of the exported constant; default `GeneratedArtifacts`. */
+  /**
+   * Name of the exported constant.
+   *
+   * @default 'GeneratedArtifacts'
+   */
   exportName?: string;
   /** Extra module specifiers whose stereotype imports count; see `IScanOptions.sourceModules`. */
   sourceModules?: string[];

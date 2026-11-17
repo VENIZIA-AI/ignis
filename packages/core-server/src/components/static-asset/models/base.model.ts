@@ -22,7 +22,7 @@ export class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseMetaLinkM
       mimetype: text().notNull(),
       size: integer().notNull(),
       etag: text(),
-      metadata: jsonb().$type<Record<string, any>>(),
+      metadata: jsonb().$type<Record<string, unknown>>(),
       storageType: text('storage_type').notNull(),
       isSynced: boolean('is_synced').notNull().default(false),
 
@@ -49,7 +49,9 @@ export class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseMetaLinkM
   static override relations = () => [];
 }
 
+/** The table schema of `BaseMetaLinkModel`. */
 export type TMetaLinkSchema = typeof BaseMetaLinkModel.schema;
+/** A MetaLink row as selected from the table. */
 export type TMetaLink = TTableObject<TMetaLinkSchema>;
 
 /** Any table whose row carries the MetaLink fields. The component reads and writes the ROW, so the table is free to carry another name or to live in another Postgres schema. */

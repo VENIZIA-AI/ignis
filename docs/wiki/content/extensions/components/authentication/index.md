@@ -32,6 +32,7 @@ export class Application extends BaseApplication {
       options: {
         jwtSecret: process.env.APP_ENV_JWT_SECRET!,
         getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
+        claims: { issuer: 'my-api', audience: 'my-api' },
       },
     });
 
@@ -62,7 +63,7 @@ const SECURE_ROUTE = {
 - **Strategies are manual, on purpose.** The component registers *token services* - JWS, JWKS, Basic - never *strategies*. Register strategies yourself after the component, via `AuthenticationStrategyRegistry.getInstance().register(...)`.
 - **The registry is a DI-backed singleton.** `AuthenticationStrategyRegistry` binds each strategy into the container as a singleton, under the key `authentication.strategy.<name>`. A route's `authenticate.strategies` list references strategies by that same name.
 - **`authenticate()` is the middleware entry point.** Route-level `authenticate: { strategies, mode }` config and the standalone `authenticate()` function both run through the same `AuthenticationProvider`, which sets `Authentication.CURRENT_USER` on success. See [Multi-strategy authentication](./usage#multi-strategy-authentication) for what `'any'` and `'all'` mode do.
-- **The auth controller is optional and generated.** Set `REST_OPTIONS.useAuthController: true` to call `AuthControllerFactory.define()`, which builds a `BaseRestController` subclass at runtime - routes for `/sign-in`, `/sign-up`, `/change-password`, `/token/refresh`, `/who-am-i`, and `/me`. You back it with your own `IAuthService` implementation.
+- **The auth controller is optional and generated.** Set `REST_OPTIONS.useAuthController: true` to call `AuthControllerFactory.build()`, which builds a `BaseRestController` subclass at runtime - routes for `/sign-in`, `/sign-up`, `/change-password`, `/token/refresh`, `/who-am-i`, and `/me`. You back it with your own `IAuthService` implementation.
 
 **JOSE standards**
 
@@ -82,9 +83,12 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
   options: {
     jwtSecret: process.env.APP_ENV_JWT_SECRET!,
     getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
+    claims: { issuer: 'my-api', audience: 'my-api' },
   },
 });
 ```
+
+**Every JWT configuration needs `claims`.** `claims.issuer` is stamped as `iss` on every token IGNIS signs and required on every token it verifies. A token signed with the same key for another purpose (a password-reset or invite token) has no matching `iss`, so it does not authenticate a request. `claims.audience` is optional: set it and it is stamped as `aud` and required too, which pins a token to one service; leave it out and no `aud` is stamped or checked, so a token with or without one verifies. A configuration without `issuer`, with an `audience` that is empty, or with a misspelt key in `claims` refuses to boot, and the message names the key. The accepted algorithm is pinned too: `HS256` (or `headerAlgorithm`) for JWS, `algorithm` for a JWKS issuer, and `verify.algorithms` for a JWKS verifier.
 
 **Configure JWKS Issuer (asymmetric JWT, microservice-friendly).** Signs with a private key, serves the public key at `/certs`.
 
@@ -97,6 +101,7 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
     keys: { driver: JWKSKeyDrivers.FILE, format: JWKSKeyFormats.PEM, private: './keys/private.pem', public: './keys/public.pem' },
     kid: 'my-key-id-1',
     getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
+    claims: { issuer: 'https://auth.example.com', audience: 'my-api' },
   },
 });
 ```
@@ -145,12 +150,12 @@ const FALLBACK_AUTH_CONFIG = {
 **Add auth entity columns to a Drizzle table.** Spread helper functions into `pgTable()` for User/Role/Permission/PolicyDefinition columns.
 
 ```typescript
-import { extraUserColumns, PostgresIdEnricher, PostgresTzEnricher } from '@venizia/ignis';
+import { AuthModelColumns, PostgresIdEnricher, PostgresTzEnricher } from '@venizia/ignis';
 
 export const users = pgTable('users', {
   ...PostgresIdEnricher.generateColumnDefs(),
   ...PostgresTzEnricher.generateColumnDefs(),
-  ...extraUserColumns(),
+  ...AuthModelColumns.buildUser(),
   username: text('username').unique().notNull(),
 });
 ```

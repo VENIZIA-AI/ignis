@@ -14,6 +14,7 @@ Pass the options at the call site, then inject `IMailService` anywhere to send:
 
 ```typescript
 import { BaseApplication, ValueOrPromise } from '@venizia/ignis';
+import { applicationEnvironment } from '@venizia/ignis-helpers';
 import { MailComponent, MailProviders } from '@venizia/ignis/mail';
 
 export class Application extends BaseApplication {
@@ -26,7 +27,7 @@ export class Application extends BaseApplication {
           host: 'smtp.gmail.com',
           port: 465,
           secure: true,
-          auth: { user: process.env.APP_ENV_MAIL_USER, pass: process.env.APP_ENV_MAIL_PASS },
+          auth: { user: applicationEnvironment.get('APP_ENV_MAIL_USER'), pass: applicationEnvironment.get('APP_ENV_MAIL_PASS') },
         },
       },
     });
@@ -70,19 +71,19 @@ export class UserService extends BaseService {
 
   `MailTransportProvider` is the factory that switches on the provider. It throws for an unsupported provider string.
 
-- **`MailService` is the one sending entry point.** `send()`, `sendBatch()`, `sendTemplate()`, and `verify()` all validate first, then call the transport directly, then normalize failures into `MailErrorCodes`:
+- **`MailService` is the one sending entry point.** `send()` validates the message and applies the attachment policy; `sendBatch()` and `sendTemplate()` go through `send()`; `verify()` checks the transport. Failures are normalized into `MailErrors` (4xx) or `MailErrorCodes` (server-side). A transport called directly skips every check `send()` makes, header injection included:
 
   | Case | Result |
   |---|---|
   | Validation error | Passes through unchanged as `400` |
   | Transport throws | Wrapped as `SEND_FAILED` (`500`) |
-  | Nodemailer / Mailgun transport | Never throws - returns `{ success: false, error }` instead |
+  | Built-in transport (Nodemailer, Mailgun, Amazon SES) | Never throws - returns `{ success: false, error }` instead |
 
 - **Attachments reach the transport as bytes, never as a path.** `send()` reads every attachment into `content` first. A `path` is read only inside the `attachmentRoot` option, and refused when that option is unset. A message's attachments together may not pass `maxAttachmentBytes` (default 25 MB). `text` and `html` must be strings for the same reason. See [Attachments](./usage#attachments).
 
 - **The queue executor is a separate subsystem, not a mail queue.** `IMailQueueExecutor` (`direct` / `internal-queue` / `bullmq`) exposes only `enqueueVerificationEmail()` and `setProcessor()`, and never touches `MailService`. Call `setProcessor()` before `enqueueVerificationEmail()`, with your own function - typically one wrapping `mailService.send()`.
 
-- **Templates are a simple substitution engine.** `TemplateEngineService` stores templates in an in-memory `Map`. It replaces <code v-pre>{{variable}}</code> placeholders, with dot-notation for nested values. A missing value is logged and left as the literal placeholder text, not blanked out.
+- **Templates are a simple substitution engine.** `TemplateEngineService` stores templates in an in-memory `Map`. It replaces <code v-pre>{{variable}}</code> placeholders, with dot-notation for nested own properties. A value is HTML-escaped in the body; <code v-pre>{{{variable}}}</code> inserts it as it is, for markup you trust. A missing value is logged and left as the literal placeholder text, not blanked out.
 
 - **Startup logging never leaks credentials.** `MailComponent` logs only `mailOptions.provider` and `queueExecutorConfig.type`. It never logs the SMTP password, OAuth2 secret, API key, or Redis password nested inside them.
 
@@ -111,7 +112,7 @@ const results = await this.mailService.sendBatch(messages, { concurrency: 5 });
 
 ### Send a registered template
 
-Register a template on `IMailTemplateEngine`, then send it through `IMailService`.
+Register a template on `TemplateEngineService`, then send it through `IMailService`.
 
 ```typescript
 this.templateEngine.registerTemplate({
@@ -135,7 +136,7 @@ await this.mailService.sendTemplate({
 {
   provider: MailProviders.MAILGUN,
   from: 'noreply@example.com',
-  config: { username: 'api', key: process.env.MAILGUN_API_KEY, domain: 'mg.example.com' },
+  config: { username: 'api', key: applicationEnvironment.get('MAILGUN_API_KEY'), domain: 'mg.example.com' },
 }
 ```
 
@@ -176,7 +177,7 @@ const data = this.verificationGenerator.generateVerificationData({
 - [Error Reference](./errors) -- error codes and troubleshooting
 - [Components Overview](/guides/core-concepts/components) -- component system basics
 - [Queue Helper](/extensions/helpers/queue/) -- the in-memory/BullMQ primitives the queue executors are built on
-- [Redis Helper](/extensions/helpers/redis/) -- `RedisSingleHelper`, required by the BullMQ queue executor
+- [Redis Helper](/extensions/helpers/redis/) -- `RedisSingleHelper`, `RedisSentinelHelper` and `RedisClusterHelper`: the BullMQ queue executor takes any of them
 
 **Files:**
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import { isApplicationError } from '@venizia/ignis-helpers/core';
 
 import { AbstractRepository } from '@venizia/ignis-kernel';
 import type { TCount, TFilter } from '@venizia/ignis-kernel';
@@ -17,7 +17,7 @@ class StubbedRelationalRepository extends ReadableRelationalRepository {
   rows: Array<Record<string, unknown>> = [];
   total = 0;
 
-  override applyDefaultFilter<DataObject = any>(opts: {
+  override applyDefaultFilter<DataObject = unknown>(opts: {
     userFilter?: TFilter<DataObject>;
   }): TFilter<DataObject> {
     return opts.userFilter ?? {};
@@ -29,7 +29,7 @@ class StubbedRelationalRepository extends ReadableRelationalRepository {
 
   protected override validateLockOptions(): void {}
 
-  protected override async findWithCoreAPI<R = any>(): Promise<Array<R>> {
+  protected override async findWithCoreAPI<R = unknown>(): Promise<Array<R>> {
     return this.rows as Array<R>;
   }
 
@@ -61,7 +61,7 @@ describe('shared AbstractRepository core helpers', () => {
 
       const expectedMessage = '[create] Repository operation is NOT ALLOWED | scope: READ_ONLY';
 
-      expect(() => relationalRepository.create({ data: {} as any })).toThrow(expectedMessage);
+      expect(() => relationalRepository.create({ data: {} })).toThrow(expectedMessage);
       expect(() => searchRepository.create({ data: {} })).toThrow(expectedMessage);
     });
 
@@ -74,12 +74,13 @@ describe('shared AbstractRepository core helpers', () => {
 
       // Returns undefined when the call did NOT throw - the expectation below fails on that just as
       // loudly as on a wrong code, so no raw `new Error` guard is needed.
-      const denialCodeOf = (repository: AnyType): string | undefined => {
+      const denialCodeOf = (repository: { create(opts: { data: {} }): unknown }) => {
         try {
           repository.create({ data: {} });
+
           return undefined;
         } catch (error) {
-          return (error as { normalized?: { code?: string } }).normalized?.code;
+          return isApplicationError(error) ? error.normalized.code : undefined;
         }
       };
 

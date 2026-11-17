@@ -8,6 +8,7 @@ import type {
   TUserAuditEnricherOptions,
 } from '../common/types';
 
+/** The column definitions with `createdBy` and `modifiedBy` user columns added. */
 export type TUserAuditEnricherResult<
   ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions,
 > = ColumnDefinitions & {
@@ -56,6 +57,7 @@ const buildUserAuditColumn = (opts: {
   }
 };
 
+/** Adds `createdBy` and `modifiedBy` columns filled from the current audit user. */
 export class PostgresUserAuditEnricher {
   static generateColumnDefs(opts?: TUserAuditEnricherOptions) {
     const {
@@ -75,6 +77,7 @@ export class PostgresUserAuditEnricher {
   }): TUserAuditEnricherResult<ColumnDefinitions> {
     const { baseSchema, opts: enricherOpts } = opts;
     const defs = PostgresUserAuditEnricher.generateColumnDefs(enricherOpts);
+
     return { ...baseSchema, ...defs } as TUserAuditEnricherResult<ColumnDefinitions>;
   }
 }

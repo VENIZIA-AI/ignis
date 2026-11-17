@@ -1,28 +1,36 @@
+import { getError } from '@/modules/error';
 import { ModuleUtility } from '@/utilities/module.utility';
 import { ParseUtility } from '@/utilities/parse.utility';
 import type { Redis } from 'ioredis';
 import { AbstractRedisHelper } from './../base';
-import { type IRedisSentinelHelperOptions, RedisSentinelRoles } from './../common';
+import { RedisDefaults } from './../common';
+import { RedisSentinelDefaults, RedisSentinelRoles } from './constants';
+import type { IRedisSentinelHelperOptions } from './types';
 
+/** Redis helper for a master and replicas behind Sentinel. `redisOptions` overrides the helper defaults; the first-class fields override `redisOptions`. */
 export class RedisSentinelHelper extends AbstractRedisHelper<Redis> {
   constructor(opts: IRedisSentinelHelperOptions) {
     const {
       name,
-      sentinels,
-      masterName,
-      role = RedisSentinelRoles.MASTER,
+      sentinel,
+      username,
       password,
-      sentinelPassword,
-      sentinelUsername,
       database = 0,
       autoConnect = true,
-      maxRetry = 0,
+      maxRetry = RedisDefaults.MAX_RETRY,
       redisOptions = {},
     } = opts;
 
-    const normalizedSentinels = sentinels.map((sentinel) => ({
-      host: sentinel.host,
-      port: ParseUtility.toInt({ input: sentinel.port ?? 26379 }),
+    // A JavaScript caller (or a config read from a file) may still pass the old shape, `masterName` and `sentinels` at the top level.
+    if (!Array.isArray(sentinel?.nodes) || sentinel.nodes.length === 0) {
+      throw getError({
+        message: `[${RedisSentinelHelper.name}] sentinel.nodes is required | pass sentinel: { masterName, nodes }`,
+      });
+    }
+
+    const normalizedSentinels = sentinel.nodes.map((node) => ({
+      host: node.host,
+      port: ParseUtility.toInt({ input: node.port ?? RedisSentinelDefaults.PORT }),
     }));
 
     const ioredis =
@@ -32,23 +40,24 @@ export class RedisSentinelHelper extends AbstractRedisHelper<Redis> {
       ...opts,
       scope: RedisSentinelHelper.name,
       identifier: name,
-      // Precedence (low -> high): framework defaults, the redisOptions escape hatch, then first-class fields. Optional auth fields are spread ONLY when provided, so a value set via redisOptions is not clobbered by an undefined first-class field.
+      // Precedence (low -> high): framework defaults, the redisOptions escape hatch, then first-class fields. An auth field left unset falls back to `redisOptions`, so an undefined first-class field never clobbers it.
       client: new ioredis.Redis({
-        ...AbstractRedisHelper.buildDefaultOpts({ maxRetry }),
+        ...AbstractRedisHelper.buildDefaultOpts({
+          scope: RedisSentinelHelper.name,
+          name,
+          maxRetry,
+        }),
         ...redisOptions,
         sentinels: normalizedSentinels,
-        name: masterName,
-        role,
+        name: sentinel.masterName,
+        role: sentinel.role ?? RedisSentinelRoles.MASTER,
         db: database,
         lazyConnect: !autoConnect,
-        ...(password === undefined ? {} : { password }),
-        ...(sentinelPassword === undefined ? {} : { sentinelPassword }),
-        ...(sentinelUsername === undefined ? {} : { sentinelUsername }),
+        username: username ?? redisOptions.username,
+        password: password ?? redisOptions.password,
+        sentinelUsername: sentinel.username ?? redisOptions.sentinelUsername,
+        sentinelPassword: sentinel.password ?? redisOptions.sentinelPassword,
       }),
     });
-  }
-
-  override getClient() {
-    return this.client as Redis;
   }
 }

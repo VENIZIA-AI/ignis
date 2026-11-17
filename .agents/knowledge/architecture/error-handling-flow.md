@@ -16,6 +16,7 @@ tags: [architecture, errors, middleware, security, isomorphic]
 - [The production boundary](#the-production-boundary)
 - [The response shape](#the-response-shape)
 - [The return trip: `fromError`](#the-return-trip-fromerror)
+- [Wrapping a caught value: `fromUnknown`](#wrapping-a-caught-value-fromunknown)
 - [Related](#related)
 <!-- okf:generated:contents end -->
 
@@ -64,7 +65,19 @@ different constructors for the same source. `isApplicationError` therefore tests
 
 ```typescript
 export const isApplicationError = (error: unknown): error is ApplicationError => {
-  return error instanceof Error && typeof (error as AnyType).statusCode === 'number';
+  if (!(error instanceof Error) || !('statusCode' in error) || !('normalized' in error)) {
+    return false;
+  }
+
+  const { statusCode, normalized } = error;
+
+  return (
+    typeof statusCode === 'number' &&
+    typeof normalized === 'object' &&
+    normalized !== null &&
+    'text' in normalized &&
+    typeof normalized.text === 'string'
+  );
 };
 ```
 
@@ -160,10 +173,16 @@ falls back to `error`. Then it is routed:
   request: `22` (data exception), `23` (integrity constraint violation) and `44` (WITH CHECK OPTION
   violation - a row written through an updatable view fails that view's CHECK). Everything else -
   class `42` syntax/undefined-column, class `53` resources - stays a 500, being the server's bug,
-  not the client's. A missing or non-string code (a gRPC numeric code, say) is treated as
-  non-client and must never crash this last-resort handler.
+  not the client's. It finds the Postgres error with the public `PostgresErrors.find` (the same
+  helper an application calls, kernel `base/middlewares/app-error/postgres-errors.ts`): it walks
+  `cause` up to `PostgresErrors.MAX_DEPTH` (10) hops, cycle-safe and never throwing, and the
+  OUTERMOST error whose `code` is a 5-character SQLSTATE (`/^[0-9A-Z]{5}$/`) wins - so a wrapper's
+  `ECONNRESET` or a gRPC numeric code never hides it and never crashes this last-resort handler.
+  The helper folds the driver spellings into one `IPostgresError` (`constraint`/`constraint_name`,
+  `table`/`table_name`, `column`/`column_name`, `schema`/`schema_name`; node-postgres and PGlite use
+  the first, postgres-js the second).
 - **Transient DB conflict** -> 409. `DatabaseErrorHandler.isRetryableDatabaseError` matches SQLSTATE `40001`
-  (serialization failure) and `40P01` (deadlock); the response gets a fixed safe message and a
+  (serialization failure) and `40P01` (deadlock), found with the same `PostgresErrors.find` walk; the response gets a fixed safe message and a
   retryable message code, since the client can retry the request unchanged.
 - **Intentional domain error** (anything with `statusCode`) -> its own status and message, untouched.
 - **Anything else** -> 500.
@@ -268,6 +287,12 @@ server actually sent. A non-IGNIS body still yields an `ApplicationError` degrad
 The wire shape is also described by `ErrorSchema`/`TErrorResponse` in **kernel** (`base/models/common/schemas.ts`), for OpenAPI. That
 one cannot serve a browser: it depends on `@hono/zod-openapi`. `TResponsedError` exists because inversion
 must stay browser-safe, not as a duplicate to be consolidated away.
+
+## Wrapping a caught value: `fromUnknown`
+
+`ApplicationError.fromUnknown({ error })` (inversion, `app-error.ts`) is the catch-block counterpart: it takes the `unknown` a `catch` binds and NEVER throws. A value that passes `isApplicationError` (or `instanceof`) comes back as the SAME instance; anything else becomes a new `ApplicationError` with the value as `cause`. Status kept: an integer `statusCode` in 400-599, else an integer `status` in 400-499 (a 5xx `status` is an upstream's); anything else is a 500 marked UNEXPECTED. Message: a non-blank string `message`, else the fixed `An unknown value was thrown`; control characters are escaped (the same set as `EchoUtility.toSafeEcho`) and the value is never `String()`-ed. Every property read goes through `Reflect.get` inside a try, so a throwing getter or Proxy trap reads as absent.
+
+The client sees the value's message ONLY when the value carried a valid status (the thrower chose to answer). Otherwise `fromUnknown` sets a private symbol, `Symbol.for('@venizia/ignis-inversion:unexpected-error')`, non-enumerable (never in JSON, `extra` or a response); `BaseAppErrorMiddleware.classify` reads it by registry key (kernel and inversion share no export), answers UNEXPECTED (generic message in production), and `build()` then ignores the wrapped error's `normalized.text`, which would otherwise carry the foreign message into the response body. The real message, `cause` and stack stay in the log. A call site that wants a client message of its own uses `getError`.
 
 ## Related
 

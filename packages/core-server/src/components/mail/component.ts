@@ -6,8 +6,8 @@ import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { statSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
-import type { IMailQueueExecutorConfig, TMailOptions } from './common';
-import { MailErrorCodes, MailKeys, MailQueueExecutorTypes } from './common';
+import type { TMailQueueExecutorConfig, TMailOptions } from './common';
+import { MailErrors, MailKeys, MailQueueExecutorTypes } from './common';
 import type { TGetMailQueueExecutorFn, TGetMailTransportFn } from './providers';
 import { MailQueueExecutorProvider, MailTransportProvider } from './providers';
 import {
@@ -18,6 +18,7 @@ import {
   TemplateEngineService,
 } from './services';
 
+/** Registers the mail transport, queue executor, template engine, `MailService` and verification generators under `MailKeys`. Options come from `MailKeys.MAIL_OPTIONS` or from the options passed to `application.component`; boot throws when they are missing or when `attachmentRoot` or `maxAttachmentBytes` is invalid. */
 export class MailComponent extends BaseComponent<TMailOptions> {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
@@ -103,10 +104,11 @@ export class MailComponent extends BaseComponent<TMailOptions> {
   /** A bad limit or root would otherwise surface on every send, as a 400 that blames the caller. */
   private validateAttachmentOptions(opts: { options: TMailOptions }): void {
     const { attachmentRoot, maxAttachmentBytes } = opts.options;
+
     const buildOptionError = (details: { message: string; cause?: unknown }) => {
       return getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+        error: MailErrors.INVALID_CONFIGURATION,
         message: `Invalid mail options | ${details.message}`,
         cause: details.cause,
       });
@@ -166,7 +168,7 @@ export class MailComponent extends BaseComponent<TMailOptions> {
     });
 
     // Queueing is opt-in: with no executor config bound, fall back to the direct (inline) executor instead of a "binding is not bounded" crash at boot.
-    const queueConfig = this.application.get<IMailQueueExecutorConfig>({
+    const queueConfig = this.application.get<TMailQueueExecutorConfig>({
       key: MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG,
       isOptional: true,
     }) ?? { type: MailQueueExecutorTypes.DIRECT };
@@ -180,5 +182,15 @@ export class MailComponent extends BaseComponent<TMailOptions> {
     this.application
       .bind({ key: MailKeys.MAIL_QUEUE_EXECUTOR_INSTANCE })
       .toValue(queueExecutorInstance);
+
+    // Workers, timers and SMTP pools outlive the application unless something closes them. Executor first, so a job in flight finishes against a live transport.
+    this.application.registerPostStopHook({
+      identifier: 'mail.queue-executor.close',
+      hook: () => queueExecutorInstance.close?.(),
+    });
+    this.application.registerPostStopHook({
+      identifier: 'mail.transport.close',
+      hook: () => mailTransportInstance.close?.(),
+    });
   }
 }

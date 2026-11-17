@@ -4,7 +4,7 @@
  * the branch names are local constants. Of VULCAN's github-release.ts only `ISSUE_TOKENS` and `fencedLines` are
  * taken, as members of this class.
  *
- * The Sync PR of the release flow: `main` takes the exact commit of the prerelease BANA gated, never whatever
+ * The Sync PR of the release flow: `main` takes the exact commit of the prerelease the downstream project gated, never whatever
  * `develop` has become since.
  *
  *   bun scripts/release/sync-pr.ts open   --tag <prerelease tag> [--dry-run]

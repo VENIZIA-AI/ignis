@@ -8,6 +8,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import { type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { type MiddlewareHandler } from 'hono/types';
 
+/** Installs the request spy middleware on the application server, which tracks each request. */
 export class RequestTrackerComponent extends BaseComponent {
   static readonly REQUEST_TRACKER_MW_BINDING_KEY = [
     BindingNamespaces.MIDDLEWARE,

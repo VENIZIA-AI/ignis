@@ -46,8 +46,10 @@ export class PolicyLineCodec {
 
     const policyTypes = model.model.get(CasbinRuleVariants.P);
     const policyTypesKeys = policyTypes?.keys() ?? [];
+
     for (const ptype of policyTypesKeys) {
       const rules = await enforcer.getNamedPolicy(ptype);
+
       for (const rule of rules) {
         lines.push([ptype, ...rule].join(', '));
       }
@@ -55,8 +57,10 @@ export class PolicyLineCodec {
 
     const groupingTypes = model.model.get(CasbinRuleVariants.G);
     const groupingTypesKeys = groupingTypes?.keys() ?? [];
+
     for (const gtype of groupingTypesKeys) {
       const rules = await enforcer.getNamedGroupingPolicy(gtype);
+
       for (const rule of rules) {
         lines.push([gtype, ...rule].join(', '));
       }

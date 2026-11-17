@@ -1,5 +1,5 @@
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
+import { Context } from 'hono';
 import { cpSync, existsSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
@@ -15,7 +15,13 @@ const DIST_ROOT = join(PACKAGE_ROOT, 'dist', 'esm');
 /** Under `node_modules` so that `@venizia/ignis-helpers` and friends still resolve by walking up, and so nothing here is ever linted, type-checked or committed. */
 const PROBE_ROOT = join(PACKAGE_ROOT, 'node_modules', '.singleton-realm-probe');
 
-type TKernelModule = Record<string, AnyType>;
+type TKernelModule = typeof import('@/index');
+
+type SingletonName =
+  | 'MetadataRegistry'
+  | 'AuthenticationStrategyRegistry'
+  | 'AuthorizationEnforcerRegistry'
+  | 'GrantBuilder';
 
 let copyA: TKernelModule;
 let copyB: TKernelModule;
@@ -26,8 +32,9 @@ const installCopy = async (opts: { name: string }): Promise<TKernelModule> => {
   rmSync(target, { recursive: true, force: true });
   cpSync(DIST_ROOT, target, { recursive: true });
 
-  const result = await import(join(target, 'index.js'));
-  return result as TKernelModule;
+  const result: TKernelModule = await import(join(target, 'index.js'));
+
+  return result;
 };
 
 /**
@@ -64,7 +71,7 @@ describe('a second copy of the kernel is harmless, not forbidden', () => {
   test('the two copies really are two module graphs - every class identity differs', () => {
     expect(copyA).not.toBe(copyB);
 
-    const names = [
+    const names: Array<keyof TKernelModule> = [
       'MetadataRegistry',
       'AuthenticationStrategyRegistry',
       'AuthorizationEnforcerRegistry',
@@ -72,13 +79,14 @@ describe('a second copy of the kernel is harmless, not forbidden', () => {
       'RequestContextRegistry',
       'AbstractDataSource',
     ];
+
     for (const name of names) {
       expect(typeof copyA[name]).toBe('function');
       expect(copyA[name]).not.toBe(copyB[name]);
     }
   });
 
-  test.each([
+  test.each<[SingletonName]>([
     ['MetadataRegistry'],
     ['AuthenticationStrategyRegistry'],
     ['AuthorizationEnforcerRegistry'],
@@ -91,9 +99,21 @@ describe('a second copy of the kernel is harmless, not forbidden', () => {
   });
 
   test('metadata written through one copy is readable through the other', () => {
-    class Note {}
+    class Note extends copyA.AbstractEntity {
+      constructor() {
+        super({ name: 'Note' });
+      }
+
+      getSchema<T>(): T {
+        throw getError({
+          message: '[singleton-realm.test] Note has no schema, the probe only registers it',
+        });
+      }
+    }
     class NoteRepository {}
-    class ProbeDataSource {}
+    class ProbeDataSource extends copyA.AbstractDataSource {
+      configure(): void {}
+    }
 
     copyA.MetadataRegistry.getInstance().registerRepositoryBinding({
       model: Note,
@@ -111,7 +131,7 @@ describe('a second copy of the kernel is harmless, not forbidden', () => {
   });
 
   test('the request-context resolver crosses copies in both directions', () => {
-    const context = { marker: 'cross-copy' };
+    const context = new Context(new Request('http://ignis.internal/'));
 
     copyA.RequestContextRegistry.setResolver({ resolver: () => context });
     expect(copyB.RequestContextRegistry.resolve()).toBe(context);
@@ -152,7 +172,7 @@ describe('a second copy of the kernel is harmless, not forbidden', () => {
   test('a singleton whose state is still undefined is not re-created on the next call', () => {
     copyA.RequestContextRegistry.clearResolver();
 
-    const context = { marker: 'survives-an-undefined-slot' };
+    const context = new Context(new Request('http://ignis.internal/'));
     copyB.RequestContextRegistry.setResolver({ resolver: () => context });
 
     expect(copyA.RequestContextRegistry.resolve()).toBe(context);

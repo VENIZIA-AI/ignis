@@ -53,10 +53,11 @@ protected async registerDefaultMiddlewares() {
   // 1. Request id
   server.use(requestId({ generator: () => this.generateRequestId() }));
 
-  // 2. Body limit - only when configs.middlewares.bodyLimit is set and enable !== false.
+  // 2. Body limit - 5 MiB when configs.middlewares.bodyLimit is unset, and unless enable === false.
   // Ahead of every middleware a host adds after this one, the request spy included.
+  // A route with its own limit (BodyLimits.route) is held to that one instead.
   if (bodyLimitOptions && bodyLimitOptions.enable !== false) {
-    server.use(bodyLimit({ maxSize, onError }));
+    server.use(limiter);
   }
 
   // 3. Global error handler
@@ -88,11 +89,35 @@ envelope. `BaseApplication` calls `super.registerDefaultMiddlewares()` first, th
 
 After `registerDefaultMiddlewares()`, the application calls user-defined `staticConfigure()`, `preConfigure()`, and so on. The user's `setupMiddlewares()` hook runs after `initialize()` but before the server starts.
 
+## Set `configs.middlewares` in the constructor
+
+`registerDefaultMiddlewares()` reads `configs.middlewares` **before `staticConfigure()` runs** - it is one of the first steps in the boot sequence, ahead of every hook you override. So `cors` and `bodyLimit` must be passed to the application constructor; a value assigned inside `staticConfigure()` or a later hook is read too late to take effect, and the application refuses to boot when it detects a changed `bodyLimit`. Use a factory that builds the `config` object when the value depends on the environment.
+
+```typescript
+// Right: read before staticConfigure() runs.
+const application = new MyApplication({
+  scope: 'MyApp',
+  config: {
+    path: { base: '/api', isStrict: true },
+    middlewares: { cors: { origin: ['https://app.example.com'] } },
+  },
+});
+
+// Wrong: too late, the default stack is already installed.
+class MyApplication extends BaseApplication {
+  staticConfigure(): void {
+    this.configs.middlewares = { cors: { origin: ['https://app.example.com'] } };
+  }
+}
+```
+
 ## CORS (`configs.middlewares.cors`)
 
 `RestApplication.registerDefaultMiddlewares()` reads `configs.middlewares.cors` and, when it is set and `enable !== false`, installs Hono's `cors()` as the FIRST middleware, before the request id and the body limit. With no `cors` config nothing is installed.
 
 ```typescript
+import { HTTP } from '@venizia/ignis-helpers/common';
+
 const application = new MyApplication({
   scope: 'MyApp',
   config: {
@@ -103,7 +128,7 @@ const application = new MyApplication({
         enable: true,
         origin: ['https://app.example.com'],
         allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-        exposeHeaders: ['x-request-id'],
+        exposeHeaders: [HTTP.Headers.REQUEST_TRACING_ID],
         credentials: true,
         maxAge: 86_400,
       },
@@ -114,20 +139,53 @@ const application = new MyApplication({
 
 | Option | Meaning |
 |---|---|
-| `origin` | Required. A string, a list of strings or a function `(origin, context) => string \| null` |
+| `origin` | Required: a string, a list or `(origin, context) => string \| null` |
 | `path` | Where it applies. Default `'*'` |
 | `allowMethods`, `allowHeaders`, `exposeHeaders`, `maxAge`, `credentials` | Passed to Hono's `cors()`; unset keys keep Hono's defaults |
+
+A string or a list entry of `origin` may be a subdomain wildcard: see [Wildcard origins](#wildcard-origins).
 
 Why first: a response the framework produces before your own middlewares run - a `413` from the body limit, a `400` for a body that cannot be parsed - would otherwise carry no `Access-Control-Allow-Origin`, and a browser reports it as a network error instead of a readable status. A preflight (`OPTIONS`) is answered by `cors()` itself with `204`, before the body limit sees it.
 
 The application refuses to boot when `origin` is missing or empty, or when `credentials: true` is combined with the origin `'*'` (a browser rejects a wildcard origin on a credentialed request); list the origins instead.
+
+### Wildcard origins
+
+A string or a list entry may be a subdomain wildcard such as `https://*.example.com`, or end in `:*` for any port, as in `http://localhost:*`. One matcher handles every pattern (`CorsUtility.matchOriginPattern`), so no app writes its own origin regex:
+
+```typescript
+cors: {
+  origin: ['https://example.com', 'https://*.example.com', 'http://localhost:*', 'http://127.0.0.1:*'],
+  credentials: true,
+},
+```
+
+| Request `Origin` | `https://*.example.com` |
+|---|---|
+| `https://app.example.com`, `https://a.b.example.com` | matches |
+| `https://example.com` (the apex) | no - list it next to the pattern |
+| `https://evilexample.com`, `https://example.com.evil.net` | no |
+| `http://app.example.com` | no - the scheme is matched exactly |
+| `https://app.example.com:8443` | no - the port is matched exactly; write `https://*.example.com:8443` for that port, or `https://*.example.com:*` for any |
+
+| Request `Origin` | `http://localhost:*` |
+|---|---|
+| `http://localhost`, `http://localhost:3000`, `http://localhost:65535` | matches - any port, or none |
+| `https://localhost:3000` | no - the scheme is matched exactly |
+| `http://localhost.evil.com:3000`, `http://sub.localhost:3000` | no - the host is exact |
+| `http://localhost:abc`, `http://localhost:0`, `http://localhost:3000@evil.com` | no - what follows the colon must be a port number from 1 to 65535 |
+
+The `:*` port also works on a subdomain wildcard (`https://*.example.com:*` matches `https://app.example.com` and `https://app.example.com:8443`). The `*` of a subdomain wildcard stands for the whole leftmost host label and nothing else. The host must be lower case; a subdomain wildcard needs at least two labels after the `*.`, and an IPv6 host is not supported. A pattern that breaks this (`https://*`, `https://*.com`, `https://app*.example.com`, `http://*:*`, `http://local*:*`, `*.example.com` with no scheme) makes the application refuse to boot. A matching origin is echoed back, so `credentials: true` is allowed with a pattern; the bare `'*'` with `credentials: true` is still refused.
+
+> [!WARNING]
+> `http://localhost:*` lets any page served from any port on the visitor's own machine call your API. Use it for development only, and keep it out of a production configuration.
 
 > [!NOTE]
 > A `cors()` you add yourself in `setupMiddlewares()` still works, but it runs after the framework's early exits, so those responses carry no CORS headers. Move the policy into `configs.middlewares.cors`.
 
 ## Body limit (`configs.middlewares.bodyLimit`)
 
-`RestApplication.registerDefaultMiddlewares()` reads `configs.middlewares.bodyLimit` and, when it is set and `enable !== false`, installs Hono's `hono/body-limit` right after the request id - ahead of every middleware a host adds afterward, the request spy included. Left unset, there is no body-size limit from the framework.
+`RestApplication.registerDefaultMiddlewares()` installs Hono's `hono/body-limit` right after the request id - ahead of every middleware a host adds afterward, the request spy included. **Left unset, every route has a limit of 5 MiB** (`BodyLimits.DEFAULT_MAX_SIZE`). A configured `bodyLimit` replaces that default, and `enable: false` removes the limit. A route that takes larger bodies sets its own limit, see [A route's own limit](#a-route-s-own-limit).
 
 ```typescript
 interface IBodyLimitOptions extends IBaseMiddlewareOptions {
@@ -138,10 +196,12 @@ interface IBodyLimitOptions extends IBaseMiddlewareOptions {
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `maxSize` | `number` | - | Byte ceiling. Must be a finite number `>= 0`, or the application throws at boot. |
+| `maxSize` | `number` | `5242880` (5 MiB) when `bodyLimit` is unset | Byte ceiling. Must be a finite number `>= 0`, or the application throws at boot. |
 | `enable` | `boolean` | applies the limit unless `false` | A missing `enable` still applies the limit - fail-closed for a security control. |
 | `path` | `string` | every path | Passed to `server.use(path, limiter)` when set. |
 | `onError` | `(c: Context) => Response \| Promise<Response>` | throws `RequestErrors.BODY_TOO_LARGE` | Your own handler for the over-limit case. |
+
+With a `path`, only the routes under it are limited: the 5 MiB default is replaced, not added.
 
 ```typescript
 const application = new MyApplication({
@@ -155,13 +215,30 @@ const application = new MyApplication({
 });
 ```
 
-> [!IMPORTANT]
-> `registerDefaultMiddlewares()` reads `configs.middlewares` **before `staticConfigure()` runs** - it is one of the first steps in the boot sequence, ahead of every hook you override. Pass `middlewares` through the constructor's `config` (or an application-config factory that builds that object), never by assigning `this.configs.middlewares` inside `staticConfigure()` or a later hook: it is read too late to take effect, and the application refuses to boot when it detects the value changed after the fact.
+`bodyLimit` follows the same rule as `cors`: set it in the constructor, see [Set `configs.middlewares` in the constructor](#set-configs-middlewares-in-the-constructor).
 
-Over the limit, and with no `onError`, the request answers `413` with `core.request.body_too_large` (`RequestErrors.BODY_TOO_LARGE`). Every other `IMiddlewareConfigs` key - `compress`, `cors`, `csrf`, `ipRestriction` - is a type only; wire it yourself in `setupMiddlewares()`, as in [User-Defined Middlewares](#user-defined-middlewares).
+### A route's own limit
+
+An upload or an import that takes bodies over the default puts `BodyLimits.route({ maxSize })` in the route's `middleware`. The default limit stands aside for that route, and this one answers instead - larger or smaller than the default, declared length or chunked.
+
+```typescript
+import { BodyLimits } from '@venizia/ignis';
+
+this.defineRoute({
+  configs: {
+    ...routeConfig,
+    middleware: [BodyLimits.route({ maxSize: 50 * 1024 * 1024 })],
+  },
+  handler,
+});
+```
+
+Raise `configs.server.maxRequestBodySize` to at least the largest route limit: Bun's own limit (default 128 MiB) answers first when it is lower. The static-asset upload route sets its own limit from `extra.maxBytes`, see [the upload route](/extensions/components/static-asset/api).
+
+Over the limit, and with no `onError`, the request answers `413` with `core.request.body_too_large` (`RequestErrors.BODY_TOO_LARGE`). Every other `IMiddlewareConfigs` key - `compress`, `csrf`, `ipRestriction` - is a type only; wire it yourself in `setupMiddlewares()`, as in [User-Defined Middlewares](#user-defined-middlewares).
 
 > [!WARNING]
-> `extra.maxBytes` on a static-asset upload route only bounds a declared `Content-Length` - a chunked request with none skips it. Pair `extra.maxBytes` with `configs.middlewares.bodyLimit` for a ceiling nothing can skip. Raise `configs.server.maxRequestBodySize` above `bodyLimit.maxSize`, or Bun's own limit (default 128 MiB) answers `413` first, with no IGNIS envelope and no `core.request.body_too_large` code. Keep `bodyLimit.path` away from a route that streams a body through - the limiter buffers the whole body on any path it is scoped to, chunked or not.
+> `extra.maxBytes` on a static-asset upload route bounds a declared `Content-Length` early, and the route now also carries its own body limit (`maxFiles` files of `maxBytes` plus multipart framing), so a chunked request with none is counted too. Raise `configs.server.maxRequestBodySize` above the largest limit, or Bun's own limit (default 128 MiB) answers `413` first, with no IGNIS envelope and no `core.request.body_too_large` code. A route that streams a body through is held to the 5 MiB default: give it `BodyLimits.route({ maxSize })`, or `enable: false` for an application that must not limit.
 
 ## Form body reader
 
@@ -268,11 +345,81 @@ z.string().refine(isEmail, {
 
 Database errors in SQLSTATE class `22` (data exception), `23` (integrity constraint), and `44` (WITH CHECK OPTION violation) are detected by class. They return HTTP `400 Bad Request`. A known code uses its specific message; any other in-class code uses `"Invalid database request"` as a fallback.
 
-| Class | Codes with a specific message |
-|-------|-------------------------------|
-| `23` Integrity | `23505` unique, `23503` foreign key, `23502` not null, `23514` check, `23P01` exclusion, `23000` integrity, `23001` restrict |
-| `22` Data exception | `22000` data exception, `22001` string too long, `22003` numeric range, `22004` null not allowed, `22007` datetime format, `22008` datetime overflow, `22009` tz displacement, `22011` substring, `22012` division by zero, `22023` invalid parameter, `22025` invalid escape, `22026` length mismatch, `22030` duplicate JSON key, `22032` invalid JSON, `22P01` floating-point, `22P02` invalid text, `22P03` invalid binary, `22P05` untranslatable char |
-| `44` View check | `44000` WITH CHECK OPTION violation |
+Codes with a specific message, by class:
+
+**Class `23` - Integrity**
+
+| Code | Meaning |
+|---|---|
+| `23505` | unique |
+| `23503` | foreign key |
+| `23502` | not null |
+| `23514` | check |
+| `23P01` | exclusion |
+| `23000` | integrity |
+| `23001` | restrict |
+
+**Class `22` - Data exception**
+
+| Code | Message for |
+|---|---|
+| `22000` | data exception |
+| `22001` | string too long |
+| `22003` | numeric range |
+| `22004` | null not allowed |
+| `22007` | datetime format |
+| `22008` | datetime overflow |
+| `22009` | tz displacement |
+| `22011` | substring |
+| `22012` | division by zero |
+| `22023` | invalid parameter |
+| `22025` | invalid escape |
+| `22026` | length mismatch |
+| `22030` | duplicate JSON key |
+| `22032` | invalid JSON |
+| `22P01` | floating-point |
+| `22P02` | invalid text |
+| `22P03` | invalid binary |
+| `22P05` | untranslatable char |
+
+**Class `44` - View check**
+
+| Code | Message for |
+|---|---|
+| `44000` | WITH CHECK OPTION violation |
+
+##### Finding the Postgres error yourself
+
+The handler looks through `cause` for the driver error, because an ORM wraps it (sometimes more than once). The helper it uses is public, so your code finds the same error the same way:
+
+```typescript
+import { PostgresErrorCodes, PostgresErrors } from '@venizia/ignis';
+
+try {
+  await userRepository.create({ data });
+} catch (error) {
+  const pgError = PostgresErrors.find({ error });
+
+  if (pgError?.code === PostgresErrorCodes.UNIQUE_VIOLATION) {
+    // pgError.constraint is 'users_email_key', pgError.table is 'users', ...
+  }
+
+  throw error;
+}
+```
+
+`PostgresErrors.find({ error })` returns an `IPostgresError`, or `undefined` when there is no Postgres error in the chain.
+
+| Field | Meaning |
+|-------|---------|
+| `code` | The 5-character SQLSTATE, always set. Compare it with `PostgresErrorCodes`. |
+| `constraint`, `table`, `column`, `schema`, `detail` | What the server sent for that error. A field the server did not send is absent. |
+| `message` | The `message` of that error. |
+
+- **Rules.** The outermost error whose `code` is a SQLSTATE (five characters of digits and upper-case letters) wins. A `code` that is anything else, such as `ECONNRESET` or a number, is skipped and the walk continues.
+- **Bound.** The walk follows at most `PostgresErrors.MAX_DEPTH` (10) `cause` hops. An error 11 hops down is not found.
+- **Safe.** It never throws: a `cause` cycle, a getter that throws, a Proxy and a value that is not an object all give `undefined`.
+- **Drivers.** node-postgres, postgres-js and PGlite are read into the same fields (postgres-js spells them `constraint_name`, `table_name`, `column_name` and `schema_name`).
 
 :::tip Transient conflicts return 409, not 400/500
 Class `40` (`40001` serialization failure, `40P01` deadlock) is transient/retryable. It returns **409 Conflict** with `normalized.code: "database.conflict"` and a safe "please retry" message - the client can safely retry the same request. Programming/infra classes (`42` syntax, `53` resources, `0A`, `25`, `28`) remain 500.
@@ -485,8 +632,10 @@ The `parseBody` method itself parses the request body based on `Content-Type`:
 | `multipart/form-data` | substring | `req.parseBody()` |
 | `application/x-www-form-urlencoded` | substring | `req.parseBody()` |
 | `application/octet-stream` | exact | `req.raw.body`, returned as the raw stream |
-| `text/*` | prefix | `req.raw.clone().text()` - the handler still reads the original. A body a middleware already read comes from Hono's cache, `req.text()` |
+| `text/*` | prefix | `req.raw.clone().text()` |
 | Other | - | not read; returns `<N bytes, content-type>` |
+
+For `text/*`, the handler still reads the original body. A body a middleware already read comes from Hono's cache, `req.text()`.
 
 Returns `null` when there is no `Content-Type` header, when `Content-Length` is exactly `'0'`, or
 when `req.raw.body` is absent. Only an explicit `'0'` short-circuits: a chunked request carries no
@@ -564,8 +713,8 @@ Several middleware behaviors are configured through `IApplicationConfigs`:
 ```typescript
 interface IApplicationConfigs {
   favicon?: string;                    // Emoji for EmojiFaviconMiddleware.create (default: '🔥')
-  error?: { rootKey: string };         // Root key wrapper for AppErrorMiddleware
-  asyncContext?: { enable: boolean };  // Enable Hono contextStorage() middleware
+  error?: { rootKey?: string; environment?: string }; // Root key wrapper for AppErrorMiddleware; ambient environment name
+  asyncContext?: { enable: boolean };  // Enable Hono contextStorage() middleware (default: true on BaseApplication, false on Rest and Worker)
   middlewares?: IMiddlewareConfigs;    // Only bodyLimit is installed by the framework - see Body limit
   // ...
 }
@@ -599,7 +748,7 @@ interface IMiddlewareConfigs {
   csrf?: ICSRFOptions;
   bodyLimit?: IBodyLimitOptions;
   ipRestriction?: IBaseMiddlewareOptions & IIPRestrictionRules;
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 ```
 
@@ -607,9 +756,9 @@ Each option interface extends `IBaseMiddlewareOptions`:
 
 ```typescript
 interface IBaseMiddlewareOptions {
-  enable: boolean;
+  enable?: boolean; // Default true: only false switches the middleware off
   path?: string;
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 ```
 

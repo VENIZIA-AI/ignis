@@ -6,6 +6,7 @@ import type { IContainer } from './common/types';
 /** A class (matched exactly, never by subclass), a class name, or a binding key. */
 export type TBindingSkip = TClass<unknown> | string;
 
+/** Input to `BindingVerifier`: the container and the namespaces whose bindings are resolved. */
 export interface IVerifyBindingsOptions {
   container: IContainer;
 
@@ -20,6 +21,7 @@ export interface IVerifyBindingsOptions {
   skip?: TBindingSkip[];
 }
 
+/** One binding that threw while being resolved, with the missing key or class when the error names one. */
 export interface IBindingFailure {
   /** The binding that could not resolve, that is, who needs the missing thing. */
   key: string;
@@ -35,6 +37,7 @@ export interface IBindingFailure {
   error: unknown;
 }
 
+/** Result of verifying bindings: the keys that resolved, the failures, and the `skip` entries that matched nothing. */
 export interface IBindingVerification {
   /** Keys resolved, in container order, namespaces in the order given. */
   verified: string[];
@@ -73,11 +76,13 @@ export class BindingVerifier {
 
   private static readString(opts: { source: unknown; name: string }): string | undefined {
     const { source, name } = opts;
+
     if (typeof source !== 'object' || source === null || !(name in source)) {
       return undefined;
     }
 
     const value = Reflect.get(source, name);
+
     return typeof value === 'string' ? value : undefined;
   }
 
@@ -106,6 +111,7 @@ export class BindingVerifier {
     const { container, namespaces, skip = [] } = opts;
 
     const enumerated = new Map<string, IBinding>();
+
     for (const namespace of namespaces) {
       for (const binding of container.findByTag({ tag: namespace })) {
         if (!enumerated.has(binding.key)) {
@@ -122,6 +128,7 @@ export class BindingVerifier {
       const skipped = skip.filter((candidate) =>
         BindingVerifier.matchesSkip({ skip: candidate, binding }),
       );
+
       for (const candidate of skipped) {
         matched.add(candidate);
       }
@@ -171,8 +178,10 @@ export class BindingVerifier {
     ];
 
     const missing: Record<string, string[]> = {};
+
     for (const failure of result.failures) {
       const what = failure.missingKey ?? failure.unregisteredClass;
+
       if (what !== undefined) {
         missing[what] = [...(missing[what] ?? []), failure.key];
       }

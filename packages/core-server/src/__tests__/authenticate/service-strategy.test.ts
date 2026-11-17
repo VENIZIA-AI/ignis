@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { exportPKCS8, exportSPKI, generateKeyPair } from 'jose';
+import { Context, type Env } from 'hono';
 import {
   AuthenticateStrategy,
   Authentication,
@@ -10,7 +11,6 @@ import {
 import { ServiceAssertionSignerService } from '@/components/auth/authenticate/services/service/signer.service';
 import { ServiceAssertionVerifierService } from '@/components/auth/authenticate/services/service/verifier.service';
 import { ServiceAuthenticationStrategy } from '@/components/auth/authenticate/strategies/service.strategy';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
 
 /**
@@ -21,14 +21,15 @@ import { RejectionHelper } from '@venizia/dev-configs/testing';
 const CALLER = 'commerce';
 const CALLEE = 'pricing';
 
-const buildContext = (opts: { url: string; method: string; token?: string }) =>
-  ({
-    req: {
-      url: opts.url,
-      method: opts.method,
-      header: (name: string) => (name === ServiceAssertion.HEADER ? opts.token : undefined),
-    },
-  }) as AnyType;
+const buildContext = (opts: { url: string; method: string; token?: string }): Context<Env> => {
+  const headers = new Headers();
+
+  if (opts.token !== undefined) {
+    headers.set(ServiceAssertion.HEADER, opts.token);
+  }
+
+  return new Context<Env>(new Request(opts.url, { method: opts.method, headers }));
+};
 
 const buildStack = async (opts: { resolvePrincipal: IServiceAuthOptions['resolvePrincipal'] }) => {
   const { privateKey, publicKey } = await generateKeyPair(ServiceAssertion.ALGORITHM, {
@@ -48,12 +49,13 @@ const buildStack = async (opts: { resolvePrincipal: IServiceAuthOptions['resolve
     name: CALLER,
     keys,
     resolvePrincipal: async () => ({ userId: 1 }),
-  } as AnyType);
+  });
 
   const server = Bun.serve({
     port: 0,
     fetch: async () => {
       const jwks = await signer.getPublicJWKS();
+
       return Response.json(jwks);
     },
   });
@@ -65,8 +67,8 @@ const buildStack = async (opts: { resolvePrincipal: IServiceAuthOptions['resolve
   };
 
   const strategy = new ServiceAuthenticationStrategy(
-    new ServiceAssertionVerifierService(options as AnyType),
-    options as AnyType,
+    new ServiceAssertionVerifierService(options),
+    options,
   );
 
   return { signer, strategy, server };
@@ -102,6 +104,7 @@ describe('the strategy validates what the application hands back', () => {
     const { signer, strategy, server } = await buildStack({
       resolvePrincipal: async ({ issuer }) => {
         seen.push(issuer);
+
         return { userId: 1 };
       },
     });
@@ -133,13 +136,12 @@ describe('the strategy validates what the application hands back', () => {
   });
 
   /**
-   * `executeAnyMode` calls `setCurrentUser` unconditionally, so a principal with no `userId` would
-   * authenticate here and fail at the first write, far from the cause. `executeAllMode` already
-   * refuses it; this closes the gap between the two modes.
+   * A principal with no `userId` is refused by the strategy itself, at the cause, rather than reaching the first
+   * write. The provider refuses it in both modes too; this keeps the message specific.
    */
   test('a principal with no userId is refused', async () => {
     const { signer, strategy, server } = await buildStack({
-      resolvePrincipal: async () => ({ roles: [] }) as AnyType,
+      resolvePrincipal: async () => JSON.parse('{"roles":[]}'),
     });
 
     const token = await signer.sign({ method: 'GET', path: '/v1/api/x', audience: CALLEE });

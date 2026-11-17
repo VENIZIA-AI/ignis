@@ -24,6 +24,7 @@ class FakeTypesenseConnector {
   collection = {
     ensure: async (opts: { schema: unknown }): Promise<unknown> => {
       this.ensureCalls.push(opts.schema);
+
       return opts.schema;
     },
   };
@@ -43,6 +44,7 @@ class FakeTypesenseConnector {
 
   async multiSearch(opts: unknown): Promise<unknown> {
     this.multiSearchCalls.push(opts);
+
     return { results: [{ found: 1 }] };
   }
 }
@@ -291,6 +293,7 @@ describe('TypesenseDataSource', () => {
     });
 
     let caught: unknown;
+
     try {
       await ds.beginTransaction();
     } catch (error) {
@@ -308,6 +311,7 @@ const listTsFiles = (dir: string): string[] => {
   const files: string[] = [];
 
   const dirEntries = readdirSync(dir);
+
   for (const entry of dirEntries) {
     const fullPath = join(dir, entry);
 
@@ -344,6 +348,7 @@ describe('barrel purity', () => {
     expect(rootIndex).not.toContain('search/typesense');
 
     const tsFiles = listTsFiles('../kernel/src/base');
+
     for (const file of tsFiles) {
       const content = await Bun.file(file).text();
       expect(content).not.toContain('search/typesense');
@@ -356,6 +361,7 @@ describe('barrel purity', () => {
     // `search`-named folder, which is the exact naming collision this migration exists to avoid.
     const hasSearchFolder = (dir: string): boolean => {
       const dirEntries = readdirSync(dir);
+
       for (const entry of dirEntries) {
         const fullPath = join(dir, entry);
 

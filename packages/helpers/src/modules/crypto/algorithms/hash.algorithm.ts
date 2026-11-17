@@ -1,3 +1,5 @@
+import crypto from 'node:crypto';
+
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import {
@@ -33,6 +35,7 @@ export class Hash extends BaseHelper {
 
   static withAlgorithm(algorithm: THashAlgorithm) {
     const cached = Hash.instances.get(algorithm);
+
     if (cached) {
       return cached;
     }
@@ -89,5 +92,52 @@ export class Hash extends BaseHelper {
     }
 
     return new Bun.CryptoHasher(this.algorithm, secret).update(message).digest(outputEncoding);
+  }
+
+  /**
+   * Compares two strings exactly as given, in constant time: the byte length first, then `crypto.timingSafeEqual`. For
+   * two digests that are both already in hand, such as an idempotency fingerprint against a saved one, where
+   * {@link Hash.verify} has nothing to hash. `false` for any difference, never a throw, and `false` too for a value that
+   * is not a string. Two empty strings are equal. The text is compared, not the bytes it stands for: hex in upper case
+   * does not equal hex in lower case.
+   */
+  static equals(opts: { value: string; expected: string }): boolean {
+    const { value, expected } = opts;
+
+    if (typeof value !== 'string' || typeof expected !== 'string') {
+      return false;
+    }
+
+    const left = Buffer.from(value);
+    const right = Buffer.from(expected);
+
+    // Length-checked first: `timingSafeEqual` throws on a length mismatch instead of answering false.
+    return left.length === right.length && crypto.timingSafeEqual(left, right);
+  }
+
+  /**
+   * Checks a received digest against the one `value` produces, in constant time. Use it for a webhook signature or a
+   * payment callback instead of `===`, which stops at the first differing character and so tells an attacker how many
+   * leading characters of a forged value were right.
+   *
+   * `value` is hashed the way {@link Hash.digest} does, or keyed with `secret` the way {@link Hash.hmac} does, then
+   * written in `outputEncoding` (hex by default) and compared with `expected` by {@link Hash.equals}. A different length
+   * answers `false` without comparing, and the answer is `false`, never a throw, for any mismatch. `expected` is exact
+   * text: hex in upper case does not equal hex in lower case, and an unpadded or URL-safe form of the same base64 digest
+   * is refused. Pass the matching `outputEncoding` (`base64url`), or normalise the text first.
+   */
+  verify(opts: {
+    value: THashInput;
+    expected: string;
+    secret?: THashInput;
+    opts?: IHashExtraOptions;
+  }): boolean {
+    const { value, expected, secret } = opts;
+    const computed =
+      secret === undefined
+        ? this.digest({ message: value, opts: opts.opts })
+        : this.hmac({ message: value, secret, opts: opts.opts });
+
+    return Hash.equals({ value: computed, expected });
   }
 }

@@ -4,15 +4,22 @@ import { PromiseUtility } from '@/utilities/promise.utility';
 import { CronJob, type CronOnCompleteCommand, CronTime } from 'cron';
 import { ApplicationError } from '../error';
 
+/** Options for `CronHelper`. */
 export interface ICronHelperOptions {
   cronTime: string;
   onTick: () => void | Promise<void>;
   onCompleted?: CronOnCompleteCommand | null;
+  /**
+   * Starts the job on construction.
+   * @default false
+   */
   autoStart?: boolean;
+  /** The time zone the schedule is read in. */
   tz?: string;
   errorHandler?: (error: unknown) => void | null;
 }
 
+/** Wraps one cron job. The constructor throws an `ApplicationError` when `cronTime` is empty or not a valid cron expression. */
 export class CronHelper extends BaseHelper {
   private cronTime: string;
   private onTick: () => void | Promise<void>;
@@ -77,6 +84,7 @@ export class CronHelper extends BaseHelper {
   start() {
     if (!this.instance) {
       this.logger.for('start').error(' Invalid cron instance to start cronjob!');
+
       return;
     }
 
@@ -86,6 +94,7 @@ export class CronHelper extends BaseHelper {
   async stop() {
     if (!this.instance) {
       this.logger.for(this.stop.name).error('Invalid cron instance to stop cronjob!');
+
       return;
     }
 
@@ -96,6 +105,7 @@ export class CronHelper extends BaseHelper {
     const { cronTime, shouldFireOnTick = false } = opts;
 
     let nextCronTime: CronTime;
+
     try {
       nextCronTime = new CronTime(cronTime, this.tz);
     } catch (error) {

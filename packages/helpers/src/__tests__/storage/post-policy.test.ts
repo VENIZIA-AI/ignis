@@ -16,7 +16,7 @@ describe('buildPostPolicy', () => {
     const { formData } = await S3SignatureUtility.buildPostPolicy({
       ...CREDENTIALS,
       bucket: 'uploads',
-      keyPrefix: 'pending/',
+      key: 'pending/a.png',
       maxBytes: 2_097_152,
       expiresInSeconds: 900,
     });
@@ -28,23 +28,38 @@ describe('buildPostPolicy', () => {
     ]);
   });
 
-  test('it confines the key to the prefix, so a caller cannot name the final object', async () => {
+  test('it pins the key to one object, so a policy cannot name any other', async () => {
     const { formData } = await S3SignatureUtility.buildPostPolicy({
       ...CREDENTIALS,
       bucket: 'uploads',
-      keyPrefix: 'pending/',
+      key: 'pending/a.png',
       maxBytes: 1024,
       expiresInSeconds: 900,
     });
 
-    expect(decodePolicy(formData).conditions).toContainEqual(['starts-with', '$key', 'pending/']);
+    const { conditions } = decodePolicy(formData);
+
+    expect(conditions).toContainEqual({ key: 'pending/a.png' });
+    expect(JSON.stringify(conditions)).not.toContain('starts-with');
+  });
+
+  test('the form carries the key it signed, so the client adds nothing', async () => {
+    const { formData } = await S3SignatureUtility.buildPostPolicy({
+      ...CREDENTIALS,
+      bucket: 'uploads',
+      key: 'pending/a.png',
+      maxBytes: 1024,
+      expiresInSeconds: 900,
+    });
+
+    expect(formData['key']).toBe('pending/a.png');
   });
 
   test('a content type becomes a condition; absent leaves none', async () => {
     const withType = await S3SignatureUtility.buildPostPolicy({
       ...CREDENTIALS,
       bucket: 'uploads',
-      keyPrefix: 'pending/',
+      key: 'pending/a.png',
       maxBytes: 1024,
       expiresInSeconds: 900,
       contentType: 'image/png',
@@ -52,7 +67,7 @@ describe('buildPostPolicy', () => {
     const withoutType = await S3SignatureUtility.buildPostPolicy({
       ...CREDENTIALS,
       bucket: 'uploads',
-      keyPrefix: 'pending/',
+      key: 'pending/a.png',
       maxBytes: 1024,
       expiresInSeconds: 900,
     });
@@ -69,7 +84,7 @@ describe('buildPostPolicy', () => {
     const { formData } = await S3SignatureUtility.buildPostPolicy({
       ...CREDENTIALS,
       bucket: 'uploads',
-      keyPrefix: 'pending/',
+      key: 'pending/a.png',
       maxBytes: 1024,
       expiresInSeconds: 900,
     });
@@ -86,7 +101,7 @@ describe('buildPostPolicy', () => {
       ...CREDENTIALS,
       sessionToken: 'session-abc',
       bucket: 'uploads',
-      keyPrefix: 'pending/',
+      key: 'pending/a.png',
       maxBytes: 1024,
       expiresInSeconds: 900,
     });
@@ -102,7 +117,7 @@ describe('buildPostPolicy', () => {
     const { expiresAt } = await S3SignatureUtility.buildPostPolicy({
       ...CREDENTIALS,
       bucket: 'uploads',
-      keyPrefix: 'pending/',
+      key: 'pending/a.png',
       maxBytes: 1024,
       expiresInSeconds: 900,
     });

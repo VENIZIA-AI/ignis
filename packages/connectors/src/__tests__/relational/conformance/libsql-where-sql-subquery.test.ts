@@ -39,6 +39,7 @@ const selectIds = async (where: TWhere): Promise<number[]> => {
     .from(orderTable)
     .where(condition)
     .orderBy(orderTable.id);
+
   return rows.map((row) => row.id);
 };
 
@@ -79,6 +80,7 @@ describe('SQLite - inSql and ninSql', () => {
 
   test('a string is refused with a 400', () => {
     const where: TWhere = { id: { inSql: 'SELECT 1' } };
+
     try {
       builder.toWhere({ tableName: ORDER_TABLE, schema: orderTable, where });
       throw new Error('expected a refusal');

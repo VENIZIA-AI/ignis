@@ -80,6 +80,20 @@ LIMIT 20
 
 Full operator-by-operator tables, one line each, live on the [Quick Reference](./quick-reference) page.
 
+### Timestamp and date values
+
+A filter that arrives over HTTP is JSON, which has no `Date`. On a relational column that Drizzle maps from a `Date` (`timestamp` and `date` in Postgres, `integer({ mode: 'timestamp' })` and `integer({ mode: 'timestamp_ms' })` in SQLite), the filter builder parses the value for every operator that takes one: the bare value, `eq`, `ne`, `neq`, `gt`, `gte`, `lt`, `lte`, `is`, `isn`, each element of `in`/`inq`/`nin`, both ends of `between`/`notBetween`, and the value inside `not`, `and` and `or`.
+
+| Value | Read as |
+|---|---|
+| `'2026-11-07'` | midnight UTC of that date |
+| `'2026-11-07T10:30:00Z'`, `'2026-11-07T17:30:00+07:00'` | that instant. The time needs `T` and `Z` or an offset; fractional seconds are allowed |
+| `1794009600000` | epoch milliseconds, in SQLite `timestamp` (seconds) columns too |
+| a `Date` | itself |
+| `null` | `IS NULL`, as before |
+
+Anything else is refused with a `400` that names the table, the column and these forms: a locale string (`'11/07/2026'`), a word (`'tomorrow'`), a date that does not exist (`'2026-02-31'`), a date-time with no zone (the server's time zone would decide the instant), a numeric string, `NaN`, a boolean or an object. A column with its own storage type, such as `isoTimestamp`, or a `mode: 'string'` column, takes the string as written and is not converted. A JSON path (`'metadata.at'`) reads text or numbers, not a `Date`, and is not converted.
+
 ### Fields, order, and pagination
 
 - **`fields`** selects columns - an array, or a `{ field: true }` object (inclusion-only; `false` is ignored).
@@ -91,7 +105,7 @@ Full operator-by-operator tables, one line each, live on the [Quick Reference](.
 
 - **Applies automatically.** A model's `settings.query.filter` merges into every read, update, and delete for that model.
 - **AND-composes on collision.** When the default and the caller's filter constrain the same field, IGNIS AND-composes the two conditions instead of one replacing the other.
-- **One override escape.** When the default and the caller **both** give that field a plain scalar, the caller's value replaces the default outright - the one intentional opt-out, and it needs no `shouldSkipDefaultFilter`. If either side is an operator object, the two AND-compose instead. The full collision table lives on the [Default Filter](./default-filter) page.
+- **No override.** A caller's `where` can only narrow the default: when both sides constrain a field, the two AND-compose, scalars included, so a caller cannot read the rows the default hides (`deletedAt: null`, `isDeleted: false`). A caller restating the default's value changes nothing. Server code that needs those rows passes `shouldSkipDefaultFilter: true`, which is not on the wire schema. The full collision table lives on the [Default Filter](./default-filter) page.
 
 ```typescript
 import { model, BaseEntity } from '@venizia/ignis';
@@ -137,8 +151,8 @@ Each operator family and every long-form topic has its own page:
 
 ## See also
 
-- [Repositories](../repositories/) - the `find`/`count`/`updateAll`/`deleteAll` verbs that take a `filter`
-- [Models](/references/base/models) - `settings.query.filter` and `settings.hiddenProperties`
+- [Repositories](../repositories/) - the `find`/`count`/`updateBy`/`deleteBy` verbs that take a `filter`
+- [Models](/references/base/models) - `settings.query.filter` and `settings.properties.hidden`
 - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - filters in a real endpoint
 - [Quick Reference Card](/references/quick-reference.md) - all IGNIS APIs on one page
 

@@ -30,6 +30,7 @@ const EMPTY_KEY = 'APP_ENV_VALIDATE_PROBE_EMPTY';
 /** `validateEnvs` is protected and the boot sequence is what normally calls it. */
 const validate = () => {
   const application = new EnvApplication({ scope: 'EnvApp', config: TEST_CONFIGS });
+
   return () => application['validateEnvs']();
 };
 

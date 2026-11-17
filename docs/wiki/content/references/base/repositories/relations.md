@@ -125,7 +125,9 @@ Write the resolver as an arrow function (`() => [...]`), not a plain array. IGNI
 | `name` | `string` | Relation name used in `include` |
 | `type` | `RelationTypes.ONE` \| `RelationTypes.MANY` | Which Drizzle relation helper to build |
 | `schema` | `TTableSchemaWithId` | The related model's Drizzle table schema |
-| `metadata` | inferred from Drizzle's `one()`/`many()` params | Optional for `ONE`: `{ fields?, references?, relationName? }` - `fields` and `references` are read off the foreign key when left out. `{ relationName? }` for `MANY` |
+| `metadata` | inferred from Drizzle's `one()`/`many()` params | Optional for `ONE`: `{ fields?, references?, relationName? }`; `{ relationName? }` for `MANY` |
+
+When `fields` and `references` are left out for `ONE`, they are read off the foreign key.
 
 `metadata`'s shape comes straight from Drizzle's own `one()`/`many()` parameter types, not a hand-duplicated one.
 
@@ -286,10 +288,10 @@ const users = await userRepository.find({
   },
 });
 
-const usersWithCounts = users.map(user => ({
-  ...user,
-  postCount: (user as any).posts?.length ?? 0,
-}));
+const usersWithCounts = users.map(user => {
+  const posts = 'posts' in user ? user.posts : undefined;
+  return { ...user, postCount: Array.isArray(posts) ? posts.length : 0 };
+});
 ```
 
 ### Include conditionally
@@ -361,10 +363,10 @@ product?.saleChannelProducts[0].saleChannel.name; // Fully typed access
 
 ## Hidden properties in relations
 
-`FilterBuilder.toInclude()` excludes hidden columns from every included relation at the SQL level, the same way the top-level query does. For each inclusion it resolves the related model's `hiddenProperties` and default filter, and merges the default filter with your `scope` via `mergeFilter()`. It then drops hidden columns from the nested `columns` selection.
+`FilterBuilder.toInclude()` excludes hidden columns from every included relation at the SQL level, the same way the top-level query does. For each inclusion it resolves the related model's `properties.hidden` and default filter, and merges the default filter with your `scope` via `mergeFilter()`. It then drops hidden columns from the nested `columns` selection.
 
 ```typescript
-// User model has hiddenProperties: ['password']
+// User model has properties: { hidden: ['password'] }
 const post = await postRepository.findOne({
   filter: { include: [{ relation: 'author' }] },
 });

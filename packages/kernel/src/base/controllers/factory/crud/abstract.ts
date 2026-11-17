@@ -1,10 +1,14 @@
 import type { AbstractEntity } from '@/base/models/base';
 import type { AbstractRepository } from '@/base/repositories';
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { Env, Schema } from 'hono';
-import type { TEntityDataObject, TEntityPersistObject, TRouteContext } from '../../common';
+import type {
+  IAuthRouteConfig,
+  TEntityDataObject,
+  TEntityPersistObject,
+  TRouteContext,
+} from '../../common';
 import { BaseRestController } from '../../rest/base';
 
 type TBulkWhereResolution<WhereType> =
@@ -25,25 +29,38 @@ export abstract class AbstractCrudController<
 
   constructor(opts: {
     scope: string;
-    path: string;
     isStrict?: boolean;
-    repository: AbstractRepository<TDataObject, TPersistObject, AnyType>;
-    definitions: AnyType;
+    repository: AbstractRepository<TDataObject, TPersistObject>;
+    definitions: Record<string, IAuthRouteConfig>;
   }) {
-    super({ scope: opts.scope, path: opts.path, isStrict: opts.isStrict });
+    super({ scope: opts.scope, isStrict: opts.isStrict });
     this.repository = opts.repository;
     this.definitions = opts.definitions;
+  }
+
+  /**
+   * Refuses (400) a filter the client sent when it names a field the model hides (`where`, `order`, an include scope).
+   * The repository answers it; a stand-in that does not extend `AbstractRepository` has no hidden fields to hold the filter to.
+   */
+  assertRequestFilter(opts: {
+    filter?: { where?: unknown; order?: unknown; include?: unknown };
+  }): void {
+    (
+      this.repository as Partial<Pick<AbstractRepository<object>, 'assertRequestFilter'>>
+    ).assertRequestFilter?.(opts);
   }
 
   /** 400 when a bulk operation is missing its `where` filter; undefined when it is present. */
   bulkWhereError(opts: { context: TRouteContext<RouteEnv>; where?: object }) {
     const { context, where } = opts;
+
     if (!where || Object.keys(where).length === 0) {
       return context.json(
         { message: 'where filter is required for bulk operations' },
         HTTP.ResultCodes.RS_4.BadRequest,
       );
     }
+
     return undefined;
   }
 
@@ -68,6 +85,7 @@ export abstract class AbstractCrudController<
     }
 
     const where = fromQuery ?? fromBody;
+
     if (!where || Object.keys(where).length === 0) {
       return {
         error: context.json(

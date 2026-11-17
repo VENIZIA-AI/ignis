@@ -2,6 +2,7 @@ import type { IdType } from '@/base';
 import type { TConstValue, TNullable } from '@venizia/ignis-helpers/common';
 import type { TGrantRow } from './common';
 
+/** The `kind` values of a `TPrincipalPolicyRow`: which branch of the principal-policy statement produced the row. */
 export class PrincipalPolicyEdges {
   static readonly DIRECT = 'direct';
   static readonly ROLE_EDGE = 'roleEdge';

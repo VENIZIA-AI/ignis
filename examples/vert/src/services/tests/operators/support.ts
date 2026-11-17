@@ -139,7 +139,7 @@ export class OperatorTestFixture extends BaseTestCases {
     this.context.logCase('[CLEANUP] Cleaning up comprehensive test data');
 
     try {
-      const deleted = await repo.deleteAll({ where: { group: 'COMPREHENSIVE_TEST' } });
+      const deleted = await repo.deleteBy({ where: { group: 'COMPREHENSIVE_TEST' } });
       this.context.logger.info('[CLEANUP] PASSED | Deleted %d records', deleted.count);
     } catch (error) {
       this.context.logger.error('[CLEANUP] FAILED | Error: %s', (error as Error).message);

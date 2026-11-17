@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { describe, expect, test } from 'bun:test';
+import assert from 'node:assert';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import {
   BaseRestController,
@@ -7,7 +8,6 @@ import {
   OpenApiResponses,
   RestApplication,
 } from '@venizia/ignis-kernel';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { z } from '@hono/zod-openapi';
@@ -80,6 +80,7 @@ const buildApp = async (): Promise<InProcessTestApplication> => {
   };
   const app = new InProcessTestApplication({ scope: 'InProcessTransportTestApp', config: configs });
   await app.initialize();
+
   return app;
 };
 
@@ -125,6 +126,7 @@ describe('InProcessBffTransport mirrors what the envelope does', () => {
     const transport = new InProcessBffTransport({
       handler: async (request) => {
         seenUrls.push(request.url);
+
         return new Response('ok', { status: 200 });
       },
     });
@@ -152,6 +154,7 @@ describe('InProcessBffTransport mirrors what the envelope does', () => {
     // before anything is posted. In-process it must not resolve with a Response whose body only
     // fails later, when the caller is no longer in a position to retry.
     let caught: unknown;
+
     try {
       await transport.fetch({ request: new Request('http://ignis.internal/stream') });
     } catch (error) {
@@ -173,15 +176,16 @@ describe('InProcessBffTransport mirrors what the envelope does', () => {
     });
 
     let caught: unknown;
+
     try {
       await transport.fetch({ request: new Request('http://ignis.internal/hello') });
     } catch (error) {
       caught = error;
     }
 
-    expect(isApplicationError(caught)).toBe(true);
-    expect((caught as AnyType).statusCode).toBe(HTTP.ResultCodes.RS_5.InternalServerError);
-    expect((caught as AnyType).normalized).toEqual({
+    assert(isApplicationError(caught));
+    expect(caught.statusCode).toBe(HTTP.ResultCodes.RS_5.InternalServerError);
+    expect(caught.normalized).toEqual({
       text: 'the datasource is gone',
       code: 'core.system_error',
       args: {},
@@ -198,14 +202,15 @@ describe('InProcessBffTransport mirrors what the envelope does', () => {
     });
 
     let caught: unknown;
+
     try {
       await transport.fetch({ request: new Request('http://ignis.internal/hello') });
     } catch (error) {
       caught = error;
     }
 
-    expect(isApplicationError(caught)).toBe(true);
-    expect((caught as AnyType).statusCode).toBe(HTTP.ResultCodes.RS_5.InternalServerError);
-    expect((caught as Error).message).toContain('Cannot read properties of undefined');
+    assert(isApplicationError(caught));
+    expect(caught.statusCode).toBe(HTTP.ResultCodes.RS_5.InternalServerError);
+    expect(caught.message).toContain('Cannot read properties of undefined');
   });
 });

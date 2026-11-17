@@ -13,6 +13,7 @@ import type {
 
 type TSQLiteTextColumn = SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>;
 
+/** The column definitions with `createdBy` and `modifiedBy` user columns added. */
 export type TUserAuditEnricherResult<
   ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions,
 > = ColumnDefinitions & {
@@ -61,6 +62,7 @@ const buildUserAuditColumn = (opts: {
   }
 };
 
+/** Adds `createdBy` and `modifiedBy` columns filled from the current audit user; `modifiedBy` is refreshed on update. A `dataType` other than `number` or `string` throws. */
 export class SqliteUserAuditEnricher {
   static generateColumnDefs(opts?: TUserAuditEnricherOptions) {
     const {

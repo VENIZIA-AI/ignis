@@ -10,13 +10,16 @@ const SALT_BYTES = 32;
 const TAG_BITS = 128;
 const BASE64_CHUNK = 0x8000;
 
+/** The algorithm name of `ECDH`. */
 export type ECDHAlgorithmType = 'ecdh-p256';
 
+/** An `ECDH` ciphertext: `iv` and `ct` (ciphertext) are both base64 strings. */
 export interface IECDHEncryptedPayload {
   iv: string;
   ct: string;
 }
 
+/** AES-GCM options for `ECDH` `encrypt` and `decrypt`. `additionalData` is authenticated but not encrypted; `decrypt` must receive the same string or it fails. An empty string is ignored. */
 export interface IECDHExtraOptions {
   additionalData?: string;
 }
@@ -56,6 +59,7 @@ export class ECDH extends AbstractCryptoAlgorithm<
   async generateKeyPair(): Promise<{ keyPair: CryptoKeyPair; publicKeyB64: string }> {
     const keyPair = await crypto.subtle.generateKey(CURVE, false, ['deriveBits']);
     const raw = await crypto.subtle.exportKey('raw', keyPair.publicKey);
+
     return { keyPair, publicKeyB64: ECDH.toBase64(raw) };
   }
 
@@ -146,9 +150,11 @@ export class ECDH extends AbstractCryptoAlgorithm<
   private static toBase64(data: ArrayBuffer | Uint8Array): string {
     const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
     let binary = '';
+
     for (let i = 0; i < bytes.length; i += BASE64_CHUNK) {
       binary += String.fromCharCode(...bytes.subarray(i, i + BASE64_CHUNK));
     }
+
     return btoa(binary);
   }
 
@@ -156,11 +162,14 @@ export class ECDH extends AbstractCryptoAlgorithm<
     if (!base64.length || base64.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(base64)) {
       throw getError({ message: '[ECDH.fromBase64] Invalid base64 input' });
     }
+
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
+
     for (let i = 0; i < binary.length; i++) {
       bytes[i] = binary.charCodeAt(i);
     }
+
     return bytes.buffer;
   }
 }

@@ -1,7 +1,11 @@
-import { DEFAULT_MAX_LIMIT, LockStrengths } from '@venizia/ignis-kernel';
-import type { IRelationalTransaction } from '@/relational/core/datasources/common';
+import {
+  DEFAULT_MAX_LIMIT,
+  LockStrengths,
+  type IExtraOptions,
+  type ITransaction,
+} from '@venizia/ignis-kernel';
+import type { TTableInsert, TTableObject, TTableSchemaWithId } from '@/relational/core/models';
 import type { DefaultRelationalRepository } from '@/relational/core/repositories';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { beforeEach, describe, expect, test } from 'bun:test';
@@ -22,11 +26,33 @@ export interface IConformanceRow {
   metadata?: Record<string, unknown> | null;
 }
 
+/** The options every repository verb takes, with `transaction` narrowed to one engine's handle. */
+export interface IConformanceOptions<TTransaction extends ITransaction> extends IExtraOptions {
+  transaction?: TTransaction;
+}
+
 /**
- * Loosely typed on purpose: each engine binds its own `ExtraOptions` and datasource, and the suite
- * must run either.
+ * Generic over the transaction type because the one a repository accepts is the one its own
+ * datasource hands out: each engine binds its own, and the suite runs either.
  */
-export type TConformanceRepository = DefaultRelationalRepository<AnyType>;
+export type TConformanceRepository<TTransaction extends ITransaction = ITransaction> = Pick<
+  DefaultRelationalRepository<
+    TTableSchemaWithId,
+    TTableObject<TTableSchemaWithId>,
+    TTableInsert<TTableSchemaWithId>,
+    IConformanceOptions<TTransaction>
+  >,
+  | 'count'
+  | 'create'
+  | 'createAll'
+  | 'deleteBy'
+  | 'deleteById'
+  | 'find'
+  | 'findById'
+  | 'findEvery'
+  | 'updateBy'
+  | 'updateById'
+>;
 
 /**
  * Two kinds of engine difference, both ASSERTED rather than skipped. A refusal (`rowLocking`,
@@ -71,17 +97,17 @@ export interface IConformanceCapabilities {
   jsonPathRaisesOnScalarRoot: boolean;
 }
 
-export interface IConformanceHarness {
+export interface IConformanceHarness<TTransaction extends ITransaction = ITransaction> {
   /** CRUD over the conformance table. `secret` is hidden; no default filter. */
-  repository: TConformanceRepository;
+  repository: TConformanceRepository<TTransaction>;
 
   /**
    * The same table through a model whose `@model` settings
    * pin `defaultFilter: { where: { tenant: 'acme' } }`.
    */
-  scopedRepository: TConformanceRepository;
+  scopedRepository: TConformanceRepository<TTransaction>;
 
-  beginTransaction(): Promise<IRelationalTransaction<AnyType>>;
+  beginTransaction(): Promise<TTransaction>;
 }
 
 const SEED = [
@@ -101,6 +127,7 @@ const expectNotSupported = (caught: unknown): void => {
 const captureRejection = async (execution: () => Promise<unknown>): Promise<unknown> => {
   try {
     await execution();
+
     return undefined;
   } catch (error) {
     return error;
@@ -113,17 +140,17 @@ const captureRejection = async (execution: () => Promise<unknown>): Promise<unkn
  * repository consumer depends on, never an engine's SQL text; where an engine cannot do something
  * it pins the NotSupported throw, because a suite that skips the differences proves nothing.
  */
-export const runRepositoryConformance = (opts: {
+export const runRepositoryConformance = <TTransaction extends ITransaction>(opts: {
   engine: string;
   capabilities: IConformanceCapabilities;
-  build: () => IConformanceHarness;
+  build: () => IConformanceHarness<TTransaction>;
 }): void => {
   const { engine, capabilities, build } = opts;
 
   describe(`Relational repository conformance - ${engine}`, () => {
-    let harness: IConformanceHarness;
-    let repository: TConformanceRepository;
-    let scopedRepository: TConformanceRepository;
+    let harness: IConformanceHarness<TTransaction>;
+    let repository: TConformanceRepository<TTransaction>;
+    let scopedRepository: TConformanceRepository<TTransaction>;
 
     /** Name -> id of the seeded rows; ids are engine-assigned, so nothing may hardcode them. */
     let seededIds: Record<string, number>;
@@ -132,11 +159,12 @@ export const runRepositoryConformance = (opts: {
       harness = build();
       ({ repository, scopedRepository } = harness);
 
-      await repository.deleteAll({ where: {}, options: { force: true, shouldReturn: false } });
+      await repository.deleteBy({ where: {}, options: { force: true, shouldReturn: false } });
 
       const seeded = await repository.createAll<IConformanceRow>({ data: SEED });
 
       seededIds = {};
+
       for (const row of seeded.data) {
         seededIds[row.name] = row.id;
       }
@@ -256,8 +284,8 @@ export const runRepositoryConformance = (opts: {
     // The discriminating case: with `shouldReturn: false` there are no
     // rows to count, so `count` can only come from the driver's own
     // affected-row field. An engine that guessed would answer 1 or 0.
-    test('updateAll() reports a truthful count for a multi-row match without RETURNING', async () => {
-      const updated = await repository.updateAll({
+    test('updateBy() reports a truthful count for a multi-row match without RETURNING', async () => {
+      const updated = await repository.updateBy({
         data: { score: 99 },
         where: { tenant: 'acme' },
         options: { shouldReturn: false },
@@ -268,8 +296,8 @@ export const runRepositoryConformance = (opts: {
       expect(result).toEqual({ count: 2 });
     });
 
-    test('updateAll() matching nothing reports zero and changes nothing', async () => {
-      const updated = await repository.updateAll({
+    test('updateBy() matching nothing reports zero and changes nothing', async () => {
+      const updated = await repository.updateBy({
         data: { score: 99 },
         where: { tenant: 'no-such-tenant' },
         options: { shouldReturn: false },
@@ -290,8 +318,8 @@ export const runRepositoryConformance = (opts: {
       expect(result2).toEqual({ count: 2 });
     });
 
-    test('deleteAll() reports a truthful count for a multi-row match without RETURNING', async () => {
-      const deleted = await repository.deleteAll({
+    test('deleteBy() reports a truthful count for a multi-row match without RETURNING', async () => {
+      const deleted = await repository.deleteBy({
         where: { tenant: 'acme' },
         options: { shouldReturn: false },
       });
@@ -336,6 +364,7 @@ export const runRepositoryConformance = (opts: {
       for (const row of rows) {
         expect('secret' in row).toBe(false);
       }
+
       expect('secret' in (found as object)).toBe(false);
     });
 
@@ -399,6 +428,7 @@ export const runRepositoryConformance = (opts: {
           if (!capabilities.rowLocking) {
             const result = await captureRejection(execution);
             expectNotSupported(result);
+
             return;
           }
 
@@ -421,6 +451,7 @@ export const runRepositoryConformance = (opts: {
         if (!capabilities.regexp) {
           const result = await captureRejection(execution);
           expectNotSupported(result);
+
           return;
         }
 
@@ -455,6 +486,7 @@ export const runRepositoryConformance = (opts: {
           // DROPS 'Alpha', which the caller asked to keep.
           expect(matchedNames).toEqual(['Alpha', 'alpha']);
           expect(rejectedNames).toEqual(['beta', 'gamma']);
+
           return;
         }
 
@@ -514,6 +546,7 @@ export const runRepositoryConformance = (opts: {
         if (capabilities.nullsSortHigh) {
           expect(ascendingIndex).toBe(ascending.length - 1);
           expect(descendingIndex).toBe(0);
+
           return;
         }
 
@@ -535,6 +568,7 @@ export const runRepositoryConformance = (opts: {
         if (!capabilities.arrayOperators) {
           const result = await captureRejection(execution);
           expectNotSupported(result);
+
           return;
         }
 
@@ -627,6 +661,7 @@ export const runRepositoryConformance = (opts: {
 
         if (capabilities.jsonPathAppendsPastArrayEnd) {
           expect(result.metadata).toEqual({ a: [{ x: 0 }, { x: 1 }] });
+
           return;
         }
 
@@ -647,6 +682,7 @@ export const runRepositoryConformance = (opts: {
           expect(result).toMatchObject({
             cause: { message: 'cannot set path in scalar' },
           });
+
           return;
         }
 

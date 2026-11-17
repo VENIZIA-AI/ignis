@@ -3,6 +3,7 @@ import { BaseHelper } from '@/modules/base';
 import { type Worker, type WorkerOptions } from 'node:worker_threads';
 import { type IWorker } from '../common';
 
+/** Base for a helper that owns a `Worker` and reacts to its lifecycle events. */
 export abstract class AbstractWorkerHelper<MessageType>
   extends BaseHelper
   implements IWorker<MessageType>

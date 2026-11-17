@@ -35,6 +35,7 @@ describe('every constructor parameter of a container-instantiated class must be 
     }
 
     let thrown: Error | undefined;
+
     try {
       container.instantiate(LeadingHoleController);
     } catch (error) {
@@ -58,6 +59,7 @@ describe('every constructor parameter of a container-instantiated class must be 
     }
 
     let thrown: Error | undefined;
+
     try {
       container.instantiate(MiddleHoleController);
     } catch (error) {

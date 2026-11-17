@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+
 import type { TMixinTarget } from '@venizia/ignis-helpers/common';
 import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import { MetadataKeys } from '../common/keys';
@@ -24,6 +26,7 @@ export const DatasourceMetadataMixin = <BaseClass extends TMixinTarget<_Metadata
       target: Target;
     }): IDataSourceMetadata | undefined {
       const { target } = opts;
+
       return Reflect.getMetadata(MetadataKeys.DATASOURCE, target);
     }
   };

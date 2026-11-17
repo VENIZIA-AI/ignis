@@ -42,7 +42,9 @@ const order = await RetryHelper.executeWithRetryUntil({
 | Method | Retries when | Typical use |
 |---|---|---|
 | `RetryHelper.executeWithRetry` | `execution` throws | Flaky network calls, connection setup |
-| `RetryHelper.executeWithRetryUntil` | `until(result)` returns `false` | Polling until data is fresh or a job is done. Powers the repository [`retry` option](/references/base/repositories/advanced#read-retry-replica-lag). |
+| `RetryHelper.executeWithRetryUntil` | `until(result)` returns `false` | Polling until data is fresh or a job is done |
+
+`executeWithRetryUntil` powers the repository [`retry` option](/references/base/repositories/advanced#read-retry-replica-lag).
 
 Both share the same backoff engine and the same habit: on exhaustion, log one `logger.warn` and hand back the LAST outcome.
 

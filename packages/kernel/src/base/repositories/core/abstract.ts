@@ -1,4 +1,4 @@
-import type { AbstractDataSource } from '@/base/datasources';
+import type { DataSourceRoot } from '@/base/datasources';
 import type { AbstractEntity, IdType } from '@/base/models';
 import type { IModelMetadata } from '@/helpers/inversion';
 import { MetadataRegistry } from '@/helpers/inversion';
@@ -24,6 +24,8 @@ import {
   RepositoryErrorCodes,
   RepositoryOperationScopes,
 } from '../common/constants';
+import { RequestFilterGuard } from '../common/request-filter-guard';
+import type { IRequestFilterJudge, IRequestFilterShape } from '../common/request-filter-guard';
 import type {
   TByIdFilter,
   TFields,
@@ -46,10 +48,14 @@ export abstract class AbstractRepository<
   extends BaseHelper
   implements IPersistableRepository<TDataObject, TPersistObject, TOptions>
 {
+  /** Phantom type markers, never set at runtime: the row and persist shapes, for the types that read them off a repository class (as an entity's `$inferData`). */
+  declare readonly $inferData?: TDataObject;
+  declare readonly $inferPersist?: TPersistObject;
+
   protected _operationScope: TRepositoryOperationScope;
 
   /** Lazy-resolved on first access if not provided in constructor. */
-  protected _dataSource?: AbstractDataSource;
+  protected _dataSource?: DataSourceRoot;
 
   /** Lazy-resolved from @repository metadata on first access. */
   protected _entity?: AbstractEntity;
@@ -61,7 +67,7 @@ export abstract class AbstractRepository<
   private _modelSettings: IModelMetadata['settings'] | null = null;
 
   constructor(
-    dataSource?: AbstractDataSource,
+    dataSource?: DataSourceRoot,
     opts?: {
       scope?: string;
       entityClass?: TClass<AbstractEntity>;
@@ -85,7 +91,7 @@ export abstract class AbstractRepository<
     }
   }
 
-  get dataSource(): AbstractDataSource {
+  get dataSource(): DataSourceRoot {
     if (!this._dataSource) {
       throw getError({
         message: `[${this.constructor.name}] DataSource not available. Use @repository({ model: YourModel, dataSource: YourDataSource }) or pass dataSource in constructor.`,
@@ -95,13 +101,14 @@ export abstract class AbstractRepository<
     return this._dataSource;
   }
 
-  set dataSource(value: AbstractDataSource) {
+  set dataSource(value: DataSourceRoot) {
     this._dataSource = value;
   }
 
   /** Auto-resolves from @repository metadata if not explicitly set. */
   get entity(): AbstractEntity {
     this._entity ??= this.resolveEntity();
+
     return this._entity;
   }
 
@@ -113,7 +120,7 @@ export abstract class AbstractRepository<
     return this._operationScope;
   }
 
-  setDataSource(opts: { dataSource: AbstractDataSource }): void {
+  setDataSource(opts: { dataSource: DataSourceRoot }): void {
     this._dataSource = opts.dataSource;
   }
 
@@ -138,7 +145,35 @@ export abstract class AbstractRepository<
   }
 
   protected get hiddenFields(): string[] {
-    return this.modelSettings?.hiddenProperties ?? [];
+    return this.modelSettings?.properties?.hidden ?? [];
+  }
+
+  /**
+   * Refuses (400, `Column NOT FOUND`) a filter that came from a request and names a field the model hides, in its
+   * `where`, its `order` or the `scope` of an `include` (judged by the hidden fields of the model it reads). The generated
+   * controllers call it on what a client sends; the repository's own verbs do not, so server code can still filter and
+   * sort on a hidden field.
+   */
+  assertRequestFilter(opts: { filter?: IRequestFilterShape }): void {
+    RequestFilterGuard.assertFilter({
+      filter: opts.filter,
+      judge: this.createRequestFilterJudge(),
+      tableName: this.entity?.name ?? this.constructor.name,
+    });
+  }
+
+  /**
+   * How this repository judges the keys of a request filter. The default reads a key as a dotted field name and refuses it with
+   * a 400 `Column NOT FOUND`; a relational or a search repository overrides it to read keys as its own query does and to
+   * refuse with its own query's error for a column that does not exist.
+   */
+  protected createRequestFilterJudge(): IRequestFilterJudge {
+    const hidden = new Set(this.hiddenFields);
+
+    return {
+      isHidden: ({ key }) => RequestFilterGuard.isHiddenByName({ key, hidden }),
+      refuse: ({ key }) => RequestFilterGuard.columnNotFound({ scope: this.constructor.name, key }),
+    };
   }
 
   /** Default where from @model settings.query.filter.where, AND-merged into every query unless skipped. */
@@ -158,8 +193,8 @@ export abstract class AbstractRepository<
   /**
    * Both bounds, in one place, for every tier.
    *
-   * The upper bound is the point: `@model({ settings: { maxLimit } })` is public and validated at
-   * decoration time, but the relational tier read it nowhere, so `maxLimit: 2` still issued
+   * The upper bound is the point: `@model({ settings: { query: { limit: { max } } } })` is public and validated at
+   * decoration time, but the relational tier read it nowhere, so `limit.max: 2` still issued
    * `LIMIT 50000000`.
    *
    * The lower bound matters just as much and is easy to miss: a NEGATIVE limit is not a smaller
@@ -181,7 +216,7 @@ export abstract class AbstractRepository<
       });
     }
 
-    // `maxLimit` reaches `modelSettings`, which resolves the entity - and THAT throws for a
+    // `limit.max` reaches `modelSettings`, which resolves the entity - and THAT throws for a
     // repository with no `@repository` model binding. Such a repository is a misconfiguration this
     // method has no business reporting, and the caller path that used to reach `getDefaultLimit()`
     // never touched it either, because `??` short-circuits when a limit is given. So the ceiling is
@@ -193,7 +228,7 @@ export abstract class AbstractRepository<
 
     if (limit > ceiling) {
       throw getError({
-        message: `[${this.constructor.name}][${scope}] Requested page exceeds this model's limit | requested: ${limit} | maximum: ${ceiling} | raise it with @model settings.maxLimit if larger pages are genuinely needed`,
+        message: `[${this.constructor.name}][${scope}] Requested page exceeds this model's limit | requested: ${limit} | maximum: ${ceiling} | raise it with @model settings.query.limit.max if larger pages are genuinely needed`,
       });
     }
   }
@@ -205,7 +240,7 @@ export abstract class AbstractRepository<
    *
    * A relation's limit gets the SHAPE check only, not a ceiling. The ceiling belongs to the
    * relation's own model, which this repository cannot resolve - claiming otherwise would enforce
-   * the parent's `maxLimit` on a different entity.
+   * the parent's `limit.max` on a different entity.
    */
   protected assertFilterLimits(opts: { filter?: TFilter; scope?: string }): void {
     const { filter, scope = 'find' } = opts;
@@ -218,8 +253,10 @@ export abstract class AbstractRepository<
 
     const walk = (inclusions: TInclusion[] | undefined, path: string): void => {
       const inclusionsList = inclusions ?? [];
+
       for (const inclusion of inclusionsList) {
         const relationScope = inclusion.scope;
+
         if (!relationScope) {
           continue;
         }
@@ -259,6 +296,7 @@ export abstract class AbstractRepository<
     const ModelClass = ResolverUtility.resolveValue({
       value: binding.model,
     }) as TClass<AbstractEntity>;
+
     return new ModelClass();
   }
 
@@ -288,6 +326,7 @@ export abstract class AbstractRepository<
 
     if (options.transaction) {
       this.logger.for(operation).debug('Read retry skipped inside transaction');
+
       return execution();
     }
 
@@ -321,6 +360,7 @@ export abstract class AbstractRepository<
   ): TReadOptions {
     const rest = { ...options };
     delete rest.retry;
+
     return rest;
   }
 
@@ -431,42 +471,17 @@ export abstract class AbstractRepository<
     options?: TOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
 
-  abstract updateAll(opts: {
+  abstract updateBy(opts: {
     data: Partial<TPersistObject>;
     where: TWhere<TDataObject>;
     options: TOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
 
-  abstract updateAll<R = TDataObject>(opts: {
+  abstract updateBy<R = TDataObject>(opts: {
     data: Partial<TPersistObject>;
     where: TWhere<TDataObject>;
     options?: TOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> | null }>;
-
-  /** Alias for updateAll. */
-  updateBy(opts: {
-    data: Partial<TPersistObject>;
-    where: TWhere<TDataObject>;
-    options: TOptions & { shouldReturn: false; force?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-  updateBy<R = TDataObject>(opts: {
-    data: Partial<TPersistObject>;
-    where: TWhere<TDataObject>;
-    options?: TOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> | null }>;
-  updateBy<R = TDataObject>(opts: {
-    data: Partial<TPersistObject>;
-    where: TWhere<TDataObject>;
-    options?: TOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    const { data, where, options } = opts;
-
-    if (options?.shouldReturn === false) {
-      return this.updateAll({ data, where, options: { ...options, shouldReturn: false } });
-    }
-
-    return this.updateAll<R>({ data, where, options });
-  }
 
   abstract deleteById(opts: {
     id: IdType;
@@ -478,35 +493,13 @@ export abstract class AbstractRepository<
     options?: TOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
 
-  abstract deleteAll(opts: {
-    where?: TWhere<TDataObject>;
-    options: TOptions & { shouldReturn: false; force?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-
-  abstract deleteAll<R = TDataObject>(opts: {
-    where?: TWhere<TDataObject>;
-    options?: TOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> | null }>;
-
-  /** Alias for deleteAll. */
-  deleteBy(opts: {
+  abstract deleteBy(opts: {
     where: TWhere<TDataObject>;
     options: TOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
-  deleteBy<R = TDataObject>(opts: {
+
+  abstract deleteBy<R = TDataObject>(opts: {
     where: TWhere<TDataObject>;
     options?: TOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> | null }>;
-  deleteBy<R = TDataObject>(opts: {
-    where: TWhere<TDataObject>;
-    options?: TOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    const { where, options } = opts;
-
-    if (options?.shouldReturn === false) {
-      return this.deleteAll({ where, options: { ...options, shouldReturn: false } });
-    }
-
-    return this.deleteAll<R>({ where, options });
-  }
 }

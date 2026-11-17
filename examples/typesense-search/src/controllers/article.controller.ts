@@ -1,14 +1,19 @@
-import { ArticleDocument } from '@/models/article.model';
 import { ArticleRepository } from '@/repositories/article.repository';
-import { controller, ControllerFactory } from '@venizia/ignis';
+import { controller, CrudControllerFactory, CrudRoutes } from '@venizia/ignis';
 
 const BASE_PATH = '/articles';
 
 /** Generates GET /count, GET /, GET /find-one, GET /:id, POST /, PATCH /:id, PATCH /, DELETE /:id, DELETE /. */
-const BaseCrudController = ControllerFactory.defineCrudController({
-  entity: ArticleDocument,
-  repository: { name: ArticleRepository.name },
-  controller: { name: 'ArticleController', basePath: BASE_PATH },
+const BaseCrudController = CrudControllerFactory.build({
+  repository: ArticleRepository,
+  routes: {
+    ...CrudRoutes.READ,
+    create: true,
+    updateById: true,
+    updateBy: true,
+    deleteById: true,
+    deleteBy: true,
+  },
 });
 
 @controller({ path: BASE_PATH })

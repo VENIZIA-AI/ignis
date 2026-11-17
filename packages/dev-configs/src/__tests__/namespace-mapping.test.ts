@@ -17,6 +17,7 @@ const ENTRIES: Record<string, () => Promise<Record<string, unknown>>> = {
 
 const loadModule = async (specifier: string): Promise<Record<string, unknown>> => {
   const load = ENTRIES[specifier];
+
   if (!load) {
     throw new Error(`no source file is mapped to ${specifier}`);
   }
@@ -36,9 +37,11 @@ describe('the dev-configs entries of the namespace-functions table', () => {
     for (const entry of DEV_CONFIGS_MAPPINGS) {
       for (const specifier of entry.modules) {
         const key = `${specifier}#${entry.oldName}`;
+
         if (seen.has(key)) {
           repeated.push(key);
         }
+
         seen.add(key);
       }
     }

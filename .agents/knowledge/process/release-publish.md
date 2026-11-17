@@ -13,10 +13,11 @@ tags: [process, release, ci]
 - [Before a chain release](#before-a-chain-release)
 - [What atlas reads after a release](#what-atlas-reads-after-a-release)
 - [The VULCAN preset](#the-vulcan-preset)
-- [The six jobs and their guards](#the-six-jobs-and-their-guards)
+- [The seven jobs and their guards](#the-seven-jobs-and-their-guards)
 - [Trusted publishing (no npm token)](#trusted-publishing-no-npm-token)
 - [The GitHub Release of a run](#the-github-release-of-a-run)
 - [The prebuilt atlas index of this repository](#the-prebuilt-atlas-index-of-this-repository)
+- [The wiki after a release](#the-wiki-after-a-release)
 - [Steps](#steps)
 - [Related](#related)
 <!-- okf:generated:contents end -->
@@ -33,6 +34,8 @@ run cannot mix kinds).
 | Release commits go to           | `develop`                                                                             | `main`                                                                                                                                                                   |
 | Plan                            | what changed since each package's last release, plus the packages that depend on them | the scope of the mode, never named: a `patch` promotes every package that has a prerelease part, a `minor` or a `major` moves all nine (they must share one MAJOR.MINOR) |
 | npm dist-tag                    | `next`                                                                                | `latest`                                                                                                                                                                 |
+| GitHub Release                  | none                                                                                  | one, on the tag of the last package of the plan, with the notes of its version folder when that package is `core-server`                                                 |
+| Version folder                  | not read                                                                              | `changelogs/<version>/log.md` must exist and not say `released:` yet; the release commit of `core-server` writes `released: <date>` into it                              |
 
 The dist-tag follows the version of each package (a prerelease part means `next`), not the mode. The plan job refuses a ref
 that is not the kind's branch, and a stable plan whose scope is not the mode's (a package left out, a patch over a stable
@@ -40,6 +43,17 @@ package, a plan whose `from` is not the version on `main`); a package already re
 plan does not count against the scope. `release.ts --dry-run` prints version now, target and dist-tag for each package. The
 loop computes each target without npm (`ReleaseVersion.next`, checked against `npm version`) and stops before publishing if
 npm gives another version, and a stable run refuses a packed manifest that pins a prerelease.
+
+The version of the folder is `core-server`'s (`GithubReleaseConstants.LEADING_DIR`): the folders are named for it, and it is
+the package the Release with a folder is made on. A stable plan without `core-server` needs no folder, stamps nothing, has
+no `changelog_base`, and its Release takes the dated entries. The packages of a train do not all share a version (`filter` and `inversion` were at 0.4.7
+while `core-server` went to 0.4.8). The plan job refuses a stable whose `changelogs/<version>/log.md` is missing, or already
+says `released:` (`ReleaseChangelog.problems`, `scripts/release/release-changelog.ts`; it also dry-runs the stamp, so a `log.md` with no
+frontmatter, or an empty `released:` line, is refused in the plan, not after the publish; only the frontmatter is read for `released:`. It applies once `knowledge.migrationFrom`
+in `.configs/vulcan.config.mts` is a version, as it is from 0.4.5). A dispatch of the same plan whose `core-server` is already
+at its target on the commit (its release commit exists, and with it the date) is accepted with the date and still needs the
+folder. The plan also outputs `changelog_base`, the highest stable tag of `core-server` below the version (empty for a
+prerelease, or when there is none).
 
 ## Before a chain release
 
@@ -71,16 +85,15 @@ npm gives another version, and a stable run refuses a packed manifest that pins 
   versions pinned to the consumer's own resolved copies, or two `zod`/`hono` trees land in one
   program), run `tsc --noEmit` per consumer package, and diff against the same run with the
   pinned versions. Every new error must map to a documented breaking change; the rest is the
-  finding. The public-surface snapshot tracks names and kinds only, so this is the check for
-  signatures.
+  finding. The API pages carry the signatures, so this is the check for what a consumer's types see.
 
 ## What atlas reads after a release
 
 Nothing is regenerated or committed after a chain. VULCAN's atlas computes the releases from the
 git tags the workflow pushes, and reads symbols from the built or installed `.d.ts`. `make
 atlas-releases` and `make atlas-symbols` print what it sees (both come from
-`node_modules/@venizia/vulcan/base/make/vulcan.mk`). Only the public-surface snapshot
-(`reference/public-surface.md`, `make surface-gen`) is committed, and `make build-all` gates it.
+`node_modules/@venizia/vulcan/base/make/vulcan.mk`). The API pages (`make api-gen`) are the only
+generated export reference that is committed, and `make build-all` gates them with `api-check`.
 
 - **Package names on the command line.** `release.ts <pkg>` means "from this package on"; `--plan` carries its own
   packages and cannot be combined with names. The parsing lives in `scripts/release/release-args.ts` with its own test.
@@ -89,13 +102,14 @@ atlas-releases` and `make atlas-symbols` print what it sees (both come from
 
 `@venizia/ignis` ships a data-only VULCAN preset (`vulcan.presets.app`, `vulcan.presets.lib` and `vulcan.presets.shared` in its `package.json`), so `vulcan init --preset ignis` creates a working monorepo. It has three kinds: `presets/app` (`vulcan add --preset ignis --app <name>`, derived from `examples/5-mins-qs`), `presets/lib` (`--lib <name>`, a library other IGNIS apps import: `exports` to `src`, `@venizia/ignis` as a peer, no `server:dev` or `compile`) and `presets/shared` (`--shared <name>`, needs a VULCAN with `--shared`, 0.4.9-0 or later). The shared kind is a side-neutral package that backend and frontend apps both import; it is not the lib kind and never replaces it. It depends on no IGNIS or ARDOR package: `@venizia/dev-configs` is the one `@venizia/*` name it may list, as a devDependency, and a test (`scripts/preset/__tests__/shared-preset.test.ts`) fails on any other. Its tsconfig extends nothing from dev-configs (no decorators, no DOM, no Bun API in `src`). Each is `preset.json` with `workspace:*` / `catalog:` markers plus `files/`; the lib and the shared kind also get the app's `.configs/` lint and format files and its lint and clean scripts at build time. `scripts/preset/vulcan-preset.ts` (`make preset-build`) resolves the markers to the exact workspace versions and the root-catalog ranges and writes `dist/presets/app`, `dist/presets/lib` and `dist/presets/shared`, named by `vulcan.presets.app`, `vulcan.presets.lib` and `vulcan.presets.shared`; an older VULCAN ignores the `shared` key; the release loop runs it after the `core-server` bump, so the preset names the release it ships in. `make preset-smoke` (`scripts/preset/preset-smoke.ts`) packs the workspace, creates an app from the packed preset in a temp folder and runs its typecheck, lint and test, then `vulcan doctor` and `okf check`, and calls `GET /api/hello`; it gates the `core-server` release before the bump, and CI runs it after the build. `bun pm pack` drops every `__tests__` folder, so the preset keeps its smoke test at `src/smoke.test.ts`.
 
-## The six jobs and their guards
+## The seven jobs and their guards
 
 The workflow takes a `plan` (`name@version,...`: the package folders and the version each has now), a `build_mode`
-(default `prerelease`) and an `issue`, and runs six jobs (the sixth, `atlas-index`, is described under [the prebuilt atlas index](#the-prebuilt-atlas-index-of-this-repository)). `plan` holds no secret and no environment: it validates the
+(default `prerelease`) and an `issue`, and runs seven jobs (the sixth, `atlas-index`, is described under [the prebuilt atlas index](#the-prebuilt-atlas-index-of-this-repository); the seventh, `docs-deploy`, under [the wiki after a release](#the-wiki-after-a-release)). `plan` holds no secret and no environment: it validates the
 input (known names, semver, no duplicate), orders it in dependency order, refuses a ref that is not the branch of the kind
 (`GITHUB_REF`; see [Two kinds of release](#two-kinds-of-release)) and a stable plan that is not the scope of the mode, and
-outputs the plan, the `kind`, the `branch`, a `headline` (`<n> packages, up to <highest target>`) and the `targets`; every
+outputs the plan, the `kind`, the `branch`, a `headline` (`<n> packages, up to <highest target>`), the `targets` and the
+`changelog_base` (see [Two kinds of release](#two-kinds-of-release)); every
 other job takes that output, never the raw input, and no `run:` step interpolates `${{ }}`. For a stable it also checks out
 the full history and tries the merge of `main` back into `develop` in throwaway worktrees
 (`merge-back.ts trial --versions <dir=version,...> --lock keep`), so a merge that would stop stops before anyone is asked;
@@ -103,12 +117,15 @@ its `develop_sha` is the head of `develop` the trial read. `test` is a matrix, o
 plan, with read-only permissions and no secret: it builds, runs the checks in the steps below, the package's unit tests
 (`make test-$PACKAGE`) and the preset smoke for `core-server` against the VULCAN version the repository declares in
 `devDependencies` (never `latest`). `scripts` runs the repository scripts' tests once (`make test-scripts`, which hold the
-guards below). `approve` exists for a stable only (`if` on the plan's kind), `needs` the three jobs above so nobody
+guards below) and, for a stable with a `changelog_base`,
+`bun node_modules/.bin/vulcan changelog check --history --base "$CHANGELOG_BASE"`: no released folder changed since the
+previous stable, and no dated entry was added or edited (the checkout takes the whole history, the check reads the tag).
+`approve` exists for a stable only (`if` on the plan's kind), `needs` the three jobs above so nobody
 approves a run that fails a gate, names the environment `release-approval` (reviewer: the owner; `main` only), holds no
 permission and runs one echo; the click is the approval, its name carries the `headline`, and nothing waits for a second
 one. `publish` `needs` all four and runs after `approve` succeeded, or after it was skipped because the plan says
 prerelease and `plan`, `test` and `scripts` succeeded, under `!cancelled()` (the guard evaluates the written `if` over its
-cases). It is the only job with `id-token: write`, and the only one with `contents: write` besides `atlas-index` (which has nothing else), names the environment `npm-release` (no
+cases). It is the only job with `id-token: write`, and the only one with `contents: write` besides `atlas-index` (which has nothing else; `docs-deploy` has `actions: write` and nothing else), names the environment `npm-release` (no
 reviewers), has a `timeout-minutes` (nine publishes, each followed by a wait of up to fifteen minutes), builds once and
 runs the loop (`scripts/release/release-run.ts run`, with `TARGET_BRANCH` from the plan). A stable first refuses to start
 when `main` is not the dispatched commit or `develop` is not the `develop_sha` the trial read, before any step changes a
@@ -124,7 +141,7 @@ versions, the Node setup does not cache, and every action is pinned by a full co
 `scripts/release/release-workflow.ts` reads the workflow and the loop and names every guard that is missing;
 `scripts/release/__tests__/release-workflow.test.ts` removes each guard from a copy, one at a time, and
 expects the check to name it (listed in `scripts/checks/controls.json`). Change a guard on purpose, and its
-mutation in that test, in the same pull request. There are 39. The ones for trusted publishing are `no-npm-token` (no
+mutation in that test, in the same pull request. There are 41. The ones for trusted publishing are `no-npm-token` (no
 `secrets` reference, in any spelling, and no npm token name in the workflow or in the loop, except the one `ATLAS_INDEX_KEY` line that `atlas-index-job-confined` pins), `environment-on-publish`, `oidc-on-publish-only`,
 `node-exact-no-cache`, `npm-exact-and-asserted` and `publish-tarball-with-provenance` (`bun publish` appears nowhere, the loop
 packs with `bun pm pack`, publishes with `npm publish` and `--provenance`). The ones for the shape of one run are
@@ -143,7 +160,10 @@ itself is enforced at run time, see the section, so the guard pins that `ghOf` c
 spawn, that every `gh` and `git` call passes an inline array of words, and that the script has no `fetch`, Bun shell,
 `child_process` or token name); and `publish-environment-is-closed` (no `defaults` anywhere, no `env` on the publish
 job, the workflow `env` is exactly `BUILD_MODE`, `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` and `TARBALLS`, and a publish
-step writes `$GITHUB_ENV` only as `MERGE_BACK_STARTED=true` and `$GITHUB_PATH` never). `publish-runs-the-loop` also
+step writes `$GITHUB_ENV` only as `MERGE_BACK_STARTED=true` and `$GITHUB_PATH` never). `changelog-history-for-a-stable` pins the
+`changelog_base` output of the plan job, the full-history checkout of `scripts`, its step "Changelog history (a stable)" (the `if`, the
+variable and the exact command) and, in `release-run.ts`, the stamp of the version folder and the `git add -- <that file>` before the
+release commit. `publish-runs-the-loop` also
 refuses two steps of the same name in the job, because a step is found by its name. The guards
 read commands with comments stripped, and `no-npm-token` (which reads `github-release.ts` too) names the file and the line. What the loop does with the tarball (the
 sha256 recorded and checked again before the publish, the version inside it, the pins of the siblings, the order of every
@@ -180,21 +200,29 @@ and `@venizia/ignis-worker` (`core-worker`).
 
 ## The GitHub Release of a run
 
-Every run, prerelease or stable, ends with ONE GitHub Release, made by `scripts/release/github-release.ts create --targets "$TARGETS" --kind "$RELEASE_KIND"` in the step "Create the GitHub Release" of the `publish` job (after "Release the plan", before the merge back). It is uniform with VULCAN and covers new releases only; older tags have none.
+A **stable** ends with ONE GitHub Release, made by `scripts/release/github-release.ts create --targets "$TARGETS" --kind "$RELEASE_KIND"` in the step "Create the GitHub Release" of the `publish` job (after "Release the plan", before the merge back). A **prerelease makes none**: the Releases page lists stables only, a prerelease is on npm under `next` and in git, and the script reports `skipped` (exit 0) without asking `gh` anything. This covers new releases only; older tags, and every older prerelease, keep what they have.
 
 - **The tag is the last package's.** A run tags each package `<dir>-v<version>`; the Release goes on the tag of the last package of the plan in release order (`core-server` when it is in the plan), and its title is `IGNIS <version>` when that package is `core-server` and `IGNIS <dir> <version>` otherwise (`IGNIS kernel 0.4.6`), so two titles never collide. The previous tag and the newest stable are read from the tags of that one package, never from another package's.
-- **Prerelease:** flagged Pre-release, never Latest. The body is `Install: npm install <npm name of the last package>@next`, then the `[#N]` commit subjects since the previous tag of that package (at most 30, in a fenced block, release commits left out).
-- **Stable:** GitHub has one Latest per repository, so `--latest` only when the last package is `core-server` AND no stable `core-server` tag is above it; every other stable gets `--latest=false`. The body is the user-facing changelog entries added since the previous stable tag of that package (front matter, date heading and badge line removed), or `No change for users of the packages in this release.` when there are none. A bare `@word` or `@org/team` in an entry is put in backticks (a Release notifies the account or team it names), and a root-relative link `](/path)` points at `https://ignis.venizia.ai`.
+- **Latest:** GitHub has one Latest per repository, so `--latest` only when the last package is `core-server` AND no stable `core-server` tag is above it; every other stable gets `--latest=false`.
+- **Notes from the version folder.** When the last package is `core-server` and the tag holds `changelogs/<version>/log.md`, the notes are its body, read from the tag with `git show` (front matter, with its `released:` line, removed; `ReleaseNotes.bodyOf`, the same logic as `vulcan changelog notes`, which `release-notes.test.ts` compares on every folder), then the body hygiene below; a `log.md` with nothing in it gives `No change for users of the packages in this release.`. When the folder's `migration.yaml` holds a block (`ReleaseNotes.hasBlocks`: not absent, not empty, not `{}`), it is attached to the Release as `migration-<version>.yaml`; otherwise nothing is attached.
+- **A version with no folder** (a stable before `migrationFrom`, or a project without folders) keeps the dated path: the user-facing dated entries added since the previous stable tag of that package (front matter, date heading and badge line removed), or `No change for users of the packages in this release.` when there are none.
+- **Body hygiene, for both paths.** A bare `@word` or `@org/team` is put in backticks (a Release notifies the account or team it names), and a root-relative link `](/path)` points at `https://ignis.venizia.ai`.
+- **Both end with `## Packages`:** one line per package of THIS run, in release order, each at its own version, `- [<npm name>@<version>](https://www.npmjs.com/package/<npm name>/v/<version>)`. The npm names come from `.agents/vulcan.manifest.json` `packages`, matched by `dir`. (`vulcan changelog notes` lists every package at one version, which is wrong when a train spans two; the Release does not use its list.)
 - **Limits:** a body over 120000 characters (GitHub's limit is 125000) is cut on a whole line, with a closing line that says so and links to `https://ignis.venizia.ai/changelogs/`; the Packages section stays. A message of `gh` or `git` has its line breaks turned into spaces before it reaches the log or the run summary, so it cannot start a workflow command (`::add-mask::`).
 - **Both end with `## Packages`:** one line per package of THIS run, in release order, `- [<npm name>@<version>](https://www.npmjs.com/package/<npm name>/v/<version>)`. The npm names come from `.agents/vulcan.manifest.json` `packages`, matched by `dir`.
 - **Never a second, never a failure.** A tag that already has a Release is skipped, so dispatching the same plan again makes a missing Release and never a second one. The step has `continue-on-error: true` and a 5-minute timeout, reads no secret (`GH_TOKEN` is the job's own `github.token`, `contents: write` is already there) and reports in the run summary; a failure never fails or undoes a publish. The guards `github-release-never-fails-a-publish` and `github-release-only-views-and-creates` hold all of that. The script refuses the tag `atlas-index`, and `ghOf`, the one place a process is spawned, refuses at run time (it throws before spawning, which `create` reports as a failed outcome) any `gh` call that is not `release view` or `release create`, any forcing argument (`--force`, `-f`, `--delete`, `-d`, `-D`, `--cleanup-tag`) and any call that names `atlas-index`. A message line of a dry run starts with `| ` after the first, because the runner trims spaces before it looks for `::`.
-- **By hand:** `bun scripts/release/github-release.ts backfill --tag <tag> [--yes]` makes the Release of one existing tag (a dry run that prints the planned body without `--yes`). The workflow never calls it.
+- **By hand:** `bun scripts/release/github-release.ts backfill --tag <tag> [--yes]` makes the Release of one existing stable tag (a dry run that prints the planned body without `--yes`; a prerelease tag says it has no Release). A backfill of a stable with no folder and no dated entry lists its commits (at most 30). The workflow never calls it.
+- **The date.** The release commit of `core-server` in a stable also carries `released: <date>` in the front matter of `changelogs/<version>/log.md` (`scripts/release/stamp-release.ts`, run by the loop itself before that commit, then `git add -- <the file it prints>`; it prints nothing for a version with no folder). A folder with that line is frozen, and `vulcan changelog check --history` fails a released folder that changed since. The loop stamps rather than a workflow step because the run can be dispatched again on a later day: a step before the loop would meet the date of the first run and refuse it. A package the loop only records (its release commit exists, its tag is missing) stamps nothing. The text rules (`ReleaseStampConstants`, `ReleaseStampText`) live in `scripts/release/merge-back.ts`, because the publish job copies that file alone to the runner and it can import nothing relative (a test copies it alone and runs it); `stamp-release.ts` and the plan job import them from it. `merge-back.ts` resolves a `<changelogs>/<X.Y.Z>/log.md` conflict that is only the `released:` line (`resolveStampConflict`), and the trial writes the same stamp into its release commit when the plan has `core-server` and the folder is not yet dated (a repeated run, whose release commit exists, stamps nothing), so `develop` never writes `released:` itself (a folder `develop` dated with the plan's day stops the merge back after the publish when the publish lands on a later UTC day), and a `develop` that deleted the folder log, dated it another day or removed its frontmatter stops the plan, not the merge back after the publish. The plan dry-runs the stamp itself (`ReleaseStampText.problemOf`), so it refuses exactly what the release commit would, an empty `released:` line included.
 
 ## The prebuilt atlas index of this repository
 
 IGNIS publishes the atlas index of its own commits, so a project that declares IGNIS as a source downloads it instead of building it. The `atlas-index` job of `.github/workflows/deploy-docs.yml` (the workflow "Docs", which also deploys the wiki) runs on a push to `main`, to `develop` or of a tag, builds the index through VULCAN's action (`VENIZIA-AI/vulcan/.github/actions/atlas-index`, pinned by full commit to the installed VULCAN release; a bump is a deliberate pull request), signs it with the Actions secret `ATLAS_INDEX_KEY` and attaches the pair to the release `atlas-index`. The public half of the key is `atlas.index.keys` in `.configs/vulcan.config.mts`, rendered into `.agents/vulcan.manifest.json`; a reader accepts a pair only when a listed key verifies it, and otherwise builds locally as before. The job has `contents: write` and nothing else does; the secret is read only by the publishing step; `scripts/release/__tests__/docs-workflow.test.ts` holds those rules.
 
-**Release tags get no pair from it, so the release workflow makes them.** The release workflow pushes its release commits and tags with the Actions token, and GitHub starts no workflow from a push made with that token, so the job above never runs for them. The `atlas-index` job of `.github/workflows/package-release.yml` does, after `publish` (whether it ended well or stopped halfway: a tag stays): a matrix over the plan, one package at a time, runs the same pinned action once per tag with `ref: <dir>-v<version>`, which builds the pair of that tag's commit from one full-history checkout. It holds `contents: write` and nothing else (no `id-token`, no environment, so the key never shares a job with the npm publish identity), continues on error (a release that has published is never failed by it), skips a package whose tag is not in the clone, and reads `ATLAS_INDEX_KEY`, the one secret of the release workflow, on the one step that publishes. The release-workflow guards `write-on-publish-only` and `no-npm-token` let exactly that job and that one line through, and `atlas-index-job-confined` holds the rest. A pair that is missing for an older tag is made by hand: `gh workflow run deploy-docs.yml --ref develop -f job=atlas-index -f ref=<tag>`. The merge of main back into develop is pushed the same way, so the next push to `develop` covers that head. The release keeps the newest 20 branch-head pairs and every release-tag commit's pair, 300 pairs at most. A new key is made with `bun x --no-install vulcan x atlas index keygen` by the maintainer, who sets the secret; an agent never writes it.
+**Release tags get no pair from it, so the release workflow makes them.** The release workflow pushes its release commits and tags with the Actions token, and GitHub starts no workflow from a push made with that token, so the job above never runs for them. The `atlas-index` job of `.github/workflows/package-release.yml` does, after `publish` (whether it ended well or stopped halfway: a tag stays): a matrix over the plan, one package at a time, runs the same pinned action once per tag with `ref: <dir>-v<version>`, which builds the pair of that tag's commit from one full-history checkout. It holds `contents: write` and nothing else (no `id-token`, no environment, so the key never shares a job with the npm publish identity), continues on error (a release that has published is never failed by it), skips a package whose tag is not in the clone, and reads `ATLAS_INDEX_KEY`, the one secret of the release workflow, on the one step that publishes. The release-workflow guards `write-on-publish-only` and `no-npm-token` let exactly that job and that one line through, and `atlas-index-job-confined` holds the rest. A pair that is missing for an older tag is made by hand: `gh workflow run deploy-docs.yml --ref develop -f job=atlas-index -f ref=<tag>`. The merge of main back into develop is pushed the same way, so the next push to `develop` covers that head. The release keeps the newest 20 branch-head pairs and every release-tag commit's pair, 300 pairs at most. A new key is made with `bun run vulcan x atlas index keygen` by the maintainer, who sets the secret; an agent never writes it.
+
+## The wiki after a release
+
+The version box of the changelog names the newest prerelease, read from the release tags at build time, so the wiki must be built again after a release. The release commits and tags are pushed with the Actions token and start no workflow, so the `docs-deploy` job of `.github/workflows/package-release.yml` does it: after `publish` (whether it ended well or stopped halfway: a tag stays) it runs `gh workflow run deploy-docs.yml --ref develop`, because a `workflow_dispatch` made with the Actions token does start a run. For a stable, develop already holds the merge back when the job runs. The job holds `actions: write` and nothing else (no `contents`, no `id-token`, no environment, no secret, no checkout, so `publish` gains no permission), continues on error (a release that has published is never failed by it) and is held by the guard `docs-deploy-job-confined`; `write-on-publish-only` lets exactly that job and `atlas-index` write. A dispatch that failed is run by hand: `gh workflow run deploy-docs.yml --ref develop`. A later push to `develop` whose range holds a release commit (`chore(<package>): release v<version> [...]`) deploys the wiki too (the `changes` job of `deploy-docs.yml`).
 
 ## Steps
 
@@ -264,12 +292,13 @@ IGNIS publishes the atlas index of its own commits, so a project that declares I
 6. Second pass, over the published packages in the same order. For each: a wait until its tarball answers 200 (a tag means
    installable); the `highest` dist-tag, moved only if the new version is semver-greater than the current one (a stable
    shipped late never moves it back; best-effort); `sync-next-tag.ts` (best-effort). Only now does git change for that
-   package: commit `package.json` as `[#N] chore(<package>): release v<version> [<build_mode>]`,
+   package: commit `package.json` as `[#N] chore(<package>): release v<version> [<build_mode>]` (the last package of a stable
+   also stages its dated `changelogs/<version>/log.md` first),
    a plain push to `develop`, then the annotated tag `<package>-v<version>` and its push; the next package of the pass
    starts only after that. A stop in the first pass still records the packages it published. A push that is rejected (`develop` moved) stops the run: nothing rebases, because a rebase would bring other
    commits into the working tree between two packs while the build ran once on the dispatched commit.
-7. When the loop is done, the step "Create the GitHub Release" makes the Release of the run on the tag of the last package
-   (see [The GitHub Release of a run](#the-github-release-of-a-run)). It cannot fail the run. A stable then merges `main`
+7. When the loop is done, the step "Create the GitHub Release" makes the Release of a stable on the tag of the last package
+   (a prerelease makes none; see [The GitHub Release of a run](#the-github-release-of-a-run)). It cannot fail the run. A stable then merges `main`
    back into `develop`.
 8. There is no rollback, by design. The publish comes before the git writes, so after any stop git equals the registry
    except for a package that published and could not be recorded; the log names that package and the missing half (the

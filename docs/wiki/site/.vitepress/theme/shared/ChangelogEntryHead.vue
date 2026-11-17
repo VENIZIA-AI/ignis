@@ -2,9 +2,10 @@
   Shared by the three wikis (IGNIS, ARDOR, VULCAN): a byte-identical copy in each, kept in step by
   scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
 
-  The title block of a changelog entry page: a link back to the index, the date and the type chips, the
-  title, and the packages with the version. It replaces the entry's own heading (the generic
-  "Changelog - date" h1, the title repeated as an h2 and the badge line), which changelog.css hides.
+  The title block of a dated changelog entry: a link back to the index, the date and the type chips, the title, and the
+  packages with the version. It replaces the entry's own heading (the generic "Changelog - date" h1, the title repeated as
+  an h2 and the badge line), which changelog.css hides. A version folder has its own pages (ChangelogVersion.vue and
+  ChangelogUpgrade.vue); this reads only the list of dated entries.
 -->
 <script setup lang="ts">
 import { useData } from 'vitepress';
@@ -14,11 +15,9 @@ import { formatDate } from './changelog-entries';
 
 const { page } = useData();
 
-const entry = computed(() => {
-  const slug = page.value.relativePath.replace(/\.md$/, '').split('/').pop();
-
-  return data.find((candidate) => candidate.slug === slug);
-});
+/** The last segment of a dated entry's path. */
+const slug = computed(() => page.value.relativePath.replace(/\.md$/, '').split('/').pop());
+const entry = computed(() => data.find((candidate) => candidate.slug === slug.value));
 
 const meta = computed(() =>
   entry.value === undefined

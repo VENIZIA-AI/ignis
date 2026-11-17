@@ -12,6 +12,9 @@ import type {
 } from '../common/types/client';
 import type { TSocketIOEventHandler } from '../common/types/hooks';
 
+/** What `socket.off` takes back: the wrapper `subscribe` registered in place of the caller's handler. */
+type TWrappedListener = NonNullable<Parameters<Socket['off']>[1]>;
+
 /**
  * The socket.io client with nothing node in its graph, so a browser bundle can hold it: `socket.io-client`
  * is handed in as `module` (`{ io }` from the app's own `import`) instead of being found on disk.
@@ -24,7 +27,7 @@ export class SocketIOClientHelper extends BaseHelper {
   private state: TSocketIOClientState = SocketIOClientStates.UNAUTHORIZED;
 
   // subscribe() registers a wrapper, never the caller handler: without this map unsubscribe() has nothing to hand to socket.off() and the listener stays bound forever
-  private wrappedHandlers: Map<string, Map<TSocketIOEventHandler<any>, (data: any) => void>> =
+  private wrappedHandlers: Map<string, Map<TSocketIOEventHandler<never>, TWrappedListener>> =
     new Map();
 
   private onConnected?: () => ValueOrPromise<void>;
@@ -73,6 +76,7 @@ export class SocketIOClientHelper extends BaseHelper {
 
     if (this.client) {
       logger.info('SocketIO Client already established | id: %s', this.identifier);
+
       return;
     }
 
@@ -137,11 +141,13 @@ export class SocketIOClientHelper extends BaseHelper {
 
     if (!this.client?.connected) {
       logger.warn('Cannot authenticate | id: %s | reason: not connected', this.identifier);
+
       return;
     }
 
     if (this.state !== SocketIOClientStates.UNAUTHORIZED) {
       logger.warn('Cannot authenticate | id: %s | currentState: %s', this.identifier, this.state);
+
       return;
     }
 
@@ -160,11 +166,13 @@ export class SocketIOClientHelper extends BaseHelper {
 
     if (!handler) {
       logger.warn('No handler provided | event: %s', event);
+
       return;
     }
 
     if (ignoreDuplicate && this.client.hasListeners(event)) {
       logger.info('Handler already exists | event: %s', event);
+
       return;
     }
 
@@ -182,6 +190,7 @@ export class SocketIOClientHelper extends BaseHelper {
     if (!this.wrappedHandlers.has(event)) {
       this.wrappedHandlers.set(event, new Map());
     }
+
     this.wrappedHandlers.get(event)!.set(handler, wrappedHandler);
 
     this.client.on(event, wrappedHandler);
@@ -209,13 +218,16 @@ export class SocketIOClientHelper extends BaseHelper {
 
     if (!this.client?.hasListeners(event)) {
       logger.info('No listeners to remove | event: %s', event);
+
       return;
     }
 
     if (handler) {
       const wrappedHandler = this.wrappedHandlers.get(event)?.get(handler);
+
       if (!wrappedHandler) {
         logger.info('Handler was not subscribed through this helper | event: %s', event);
+
         return;
       }
 
@@ -227,6 +239,7 @@ export class SocketIOClientHelper extends BaseHelper {
       }
 
       logger.info('Removed specific handler | event: %s', event);
+
       return;
     }
 
@@ -246,6 +259,7 @@ export class SocketIOClientHelper extends BaseHelper {
 
     if (!this.client) {
       logger.info('Invalid client to connect | id: %s', this.identifier);
+
       return;
     }
 
@@ -257,6 +271,7 @@ export class SocketIOClientHelper extends BaseHelper {
 
     if (!this.client) {
       logger.info('Invalid client to disconnect | id: %s', this.identifier);
+
       return;
     }
 
@@ -298,6 +313,7 @@ export class SocketIOClientHelper extends BaseHelper {
 
     if (!this.client?.connected) {
       logger.warn('Cannot join rooms | id: %s | reason: not connected', this.identifier);
+
       return;
     }
 
@@ -311,6 +327,7 @@ export class SocketIOClientHelper extends BaseHelper {
 
     if (!this.client?.connected) {
       logger.warn('Cannot leave rooms | id: %s | reason: not connected', this.identifier);
+
       return;
     }
 

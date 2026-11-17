@@ -17,6 +17,7 @@ const createHelper = (
     ...opts,
   });
   createdHelpers.push(helper);
+
   return helper;
 };
 
@@ -203,6 +204,7 @@ describe('CronHelper | modifyCronTime', () => {
     const helper = createHelper({ onTick: () => {}, cronTime: EVERY_MINUTE, autoStart: true });
 
     let thrown: unknown;
+
     try {
       helper.modifyCronTime({ cronTime: 'not-a-cron-expression' });
     } catch (error) {

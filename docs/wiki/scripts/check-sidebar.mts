@@ -17,8 +17,14 @@ const UNLISTED = [
   /^extensions\/(components|helpers)\/template\//,
   /^index$/,
   /^changelogs\/\d{4}-\d{2}-\d{2}-/,
+  // A version folder keeps its page as changelogs/<X.Y.Z>/log.md; the index lists it, so no menu does.
+  /^changelogs\/\d+\.\d+\.\d+\/log$/,
+  // The route of the upgrade pages (changelogs/upgrade/[version].md), linked from each version's page.
+  /^changelogs\/upgrade\/\[version\]$/,
   // The author skeleton, reached from no menu.
   /^changelogs\/template$/,
+  // Written by `vulcan x atlas api gen`; the sidebar group in config.mts lists them from the folder.
+  /^references\/api\/(?!index$)/,
 ];
 
 const config = await Bun.file(CONFIG).text();
@@ -30,6 +36,7 @@ const linked = new Set(
 );
 
 const pages: Array<string> = [];
+
 for await (const file of new Glob('**/*.md').scan(CONTENT)) {
   pages.push(file.replace(/\.md$/, ''));
 }
@@ -38,18 +45,22 @@ const orphans = pages
   .filter((page) => !UNLISTED.some((pattern) => pattern.test(page)))
   .filter((page) => {
     const asDirectory = page.endsWith('/index') ? page.slice(0, -'/index'.length) : null;
+
     return !linked.has(page) && !(asDirectory !== null && linked.has(asDirectory));
   });
 
 const dead = [...new Set([...linked])].filter((link) => {
   const candidates = [link, `${link}/index`, link.replace(/\/index$/, '')];
+
   return !candidates.some((candidate) => pages.includes(candidate));
 });
 
 const problems: Array<string> = [];
+
 if (orphans.length > 0) {
   problems.push(`${orphans.length} page(s) no menu links to:\n  ${orphans.sort().join('\n  ')}`);
 }
+
 if (dead.length > 0) {
   problems.push(`${dead.length} menu link(s) with no page:\n  ${dead.sort().join('\n  ')}`);
 }

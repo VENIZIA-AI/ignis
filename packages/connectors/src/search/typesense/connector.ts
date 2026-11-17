@@ -9,11 +9,10 @@ import type {
   ISearchSynonymSetScoped,
 } from '@/search/core';
 import { BaseSearchConnector } from '@/search/core';
-import { RecordUtility } from '@/common/internal';
 import { SearchConnectorInternal } from '@/search/core/internal';
 import type { ISynonym } from '@/search/core/models';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
+import { getError, isApplicationError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { Client } from 'typesense';
 import {
   EntryOutcomes,
@@ -55,6 +54,7 @@ export class TypesenseConnector extends BaseSearchConnector {
   private readonly createClient: (opts: {
     connectionTimeoutSeconds: number;
   }) => ITypesenseClientLike;
+
   /** An injected client is not built from `nodes` and `apiKey`, so a client for a call cannot be built from them either. */
   private readonly canBuildCallClient: boolean;
 
@@ -185,11 +185,13 @@ export class TypesenseConnector extends BaseSearchConnector {
   async getHealth(): Promise<{ ok: boolean }> {
     try {
       const health = await this.client.health.retrieve();
+
       return { ok: TypesensePayloadReader.readBooleanFlag({ value: health, key: 'ok' }) };
     } catch (error) {
       this.logger
         .for(this.getHealth.name)
         .warn('Health probe failed | error: %s', SearchConnectorInternal.describeError({ error }));
+
       return { ok: false };
     }
   }
@@ -207,6 +209,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         const result = await client.collections().create(schema);
         const created = result as TCollectionSchema;
         logger.info('Created collection | name: %s', schema.name);
+
         return created;
       },
       tolerate: {
@@ -216,6 +219,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         },
       },
     });
+
     return rs;
   }
 
@@ -223,12 +227,14 @@ export class TypesenseConnector extends BaseSearchConnector {
     const { schema } = opts;
 
     const isExists = await this.collectionExists({ name: schema.name });
+
     if (isExists) {
       return this.getCollection({ name: schema.name });
     }
 
     // The create response IS the collection schema; reading it back instead is a read-after-write race on multi-node clusters (a follower may 404 before the raft log catches up), so only the tolerated already-exists path re-reads.
     const created = await this.createCollection({ schema });
+
     if (created) {
       return created;
     }
@@ -246,6 +252,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       run: async () => {
         const result = await client.collections(name).retrieve();
         const collection = result as TCollectionSchema;
+
         return collection;
       },
       tolerate: this.notFoundTolerance({
@@ -253,6 +260,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         subject: `Collection '${name}'`,
       }),
     });
+
     return rs;
   }
 
@@ -262,9 +270,11 @@ export class TypesenseConnector extends BaseSearchConnector {
       run: async () => {
         const result = await this.client.collections().retrieve();
         const collections = result as TCollectionSchema[];
+
         return collections;
       },
     });
+
     return rs;
   }
 
@@ -282,6 +292,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       method: this.collectionExists.name,
       run: () => this.client.collections(name).exists(),
     });
+
     return rs;
   }
 
@@ -323,6 +334,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       run: async () => {
         await this.client.collections(name).delete();
         logger.info('Deleted collection | name: %s', name);
+
         return true;
       },
       tolerate: this.notFoundFallback({
@@ -332,6 +344,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         fallback: false,
       }),
     });
+
     return rs;
   }
 
@@ -382,6 +395,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         fallback: null,
       }),
     });
+
     return rs;
   }
 
@@ -418,6 +432,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         const result = await this.client.synonymSets(name).retrieve();
         const items =
           RecordUtility.isRecord(result) && Array.isArray(result.items) ? result.items : [];
+
         return items.filter(isSynonymResponse).map((value) => TypesenseMapper.toSynonym({ value }));
       },
       tolerate: this.notFoundFallback({
@@ -427,6 +442,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         fallback: null,
       }),
     });
+
     return rs;
   }
 
@@ -436,12 +452,14 @@ export class TypesenseConnector extends BaseSearchConnector {
       run: async () => {
         const result = await this.client.synonymSets().retrieve();
         const sets = Array.isArray(result) ? result : [];
+
         return sets
           .filter(RecordUtility.isRecord)
           .map((set) => set.name)
           .filter((setName): setName is string => typeof setName === 'string');
       },
     });
+
     return rs;
   }
 
@@ -459,6 +477,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       run: async () => {
         await this.client.synonymSets(name).delete();
         logger.info('Deleted synonym set | name: %s', name);
+
         return true;
       },
       tolerate: this.notFoundFallback({
@@ -468,6 +487,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         fallback: false,
       }),
     });
+
     return rs;
   }
 
@@ -504,6 +524,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       run: async () => {
         const result = await this.client.collections(collection).documents().create(document);
         const created = result as T;
+
         return created;
       },
       // Typesense rejects a duplicate id with 409; surfaced as the neutral already_exists conflict rather than the generic sanitized 503 - same contract Meilisearch's createDocument throws.
@@ -517,6 +538,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         },
       },
     });
+
     return rs;
   }
 
@@ -530,6 +552,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       run: async () => {
         const result = await this.client.collections(collection).documents(id).retrieve();
         const document = result as T;
+
         return document;
       },
       tolerate: this.notFoundTolerance({
@@ -537,6 +560,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         subject: `Document '${id}' in collection '${collection}'`,
       }),
     });
+
     return rs;
   }
 
@@ -554,6 +578,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       run: async () => {
         const result = await this.client.collections(collection).documents(id).retrieve();
         const document = result as T;
+
         return document;
       },
       tolerate: this.notFoundFallback({
@@ -563,6 +588,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         fallback: null,
       }),
     });
+
     return rs;
   }
 
@@ -583,6 +609,7 @@ export class TypesenseConnector extends BaseSearchConnector {
     }
 
     const result = await this.search({ collection, params });
+
     return result.found;
   }
 
@@ -599,9 +626,11 @@ export class TypesenseConnector extends BaseSearchConnector {
       run: async () => {
         const result = await this.client.collections(collection).documents().upsert(document);
         const upserted = result as T;
+
         return upserted;
       },
     });
+
     return rs;
   }
 
@@ -623,6 +652,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       run: async () => {
         const result = await this.client.collections(collection).documents(id).update(document);
         const updated = result as T;
+
         return updated;
       },
       tolerate: this.notFoundTolerance({
@@ -630,6 +660,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         subject: `Document '${id}' in collection '${collection}'`,
       }),
     });
+
     return rs;
   }
 
@@ -646,6 +677,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       method: this.deleteDocument.name,
       run: async () => {
         await this.client.collections(collection).documents(id).delete();
+
         return true;
       },
       tolerate: this.notFoundFallback({
@@ -655,6 +687,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         fallback: false,
       }),
     });
+
     return rs;
   }
 
@@ -690,8 +723,10 @@ export class TypesenseConnector extends BaseSearchConnector {
       dirtyValues?: TTypesenseDirtyValue;
       /**
        * Opt-in. When some rows are rejected, throw `422` after the last batch, with the counts in `extra.details` and
-       * every per-row response on the error's `responses`. The default stays: a rejected row is in `count.fail` and
+       * every per-row response on the error's `responses`. Off, a rejected row is in `count.fail` and
        * `responses` of the result and nothing throws.
+       *
+       * @default false
        */
       throwOnFail?: boolean;
     } & ITypesenseCallOptions,
@@ -705,6 +740,7 @@ export class TypesenseConnector extends BaseSearchConnector {
 
     // typesense's own default action is 'create'; keep runtime validation for untyped callers.
     const action = opts.action ?? TypesenseImportActions.CREATE;
+
     if (!TypesenseImportActions.isValid(action)) {
       throw getError({
         message: `[importDocuments] Invalid action | action: ${action} | valids: ${[...TypesenseImportActions.SCHEME_SET]}`,
@@ -833,6 +869,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         };
       },
     });
+
     return rs;
   }
 
@@ -865,9 +902,11 @@ export class TypesenseConnector extends BaseSearchConnector {
         }
 
         const result = await this.client.collections(collection).documents().delete(deleteParams);
+
         return TypesensePayloadReader.readNumberField({ value: result, key: 'num_deleted' });
       },
     });
+
     return rs;
   }
 
@@ -894,9 +933,11 @@ export class TypesenseConnector extends BaseSearchConnector {
           collection,
           TypesensePayloadReader.readNumberField({ value: result, key: 'num_deleted' }),
         );
+
         return true;
       },
     });
+
     return rs;
   }
 
@@ -924,9 +965,11 @@ export class TypesenseConnector extends BaseSearchConnector {
           .documents()
           .export(TypesenseInternal.toExportParams(opts));
         const exported = result as string;
+
         return exported;
       },
     });
+
     return rs;
   }
 
@@ -1009,6 +1052,7 @@ export class TypesenseConnector extends BaseSearchConnector {
           commonParams ?? {},
           options,
         );
+
         return result as IMultiSearchResult | IUnionSearchResult;
       },
       tolerate,
@@ -1025,7 +1069,7 @@ export class TypesenseConnector extends BaseSearchConnector {
     const logger = this.logger.for(this.search.name);
 
     const { common, body } = TypesenseInternal.splitCacheParams({
-      params: params as unknown as Record<string, unknown>,
+      params,
     });
     const paramsRecord = body;
     const requested = TypesenseSearchWindows.readRequestedPage({ params: paramsRecord });
@@ -1054,6 +1098,7 @@ export class TypesenseConnector extends BaseSearchConnector {
               offset: window.offset,
               limit: window.limit,
             };
+
             return entry as { collection: string } & Partial<TSearchParams>;
           });
 
@@ -1076,6 +1121,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         // a warning rather than a 500.
         case EntryOutcomes.MISSING_COLLECTION: {
           logger.warn('Search on missing collection, returning empty | name: %s', collection);
+
           return TypesenseMapper.mapSearchResult<T>({
             raw: TypesenseSearchWindows.buildEmptySearchResponse(),
           });

@@ -5,6 +5,7 @@ import { createFakeClient, makeHelper } from './fake-client';
 
 const collect = async (opts: { lines: AsyncIterable<string> }): Promise<string[]> => {
   const lines: string[] = [];
+
   for await (const line of opts.lines) {
     lines.push(line);
   }
@@ -22,15 +23,19 @@ const chunksOf = (parts: Array<string | Uint8Array>) =>
 /** The wire parameters of an export, as the engine names them (snake_case keys are not writable as object literal names). */
 const wire = (opts: { filter?: string; include?: string; exclude?: string }) => {
   const params: Record<string, unknown> = {};
+
   if (opts.filter !== undefined) {
     params['filter_by'] = opts.filter;
   }
+
   if (opts.include !== undefined) {
     params['include_fields'] = opts.include;
   }
+
   if (opts.exclude !== undefined) {
     params['exclude_fields'] = opts.exclude;
   }
+
   return params;
 };
 
@@ -115,6 +120,7 @@ describe('TypesenseConnector.streamDocuments', () => {
     });
 
     let lines = 0;
+
     for await (const read of helper.streamDocuments({ collection: 'products' })) {
       lines += 1;
       consumedBytes += read.length + 1;

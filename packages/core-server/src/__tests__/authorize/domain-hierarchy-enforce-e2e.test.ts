@@ -11,16 +11,20 @@ class FixedScopedAdapter implements FilteredAdapter {
   async loadPolicy(): Promise<void> {}
   async loadFilteredPolicy(model: Model): Promise<void> {
     const { Helper } = await import('casbin');
+
     for (const line of this.lines) {
       Helper.loadPolicyLine(line, model);
     }
   }
+
   isFiltered(): boolean {
     return true;
   }
+
   async savePolicy(): Promise<boolean> {
     return true;
   }
+
   async addPolicy(): Promise<void> {}
   async removePolicy(): Promise<void> {}
   async removeFilteredPolicy(): Promise<void> {}
@@ -57,6 +61,7 @@ const decide = async (opts: {
     context: ContextUtility.asTypedContext({ context: {} }),
   });
   const request = domain ? { resource, action, domain } : { resource, action };
+
   return enforcer.evaluate({
     rules,
     request,

@@ -5,6 +5,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { IApplicationConfigs, IApplicationInfo } from './common';
 
+/** Runtime-neutral base of every application: a DI container that holds the configs, the post-start and post-stop hooks and the core bindings. Server hosting lives in the `@venizia/ignis` subclass. */
 export abstract class AbstractApplication extends Container {
   protected configs: IApplicationConfigs;
   protected projectRoot: string;
@@ -55,6 +56,7 @@ export abstract class AbstractApplication extends Container {
   getProjectRoot(): string {
     const projectRoot = '';
     this.bind<string>({ key: CoreBindings.APPLICATION_PROJECT_ROOT }).toValue(projectRoot);
+
     return projectRoot;
   }
 
@@ -115,6 +117,7 @@ export abstract class AbstractApplication extends Container {
 
   protected async executePostStopHooks() {
     const logger = this.logger.for(this.executePostStopHooks.name);
+
     for (const { identifier, hook } of this.postStopHooks) {
       try {
         await hook();

@@ -37,14 +37,17 @@ export class EffectCleanupConsistencyRule {
 
       const checkExit = (node: Rule.Node) => {
         const current = frame;
+
         if (
           !current?.hook ||
-          AstNode.getType({ node: AstNode.readField({ node, key: 'body' }) }) !== 'BlockStatement'
+          AstNode.getType({ node: AstNode.readField({ node, key: 'body' }) }) !==
+            AstNodeTypes.BLOCK_STATEMENT
         ) {
           return;
         }
 
         const endIsReachable = [...current.segments].some((segment) => segment.reachable);
+
         if (current.returnsValue && (current.returnsNothing || endIsReachable)) {
           context.report({ node, messageId: 'inconsistent', data: { hook: current.hook } });
         }
@@ -54,6 +57,7 @@ export class EffectCleanupConsistencyRule {
         [AstNodeTypes.CALL_EXPRESSION]: (node: Rule.Node) => {
           const hook = HookSupport.calleeName({ call: node });
           const args = AstNode.readField({ node, key: 'arguments' });
+
           if (
             !HookSupport.isEffectHook({ name: hook }) ||
             hook === undefined ||

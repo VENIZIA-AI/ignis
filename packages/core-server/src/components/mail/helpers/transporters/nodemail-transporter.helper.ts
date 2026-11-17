@@ -1,18 +1,19 @@
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { BaseHelper } from '@venizia/ignis-helpers/core';
-import { ModuleUtility } from '@venizia/ignis-helpers';
+import { ErrorUtility, ModuleUtility } from '@venizia/ignis-helpers';
 import type {
   IMailMessage,
   IMailSendResult,
   IMailTransport,
+  INodemailerTransporter,
   TNodemailerConfig,
   TNodemailerModule,
 } from '../../common';
 import { MailAttachmentUtility } from '../../utilities/attachment.utility';
 import { MailBodyUtility } from '../../utilities/body.utility';
 
+/** SMTP transport on `nodemailer`, with its file and URL access switched off. */
 export class NodemailerTransportHelper extends BaseHelper implements IMailTransport {
-  private transporter: AnyType;
+  private transporter: INodemailerTransporter;
   private module?: TNodemailerModule;
 
   constructor(opts: { config: TNodemailerConfig; module?: TNodemailerModule }) {
@@ -27,8 +28,10 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
   }
 
   /** Client factory seam - overridden in tests to run the helper without a real SMTP client. */
-  protected buildTransporter(config: TNodemailerConfig): AnyType {
-    const nodemailer = this.module ?? ModuleUtility.loadSync<AnyType>({ module: 'nodemailer' });
+  protected buildTransporter(config: TNodemailerConfig): INodemailerTransporter {
+    const nodemailer =
+      this.module ?? ModuleUtility.loadSync<TNodemailerModule>({ module: 'nodemailer' });
+
     return nodemailer.createTransport(config);
   }
 
@@ -38,6 +41,7 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
 
       // No root: MailService resolved paths already; one that reaches here is refused, not read.
       let attachments: Awaited<ReturnType<typeof MailAttachmentUtility.resolve>> | undefined;
+
       if (message.attachments) {
         const resolved = await MailAttachmentUtility.resolve({ attachments: message.attachments });
         attachments = resolved;
@@ -70,9 +74,10 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
     } catch (error) {
       this.logger.for(this.send.name).error('Nodemailer send failed: %s', error);
       MailAttachmentUtility.release({ attachments: message.attachments });
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: ErrorUtility.toError({ error }).message,
       };
     }
   }
@@ -82,9 +87,11 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
       this.logger.for(this.verify.name).info('Verifying SMTP connection');
       await this.transporter.verify();
       this.logger.for(this.verify.name).info('SMTP connection verified successfully');
+
       return true;
     } catch (error) {
       this.logger.for(this.verify.name).error('SMTP verification failed: %s', error);
+
       return false;
     }
   }

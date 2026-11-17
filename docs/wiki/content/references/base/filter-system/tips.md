@@ -136,8 +136,8 @@ for (let i = 0; i < allIds.length; i += chunkSize) {
 A `filter` is a plain object, so common fragments compose with spreads instead of being rewritten per call site:
 
 ```typescript
-const createActiveFilter = <T extends { status: string; deletedAt: Date | null }>(): TWhere<T> =>
-  ({ status: 'active', deletedAt: { is: null } }) as TWhere<T>;
+// A plain constant: it is a valid `where` for any model that has these two columns
+const activeWhere = { status: 'active', deletedAt: { is: null } };
 
 const createPaginationFilter = (page: number, size = 20) => ({
   limit: size,
@@ -146,7 +146,7 @@ const createPaginationFilter = (page: number, size = 20) => ({
 
 const products = await productRepository.find({
   filter: {
-    where: { ...createActiveFilter(), category: 'electronics' },
+    where: { ...activeWhere, category: 'electronics' },
     ...createPaginationFilter(3),
   },
 });

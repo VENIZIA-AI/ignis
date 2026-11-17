@@ -23,9 +23,10 @@ The app listens on `http://localhost:3000` (set `PORT` to change it). Browse the
 
 ## Authentication
 
-A client opens the WebSocket connection, then sends an `authenticate` message carrying its token.
+A client opens the WebSocket connection at `ws://localhost:3000/ws`, then sends an `authenticate` message carrying its token.
 The server checks it against `APP_ENV_AUTH_TOKEN` (`demo-token` by default) and either authenticates
-the client - joining it to the default room `ws-default` - or closes the connection with code `4003`.
+the client - joining it to the default room `ws-default` - or closes the connection with code `4003`. A client that sends nothing within 5 seconds is closed
+with code `4001`.
 Every message on the wire is a JSON envelope: `{ "event": "...", "data": {...} }`.
 
 ## Events
@@ -82,7 +83,7 @@ not failed, when Redis is unreachable.
 
 ## Next
 
-- [Socket.IO test](../socket-io-test) - the same shape over the Socket.IO protocol, with Node.js support
+- [Socket.IO test](../socket-io-test) - the same shape over the Socket.IO protocol. It runs on Bun only: other runtimes throw `Unsupported runtime`
 - [`vert`](../vert) - the production reference: authentication, authorization, transactions
 
 ---

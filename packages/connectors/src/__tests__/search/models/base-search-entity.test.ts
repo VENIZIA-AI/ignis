@@ -87,6 +87,7 @@ describe('BaseSearchEntity', () => {
         name: 'overridden',
         fields: [field.string('title')],
       });
+
       static override documentSchema = z.object({ custom: z.string() });
     }
 

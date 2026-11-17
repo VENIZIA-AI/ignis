@@ -8,6 +8,11 @@ import type { IAuthUser, TAuthenticateFn, TAuthMode } from '../common';
 import { Authentication, AuthenticationErrors, AuthenticationModes } from '../common';
 import { AuthenticationStrategyRegistry } from '../strategies/strategy-registry';
 
+/**
+ * Provides the `authenticate` middleware factory. Strategies resolve from `AuthenticationStrategyRegistry`.
+ *
+ * The middleware skips a request flagged `Authentication.SKIP_AUTHENTICATION` or already holding a current user. On success it stores the user and its audit user id in the request context.
+ */
 export class AuthenticationProvider<RouteEnv extends Env = Env>
   extends BaseHelper
   implements IProvider<TAuthenticateFn<RouteEnv>>
@@ -28,14 +33,17 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
 
     return createMiddleware(async (context, next) => {
       const isSkipAuthenticate = context.get(Authentication.SKIP_AUTHENTICATION);
+
       if (isSkipAuthenticate) {
         this.logger
           .for(this.createAuthenticateMiddleware.name)
           .debug('SKIP checking authentication | path: %s', context.req.path);
+
         return next();
       }
 
       const isAuthenticated = context.get(Authentication.CURRENT_USER);
+
       if (isAuthenticated) {
         return next();
       }
@@ -48,6 +56,7 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
             registry,
             next,
           });
+
           return;
         }
         case AuthenticationModes.ALL: {
@@ -57,6 +66,7 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
             registry,
             next,
           });
+
           return;
         }
         default: {
@@ -84,6 +94,13 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
       try {
         const strategy = registry.resolveStrategy({ name: strategyName });
         const user = await strategy.authenticate(context);
+
+        // A verified credential is not yet a user: a token signed by the same key for another purpose verifies too. Both
+        // modes need an id, so a strategy that answers without one has not authenticated this request.
+        if (!user?.userId) {
+          throw getError({ error: AuthenticationErrors.USER_UNRESOLVED });
+        }
+
         this.setCurrentUser({ context, user });
         break;
       } catch (error) {
@@ -95,6 +112,7 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
     }
 
     const currentUser = context.get(Authentication.CURRENT_USER);
+
     if (!currentUser) {
       throw getError({
         error: AuthenticationErrors.FAILED,

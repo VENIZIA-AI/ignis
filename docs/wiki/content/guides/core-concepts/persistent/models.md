@@ -138,7 +138,7 @@ static override schema = pgTable('User', {
 | `PostgresUserAuditEnricher.generateColumnDefs()` | `createdBy`, `modifiedBy` | Track who created/updated |
 | `PostgresDataTypeEnricher.generateColumnDefs()` | `dataType`, `tValue`, `nValue`, etc. | Configuration tables |
 
-The functions these classes replace (`generateIdColumnDefs`, `generateTzColumnDefs`, ...) are removed; `devz codemod namespace-functions` moves your calls. SQLite has the same classes under `Sqlite*` names.
+The functions these classes replace (`generateIdColumnDefs`, `generateTzColumnDefs`, ...) are removed; `bun run devz codemod namespace-functions` moves your calls. SQLite has the same classes under `Sqlite*` names.
 
 :::note User Audit Options
 The `PostgresUserAuditEnricher` enricher defaults both columns to `dataType: 'number'` (integer user ids) - pass `dataType: 'string'` for text ids. It also supports an `allowAnonymous` option (default: `true`). Set to `false` to require authenticated user context and throw errors for anonymous operations:
@@ -172,7 +172,7 @@ export const userTable = pgTable('User', {
 
 @model({
   settings: {
-    hiddenProperties: ['password', 'secret'], // Never returned via repository
+    properties: { hidden: ['password', 'secret'] }, // Never returned via repository
   },
 })
 export class User extends ModelFactory.defineEntity({ table: userTable }) {}
@@ -184,8 +184,10 @@ export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 |-----------|----------|
 | `find()`, `findOne()`, `findById()` | Hidden excluded from SELECT |
 | `create()`, `updateById()`, `deleteById()` | Hidden excluded from RETURNING |
-| Where clause filtering | Hidden fields **can** be used in filters |
+| Where clause filtering | Hidden fields **can** be used in filters by server code on the repository |
 | Direct connector query | Hidden fields **included** (bypasses repository) |
+
+A generated controller refuses a request filter that names a hidden field (`400`).
 
 When you need to access hidden data, use the connector directly:
 
@@ -215,7 +217,7 @@ Apply automatic filters to all repository queries. This is commonly used for sof
 @model({
   settings: {
     query: { filter: { where: { isDeleted: false } } },
-    hiddenProperties: ['deletedAt'],
+    properties: { hidden: ['deletedAt'] },
   },
 })
 export class Article extends ModelFactory.defineEntity({ table: articleTable }) {}
@@ -233,6 +235,65 @@ const allArticles = await articleRepo.find({
   options: { shouldSkipDefaultFilter: true },
 });
 ```
+
+## Unique Keys
+
+A repository's `upsert` finds the existing row by a unique key. Declare the key once, as a handle on the table's unique index, and keep it on the entity as `static keys`:
+
+```typescript
+// src/models/entities/self-order-cache.model.ts
+import { model, ScopeWriteGuards } from '@venizia/ignis';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
+import { UniqueKeys } from '@venizia/ignis-connectors/relational';
+import { sql } from 'drizzle-orm';
+import { jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { currentMerchantId } from '@/utilities/merchant';
+
+export const selfOrderCacheTable = pgTable(
+  'SelfOrderCache',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    merchantId: text('merchant_id').notNull(),
+    cacheKey: text('cache_key').notNull(),
+    value: jsonb('value').notNull(),
+    expiresAt: timestamp('expires_at'),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (t) => [
+    uniqueIndex('self_order_cache_merchant_key')
+      .on(t.merchantId, t.cacheKey)
+      .where(sql`${t.deletedAt} is null`),
+  ],
+);
+
+@model({
+  settings: {
+    access: {
+      resolve: () => ({ merchantId: currentMerchantId() }),
+      write: { mode: ScopeWriteGuards.ASSIGN },
+    },
+  },
+})
+export class SelfOrderCache extends ModelFactory.defineEntity({ table: selfOrderCacheTable }) {
+  static readonly keys = {
+    merchantCacheKey: UniqueKeys.of({
+      table: selfOrderCacheTable,
+      index: 'self_order_cache_merchant_key',
+    }),
+  };
+}
+```
+
+`UniqueKeys.of` reads the index from the Drizzle declaration when the module loads. It throws at boot when:
+
+- no index, unique constraint or `.unique()` column of the table has that name;
+- the index is not unique;
+- one of its entries is an expression (`lower(email)`), not a column;
+- the table is neither a Postgres nor a SQLite table.
+
+The handle carries the key's columns, typed as the table's properties, and the table itself. A handle of another table is a compile error where this table's key is expected. A partial index keeps its `where`, and a unique constraint keeps `nullsNotDistinct`. Write a partial index predicate with literals (`` sql`${t.status} = 'live'` ``), not a bound value (`` sql`${t.status} = ${status}` ``): SQLite cannot match a partial index from a bound parameter, and refuses the upsert. The primary key needs no handle: `upsert` uses it when `on` is omitted.
+
+`static keys` is a convention, not a setting: the framework does not read it. It keeps every key of the table in one place, next to the model. See [Upsert](./repositories#upsert) for the call.
 
 ## Authorization Settings
 
@@ -275,10 +336,13 @@ The `@model` decorator accepts the following metadata:
 | `type` | `'entity'` | Optional; `ModelTypes.ENTITY` is the only value and the default |
 | `tableName` | `string` | Optional explicit table name |
 | `migration.use` | `boolean` | Default `true`. `false` marks the model for your migration tooling to skip (see [Migrations](#migrations)) |
-| `settings.hiddenProperties` | `string[]` | Properties excluded from all query results |
+| `settings.properties.hidden` | `string[]` | Properties excluded from all query results |
+| `settings.properties.stamped` | `ReadonlyArray<string> \| ReadonlySet<string>` | Properties the generated create and update bodies leave out (see below) |
 | `settings.query.filter` | `TFilter` | Default filter auto-applied to all queries |
 | `settings.query.limit.default` | `number` | Default row limit when a query omits `limit` (must be a positive integer; falls back to `10`) |
 | `settings.authorize.principal` | `string` | Authorization subject name for this model |
+
+`settings.properties.stamped` defaults to `createdBy`, `modifiedBy`, `createdAt`, `modifiedAt` and `deletedAt`.
 
 ## Migrations
 

@@ -11,6 +11,7 @@ const pinLogger = (opts: { helper: object; logger: ILogger }): void => {
   });
 };
 
+/** Base for helpers: carries a `scope` and an `identifier`, and a `logger` scoped to both. */
 export class BaseHelper {
   scope: string;
   identifier: string;
@@ -31,6 +32,7 @@ export class BaseHelper {
     if (Object.hasOwn(this, 'scope')) {
       pinLogger({ helper: this, logger });
     }
+
     return logger;
   }
 

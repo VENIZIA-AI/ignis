@@ -6,6 +6,7 @@ const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f
 /** Built with `crypto.randomUUID` absent - a page on a plain-http origin - so the pool path runs. */
 const buildFallback = (): (() => string) => {
   Object.defineProperty(crypto, 'randomUUID', { value: undefined, configurable: true });
+
   try {
     return UuidV4Generator.create();
   } finally {
@@ -42,6 +43,7 @@ describe('uuidV4 - getRandomValues fallback', () => {
 
     // Position 12 is the version nibble; 16 carries the two variant bits, so only 4 values.
     const constantPositions: Array<number> = [];
+
     for (let position = 0; position < 32; position++) {
       if (position === 12) {
         continue;
@@ -49,6 +51,7 @@ describe('uuidV4 - getRandomValues fallback', () => {
 
       const seen = new Set(ids.map((id) => id[position]));
       const floor = position === 16 ? 4 : 16;
+
       if (seen.size < floor) {
         constantPositions.push(position);
       }

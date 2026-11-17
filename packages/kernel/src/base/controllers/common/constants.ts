@@ -1,6 +1,6 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import type { TResponseHeaders } from './types';
+import type { TCrudRoutes, TResponseHeaders } from './types';
 
 /**
  * Constants with NO zod import, deliberately. The container's controller mixin imports
@@ -14,6 +14,7 @@ export class ControllerTransports {
   static readonly GRPC = 'grpc';
 }
 
+/** Union of the `ControllerTransports` values. */
 export type TControllerTransport = TConstValue<typeof ControllerTransports>;
 
 /** Shape of `data` in a `{ count, data }` response, echoed in the `X-Response-Format` header. */
@@ -28,6 +29,7 @@ export class ResponseFormats {
   }
 }
 
+/** Union of the `ResponseFormats` values. */
 export type TResponseFormat = TConstValue<typeof ResponseFormats>;
 
 /** Standard REST API path constants for CRUD controllers. */
@@ -35,8 +37,21 @@ export class RestPaths {
   static readonly ROOT = '/';
   static readonly COUNT = '/count';
   static readonly FIND_ONE = '/find-one';
+  static readonly RESTORE = '/restore';
 }
 
+/** Route groups to spread into the `routes` of a CRUD controller. */
+export class CrudRoutes {
+  /** The four read routes: `count`, `find`, `findById` and `findOne`. */
+  static readonly READ = {
+    count: true,
+    find: true,
+    findById: true,
+    findOne: true,
+  } satisfies TCrudRoutes;
+}
+
+/** OpenAPI response headers every CRUD route documents: the request tracing id, the record count and the response format. */
 export const commonResponseHeaders: TResponseHeaders = {
   [HTTP.Headers.REQUEST_TRACING_ID]: {
     description: 'Echo of the request tracing ID',
@@ -52,6 +67,7 @@ export const commonResponseHeaders: TResponseHeaders = {
   },
 };
 
+/** OpenAPI response headers of a list route: `commonResponseHeaders` plus `Content-Range` for pagination. */
 export const findResponseHeaders: TResponseHeaders = {
   ...commonResponseHeaders,
   [HTTP.Headers.CONTENT_RANGE]: {

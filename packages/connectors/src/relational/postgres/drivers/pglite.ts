@@ -2,10 +2,14 @@ import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import type { TRelationalConnector } from '@/relational/postgres/datasources/common';
 import type { PGlite } from '@electric-sql/pglite';
 import type { ILogger, IPoolControlOptions } from '@venizia/ignis-helpers/core';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { BaseHelper, BasePoolHelper, getError } from '@venizia/ignis-helpers/core';
+import { DuckTypingUtility } from '@/common/internal';
+import { RelationalDialects } from '@/relational/core/drivers';
 import { drizzle } from 'drizzle-orm/pglite';
 import type { TRelationalConnection, TRelationalDriver } from './driver';
+
+// A type only, erased at build time: the constant lives with the repositories, so this entry loads no kernel.
+export type { TPGliteDataSource } from '@/relational/postgres/repositories/core/pglite';
 
 /** Pool knobs the driver forwards, minus `size`: one slot IS the mutual exclusion PGlite lacks. */
 export type TPGliteDriverOptions = Omit<IPoolControlOptions, 'size'> & { client: PGlite };
@@ -22,6 +26,9 @@ export type TPGliteDriverOptions = Omit<IPoolControlOptions, 'size'> & { client:
 export class PGliteDriver<
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
 > implements TRelationalDriver<Schema, PGlite> {
+  /** The engine this driver speaks; the migration ledger reads it (see {@link RelationalDialects}). */
+  readonly dialect = RelationalDialects.POSTGRES;
+
   private readonly client: PGlite;
 
   /**
@@ -55,10 +62,10 @@ export class PGliteDriver<
 
     // PGlite is not a connection pool: it has no connect()/totalCount, which is what a `pg.Pool`
     // leads with. Probing its own verbs names the mistake here instead of at the first query.
-    const isPGlite =
-      typeof (client as AnyType)?.query === 'function' &&
-      typeof (client as AnyType)?.exec === 'function' &&
-      typeof (client as AnyType)?.close === 'function';
+    const isPGlite = DuckTypingUtility.hasMembers({
+      value: client,
+      members: { query: 'function', exec: 'function', close: 'function' },
+    });
 
     if (!isPGlite) {
       throw getError({
@@ -79,6 +86,7 @@ export class PGliteDriver<
       scope: scope ?? PGliteDriver.name,
       create: async () => {
         await this.client.waitReady;
+
         return this.client;
       },
       destroy: (resource) => this.scrubSession({ resource }),
@@ -104,6 +112,7 @@ export class PGliteDriver<
     }
 
     let connector: TRelationalConnector<Schema>;
+
     try {
       connector = drizzle({ client, schema: opts.schema }) as TRelationalConnector<Schema>;
     } catch (error) {
@@ -120,11 +129,13 @@ export class PGliteDriver<
 
       execute: async (executeOpts: { statement: string }) => {
         const result = await client.query(executeOpts.statement);
+
         return { count: result.affectedRows ?? 0 };
       },
 
       query: async <R>(queryOpts: { statement: string }) => {
         const result = await client.query<R>(queryOpts.statement);
+
         return result.rows ?? [];
       },
 
@@ -132,10 +143,12 @@ export class PGliteDriver<
         if (isReleased) {
           return;
         }
+
         isReleased = true;
 
         if (releaseOpts?.destroy !== true) {
           this.slot.release({ resource: client });
+
           return;
         }
 

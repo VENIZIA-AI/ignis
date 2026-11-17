@@ -38,6 +38,7 @@ describe('devz codemod async-style', () => {
   const write = (path: string, content: string) => writeFileSync(join(root, path), content);
   const read = (path: string) => readFileSync(join(root, path), 'utf8');
   const code = (args: string[]) => AsyncStyleCommand.run({ root, args });
+
   /** Commits the tree: `--write` only changes tracked files with no local changes. */
   const commit = () => {
     execFileSync('git', ['add', '-A'], { cwd: root });

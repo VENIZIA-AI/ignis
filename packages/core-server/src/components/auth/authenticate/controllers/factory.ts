@@ -18,6 +18,7 @@ import {
   type TDefineAuthControllerOpts,
 } from '@venizia/ignis-kernel';
 
+/** Zod schema of the JWT payload: `userId`, the `roles` (id, identifier, integer priority) and optional `clientId`, `provider` and `email`. */
 export const JWTTokenPayloadSchema = z.object({
   userId: z.string().or(z.number()),
   roles: z.array(
@@ -34,7 +35,7 @@ export const JWTTokenPayloadSchema = z.object({
 
 /** Builds the decorated REST controller of the authentication routes (sign-in, sign-up, change-password, who-am-i). */
 export class AuthControllerFactory {
-  static define(opts: TDefineAuthControllerOpts) {
+  static build(opts: TDefineAuthControllerOpts) {
     const {
       restPath = '/auth',
       serviceKey,
@@ -84,6 +85,7 @@ export class AuthControllerFactory {
           handler: async (context) => {
             const body = await context.req.json();
             const rs = await this.service.signIn(context, body);
+
             return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
           },
         });
@@ -111,6 +113,7 @@ export class AuthControllerFactory {
           handler: async (context) => {
             const body = await context.req.json();
             const rs = await this.service.signUp(context, body);
+
             return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
           },
         });
@@ -136,6 +139,7 @@ export class AuthControllerFactory {
           handler: async (context) => {
             const body = await context.req.json();
             const rs = await this.service.changePassword(context, body);
+
             return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
           },
         });
@@ -162,6 +166,7 @@ export class AuthControllerFactory {
             }
 
             const rs = await this.service.refreshToken(context);
+
             return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
           },
         });
@@ -243,6 +248,7 @@ export class AuthControllerFactory {
             }
 
             const rs = await this.service.getUserInformation(context, {});
+
             return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
           },
         });

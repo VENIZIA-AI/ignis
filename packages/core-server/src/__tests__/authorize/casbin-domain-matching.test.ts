@@ -68,6 +68,7 @@ const enforceWithDomain = async (opts: {
 
   const user = { userId: 'u', principalType: 'User', roles: [] };
   const rules = await enforcer.buildRules({ user, context: fakeContext });
+
   return enforcer.evaluate({
     rules,
     request: { action: opts.action, resource: opts.resource },
@@ -170,6 +171,7 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
     const enforcer = new CasbinAuthorizationEnforcer(options);
 
     let error: unknown;
+
     try {
       await enforcer.configure();
     } catch (e) {
@@ -189,6 +191,7 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
     const enforcer = new CasbinAuthorizationEnforcer(options);
 
     let error: unknown;
+
     try {
       await enforcer.configure();
     } catch (e) {
@@ -240,6 +243,7 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
     const user = { userId: 'u', principalType: 'User', roles: [] };
 
     const rules = await enforcer.buildRules({ user, context: fakeContext });
+
     return enforcer.evaluate({
       rules,
       request: { action: opts.action, resource: opts.resource },

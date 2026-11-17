@@ -12,6 +12,7 @@ import {
 
 const EMITTER_SERVER_ID = 'emitter';
 
+/** Publishes WebSocket messages to clients on any server instance through Redis, without holding connections itself. `configure()` must run first. */
 export class WebSocketEmitter extends BaseHelper {
   private redisPub: TRedisClient;
 

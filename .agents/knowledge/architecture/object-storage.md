@@ -74,7 +74,7 @@ It does take `tagging`, `contentLength` and `contentType`, all SIGNED and sent b
 merely sent is a tag S3 ignores, so a step gated on reading it back fails silently; signed, it exists
 the moment the object does. `contentLength` stays an exact number, not a ceiling - the equality limit
 above, not an oversight. `contentType` closes the same hole on the RECEIVING side that
-`AssetControllerFactory.resolveServedContentType` closes on the serving side: unsigned, the uploader picks the stored type. Built as a query-signed SigV4 URL, because `S3Client.presign` takes a method
+`StaticAssetServe.resolveServedContentType` closes on the serving side: unsigned, the uploader picks the stored type. Built as a query-signed SigV4 URL, because `S3Client.presign` takes a method
 and an expiry and nothing else.
 
 ### POST policy - what `directUpload` uses
@@ -84,14 +84,16 @@ The signature covers a POLICY DOCUMENT rather than a request, and conditions are
 ```json
 { "expiration": "...", "conditions": [
   { "bucket": "uploads" },
-  ["starts-with", "$key", "pending/"],
+  { "key": "pending/<keyPrefix><uuid>/a.mp4" },
   ["content-length-range", 0, 104857600],
   { "Content-Type": "video/mp4" }
 ]}
 ```
 
-`starts-with` and `content-length-range` are the whole reason for the shape. Signing a request can
-only compare for equality; signing conditions can express a prefix and a range.
+`content-length-range` is the whole reason for the shape. Signing a request can only compare for
+equality; signing conditions can express a range. The `key` condition is an exact match on ONE key and
+`formData` carries that key, so a policy cannot be spent on a second object. (It was a `starts-with`
+prefix once, which let one policy upload any number of objects until it expired.)
 
 Two traps, both recorded in the code:
 
@@ -100,24 +102,32 @@ Two traps, both recorded in the code:
 
 ## Direct upload, and why it is three round trips
 
-`controller.directUpload` registers `POST {base}/upload-policy` and `POST {base}/upload-commit`.
-Absent, neither route exists.
+`directUpload: { use: true, ... }` registers `POST {base}/upload-policy` and `POST {base}/upload-commit`, and
+`POST {base}/upload-validate` when `directUpload.validation` is on. `{ use: false }`: none of them exists. It
+needs a `BunS3Helper` (only S3 signs a POST policy) and a `keyPrefix`.
 
-1. The browser asks for a policy. IGNIS runs `authorize`, refuses a size over `maxBytes` **before
-   signing anything**, generates `pending/<keyPrefix><uuid>/<name>` (the scope rides inside the
-   pending key, so the commit - which strips `pendingPrefix` - lands inside `controller.keyPrefix`
-   too), and signs both the policy and a commit token.
+1. The browser asks for a policy. IGNIS runs `authorize` (the commit route runs it too), refuses a size over `maxBytes` **before
+   signing anything**, generates `<pendingPrefix><keyPrefix><uuid>/<name>` (the scope rides inside the
+   pending key, so the commit - which strips `pendingPrefix` - lands inside `keyPrefix`
+   too), and signs both the policy and a commit token. The token carries the owner `directUpload.resolvers.owner`
+   names and the metadata `resolvers.metadata` returned for the file, and lives for `expires.commit` (default `expires.upload`), which may outlast the policy.
 2. The browser posts the form straight to storage. No byte passes through IGNIS.
-3. The browser presents the commit token. IGNIS verifies it, runs `onCommit`, copies server-side to
-   the final key, removes the temporary object, and writes the MetaLink row.
+3. With `validation` on (and the route not turned off), the browser calls `upload-validate`: IGNIS stats the pending object, pins it (version id
+   when the bucket has real versions, else the ETag), parses the file ONCE through a pinned `StaticAssetPinnedFile`
+   and answers `{ isValid, issues, commitToken? }`, the token present only when valid.
+4. The browser (or the server, with the commit route off) presents the commit token: the one validate returned
+   when `validation` is on (the policy's token is refused `upload_not_validated`, 422). IGNIS verifies it
+   (`verify`: signature, expiry, owner, scope), never re-runs the handler, copies server-side to the final key
+   only if the content still matches the pin (else `upload_changed`, 409, nothing copied), removes the temporary
+   object, and writes the MetaLink row. There is no `onCommit`.
 
 The third trip exists because S3 tells the backend nothing. Without it there is no MetaLink row and
 no way to attach the object to anything.
 
-Both paths write that row through ONE builder, `AssetMetaLink.createRow`. They diverged once and the
+Both paths write that row through ONE builder, `StaticAssetMetaLinkUtility.createRow`. They diverged once and the
 symptom was a client rendering an empty state with no error. The labels
-`principalType`/`principalId`/`variant` reach the commit as QUERY, because the token carries no
-business fields. A failed row is `metaLink: { error: 'META_LINK_CREATE_FAILED' }` inside a 200 - the
+`principalType`/`principalId`/`variant`/`sequence` reach the commit in the JSON BODY beside the token,
+because the token carries no business fields. A failed row is `metaLink: { error: 'META_LINK_CREATE_FAILED' }` inside a 200 - the
 object IS committed by then, and a 500 would send the caller back with a token whose source is gone.
 
 ### A MetaLink row is one (object, owner) pairing
@@ -131,20 +141,20 @@ derives one, because reading `max(sequence)` and writing `max + 1` is the same n
 `recreate-metalink` below. It defaults to 0, so `ORDER BY sequence, createdAt` reproduces the order
 legacy rows already had; drop the tiebreak and they come back arbitrary.
 
-`recreate-metalink` refreshes, then creates. `updateAll` over `(bucketName, objectName)` rewrites
+`recreate-metalink` refreshes, then creates. `updateBy` over `(bucketName, objectName)` rewrites
 stored-object facts on EVERY row of the pair, and keeps each row's own labels and `storageType`; the
 earlier `findOne` + `updateById` touched only the first row found and overwrote its `storageType`
 with the controller's own backend. What a refresh writes depends on `metaLink.createMetaLink`: with
-one configured, ONE `updateAll` writes only `mimetype`, `size`, `etag`, `isSynced` - the hook owns
+one configured, ONE `updateBy` writes only `mimetype`, `size`, `etag`, `isSynced` - the hook owns
 `link` and `metadata` on that row (an enrichment such as a consumer's inventory width/height/placeholder
-survives a recreate); without one, that same `updateAll` also writes `link`, and then ONE `updateById`
+survives a recreate); without one, that same `updateBy` also writes `link`, and then ONE `updateById`
 PER ROW merges `metadata: { ...row.metadata, ...fileStat.metadata }` (the stat's keys win, skipped
 entirely when the stat carries none) - fed from the first statement's own `RETURNING`, not a second
 read, because `find` applies `DEFAULT_LIMIT` (10) and would silently refresh only part of a larger
 pair. That merge is a read-then-write: a concurrent write to a row's `metadata` landing between the
 two statements is lost. Only when the refresh counts zero rows does it create one, through
-`AssetMetaLink.createRow` - the same builder `upload` uses, so `createMetaLink` and the entry's `storage`
-apply. The response carries `MetaLinkRecreateActions.REFRESHED`/`.CREATED` (a real
+`StaticAssetMetaLinkUtility.createRow` - the same builder `upload` uses, so `createMetaLink` and the helper's
+`storageType` apply. The response carries `MetaLinkRecreateActions.REFRESHED`/`.CREATED` (a real
 `z.enum(...)` in the OpenAPI document, not `string`), `count`, and every touched row as `metaLinks`
 (`metaLink` stays `metaLinks[0]`, for existing callers). The two steps are still not atomic: two
 concurrent calls on an object with no existing row can both create. Without a unique index two
@@ -152,17 +162,23 @@ concurrent transactions both read "no row" and both insert - `FOR UPDATE` locks 
 exist, `ON CONFLICT` needs the index the data forbids. Closing it takes `pg_advisory_xact_lock`:
 Postgres-only, and the application's.
 
-### Four security properties, each with its reason
+### Six security properties, each with its reason
 
 | Property | Why |
 |---|---|
-| A policy authorizes only `pending/<generated>` | the final key is in NO policy, so content cannot be replaced after the commit |
-| The commit is claimed with an HMAC over `{bucket, key, expiresAt}`, verified BEFORE any storage call | naming someone else's object is impossible, and a forged token fails without a round trip, so timing leaks nothing |
-| The token carries no business fields | which order or tenant an upload belongs to is the application's authorization, not something the framework signs |
-| `authorize` is a REQUIRED property | a route that hands out a write credential has no safe default |
+| A policy authorizes exactly one key, `<pendingPrefix><keyPrefix><generated>` | the final key is in NO policy, so content cannot be replaced after the commit, and a policy cannot be spent on a second object |
+| The commit is claimed with an HMAC over `{bucket, object, expiresAt, owner, metadata, stage, pin?}`, verified BEFORE any storage call | naming someone else's object is impossible, and a forged token fails without a round trip, so timing leaks nothing |
+| Only the owner commits (`resolvers.owner` is required), and every other caller gets the forged-token error | a leaked token is no use to anyone else, and the answer reveals nothing |
+| A validated token carries a pin (version id, else ETag), and every handler read and the commit copy are conditional on it | a file overwritten after validation cannot ride the validated token. Without bucket versioning the pin is an ETag (MD5 for a plain upload), so a malware gate needs versioning plus a lifecycle rule for noncurrent versions and delete markers under `pendingPrefix` |
+| The token carries only what `resolvers.metadata` returns, capped, strings; it is signed, not encrypted | a client cannot choose or alter it, and it holds no secrets. Which order or tenant an upload belongs to is the application's decision, signed by its resolver |
+| A commit refuses a destination that holds an object (409) | a POST policy outlives the commit, so a re-post to the pending key must not overwrite the committed object |
+| `authorize` guards every direct-upload route, and may be left out only when the entry's `auth` authenticates or authorizes | a route that hands out a write credential has no safe default, and a commit promotes an object |
 
-`onCommit` runs BEFORE the copy: a hook that throws leaves the object under the pending prefix for a
-lifecycle rule, rather than stranding it at the final key. Removing the temporary object is CLEANUP,
+`pendingPrefix` (default `pending/`) is disjoint from `keyPrefix` (neither starts with the other; boot refuses
+an entry otherwise), so the routes can never serve a pending object, and the bucket's lifecycle rule must
+target the configured `pendingPrefix`, longer than `expires.commit`. A failed `validation` leaves the object
+under it for that rule, and a service that fails after `commit` removes the object at its final key itself.
+Removing the temporary object at commit is CLEANUP,
 not the commit - it is best-effort and logs, because failing the request would tell the caller their
 upload did not work when it did.
 
@@ -191,12 +207,12 @@ Serving assets from a separate domain is the structural defence, and the one IGN
 The extension table knows the common office formats (xlsx, xls, docx, doc, pptx, ppt, odt, ods), but
 none of them is renderable, so they still serve as `application/octet-stream` plus `attachment` -
 only the MetaLink `mimetype` fallback, `DiskHelper.getStat`, `writeStream`'s default type, and
-`AssetIngest` change. `text/csv` and `text/plain` ARE on the renderable list and serve inline under
+`StaticAssetIngestUtility` change. `text/csv` and `text/plain` ARE on the renderable list and serve inline under
 `sandbox`.
 
 ## Deliberately not built
 
-Multipart and resumable upload. Malware scanning - `onCommit` is the seam, the scanner belongs to the
+Multipart and resumable upload. Malware scanning - `validation` is the seam, the scanner belongs to the
 application. A commit token carrying business fields.
 
 Related: [[component-model]], [[error-handling-flow]].

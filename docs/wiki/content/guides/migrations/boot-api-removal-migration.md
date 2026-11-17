@@ -4,12 +4,27 @@
 
 ## What breaks, measured against a consumer app
 
-| Symptom after `bun install` | Where | Fix |
-|---|---|---|
-| `TS4113` - `boot` does not exist in the base class | 16 files: `<app>/packages/{commerce,finance,helpdesk,identity,inventory,invoice,ledger,licensing,outreach,payment,pricing,sale,search,signal,taxation}/src/application.ts` and `<app>/packages/search/src/migrations/bootstrap.ts` | delete the whole `override async boot()` method (none of them calls `super.boot()`) |
-| `TS2339` - property `boot` does not exist | `<app>/packages/core/src/helpers/bootstraps/worker.ts` (line 34), `<app>/packages/core/src/helpers/bootstraps/migration.ts` (31), and `<app>/packages/search/src/migrations/bootstrap.ts` (104) once its own override at line 61 is gone | delete the `await app.boot();` line; `initialize()` and `start()` are unchanged. In `bootstrap.ts` delete lines 61 and 104 in one edit - the call only starts failing after the override is removed |
-| compiles silently (`IApplicationConfigs` keeps an index signature), ignored | `bootOptions` keys in `<app>/packages/core/src/common/app-config.ts` and `.../bootstraps/migration.ts` | delete the key - no compiler will point at it, grep for it |
-| duplicate `zod` types | any schema passed into `@venizia/ignis` | raise the root `overrides.zod` to `^4.4.3` |
+| Symptom after `bun install` | Fix |
+|---|---|
+| `TS4113` - `boot` does not exist in the base class | Delete the whole `override async boot()` method |
+| `TS2339` - property `boot` does not exist | Delete the `await app.boot();` line |
+| Compiles silently (`IApplicationConfigs` keeps an index signature), ignored | Delete the `bootOptions` key |
+| Duplicate `zod` types | Raise the root `overrides.zod` to `^4.4.3` |
+
+None of the `override async boot()` methods calls `super.boot()`. For `TS4113`, 16 files are affected:
+
+- `<app>/packages/{commerce,finance,helpdesk,identity,inventory,invoice,ledger,licensing,outreach,payment,pricing,sale,search,signal,taxation}/src/application.ts`
+- `<app>/packages/search/src/migrations/bootstrap.ts`
+
+For `TS2339`, three calls are affected:
+
+- `<app>/packages/core/src/helpers/bootstraps/worker.ts` (line 34)
+- `<app>/packages/core/src/helpers/bootstraps/migration.ts` (line 31)
+- `<app>/packages/search/src/migrations/bootstrap.ts` (line 104), once its own override at line 61 is gone
+
+`initialize()` and `start()` are unchanged. In `bootstrap.ts`, delete lines 61 and 104 in one edit: the call only starts failing after the override is removed.
+
+The `bootOptions` keys sit in `<app>/packages/core/src/common/app-config.ts` and `.../bootstraps/migration.ts`. No compiler points at them, so grep for them. A schema passed into `@venizia/ignis` is what shows the duplicate `zod` types.
 
 Measured by compiling every package of a consumer app against the new build: exactly these 18 errors appear (16 overrides, 2 calls; the third call surfaces after its override goes) and nothing else. Nothing else in the public API that a consumer app uses changed shape. The full diff is in the IGNIS release audit; the two changelogs behind it are [Artifacts register from a generated index](/changelogs/2026-09-02-decorator-artifact-registration) and [The deprecated boot API is removed](/changelogs/2026-09-03-deprecated-boot-api-removed).
 
@@ -19,7 +34,7 @@ In the root `package.json` `overrides`, replace the six `@venizia/*` versions wi
 
 | Override | Raise to | Required? |
 |---|---|---|
-| `zod` | 4.5.4 | yes - every `@venizia/*` package depends on `zod ^4.5.4`, and an override below it forces two incompatible zod type trees |
+| `zod` | 4.5.4 | yes |
 | `hono` | 4.13.5 | recommended (peer range `^4.12.30`) |
 | `@hono/zod-openapi` | 1.6.2 | recommended (peer range `^1.5.1`) |
 | `@scalar/hono-api-reference` | 0.11.16 | recommended (peer range `^0.11.11`) |
@@ -27,6 +42,8 @@ In the root `package.json` `overrides`, replace the six `@venizia/*` versions wi
 | `typesense` | 3.0.6 | recommended (peer range `^3.0.3`) |
 | `bullmq` | 5.81.4 | recommended (peer range `^5.80.8`) |
 | `tsc-alias` | 1.9.4 | recommended (build tool only) |
+
+Every `@venizia/*` package depends on `zod ^4.5.4`, and an override below it forces two incompatible zod type trees.
 
 One zod 4.5 change breaks at module load, not at compile time. Spreading a `ZodObject` and calling a
 method on its `.shape` (`z.object({ ...schema }).shape.optional()`) worked on 4.3.x only because the

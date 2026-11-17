@@ -12,12 +12,14 @@ export class QuietLogger implements ILogger {
 
   static get(scope: string): ILogger {
     const cached = this.cache.get(scope);
+
     if (cached) {
       return cached;
     }
 
     const created = new QuietLogger(scope);
     this.cache.set(scope, created);
+
     return created;
   }
 

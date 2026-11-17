@@ -16,6 +16,7 @@ const buildProjectRoot = (): string => {
     JSON.stringify({ name: 'probe-peer', main: 'index.js' }),
   );
   writeFileSync(join(packageDirectory, 'index.js'), 'module.exports = { fromProjectRoot: true };');
+
   return root;
 };
 
@@ -25,6 +26,7 @@ describe('ModuleUtility - project root', () => {
   afterEach(() => {
     ModuleUtility.setProjectRoot({ projectRoot: process.cwd() });
     const rootsList = roots.splice(0);
+
     for (const root of rootsList) {
       rmSync(root, { recursive: true, force: true });
     }

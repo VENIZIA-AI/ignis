@@ -1,4 +1,3 @@
-import { type AnyType } from '@/common/types';
 import { AbstractLogger } from './base/abstract';
 import { ConsoleLogger } from './base/console';
 import { LoggerDebugGate } from './common/debug-gate';
@@ -46,6 +45,7 @@ class LoggerDelegator extends AbstractLogger {
 
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     const threshold = LoggerFactory.currentLevel();
+
     return threshold === undefined || LogLevels.isEnabled({ level, threshold });
   }
 
@@ -53,7 +53,7 @@ class LoggerDelegator extends AbstractLogger {
   private forward(opts: {
     method: 'debug' | 'info' | 'warn' | 'error' | 'emerg';
     message: string;
-    args: AnyType[];
+    args: unknown[];
   }): void {
     const { method, message, args } = opts;
 
@@ -62,27 +62,27 @@ class LoggerDelegator extends AbstractLogger {
     }
   }
 
-  debug(message: string, ...args: AnyType[]) {
+  debug(message: string, ...args: unknown[]) {
     this.forward({ method: LogLevels.DEBUG, message, args });
   }
 
-  info(message: string, ...args: AnyType[]) {
+  info(message: string, ...args: unknown[]) {
     this.forward({ method: LogLevels.INFO, message, args });
   }
 
-  warn(message: string, ...args: AnyType[]) {
+  warn(message: string, ...args: unknown[]) {
     this.forward({ method: LogLevels.WARN, message, args });
   }
 
-  error(message: string, ...args: AnyType[]) {
+  error(message: string, ...args: unknown[]) {
     this.forward({ method: LogLevels.ERROR, message, args });
   }
 
-  emerg(message: string, ...args: AnyType[]) {
+  emerg(message: string, ...args: unknown[]) {
     this.forward({ method: LogLevels.EMERG, message, args });
   }
 
-  log(level: TLogLevel, message: string, ...args: AnyType[]) {
+  log(level: TLogLevel, message: string, ...args: unknown[]) {
     if (this.isEnabled(level)) {
       this.delegate().log(level, message, ...args);
     }
@@ -90,6 +90,7 @@ class LoggerDelegator extends AbstractLogger {
 
   for(methodName: string): ILogger {
     const childScope = this.scope !== '' ? `${this.scope}-${methodName}` : methodName;
+
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     return LoggerFactory.getLogger([childScope]);
   }
@@ -131,6 +132,7 @@ export class LoggerFactory {
 
     Reflect.set(globalThis, PROVIDER_SLOT, provider);
     this.bumpGeneration();
+
     for (const wrapper of this.cache.values()) {
       wrapper.repoint(provider);
     }
@@ -156,6 +158,7 @@ export class LoggerFactory {
   /** Moves whenever a provider is chosen or reset, in any copy: a wrapper that cached its logger takes it again. */
   static currentGeneration(): number {
     const generation: number | undefined = Reflect.get(globalThis, GENERATION_SLOT);
+
     return generation ?? 0;
   }
 
@@ -166,12 +169,14 @@ export class LoggerFactory {
   /** The level the application set, or `undefined`: then every provider applies its own gate. */
   static currentLevel(): TLogLevel | undefined {
     const level: TLogLevel | undefined = Reflect.get(globalThis, LEVEL_SLOT);
+
     return level;
   }
 
   /** The provider chosen by any copy of this module, if any. */
   private static sharedProvider(): ILoggerProvider | undefined {
     const shared: ILoggerProvider | undefined = Reflect.get(globalThis, PROVIDER_SLOT);
+
     return shared;
   }
 
@@ -181,6 +186,7 @@ export class LoggerFactory {
     Reflect.deleteProperty(globalThis, LEVEL_SLOT);
     LoggerDebugGate.force({ isOpen: undefined });
     this.bumpGeneration();
+
     for (const wrapper of this.cache.values()) {
       wrapper.repoint(ConsoleLogger);
     }

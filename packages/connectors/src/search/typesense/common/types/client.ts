@@ -1,3 +1,4 @@
+/** One Typesense server node; `protocol` falls back to `http` when omitted. */
 export interface ITypesenseNode {
   host: string;
   port: number;
@@ -47,6 +48,7 @@ interface ITypesenseAliasApi {
 interface ITypesenseAliasesApi {
   upsert(name: string, mapping: unknown): Promise<unknown>;
 }
+/** Narrow structural view of the Typesense client the connector needs, so a test fake can stand in for the real `Client`. */
 export interface ITypesenseClientLike {
   collections(): ITypesenseCollectionsApi;
   collections(collectionName: string): ITypesenseCollectionApi;

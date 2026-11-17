@@ -125,6 +125,7 @@ export class CodemodFiles {
         if (!SKIPPED_DIRECTORIES.has(entry.name) && !entry.name.startsWith('.')) {
           files.push(...CodemodFiles.fromWalk({ target: join(target, entry.name) }));
         }
+
         continue;
       }
 

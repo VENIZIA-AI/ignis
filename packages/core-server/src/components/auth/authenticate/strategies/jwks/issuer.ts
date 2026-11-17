@@ -12,6 +12,7 @@ import {
 } from '@venizia/ignis-kernel';
 import { JWKSIssuerTokenService } from '../../services';
 
+/** JWT authentication strategy that verifies the bearer token with `JWKSIssuerTokenService`, for an application that issues its own tokens. */
 export class JWKSIssuerAuthenticationStrategy<E extends Env = Env>
   extends BaseHelper
   implements IAuthenticationStrategy<E>
@@ -33,6 +34,7 @@ export class JWKSIssuerAuthenticationStrategy<E extends Env = Env>
 
   authenticate(context: TContext<E, string>): Promise<IAuthUser> {
     const token = this.service.extractCredentials(context);
+
     return this.service.verify(token);
   }
 }

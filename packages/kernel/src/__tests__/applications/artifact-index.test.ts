@@ -45,7 +45,9 @@ describe('ArtifactIndexHelper.flatten', () => {
       if (Array.isArray(input)) {
         return input.map(dropControllers);
       }
+
       const { controllers, ...rest } = input;
+
       return controllers ? rest : input;
     };
 
@@ -62,8 +64,10 @@ describe('ArtifactIndexHelper.flatten', () => {
   test('when receives the application and may be async; the gate reads run mode from it', async () => {
     const controllers = { controllers: [Plain] };
     const seen: unknown[] = [];
+
     const gate = async (opts: { application: unknown }) => {
       seen.push(opts.application);
+
       return Reflect.get(Object(opts.application), 'runMode') !== 'worker';
     };
 
@@ -123,6 +127,7 @@ describe('ArtifactIndexHelper.select', () => {
 
   test('the when conditions run concurrently: a condition that waits for a later one still resolves', async () => {
     let releaseFirst: (decision: boolean) => void = () => {};
+
     const firstDecision = new Promise<boolean>((resolve) => {
       releaseFirst = resolve;
     });
@@ -132,6 +137,7 @@ describe('ArtifactIndexHelper.select', () => {
     @service({
       when: () => {
         releaseFirst(true);
+
         return true;
       },
     })

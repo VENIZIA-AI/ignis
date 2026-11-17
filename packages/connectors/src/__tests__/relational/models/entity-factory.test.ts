@@ -74,11 +74,12 @@ const ArticleTable = pgTable('EntityArticle', {
 
 let policyRelationCalls = 0;
 
-@model({ type: 'entity', settings: { hiddenProperties: ['secret'] } })
+@model({ type: 'entity', settings: { properties: { hidden: ['secret'] } } })
 class EntityPolicy extends ModelFactory.defineEntity({
   table: PolicyTable,
   relations: () => {
     policyRelationCalls += 1;
+
     return {
       features: many(PolicyFeatureTable, { relationName: 'policy' }),
       // The inverse side of a one-to-one: the foreign key lives on the detail table.
@@ -595,6 +596,7 @@ describe('one() reads its columns off the table', () => {
       ...stringId(),
       targetId: text('target_id').references((): AnyPgColumn => {
         lookups += 1;
+
         return TargetTable.id;
       }),
     });

@@ -1,5 +1,4 @@
 import { HttpReadShapes } from './common/constants';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type {
@@ -48,7 +47,7 @@ export class HttpResourceEntity extends AbstractEntity {
  * vocabulary. `P` is what a write sends - a partial row by default, since the server fills ids and
  * defaults. There is no `createAll`: the IGNIS REST contract has no bulk-create route.
  */
-export class HttpRepository<E extends object = AnyType, P extends object = Partial<E>>
+export class HttpRepository<E extends object = object, P extends object = Partial<E>>
   implements
     IReadableRepository<E, THttpRepositoryOptions>,
     IUpdatableRepository<E, P, THttpRepositoryOptions>,
@@ -64,7 +63,11 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
   protected findOnePath?: string;
   /** The page size `find` asks for when its filter names no limit. Absent, the server's own default applies. */
   protected defaultLimit?: number;
-  /** The segment after the resource that names the IGNIS search route. */
+  /**
+   * The segment after the resource that names the IGNIS search route.
+   *
+   * @default 'search'
+   */
   protected searchPath: string;
 
   constructor(opts: {
@@ -161,6 +164,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
       });
 
       const counted = rs.data?.count;
+
       if (typeof counted !== 'number' || !Number.isFinite(counted)) {
         throw getError({
           statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
@@ -256,7 +260,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
   async find<R = E>(opts: {
     filter?: TFilter<E>;
     query?: THttpExtraQuery;
-    options?: AnyType;
+    options?: THttpRepositoryOptions & { shouldQueryRange?: boolean; extra?: TExtraRequest };
   }): Promise<Array<R> | TDataWithRange<R> | { data: Array<R>; extra?: Record<string, unknown> }> {
     const filter = this.resolveFindFilter({ filter: opts.filter });
     const rs = await this.dataSource.read<Array<R>>({
@@ -315,6 +319,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
         isEveryDefaultOff: true,
         ...this.toCallOptions({ options: opts.options }),
       });
+
       return one.data ?? null;
     }
 
@@ -328,6 +333,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
       isEveryDefaultOff: true,
       ...this.toCallOptions({ options: opts.options }),
     });
+
     return rs.data?.[0] ?? null;
   }
 
@@ -372,6 +378,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     });
 
     const answer = rs.data;
+
     if (!answer || typeof answer.found !== 'number' || !Array.isArray(answer.hits)) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.BadGateway,
@@ -425,6 +432,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     options?: THttpRepositoryOptions & { shouldReturn?: boolean };
   }): TCount & { data: R | null } {
     const { result, options } = opts;
+
     return { count: result.count, data: options?.shouldReturn === false ? null : result.data };
   }
 
@@ -458,7 +466,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     id: string | number;
     data: Partial<P>;
     options?: THttpRepositoryOptions & { shouldReturn?: boolean };
-  }): Promise<TCount & { data: AnyType }> {
+  }): Promise<TCount & { data: unknown }> {
     const result = await this.dataSource.write<R>({
       paths: this.getIdPaths({ id: opts.id }),
       method: HTTP.Methods.PATCH,
@@ -467,25 +475,6 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     });
 
     return this.toWriteResult({ result, options: opts.options });
-  }
-
-  async updateAll(opts: {
-    data: Partial<P>;
-    where: TWhere<E>;
-    options: THttpRepositoryOptions & { shouldReturn: false; force?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-  async updateAll<R = E>(opts: {
-    data: Partial<P>;
-    where: TWhere<E>;
-    options?: THttpRepositoryOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> | null }>;
-  /** PATCH `/<resource>`, the `where` in the body beside the data - a long id list outgrows a URL. */
-  async updateAll(opts: {
-    data: Partial<P>;
-    where: TWhere<E>;
-    options?: THttpRepositoryOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: AnyType }> {
-    return this.patchWhere({ ...opts, method: 'updateAll' });
   }
 
   async updateBy(opts: {
@@ -498,12 +487,12 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     where: TWhere<E>;
     options?: THttpRepositoryOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> | null }>;
-  /** Alias for `updateAll`. */
+  /** PATCH `/<resource>`, the `where` in the body beside the data - a long id list outgrows a URL. */
   async updateBy(opts: {
     data: Partial<P>;
     where: TWhere<E>;
     options?: THttpRepositoryOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: AnyType }> {
+  }): Promise<TCount & { data: unknown }> {
     return this.patchWhere({ ...opts, method: 'updateBy' });
   }
 
@@ -512,7 +501,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     data: Partial<P>;
     where: TWhere<E>;
     options?: THttpRepositoryOptions & { shouldReturn?: boolean };
-  }): Promise<TCount & { data: AnyType }> {
+  }): Promise<TCount & { data: unknown }> {
     const where = this.assertBulkWhere({ method: opts.method, where: opts.where });
 
     const result = await this.dataSource.write<Array<E>>({
@@ -537,7 +526,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
   async deleteById<R = E>(opts: {
     id: string | number;
     options?: THttpRepositoryOptions & { shouldReturn?: boolean };
-  }): Promise<TCount & { data: AnyType }> {
+  }): Promise<TCount & { data: unknown }> {
     const result = await this.dataSource.write<R>({
       paths: this.getIdPaths({ id: opts.id }),
       method: HTTP.Methods.DELETE,
@@ -547,43 +536,27 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     return this.toWriteResult({ result, options: opts.options });
   }
 
-  async deleteAll(opts: {
-    where?: TWhere<E>;
-    options: THttpRepositoryOptions & { shouldReturn: false; force?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-  async deleteAll<R = E>(opts: {
-    where?: TWhere<E>;
-    options?: THttpRepositoryOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> | null }>;
-  /** DELETE `/<resource>`, the `where` in the body. */
-  async deleteAll(opts: {
-    where?: TWhere<E>;
-    options?: THttpRepositoryOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: AnyType }> {
-    return this.deleteWhere({ ...opts, method: 'deleteAll' });
-  }
-
   async deleteBy(opts: {
-    where?: TWhere<E>;
+    where: TWhere<E>;
     options: THttpRepositoryOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
   async deleteBy<R = E>(opts: {
-    where?: TWhere<E>;
+    where: TWhere<E>;
     options?: THttpRepositoryOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> | null }>;
-  /** Alias for `deleteAll`. */
+  /** DELETE `/<resource>`, the `where` in the body. */
   async deleteBy(opts: {
-    where?: TWhere<E>;
+    where: TWhere<E>;
     options?: THttpRepositoryOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: AnyType }> {
+  }): Promise<TCount & { data: unknown }> {
     return this.deleteWhere({ ...opts, method: 'deleteBy' });
   }
 
   protected async deleteWhere(opts: {
     method: string;
-    where?: TWhere<E>;
+    where: TWhere<E>;
     options?: THttpRepositoryOptions & { shouldReturn?: boolean };
-  }): Promise<TCount & { data: AnyType }> {
+  }): Promise<TCount & { data: unknown }> {
     const where = this.assertBulkWhere({ method: opts.method, where: opts.where });
 
     const result = await this.dataSource.write<Array<E>>({

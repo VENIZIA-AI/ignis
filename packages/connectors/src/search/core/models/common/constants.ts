@@ -25,8 +25,14 @@ export class SearchFieldTypes {
   static isValid(value: string): value is TSearchFieldType {
     return this.SCHEME_SET.has(value);
   }
+
+  /** Full-text search matches text fields only (`string`, `string[]`): the rule `defaultQueryBy` and a route's `query.queryBy` share. */
+  static isText(type: string): boolean {
+    return type === this.STRING || type === this.STRING_ARRAY;
+  }
 }
 
+/** Union of the `SearchFieldTypes` values. */
 export type TSearchFieldType = TConstValue<typeof SearchFieldTypes>;
 
 /** Distance metrics a `vector` field may declare. An engine that supports fewer rejects the rest in its compiler. */
@@ -42,4 +48,5 @@ export class VectorDistances {
   }
 }
 
+/** Union of the `VectorDistances` values: `'cosine'`, `'ip'` or `'l2'`. */
 export type TVectorDistance = TConstValue<typeof VectorDistances>;

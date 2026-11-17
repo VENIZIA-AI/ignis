@@ -7,6 +7,7 @@ import type { TRelationConfig } from '../../common';
 import { ManyRelations } from './many';
 import { OneRelations } from './one';
 
+/** Builds Drizzle relations for a source table from a declarative relation config array. */
 export class RelationsFactory {
   /** Creates Drizzle ORM relations from a declarative configuration array. */
   static create<Schema extends TTableSchemaWithId = TTableSchemaWithId>(opts: {
@@ -23,6 +24,7 @@ export class RelationsFactory {
         }
 
         curr[def.name] = def;
+
         return curr;
       }, {}),
       relations: defineRelations(source, ({ one, many }) => {

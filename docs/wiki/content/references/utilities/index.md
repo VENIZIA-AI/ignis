@@ -2,23 +2,24 @@
 
 Static-method classes providing common, reusable logic for the IGNIS framework. All utilities are stateless and easy to use, and every method takes one options object.
 
-The helpers utilities used to be bare functions (`int`, `sleep`, `executePromiseWithLimit`, ...). Those names are removed; `devz codemod namespace-functions` moves your calls to the class form.
+The helpers utilities used to be bare functions (`int`, `sleep`, `executePromiseWithLimit`, ...). Those names are removed; `bun run devz codemod namespace-functions` moves your calls to the class form.
 
 ## Quick Reference
 
 | Utility | Package | Purpose | Key Functions |
 |---------|---------|---------|---------------|
 | **Duration** | `ignis-helpers` | Duration units and conversion | `DurationUnits`, `DurationMultipliers.toMilliseconds()`, `.parseToMilliseconds()` |
+| **Echo** | `ignis-helpers` | A caller's value made safe for a log line | `EchoUtility.toSafeEcho()`, `.toSafeText()` |
 | **JSX** | `ignis` | HTML/JSX responses | `OpenApiResponses.htmlContent()`, `OpenApiResponses.htmlResponse()` |
 | **Module** | `ignis-helpers` | Optional peer loading | `ModuleUtility` |
 | **Parse** | `ignis-helpers` | Data type conversion | `ParseUtility.toInt()`, `.toFloat()`, `.toBoolean()`, `.toCamel()` |
 | **Performance** | `ignis-helpers` | Execution timing | `PerformanceUtility.executeWithMeasure()`, `.getCheckpoint()` |
-| **Promise** | `ignis-helpers` | Promise helpers | `PromiseUtility.executeWithLimit()`, `isPromiseLike()`, `ErrorUtility.toError()` |
+| **Promise** | `ignis-helpers` | Promise helpers | `PromiseUtility.executeWithLimit()`, `.withTimeout()`, `isPromiseLike()`, `ErrorUtility.toError()` |
 | **Request** | `ignis-helpers` | HTTP utilities | `RequestUtility.parseMultipartBody()`, `.sanitizeFilename()`, `.buildContentDispositionHeader()` |
 | **Retry** | `ignis-helpers` | Backoff-driven retries | `RetryHelper` |
-| **Schema** | `ignis` | Zod schema helpers | `OpenApiResponses.jsonContent()`, `OpenApiResponses.jsonResponse()`, `OpenApiSchemas.requiredString()`, `OpenApiSchemas.idParams()` |
+| **Schema** | `ignis` | Zod schema helpers | `OpenApiResponses.jsonContent()`, `.jsonResponse()`; `OpenApiSchemas.requiredString()`, `.idParams()` |
 | **Statuses** | `ignis` | Status code constants | `Statuses`, `CommonStatuses`, `UserStatuses`, `RoleStatuses` |
-| **Timing** | `ignis-helpers` | Pause and measure | `PromiseUtility.sleep()`, `HrTimeUtility.getSeconds()` |
+| **Timing** | `ignis-helpers` | Pause and measure | `PromiseUtility.sleep()`, `.withTimeout()`, `HrTimeUtility.getSeconds()` |
 
 Calendar dates - parsing, formatting, adding a month in a time zone - live in [`TemporalHelper`](/extensions/helpers/temporal/).
 

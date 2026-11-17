@@ -1,10 +1,9 @@
-import type { BaseRestController, IAuthRouteConfig, TRouteContext } from '@/base';
+import type { BaseRestController, IAuthRouteConfig, TRouteAuthConfig, TRouteContext } from '@/base';
+import type { z } from '@hono/zod-openapi';
 import type { IDuration } from '@venizia/ignis-helpers/common';
-import type {
-  BaseRelationalEntity,
-  DefaultCRUDRepository,
-  TTableObject,
-} from '@venizia/ignis-connectors/postgres';
+import type { TTableInsert, TTableObject } from '@venizia/ignis-connectors/postgres';
+import type { TWhere } from '@venizia/ignis-filter';
+import type { TToggle } from '@venizia/ignis-kernel';
 import type {
   DiskHelper,
   IBucketRef,
@@ -13,63 +12,99 @@ import type {
   IObjectRef,
   IStorageHelper,
   IUploadResult,
+  StorageTypes,
   TUploadNaming,
 } from '@venizia/ignis-helpers';
 import type { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
-import type { AnyType, TValueOrAsyncResolver, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import type { TMultipartStorage } from '@venizia/ignis-helpers';
-import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from '../models';
-import type { StaticAssetStorageTypes } from './constants';
+import type {
+  TConstValue,
+  TValueOrAsyncResolver,
+  ValueOrPromise,
+} from '@venizia/ignis-helpers/common';
+import type { TMetaLink, TMetaLinkCompatibleSchema, TMetaLinkSchema } from '../models';
+import type { StaticAssetRouteKeys, TStaticAssetTokenStage } from './constants';
+import type { StaticAssetPinnedFile } from '../utilities/pinned-file.utility';
 
-export type TStaticAssetExtraOptions = {
-  parseMultipartBody?: {
-    storage?: TMultipartStorage;
-    uploadDir?: string;
-  };
+/** The toggle type, shared with the controllers: defined in the kernel. */
+export type { TToggle };
 
-  /** `folderPath` carries the upload query's target folder - dropping it flattens nested uploads. */
-  normalizeNameFn?: (opts: { file: TUploadNaming }) => string;
-  normalizeLinkFn?: (opts: IObjectLocation) => string;
+/** The storage backends a static asset entry can serve from: the helpers that declare one. */
+export type TStaticAssetStorageType = typeof StorageTypes.DISK | typeof StorageTypes.BUN_S3;
 
-  /** Maximum folder nesting depth allowed in object paths. Default: 2 */
-  maxFolderDepth?: number;
-
-  /** Largest file the UPLOAD route accepts. Absent means no ceiling. Checked against `content-length` before spooling, then per file after parsing. */
-  maxBytes?: number;
-  [key: string]: AnyType;
-};
-
-/** Decides the key one uploaded file is stored under. `defaultKey` is what IGNIS would have written. */
-export type TObjectNameResolver = (opts: {
+/** Decides the key one uploaded file is stored under. `defaultKey` is what IGNIS would have written - the scope and the default naming - so the hook may keep it, extend it or ignore it. */
+export type TStaticAssetObjectKeyResolver = (opts: {
   bucket: IBucketRef;
   file: TUploadNaming;
   defaultKey: string;
 }) => string;
 
-/** Adds routes of the application's own to a generated asset controller. Runs after every built-in route, so a built-in route always wins a path collision. `basePath` is the mount path with exactly one leading slash. */
 /** Adds routes of the application's own. Registration order decides a path collision, so the same shape serves both the before and the after hook. */
-export type TDefineExtraRoutes = (opts: {
+export type TStaticAssetDefineExtraRoutes = (opts: {
   controller: BaseRestController;
   helper: IStorageHelper;
   basePath: string;
 }) => void;
 
-// Declared by hand rather than inferred: RouteHandler inference here is heavy.
-export type TBucketParams = { bucketName: string };
-export type TObjectParams = { bucketName: string; objectName: string };
-export type TUploadQuery = {
+/** Path parameters of the object routes. */
+export type TStaticAssetObjectParams = { objectName: string };
+
+/** Labels recorded on the MetaLink row of an uploaded object. */
+export type TStaticAssetUploadLabels = {
   principalType?: string;
   principalId?: string;
   variant?: string;
   /** Display order within the principal. Caller-supplied: deriving it would be a non-atomic read of `max(sequence)` then a write of `max + 1`. */
   sequence?: number;
-  folderPath?: string;
 };
-export type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string };
 
-export type TDirectUploadOptions = {
-  /** Who may ask for a policy. REQUIRED, not defaulted: this route hands out a write credential, and there is no safe default for that. */
-  authorize: (opts: { context: TRouteContext }) => ValueOrPromise<boolean>;
+/** Application-chosen strings the commit token signs for one file. The token is signed, not encrypted: no secrets. */
+export type TStaticAssetTokenMetadata = Record<string, string>;
+
+/** One file of an upload-policy request. `metadata` is the client's hint: `resolvers.metadata` reads it, and only what that returns is signed. */
+export type TStaticAssetUploadPolicyFile = {
+  fileName: string;
+  contentType?: string;
+  size?: number;
+  metadata?: TStaticAssetTokenMetadata;
+};
+
+/** The decisions of a direct upload that belong to the application, each made on a different call. */
+export type TStaticAssetDirectUploadResolvers = {
+  /**
+   * Who the upload belongs to. Called on every direct-upload route: the policy route signs the
+   * answer into the commit token, and the other routes refuse a token whose owner differs.
+   */
+  owner: (opts: { context: TRouteContext }) => ValueOrPromise<string>;
+
+  /** Per file, at policy time: what the token signs for it, readable again at validate and commit. Absent, a client that sends `metadata` is refused. */
+  metadata?: (opts: {
+    context: TRouteContext;
+    file: TStaticAssetUploadPolicyFile;
+  }) => ValueOrPromise<TStaticAssetTokenMetadata>;
+
+  commit?: {
+    /** At commit time: the final key, in the same bucket and inside the `keyPrefix`. Absent keeps `defaultKey`. */
+    destination?: (opts: {
+      owner: string;
+      metadata: TStaticAssetTokenMetadata;
+      file: { fileName: string };
+      defaultKey: string;
+    }) => ValueOrPromise<{ key: string }>;
+  };
+};
+
+/** Enables the signed-policy upload flow, where the client posts bytes straight to the storage and IGNIS only signs the permission and verifies the commit. */
+export type TStaticAssetDirectUploadOptions = {
+  /**
+   * Who may use direct upload. Guards every direct-upload route. There is no safe default for a
+   * route that hands out a write credential, so leaving it out is allowed only when the entry's
+   * `auth` already authenticates or authorizes: then `auth` is the gate. With neither, the
+   * component refuses to start.
+   */
+  authorize?: (opts: { context: TRouteContext }) => ValueOrPromise<boolean>;
+
+  /** What the application decides about an upload; `owner` is required, the rest is optional. */
+  resolvers: TStaticAssetDirectUploadResolvers;
 
   /** Signs the commit token. Keep it out of the repository and out of the client. */
   secretKey: string;
@@ -77,107 +112,241 @@ export type TDirectUploadOptions = {
   /** The ceiling the policy carries as `content-length-range`. A signed PUT cannot express this at all, which is why this is a POST policy. */
   maxBytes: number;
 
-  /** Where a policy may write. The final key is NEVER in a policy, so content cannot be replaced after the commit. Default: `pending/`. */
+  /**
+   * The most files one upload-policy request may name; more is a 422.
+   *
+   * @default StaticAssetDefaults.MAX_UPLOAD_FILES (20)
+   */
+  maxFiles?: number;
+
+  /**
+   * Where a policy may write: not empty, ends with `/`, made of valid key segments, and neither
+   * inside the entry's `keyPrefix` nor containing it - a pending object must never be readable
+   * through the entry's own routes. The final key is NEVER in a policy, so content cannot be
+   * replaced after the commit. The lifecycle rule that collects abandoned uploads targets this prefix.
+   *
+   * @default 'pending/'
+   */
   pendingPrefix?: string;
 
-  /** How long a policy and its commit token stay good. Default: the helper's POST default. */
-  expiresIn?: IDuration;
+  expires?: {
+    /**
+     * How long the browser may post the bytes: the POST policy's lifetime.
+     *
+     * @default StoragePresignDefaults.POST_EXPIRES_IN
+     */
+    upload?: IDuration;
 
-  /** Runs BEFORE the copy to the final key, so a hook that throws leaves the object under the pending prefix for a lifecycle rule to collect, rather than stranding it at the final key. */
-  onCommit?: (opts: {
-    bucket: IBucketRef;
-    pendingObject: IObjectRef;
-    object: IObjectRef;
-  }) => ValueOrPromise<void>;
+    /**
+     * How long the commit token stays good, for validating and committing after the upload. The
+     * pending object must outlive it, so the lifecycle rule on `pendingPrefix` has to be longer still.
+     *
+     * @default `upload`
+     */
+    commit?: IDuration;
+  };
+
+  /**
+   * Checks the pending file. On, the component registers `POST {base}/upload-validate`, which
+   * answers the token `commit` takes, and `commit` accepts no other.
+   * Build it with `StaticAssetValidation.define`.
+   */
+  validation: TToggle<IStaticAssetValidation<z.ZodType>>;
 };
 
-export type TUploadPolicyRequest = {
-  files: Array<{ fileName: string; contentType?: string; size?: number }>;
-};
+/** What a validation answers: whether the file may be committed, and the problems the user should see. */
+export interface IStaticAssetValidationResult<Issue> {
+  isValid: boolean;
+  issues: Issue[];
+}
+
+/**
+ * The application's own check of an uploaded file, run on the PENDING object before anything is
+ * committed. The component owns the route and the refusal; the application owns only this logic.
+ * Build it with `StaticAssetValidation.define` so the handler is typed by `issueSchema`.
+ */
+export interface IStaticAssetValidation<IssueSchema extends z.ZodType> {
+  /** The shape of ONE issue. It types the handler's answer and documents the route's response. */
+  issueSchema: IssueSchema;
+
+  /** Runs once per `upload-validate`. Read the file through `file`: every read is pinned to the content `commit` will copy. */
+  handler: (opts: {
+    file: StaticAssetPinnedFile;
+    owner: string;
+    metadata: TStaticAssetTokenMetadata;
+  }) => ValueOrPromise<IStaticAssetValidationResult<z.infer<IssueSchema>>>;
+}
+
+/** What `validate` answers. `commitToken` is present only when the file is valid: it is the token `commit` takes. */
+export interface IStaticAssetValidateResult<Issue> extends IStaticAssetValidationResult<Issue> {
+  commitToken?: string;
+}
+
+/** Body of the upload policy route: the files the client intends to upload. */
+export type TStaticAssetUploadPolicyRequest = { files: TStaticAssetUploadPolicyFile[] };
+
+/** The repository verbs the component calls, on MetaLink rows. A `DefaultCRUDRepository` over any `TMetaLinkCompatibleSchema` table satisfies it, and so does a small fake in a test. The contract checks the select row only (see the static-asset usage page for what that leaves to the table). */
+export interface IMetaLinkRepository {
+  create(opts: {
+    data: TTableInsert<TMetaLinkSchema>;
+  }): Promise<{ count: number; data: TMetaLink }>;
+  updateBy(opts: {
+    data: Partial<TTableInsert<TMetaLinkSchema>>;
+    where: TWhere<TMetaLink>;
+  }): Promise<{ count: number; data: TMetaLink[] | null }>;
+  updateById(opts: {
+    id: string;
+    data: Partial<TTableInsert<TMetaLinkSchema>>;
+  }): Promise<{ count: number; data: TMetaLink }>;
+  deleteBy(opts: { where: TWhere<TMetaLink> }): Promise<{ count: number }>;
+}
 
 /** The MetaLink table belongs to the application. `Schema` defaults to the table IGNIS ships, and widens to any table whose row carries the same fields. */
 export type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
-  model: TValueOrAsyncResolver<typeof BaseRelationalEntity<Schema>>;
-  repository: TValueOrAsyncResolver<DefaultCRUDRepository<Schema>>;
+  repository: TValueOrAsyncResolver<IMetaLinkRepository>;
   createMetaLink?: (opts: {
     uploadResult: IUploadResult;
     fileStat: IFileStat;
-    /** The caller's labels. Named for where they used to travel - they arrive in the request BODY now, as form fields on an upload and beside the commit token on a direct one. */
-    query: TUploadQuery;
+    /** The caller's labels: form fields on an upload, beside the commit token on a direct one. */
+    labels: TStaticAssetUploadLabels;
   }) => ValueOrPromise<{ count: number; data: TTableObject<Schema> }>;
 };
 
-/** The part of a built-in route an application may change. */
+/** The part of a built-in route an application may change. `authenticate` and `authorize` replace the entry's `auth` for this route, and `{ skip: true }` leaves it open. */
 export type TStaticAssetRouteConfig = Partial<
-  Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>
-> & {
-  /** Whether this route is registered. Defaults to true. */
-  enabled?: boolean;
+  Omit<IAuthRouteConfig, 'method' | 'request' | 'responses' | 'authenticate' | 'authorize'>
+> &
+  TRouteAuthConfig;
+
+/** Authentication and authorization for every built-in route of an entry; a route's own `authenticate`/`authorize` replaces it for that route. */
+export type TStaticAssetAuth = TRouteAuthConfig & {
+  /**
+   * `{ use: true }` leaves `getObjectByName` and `downloadObjectByName` unauthenticated, so a
+   * browser can show an image without a token. `listObjects` is NOT public: listing a bucket is not
+   * reading an object.
+   *
+   * @default { use: false }
+   */
+  publicRead?: TToggle;
 };
 
-export type TStaticAssetRoutes = {
-  getBuckets?: TStaticAssetRouteConfig;
-  getBucketByName?: TStaticAssetRouteConfig;
-  createBucket?: TStaticAssetRouteConfig;
-  deleteBucket?: TStaticAssetRouteConfig;
+/** The name of a built-in route, the key of `routes`. */
+export type TStaticAssetRouteKey = TConstValue<typeof StaticAssetRouteKeys>;
 
-  upload?: TStaticAssetRouteConfig;
-  listObjects?: TStaticAssetRouteConfig;
-  deleteObject?: TStaticAssetRouteConfig;
-  getObjectByName?: TStaticAssetRouteConfig;
-  downloadObjectByName?: TStaticAssetRouteConfig;
+/**
+ * What each built-in route does: `{ use: false }` turns it off, `{ use: true, ... }` turns it on
+ * with those overrides. A route left out is on as built.
+ */
+export type TStaticAssetRoutes = Partial<
+  Record<TStaticAssetRouteKey, TToggle<TStaticAssetRouteConfig>>
+>;
 
-  uploadPolicy?: TStaticAssetRouteConfig;
-  uploadCommit?: TStaticAssetRouteConfig;
+/** Uploading through the application: the browser sends the bytes to `POST /objects` and the application writes them to the storage. */
+export type TStaticAssetServerUploadOptions = {
+  /** Largest file the route accepts. Absent means no ceiling. Checked against `content-length` before the body is read, then per file after parsing. */
+  maxBytes?: number;
 
-  recreateMetaLink?: TStaticAssetRouteConfig;
+  /**
+   * The most file parts one request may carry; more is refused with 413 before anything is written.
+   *
+   * @default StaticAssetDefaults.MAX_UPLOAD_FILES (20)
+   */
+  maxFiles?: number;
+
+  /** The one hook that decides the key an uploaded file is stored under. Absent keeps the default naming. Under a `keyPrefix` a key outside the scope is refused, never rewritten. */
+  objectKey?: TStaticAssetObjectKeyResolver;
 };
 
-export type TStaticAssetsComponentOptions<
+/** Direct upload is a POST policy, which only S3 can sign, and its pending objects stay out of the served scope only when the entry has a `keyPrefix`. */
+type TStaticAssetDirectUploadScope =
+  | { keyPrefix?: string; directUpload: { use: false } }
+  | { keyPrefix: string; directUpload: { use: true } & TStaticAssetDirectUploadOptions };
+
+/** The storage helper decides which direct upload shapes are possible. */
+type TStaticAssetStorage =
+  | ({ helper: BunS3Helper } & TStaticAssetDirectUploadScope)
+  | { helper: DiskHelper; keyPrefix?: string; directUpload: { use: false } };
+
+/** One storage backend with its generated controller. Every switch is a toggle; a toggle left out is a type error, so nothing is on or off by accident. */
+export type TStaticAssetEntry<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
+  basePath: string;
+
+  /** The controller's name. Absent, it is derived from the entry's key. */
+  name?: string;
+
+  /** The single bucket every route uses. The function form is read per request, so an environment variable can be read lazily. */
+  bucket: TValueOrAsyncResolver<string>;
+
+  /**
+   * The key scope this entry owns, e.g. `inventory/`. Every route refuses a key outside it as a
+   * 404 without calling the storage, `listObjects` lists only inside it, and an upload key must
+   * land inside it. `maxFolderDepth` counts the folders below it. Required with
+   * `directUpload`: it keeps the pending prefix outside everything the routes serve.
+   *
+   * @default every key in the bucket
+   */
+  keyPrefix?: string;
+
+  /**
+   * Folders a key may nest below the `keyPrefix`, for every route of the entry: reads and deletes
+   * too, so it holds for keys that arrive by direct upload or ingest.
+   *
+   * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
+   */
+  maxFolderDepth?: number;
+
+  /**
+   * `true` serves a raw nested object path (`/objects/photos/2024/f.jpg`) - a URL shape change; a percent-encoded path keeps working either way.
+   *
+   * @default false
+   */
+  rawObjectPath?: boolean;
+
+  /** The link stored and returned for an object. Absent builds the URL of this controller's own object route. */
+  link?: (opts: IObjectLocation) => string;
+
+  /** Authentication and authorization of every built-in route of this entry. Absent leaves every route open; `publicRead` is the only way a read route is public on purpose. */
+  auth?: TStaticAssetAuth;
+
+  serverUpload: TToggle<TStaticAssetServerUploadOptions>;
+
+  /** Every upload also writes a MetaLink row, and the object's deletion removes it. */
+  metaLink: TToggle<TMetaLinkConfig<Schema>>;
+
+  routes?: TStaticAssetRoutes;
+
+  extend?: {
+    /** Registered BEFORE every built-in route, so a literal path wins over the catch-all `rawObjectPath` produces. Hono matches in registration order. */
+    before?: TStaticAssetDefineExtraRoutes;
+    /** Registered after every built-in route. */
+    after?: TStaticAssetDefineExtraRoutes;
+  };
+} & TStaticAssetStorage;
+
+/** Static asset entries keyed by an application-chosen name; each key becomes one controller. */
+export type TStaticAssetComponentOptions<
   Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema,
-> = {
-  [key: string]: {
-    controller: {
-      name: string;
-      basePath: string;
-      isStrict?: boolean;
+> = Record<string, TStaticAssetEntry<Schema>>;
 
-      /** `true` serves a raw nested object path (`/objects/photos/2024/f.jpg`) - a URL shape change; a percent-encoded path keeps working either way. Default: `false`. */
-      rawObjectPath?: boolean;
+/** The content a validation read: the ETag, and the version id when the storage has real versions. */
+export interface IStaticAssetPin {
+  etag: string;
+  versionId?: string;
+}
 
-      /** The single bucket every object route uses. It leaves the URL (`/objects/{objectName}`) and the four bucket-management routes are not registered. The function form is read per request, so an environment variable can be read lazily. */
-      bucket?: TValueOrAsyncResolver<string>;
-
-      /**
-       * The key scope this controller owns, e.g. `inventory/`. Every route refuses a key outside it
-       * as a 404 without calling the storage, `listObjects` lists only inside it, and an upload key
-       * must land inside it: the default name is placed there, a `resolveObjectName` or
-       * `extra.normalizeNameFn` key outside it is refused. `maxFolderDepth` counts the folders below
-       * it. Absent: every key in the bucket.
-       */
-      keyPrefix?: string;
-
-      routes?: TStaticAssetRoutes;
-
-      /** Direct upload: the browser posts the bytes to the storage and IGNIS only signs the permission. Absent leaves both routes unregistered. Requires `bucket` - a policy names one bucket, and a bucket in the URL is a bucket the caller chooses. */
-      directUpload?: TDirectUploadOptions;
-    };
-    extra?: TStaticAssetExtraOptions;
-
-    /** Decides the stored object name of each uploaded file; absent keeps the storage helper's own naming. */
-    resolveObjectName?: TObjectNameResolver;
-
-    /** Registers the application's own routes BEFORE every built-in one, so a literal path wins over the catch-all `rawObjectPath` produces. Hono matches in registration order. */
-    defineRoutesBefore?: TDefineExtraRoutes;
-
-    /** Registers the application's own routes on the generated controller, after every built-in one. */
-    defineExtraRoutes?: TDefineExtraRoutes;
-  } & (
-    | { storage: typeof StaticAssetStorageTypes.BUN_S3; helper: BunS3Helper }
-    | { storage: typeof StaticAssetStorageTypes.DISK; helper: DiskHelper }
-  ) &
-    (
-      | { useMetaLink?: false | undefined }
-      | { useMetaLink: true; metaLink: TMetaLinkConfig<Schema> }
-    );
-};
+/**
+ * What a commit token binds: the pending object a policy was issued for, when the grant dies and,
+ * who it was issued to and the application's own metadata for the file.
+ */
+export interface IStaticAssetCommitTokenPayload {
+  bucket: IBucketRef;
+  object: IObjectRef;
+  expiresAt: number;
+  /** The token commits only for this owner. */
+  owner: string;
+  /** What `resolvers.metadata` returned for the file; `{}` without one. Signed, not encrypted. */
+  metadata: TStaticAssetTokenMetadata;
+  stage: TStaticAssetTokenStage;
+  /** Present from `VALIDATED` on: `commit` copies only content that still matches it. */
+  pin?: IStaticAssetPin;
+}

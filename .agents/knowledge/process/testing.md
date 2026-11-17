@@ -58,7 +58,7 @@ tags: [process, test, bun]
    boot's own error, and after boot runs `BindingVerifier.assertResolve` from `@venizia/ignis-inversion` over services and
    repositories (`skipBindings` leaves some out; the kernel's own step is off for the run). Components run for real (their `binding()` registers what the check resolves), so one that needs Redis,
    Kafka or S3 is named in `skipComponents`. It adds a duplicate-route check of its own, because
-   boot has none. The `ignis` preset generates `src/boot.test.ts` with it; the smoke gate runs that test.
+   boot has none. It does NOT run `setupMiddlewares()` (the application's own start-time step: user code that may open connections); the framework's default stack, which validates `configs.middlewares` (an invalid CORS pattern), is a boot step of `initialize()` and does run. The `ignis` preset generates `src/boot.test.ts` with it; the smoke gate runs that test.
 
 ## Related
 

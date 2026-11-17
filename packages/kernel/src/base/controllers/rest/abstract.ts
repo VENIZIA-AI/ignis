@@ -13,6 +13,7 @@ import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { Env, Schema } from 'hono';
+import { RouterFactories } from '@/base/applications/router-factory';
 import type {
   IAuthRouteConfig,
   IBindRouteOptions,
@@ -21,6 +22,11 @@ import type {
   IDefineRouteOptions,
   TRouteHandler,
 } from '../common/types';
+
+// Loading this module makes the application's routers `OpenAPIHono` (see `RouterFactories`).
+RouterFactories.registerOpenApi({
+  factory: ({ strict }) => new OpenAPIHono({ strict }),
+});
 
 /** True for a route path carrying a path parameter, in either supported syntax: `/{id}` or `/:id`. */
 const hasPathParam = (opts: { path: string }): boolean => {
@@ -91,6 +97,7 @@ export abstract class AbstractRestController<
     }
 
     const routeDefs = routes.entries();
+
     for (const [methodName, routeConfigs] of routeDefs) {
       if (
         paths !== RoutePathScopes.ALL &&
@@ -101,6 +108,7 @@ export abstract class AbstractRestController<
 
       // Dynamic dispatch by decorator-recorded method name - the controller class has no static index signature, so this read cannot be typed narrower than `unknown`.
       const handler = (this as Record<string | symbol, unknown>)[methodName];
+
       if (typeof handler !== 'function') {
         logger.warn('Route method "%s" not found on controller', String(methodName));
         continue;
@@ -126,13 +134,15 @@ export abstract class AbstractRestController<
     const configureOptions = opts ?? {};
     logger.info('START | Binding controller | Options: %j', configureOptions);
 
-    // Hono matches in registration order, so registration runs by SHAPE not source: every static path first, then binding()'s routes, then decorator param routes last (`/{id}` early would eat `/count`).
+    // Hono matches in registration order, so registration runs by SHAPE not source: every static path first, then binding()'s routes, then the generated defaults, then decorator param routes last (`/{id}` early would eat `/count`).
     this.registerRoutesFromRegistry({ paths: RoutePathScopes.STATIC });
     await this.binding();
+    await this.bindDefaultRoutes();
     this.registerRoutesFromRegistry({ paths: RoutePathScopes.PARAM });
 
     this.isConfigured = true;
     logger.info('DONE | Binding controller | Took: %s (ms)', performance.now() - t);
+
     return this.router;
   }
 
@@ -142,7 +152,7 @@ export abstract class AbstractRestController<
     const { strategies = [], mode = AuthenticationModes.ANY } = authenticate;
 
     // Boot-time and NON-fatal: names a misspelled strategy at error level instead of leaving it as
-    // a 401 nobody can explain. Deliberately not a throw - `AuthControllerFactory.define` hard-codes `jwt`
+    // a 401 nobody can explain. Deliberately not a throw - `AuthControllerFactory.build` hard-codes `jwt`
     // on four routes, and ANY mode tolerates a strategy that does not resolve, so failing here would
     // stop applications booting that work today. `assertRegistered` is there for an application that
     // does want the hard failure.
@@ -161,6 +171,7 @@ export abstract class AbstractRestController<
     // Inject authorize middleware AFTER authenticate
     if (authorize) {
       const specs: IAuthorizationSpec[] = Array.isArray(authorize) ? authorize : [authorize];
+
       for (const spec of specs) {
         mws.push(authorizeFn({ spec }));
       }
@@ -223,6 +234,9 @@ export abstract class AbstractRestController<
   }
   /** Override to register routes using bindRoute or defineRoute. */
   abstract binding(): ValueOrPromise<void>;
+
+  /** Registers the routes a generated controller brings; runs after `binding()`, so a route declared there wins a path the defaults also match. */
+  bindDefaultRoutes(): ValueOrPromise<void> {}
 
   /** Creates a fluent binding for registering a route (call .to() to attach handler). */
   abstract bindRoute<RouteConfig extends IAuthRouteConfig>(opts: {

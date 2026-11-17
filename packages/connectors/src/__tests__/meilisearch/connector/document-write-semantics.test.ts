@@ -58,6 +58,7 @@ describe('MeilisearchConnector - explicit id wins over a pk-carrying patch', () 
       schema: { uid: 'articles', primaryKey: 'id', settings: {} },
     });
     const seededIds = ['1', '2', '3'];
+
     for (const id of seededIds) {
       await connector.document.create({
         collection: 'articles',
@@ -80,6 +81,7 @@ describe('MeilisearchConnector - explicit id wins over a pk-carrying patch', () 
     expect(sentIds.sort()).toEqual(['2', '3']);
 
     const patchedIds = ['2', '3'];
+
     for (const id of patchedIds) {
       const patched = await connector.document.get<{ id: string; title: string }>({
         collection: 'articles',

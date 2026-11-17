@@ -224,11 +224,11 @@ import { applicationEnvironment } from '@venizia/ignis-helpers';
 import { EnvironmentKeys } from '@/common/environments';
 
 // Correct usage
-const stripeKey = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_STRIPE_KEY);
+const stripeKey = applicationEnvironment.get(EnvironmentKeys.APP_ENV_STRIPE_KEY);
 
 // Numbers need an explicit transform - the stored value is a string
-const retries = applicationEnvironment.get<number, string>(EnvironmentKeys.APP_ENV_MAX_RETRIES, {
-  transform: value => Number(value),
+const retries = applicationEnvironment.get(EnvironmentKeys.APP_ENV_MAX_RETRIES, {
+  transform: (raw) => (raw === undefined ? undefined : Number(raw)),
   defaultValue: 3,
 });
 ```

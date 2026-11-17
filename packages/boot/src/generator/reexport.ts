@@ -29,6 +29,7 @@ export class StereotypeReexportResolver extends BaseHelper {
       moduleResolution: ts.ModuleResolutionKind.Bundler,
       allowJs: true,
     };
+
     if (!configPath) {
       return fallback;
     }
@@ -38,20 +39,24 @@ export class StereotypeReexportResolver extends BaseHelper {
       ts.sys,
       dirname(configPath),
     );
+
     return { ...fallback, ...parsed.options };
   }
 
   /** The kernel name `name` (exported by `specifier`, as seen from `fromFile`) originates as, or `undefined` when the chain never reaches a source module. */
   originOf(opts: { fromFile: string; specifier: string; name: string }): string | undefined {
     const key = `${dirname(opts.fromFile)}|${opts.specifier}|${opts.name}`;
+
     if (!this.origins.has(key)) {
       this.origins.set(key, this.follow({ ...opts, depth: 0, seen: new Set<string>() }));
     }
+
     return this.origins.get(key);
   }
 
   private resolveFile(opts: { fromFile: string; specifier: string }): string | undefined {
     const key = `${dirname(opts.fromFile)}|${opts.specifier}`;
+
     if (!this.resolutions.has(key)) {
       this.resolutions.set(
         key,
@@ -59,11 +64,13 @@ export class StereotypeReexportResolver extends BaseHelper {
           ?.resolvedFileName,
       );
     }
+
     return this.resolutions.get(key);
   }
 
   private parse(opts: { file: string }): ts.SourceFile {
     let source = this.sources.get(opts.file);
+
     if (!source) {
       source = ts.createSourceFile(
         opts.file,
@@ -73,6 +80,7 @@ export class StereotypeReexportResolver extends BaseHelper {
       );
       this.sources.set(opts.file, source);
     }
+
     return source;
   }
 
@@ -91,18 +99,22 @@ export class StereotypeReexportResolver extends BaseHelper {
     seen: Set<string>;
   }): string | undefined {
     const { fromFile, specifier, name, depth, seen } = opts;
+
     if (this.isSourceModule({ specifier })) {
       return name;
     }
+
     if (depth >= StereotypeReexportResolver.MAX_DEPTH) {
       return undefined;
     }
 
     const resolved = this.resolveFile({ fromFile, specifier });
     const visit = `${resolved}#${name}`;
+
     if (!resolved || seen.has(visit)) {
       return undefined;
     }
+
     seen.add(visit);
 
     const source = this.parse({ file: resolved });
@@ -110,14 +122,18 @@ export class StereotypeReexportResolver extends BaseHelper {
       this.follow({ fromFile: resolved, ...target, depth: depth + 1, seen });
 
     const importedBy = new Map<string, { specifier: string; name: string }>();
+
     for (const statement of source.statements) {
       if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
         continue;
       }
+
       const bindings = statement.importClause?.namedBindings;
+
       if (!bindings || !ts.isNamedImports(bindings)) {
         continue;
       }
+
       for (const element of bindings.elements) {
         importedBy.set(element.name.text, {
           specifier: statement.moduleSpecifier.text,
@@ -130,6 +146,7 @@ export class StereotypeReexportResolver extends BaseHelper {
       if (!ts.isExportDeclaration(statement) || statement.isTypeOnly) {
         continue;
       }
+
       const fromSpecifier =
         statement.moduleSpecifier && ts.isStringLiteral(statement.moduleSpecifier)
           ? statement.moduleSpecifier.text
@@ -137,11 +154,14 @@ export class StereotypeReexportResolver extends BaseHelper {
 
       if (!statement.exportClause) {
         const origin = fromSpecifier ? next({ specifier: fromSpecifier, name }) : undefined;
+
         if (origin) {
           return origin;
         }
+
         continue;
       }
+
       if (!ts.isNamedExports(statement.exportClause)) {
         continue;
       }
@@ -150,11 +170,15 @@ export class StereotypeReexportResolver extends BaseHelper {
         if (element.name.text !== name) {
           continue;
         }
+
         const original = (element.propertyName ?? element.name).text;
+
         if (fromSpecifier) {
           return next({ specifier: fromSpecifier, name: original });
         }
+
         const imported = importedBy.get(original);
+
         return imported ? next(imported) : undefined;
       }
     }

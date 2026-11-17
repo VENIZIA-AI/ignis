@@ -3,6 +3,7 @@ import { type TKafkaAcks } from '../constants';
 import { type TKafkaBrokerEventCallback } from './callbacks';
 import { type IKafkaConnectionOptions } from './connection';
 
+/** Options for the Kafka producer helper. `acks` takes a {@link KafkaAcks} value; `shutdownTimeout` is in milliseconds. */
 export interface IKafkaProducerOptions<
   KeyType = string,
   ValueType = string,

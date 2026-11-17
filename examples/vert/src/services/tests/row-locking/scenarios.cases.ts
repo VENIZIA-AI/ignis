@@ -57,21 +57,24 @@ export class ScenariosCases extends BaseTestCases {
 
       await tx1.commit();
       await tx2.commit();
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       try {
         await tx1.rollback();
       } catch (rollbackError) {
         this.context.logger.error('tx1 rollback failed: %s', (rollbackError as Error).message);
       }
+
       try {
         await tx2.rollback();
       } catch (rollbackError) {
         this.context.logger.error('tx2 rollback failed: %s', (rollbackError as Error).message);
       }
+
       this.context.logger.error('[CASE 7] FAILED with error: %o', error);
+
       try {
-        await repo.deleteAll({ where: { group } });
+        await repo.deleteBy({ where: { group } });
       } catch (cleanupError) {
         this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
       }
@@ -124,21 +127,24 @@ export class ScenariosCases extends BaseTestCases {
 
       await tx1.commit();
       await tx2.rollback();
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       try {
         await tx1.rollback();
       } catch (rollbackError) {
         this.context.logger.error('tx1 rollback failed: %s', (rollbackError as Error).message);
       }
+
       try {
         await tx2.rollback();
       } catch (rollbackError) {
         this.context.logger.error('tx2 rollback failed: %s', (rollbackError as Error).message);
       }
+
       this.context.logger.error('[CASE 8] FAILED with error: %o', error);
+
       try {
-        await repo.deleteAll({ where: { code } });
+        await repo.deleteBy({ where: { code } });
       } catch (cleanupError) {
         this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
       }
@@ -173,12 +179,13 @@ export class ScenariosCases extends BaseTestCases {
       if (!locked) {
         this.context.logger.error('[CASE 12] FAILED - Could not find record to lock');
         await transaction.rollback();
+
         return;
       }
 
       // Update based on locked value
       const newValue = locked.nValue! + 50;
-      await repo.updateAll({
+      await repo.updateBy({
         where: { code },
         data: { nValue: newValue },
         options: { transaction },
@@ -188,18 +195,20 @@ export class ScenariosCases extends BaseTestCases {
 
       // Verify
       const updated = await repo.findOne({ filter: { where: { code } } });
+
       if (updated?.nValue === 150) {
         this.context.logger.info('[CASE 12] PASSED - Lock + update: 100 -> 150');
       } else {
         this.context.logger.error('[CASE 12] FAILED - Expected 150, got: %d', updated?.nValue);
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 12] FAILED with error: %o', error);
+
       try {
-        await repo.deleteAll({ where: { code } });
+        await repo.deleteBy({ where: { code } });
       } catch (cleanupError) {
         this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
       }
@@ -256,21 +265,23 @@ export class ScenariosCases extends BaseTestCases {
       }
 
       await transaction.commit();
-      await configRepo.deleteAll({ where: { code: configCode } });
-      await productRepo.deleteAll({
+      await configRepo.deleteBy({ where: { code: configCode } });
+      await productRepo.deleteBy({
         where: { code: productCode },
         options: { force: true, shouldSkipDefaultFilter: true },
       });
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 13] FAILED with error: %o', error);
+
       try {
-        await configRepo.deleteAll({ where: { code: configCode } });
+        await configRepo.deleteBy({ where: { code: configCode } });
       } catch (configError) {
         this.context.logger.error('Config cleanup failed: %s', (configError as Error).message);
       }
+
       try {
-        await productRepo.deleteAll({
+        await productRepo.deleteBy({
           where: { code: productCode },
           options: { force: true, shouldSkipDefaultFilter: true },
         });
@@ -325,21 +336,24 @@ export class ScenariosCases extends BaseTestCases {
 
       await tx1.commit();
       await tx2.commit();
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       try {
         await tx1.rollback();
       } catch (rollbackError) {
         this.context.logger.error('tx1 rollback failed: %s', (rollbackError as Error).message);
       }
+
       try {
         await tx2.rollback();
       } catch (rollbackError) {
         this.context.logger.error('tx2 rollback failed: %s', (rollbackError as Error).message);
       }
+
       this.context.logger.error('[CASE 14] FAILED with error: %o', error);
+
       try {
-        await repo.deleteAll({ where: { code } });
+        await repo.deleteBy({ where: { code } });
       } catch (cleanupError) {
         this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
       }

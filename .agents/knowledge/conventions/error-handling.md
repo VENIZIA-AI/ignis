@@ -198,7 +198,19 @@ Use `isApplicationError()` instead, which recognizes the error by shape, not by 
 
 ```typescript
 export const isApplicationError = (error: unknown): error is ApplicationError => {
-  return error instanceof Error && typeof (error as AnyType).statusCode === 'number';
+  if (!(error instanceof Error) || !('statusCode' in error) || !('normalized' in error)) {
+    return false;
+  }
+
+  const { statusCode, normalized } = error;
+
+  return (
+    typeof statusCode === 'number' &&
+    typeof normalized === 'object' &&
+    normalized !== null &&
+    'text' in normalized &&
+    typeof normalized.text === 'string'
+  );
 };
 ```
 

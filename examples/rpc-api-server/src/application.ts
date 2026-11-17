@@ -42,6 +42,8 @@ export class Application extends BaseApplication {
       standard: JOSEStandards.JWS,
       options: {
         jwtSecret: process.env.APP_ENV_JWT_SECRET ?? '',
+        // This server signs and verifies its own tokens: both claims name it.
+        claims: { issuer: 'rpc-api-server', audience: 'rpc-api-server' },
         getTokenExpiresFn: () =>
           Number(
             ParseUtility.blankToUndefined({ input: process.env.APP_ENV_JWT_EXPIRES_IN }) ??

@@ -4,7 +4,7 @@ import { BaseApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications';
 import { EnvironmentKeys } from '@/common/environments';
 import { ControllerTransports } from '@venizia/ignis-kernel';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterEach, describe, expect, test } from 'bun:test';
 
 const TEST_CONFIGS: IApplicationConfigs = {
@@ -29,11 +29,12 @@ class BannerApplication extends BaseApplication {
 const captureBanner = (): string[] => {
   const application = new BannerApplication({ scope: 'BannerApp', config: TEST_CONFIGS });
   const lines: string[] = [];
+
   const record = (message: string, ...args: unknown[]) => {
     lines.push(args.reduce<string>((text, value) => text.replace('%s', String(value)), message));
   };
 
-  application['logger'] = { for: () => ({ info: record, debug: () => {} }) } as AnyType;
+  Reflect.set(application, 'logger', { for: () => ({ info: record, debug: () => {} }) });
   application['printStartUpInfo']({ scope: 'BannerApp' });
 
   return lines;
@@ -64,7 +65,7 @@ describe('the startup banner reads the env names the framework publishes', () =>
   });
 
   test('an unset variable reports the default', () => {
-    expect(captureBanner()).toContain('Timezone: Asia/Ho_Chi_Minh');
+    expect(captureBanner()).toContain('Timezone: UTC');
   });
 
   /**
@@ -74,13 +75,13 @@ describe('the startup banner reads the env names the framework publishes', () =>
   test('a present-but-empty variable reports the default, not a blank', () => {
     process.env[EnvironmentKeys.APP_ENV_APPLICATION_TIMEZONE] = '';
 
-    expect(captureBanner()).toContain('Timezone: Asia/Ho_Chi_Minh');
+    expect(captureBanner()).toContain('Timezone: UTC');
   });
 
   test('a whitespace-only variable reports the default too', () => {
     process.env[EnvironmentKeys.APP_ENV_APPLICATION_TIMEZONE] = '   ';
 
-    expect(captureBanner()).toContain('Timezone: Asia/Ho_Chi_Minh');
+    expect(captureBanner()).toContain('Timezone: UTC');
   });
 
   /**

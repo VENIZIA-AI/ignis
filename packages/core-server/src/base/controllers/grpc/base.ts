@@ -27,6 +27,7 @@ export abstract class BaseGrpcController<
       configs,
       to: ({ handler }) => {
         this.registerRoute({ configs, handler });
+
         return { configs };
       },
     };
@@ -39,6 +40,7 @@ export abstract class BaseGrpcController<
   }): IGrpcDefineRouteOptions {
     const configs = this.getRouteConfigs({ configs: opts.configs });
     this.registerRoute({ configs, handler: opts.handler });
+
     return { configs };
   }
 

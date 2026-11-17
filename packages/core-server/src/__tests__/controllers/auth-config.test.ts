@@ -7,6 +7,7 @@ import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 import type { TRouteContext } from '@/base/controllers';
 import { BaseRestController } from '@/base/controllers';
 import { RouteConfigResolver } from '@venizia/ignis-kernel';
+import type { IAuthRouteConfig, TCrudRoutes } from '@venizia/ignis-kernel';
 import { model } from '@/base/metadata';
 import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { SchemaTypes } from '@venizia/ignis-kernel';
@@ -15,7 +16,7 @@ import { AuthorizationActions } from '@venizia/ignis-kernel';
 import { BasePostgresEntity } from '@venizia/ignis-connectors/postgres';
 import type { TAnyObjectSchema } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 
 const okResponse = OpenApiResponses.jsonResponse({
@@ -33,6 +34,19 @@ class AuthConfigAccount extends BasePostgresEntity<typeof AuthConfigAccount.sche
 
 const entityInstance = new AuthConfigAccount();
 
+/** Every CRUD route listed: a route the resolver is not given has no definition. */
+const ALL_ROUTES = {
+  count: true,
+  find: true,
+  findById: true,
+  findOne: true,
+  create: true,
+  updateById: true,
+  updateBy: true,
+  deleteById: true,
+  deleteBy: true,
+} satisfies TCrudRoutes;
+
 const buildRouteDefinitions = (opts: {
   authenticate?: { strategies?: Array<string>; mode?: string };
   authorize?: object;
@@ -43,7 +57,7 @@ const buildRouteDefinitions = (opts: {
     idType: entityInstance.getIdType(),
     authenticate: opts.authenticate as never,
     authorize: opts.authorize as never,
-    routes: opts.routes as never,
+    routes: { ...ALL_ROUTES, ...opts.routes } as never,
     schema: {
       select: entityInstance.getSchema<TAnyObjectSchema>({ type: SchemaTypes.SELECT }),
       create: entityInstance.getSchema<TAnyObjectSchema>({ type: SchemaTypes.CREATE }),
@@ -63,13 +77,19 @@ const probeController = new AuthProbeController({ scope: 'AuthProbeController', 
 
 /** `getRouteConfigs` is typed as the caller's own RouteConfig; `middleware`/`security` are the fields it injects, so they only exist on the value, never on that type. */
 const injectedRouteConfigs = (
-  configs: AnyType,
+  configs: IAuthRouteConfig | undefined,
 ): {
   middleware?: Array<unknown>;
   security?: Array<Record<string, Array<string>>>;
   tags?: Array<string>;
 } => {
-  return probeController.getRouteConfigs({ configs }) as AnyType;
+  if (!configs) {
+    throw new Error('the route has no definition to process');
+  }
+
+  const { middleware, security, tags } = probeController.getRouteConfigs({ configs });
+
+  return { middleware: Array.isArray(middleware) ? middleware : undefined, security, tags };
 };
 
 describe('Route auth config - controller level vs route level', () => {
@@ -78,7 +98,7 @@ describe('Route auth config - controller level vs route level', () => {
       authenticate: { strategies: [AuthenticateStrategy.JWT], mode: AuthenticationModes.ANY },
     });
 
-    expect(definitions.FIND.authenticate).toEqual({
+    expect(definitions.FIND?.authenticate).toEqual({
       strategies: [AuthenticateStrategy.JWT],
       mode: AuthenticationModes.ANY,
     });
@@ -93,7 +113,7 @@ describe('Route auth config - controller level vs route level', () => {
       routes: { create: { authenticate: { strategies: [AuthenticateStrategy.BASIC] } } },
     });
 
-    expect(definitions.CREATE.authenticate).toEqual({
+    expect(definitions.CREATE?.authenticate).toEqual({
       strategies: [AuthenticateStrategy.BASIC],
       mode: AuthenticationModes.ANY,
     });
@@ -110,8 +130,8 @@ describe('Route auth config - controller level vs route level', () => {
       routes: { find: { authenticate: { skip: true } } },
     });
 
-    expect(definitions.FIND.authenticate).toEqual({ strategies: [] });
-    expect(definitions.FIND.authorize).toBeUndefined();
+    expect(definitions.FIND?.authenticate).toEqual({ strategies: [] });
+    expect(definitions.FIND?.authorize).toBeUndefined();
 
     const routeConfigs = injectedRouteConfigs(definitions.FIND);
     expect(routeConfigs.middleware).toEqual([]);
@@ -125,7 +145,7 @@ describe('Route auth config - controller level vs route level', () => {
       routes: { count: { authorize: { skip: true } } },
     });
 
-    expect(definitions.COUNT.authorize).toBeUndefined();
+    expect(definitions.COUNT?.authorize).toBeUndefined();
 
     const routeConfigs = injectedRouteConfigs(definitions.COUNT);
     expect(routeConfigs.middleware?.length).toBe(1);

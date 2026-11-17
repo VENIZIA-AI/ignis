@@ -21,6 +21,7 @@ import type {
 } from '@venizia/ignis-helpers';
 import { ParseUtility, getError } from '@venizia/ignis-helpers/core';
 import { HTTP, ObjectUtility } from '@venizia/ignis-helpers/common';
+import { DEFAULT_TEMPORAL_TZ } from '@venizia/ignis-helpers/temporal';
 import {
   applicationEnvironment,
   SecretsHelperFactory,
@@ -47,6 +48,7 @@ const selectSecretEnvKeys = (opts: {
 
   if (!entry.keys) {
     const bundleEntries = Object.entries(bundle);
+
     for (const [rawKey, value] of bundleEntries) {
       merged[`${entry.prefix ?? ''}${rawKey}`] = value;
     }
@@ -55,8 +57,10 @@ const selectSecretEnvKeys = (opts: {
   }
 
   const entryKeysEntries = Object.entries(entry.keys);
+
   for (const [rawKey, envKey] of entryKeysEntries) {
     const value = bundle[rawKey];
+
     if (value === undefined) {
       continue;
     }
@@ -67,12 +71,32 @@ const selectSecretEnvKeys = (opts: {
   return merged;
 };
 
+/**
+ * The IGNIS server application: a `ServerApplication` that adds secrets hydration, env validation, start-up info and the gRPC controller branch. Extend it to build an application.
+ *
+ * @example
+ * ```typescript
+ * import { BaseApplication, type IApplicationInfo } from '@venizia/ignis';
+ *
+ * class App extends BaseApplication {
+ *   getAppInfo(): IApplicationInfo { return { name: 'app', version: '1.0.0', description: 'Demo' }; }
+ *   staticConfigure(): void {}
+ *   preConfigure(): void {}
+ *   postConfigure(): void {}
+ *   setupMiddlewares(): void {}
+ * }
+ * const app = new App({ scope: 'App', config: { host: '0.0.0.0', port: 3000, path: { base: '/api', isStrict: true } } });
+ * app.init();
+ * await app.start();
+ * ```
+ */
 export abstract class BaseApplication extends ServerApplication implements IRestApplication {
   protected secretsProvider?: ISecretsHelper;
   protected secretsRegistration?: ISecretsRegistration;
 
   protected normalizePath(...segments: string[]): string {
     const joined = segments.join('/').replace(/\/+/g, '/').replace(/\/$/, '');
+
     return joined || '/';
   }
 
@@ -109,13 +133,16 @@ export abstract class BaseApplication extends ServerApplication implements IRest
         }
 
         const allBindings = this.findByTag({ tag: BindingNamespaces.CONTROLLER });
+
         for (const binding of allBindings) {
           const target = binding.getBindingMeta({ type: BindingValueTypes.CLASS });
+
           if (!target) {
             continue;
           }
 
           const metadata = MetadataRegistry.getInstance().getControllerMetadata({ target });
+
           if (metadata?.transport !== ControllerTransports.GRPC) {
             continue;
           }
@@ -142,6 +169,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
 
     let provider: ISecretsHelper | undefined;
     const emptyHydrations: string[] = [];
+
     try {
       const result = await SecretsHelperFactory.create({ ...registration, identifier: 'app' });
       provider = result;
@@ -150,16 +178,19 @@ export abstract class BaseApplication extends ServerApplication implements IRest
       await this.hydrateSecretEntries({ provider, registration, emptyHydrations, logger });
 
       const registrationLease = registration.lease ?? [];
+
       for (const entry of registrationLease) {
         await provider.lease({ path: entry.path, key: entry.key });
       }
     } catch (error) {
       const env = Environment.current;
+
       if (!Environment.DEVELOPMENT_ENVS.has(env.toLowerCase())) {
         throw getError({
           message: `[hydrateSecrets] Secret provider failed in non-development environment | env: ${env}`,
         });
       }
+
       logger.warn(
         'Secret provider failed; falling back to system-envs | env: %s | error: %s',
         env,
@@ -176,6 +207,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
           );
         }
       }
+
       const result2 = await SecretsHelperFactory.create({
         provider: SecretProviders.SYSTEM_ENVS,
         identifier: 'app',
@@ -189,11 +221,13 @@ export abstract class BaseApplication extends ServerApplication implements IRest
 
     if (emptyHydrations.length > 0) {
       const env = Environment.current;
+
       if (!Environment.DEVELOPMENT_ENVS.has(env.toLowerCase())) {
         throw getError({
           message: `[hydrateSecrets] Hydrate entries resolved to an empty secret bundle in non-development environment | env: ${env} | paths: ${emptyHydrations.join(', ')}`,
         });
       }
+
       logger.warn(
         'Hydrate entries resolved to an empty secret bundle; continuing in development | env: %s | paths: %s',
         env,
@@ -220,9 +254,11 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     const { provider, registration, emptyHydrations, logger } = opts;
 
     const registrationHydrate = registration.hydrate ?? [];
+
     for (const entry of registrationHydrate) {
       const bundle = await provider.getBundle({ path: entry.path });
       const merged = this.mergeSecretsIntoEnv({ bundle, entry });
+
       if (Object.keys(merged).length > 0) {
         continue;
       }
@@ -247,19 +283,24 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     const merged = selectSecretEnvKeys({ bundle, entry });
 
     const mergedEntries = Object.entries(merged);
+
     for (const [key, value] of mergedEntries) {
       process.env[key] = value;
     }
+
     applicationEnvironment.merge({ envs: merged });
+
     return merged;
   }
 
   /** A hydrate entry declares an expectation only via explicit `keys` or a non-empty `prefix`; such an entry resolving to zero env values is a misconfiguration boot must not silently absorb. */
   protected hydrateEntryDeclaresExpectation(opts: { entry: ISecretHydrateEntry }): boolean {
     const { entry } = opts;
+
     if (entry.keys && Object.keys(entry.keys).length > 0) {
       return true;
     }
+
     return typeof entry.prefix === 'string' && entry.prefix.length > 0;
   }
 
@@ -267,16 +308,20 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     const logger = this.logger.for(this.wireSecretRotatables.name);
     const provider = this.secretsProvider;
     const registration = this.secretsRegistration;
+
     if (!provider || !registration?.lease?.length) {
       return;
     }
+
     for (const entry of registration.lease) {
       const instance = this.get<ISecretRotatable>({ key: entry.key, isOptional: true });
+
       if (instance && typeof instance.onSecretRotated === 'function') {
         provider.registerRotatable({ key: entry.key, target: instance });
         logger.info('Wired rotatable | key: %s', entry.key);
         continue;
       }
+
       logger.debug('Lease key has no rotatable consumer | key: %s', entry.key);
     }
   }
@@ -295,6 +340,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
         restPath,
         folderPath,
       );
+
     return this;
   }
 
@@ -328,7 +374,10 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     this.logger.for(scope).info('RunMode: %s', process.env.RUN_MODE);
     this.logger
       .for(scope)
-      .info('Timezone: %s', read(EnvironmentKeys.APP_ENV_APPLICATION_TIMEZONE, 'Asia/Ho_Chi_Minh'));
+      .info(
+        'Timezone: %s',
+        read(EnvironmentKeys.APP_ENV_APPLICATION_TIMEZONE, DEFAULT_TEMPORAL_TZ),
+      );
     this.logger
       .for(scope)
       .info('LogPath: %s', read(EnvironmentKeys.APP_ENV_LOGGER_FOLDER_PATH, './'));
@@ -400,11 +449,12 @@ export abstract class BaseApplication extends ServerApplication implements IRest
           'Envs: %s | SKIPPED - set ALLOW_EMPTY_ENV_VALUE=false to reject empty values',
           envKeys.length,
         );
+
       return;
     }
 
     for (const argKey of envKeys) {
-      const argValue = applicationEnvironment.get<string | number>(argKey);
+      const argValue = applicationEnvironment.get(argKey);
 
       if (!ObjectUtility.isEmpty({ value: argValue })) {
         continue;
@@ -481,6 +531,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
   protected validateScopeFilterSupport(): void {
     ScopeFilterUtility.assertScopeFilterSupported({
       asyncContextEnabled: this.configs.asyncContext?.enable ?? false,
+      logger: this.logger,
     });
   }
 }

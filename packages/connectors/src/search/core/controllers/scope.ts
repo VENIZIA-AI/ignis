@@ -2,7 +2,7 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { ScopeFilters } from '@venizia/ignis-kernel';
-import type { TRouteContext, TWhere } from '@venizia/ignis-kernel';
+import type { TInjected, TInjectMap, TRouteContext, TWhere } from '@venizia/ignis-kernel';
 import type { Env } from 'hono';
 import type { TSearchInput } from '@/search/core/repositories/common';
 import { SearchModes } from '@/search/core/repositories/common';
@@ -12,8 +12,16 @@ import { SearchModes } from '@/search/core/repositories/common';
  * sharing rule). Return a `where`, `ScopeFilters.UNRESTRICTED` to apply none for this call, or
  * null/undefined when the caller's scope is unknown - which refuses the request.
  */
-export type TSearchScopeResolver<RouteEnv extends Env = Env> = (opts: {
+export type TSearchScopeResolver<
+  RouteEnv extends Env = Env,
+  TExtra extends object = {},
+  Inject extends TInjectMap = {},
+> = (opts: {
   context: TRouteContext<RouteEnv>;
+  /** The validated request body: the search input, and the keys the controller's `request.body.extend` adds. */
+  input: TSearchInput & TExtra;
+  /** The instances of the classes `inject` declares. */
+  injected: TInjected<Inject>;
 }) => ValueOrPromise<TWhere | typeof ScopeFilters.UNRESTRICTED | null | undefined>;
 
 export class SearchControllerScope {
@@ -31,19 +39,26 @@ export class SearchControllerScope {
    *
    * Fails closed:
    * - a scope that is null, undefined, or throws refuses the request (403);
-   * - `raw` mode and `engineParams` hand the engine its own wire parameters (`filter_by` among them),
-   *   which a `where` cannot be ANDed into, so a scoped controller refuses them (400).
+   * - `raw` mode hands the engine its own wire parameters (`filter_by` among them), which a `where` cannot be
+   *   ANDed into, so a scoped controller refuses it (400). `engineParams` is checked before this, on every controller
+   *   (`SearchEngineParams`): what a controller allows there never selects rows or fields.
    */
-  static async applySearchScope<RouteEnv extends Env = Env>(opts: {
-    resolve: TSearchScopeResolver<RouteEnv>;
+  static async applySearchScope<
+    RouteEnv extends Env = Env,
+    TExtra extends object = {},
+    Inject extends TInjectMap = {},
+  >(opts: {
+    resolve: TSearchScopeResolver<RouteEnv, TExtra, Inject>;
     context: TRouteContext<RouteEnv>;
-    input: TSearchInput;
-  }): Promise<TSearchInput> {
-    const { resolve, context, input } = opts;
+    input: TSearchInput & TExtra;
+    injected: TInjected<Inject>;
+  }): Promise<TSearchInput & TExtra> {
+    const { resolve, context, input, injected } = opts;
 
-    let scope: Awaited<ReturnType<TSearchScopeResolver<RouteEnv>>>;
+    let scope: Awaited<ReturnType<TSearchScopeResolver<RouteEnv, TExtra, Inject>>>;
+
     try {
-      const result = await resolve({ context });
+      const result = await resolve({ context, input, injected });
       scope = result;
     } catch (error) {
       throw SearchControllerScope.refuse({
@@ -71,13 +86,6 @@ export class SearchControllerScope {
       });
     }
 
-    if (input.engineParams !== undefined) {
-      throw SearchControllerScope.refuse({
-        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-        message: '[search] engineParams is not available on a scoped search controller',
-      });
-    }
-
     const clientWhere = input.filter?.where;
 
     return {
@@ -86,6 +94,6 @@ export class SearchControllerScope {
         ...input.filter,
         where: clientWhere ? { and: [scope, clientWhere] } : scope,
       },
-    } as TSearchInput;
+    } as TSearchInput & TExtra;
   }
 }

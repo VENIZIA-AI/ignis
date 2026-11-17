@@ -16,11 +16,13 @@ const loadsPeer = async (specifier: string, peerPathFragment: string): Promise<b
     stderr: 'pipe',
   });
   const stdout = result.stdout.toString();
+
   if (!stdout.includes('PEER_LOADED') && !stdout.includes('PEER_ABSENT')) {
     throw new Error(
       `[no-eager-peer-import] probe failed | stdout: ${stdout} | stderr: ${result.stderr.toString()}`,
     );
   }
+
   return stdout.includes('PEER_LOADED');
 };
 

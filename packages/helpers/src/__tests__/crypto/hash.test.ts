@@ -138,6 +138,7 @@ describe('Hash', () => {
 
     test('never returns the plaintext message when the secret is missing', () => {
       let caught: unknown;
+
       try {
         Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({ message: MESSAGE, secret: '' });
       } catch (error) {
@@ -325,5 +326,155 @@ describe('Hash - bytes and several parts', () => {
         );
       }
     });
+  });
+});
+
+describe('Hash.verify - constant-time comparison', () => {
+  const sha256 = Hash.withAlgorithm(HashAlgorithms.SHA256);
+
+  test('equal: the digest of the value, in hex', () => {
+    const expected = C.createHash('sha256').update(MESSAGE).digest('hex');
+    expect(sha256.verify({ value: MESSAGE, expected })).toBe(true);
+  });
+
+  test('equal: a keyed signature when a secret is given', () => {
+    const expected = C.createHmac('sha256', SECRET).update(MESSAGE).digest('hex');
+    expect(sha256.verify({ value: MESSAGE, secret: SECRET, expected })).toBe(true);
+  });
+
+  test('different: same length, one character changed', () => {
+    const real = C.createHash('sha256').update(MESSAGE).digest('hex');
+    const expected = `${real.slice(0, -1)}${real.endsWith('0') ? '1' : '0'}`;
+    expect(expected).toHaveLength(real.length);
+    expect(sha256.verify({ value: MESSAGE, expected })).toBe(false);
+  });
+
+  test('different: a signature made with another secret', () => {
+    const expected = C.createHmac('sha256', 'other-secret').update(MESSAGE).digest('hex');
+    expect(sha256.verify({ value: MESSAGE, secret: SECRET, expected })).toBe(false);
+  });
+
+  test('different: a keyed signature does not verify as a plain digest, and the reverse', () => {
+    const keyed = C.createHmac('sha256', SECRET).update(MESSAGE).digest('hex');
+    const plain = C.createHash('sha256').update(MESSAGE).digest('hex');
+    expect(sha256.verify({ value: MESSAGE, expected: keyed })).toBe(false);
+    expect(sha256.verify({ value: MESSAGE, secret: SECRET, expected: plain })).toBe(false);
+  });
+
+  test('different length: false, never a throw', () => {
+    const real = C.createHash('sha256').update(MESSAGE).digest('hex');
+
+    for (const expected of ['', 'a', real.slice(0, -2), `${real}00`]) {
+      expect(() => sha256.verify({ value: MESSAGE, expected })).not.toThrow();
+      expect(sha256.verify({ value: MESSAGE, expected })).toBe(false);
+    }
+  });
+
+  test('length is counted in bytes: a multi-byte character cannot pad a short value', () => {
+    const real = C.createHash('sha256').update(MESSAGE).digest('hex');
+    const expected = `${real.slice(0, -1)}é`;
+    expect(Buffer.byteLength(expected)).not.toBe(real.length);
+    expect(sha256.verify({ value: MESSAGE, expected })).toBe(false);
+  });
+
+  for (const outputEncoding of [
+    HashOutputEncodings.HEX,
+    HashOutputEncodings.BASE64,
+    HashOutputEncodings.BASE64URL,
+  ] as THashOutputEncoding[]) {
+    test(`encoding ${outputEncoding}: verifies in the encoding it is told`, () => {
+      const digest = C.createHash('sha256').update(MESSAGE).digest(outputEncoding);
+      const signature = C.createHmac('sha256', SECRET).update(MESSAGE).digest(outputEncoding);
+      const opts = { outputEncoding };
+
+      expect(sha256.verify({ value: MESSAGE, expected: digest, opts })).toBe(true);
+      expect(sha256.verify({ value: MESSAGE, secret: SECRET, expected: signature, opts })).toBe(
+        true,
+      );
+    });
+  }
+
+  test('encoding: a hex digest does not verify as base64', () => {
+    const hex = C.createHash('sha256').update(MESSAGE).digest('hex');
+    expect(
+      sha256.verify({ value: MESSAGE, expected: hex, opts: { outputEncoding: 'base64' } }),
+    ).toBe(false);
+  });
+
+  test('hex in upper case is a different text', () => {
+    const hex = C.createHash('sha256').update(MESSAGE).digest('hex');
+    expect(sha256.verify({ value: MESSAGE, expected: hex.toUpperCase() })).toBe(false);
+  });
+
+  test('bytes verify like the text of the same bytes', () => {
+    const expected = C.createHash('sha256').update(MESSAGE).digest('hex');
+    expect(sha256.verify({ value: new TextEncoder().encode(MESSAGE), expected })).toBe(true);
+  });
+
+  test('an empty secret is refused, as hmac refuses it: a signature check never degrades to a plain digest', () => {
+    const expected = C.createHash('sha256').update(MESSAGE).digest('hex');
+    expect(() => sha256.verify({ value: MESSAGE, secret: '', expected })).toThrow();
+  });
+});
+
+describe('Hash.equals - two strings in constant time', () => {
+  const DIGEST = C.createHash('sha256').update(MESSAGE).digest('hex');
+
+  test('equal strings are equal, and so are two empty ones', () => {
+    expect(Hash.equals({ value: DIGEST, expected: DIGEST })).toBe(true);
+    expect(Hash.equals({ value: '', expected: '' })).toBe(true);
+    expect(Hash.equals({ value: 'caf\u00e9', expected: 'caf\u00e9' })).toBe(true);
+  });
+
+  test('a different string of the same length is false', () => {
+    const other = `${DIGEST.slice(0, -1)}${DIGEST.endsWith('0') ? '1' : '0'}`;
+
+    expect(Hash.equals({ value: DIGEST, expected: other })).toBe(false);
+    expect(Hash.equals({ value: DIGEST, expected: DIGEST.toUpperCase() })).toBe(false);
+  });
+
+  test('a different length is false and never a throw, in either order', () => {
+    for (const other of ['', 'a', DIGEST.slice(0, -1), `${DIGEST}0`]) {
+      expect(() => Hash.equals({ value: DIGEST, expected: other })).not.toThrow();
+      expect(Hash.equals({ value: DIGEST, expected: other })).toBe(false);
+      expect(Hash.equals({ value: other, expected: DIGEST })).toBe(false);
+    }
+  });
+
+  test('length is counted in bytes: a multi-byte character cannot pad a short value', () => {
+    const expected = `${DIGEST.slice(0, -1)}\u00e9`;
+
+    expect(Buffer.byteLength(expected)).not.toBe(DIGEST.length);
+    expect(Hash.equals({ value: DIGEST, expected })).toBe(false);
+  });
+
+  test('a value that is not a string is false, not a throw', () => {
+    for (const bad of [undefined, null, 1, {}, [DIGEST], Buffer.from(DIGEST)]) {
+      const input = bad as unknown as string;
+
+      expect(() => Hash.equals({ value: input, expected: DIGEST })).not.toThrow();
+      expect(Hash.equals({ value: input, expected: DIGEST })).toBe(false);
+      expect(Hash.equals({ value: DIGEST, expected: input })).toBe(false);
+    }
+  });
+
+  test('verify answers through it: base64 is exact text, so the unpadded and URL-safe forms are refused', () => {
+    const sha256 = Hash.withAlgorithm(HashAlgorithms.SHA256);
+    const base64 = C.createHash('sha256').update('?>?').digest('base64');
+    const unpadded = base64.replace(/=+$/, '');
+    const urlSafe = base64.replace(/\+/g, '-').replace(/\//g, '_');
+    const opts = { outputEncoding: 'base64' as const };
+
+    expect(base64).toMatch(/[+/=]/);
+    expect(sha256.verify({ value: '?>?', expected: base64, opts })).toBe(true);
+    expect(sha256.verify({ value: '?>?', expected: unpadded, opts })).toBe(false);
+    expect(sha256.verify({ value: '?>?', expected: urlSafe, opts })).toBe(false);
+    expect(
+      sha256.verify({
+        value: '?>?',
+        expected: C.createHash('sha256').update('?>?').digest('base64url'),
+        opts: { outputEncoding: 'base64url' },
+      }),
+    ).toBe(true);
   });
 });

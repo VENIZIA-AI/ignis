@@ -30,6 +30,7 @@ class GizmoConnector implements IRawSqlConnector {
     }
 
     const result = await this.client.run(query);
+
     return { rows: result };
   }
 }
@@ -70,6 +71,7 @@ class DailyRevenueRepository extends BaseRawSqlRepository<GizmoConnector> {
     const { rows } = await this.connector.execute(
       `select day, sum(total) from revenue where day >= '${opts.day}'`,
     );
+
     return rows;
   }
 }

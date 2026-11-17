@@ -106,6 +106,7 @@ describe('ScopedCasbinAdapter domain token, built in SQL from the stored pair', 
       ['perm-1', 'Order.find', 'Order', 'find', 'read'],
       ['perm-2', 'Order.node', 'Order', '*', 'manage'],
     ];
+
     for (const permission of permissions) {
       await db.query(
         `INSERT INTO identity."Permission" (id, code, subject, method, action) VALUES ($1, $2, $3, $4, $5)`,
@@ -117,6 +118,7 @@ describe('ScopedCasbinAdapter domain token, built in SQL from the stored pair', 
       execute: async (query: SQL) => {
         const { sql: text, params } = dialect.sqlToQuery(query);
         const result = await db.query(text, params as unknown[]);
+
         return { rows: result.rows };
       },
     };
@@ -259,6 +261,7 @@ describe('the domain closure handed to resolveDomainEdges', () => {
       execute: async (query: SQL) => {
         const { sql: text, params } = dialect.sqlToQuery(query);
         const result = await db.query(text, params as unknown[]);
+
         return { rows: result.rows };
       },
     };
@@ -268,6 +271,7 @@ describe('the domain closure handed to resolveDomainEdges', () => {
       entities: entities(),
       resolveDomainEdges: async ({ domains }) => {
         capture.push([...domains].sort());
+
         return [];
       },
     });
@@ -291,6 +295,7 @@ describe('the domain closure handed to resolveDomainEdges', () => {
     await buildAdapter(capture).loadFilteredPolicy(model, {
       principal: { type: 'User', id: 'u1' },
     });
+
     return capture;
   };
 

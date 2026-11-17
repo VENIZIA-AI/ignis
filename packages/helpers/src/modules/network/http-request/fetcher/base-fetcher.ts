@@ -1,5 +1,4 @@
 import { HTTP, type THttpMethod } from '@/common/constants/http';
-import { type AnyObject } from '@/common/types';
 // The leaf file, never the logger BARREL: that barrel reaches `node:module` and would drag this
 // browser-pure fetcher contract with it.
 import type { ILogger } from '@/modules/logger/common/types';
@@ -8,14 +7,16 @@ import { type TFetcherVariant } from '../common';
 /** What a fetcher calls on the logger it is handed, so a host logger with only these two (a browser app's) is accepted as is. */
 export type TFetcherLogger = Pick<ILogger, 'debug' | 'info'>;
 
+/** Options every fetcher accepts. `timeout` is in milliseconds; other keys pass through to the underlying client. */
 export interface IRequestOptions {
   url: string;
   method?: THttpMethod;
-  params?: AnyObject;
+  params?: Record<string, unknown>;
   timeout?: number;
-  [extra: symbol | string]: any;
+  [extra: symbol | string]: unknown;
 }
 
+/** Contract of an HTTP fetcher: `send` takes the method from the options, the verb methods fix it, and `getWorker` returns the underlying client (`W`). */
 export interface IFetchable<
   V extends TFetcherVariant,
   RQ extends IRequestOptions,
@@ -70,31 +71,37 @@ export abstract class AbstractNetworkFetchableHelper<
 
   get(opts: RQ, logger?: TFetcherLogger) {
     const { ...rest } = opts;
+
     return this.send({ ...rest, method: HTTP.Methods.GET }, logger);
   }
 
   post(opts: RQ, logger?: TFetcherLogger) {
     const { ...rest } = opts;
+
     return this.send({ ...rest, method: HTTP.Methods.POST }, logger);
   }
 
   put(opts: RQ, logger?: TFetcherLogger) {
     const { ...rest } = opts;
+
     return this.send({ ...rest, method: HTTP.Methods.PUT }, logger);
   }
 
   patch(opts: RQ, logger?: TFetcherLogger) {
     const { ...rest } = opts;
+
     return this.send({ ...rest, method: HTTP.Methods.PATCH }, logger);
   }
 
   delete(opts: RQ, logger?: TFetcherLogger) {
     const { ...rest } = opts;
+
     return this.send({ ...rest, method: HTTP.Methods.DELETE }, logger);
   }
 
   query(opts: RQ, logger?: TFetcherLogger) {
     const { ...rest } = opts;
+
     return this.send({ ...rest, method: HTTP.Methods.QUERY }, logger);
   }
 }

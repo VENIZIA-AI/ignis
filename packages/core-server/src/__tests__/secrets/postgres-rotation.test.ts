@@ -1,7 +1,7 @@
 import { datasource } from '@venizia/ignis-kernel';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { describe, expect, test } from 'bun:test';
 
 class FakePool {
@@ -9,52 +9,66 @@ class FakePool {
   totalCount = 0;
   idleCount = 0;
   waitingCount = 0;
-  constructor(public config: AnyType) {}
+  constructor(public config: object) {}
   async connect() {
     return { query: async () => ({}), release: () => {} };
   }
+
   async query() {
     return {};
   }
+
   async end() {
     this.ended = true;
   }
 }
 
 @datasource({ driver: NodePostgresDriver })
-class RotatingDataSource extends BasePostgresDataSource<{ user?: string; password?: string }> {
+class RotatingDataSource extends BasePostgresDataSource<
+  { user?: string; password?: string },
+  TAnyDataSourceSchema,
+  {},
+  FakePool
+> {
   builds: FakePool[] = [];
   constructor() {
     super({ name: 'rotating', config: { user: 'old', password: 'old-pass' } });
   }
+
   configure(): void {
-    const pool = new FakePool(this.getSettings()) as AnyType;
+    const pool = new FakePool(this.getSettings());
     this.builds.push(pool);
     this.client = pool;
   }
+
   getConnectionString(): string {
     return 'postgres://fake';
   }
 }
 
 @datasource({ driver: NodePostgresDriver })
-class FailingRotatingDataSource extends BasePostgresDataSource<{
-  user?: string;
-  password?: string;
-}> {
+class FailingRotatingDataSource extends BasePostgresDataSource<
+  { user?: string; password?: string },
+  TAnyDataSourceSchema,
+  {},
+  FakePool
+> {
   builds: FakePool[] = [];
   failNext = false;
   constructor() {
     super({ name: 'failing-rotating', config: { user: 'old', password: 'old-pass' } });
   }
+
   configure(): void {
-    const pool = new FakePool(this.getSettings()) as AnyType;
+    const pool = new FakePool(this.getSettings());
     this.builds.push(pool);
     this.client = pool;
+
     if (this.failNext) {
       throw new Error('bad rotated creds');
     }
   }
+
   getConnectionString(): string {
     return 'postgres://fake';
   }
@@ -84,6 +98,7 @@ describe('Postgres onSecretRotated', () => {
 
     ds.failNext = true;
     let caught: unknown;
+
     try {
       await ds.onSecretRotated({
         key: 'datasources.postgres',
@@ -92,6 +107,7 @@ describe('Postgres onSecretRotated', () => {
     } catch (error) {
       caught = error;
     }
+
     expect(caught).toBeInstanceOf(Error);
     expect((caught as Error).message).toContain('bad rotated creds');
 
@@ -101,11 +117,11 @@ describe('Postgres onSecretRotated', () => {
 
     // The datasource must be UNCHANGED and still usable on the old pool.
     expect(oldPool.ended).toBe(false);
-    expect(ds.getClient()).toBe(oldPool as AnyType);
+    expect(ds.getClient()).toBe(oldPool);
     expect(() => ds.getConnector()).not.toThrow();
 
     // Old credentials must be restored so a later query/rebuild does not use half-rotated settings.
-    expect((ds.getSettings() as AnyType).user).toBe('old');
-    expect((ds.getSettings() as AnyType).password).toBe('old-pass');
+    expect(ds.getSettings().user).toBe('old');
+    expect(ds.getSettings().password).toBe('old-pass');
   });
 });

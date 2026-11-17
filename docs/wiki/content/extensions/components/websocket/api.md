@@ -269,12 +269,14 @@ interface IWebSocketEmitterOptions {
 
 | Method | Signature | Behavior |
 |--------|-----------|----------|
-| `configure()` | `(): Promise<void>` | Registers a Redis `error` handler, connects if lazy (`status === 'wait'`), waits for `'ready'` (30s timeout). Call before any send method. |
+| `configure()` | `(): Promise<void>` | Registers a Redis `error` handler, connects if lazy, waits for `'ready'` |
 | `toClient()` | `(opts: { clientId; event; data }): Promise<void>` | Publishes to `ws:client:{clientId}` |
 | `toUser()` | `(opts: { userId; event; data }): Promise<void>` | Publishes to `ws:user:{userId}` |
 | `toRoom()` | `(opts: { room; event; data; exclude? }): Promise<void>` | Publishes to `ws:room:{room}`, forwarding `exclude` |
 | `broadcast()` | `(opts: { event; data }): Promise<void>` | Publishes to `ws:broadcast` |
-| `shutdown()` | `(): Promise<void>` | Calls `redisPub.quit()` - always call when the emitter is no longer needed |
+| `shutdown()` | `(): Promise<void>` | Calls `redisPub.quit()` |
+
+`configure()` connects when the Redis status is `'wait'` and times out after 30s. Call it before any send method. Always call `shutdown()` when the emitter is no longer needed.
 
 ## Internals
 
@@ -287,7 +289,12 @@ Reads all binding keys and validates the required ones, throwing before the post
 | `SERVER_OPTIONS` | Optional, merged with `DEFAULT_SERVER_OPTIONS` via `Object.assign()` | -- |
 | `REDIS_CONNECTION` | Must pass `isRedisHelper()` | `"Invalid instance of redisConnection ..."` |
 | `AUTHENTICATE_HANDLER` | Must be truthy | `"Invalid authenticateFn to setup WebSocket server!"` |
-| `VALIDATE_ROOM_HANDLER` / `CLIENT_CONNECTED_HANDLER` / `CLIENT_DISCONNECTED_HANDLER` / `MESSAGE_HANDLER` / `OUTBOUND_TRANSFORMER` / `HANDSHAKE_HANDLER` | Optional, `null` coerced to `undefined` | -- |
+| `VALIDATE_ROOM_HANDLER` | Optional, `null` coerced to `undefined` | -- |
+| `CLIENT_CONNECTED_HANDLER` | Optional, `null` coerced to `undefined` | -- |
+| `CLIENT_DISCONNECTED_HANDLER` | Optional, `null` coerced to `undefined` | -- |
+| `MESSAGE_HANDLER` | Optional, `null` coerced to `undefined` | -- |
+| `OUTBOUND_TRANSFORMER` | Optional, `null` coerced to `undefined` | -- |
+| `HANDSHAKE_HANDLER` | Optional, `null` coerced to `undefined` | -- |
 
 ### `registerBunHook()`
 
@@ -309,10 +316,12 @@ The component has no runtime check of its own. `ServerApplication.start()` throw
 
 | Callback | Responsibility |
 |----------|---------------|
-| `open` | Creates the `IWebSocketClient` entry in state `UNAUTHORIZED`, subscribes the socket to its own `clientId` topic, starts the auth timer (skips if `clientId` already exists) |
+| `open` | Creates the client entry in state `UNAUTHORIZED`, subscribes to its own `clientId` topic, starts the auth timer |
 | `message` | Updates `lastActivity`, then routes the parsed event - see the table below |
-| `close` | Clears the auth timer, removes the client from `users`/`rooms`/`clients`, invokes `clientDisconnectedFn` (errors caught and logged) |
+| `close` | Clears the auth timer, removes the client from state, invokes `clientDisconnectedFn` |
 | `drain` | Resets `client.backpressured = false` |
+
+`open` skips a `clientId` that already exists. `close` removes the client from `users`, `rooms` and `clients`, and catches and logs any error from `clientDisconnectedFn`.
 
 The `message` callback routes each event like this:
 
@@ -331,7 +340,9 @@ The `message` callback routes each event like this:
 |------------------------|---------|--------|
 | `> 0` | Sent successfully (byte count) | None |
 | `0` | Dropped (socket already closed) | Logs `"Message dropped (socket closed)"` |
-| `-1` | Backpressure (Bun's send buffer full) | Sets `client.backpressured = true`, logs a warning. Bun still queues the message; `drain` fires and resets the flag once the buffer clears |
+| `-1` | Backpressure (Bun's send buffer full) | Sets `client.backpressured = true`, logs a warning |
+
+On backpressure Bun still queues the message; `drain` fires and resets the flag once the buffer clears.
 
 Any exception thrown by `socket.send()` is caught and logged.
 

@@ -258,6 +258,7 @@ describe('a call adds its own headers and an abort signal', () => {
   test('an aborted signal rejects the call', async () => {
     globalThis.fetch = (async (_url: string, init?: RequestInit) => {
       init?.signal?.throwIfAborted();
+
       return new Response('[]');
     }) as never;
 
@@ -478,6 +479,7 @@ describe('review cases', () => {
       onUnauthorized: (context) => {
         seenSignal = context.signal;
         controller.abort();
+
         return true;
       },
     });
@@ -591,7 +593,8 @@ describe('write extras', () => {
       },
     ]);
 
-    const result = await new HttpDataSource({ baseUrl: BASE_URL }).write({
+    const httpDataSource = new HttpDataSource({ baseUrl: BASE_URL });
+    const result = await httpDataSource.write({
       paths: ['items', 'bulk'],
       method: 'POST',
       body: {},
@@ -606,7 +609,8 @@ describe('write extras', () => {
     const row = { id: 1, data: [1], extra: { note: 'x' } };
     stubFetch([{ status: 200, text: JSON.stringify(row) }]);
 
-    const result = await new HttpDataSource({ baseUrl: BASE_URL }).write({
+    const httpDataSource = new HttpDataSource({ baseUrl: BASE_URL });
+    const result = await httpDataSource.write({
       paths: ['items'],
       method: 'POST',
       body: {},

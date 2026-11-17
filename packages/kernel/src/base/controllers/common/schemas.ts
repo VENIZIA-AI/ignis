@@ -27,6 +27,7 @@ export const trackableHeaders = z.object({
     }),
 });
 
+/** Request header schema for the `x-request-count-data` header, which switches a response between `{ count, data }` and the raw payload. */
 export const countableHeaders = z.object({
   [HTTP.Headers.REQUEST_COUNT_DATA]: z
     .string()
@@ -38,4 +39,5 @@ export const countableHeaders = z.object({
     }),
 });
 
+/** Default request headers of a CRUD route: the trackable headers plus the count header. */
 export const defaultRequestHeaders = trackableHeaders.extend(countableHeaders.shape);

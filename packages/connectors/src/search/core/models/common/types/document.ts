@@ -36,5 +36,7 @@ export type TSearchDocument<T extends ISearchCollectionDefinition> = { id: strin
       : F extends { vector: { embed: object } }
         ? never
         : F['name']
-  ]?: TSearchFieldTsType<F['type']>;
+  ]?: F extends { nullable: true }
+    ? TSearchFieldTsType<F['type']> | null
+    : TSearchFieldTsType<F['type']>;
 };

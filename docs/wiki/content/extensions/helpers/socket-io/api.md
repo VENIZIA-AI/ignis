@@ -145,7 +145,7 @@ io.of('/admin').on('connection', socket => {
 });
 ```
 
-#### `getEngine(): any`
+#### `getEngine(): TSocketIOBunEngine | undefined`
 
 Returns the Bun engine instance.
 
@@ -154,8 +154,15 @@ Returns the Bun engine instance.
 Without `id`, returns the full `Map<string, ISocketIOClient>`. With `{ id }`, returns that client's entry or `undefined`.
 
 ```typescript
-const allClients = socketServer.getClients() as Map<string, ISocketIOClient>;
-const client = socketServer.getClients({ id: 'socket-id' }) as ISocketIOClient | undefined;
+const clients = socketServer.getClients();
+if (clients instanceof Map) {
+  console.log(`${clients.size} connected`);
+}
+
+const client = socketServer.getClients({ id: 'socket-id' });
+if (client && !(client instanceof Map)) {
+  console.log(client.id, client.state);
+}
 ```
 
 #### `on<HandlerArgsType extends unknown[] = unknown[], HandlerReturnType = void>(opts: { topic: string; handler: (...args: HandlerArgsType) => ValueOrPromise<HandlerReturnType> }): void`
@@ -218,7 +225,7 @@ Emits `'ping'` to the client with `{ time: ISO string }`.
 
 No-op if `socket` is falsy.
 
-#### `send(opts: { destination?: string; payload: { topic: string; data: any }; doLog?: boolean; callback?: () => void }): void`
+#### `send(opts: { destination?: string; payload: { topic: string; data: unknown }; doLog?: boolean; callback?: () => void }): void`
 
 Emits through the Redis emitter with compression enabled (`emitter.compress(true)`), reaching clients on **any** server instance.
 
@@ -268,14 +275,14 @@ Creates the `socket.io-client` connection (`io(host, options)`) and registers th
 The same helper with nothing node in its graph (the browser-purity gate claims it), for an app that bundles for a browser. It never looks for `socket.io-client` on disk: you pass it in as `module`, and omitting it throws a 500 naming the option.
 
 ```typescript
-import { io } from 'socket.io-client';
+import * as socketIo from 'socket.io-client';
 import { SocketIOClientHelper } from '@venizia/ignis-helpers/socket-io/client';
 
 const client = new SocketIOClientHelper({
   identifier: 'app-socket',
   host: 'https://api.example.com',
   options: { path: '/io', extraHeaders: {} },
-  module: { io } as typeof import('socket.io-client'),
+  module: socketIo,
 });
 ```
 
@@ -471,7 +478,7 @@ interface IHandshake {
   issued: number;
   url: string;
   query: ParsedUrlQuery;
-  auth: { [key: string]: any };
+  auth: { [key: string]: unknown };
 }
 ```
 
@@ -490,7 +497,7 @@ interface ISocketIOClient {
 ### `TSocketIOClientState`
 
 ```typescript
-type TSocketIOClientState = 'unauthorized' | 'authenticating' | 'authenticated';
+type TSocketIOClientState = TConstValue<typeof SocketIOClientStates>; // 'unauthorized' | 'authenticating' | 'authenticated'
 ```
 
 ### `TSocketIOAuthenticateFn`
@@ -524,7 +531,7 @@ Client connection options. Extends `SocketOptions` from `socket.io-client`; `pat
 ```typescript
 interface IOptions extends SocketOptions {
   path: string;
-  extraHeaders: Record<string | symbol | number, any>;
+  extraHeaders: Record<string, string>;
 }
 ```
 
@@ -564,7 +571,7 @@ interface ISocketIOServerBaseOptions {
 
 interface ISocketIOServerBunOptions extends ISocketIOServerBaseOptions {
   runtime: 'bun';
-  engine: any; // @socket.io/bun-engine Server instance - typed `any` since it's an optional peer dep
+  engine: TSocketIOBunEngine; // a @socket.io/bun-engine Server instance; `TSocketIOBunEngine` is `object`, the engine being an optional peer
 }
 ```
 

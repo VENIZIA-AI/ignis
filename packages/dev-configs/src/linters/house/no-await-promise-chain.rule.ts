@@ -1,10 +1,9 @@
 import type { Rule, Scope, SourceCode } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
-import { AwaitSupport } from './await-support';
+import { AwaitSupport, STATEMENT_LISTS } from './await-support';
 import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 import { PromiseChainSupport } from './promise-chain-support';
 
-const STATEMENT_LISTS = new Set(['BlockStatement', 'Program', 'StaticBlock', 'SwitchCase']);
 /** The catch variable the fix writes when the handler has no parameter. */
 const CATCH_NAME = 'error';
 
@@ -31,48 +30,52 @@ const collectValue = (opts: {
   const value = (child: unknown) => collectValue({ node: child, parameter, identifiers });
 
   switch (type) {
-    case 'Literal': {
+    case AstNodeTypes.LITERAL: {
       return true;
     }
-    case 'Identifier': {
+    case AstNodeTypes.IDENTIFIER: {
       identifiers.push(node);
+
       return true;
     }
-    case 'TemplateLiteral': {
+    case AstNodeTypes.TEMPLATE_LITERAL: {
       return PromiseChainSupport.isConstant({ node });
     }
-    case 'UnaryExpression': {
+    case AstNodeTypes.UNARY_EXPRESSION: {
       return PromiseChainSupport.isConstant({ node });
     }
-    case 'ChainExpression': {
+    case AstNodeTypes.CHAIN_EXPRESSION: {
       return value(AstNode.readField({ node, key: 'expression' }));
     }
-    case 'MemberExpression': {
+    case AstNodeTypes.MEMBER_EXPRESSION: {
       // Only a read of the error itself: `error.message`, `error?.response.status`.
       const object = AstNode.readField({ node, key: 'object' });
       const isRead =
         AstNode.readField({ node, key: 'computed' }) !== true ||
-        AstNode.getType({ node: AstNode.readField({ node, key: 'property' }) }) === 'Literal';
+        AstNode.getType({ node: AstNode.readField({ node, key: 'property' }) }) ===
+          AstNodeTypes.LITERAL;
       const isRooted =
-        AstNode.getType({ node: object }) === 'MemberExpression' ||
-        (AstNode.getType({ node: object }) === 'Identifier' &&
+        AstNode.getType({ node: object }) === AstNodeTypes.MEMBER_EXPRESSION ||
+        (AstNode.getType({ node: object }) === AstNodeTypes.IDENTIFIER &&
           AstNode.readField({ node: object, key: 'name' }) === parameter);
 
       return isRead && isRooted && parameter !== undefined && value(object);
     }
-    case 'ArrayExpression': {
+    case AstNodeTypes.ARRAY_EXPRESSION: {
       const elements = AstNode.readField({ node, key: 'elements' });
+
       return (
         Array.isArray(elements) && elements.every((element) => element === null || value(element))
       );
     }
-    case 'ObjectExpression': {
+    case AstNodeTypes.OBJECT_EXPRESSION: {
       const properties = AstNode.readField({ node, key: 'properties' });
+
       return (
         Array.isArray(properties) &&
         properties.every(
           (property) =>
-            AstNode.getType({ node: property }) === 'Property' &&
+            AstNode.getType({ node: property }) === AstNodeTypes.PROPERTY &&
             AstNode.readField({ node: property, key: 'computed' }) !== true &&
             AstNode.readField({ node: property, key: 'method' }) !== true &&
             AstNode.readField({ node: property, key: 'kind' }) === 'init' &&
@@ -112,9 +115,9 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
   const args = AstNode.readField({ node: call, key: 'arguments' });
 
   if (
-    AstNode.getType({ node: call }) !== 'CallExpression' ||
+    AstNode.getType({ node: call }) !== AstNodeTypes.CALL_EXPRESSION ||
     AstNode.readField({ node: call, key: 'optional' }) === true ||
-    AstNode.getType({ node: callee }) !== 'MemberExpression' ||
+    AstNode.getType({ node: callee }) !== AstNodeTypes.MEMBER_EXPRESSION ||
     AstNode.readField({ node: callee, key: 'computed' }) === true ||
     AstNode.readField({ node: callee, key: 'optional' }) === true ||
     PromiseChainSupport.memberName({ member: callee }) !== 'catch' ||
@@ -130,15 +133,15 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
   const parameter: unknown = Array.isArray(params) ? params[0] : undefined;
 
   if (
-    AstNode.getType({ node: handler }) !== 'ArrowFunctionExpression' ||
+    AstNode.getType({ node: handler }) !== AstNodeTypes.ARROW_FUNCTION_EXPRESSION ||
     AstNode.readField({ node: handler, key: 'async' }) === true ||
-    AstNode.getType({ node: body }) === 'BlockStatement' ||
+    AstNode.getType({ node: body }) === AstNodeTypes.BLOCK_STATEMENT ||
     AstNode.readField({ node: handler, key: 'returnType' }) ||
     AstNode.readField({ node: handler, key: 'typeParameters' }) ||
     !Array.isArray(params) ||
     params.length > 1 ||
     (parameter !== undefined &&
-      (AstNode.getType({ node: parameter }) !== 'Identifier' ||
+      (AstNode.getType({ node: parameter }) !== AstNodeTypes.IDENTIFIER ||
         AstNode.readField({ node: parameter, key: 'typeAnnotation' }) ||
         AstNode.readField({ node: parameter, key: 'optional' }) === true))
   ) {
@@ -146,6 +149,7 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
   }
 
   const receiver = AstNode.readField({ node: callee, key: 'object' });
+
   if (
     !AwaitSupport.isNode(receiver) ||
     !AwaitSupport.isNode(body) ||
@@ -163,10 +167,10 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
   const kind = String(AstNode.readField({ node: declaration, key: 'kind' }));
 
   if (
-    AstNode.getType({ node: declarator }) !== 'VariableDeclarator' ||
+    AstNode.getType({ node: declarator }) !== AstNodeTypes.VARIABLE_DECLARATOR ||
     AstNode.readField({ node: declarator, key: 'init' }) !== awaitNode ||
     AstNode.readField({ node: declarator, key: 'definite' }) === true ||
-    AstNode.getType({ node: id }) !== 'Identifier' ||
+    AstNode.getType({ node: id }) !== AstNodeTypes.IDENTIFIER ||
     !AwaitSupport.isNode(declarator) ||
     !AwaitSupport.isNode(declaration) ||
     !Array.isArray(declarations) ||
@@ -186,22 +190,26 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
   // `let x;` with no annotation takes its type from the assignments that follow, so TypeScript must see every
   // read in the same function: a read from a nested function, an export or a `typeof` makes it an implicit any.
   const variable = sourceCode.getDeclaredVariables(declarator).find((entry) => entry.name === name);
+
   if (!variable) {
     return undefined;
   }
+
   for (const reference of variable.references) {
     if (reference.identifier === id) {
       continue;
     }
+
     const parentType = AstNode.getType({
       node: AwaitSupport.parentOf({ node: reference.identifier }),
     });
+
     if (
       reference.isWrite() ||
       (annotation === '' &&
         (reference.from.variableScope !== variable.scope.variableScope ||
-          parentType === 'ExportSpecifier' ||
-          parentType === 'TSTypeQuery'))
+          parentType === AstNodeTypes.EXPORT_SPECIFIER ||
+          parentType === AstNodeTypes.TYPE_QUERY))
     ) {
       return undefined;
     }
@@ -212,15 +220,17 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
       ? undefined
       : String(AstNode.readField({ node: parameter, key: 'name' }));
   const identifiers: unknown[] = [];
+
   if (!collectValue({ node: body, parameter: parameterName, identifiers })) {
     return undefined;
   }
 
   // `x = []` on a `let x;` with no annotation makes an evolving `any[]`, looser than the `never[]` it was.
   const elements = AstNode.readField({ node: body, key: 'elements' });
+
   if (
     annotation === '' &&
-    AstNode.getType({ node: body }) === 'ArrayExpression' &&
+    AstNode.getType({ node: body }) === AstNodeTypes.ARRAY_EXPRESSION &&
     Array.isArray(elements) &&
     elements.length === 0
   ) {
@@ -251,6 +261,7 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
     (candidate !== parameterName && isDeclaredAround({ scope, name: candidate }));
   const base = parameterName ?? CATCH_NAME;
   let catchName = base;
+
   for (let index = 2; isTaken(catchName); index += 1) {
     catchName = `${base}${index}`;
   }
@@ -258,6 +269,7 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
   const comments = sourceCode.getCommentsInside(declaration);
   const isInside = (range: [number, number] | undefined, inner: [number, number] | undefined) =>
     range !== undefined && inner !== undefined && range[0] <= inner[0] && inner[1] <= range[1];
+
   if (
     comments.some(
       (comment) => !isInside(receiver.range, comment.range) && !isInside(body.range, comment.range),
@@ -268,13 +280,14 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
 
   const bodyStart = body.range?.[0] ?? 0;
   let valueText = sourceCode.getText(body);
+
   if (catchName !== parameterName && errorReads.size > 0) {
     const edits = [...errorReads]
       .filter(AwaitSupport.isNode)
       .map((identifier) => {
         const parent = AwaitSupport.parentOf({ node: identifier });
         const isShorthand =
-          AstNode.getType({ node: parent }) === 'Property' &&
+          AstNode.getType({ node: parent }) === AstNodeTypes.PROPERTY &&
           AstNode.readField({ node: parent, key: 'shorthand' }) === true;
 
         return {
@@ -341,6 +354,7 @@ export class NoAwaitPromiseChainRule {
           const method = PromiseChainSupport.chainMethodOf({
             node: AstNode.readField({ node, key: 'argument' }),
           });
+
           if (method === undefined) {
             return;
           }

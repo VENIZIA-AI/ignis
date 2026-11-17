@@ -10,18 +10,22 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**118 targets.**
+**122 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
 | `make all` | `build` | Rebuilds all packages (alias for 'build-all'). |
+| `make api-check` | - | Gate: the API reference pages are fresh. Needs a build. |
+| `make api-gen` | - | Write the API reference pages (docs/wiki/content/references/api) from the built .d.ts. |
+| `make api-undocumented` | - | Gate: every export has TSDoc. Needs a build. |
 | `make atlas-releases` | - | Print the releases atlas computes from the git tags. |
 | `make atlas-symbols` | - | Print the symbols atlas reads from the built .d.ts. |
 | `make boot` | `helpers` | Rebuild one package, after its dependencies. |
 | `make build` | `build-all` | Rebuilds all packages (alias for 'build-all'). |
-| `make build-all` | `core core-worker boot docs surface-check wiki-links-check wiki-anchors-check` | Rebuilds all packages in order, then the wiki and its checks. |
-| `make build-checks` | - | Gate: the built output - self-contained sourcemaps, the oxlint subpath loads no ESLint. Needs a build. |
+| `make build-all` | `core core-worker boot docs wiki-links-check wiki-anchors-check api-check api-undocumented` | Rebuilds all packages in order, then the wiki and its checks. |
+| `make build-checks` | - | Gate: the built output - self-contained sourcemaps, the oxlint subpath loads no ESLint, every value typed in an entry exists at runtime. Needs a build. |
 | `make catalog-check` | - | Gate: every catalogued dep is referenced as "catalog:", none drifted. |
+| `make changelog-check` | - | Gate: every Breaking Change changelog entry since the cutover carries a valid migration block. |
 | `make clean` | - | Clean build artifacts from all packages. |
 | `make clean-install` | - | Load every published sub-path from packed tarballs in an empty project. |
 | `make clean-install-boot` | - | Load one package's sub-paths from a clean install. Needs a build. |
@@ -52,7 +56,7 @@ generated:
 | `make inversion` | `dev-configs` | Rebuild one package, after its dependencies. |
 | `make kernel` | `helpers filter` | Rebuild one package, after its dependencies. |
 | `make lint` | `lint-packages` | lint-<pkg> for every package. |
-| `make lint-all` | `lint-packages lint-scripts lint-files lint-wiki` | lint-packages, lint-scripts, lint-files (package.json, .github, .agents, .configs, presets, examples) and lint-wiki. |
+| `make lint-all` | `lint-packages lint-scripts lint-files lint-wiki changelog-check` | lint-packages, lint-scripts, lint-files (package.json, .github, .agents, .configs, presets, examples), lint-wiki and changelog-check. |
 | `make lint-boot` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-connectors` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-core` | `lint-core-server` | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
@@ -83,7 +87,6 @@ generated:
 | `make okf-check-strict` | - | Gate: OKF v0.2 plus the house rules - links, style, coverage, freshness. |
 | `make okf-coverage` | - | Report bundle coverage against the source inventory. |
 | `make okf-gen` | - | Regenerate source-derived reference content. |
-| `make okf-viz` | - | Build the offline knowledge-graph explorer. |
 | `make preset-build` | - | Write the VULCAN preset (packages/core-server/dist/presets) with this workspace's versions. |
 | `make preset-smoke` | - | Gate: an app created from the packed preset typechecks, lints, tests and answers /api/hello. Needs a build. |
 | `make purity` | - | Gate: every entry claimed browser-pure has no node builtin or global. |
@@ -100,10 +103,11 @@ generated:
 | `make purity-test` | - | Run the purity probe's own regression tests. |
 | `make release` | - | Dispatch the release workflow once for the whole plan, e.g. ARGS="kernel --mode prerelease --yes"; a stable (patch, minor, major) releases from main with its own scope: ARGS="--mode patch --dry-run"; ARGS="--plan <printed plan> --yes" continues a run that stopped. |
 | `make release-plan` | - | Print the release plan (dependency order), dispatch nothing. |
+| `make runners-check` | - | Fail when a tracked file runs an unscoped package by name (bunx, bun x, npx, pnpm dlx) |
 | `make setup-hooks` | - | Configure git to use .githooks directory. |
 | `make split-report` | - | Report hub files, stray types, missing barrels, long files, cycles (informational). |
-| `make surface-check` | - | Gate: the public surface equals the snapshot. |
-| `make surface-gen` | - | Snapshot every exported symbol into .agents/knowledge/reference/public-surface.md. |
+| `make surface-check` | - | Fail when the public API surface differs from the committed one |
+| `make surface-gen` | - | Write the public API surface from the built .d.ts |
 | `make test-all` | `test-dev-configs test-inversion test-filter test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server` | test-<pkg> for every package with a suite (BUN_TEST_FLAGS, default --parallel). |
 | `make test-boot` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-connectors` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |

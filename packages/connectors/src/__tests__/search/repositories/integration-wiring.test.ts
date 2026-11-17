@@ -4,7 +4,7 @@ import '@venizia/ignis-kernel';
 import { describe, test, expect } from 'bun:test';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
-import { ControllerFactory } from '@venizia/ignis-kernel';
+import { controller, CrudControllerFactory } from '@venizia/ignis-kernel';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { model, repository } from '@venizia/ignis-kernel';
 import { BasePostgresEntity } from '@/relational/postgres/models';
@@ -68,11 +68,11 @@ class ProductSqlRepository {}
 class ProductDualSearchRepository {}
 
 // --- Scenario 3: class name / collection name diverge, no `tableName` alignment ------------
-// Class name and collection name diverge on purpose - settings are keyed by class, not name, so a name-keyed lookup would silently lose hiddenProperties/defaultFilter here.
+// Class name and collection name diverge on purpose - settings are keyed by class, not name, so a name-keyed lookup would silently lose hidden properties/defaultFilter here.
 @model({
   type: 'entity',
   settings: {
-    hiddenProperties: ['secretCode'],
+    properties: { hidden: ['secretCode'] },
     query: { filter: { where: { isActive: true } } },
   },
 })
@@ -160,28 +160,32 @@ describe('End-to-end search wiring - dual-schema, @repository, controller factor
     });
   });
 
-  describe('3. ControllerFactory.defineCrudController over a search entity/repository', () => {
+  describe('3. CrudControllerFactory.build over a search entity/repository', () => {
     test('constructs without throwing and mounts the six CRUD routes', async () => {
       const dataSource = new AppSearchDataSource({ name: 'wiring-search-ds-3', config: {} });
       const repositoryInstance = new ProductSearchRepository(dataSource);
 
-      const ProductSearchController = ControllerFactory.defineCrudController({
-        // The factory's `entity` param is the engine-neutral AbstractEntity, so a search entity/repository flows through with no cast at all.
-        entity: ProductDocument,
-        repository: { name: ProductSearchRepository.name },
-        controller: {
-          name: 'ProductSearchController',
-          basePath: '/search/products',
-          enabledRoutes: ['count', 'find', 'findById', 'create', 'updateById', 'deleteById'],
+      const ProductSearchCrudController = CrudControllerFactory.build({
+        repository: ProductSearchRepository,
+        routes: {
+          count: true,
+          find: true,
+          findById: true,
+          create: true,
+          updateById: true,
+          deleteById: true,
         },
       });
 
-      const controller = new ProductSearchController(repositoryInstance);
+      @controller({ path: '/search/products' })
+      class ProductSearchController extends ProductSearchCrudController {}
 
-      await controller['binding']();
+      const productController = new ProductSearchController(repositoryInstance);
+
+      await productController.configure();
 
       const distinctRoutes = new Set(
-        controller.router.routes.map((route) => `${route.method} ${route.path}`),
+        productController.router.routes.map((route) => `${route.method} ${route.path}`),
       );
       expect(distinctRoutes.size).toBe(6);
     });
@@ -195,7 +199,7 @@ describe('End-to-end search wiring - dual-schema, @repository, controller factor
       expect(schema['sprockets']).toBe(SprocketDocument.schema);
     });
 
-    test('find() applies hiddenProperties (exclude_fields) and defaultFilter (filter_by) on the wire', async () => {
+    test('find() applies hidden properties (exclude_fields) and defaultFilter (filter_by) on the wire', async () => {
       const dataSource = new AppSearchDataSource({ name: 'wiring-search-ds-5', config: {} });
       const repositoryInstance = new SprocketSearchRepository(dataSource);
 
@@ -209,12 +213,12 @@ describe('End-to-end search wiring - dual-schema, @repository, controller factor
       expect(params['filter_by']).toBe('(isActive:=true && title:=`foo`)');
     });
 
-    test('deleteAll with no where falls back to filter-delete (defaultWhere), not truncate', async () => {
+    test('deleteBy with no where falls back to filter-delete (defaultWhere), not truncate', async () => {
       const dataSource = new AppSearchDataSource({ name: 'wiring-search-ds-6', config: {} });
       const repositoryInstance = new SprocketSearchRepository(dataSource);
       dataSource.fakeConnector.deleteByFilterResponse = 2;
 
-      const result = await repositoryInstance.deleteAll();
+      const result = await repositoryInstance.deleteBy({ where: {} });
 
       expect(result).toEqual({ count: 2, data: null });
       expect(dataSource.fakeConnector.deleteByFilterCalls[0]?.filterBy).toBe('isActive:=true');

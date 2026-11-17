@@ -10,8 +10,10 @@ import {
 import { type Env } from 'hono';
 import type { createRemoteJWKSet, SignJWT } from 'jose';
 import { JoseLoader } from '../../jose-loader';
+import { JWKSUrlPolicy } from '../../jwks-url-policy';
 import { AbstractJWKSTokenService } from './abstract.service';
 
+/** Verifies tokens against a remote JWKS fetched from `jwksUrl`. The key set is cached for `cacheTtlMs` (default 43_200_000 ms) with a `cooldownMs` refetch cooldown (default 30_000 ms). */
 export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKSTokenService<E> {
   protected jwksVerifier: ReturnType<typeof createRemoteJWKSet> | null = null;
 
@@ -20,6 +22,7 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
     protected options: IJWKSVerifierOptions,
   ) {
     super({ scope: JWKSVerifierTokenService.name });
+    this.configureClaims({ options: this.options });
     this.configurePayloadEncryption({
       aesAlgorithm: this.options.aesAlgorithm,
       applicationSecret: this.options.applicationSecret,
@@ -29,7 +32,12 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
 
   protected override async initialize(): Promise<void> {
     const { createRemoteJWKSet } = await JoseLoader.load();
-    const jwksUrl = new URL(this.options.jwksUrl);
+    const jwksUrl = JWKSUrlPolicy.assertUrl({
+      scope: JWKSVerifierTokenService.name,
+      label: 'jwksUrl',
+      url: this.options.jwksUrl,
+      hosts: this.options.jwks?.hosts?.http,
+    });
     this.jwksVerifier = createRemoteJWKSet(jwksUrl, {
       cacheMaxAge: this.options.cacheTtlMs ?? 43_200_000,
       cooldownDuration: this.options.cooldownMs ?? 30_000,
@@ -39,7 +47,7 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
 
     this.logger
       .for(this.initialize.name)
-      .info('JWKS verifier initialized | url: %s', this.options.jwksUrl);
+      .info('JWKS verifier initialized | origin: %s', jwksUrl.origin);
   }
 
   protected override async doVerify(token: string): Promise<IJWTTokenPayload> {
@@ -48,8 +56,9 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
     const result = await jwtVerify<IJWTTokenPayload>(
       token,
       this.jwksVerifier!,
-      this.options.verify,
+      this.verifyOptions!,
     );
+
     return this.decryptPayload({ result });
   }
 

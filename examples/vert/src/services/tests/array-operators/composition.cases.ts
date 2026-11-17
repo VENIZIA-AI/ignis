@@ -157,6 +157,7 @@ export class CompositionCases extends BaseTestCases {
           '[CASE 20] PASSED | Array filter with limit: %d results',
           results.length,
         );
+
         if (results.length > 0) {
           this.context.logger.info(
             '[CASE 20] First result (highest price): %s ($%d)',

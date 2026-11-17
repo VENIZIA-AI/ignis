@@ -10,7 +10,7 @@ difficulty: beginner
 
 ## In one example
 
-`TValueOrResolver` plus `ResolverUtility.resolveValue` is the core pattern for an option that can be given eagerly or lazily. The old free functions `resolveValue` and `resolveValueAsync` are gone; `devz codemod namespace-functions` moves their callers.
+`TValueOrResolver` plus `ResolverUtility.resolveValue` is the core pattern for an option that can be given eagerly or lazily. The old free functions `resolveValue` and `resolveValueAsync` are gone; `bun run devz codemod namespace-functions` moves their callers.
 
 ```typescript
 import { TValueOrResolver, ResolverUtility } from '@venizia/ignis-helpers';
@@ -26,12 +26,7 @@ configure({ timeout: () => 5000 });
 
 ## How it works
 
-- **Escape hatches, not the norm.** `AnyType` and `AnyObject` exist for the rare case a shape truly cannot be known at compile time. The framework prefers types derived from definitions, like `typeof X.schema`, everywhere else.
-
-| Type | Is |
-|---|---|
-| `AnyType` | `any` |
-| `AnyObject` | `Record<string \| symbol \| number, any>` |
+- **Real types, no escape hatch.** There is no `any` alias: write the shape, use `unknown` and narrow it, or derive the type from a definition, like `typeof X.schema`.
 
 - **Nullable and async are explicit.** `TNullable<T>` and `ValueOrPromise<T>` appear on most framework method signatures. One declared type covers both the sync and the async implementation.
 

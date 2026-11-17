@@ -20,7 +20,7 @@ The note is still there after the reload. The database lives in the origin priva
 | `src/worker/models`, `repositories`, `controllers` | The `pglite-quickstart` files, with `@venizia/ignis-kernel` and `@venizia/ignis-connectors` in place of `@venizia/ignis` |
 | `src/worker/datasources/pglite.datasource.ts` | Opens PGlite on OPFS and applies the migrations, inlined by `?raw` |
 | `src/worker/application.ts` | `WorkerApplication` in place of `BaseApplication` |
-| `vite.config.ts` | Adds `IgnisArtifactsVitePlugin` (from `@venizia/ignis-boot/vite`) to `worker.plugins`, which builds the decorated-class list into the Worker bundle |
+| `.configs/builders/vite.config.ts` | Adds `IgnisArtifactsVitePlugin` (from `@venizia/ignis-boot/vite`) to `worker.plugins`, which builds the decorated-class list into the Worker bundle |
 | `src/worker/index.ts` | The Worker entry: passes `AutoArtifacts` as `artifacts`, and calls `listen()` in place of `start()` |
 | `src/bff.ts` | The page side: a `SharedBffTransport` that starts the Worker |
 | `src/main.tsx` | `BffFetchBridge.install` routes `fetch('/api/...')` to the Worker, then renders the react-admin page |
@@ -45,7 +45,8 @@ Worker has neither.
 | `PATCH` | `/notes?where={...}` | Update every row matching `where` |
 | `DELETE` | `/notes?where={...}` | Delete every row matching `where` |
 
-`/comments` has the same routes as `/notes`. CRUD routes answer `{ count, data }`; `/count` answers
+`/comments` has the same routes as `/notes`. The bulk `PATCH` and `DELETE` take `where` in the query
+or in the JSON body, never both, and answer `400` without one. CRUD routes answer `{ count, data }`; `/count` answers
 `{ count }`.
 
 ## Read a note with its comments
@@ -95,6 +96,10 @@ The models are the `pglite-quickstart` models. Generate the migration there, cop
 `migration/NNNN_*.sql` file here, and add it to `MIGRATIONS` in
 `src/worker/datasources/pglite.datasource.ts`.
 
+## PGlite opens on the first request
+
+The datasource is `@datasource({ driver: PGliteDriver, open: { on: 'first-use' } })`, so the Worker starts and listens without PGlite. The WASM boot (about 16 MB) and the migrations run when the first request that needs the database arrives, and requests that arrive meanwhile wait for that one open. A failed open rejects them all and the next request tries again.
+
 ## Many tabs, one database
 
 PGlite on OPFS holds an access handle that is exclusive per origin. A second tab starting its own
@@ -108,7 +113,7 @@ tab takes over, with no reload.
 
 ```bash
 bun run compile
-bun x vite preview
+bun run vite preview
 ```
 
 The preview runs on a different port, so it is a different origin: it does not see the database
@@ -119,7 +124,7 @@ the dev server wrote.
 - **Chrome is measured. Firefox is untested.** Desktop Safari caps OPFS access handles below what
   PGlite needs, so `opfs-ahp://` does not work there.
 - **No sync.** The database starts empty and stays in the browser.
-- `vite.config.ts` excludes `@electric-sql/pglite` from `optimizeDeps`: pre-bundling breaks how
+- `.configs/builders/vite.config.ts` excludes `@electric-sql/pglite` from `optimizeDeps`: pre-bundling breaks how
   PGlite finds its WASM files.
 
 ## Next

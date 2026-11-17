@@ -3,9 +3,10 @@ import { getError } from '@/modules/error';
 import os from 'node:os';
 import { type IWorker } from './common';
 
+/** Registry of workers by key. `register` refuses a worker once the pool holds one per CPU core, unless `ignoreMaxWarning` is set, and refuses a duplicate key; `getInstance()` returns the shared pool. */
 export class WorkerPoolHelper extends BaseHelper {
   private static instance: WorkerPoolHelper;
-  protected registry: Map<string | symbol, IWorker<any>>;
+  protected registry: Map<string | symbol, IWorker<unknown>>;
 
   private numberOfCPUs: number;
   private ignoreMaxWarning: boolean;
@@ -55,14 +56,17 @@ export class WorkerPoolHelper extends BaseHelper {
           this.numberOfCPUs,
           this.ignoreMaxWarning,
         );
+
       return false;
     }
 
     const { key, worker } = opts;
+
     if (this.registry.has(key)) {
       this.logger
         .for(this.register.name)
         .error('SKIP register worker | Worker key existed in pool | key: %s', key);
+
       return false;
     }
 
@@ -81,6 +85,7 @@ export class WorkerPoolHelper extends BaseHelper {
       this.logger
         .for(this.unregister.name)
         .warn('SKIP unregister worker | Worker not existed | key: %s', key);
+
       return;
     }
 

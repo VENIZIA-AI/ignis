@@ -33,12 +33,15 @@ const createFullContext = (overrides?: {
   const store = new Map<string, unknown>();
 
   const overridesContextValuesEntries = Object.entries(overrides?.contextValues ?? {});
+
   for (const [k, v] of overridesContextValuesEntries) {
     store.set(k, v);
   }
+
   if (overrides?.user !== undefined) {
     store.set(Authentication.CURRENT_USER, overrides.user);
   }
+
   if (overrides?.rules !== undefined) {
     store.set(Authorization.RULES, overrides.rules);
   }
@@ -66,6 +69,7 @@ class CapturingEnforcer extends TestAuthorizationEnforcer {
     context: TContext;
   }): Promise<TAuthorizationDecision> {
     CapturingEnforcer.capturedRequest = opts.request;
+
     return super.evaluate(opts);
   }
 }
@@ -80,6 +84,7 @@ const setup = (opts: {
   const container = new Container({ scope: 'provider-domain-test' });
 
   CapturingEnforcer.capturedRequest = undefined;
+
   if (opts.rules) {
     TestAuthorizationEnforcer.rules = opts.rules;
   }
@@ -105,6 +110,7 @@ const setup = (opts: {
   });
 
   const middleware = authorize({ spec: opts.spec });
+
   return { middleware };
 };
 
@@ -113,12 +119,15 @@ const run = async (
   context: ReturnType<typeof createFullContext>,
 ): Promise<{ hasCalledNext: boolean; error?: { statusCode?: number; message?: string } }> => {
   let hasCalledNext = false;
+
   const next = async () => {
     hasCalledNext = true;
   };
+
   try {
     // The partial fake is cast to the real Hono Context the middleware expects rather than loosening middleware's own call signature.
     await middleware(context as any, next);
+
     return { hasCalledNext };
   } catch (error) {
     return { hasCalledNext, error: error as { statusCode?: number; message?: string } };

@@ -1,6 +1,5 @@
 import { BaseAppErrorMiddleware, notFoundHandler } from '@/base/middlewares';
 import { z } from '@hono/zod-openapi';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { MessageTemplate } from '@venizia/ignis-helpers/core';
 import type { ILogger, TLogLevel } from '@venizia/ignis-helpers/core';
@@ -25,7 +24,7 @@ interface ILoggedLine {
   sink: TLoggerSink;
   level?: TLogLevel;
   message: string;
-  args: Array<AnyType>;
+  args: Array<unknown>;
 }
 
 /** Records instead of printing: several assertions below are about WHICH sink the middleware chose, which a silenced logger cannot answer. */
@@ -36,27 +35,27 @@ class RecordingLogger implements ILogger {
     this.lines.push(opts);
   }
 
-  debug(message: string, ...args: Array<AnyType>): void {
+  debug(message: string, ...args: Array<unknown>): void {
     this.record({ sink: 'debug', message, args });
   }
 
-  info(message: string, ...args: Array<AnyType>): void {
+  info(message: string, ...args: Array<unknown>): void {
     this.record({ sink: 'info', message, args });
   }
 
-  warn(message: string, ...args: Array<AnyType>): void {
+  warn(message: string, ...args: Array<unknown>): void {
     this.record({ sink: 'warn', message, args });
   }
 
-  error(message: string, ...args: Array<AnyType>): void {
+  error(message: string, ...args: Array<unknown>): void {
     this.record({ sink: 'error', message, args });
   }
 
-  emerg(message: string, ...args: Array<AnyType>): void {
+  emerg(message: string, ...args: Array<unknown>): void {
     this.record({ sink: 'emerg', message, args });
   }
 
-  log(level: TLogLevel, message: string, ...args: Array<AnyType>): void {
+  log(level: TLogLevel, message: string, ...args: Array<unknown>): void {
     this.record({ sink: 'log', level, message, args });
   }
 
@@ -74,10 +73,35 @@ class RecordingLogger implements ILogger {
   }
 }
 
+/** A shape the assertions read, open to the other keys the envelope carries. */
+type TOpen<Shape> = Shape & { [key: string]: unknown };
+
+/** The error envelope as the assertions read it. */
+type TEnvelopeBody = TOpen<{
+  message: string;
+  requestId: string;
+  statusCode: number;
+  error?: unknown;
+  details: TOpen<{ stack?: string; cause?: unknown }>;
+  extra: TOpen<{
+    apiKey?: string;
+    dsn?: string;
+    requestPayload: TOpen<{ password?: string; card?: string }>;
+    upstream: TOpen<{ message?: string; stack?: string }>;
+  }>;
+  normalized: TOpen<{ code?: string; args: TOpen<{ apiKey?: string }> }>;
+}>;
+
+const readEnvelope = async (response: Response): Promise<TEnvelopeBody> => {
+  const text = await response.text();
+
+  return JSON.parse(text);
+};
+
 interface IProbedResponse {
   status: number;
   contentType: string | null;
-  body: Record<string, AnyType>;
+  body: TEnvelopeBody;
   logger: RecordingLogger;
 }
 
@@ -98,6 +122,7 @@ const probe = async (opts: {
   application.use('*', requestId({ generator: () => REQUEST_ID }));
   application.get(REQUEST_PATH, () => {
     opts.thrower();
+
     return new Response('unreachable');
   });
   application.onError(middleware.value());
@@ -106,8 +131,7 @@ const probe = async (opts: {
   const url = `http://ignis.internal${opts.path ?? REQUEST_PATH}`;
   const response = await application.request(new Request(url), undefined, opts.env);
 
-  const json = await response.json();
-  const body = json as Record<string, AnyType>;
+  const body = await readEnvelope(response);
 
   return {
     status: response.status,
@@ -139,6 +163,7 @@ const throwZod = () => {
   });
 
   const parsed = schema.safeParse({ quantity: 1.23456 });
+
   if (parsed.success) {
     throw getError({ message: 'expected the schema to reject this input' });
   }
@@ -158,7 +183,7 @@ describe('the error envelope - the exact body every IGNIS host returns', () => {
 
     expect(status).toBe(HTTP.ResultCodes.RS_4.NotFound);
     expect(contentType).toContain(HTTP.HeaderValues.APPLICATION_JSON);
-    expect(body).toEqual({
+    expect<unknown>(body).toEqual({
       message: 'Order not found',
       statusCode: HTTP.ResultCodes.RS_4.NotFound,
       normalized: { text: 'Order not found', code: ORDER_NOT_FOUND_CODE, args: {} },
@@ -172,7 +197,7 @@ describe('the error envelope - the exact body every IGNIS host returns', () => {
     const { status, body } = await probe({ thrower: throwUnexpected });
 
     expect(status).toBe(HTTP.ResultCodes.RS_5.InternalServerError);
-    expect(body).toEqual({
+    expect<unknown>(body).toEqual({
       message: 'Internal Server Error',
       statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
       normalized: {
@@ -191,7 +216,7 @@ describe('the error envelope - the exact body every IGNIS host returns', () => {
     const { status, body } = await probe({ thrower: throwZod });
 
     expect(status).toBe(HTTP.ResultCodes.RS_4.UnprocessableEntity);
-    expect(body).toEqual({
+    expect<unknown>(body).toEqual({
       message: 'Must not exceed 4 decimal places',
       statusCode: HTTP.ResultCodes.RS_4.UnprocessableEntity,
       normalized: {
@@ -224,7 +249,7 @@ describe('the error envelope - the exact body every IGNIS host returns', () => {
 
     expect(status).toBe(HTTP.ResultCodes.RS_4.NotFound);
     expect(contentType).toContain(HTTP.HeaderValues.APPLICATION_JSON);
-    expect(body).toEqual({
+    expect<unknown>(body).toEqual({
       message: 'URL NOT FOUND',
       statusCode: HTTP.ResultCodes.RS_4.NotFound,
       requestId: REQUEST_ID,
@@ -252,7 +277,7 @@ describe('a Hono HTTPException keeps its client status', () => {
     });
 
     expect(status).toBe(HTTP.ResultCodes.RS_4.Unauthorized);
-    expect(body).toEqual({
+    expect<unknown>(body).toEqual({
       message: 'Unauthorized',
       statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
       normalized: { text: 'Unauthorized', code: MessageCode.DEFAULT, args: {} },
@@ -276,8 +301,7 @@ describe('a Hono HTTPException keeps its client status', () => {
       headers: { 'content-type': 'application/json' },
       body: '{"broken":',
     });
-    const result = await response.json();
-    const body = result as Record<string, AnyType>;
+    const body = await readEnvelope(response);
 
     expect(response.status).toBe(HTTP.ResultCodes.RS_4.BadRequest);
     expect(body.message).toBe('Malformed JSON in request body');
@@ -384,20 +408,14 @@ describe('the handler survives what a throw site can attach to an error', () => 
   };
 
   /**
-   * MEASURED, AND A KNOWN DEFECT rather than the intended behaviour. `extra` reaches the RESPONSE
-   * raw, so a value `JSON.stringify` refuses makes `context.json` throw; Hono re-enters `onError`
-   * with that TypeError, which classifies as unexpected. The client therefore gets a well-formed
-   * sanitized 500 instead of the authored 409 - degraded, never a dead channel or a non-JSON body,
-   * which is what these assertions exist to hold. The LOG fragment is unaffected: `renderValue`
-   * already guards it.
-   *
-   * Fixing it means deciding what a non-serializable `extra` should become in the response, which
-   * is a public-behaviour choice and not this test's to make. When it is made, this test fails.
+   * The response renders `extra` through the same redaction as the log, and a value JSON refuses becomes text (a BigInt)
+   * or a marker (a cycle reads `[Circular]`), so the authored status survives it: the client gets the 409 the
+   * throw site chose, with a well-formed body.
    */
-  const expectDegradedButWellFormed = (opts: { status: number; body: Record<string, AnyType> }) => {
-    expect(opts.status).toBe(HTTP.ResultCodes.RS_5.InternalServerError);
+  const expectAuthoredStatus = (opts: { status: number; body: TEnvelopeBody }) => {
+    expect(opts.status).toBe(HTTP.ResultCodes.RS_4.Conflict);
     expect(opts.body.requestId).toBe(REQUEST_ID);
-    expect(opts.body.statusCode).toBe(HTTP.ResultCodes.RS_5.InternalServerError);
+    expect(opts.body.statusCode).toBe(HTTP.ResultCodes.RS_4.Conflict);
     expect(typeof opts.body.normalized.code).toBe('string');
   };
 
@@ -410,7 +428,11 @@ describe('the handler survives what a throw site can attach to an error', () => 
     expect(logger.rendered()).toContain('[Circular]');
     expect(logger.rendered()).not.toContain('[unrenderable]');
     expect(contentType).toContain(HTTP.HeaderValues.APPLICATION_JSON);
-    expectDegradedButWellFormed({ status, body });
+    expectAuthoredStatus({ status, body });
+    expect<unknown>(body.extra).toEqual({
+      orderId: 'ord-991',
+      self: { orderId: 'ord-991', self: '[Circular]' },
+    });
   });
 
   test('a BigInt in `extra` is rendered in the log, not collapsed to the unrenderable marker', async () => {
@@ -421,7 +443,8 @@ describe('the handler survives what a throw site can attach to an error', () => 
     expect(logger.rendered()).toContain('9007199254740993');
     expect(logger.rendered()).not.toContain('[unrenderable]');
     expect(contentType).toContain(HTTP.HeaderValues.APPLICATION_JSON);
-    expectDegradedButWellFormed({ status, body });
+    expectAuthoredStatus({ status, body });
+    expect<unknown>(body.extra).toEqual({ rows: '9007199254740993' });
   });
 
   /** `extra` is whatever a throw site chose to attach, and in a Worker this fragment lands in the browser console. */
@@ -434,6 +457,173 @@ describe('the handler survives what a throw site can attach to an error', () => 
 
     expect(logger.rendered()).toContain('[REDACTED]');
     expect(logger.rendered()).not.toContain('sk-live-must-not-appear');
+  });
+});
+
+describe('the `extra` a response carries', () => {
+  const throwWithStatus = (opts: { statusCode: number; extra: Record<string, unknown> }) => () => {
+    throw getError({ statusCode: opts.statusCode, message: 'upstream failed', extra: opts.extra });
+  };
+
+  const secrets = {
+    apiKey: 'sk_live_SECRET',
+    requestPayload: { card: 'visible-card', password: 'hunter2' },
+    dsn: 'postgres://app:hunter2@10.0.3.7/prod',
+  };
+
+  const production = () => new BaseAppErrorMiddleware({ logger: new RecordingLogger() });
+  const development = () =>
+    new BaseAppErrorMiddleware({ logger: new RecordingLogger(), environment: () => 'development' });
+
+  test('in production a client error carries it with secret-shaped keys masked', async () => {
+    const { status, body } = await probe({
+      middleware: production(),
+      thrower: throwWithStatus({ statusCode: HTTP.ResultCodes.RS_4.Conflict, extra: secrets }),
+    });
+
+    expect(status).toBe(HTTP.ResultCodes.RS_4.Conflict);
+    expect(body.extra.apiKey).toBe('[REDACTED]');
+    expect(body.extra.dsn).toBe('[REDACTED]');
+    expect(body.extra.requestPayload.password).toBe('[REDACTED]');
+    expect(body.extra.requestPayload.card).toBe('visible-card');
+    expect(JSON.stringify(body)).not.toContain('sk_live_SECRET');
+    expect(JSON.stringify(body)).not.toContain('hunter2');
+  });
+
+  test('in production a server error carries none', async () => {
+    const { status, body } = await probe({
+      middleware: production(),
+      thrower: throwWithStatus({
+        statusCode: HTTP.ResultCodes.RS_5.BadGateway,
+        extra: secrets,
+      }),
+    });
+
+    expect(status).toBe(HTTP.ResultCodes.RS_5.BadGateway);
+    expect(body.extra).toBeUndefined();
+    expect(JSON.stringify(body)).not.toContain('sk_live_SECRET');
+  });
+
+  test('in production a server error keeps only the correlation ids', async () => {
+    const { body } = await probe({
+      middleware: production(),
+      thrower: throwWithStatus({
+        statusCode: HTTP.ResultCodes.RS_5.ServiceUnavailable,
+        extra: {
+          requestId: 'req-up-1',
+          upstreamRequestIds: ['a', 'b'],
+          details: { indexed: 40 },
+          apiKey: 'sk_live_SECRET',
+        },
+      }),
+    });
+
+    expect<unknown>(body.extra).toEqual({ requestId: 'req-up-1', upstreamRequestIds: ['a', 'b'] });
+  });
+
+  test('the correlation-id allowance carries only short strings', async () => {
+    const { body } = await probe({
+      middleware: production(),
+      thrower: throwWithStatus({
+        statusCode: HTTP.ResultCodes.RS_5.BadGateway,
+        extra: {
+          requestId: { dsn: 'postgres://u:p@h/db' },
+          upstreamRequestIds: ['ok', 'x'.repeat(200)],
+        },
+      }),
+    });
+
+    expect(body.extra).toBeUndefined();
+  });
+
+  test('in production the masking holds with the logger switch off', async () => {
+    const previous = process.env.APP_ENV_LOGGER_DO_REDACT;
+    process.env.APP_ENV_LOGGER_DO_REDACT = 'false';
+
+    try {
+      const { body } = await probe({
+        middleware: production(),
+        thrower: throwWithStatus({ statusCode: HTTP.ResultCodes.RS_4.Conflict, extra: secrets }),
+      });
+
+      expect(body.extra.apiKey).toBe('[REDACTED]');
+    } finally {
+      if (previous === undefined) {
+        delete process.env.APP_ENV_LOGGER_DO_REDACT;
+      } else {
+        process.env.APP_ENV_LOGGER_DO_REDACT = previous;
+      }
+    }
+  });
+
+  test('outside production a server error keeps it, masked', async () => {
+    const { status, body } = await probe({
+      middleware: development(),
+      thrower: throwWithStatus({
+        statusCode: HTTP.ResultCodes.RS_5.BadGateway,
+        extra: secrets,
+      }),
+    });
+
+    expect(status).toBe(HTTP.ResultCodes.RS_5.BadGateway);
+    expect(body.extra.apiKey).toBe('[REDACTED]');
+    expect(body.extra.requestPayload.card).toBe('visible-card');
+  });
+
+  test('in production a function-valued toJSON in extra cannot add keys after the redaction', async () => {
+    const { body } = await probe({
+      middleware: production(),
+      thrower: throwWithStatus({
+        statusCode: HTTP.ResultCodes.RS_4.Conflict,
+        extra: { blob: { toJSON: () => ({ apiKey: 'TOJSON_SECRET' }) } },
+      }),
+    });
+
+    expect(JSON.stringify(body)).not.toContain('TOJSON_SECRET');
+  });
+
+  test('in production a nested error in extra carries no stack', async () => {
+    const { body } = await probe({
+      middleware: production(),
+      thrower: throwWithStatus({
+        statusCode: HTTP.ResultCodes.RS_4.Conflict,
+        extra: { upstream: new Error('upstream refused') },
+      }),
+    });
+
+    expect(body.extra.upstream.message).toBe('upstream refused');
+    expect(body.extra.upstream.stack).toBeUndefined();
+  });
+
+  test('in production the message args are masked by key name, even on a server error', async () => {
+    const { status, body } = await probe({
+      middleware: production(),
+      thrower: () => {
+        throw getError({
+          statusCode: HTTP.ResultCodes.RS_5.BadGateway,
+          message: 'upstream %{name} failed',
+          messageArgs: { name: 'payments', apiKey: 'sk_live_ARGS' },
+        });
+      },
+    });
+
+    expect(status).toBe(HTTP.ResultCodes.RS_5.BadGateway);
+    expect(body.normalized.args.apiKey).toBe('[REDACTED]');
+    expect(JSON.stringify(body)).not.toContain('sk_live_ARGS');
+  });
+
+  test('an error without `extra` has none', async () => {
+    const { body } = await probe({ thrower: throwIntentional });
+
+    expect<unknown>(body.extra).toEqual({ orderId: 'ord-991' });
+
+    const bare = await probe({
+      thrower: () => {
+        throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'gone' });
+      },
+    });
+
+    expect(bare.body.extra).toBeUndefined();
   });
 });
 

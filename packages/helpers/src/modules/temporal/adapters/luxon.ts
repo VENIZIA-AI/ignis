@@ -23,6 +23,7 @@ export class LuxonTemporalAdapter implements ITemporalAdapter {
         message: `[LuxonTemporalAdapter] no offset for ${tz} at ${value.getTime()} | ${zoned.invalidReason ?? 'invalid'}`,
       });
     }
+
     return zoned.offset * MILLISECONDS_PER_MINUTE;
   }
 }

@@ -27,18 +27,21 @@ import {
 import { AuthControllerFactory, JWKSController } from './controllers';
 import { ServiceCertsController } from './controllers/service-certs';
 import {
+  AbstractBearerTokenService,
   BasicTokenService,
   JWKSIssuerTokenService,
   JWKSVerifierTokenService,
   JWSTokenService,
 } from './services';
 import { JoseLoader } from './services/jose-loader';
+import { JWKSUrlPolicy } from './services/jwks-url-policy';
 import { ServiceAssertionSignerService } from './services/service/signer.service';
 import { ServiceAssertionVerifierService } from './services/service/verifier.service';
 import { ServiceAuthenticationStrategy } from './strategies/service.strategy';
 
 const DEFAULT_SECRET = 'unknown_secret';
 
+/** Registers the authentication services and strategies from the options bound under `AuthenticateBindingKeys`. Throws at binding time unless JWT, basic or service options are provided. */
 export class AuthenticateComponent extends BaseComponent {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
@@ -84,6 +87,8 @@ export class AuthenticateComponent extends BaseComponent {
     const options: IAuthenticateOptions = { restOptions, jwtOptions, basicOptions, serviceOptions };
 
     if (jwtOptions) {
+      const standard: string = jwtOptions.standard;
+
       switch (jwtOptions.standard) {
         case JOSEStandards.JWS: {
           this.defineJWSAuth({ options: jwtOptions.options });
@@ -95,7 +100,7 @@ export class AuthenticateComponent extends BaseComponent {
         }
         default: {
           throw getError({
-            message: `[AuthenticateComponent] Unknown JOSE standard: ${(jwtOptions as any).standard}`,
+            message: `[AuthenticateComponent] Unknown JOSE standard: ${standard}`,
           });
         }
       }
@@ -117,6 +122,7 @@ export class AuthenticateComponent extends BaseComponent {
    */
   private async preloadJose(opts: { options: IAuthenticateOptions }): Promise<void> {
     const { jwtOptions, serviceOptions } = opts.options;
+
     if (!jwtOptions && !serviceOptions) {
       return;
     }
@@ -150,6 +156,15 @@ export class AuthenticateComponent extends BaseComponent {
         message: '[defineJWSAuth] getTokenExpiresFn is required',
       });
     }
+
+    // The boot refuses a configuration without claims, and a service refuses the same when built.
+    AbstractBearerTokenService.resolveClaimsConfig({
+      scope: 'defineJWSAuth',
+      options: jwsOptions,
+      pinnedAlgorithms: [jwsOptions.headerAlgorithm ?? 'HS256'],
+    });
+
+    JWSTokenService.assertSecretStrength({ scope: 'defineJWSAuth', secret: jwtSecret });
 
     this.application
       .bind<IJWSTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
@@ -188,6 +203,12 @@ export class AuthenticateComponent extends BaseComponent {
           });
         }
 
+        AbstractBearerTokenService.resolveClaimsConfig({
+          scope: 'defineJWKSAuth',
+          options: issuerOpts,
+          pinnedAlgorithms: [issuerOpts.algorithm],
+        });
+
         this.application
           .bind<IJWKSIssuerOptions>({ key: AuthenticateBindingKeys.JWKS_OPTIONS })
           .toValue(issuerOpts);
@@ -212,6 +233,18 @@ export class AuthenticateComponent extends BaseComponent {
         if (!verifierOpts.jwksUrl) {
           throw getError({ message: '[defineJWKSAuth] jwksUrl is required for verifier mode' });
         }
+
+        AbstractBearerTokenService.resolveClaimsConfig({
+          scope: 'defineJWKSAuth',
+          options: verifierOpts,
+        });
+
+        JWKSUrlPolicy.assertUrl({
+          scope: 'defineJWKSAuth',
+          label: 'jwksUrl',
+          url: verifierOpts.jwksUrl,
+          hosts: verifierOpts.jwks?.hosts?.http,
+        });
 
         this.application
           .bind<IJWKSVerifierOptions>({ key: AuthenticateBindingKeys.JWKS_OPTIONS })
@@ -246,6 +279,7 @@ export class AuthenticateComponent extends BaseComponent {
       this.logger
         .for(this.defineServiceAuth.name)
         .debug('serviceOptions not provided, skipping service authentication');
+
       return;
     }
 
@@ -260,6 +294,21 @@ export class AuthenticateComponent extends BaseComponent {
       throw getError({
         message:
           '[defineServiceAuth] resolvePrincipal is required | the framework proves WHICH SERVICE called, the application decides who that acts as',
+      });
+    }
+
+    // A caller's key set decides who may call: https, loopback, or a host listed in jwks.hosts.http. Checked at boot, so a bad URL never waits for its first request.
+    JWKSUrlPolicy.resolveHttpHosts({
+      scope: 'defineServiceAuth',
+      hosts: serviceOptions.jwks?.hosts?.http,
+    });
+
+    for (const [caller, entry] of Object.entries(serviceOptions.callers ?? {})) {
+      JWKSUrlPolicy.assertUrl({
+        scope: 'defineServiceAuth',
+        label: `callers[${JSON.stringify(caller)}].jwksUrl`,
+        url: typeof entry === 'string' ? entry : entry.jwksUrl,
+        hosts: serviceOptions.jwks?.hosts?.http,
       });
     }
 
@@ -302,6 +351,7 @@ export class AuthenticateComponent extends BaseComponent {
       this.logger
         .for(this.defineBasicAuth.name)
         .debug('basicOptions not provided, skipping Basic configuration');
+
       return;
     }
 
@@ -324,6 +374,7 @@ export class AuthenticateComponent extends BaseComponent {
 
     if (!restOptions?.useAuthController) {
       this.logger.for(this.defineControllers.name).debug('Auth controller disabled');
+
       return;
     }
 
@@ -333,7 +384,7 @@ export class AuthenticateComponent extends BaseComponent {
       });
     }
 
-    const AuthController = AuthControllerFactory.define(restOptions.controllerOpts);
+    const AuthController = AuthControllerFactory.build(restOptions.controllerOpts);
     this.application.controller(AuthController);
 
     this.logger.for(this.defineControllers.name).info('Auth controller registered');

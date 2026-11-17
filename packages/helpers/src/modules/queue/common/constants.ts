@@ -4,12 +4,14 @@ import type { TConstValue } from '@/common/types';
 export class BullQueueRoles {
   static readonly QUEUE = 'queue';
   static readonly WORKER = 'worker';
+}
 
-  static readonly SCHEME_SET = new Set<string>([this.QUEUE, this.WORKER]);
+/** What a BullMQ helper uses when its options leave a field out. */
+export class BullMQDefaults {
+  static readonly NUMBER_OF_WORKER = 1;
 
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
+  /** How long a worker holds a job's lock: 90 minutes, in milliseconds. */
+  static readonly LOCK_DURATION_MS = 90 * 60 * 1000;
 }
 
 /** Valid BullMQ queue role values. */

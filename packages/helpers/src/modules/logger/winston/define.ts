@@ -2,6 +2,7 @@ import type winston from 'winston';
 import { WinstonFormatFactory } from './formats';
 import { WinstonLoggerFactory } from './logger-factory';
 
+/** The winston format that renders an application log line; the default logger uses it. */
 export const applicationLogFormatter: winston.Logform.Format =
   WinstonFormatFactory.applicationLogFormatter;
 

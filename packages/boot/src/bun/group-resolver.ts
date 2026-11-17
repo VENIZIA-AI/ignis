@@ -1,5 +1,5 @@
 import { getError } from '@venizia/ignis-helpers';
-import type { AnyType, TClass } from '@venizia/ignis-helpers';
+import type { TClass } from '@venizia/ignis-helpers';
 import { ArtifactStereotypes, type TGeneratedArtifactIndex } from '../generator/common';
 import { dirname } from 'node:path';
 import { ArtifactSources } from './sources';
@@ -17,6 +17,7 @@ export class GroupArtifactsResolver {
     };
   }): Promise<TGeneratedArtifactIndex> {
     const { folder, site, ignore } = opts.group;
+
     if (!site) {
       throw getError({
         message: `[ArtifactGroup] '${folder ?? '<application>'}' has no call site to resolve from | Define it with ArtifactGroup.define in the shared package's own source`,
@@ -31,17 +32,21 @@ export class GroupArtifactsResolver {
       await ArtifactSources.loadScanner();
     }
 
-    const index: Record<string, Array<TClass<AnyType>>> = {};
+    const index: Record<string, Array<TClass<unknown>>> = {};
+
     for (const artifact of ArtifactSources.folderArtifacts({ folder, site, ignore })) {
       const field = ArtifactStereotypes.EMIT_ORDER.find(
         (entry) => entry.type === artifact.type,
       )?.field;
+
       if (!field) {
         continue;
       }
+
       const loaded = await import(artifact.filePath);
       index[field] = [...(index[field] ?? []), loaded[artifact.className]];
     }
+
     return index;
   }
 

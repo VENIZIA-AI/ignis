@@ -19,6 +19,7 @@ export interface IValidRequestProps<
   form?: FormType;
 }
 
+/** A Hono JSON `Response` typed with its body and status code. */
 export type TJsonResponse<
   ResponseBody = unknown,
   ResponseStatusCode extends StatusCode = StatusCode,
@@ -40,6 +41,7 @@ export type TContext<
   ): TJsonResponse<ResponseBody, TStatusCode>;
 };
 
+/** A `TContext` whose `req.valid()` targets are the keys of `IValidRequestProps` (`json`, `query`, `param`, `header`, `cookie`, `form`). */
 export type TRouteContext<RouteEnv extends Env = Env, ResponseBody = unknown> = TContext<
   RouteEnv,
   keyof IValidRequestProps,

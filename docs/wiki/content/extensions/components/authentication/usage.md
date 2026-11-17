@@ -79,7 +79,6 @@ import {
   BaseRestController,
   controller,
   get,
-  type IJWTTokenPayload,
   type TRouteContext,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
@@ -92,7 +91,7 @@ export class SecureDataController extends BaseRestController {
 
   @get({ configs: SECURE_ROUTE_CONFIG })
   getData(context: TRouteContext) {
-    const user = context.get(Authentication.CURRENT_USER) as IJWTTokenPayload | undefined;
+    const user = context.get(Authentication.CURRENT_USER);
     return context.json({ message: `Hello ${user?.userId}` }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
@@ -121,7 +120,7 @@ The built-in auth controller (`useAuthController: true`) delegates every route t
 ```typescript
 import {
   BaseService, inject, IAuthService, IJWTTokenPayload, JWSTokenService,
-  BindingKeys, BindingNamespaces, TSignInRequest, TContext,
+  BindingKeys, BindingNamespaces, TSignInRequest, TSignUpRequest, TChangePasswordRequest, TContext,
 } from '@venizia/ignis';
 import { getError } from '@venizia/ignis-helpers';
 import { Env } from 'hono';
@@ -147,8 +146,8 @@ export class AuthenticationService extends BaseService implements IAuthService {
     return { token };
   }
 
-  async signUp(context: TContext<Env>, opts: any): Promise<any> { /* your logic */ }
-  async changePassword(context: TContext<Env>, opts: any): Promise<any> { /* your logic */ }
+  async signUp(context: TContext<Env>, opts: TSignUpRequest): Promise<Record<string, unknown>> { /* your logic */ }
+  async changePassword(context: TContext<Env>, opts: TChangePasswordRequest): Promise<Record<string, unknown>> { /* your logic */ }
 }
 ```
 
@@ -177,7 +176,7 @@ async refreshToken(context: TContext<Env>): Promise<{ token: string }> {
 **Implement `getUserInformation` (optional).** Backs both `GET /me` and `GET /who-am-i?withUserInformation=true`.
 
 ```typescript
-async getUserInformation(context: TContext<Env>, _opts: AnyObject): Promise<AnyObject> {
+async getUserInformation(context: TContext<Env>, _opts: Record<string, unknown>): Promise<Record<string, unknown>> {
   const currentUser = context.get(Authentication.CURRENT_USER);
   return this.userRepository.findById({ id: currentUser.userId });
 }
@@ -213,14 +212,37 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
     mode: JWKSModes.ISSUER, algorithm: 'ES256',
     keys: { driver: JWKSKeyDrivers.FILE, format: JWKSKeyFormats.PEM, private: './keys/private.pem', public: './keys/public.pem' },
     kid: 'auth-key-1', getTokenExpiresFn: () => 86400,
+    claims: { issuer: 'https://auth-service.internal', audience: 'api-service' },
   },
 });
 
 // API service (verifier)
 this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
   standard: JOSEStandards.JWKS,
-  options: { mode: JWKSModes.VERIFIER, jwksUrl: 'https://auth-service.internal/certs', cacheTtlMs: 43_200_000, cooldownMs: 30_000 },
+  options: {
+    mode: JWKSModes.VERIFIER,
+    jwksUrl: 'https://auth-service.internal/certs',
+    claims: { issuer: 'https://auth-service.internal', audience: 'api-service' }, // what the issuer stamps
+    verify: { algorithms: ['ES256'] },                                          // required: the verifier cannot know it
+    cacheTtlMs: 43_200_000,
+    cooldownMs: 30_000,
+  },
 });
+```
+
+The verifier requires the `iss` and `aud` the issuer stamps, so a token minted for another service is refused. It also requires `verify.algorithms`: a verifier cannot know what the issuer signs with, and a boot without it is refused.
+
+**Fetch a JWKS over http inside a private network.** A JWKS URL is `https:`, unless its host is loopback or listed in `jwks.hosts.http`. List the in-cluster hosts: a name, an IP address or a bracketed IPv6 address, each with an optional `:port` (no port means any port). The same list covers the callers of a service-to-service setup.
+
+```typescript
+// JWKS verifier
+options: { mode: JWKSModes.VERIFIER, jwksUrl: 'http://auth-service:3000/certs', jwks: { hosts: { http: ['auth-service'] } }, /* claims, verify.algorithms */ }
+
+// Service assertions: every caller's jwksUrl
+{ name: 'inventory', callers: { commerce: 'http://commerce:3000/svc-certs' }, jwks: { hosts: { http: ['commerce'] } }, /* resolvePrincipal */ }
+
+// An internal service reached by address: exact IP and port, or an IPv6 address in brackets
+jwks: { hosts: { http: ['10.0.0.5:8080', '[fd00::1]:8443'] } }
 ```
 
 **Generate ES256 or RS256 keys.**
@@ -253,10 +275,10 @@ keys: {
 
 ```typescript
 // Issuer
-{ mode: JWKSModes.ISSUER, /* ... */ applicationSecret: process.env.APP_ENV_APPLICATION_SECRET }
+{ mode: JWKSModes.ISSUER, /* claims, ... */ applicationSecret: process.env.APP_ENV_APPLICATION_SECRET }
 
 // Verifier - must match
-{ mode: JWKSModes.VERIFIER, jwksUrl: '...', applicationSecret: process.env.APP_ENV_APPLICATION_SECRET }
+{ mode: JWKSModes.VERIFIER, jwksUrl: '...', /* claims, verify.algorithms, ... */ applicationSecret: process.env.APP_ENV_APPLICATION_SECRET }
 ```
 
 ## Auth flows
@@ -288,8 +310,12 @@ sequenceDiagram
 
 | Mode | Behavior | Use case |
 |------|----------|----------|
-| `'any'` (default) | Tried in order.<br>First success wins.<br>Failures are logged at debug, not returned.<br>All fail -> `401` listing the tried strategies. | Fallback auth (JWT primary, Basic for legacy clients) |
-| `'all'` | Every strategy must pass.<br>First failure rejects immediately.<br>The **first** strategy's user payload is the identity source. | Multi-factor authentication |
+| `'any'` (default) | Tried in order; first success wins | Fallback auth (JWT primary, Basic for legacy clients) |
+| `'all'` | Every strategy must pass; first failure rejects | Multi-factor authentication |
+
+In `'any'` mode, a failing strategy is logged at debug level and not returned. When all of them fail, the response is `401` listing the tried strategies.
+
+In `'all'` mode, the **first** strategy's user payload is the identity source.
 
 ```mermaid
 flowchart TD
@@ -316,10 +342,18 @@ AES payload encryption is off by default. It only activates when you set `applic
 |---|---|
 | Default | Off. Without `applicationSecret`, payloads stay standard plaintext JWT. |
 | Standard fields | `iss`, `sub`, `aud`, `jti`, `nbf`, `exp`, `iat` are never encrypted, on either side. |
-| Other fields | Both the key and the value are AES-encrypted. `null` and `undefined` values are skipped. |
-| Serialization | `JSON.stringify` by default. Opt in to `AuthenticationFieldCodecs.ROLES_CODEC` for `roles` - it serializes as pipe-separated `id\|identifier\|priority` strings instead. |
+| Other fields | Both the key and the value are AES-encrypted |
+| Serialization | `JSON.stringify` by default |
 | Secret | Must stay constant. Changing `applicationSecret` invalidates every existing token. |
 | Issuer/verifier match | Both sides need the identical secret, and identical `fieldCodecs` if you use them. |
+
+Other fields, in detail:
+
+- A `null` value is encrypted like any other and decodes as `null`, so an encrypted token decodes to the same payload as a plain one.
+- A `null` never reaches a field codec.
+- An `undefined` value is skipped, as JSON drops it, and the claim is absent.
+
+For `roles`, opt in to `AuthenticationFieldCodecs.ROLES_CODEC`. It serializes roles as pipe-separated `id|identifier|priority` strings instead of JSON.
 
 ```typescript
 this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
@@ -327,11 +361,36 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
   options: {
     jwtSecret: process.env.APP_ENV_JWT_SECRET!,
     getTokenExpiresFn: () => 86400,
+    claims: { issuer: 'my-api', audience: 'my-api' },
     applicationSecret: process.env.APP_ENV_APPLICATION_SECRET, // enables AES encryption
     fieldCodecs: [AuthenticationFieldCodecs.ROLES_CODEC],       // optional, opt-in
   },
 });
 ```
+
+## Read the claims your app adds
+
+`IAuthUser` and `IJWTTokenPayload` carry an open `[extra]` index typed `unknown`, so an extra claim reads as `unknown` until you declare it. Declare it once, on the interface where the framework exports it, and every read is typed with no cast and no parse:
+
+```typescript
+// src/common/auth-claims.ts: any file of your program
+declare module '@venizia/ignis' {
+  interface IAuthUser {
+    tenantId: string;
+  }
+}
+
+export {};
+```
+
+```typescript
+import { Authentication } from '@venizia/ignis';
+
+const user = context.get(Authentication.CURRENT_USER);
+const tenantId: string = user.tenantId; // typed by the declaration above
+```
+
+A declared member must be assignable to `unknown`, the type of the open index: every type is. `IJWTTokenPayload` extends `IAuthUser`, so the same declaration types the claims of a token payload. The file only has to be part of the TypeScript program (under your `tsconfig` `include`); nothing imports it.
 
 ## Hono context extension
 
@@ -405,10 +464,7 @@ Column helper functions return pre-configured Drizzle columns for auth-related t
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import {
-  extraUserColumns,
-  extraRoleColumns,
-  extraPermissionColumns,
-  extraPolicyDefinitionColumns,
+  AuthModelColumns,
   PostgresIdEnricher,
   PostgresTzEnricher,
 } from '@venizia/ignis';
@@ -416,17 +472,17 @@ import {
 export const users = pgTable('users', {
   ...PostgresIdEnricher.generateColumnDefs(),
   ...PostgresTzEnricher.generateColumnDefs(),
-  ...extraUserColumns(),
+  ...AuthModelColumns.buildUser(),
   username: text('username').unique().notNull(),
   passwordHash: text('password_hash').notNull(),
 });
 
-export const roles = pgTable('roles', { ...PostgresIdEnricher.generateColumnDefs(), ...PostgresTzEnricher.generateColumnDefs(), ...extraRoleColumns() });
-export const permissions = pgTable('permissions', { ...PostgresIdEnricher.generateColumnDefs(), ...PostgresTzEnricher.generateColumnDefs(), ...extraPermissionColumns() });
-export const policyDefinitions = pgTable('policy_definitions', { ...PostgresIdEnricher.generateColumnDefs(), ...PostgresTzEnricher.generateColumnDefs(), ...extraPolicyDefinitionColumns() });
+export const roles = pgTable('roles', { ...PostgresIdEnricher.generateColumnDefs(), ...PostgresTzEnricher.generateColumnDefs(), ...AuthModelColumns.buildRole() });
+export const permissions = pgTable('permissions', { ...PostgresIdEnricher.generateColumnDefs(), ...PostgresTzEnricher.generateColumnDefs(), ...AuthModelColumns.buildPermission() });
+export const policyDefinitions = pgTable('policy_definitions', { ...PostgresIdEnricher.generateColumnDefs(), ...PostgresTzEnricher.generateColumnDefs(), ...AuthModelColumns.buildPolicyDefinition() });
 ```
 
-The old function names of these methods are removed. `devz codemod namespace-functions` moves a call written with one to the class form.
+The old function names of these methods are removed. `bun run devz codemod namespace-functions` moves a call written with one to the class form.
 
 **`AuthModelColumns.buildUser(opts?: { idType })`**
 
@@ -466,7 +522,7 @@ The old function names of these methods are removed. `devz codemod namespace-fun
 
 | Column | DB column | Type | Nullable | Description |
 |--------|-----------|------|----------|-------------|
-| `variant` | `variant` | `text` | No | One of the seven `AuthorizationPolicyVariants` edge kinds: `grant`, `assign_role`, `role_inherits`, `join_domain`, `domain_inherits`, `resource_inherits`, `action_inherits` |
+| `variant` | `variant` | `text` | No | One of the seven `AuthorizationPolicyVariants` edge kinds |
 | `subjectType` | `subject_type` | `text` | No | For example, `'user'`, `'Role'` |
 | `targetType` | `target_type` | `text` | No | For example, `'Permission'`, `'Role'` |
 | `action` | `action` | `text` | Yes | Policy action |
@@ -476,6 +532,8 @@ The old function names of these methods are removed. `devz codemod namespace-fun
 | `targetId` | `target_id` | `text` or `integer` | No | Depends on `idType` |
 | `domainId` | `domain_id` | `text` or `integer` | Yes | The tenant row's bare id. Depends on `idType` |
 | `metadata` | `metadata` | `jsonb` | Yes | Free-form metadata. Only some grants populate it |
+
+The seven `variant` values: `grant`, `assign_role`, `role_inherits`, `join_domain`, `domain_inherits`, `resource_inherits`, `action_inherits`.
 
 All `idType` options default to `'number'` (`integer` columns). Pass `'string'` for `text` columns - UUID primary keys, for example.
 

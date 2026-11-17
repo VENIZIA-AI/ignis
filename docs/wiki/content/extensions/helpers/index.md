@@ -9,7 +9,7 @@ Every peer dependency below is optional. You install one only when you use the h
 | [Types](./types/) | Shared utility types | You need IGNIS's shared TypeScript utility types | None |
 | [Cron](./cron/) | Scheduled tasks | You run code on a cron schedule | `cron` |
 | [Crypto](./crypto/) | Encryption and signing | You hash, encrypt, or sign data | None |
-| [Environment](./env/) | Env var management | You need typed, validated env var access | None |
+| [Environment](./env/) | Env var management | You need prefix-filtered env vars as strings | None |
 | [Error](./error/) | Error utilities | You throw or handle an error | None |
 | [Secrets & Vault](./secrets/) | Secrets and credentials | You read config or credentials from Vault or a vaulted `.env` | `node-vault` or `@dotenvx/dotenvx` |
 | [Inversion](./inversion/) | DI container | You build custom bindings or providers | None |
@@ -49,9 +49,11 @@ this package that are already browser-safe.
 | Import from | Holds |
 |---|---|
 | `@venizia/ignis-helpers/common` | Constants and pure types: `HTTP`, `GRPC`, `TConstValue`, the duration and mime tables, the redaction helpers |
-| `@venizia/ignis-helpers/core` | Browser-safe runtime classes: `BaseHelper`, the error module, `RetryHelper`, `TemporalHelper`, `TreeBuilder`, `TreeWalker`, `SlugHelper`, `UrlPolicy`, `BuildInfoRegistry`, `ProjectRootRegistry`, `ECDH` (with its base class `AbstractCryptoAlgorithm`), and the parse utilities |
+| `@venizia/ignis-helpers/core` | Browser-safe runtime classes: `BaseHelper`, `RetryHelper`, `UrlPolicy`, `ECDH` and more (listed below the table) |
 | `@venizia/ignis-helpers/temporal` | `TemporalHelper` and its adapters alone |
 | `@venizia/ignis-helpers/uuid` | `UuidV4Generator`, `UuidV5Generator`, `UuidV7Generator` and `UuidHelper` alone - see [UID](./uid/) |
+
+`/core` holds `BaseHelper`, the error module, `RetryHelper`, `TemporalHelper`, `TreeBuilder`, `TreeWalker`, `SlugHelper`, `UrlPolicy`, `BuildInfoRegistry`, `ProjectRootRegistry`, `ECDH` (with its base class `AbstractCryptoAlgorithm`), and the parse utilities.
 
 Import one of them when your code has to bundle for a browser.
 

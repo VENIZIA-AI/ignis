@@ -5,10 +5,12 @@ import { CodemodFiles } from './files';
 
 const USAGE = `Usage: devz codemod async-style [paths...] [--write | --check]
 
-Applies the fixers of three house lint rules, so a repository can sweep them without a lint pass:
+Applies the fixers of four house lint rules, so a repository can sweep them without a lint pass:
 
   venizia/no-inline-await         \`expect(await f())\` becomes \`const result = await f(); expect(result)\`
   venizia/no-return-await         \`return await f()\` becomes \`return f()\` (\`const result = await f(); return result;\` in a try)
+  venizia/no-await-new-chain      \`await new Runner(options).run()\` becomes
+                                  \`const runner = new Runner(options); await runner.run();\`
   venizia/no-await-promise-chain  \`const x = await f().catch(() => null)\` becomes
                                   \`let x; try { x = await f(); } catch (error) { x = null; }\`
 
@@ -73,10 +75,10 @@ export interface IAsyncStyleResult {
 
 /** Runs the async-style rules, and only those, over source text with ESLint's own fixer loop. */
 export class AsyncStyle {
-  /** The `Linter` config: the TypeScript parser and the rules of `asyncStyleConfigs`, at error. */
+  /** The `Linter` config: the TypeScript parser and the rules of `asyncRuleConfigs`, at error. */
   static async createConfig(): Promise<Linter.Config[]> {
     const { default: tseslint } = await import('typescript-eslint');
-    const { asyncStyleConfigs } = await import('../../linters/house/index.js');
+    const { asyncRuleConfigs } = await import('../../linters/house/async-rules.js');
 
     return [
       {
@@ -86,7 +88,7 @@ export class AsyncStyle {
         // ESLint's fixer would delete it. A codemod never touches a directive.
         linterOptions: { reportUnusedDisableDirectives: 'off' },
       },
-      ...asyncStyleConfigs,
+      ...asyncRuleConfigs,
     ];
   }
 
@@ -126,8 +128,10 @@ export class AsyncStyle {
     filename: string;
   }): string[] {
     const { linter, checks, source, output, filename } = opts;
+
     const count = (text: string): Map<string, number> => {
       const found = new Map<string, number>();
+
       for (const message of linter.verify(text, checks, { filename })) {
         const key = message.ruleId ?? 'parse error';
         found.set(key, (found.get(key) ?? 0) + 1);
@@ -135,6 +139,7 @@ export class AsyncStyle {
 
       return found;
     };
+
     const was = count(source);
     const now = count(output);
 
@@ -206,7 +211,7 @@ export class AsyncStyle {
 
 /**
  * `devz codemod async-style [paths...] [--write | --check]`: applies the fixers of `no-inline-await`,
- * `no-return-await` and `no-await-promise-chain`, and lists what is left of those and of `no-silent-catch`.
+ * `no-return-await`, `no-await-new-chain` and `no-await-promise-chain`, and lists what is left of those and of `no-silent-catch`.
  * It is a dry run unless `--write` is given. `--check` is the same dry run, and exits 1 when anything would
  * change or is left unfixed.
  */
@@ -218,6 +223,7 @@ export class AsyncStyleCommand {
 
     if (args.includes(AsyncStyleFlags.HELP) || args.includes(AsyncStyleFlags.HELP_SHORT)) {
       console.log(USAGE);
+
       return 0;
     }
 
@@ -225,10 +231,12 @@ export class AsyncStyleCommand {
     const paths = args.filter((argument) => !argument.startsWith('-'));
 
     const unknown = flags.filter((flag) => !AsyncStyleFlags.isValid(flag));
+
     if (unknown.length > 0) {
       console.error(
         `devz codemod: unknown option ${unknown.map((flag) => `"${flag}"`).join(', ')}\n${USAGE}`,
       );
+
       return USAGE_ERROR_CODE;
     }
 
@@ -239,6 +247,7 @@ export class AsyncStyleCommand {
       console.error(
         `devz codemod: ${AsyncStyleFlags.WRITE} and ${AsyncStyleFlags.CHECK} contradict each other\n${USAGE}`,
       );
+
       return USAGE_ERROR_CODE;
     }
 
@@ -248,17 +257,21 @@ export class AsyncStyleCommand {
       isAll: flags.includes(AsyncStyleFlags.ALL),
       paths,
     });
+
     if (refusal) {
       console.error(`${refusal}\n${USAGE}`);
+
       return USAGE_ERROR_CODE;
     }
 
     let linter: Linter;
+
     try {
       const { Linter: EslintLinter } = await import('eslint');
       linter = new EslintLinter({ cwd: root });
     } catch {
       console.error('devz codemod: the "eslint" package is required to run the lint fixers');
+
       return 1;
     }
 

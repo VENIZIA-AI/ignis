@@ -1,0 +1,77 @@
+---
+title: The query schema metadata names its type as 'object'
+description: "TSchemaMetadata.type is 'object' instead of string, a query schema decorator refuses anything that is not a zod schema, and resolveModelRelations takes only the entry fields it reads."
+packages: ['@venizia/ignis-filter', '@venizia/ignis-kernel']
+migration:
+  - id: schema-metadata-type-is-object
+    symbols: [TSchemaMetadata, TSchemaDecorator]
+    upgrade:
+      before: |
+        // a decorator or a test that builds its own metadata with another string
+        const metadata: TSchemaMetadata = { description: 'A filter', type: 'string' };
+      after: |
+        // only 'object' is accepted; code that only reads metadata.type is unaffected
+        const metadata: TSchemaMetadata = { description: 'A filter', type: 'object' };
+    downgrade:
+      steps:
+        - "Nothing to restore: the older type was string, a wider type, so every value that compiled still does."
+  - id: decorator-refuses-non-zod
+    symbols: [QuerySchemaFactory]
+    upgrade:
+      before: |
+        // the shipped decorator called .openapi() on whatever it was given
+      after: |
+        // the shipped decorator throws a named error when it is given anything but a zod schema carrying .openapi()
+        const schemas = QuerySchemaFactory.build({ decorate });
+    downgrade:
+      steps:
+        - "Nothing to restore: the older decorator threw a TypeError ('openapi is not a function') for the same input."
+    data: "A schema with no .openapi() - for example one built with a second copy of zod that @hono/zod-openapi did not patch - is named in the error. Zod 4 copies pass the instanceof check but carry no .openapi(), so the old code threw a TypeError for them too."
+  - id: resolve-model-relations-entry
+    symbols: [resolveModelRelations, RepositoryMetadataMixin]
+    upgrade:
+      before: |
+        registry.resolveModelRelations(entry); // a whole IModelRegistryEntry
+      after: |
+        // non-breaking: any object with schema, relationsResolver and _builtRelations is accepted
+        registry.resolveModelRelations({ schema, relationsResolver });
+    downgrade:
+      steps:
+        - "Pass a whole IModelRegistryEntry; it is still accepted."
+---
+
+# Changelog - 2026-11-15
+
+## The query schema metadata names its type as 'object'
+
+<Badge type="warning" text="Breaking Change" />
+
+**In one line.** The metadata a query schema carries says `type: 'object'` instead of `string`, and nothing changes at runtime.
+
+## What changed
+
+- **Metadata.** `TSchemaMetadata.type` is `'object'`, the only value the library ever passes.
+- **Decorator.** The decorator that adds OpenAPI metadata to the query schemas throws a named error for a value that is not a zod schema, instead of a `TypeError`.
+- **Registry.** `resolveModelRelations` takes the fields it reads (`schema`, `relationsResolver`, `_builtRelations`); a full entry still fits.
+
+## Who is affected
+
+- **Code that writes its own `TSchemaDecorator` and assigns `metadata.type` to another string, or builds its own `TSchemaMetadata`.** See the migration above.
+- **Everyone else.** No action needed.
+
+## Breaking changes
+
+> [!WARNING]
+> This is a type-level break. The typecheck names each line.
+
+**Before:**
+
+```typescript
+const metadata: TSchemaMetadata = { type: 'string' };
+```
+
+**After:**
+
+```typescript
+const metadata: TSchemaMetadata = { type: 'object' };
+```

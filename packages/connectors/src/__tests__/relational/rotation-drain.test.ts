@@ -1,4 +1,4 @@
-import { datasource } from '@venizia/ignis-kernel';
+import { datasource, type TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { BaseRelationalDataSource } from '@/relational/core/datasources';
 import type { TRelationalTransactionOptions } from '@/relational/core/datasources';
 import type { IRelationalConnection, IRelationalDriver } from '@/relational/core/drivers';
@@ -6,7 +6,6 @@ import type {
   IRelationalQueryDialect,
   IRelationalQueryExecutor,
 } from '@/relational/core/repositories/common';
-import type { AnyObject, AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { describe, expect, test } from 'bun:test';
 
@@ -17,25 +16,25 @@ import { describe, expect, test } from 'bun:test';
 class CloseOnlyClient {
   closed = false;
 
-  constructor(readonly config: AnyObject) {}
+  constructor(readonly config: Record<string, unknown>) {}
 
   close(): void {
     this.closed = true;
   }
 }
 
-class CloseOnlyDriver implements IRelationalDriver<AnyType, CloseOnlyClient> {
+class CloseOnlyDriver implements IRelationalDriver<unknown, CloseOnlyClient> {
   private readonly client: CloseOnlyClient;
 
   constructor(opts: { client: CloseOnlyClient }) {
     this.client = opts.client;
   }
 
-  createConnector(): AnyType {
+  createConnector(): unknown {
     return {};
   }
 
-  acquire(): Promise<IRelationalConnection<AnyType>> {
+  acquire(): Promise<IRelationalConnection<unknown>> {
     throw getError({ message: '[CloseOnlyDriver] acquire is not exercised by this fixture' });
   }
 
@@ -54,23 +53,23 @@ class CloseOnlyDriver implements IRelationalDriver<AnyType, CloseOnlyClient> {
  * driver, so the newly built client must be drained.
  */
 class WiringFailureDriver extends CloseOnlyDriver {
-  override createConnector(): AnyType {
+  override createConnector(): unknown {
     throw getError({ message: 'driver wiring blew up' });
   }
 }
 
 abstract class CloseOnlyDataSourceFixture extends BaseRelationalDataSource<
   { user?: string; password?: string },
-  AnyType,
+  TAnyDataSourceSchema,
   {},
   CloseOnlyClient,
-  AnyType
+  unknown
 > {
   readonly builds: Array<CloseOnlyClient> = [];
   failNextConfigure = false;
 
   configure(): void {
-    const client = new CloseOnlyClient({ ...(this.getSettings() as AnyObject) });
+    const client = new CloseOnlyClient({ ...this.getSettings() });
     this.builds.push(client);
     this.client = client;
 
@@ -91,7 +90,7 @@ abstract class CloseOnlyDataSourceFixture extends BaseRelationalDataSource<
     throw getError({ message: '[CloseOnlyDataSourceFixture] dialect is not exercised' });
   }
 
-  override getQueryExecutor(): IRelationalQueryExecutor<AnyType> {
+  override getQueryExecutor(): IRelationalQueryExecutor<unknown> {
     throw getError({ message: '[CloseOnlyDataSourceFixture] executor is not exercised' });
   }
 }
@@ -145,6 +144,7 @@ describe('Relational onSecretRotated - draining a client that has no end()', () 
     dataSource.getConnector();
 
     const rounds = [1, 2, 3];
+
     for (const round of rounds) {
       await dataSource.onSecretRotated({
         key: 'datasources.sqlite',
@@ -165,6 +165,7 @@ describe('Relational onSecretRotated - draining a client that has no end()', () 
     dataSource.failNextConfigure = true;
 
     let failure: unknown;
+
     try {
       await dataSource.onSecretRotated({
         key: 'datasources.sqlite',
@@ -174,7 +175,7 @@ describe('Relational onSecretRotated - draining a client that has no end()', () 
       failure = error;
     }
 
-    expect((failure as Error)?.message).toContain('bad rotated creds');
+    expect(failure instanceof Error ? failure.message : '').toContain('bad rotated creds');
     expect(dataSource.builds[1]?.closed).toBe(true);
     expect(oldClient.closed).toBe(false);
     expect(dataSource.getClient()).toBe(oldClient);
@@ -186,6 +187,7 @@ describe('Relational onSecretRotated - draining a client that has no end()', () 
     const oldClient = dataSource.builds[0];
 
     let failure: unknown;
+
     try {
       await dataSource.onSecretRotated({
         key: 'datasources.sqlite',
@@ -195,7 +197,7 @@ describe('Relational onSecretRotated - draining a client that has no end()', () 
       failure = error;
     }
 
-    expect((failure as Error)?.message).toContain('driver wiring blew up');
+    expect(failure instanceof Error ? failure.message : '').toContain('driver wiring blew up');
     expect(dataSource.builds[1]?.closed).toBe(true);
     expect(oldClient.closed).toBe(false);
   });

@@ -58,7 +58,7 @@ directory grows into.
 
 Weight is not purity: zod is browser-PURE, so the purity gate had nothing to say while one
 `z.object()` at module load cost every consumer of `Container` 423 KB.
-`src/__tests__/bundle/browser-weight.test.ts` bundles both entries and fails over 120 KB.
+`src/__tests__/bundle/browser-weight.test.ts` bundles both entries and fails over 120 KB; it also fails when zod or zod-to-openapi reach `applications/rest.ts`. `RestApplication` takes its routers from the internal `RouterFactories` (`applications/router-factory.ts`): plain `Hono` by default, `OpenAPIHono` once `controllers/rest/abstract.ts` has loaded and registered it; `ServerApplication` overrides the protected `createRouter()` to always build one.
 
 ## What it owns
 
@@ -70,7 +70,7 @@ Everything under `src/base/` was the engine-neutral half of `packages/core-serve
 | `auth/` | The authentication and authorization seams - registries, middlewares, providers, policy builders |
 | `components/` | `BaseComponent` and its `binding()` contract |
 | `configurations/` | `BaseConfiguration` and the `@configuration({ after? })` artifact kind, drained at the `registerConfigurations` boot step - between `registerDefaultMiddlewares` and `registerDataSources`, so it is where a datasource or a component's inputs get settled. `ArtifactIndexHelper.sortConfigurationsTopologically` orders them by their declared `after` - the graph keyed by the class itself, so two same-named (minified) configurations are both kept - ties broken by class name, so an order that must survive minification belongs in `after`; an `after` naming a class that is not itself a registered configuration, and a dependency cycle, each throw naming what they found. `@provide` binds off a configuration the same as off a component, and lazily, so a provided key can be read long before the configuration's own turn |
-| `controllers/` | `AbstractRestController`, `BaseRestController` (route helpers and the response helpers `respond({ context, format, payload, range? })` and `setListHeaders({ context, count } & ({ range } | { offset, total }))`, plus the exported `DataRangeUtility.toContentRange` - the one home of the `Content-Range` / `X-Response-Count` / `X-Response-Format` contract; `respond({ extra })` offers figures beside a list's rows (`ResponseExtras` in `rest/extras.ts` parses and resolves): plain `() => v` when named, `{ isDefault, compute }` always unless `-name`/`-*`, `{ keys, compute({ keys }) }` a group named `name(k,k)` - keys required, never "all", never a default (the union forbids `isDefault` on it, and resolve skips groups), matched against the declared list, never evaluated; `-name(keys)` is a 400. The client half - `HttpExtraRequest.toHeader`, `HttpResponseReader.readExtra`, `TExtraRequest`/`TExtraResult` - lives in `/repository`. `readExtra` strips only `extra`: `body` is `{ count, data }` when the count was asked for in the body, the rows otherwise. Answers `{ data, extra }` (+`count`) and `x-response-extra` when anything ran, the unchanged body when nothing did, 400 on anything unknown or malformed; with `extra` it returns a promise, and every extra runs through an async wrapper so a synchronous throw beside a running one leaves no unhandled rejection; `format` is the `ResponseFormats` const class), `ControllerFactory`, and `ReadableCrudController.getBaseWhere({ context })` - the per-controller scope every read verb ANDs into the request filter as `{ and: [baseWhere, requestWhere] }`, public rather than protected because a generated controller's declaration cannot carry a protected member (TS4094) |
+| `controllers/` | `AbstractRestController`, `BaseRestController` (route helpers and the response helpers `respond({ context, format, payload, range? })` and `setListHeaders({ context, count } & ({ range } | { offset, total }))`, plus the exported `DataRangeUtility.toContentRange` - the one home of the `Content-Range` / `X-Response-Count` / `X-Response-Format` contract; `respond({ extra })` offers figures beside a list's rows (`ResponseExtras` in `rest/extras.ts` parses and resolves): plain `() => v` when named, `{ isDefault, compute }` always unless `-name`/`-*`, `{ keys, compute({ keys }) }` a group named `name(k,k)` - keys required, never "all", never a default (the union forbids `isDefault` on it, and resolve skips groups), matched against the declared list, never evaluated; `-name(keys)` is a 400. The client half - `HttpExtraRequest.toHeader`, `HttpResponseReader.readExtra`, `TExtraRequest`/`TExtraResult` - lives in `/repository`. `readExtra` strips only `extra`: `body` is `{ count, data }` when the count was asked for in the body, the rows otherwise. Answers `{ data, extra }` (+`count`) and `x-response-extra` when anything ran, the unchanged body when nothing did, 400 on anything unknown or malformed; with `extra` it returns a promise, and every extra runs through an async wrapper so a synchronous throw beside a running one leaves no unhandled rejection; `format` is the `ResponseFormats` const class), `CrudControllerFactory`, and `ReadableCrudController.getBaseWhere({ context })` - the per-controller scope every read verb ANDs into the request filter as `{ and: [baseWhere, requestWhere] }`, public rather than protected because a generated controller's declaration cannot carry a protected member (TS4094) |
 | `datasources/` | `AbstractDataSource` - the engine-neutral root with no SQL members |
 | `events/` | `EventBus` - in-process, fire-and-forget domain event bus with per-registration retry |
 | `metadata/` | The decorator layer: `@controller`, `@model`, `@datasource`, `@repository`, `@configuration`, `@inject`, the REST verbs, the RPC verbs |
@@ -84,7 +84,7 @@ Everything under `src/base/` was the engine-neutral half of `packages/core-serve
 
 Alongside it: `src/common/` carries `BindingNamespaces`, `CoreBindings`, the framework error codes,
 and `Statuses`; `src/helpers/inversion/` carries the kernel `Container` and `MetadataRegistry`;
-`src/utilities/` carries the error helpers only - the JSX and schema builders moved to `base/controllers/common/` because they call `z.object()` at module load, which made a barrel named `utilities/` pull zod into any bundle that touched it.
+`src/utilities/` carries `NotSupportedUtility` and the toggle pair `TToggle` / `ToggleUtility` (`isUsed`, `pick`; `toggle.utility.ts`) - the JSX and schema builders moved to `base/controllers/common/` because they call `z.object()` at module load, which made a barrel named `utilities/` pull zod into any bundle that touched it.
 
 ## Browser purity is the design constraint, and it is measured
 
@@ -132,13 +132,15 @@ is underneath and which socket is bound belong to `ServerApplication`.
 ## One default middleware stack
 
 `RestApplication.registerDefaultMiddlewares()` installs the registrations every host shares:
-`requestId()` fed by `RequestIdGenerator`, `configs.middlewares.bodyLimit` when set, the framework
+`requestId()` fed by `RequestIdGenerator`, the body limit (`configs.middlewares.bodyLimit`, 5 MiB when unset), the framework
 error handler, and `notFoundHandler`. `WorkerApplication` inherits it untouched; `BaseApplication`
 calls `super()` and adds `contextStorage`, `RequestTrackerComponent` and the favicon on top.
 `buildErrorMiddleware()` is the one seam inside it, which core overrides to swap in the
 `ErrorPrettier`-backed formatter; it feeds `config.error.environment` through as the middleware's
 `environment` option, which is how a browser application declares the ambient environment it has no
 `process.env` to read.
+
+**The body limit is on by default.** Unset, `registerDefaultMiddlewares()` installs `BodyLimits.limiter` with `BodyLimits.DEFAULT_MAX_SIZE` (5 MiB) on every route; a configured `bodyLimit` replaces it, `enable: false` removes it, and the drift check (`assertBodyLimitUnchanged`) compares against the resolved default too. A route that takes larger bodies puts `BodyLimits.route({ maxSize })` in its `middleware`: the limiter is tagged with a registry symbol, the default limiter reads the tags of `context.req.matchedRoutes` and stands aside for a tagged route. The static-asset upload route tags itself (`maxFiles` files of `maxBytes` plus framing). Bun's own `maxRequestBodySize` (128 MiB by default) still answers first when it is lower.
 
 `configs.middlewares.bodyLimit` (`IMiddlewareConfigs`, `IBodyLimitOptions`) is the only middleware
 config the framework installs by itself - every other key in `IMiddlewareConfigs` is a type only,
@@ -190,9 +192,9 @@ is where the model registry, the repository bindings, and datasource auto-discov
 The model registry is keyed by registered name (`@model({ tableName })` > `TABLE_NAME` > class name)
 AND by schema object (`getModelEntryBySchema`, a WeakMap). A schema claimed by a SECOND model drops
 out of that map rather than answering with whichever registered last - two models over one drizzle
-table would otherwise apply the wrong `hiddenProperties`/`access`. A relation carries only its schema, and
+table would otherwise apply the wrong `properties.hidden`/`access`. A relation carries only its schema, and
 a lookup by SQL table name missed every model whose table name differed from its registered name -
-`include` then dropped its `hiddenProperties` and `access`.
+`include` then dropped its `properties.hidden` and `access`.
 
 ## Generated bulk routes take `where` in the query or the body
 
@@ -246,26 +248,25 @@ metadata type is a union discriminated on it (`TRepositoryMetadata`):
   binding and the datasource injection are registered.
 - `REMOTE` refuses `model`. Only the datasource injection is registered, so no model binding
   exists and the datasource discovers no schema through it. `HttpRepository` subclasses use it.
-- `validateRepositoryMetadata` (`base/metadata/persistents.ts`) mirrors the union for JavaScript
+- `validateRepositoryMetadata` (`base/metadata/persistents/repository/validate.ts`) mirrors the union for JavaScript
   callers, unknown `type` included. A bare `@repository()` on a subclass inherits the parent's `type`.
 - Keep the two values only in `RepositoryTypes`. Tests and messages reference the constant, never
   the literal.
 
-`ControllerFactory.registerRepositoryInjection({ target, factoryName, controllerName, repositoryName })`
+`CrudControllerFactory.registerRepositoryInjection({ target, factoryName, repositoryName })`
 (`base/controllers/factory/controller.ts`, kernel root and `@venizia/ignis`) is the one home
 of the factory injection: `repositories.<repositoryName>` at constructor parameter 0, `isOptional:
 false`, recorded through `MetadataRegistry.setInjectMetadata` because Bun drops parameter decorators
 in some configurations. An empty name throws `[<factoryName>] Invalid repository name`.
-`defineCrudController` and connectors' `defineSearchController` both call it. An own `@inject` at
+`CrudControllerFactory.build` and connectors' `SearchControllerFactory.build` both call it. An own `@inject` at
 parameter 0 in a subclass wins.
 
-The CRUD factory's DEFAULT write bodies leave out what the entity reports from
-`AbstractEntity.getServerStampedKeys()` (`[]` at the root and on search entities), and the two
+The CRUD factory's DEFAULT write bodies leave out the keys of the model's `settings.properties.stamped`
+(`CrudControllerFactory` reads it from the model metadata, like repositories read `properties.hidden`), and the two
 update bodies also leave out `id` - `RouteConfigResolver.toWriteBodySchema` in
-`base/controllers/factory/definition.ts`. The kernel names no audit key; connectors'
-`BaseRelationalEntity` reports `createdBy`/`modifiedBy`/`createdAt`/`modifiedAt` whose drizzle
-column has `hasDefault` or `onUpdateFn` (names in the internal
-`relational/core/models/common/constants.ts`).
+`base/controllers/factory/definition.ts`. Without `stamped` the list is `AuditFields.SCHEME_SET` (`createdBy`,
+`modifiedBy`, `createdAt`, `modifiedAt`, `deletedAt`), whatever the engine; a search collection that keeps a
+writable `createdAt` declares `stamped: []`. A key the schema does not hold is ignored.
 
 - Nothing to leave out returns the entity schema by identity, so a refinement or an OpenAPI name
   survives. A refined or transformed schema that needs an omission throws, naming
@@ -287,7 +288,7 @@ The public helper functions of the kernel are static methods of classes: `OpenAp
 (`buildDataRange`, `toContentRange`), `ModelUtility` (`toEntityId`, `snakeToCamel`),
 `RequestDomainResolver` (`readDeclarative`, `resolveRequestDomain`),
 `InjectableUtility.pickRegistrationOptions`, `EmojiFaviconMiddleware.create`,
-`NotSupportedUtility.throwNotSupported` and `ControllerFactory.registerRepositoryInjection`, and
+`NotSupportedUtility.throwNotSupported`, `ToggleUtility` (`isUsed`, `pick`) and `CrudControllerFactory.registerRepositoryInjection`, and
 `RouteConfigResolver` holds the route-config resolvers. The old function names are not exported:
 `devz codemod namespace-functions --write` moves a caller to the class form, from the table in
 `packages/dev-configs/src/cli/codemod/namespace-functions/mappings/kernel.ts`, and
@@ -306,7 +307,7 @@ Inversion's `MetadataRegistry.setInjectMetadata` is copy-on-write: the first wri
 the list it inherits. It used to write into the parent's list found through the prototype chain, so
 a subclass's `@inject` rewrote its parent's list and every sibling subclass inherited the change.
 
-`@repository` does not rely on that. `registerDataSourceInjection` (`base/metadata/persistents.ts`)
+`@repository` does not rely on that. `registerDataSourceInjection` (`base/metadata/persistents/repository/injection.ts`)
 copies the inherited list itself before writing parameter 0, because the kernel's inversion range
 still admits 0.2.0-23. Without the copy, a subclass naming its own `dataSource` moves its parent
 repository onto that datasource. The CRUD and search factories do rely on inversion's copy, so

@@ -1,22 +1,97 @@
 import { ResolverUtility } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
+import type { ILogger } from '@venizia/ignis-helpers/core';
 import { MetadataRegistry, ScopeWriteGuards } from '@venizia/ignis-kernel';
+import type { IModelRegistryEntry } from '@venizia/ignis-kernel';
+import { ScopeThroughLink } from '@/relational/core/repositories/common/scope-through';
 import { BaseSearchEntity } from '@/search/core/models';
-import { getTableColumns, is, Table } from 'drizzle-orm';
+import { getTableColumns, getTableName, is, Table } from 'drizzle-orm';
 
+/** Boot-time checks for models that declare `settings.access` (scope filtering). */
 export class ScopeFilterUtility {
+  /**
+   * Why a `through` chain cannot work, or undefined. Walks from `name` toward the model that holds a resolver: every
+   * hop needs a `one` relation with a single-column key, the parent needs an `access`, and the chain is at most
+   * `ScopeThroughLink.MAX_DEPTH` hops with no model twice. A key with no index is a warning: it still works, slowly.
+   */
+  private static throughProblem(opts: {
+    name: string;
+    models: Map<string, IModelRegistryEntry>;
+    logger?: ILogger;
+  }): string | undefined {
+    const { name, models, logger } = opts;
+    let current = models.get(name);
+    const visited = new Set([current]);
+    let hops = 0;
+
+    while (current?.metadata?.settings?.access?.through) {
+      hops += 1;
+
+      if (hops > ScopeThroughLink.MAX_DEPTH) {
+        return `through is deeper than ${ScopeThroughLink.MAX_DEPTH} hops`;
+      }
+
+      const { schema } = current;
+
+      if (!is(schema, Table)) {
+        return 'the model has no table to read a foreign key from';
+      }
+
+      let link: ReturnType<typeof ScopeThroughLink.of>;
+
+      try {
+        link = ScopeThroughLink.of({
+          schema,
+          relation: current.metadata.settings.access.through.relation,
+          relations: ScopeThroughLink.relationsOf({ entry: current }),
+        });
+      } catch (error) {
+        return error instanceof Error ? error.message : String(error);
+      }
+
+      if (hops === 1 && !ScopeThroughLink.isIndexed({ schema, property: link.childProperty })) {
+        logger
+          ?.for('assertScopeFilterSupported')
+          .warn(
+            '%s: the foreign key %s has no index, so every scoped read scans the table',
+            name,
+            link.childProperty,
+          );
+      }
+
+      const { parentEntry } = link;
+
+      if (!parentEntry?.metadata?.settings?.access) {
+        return `the parent ${getTableName(link.parentSchema)} has no access setting`;
+      }
+
+      if (visited.has(parentEntry)) {
+        return `through goes in a cycle at ${getTableName(link.parentSchema)}`;
+      }
+
+      visited.add(parentEntry);
+      current = parentEntry;
+    }
+
+    return undefined;
+  }
+
   /**
    * Refuses to boot when `settings.access` is declared where it cannot be honoured. Both cases
    * are silent at runtime and fail in OPPOSITE directions: a search-backed model returns more rows,
    * a context-less one returns none. The caller supplies `asyncContextEnabled` so no application
    * config type reaches into this tier.
    */
-  static assertScopeFilterSupported(opts: { asyncContextEnabled: boolean }): void {
+  static assertScopeFilterSupported(opts: {
+    asyncContextEnabled: boolean;
+    logger?: ILogger;
+  }): void {
     const models = MetadataRegistry.getInstance().getAllModels();
 
     const searchBacked: string[] = [];
     const withoutAmbientContext: string[] = [];
     const invalidWriteGuard: string[] = [];
+    const invalidThrough: string[] = [];
 
     for (const [name, entry] of models) {
       if (!entry.metadata?.settings?.access) {
@@ -34,7 +109,34 @@ export class ScopeFilterUtility {
         withoutAmbientContext.push(name);
       }
 
-      const { columns, write } = entry.metadata.settings.access;
+      const { access } = entry.metadata.settings;
+
+      if (!access.through === !access.resolve) {
+        invalidThrough.push(`${name}: declare resolve or through, not both and not neither`);
+        continue;
+      }
+
+      if (access.through) {
+        const problem = ScopeFilterUtility.throughProblem({ name, models, logger: opts.logger });
+
+        if (access.onMissing !== undefined) {
+          invalidThrough.push(
+            `${name}: onMissing is not available on through, a parent that resolves no scope always denies`,
+          );
+        }
+
+        if (access.columns || access.write) {
+          invalidThrough.push(`${name}: columns and write belong to a resolver, not to through`);
+        }
+
+        if (problem) {
+          invalidThrough.push(`${name}: ${problem}`);
+        }
+
+        continue;
+      }
+
+      const { columns, write } = access;
       const writeGuard = write?.mode;
 
       if (writeGuard !== undefined && !ScopeWriteGuards.isValid(writeGuard)) {
@@ -69,6 +171,15 @@ export class ScopeFilterUtility {
       });
     }
 
+    if (invalidThrough.length > 0) {
+      throw getError({
+        message: [
+          `[assertScopeFilterSupported] invalid settings.access.through | ${invalidThrough.join(' | ')}`,
+          'A model declares resolve or through. A through names a one relation whose parent has an access of its own.',
+        ].join(' | '),
+      });
+    }
+
     if (invalidWriteGuard.length > 0) {
       throw getError({
         message: [
@@ -82,7 +193,7 @@ export class ScopeFilterUtility {
       throw getError({
         message: [
           `[assertScopeFilterSupported] settings.access declared while asyncContext.enable is false | models: ${withoutAmbientContext.join(', ')}`,
-          'access.resolve() takes no arguments, so the ambient request context is its only input.',
+          'access.resolve() reads the ambient request context; the operation is its only argument.',
           'With no context store every resolve() returns undefined, onMissing denies by default, and EVERY query on these models matches zero rows - with nothing naming the flag as the cause.',
           'Set asyncContext.enable to true, or remove settings.access.',
         ].join(' | '),

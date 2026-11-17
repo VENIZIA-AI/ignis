@@ -5,7 +5,9 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   BaseAppErrorMiddleware,
-  ControllerFactory,
+  controller,
+  CrudControllerFactory,
+  CrudRoutes,
   model,
   repository,
 } from '@venizia/ignis-kernel';
@@ -21,7 +23,7 @@ class VariantSearchDataSource extends FakeSearchDataSource {}
 const COLLECTION = 'crud-body-variants';
 
 /** A collection that requires `createdAt`, as a sort key often is. Nothing on the search path stamps it. */
-@model({ type: 'entity' })
+@model({ type: 'entity', settings: { properties: { stamped: [] } } })
 class VariantDocument extends BaseSearchEntity {
   static override schema = SearchCollectionFactory.define({
     name: COLLECTION,
@@ -38,16 +40,18 @@ class VariantSearchRepository extends DefaultSearchRepository<
   TSearchDocument<ISearchCollectionDefinition>
 > {}
 
-const VariantCrudController = ControllerFactory.defineCrudController({
-  entity: VariantDocument,
-  repository: { name: VariantSearchRepository.name },
-  controller: { name: 'VariantCrudController', basePath: '/variants' },
+const VariantCrudController = CrudControllerFactory.build({
+  repository: VariantSearchRepository,
+  routes: { ...CrudRoutes.READ, create: true, updateById: true },
 });
+
+@controller({ path: '/variants' })
+class VariantController extends VariantCrudController {}
 
 const openRoutes = async () => {
   const dataSource = new VariantSearchDataSource({ name: 'crud-body-search-ds', config: {} });
-  const controller = new VariantCrudController(new VariantSearchRepository(dataSource));
-  const router = await controller.configure();
+  const variantController = new VariantController(new VariantSearchRepository(dataSource));
+  const router = await variantController.configure();
   // The handler an application installs on its server: without it a failed validation is a bare 500.
   router.onError(new BaseAppErrorMiddleware().value());
 
@@ -62,11 +66,7 @@ const openRoutes = async () => {
   return { send, engine: dataSource.fakeConnector };
 };
 
-describe('defineCrudController over a search entity keeps the audit-named fields', () => {
-  test('a search entity stamps nothing', () => {
-    expect(new VariantDocument().getServerStampedKeys()).toEqual([]);
-  });
-
+describe('CrudControllerFactory.build over a search entity keeps the audit-named fields', () => {
   test('POST keeps the required createdAt and hands it to the engine', async () => {
     const { send, engine } = await openRoutes();
     const document = {

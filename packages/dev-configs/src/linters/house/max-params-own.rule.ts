@@ -3,7 +3,7 @@ import type { TRuleSeverity } from '../rules/common';
 import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 
 const HOOK_NAME = /^use[A-Z]/;
-const CALL_TYPES = new Set(['CallExpression', 'NewExpression']);
+const CALL_TYPES = new Set([AstNodeTypes.CALL_EXPRESSION, AstNodeTypes.NEW_EXPRESSION]);
 
 const isArrayContaining = (opts: { list: unknown; item: unknown }) =>
   Array.isArray(opts.list) && opts.list.includes(opts.item);
@@ -12,8 +12,9 @@ const isArrayContaining = (opts: { list: unknown; item: unknown }) =>
 const isHookCall = (call: unknown) => {
   const callee = AstNode.readField({ node: call, key: 'callee' });
   const name = AstNode.readField({ node: callee, key: 'name' });
+
   return (
-    AstNode.getType({ node: callee }) === 'Identifier' &&
+    AstNode.getType({ node: callee }) === AstNodeTypes.IDENTIFIER &&
     typeof name === 'string' &&
     HOOK_NAME.test(name)
   );
@@ -39,7 +40,7 @@ const hasDeclaredShape = (object: unknown): boolean => {
     const parent = AstNode.readField({ node: current, key: 'parent' });
     const parentType = AstNode.getType({ node: parent });
     const isTypedVariable =
-      parentType === 'VariableDeclarator' &&
+      parentType === AstNodeTypes.VARIABLE_DECLARATOR &&
       Boolean(
         AstNode.readField({
           node: AstNode.readField({ node: parent, key: 'id' }),
@@ -49,14 +50,15 @@ const hasDeclaredShape = (object: unknown): boolean => {
 
     if (
       isTypedVariable ||
-      parentType === 'TSSatisfiesExpression' ||
+      parentType === AstNodeTypes.SATISFIES_EXPRESSION ||
       isLibraryArgument({ node: current, parent })
     ) {
       return true;
     }
 
     const isNestedValue =
-      parentType === 'Property' && AstNode.readField({ node: parent, key: 'value' }) === current;
+      parentType === AstNodeTypes.PROPERTY &&
+      AstNode.readField({ node: parent, key: 'value' }) === current;
     current = isNestedValue ? AstNode.readField({ node: parent, key: 'parent' }) : undefined;
   }
 
@@ -64,7 +66,7 @@ const hasDeclaredShape = (object: unknown): boolean => {
 };
 
 /**
- * `venizia/max-params-own`. A function we write takes at most `max` (default 5) positional parameters;
+ * `venizia/max-params-own`. A function we write takes at most `max` positional parameters;
  * beyond that it takes one options object. A signature that belongs to someone else is not counted: an
  * inline callback handed to a call (map, reduce, sort, a library handler) or to a JSX prop, a function a
  * declared type fixes (`const x: TFn = (...)`, a member of a typed or `satisfies` object), and a
@@ -91,20 +93,23 @@ export class MaxParamsOwnRule {
       const isCallback = (node: Rule.Node) => {
         const parent = node.parent;
         const isJsxProp =
-          AstNode.getType({ node: parent }) === 'JSXExpressionContainer' &&
+          AstNode.getType({ node: parent }) === AstNodeTypes.JSX_EXPRESSION_CONTAINER &&
           AstNode.getType({ node: AstNode.readField({ node: parent, key: 'parent' }) }) ===
-            'JSXAttribute';
+            AstNodeTypes.JSX_ATTRIBUTE;
+
         return isJsxProp || isLibraryArgument({ node, parent });
       };
 
       const isInjectedConstructor = (opts: { node: Rule.Node; params: unknown[] }) => {
         const parent = opts.node.parent;
+
         const isDecorated = (param: unknown) => {
           const own = AstNode.readField({ node: param, key: 'decorators' });
           const property = AstNode.readField({
             node: AstNode.readField({ node: param, key: 'parameter' }),
             key: 'decorators',
           });
+
           return (
             (Array.isArray(own) && own.length > 0) ||
             (Array.isArray(property) && property.length > 0)
@@ -112,7 +117,7 @@ export class MaxParamsOwnRule {
         };
 
         return (
-          AstNode.getType({ node: parent }) === 'MethodDefinition' &&
+          AstNode.getType({ node: parent }) === AstNodeTypes.METHOD_DEFINITION &&
           AstNode.readField({ node: parent, key: 'kind' }) === 'constructor' &&
           opts.params.every(isDecorated)
         );
@@ -122,7 +127,7 @@ export class MaxParamsOwnRule {
         const parent = node.parent;
         const parentType = AstNode.getType({ node: parent });
         const isTypedInit =
-          parentType === 'VariableDeclarator' &&
+          parentType === AstNodeTypes.VARIABLE_DECLARATOR &&
           AstNode.readField({ node: parent, key: 'init' }) === node &&
           Boolean(
             AstNode.readField({
@@ -132,15 +137,16 @@ export class MaxParamsOwnRule {
           );
         const grandParent = AstNode.readField({ node: parent, key: 'parent' });
         const isMember =
-          parentType === 'Property' &&
+          parentType === AstNodeTypes.PROPERTY &&
           AstNode.readField({ node: parent, key: 'value' }) === node &&
-          AstNode.getType({ node: grandParent }) === 'ObjectExpression';
+          AstNode.getType({ node: grandParent }) === AstNodeTypes.OBJECT_EXPRESSION;
 
         return isTypedInit || (isMember && hasDeclaredShape(grandParent));
       };
 
       const check = (node: Rule.Node) => {
         const params = AstNode.readField({ node, key: 'params' });
+
         if (!Array.isArray(params) || params.length <= max) {
           return;
         }
@@ -164,8 +170,16 @@ export class MaxParamsOwnRule {
     },
   };
 
-  static build(opts: { severity?: TRuleSeverity; max?: number } = {}): Linter.RuleEntry {
+  static build(
+    opts: {
+      /** @default 'error' */
+      severity?: TRuleSeverity;
+      /** @default 5 */
+      max?: number;
+    } = {},
+  ): Linter.RuleEntry {
     const { severity = 'error', max = MaxParamsOwnRule.DEFAULT_MAX } = opts;
+
     return [severity, max];
   }
 }

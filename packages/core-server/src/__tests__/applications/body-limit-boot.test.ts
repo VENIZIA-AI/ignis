@@ -49,6 +49,7 @@ describe('configs.middlewares.bodyLimit across the whole boot', () => {
     const server = application.getServer();
     server.post('/echo', async (context) => {
       const text = await context.req.text();
+
       return context.json({ length: text.length });
     });
     const response = await server.request('/echo', {
@@ -69,6 +70,7 @@ describe('configs.middlewares.bodyLimit across the whole boot', () => {
     application.init();
 
     let refusal: unknown;
+
     try {
       await application.initialize();
     } catch (error) {

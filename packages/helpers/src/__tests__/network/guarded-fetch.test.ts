@@ -20,6 +20,7 @@ const publicPolicy = {
 const captureMessage = async (task: Promise<unknown>): Promise<string> => {
   try {
     await task;
+
     return '';
   } catch (error) {
     return (error as Error).message;
@@ -32,6 +33,7 @@ const stubResponses = (responses: Response[]): { calls: string[] } => {
 
   globalThis.fetch = (async (input: any) => {
     calls.push(String(input));
+
     return responses[Math.min(index++, responses.length - 1)];
   }) as typeof fetch;
 
@@ -144,6 +146,7 @@ describe('isUrlRefusedError - permanent versus worth retrying', () => {
   const refusedFrom = async (task: Promise<unknown>): Promise<unknown> => {
     try {
       await task;
+
       return undefined;
     } catch (error) {
       return error;

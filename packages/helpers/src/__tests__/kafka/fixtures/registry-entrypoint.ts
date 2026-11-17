@@ -31,6 +31,7 @@ const probe = async (): Promise<void> => {
 
     if (fetched !== 'ok' || !registry.get(SCHEMA_ID)) {
       console.log(`bad | fetch: ${fetched}`);
+
       return;
     }
 

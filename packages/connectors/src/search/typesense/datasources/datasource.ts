@@ -5,6 +5,7 @@ import type { CollectionCreateSchema } from 'typesense/lib/Typesense/Collections
 import type { Client } from 'typesense';
 import { TypesenseCollectionCompiler } from '../compiler';
 import { TypesenseConnector } from '../connector';
+import type { ITypesenseTuning } from '../repositories/common';
 import { TypesenseQueryDialect } from '../repositories/dialect/query-dialect';
 import type {
   IMultiSearchResult,
@@ -21,6 +22,8 @@ export class TypesenseDataSource extends BaseSearchDataSource<
   ITypesenseDataSourceSettings,
   TypesenseConnector
 > {
+  declare readonly $inferTuning?: ITypesenseTuning;
+
   /** Stateless dialect - shared across every TypesenseDataSource instance. */
   private static readonly queryDialect: ISearchQueryDialect = new TypesenseQueryDialect();
 

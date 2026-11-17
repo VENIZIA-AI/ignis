@@ -1,3 +1,6 @@
+import type { Pool } from 'pg';
+import { DuckTypingUtility } from '@/common/internal';
+
 export interface IReleaseCall {
   destroyed: boolean;
 }
@@ -46,6 +49,7 @@ export class FakePool {
   async connect(): Promise<FakePoolClient> {
     const client = new FakePoolClient({ failOn: this.failOn });
     this.clients.push(client);
+
     return client;
   }
 
@@ -53,3 +57,21 @@ export class FakePool {
     this.ended = true;
   }
 }
+
+/** The same pool accounting `NodePostgresDriver` checks, stated as a guard so a fake can be handed over as a `Pool`. */
+export const isPool = (value: unknown): value is Pool =>
+  DuckTypingUtility.hasMembers({
+    value,
+    members: { connect: 'function', totalCount: 'number' },
+  });
+
+/** A fake pool the driver accepts as a real `Pool`. */
+export const createFakePool = (opts?: { failOn?: string }): FakePool & Pool => {
+  const pool = new FakePool(opts);
+
+  if (!isPool(pool)) {
+    throw new Error('[FakePool] Lacks the pool accounting a Pool has');
+  }
+
+  return pool;
+};

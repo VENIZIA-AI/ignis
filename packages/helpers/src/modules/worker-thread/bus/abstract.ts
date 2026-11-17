@@ -3,6 +3,7 @@ import { BaseHelper } from '@/modules/base';
 import { type MessagePort, type Transferable } from 'node:worker_threads';
 import { type IWorkerBus, type IWorkerMessageBusHandler } from '../common';
 
+/** Base for a bus over a `MessagePort`: incoming messages go to `handler`, outgoing ones through `postMessage`. */
 export abstract class AbstractWorkerBusHelper<IConsumePayload, IPublishPayload>
   extends BaseHelper
   implements IWorkerBus<IConsumePayload, IPublishPayload>

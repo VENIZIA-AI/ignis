@@ -97,14 +97,12 @@ export type TWhereOperators<V> = {
  */
 export type TWhereValue<V> = TWidenIsoTimestamp<V> | null | TWhereOperators<TWidenIsoTimestamp<V>>;
 
-/** `true` when a column value can hold JSON: `unknown`, `any` or an object other than a `Date` or a `TIsoTimestamp`. */
+/** `true` when a column value can hold JSON: `unknown`, `any`, or a union with an object other than a `Date` or a `TIsoTimestamp` (a `TJsonValue` is one). */
 type TIsJsonValue<V> = unknown extends V
   ? true
-  : V extends Date | TIsoTimestamp
+  : [Exclude<Extract<V, object>, Date | TIsoTimestamp>] extends [never]
     ? false
-    : V extends object
-      ? true
-      : false;
+    : true;
 
 /** The columns of `T` whose value can hold JSON - the only columns a JSON-path key may start with. */
 export type TJsonColumnKey<T> = {

@@ -174,6 +174,7 @@ export class IntegrationCases extends BaseTestCases {
 
       if (found?.code === testCode) {
         const hasRelations = ((found as any).saleChannelProducts?.length ?? 0) > 0;
+
         if (hasRelations) {
           this.context.logger.info(
             '[CASE 26] PASSED | Nested relations loaded with default filter',
@@ -186,11 +187,11 @@ export class IntegrationCases extends BaseTestCases {
       }
 
       // Cleanup
-      await junctionRepo.deleteAll({
+      await junctionRepo.deleteBy({
         where: { productId: product.data.id },
         options: { force: true },
       });
-      await saleChannelRepo.deleteAll({ where: { id: channel.data.id }, options: { force: true } });
+      await saleChannelRepo.deleteBy({ where: { id: channel.data.id }, options: { force: true } });
     } catch (error) {
       this.context.logger.error('[CASE 26] FAILED | Error: %s', (error as Error).message);
     }

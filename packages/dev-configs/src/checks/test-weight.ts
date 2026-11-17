@@ -12,6 +12,7 @@ export interface ITestWeightInput {
   xml: string;
 }
 
+/** Time and counts of one test file from a JUnit report. */
 export interface ITestFileWeight {
   label: string;
   file: string;
@@ -23,6 +24,7 @@ export interface ITestFileWeight {
   slowestMilliseconds: number;
 }
 
+/** Result of `TestWeightCheck.analyseJunit`: totals, per-package sums, the heaviest files and the suspect ones. */
 export interface ITestWeightReport {
   files: ITestFileWeight[];
   totalMilliseconds: number;
@@ -71,6 +73,7 @@ const CASE = /<testcase name="([^"]*)" classname="([^"]*)" time="([\d.eE+-]+)" f
 const LIGHT_FILE_MILLISECONDS = 100;
 const HEAVY_SHARE = 0.8;
 
+/** Reads JUnit reports of `bun test` and shows where the test time and the test count are. */
 export class TestWeightCheck {
   /** Reads the JUnit reports of a test run into one weight report: which files carry the time, and what looks wrong. */
   static analyseJunit(opts: { reports: ITestWeightInput[] }): ITestWeightReport {
@@ -94,6 +97,7 @@ export class TestWeightCheck {
       }
 
       const byFile = new Map(files.slice(start).map((entry) => [entry.file, entry]));
+
       for (const match of xml.matchAll(CASE)) {
         const caseName = decodeEntities(match[1]);
         const suiteName = decodeEntities(match[2]);
@@ -117,6 +121,7 @@ export class TestWeightCheck {
 
     let accumulated = 0;
     let filesFor80Percent = 0;
+
     for (const entry of heaviest) {
       accumulated += entry.milliseconds;
       filesFor80Percent += 1;
@@ -137,6 +142,7 @@ export class TestWeightCheck {
       totalSkipped: files.reduce((sum, entry) => sum + entry.skipped, 0),
       perLabel: labels.map((label) => {
         const own = files.filter((entry) => entry.label === label);
+
         return {
           label,
           files: own.length,
@@ -177,6 +183,7 @@ export class TestWeightCheck {
     }
 
     lines.push('', `heaviest ${top} files:`);
+
     for (const entry of report.heaviest.slice(0, top)) {
       lines.push(
         `${entry.milliseconds.toFixed(0).padStart(8)} ms ${String(entry.cases).padStart(5)} cases  slowest ${entry.slowestMilliseconds.toFixed(0).padStart(7)} ms  ${entry.label}/${entry.file}`,
@@ -189,6 +196,7 @@ export class TestWeightCheck {
       `files under ${LIGHT_FILE_MILLISECONDS} ms: ${report.lightFiles.count}, together ${seconds(report.lightFiles.milliseconds)} s`,
       `same suite and case name in more than one file: ${report.sameNameAcrossFiles.length}`,
     );
+
     for (const duplicate of report.sameNameAcrossFiles.slice(0, 10)) {
       lines.push(`  ${duplicate.name.slice(0, 90)} -> ${duplicate.files.join(', ')}`);
     }

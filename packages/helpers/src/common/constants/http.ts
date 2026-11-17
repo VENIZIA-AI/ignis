@@ -1,5 +1,6 @@
 import { type ValueOf } from '../types';
 
+/** HTTP constants: header names, CORS headers, header values, methods, protocols and status codes. Header names, methods and protocols are lowercase. */
 export class HTTP {
   /** Standard and common HTTP headers (lowercase per HTTP/2 convention). */
   static readonly Headers = {
@@ -10,6 +11,8 @@ export class HTTP {
     CONTENT_TYPE: 'content-type',
     CONTENT_RANGE: 'content-range',
     CONTENT_SECURITY_POLICY: 'content-security-policy',
+    ACCEPT_RANGES: 'accept-ranges',
+    RANGE: 'range',
 
     // Request - content negotiation & conditionals
     ACCEPT: 'accept',
@@ -18,6 +21,7 @@ export class HTTP {
     AUTHORIZATION: 'authorization',
     COOKIE: 'cookie',
     HOST: 'host',
+    IF_MATCH: 'if-match',
     IF_MODIFIED_SINCE: 'if-modified-since',
     IF_NONE_MATCH: 'if-none-match',
     ORIGIN: 'origin',
@@ -132,6 +136,9 @@ export class HTTP {
     IMAGE_PNG: 'image/png',
     IMAGE_SVG: 'image/svg+xml',
     IMAGE_WEBP: 'image/webp',
+
+    // Range units
+    RANGE_UNIT_BYTES: 'bytes',
   } as const;
 
   /** Standard HTTP methods (lowercase). */
@@ -227,8 +234,11 @@ export class HTTP {
   } as const;
 }
 
+/** An HTTP method from `HTTP.Methods`, in lowercase or uppercase. */
 export type THttpMethod = ValueOf<typeof HTTP.Methods> | Uppercase<ValueOf<typeof HTTP.Methods>>;
+/** An HTTP protocol from `HTTP.Protocols`, in lowercase or uppercase. */
 export type THttpProtocol =
   | ValueOf<typeof HTTP.Protocols>
   | Uppercase<ValueOf<typeof HTTP.Protocols>>;
+/** A numeric HTTP status code from any class in `HTTP.ResultCodes`. */
 export type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>;

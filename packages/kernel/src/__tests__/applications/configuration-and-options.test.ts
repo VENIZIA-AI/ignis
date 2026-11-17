@@ -12,6 +12,7 @@ class TestApplication extends RestApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'config-test-app', version: '0.0.0', description: '' };
   }
+
   preConfigure(): void {}
   postConfigure(): void {}
   staticConfigure(): void {}
@@ -140,6 +141,7 @@ describe('configuration @provide and options pass-through to components', () => 
 
       override configure(opts?: IMailOptions): Promise<void> {
         receivedOptions = opts;
+
         return super.configure(opts);
       }
     }
@@ -192,10 +194,12 @@ describe('configuration @provide and options pass-through to components', () => 
       constructor() {
         super({ scope: EmptyOptionsComponent.name });
       }
+
       override binding() {}
       override configure(opts?: object): Promise<void> {
         expect(opts).toBeUndefined();
         configured = true;
+
         return super.configure(opts);
       }
     }

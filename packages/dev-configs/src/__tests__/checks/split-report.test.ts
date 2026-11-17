@@ -10,11 +10,13 @@ const makeFixture = (opts: { files: Record<string, string> }): string => {
   const root = mkdtempSync(join(tmpdir(), 'ignis-split-report-'));
   tmpDirs.push(root);
   const filesEntries = Object.entries(opts.files);
+
   for (const [relPath, content] of filesEntries) {
     const full = join(root, relPath);
     mkdirSync(dirname(full), { recursive: true });
     writeFileSync(full, content);
   }
+
   return root;
 };
 
@@ -23,6 +25,7 @@ const typesFile = (opts: { count: number }): string => {
     { length: opts.count },
     (_, index) => `export type T${index + 1} = string;`,
   );
+
   return `${lines.join('\n')}\n`;
 };
 
@@ -32,11 +35,13 @@ const runReport = (opts: { packageDir: string }): string[] => {
   const lines: string[] = [];
   const original = console.log;
   console.log = (message: string) => lines.push(message);
+
   try {
     SplitReport.run({ packageDir: opts.packageDir });
   } finally {
     console.log = original;
   }
+
   return lines;
 };
 

@@ -22,9 +22,11 @@ const buildEnforcer = async (opts: { lines: string[] }) => {
   const model = enforcer.getModel();
   model.clearPolicy();
   const linesList = ['g, User_1, Role_1, *', 'g2, User_1, Merchant_9', ...LATTICE, ...opts.lines];
+
   for (const line of linesList) {
     Helper.loadPolicyLine(line, model);
   }
+
   await enforcer.buildRoleLinks();
 
   return enforcer;
@@ -163,9 +165,11 @@ describe('scoped model - enforce performance guard', () => {
     expect(enforcer.enforceSync(...request)).toBe(true);
 
     const startedAt = performance.now();
+
     for (let index = 0; index < 20; index++) {
       enforcer.enforceSync(...request);
     }
+
     const perEnforce = (performance.now() - startedAt) / 20;
 
     expect(perEnforce).toBeLessThan(50);

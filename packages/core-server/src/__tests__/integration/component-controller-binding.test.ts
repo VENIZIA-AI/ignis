@@ -102,6 +102,7 @@ class ProductsController extends BaseRestController {
       },
       handler: (context: TRouteContext) => {
         const { name } = context.req.valid<{ name: string }>('json');
+
         return context.json({ id: 'p-1', name }, 201);
       },
     });
@@ -221,6 +222,7 @@ describe('Component → Controller binding integration', () => {
     for (const component of components) {
       await component.configure();
     }
+
     await application['registerControllers']();
   }
 
@@ -316,6 +318,7 @@ describe('Component → Controller binding integration', () => {
 
       // All 5 controllers should be reachable
       const paths = ['/users', '/orders', '/products', '/invoices', '/status'];
+
       for (const path of paths) {
         const res = await rootRouter.request(path);
         expect(res.status).toBe(200);
@@ -355,6 +358,7 @@ describe('Component → Controller binding integration', () => {
         constructor(private application: BaseApplication) {
           super({ scope: TrackingComponent.name });
         }
+
         override binding(): ValueOrPromise<void> {
           this.application.controller(TrackedController);
         }
@@ -404,6 +408,7 @@ describe('Component → Controller binding integration', () => {
         constructor() {
           super({ scope: GrpcOnlyController.name, path: '/grpc-service' });
         }
+
         override binding(): ValueOrPromise<void> {}
       }
 

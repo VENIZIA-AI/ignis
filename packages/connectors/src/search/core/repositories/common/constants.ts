@@ -21,6 +21,7 @@ export class SearchModes {
     return this.SCHEME_SET.has(input);
   }
 }
+/** Union of the `SearchModes` values. */
 export type TSearchMode = TConstValue<typeof SearchModes>;
 
 /** Reassembled from FilterSchema's atomic pieces minus `include`: search has no relations. */
@@ -109,12 +110,14 @@ const RawSearchSchema = z
   })
   .describe('Raw engine passthrough');
 
+/** Zod schema of the `search()` input, a discriminated union on `mode`: `keyword`, `semantic`, `hybrid` or `raw`. */
 export const SearchInputSchema = z.discriminatedUnion('mode', [
   KeywordSearchSchema,
   SemanticSearchSchema,
   HybridSearchSchema,
   RawSearchSchema,
 ]);
+/** Parsed `search()` input; narrow on `mode` to reach the fields of one strategy. */
 export type TSearchInput = z.infer<typeof SearchInputSchema>;
 
 /** One collection's query within a multi-search - same friendly field names as `search()`. `filterBy` is a raw engine filter string because cross-collection search has no per-collection model to translate a `TFilter` against; the datasource maps entries to wire form via the dialect. */
@@ -134,6 +137,7 @@ export const MultiSearchEntrySchema = z
     ...commonSearchParamsShape,
   })
   .describe('A single collection query within a multi-search');
+/** Parsed form of one `MultiSearchEntrySchema` entry. */
 export type TMultiSearchEntry = z.infer<typeof MultiSearchEntrySchema>;
 
 /** Cross-collection multi-search input: friendly `searches` entries plus the union flag. */
@@ -143,4 +147,5 @@ export const MultiSearchInputSchema = z
     union: z.boolean().optional(),
   })
   .describe('Cross-collection multi-search (federated by default; union merges results)');
+/** Parsed form of `MultiSearchInputSchema`. */
 export type TMultiSearchInput = z.infer<typeof MultiSearchInputSchema>;

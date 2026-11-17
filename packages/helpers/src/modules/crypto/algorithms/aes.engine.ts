@@ -74,6 +74,7 @@ export class AesEngine {
       cryptoKey,
       input as TBytes,
     );
+
     return new Uint8Array(decrypted);
   }
 

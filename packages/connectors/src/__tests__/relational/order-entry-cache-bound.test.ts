@@ -51,6 +51,7 @@ const retainedHeapAfter = (opts: {
   }
 
   Bun.gc(true);
+
   return process.memoryUsage().heapUsed - before;
 };
 

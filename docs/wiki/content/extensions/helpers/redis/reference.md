@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Redis - Full Reference
 
-Exhaustive reference for `AbstractRedisHelper`, the three topology classes, the `RedisHelperFactory.create` factory, and every data-API method. For a readable introduction and the common tasks, start with the [Redis overview](/extensions/helpers/redis/).
+Exhaustive reference for `AbstractRedisHelper`, the three topology classes, the `RedisHelperFactory` factory, and every data-API method. For a readable introduction and the common tasks, start with the [Redis overview](/extensions/helpers/redis/).
 
 Backed by **ioredis** under the hood.
 
@@ -18,8 +18,10 @@ Backed by **ioredis** under the hood.
 - [`packages/helpers/src/modules/redis/sentinel/sentinel.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/sentinel/sentinel.helper.ts) - `RedisSentinelHelper`
 - [`packages/helpers/src/modules/redis/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/factory.ts) - `RedisHelperFactory`
 - [`packages/helpers/src/modules/redis/common/interfaces.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/common/interfaces.ts) - `IRedisHelper` and its nine capability interfaces
-- [`packages/helpers/src/modules/redis/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/common/types.ts) - option and callback types
-- [`packages/helpers/src/modules/redis/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/common/constants.ts) - `RedisModes`, `RedisSentinelRoles`
+- [`packages/helpers/src/modules/redis/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/common/types.ts) - the types more than one mode shares: `IRedisNode`, `IRedisCredentials`, `TRedisClient`, `IRedisHelperCallbacks`, `IRedisModuleOption`
+- [`packages/helpers/src/modules/redis/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/common/constants.ts) - `RedisDefaults`
+- [`packages/helpers/src/modules/redis/single/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/single/types.ts), [`cluster/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/cluster/types.ts) and [`sentinel/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/sentinel/types.ts) - the props and options type of each mode
+- [`packages/helpers/src/modules/redis/sentinel/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/sentinel/constants.ts) - `RedisSentinelRoles`, `RedisSentinelDefaults`
 
 ## Find what you need
 
@@ -109,39 +111,48 @@ const redis = new RedisSingleHelper({
 
 ### IRedisSingleHelperOptions
 
-Combines `IRedisSingleHelperProps`, `IRedisHelperCallbacks` and `IRedisModuleOption`.
+Combines `IRedisSingleHelperProps`, `IRedisHelperCallbacks` and `IRedisModuleOption`. `IRedisSingleHelperProps` extends the two shared pieces of `redis/common/types.ts`: `IRedisNode` (`host`, `port?`) and `IRedisCredentials` (`username?`, `password?`), both exported from the helpers barrel.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `name` | `string` | Yes | - | Helper identifier used in logs and as `IRedisHelper.name` |
 | `host` | `string` | Yes | - | Redis server hostname |
-| `port` | `string \| number` | Yes | - | Redis server port |
-| `user` | `string` | No | - | Accepted by the type but not read by the constructor - has no effect. Set auth via `password` only. |
-| `password` | `string` | No | - | Redis `requirepass` value. Omit it for a Redis with no password. |
+| `port` | `string \| number` | No | `6379` | Redis server port |
+| `username` | `string` | No | - | The Redis ACL user to authenticate as, with `password` |
+| `password` | `string` | No | - | Redis `requirepass` value (or the ACL user's password) |
 | `database` | `number` | No | `0` | Redis database index (0-15) |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` uses ioredis `lazyConnect` |
-| `maxRetry` | `number` | No | `0` | Reconnect attempts before giving up. `0` (default) = no reconnect; `-1` = reconnect forever |
-| `module` | `typeof import('ioredis')` | No | loaded by name | `ioredis` itself, for a `bun build --compile` binary with no `node_modules` - see [Run in a compiled binary](/extensions/helpers/redis/#run-in-a-compiled-binary) |
+| `maxRetry` | `number` | No | `5` | Reconnect attempts before giving up - see [Retry strategy](#retry-strategy) |
+| `module` | `typeof import('ioredis')` | No | loaded by name | [Compiled binary](./#run-in-a-compiled-binary): `ioredis` itself, for `bun build --compile` with no `node_modules` |
 | `onInitialized` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired synchronously after construction |
 | `onConnected` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired on TCP connection established |
 | `onReady` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired when client is ready for commands |
 | `onError` | `(opts: { name: string; helper: IRedisHelper; error: unknown }) => void` | No | - | Fired on connection or command errors |
 
+Notes on the fields:
+
+- `username`: omit it to authenticate as the `default` user.
+- `password`: omit it for a Redis with no password.
+- A node has no credentials of its own, in any mode: ioredis cannot honor them (it reads only the host and port of a Sentinel endpoint, and applies a cluster node's credentials to the startup nodes only).
+- One rule in all three modes: top-level `username` and `password` are the data nodes' credentials. A sentinel keeps the Sentinel processes' own in `sentinel.username` and `sentinel.password`. A cluster applies them through `redisOptions`, so every node gets them, including nodes found after startup; as in Sentinel, a first-class credential that is given wins over `redisOptions`, which only fills what is unset.
+- `maxRetry`: `0` = no reconnect; `-1` = reconnect forever; any other value is refused at construction.
+
 ### Retry strategy
 
-ioredis calls the strategy with `attempt` starting at `1`, so the first reconnect waits 2 s.
+All three helpers (single, sentinel and cluster) reconnect the same way. ioredis calls the strategy with `attempt` starting at `1`; the wait comes from `RetryHelper.computeBackoffDelayMs` with `RedisDefaults.RECONNECT_BACKOFF`: exponential from 1 s, doubling, capped at 30 s, with equal jitter (each wait is between half and all of the computed delay).
 
 | `attempt` | Delay |
 |---|---|
-| 1 | 2 s |
-| 2 | 4 s |
-| 3 and later | 5 s |
+| 1 | 0.5 - 1 s |
+| 2 | 1 - 2 s |
+| 3 | 2 - 4 s |
+| 6 and later | up to 30 s |
 
-- **Backoff formula.** `Math.max(Math.min(attempt * 2000, 5000), 1000)`. The `1000` floor is unreachable, because the smallest `attempt` is `1`.
 - **Backoff resets on success.** ioredis sets `retryAttempts` back to `0` once the client reaches `ready`.
-- **Stop condition.** Reconnect stops when `attempt > maxRetry`, unless `maxRetry` is `-1`. Under the default `maxRetry: 0` that fires on the very first attempt, so the client never reconnects.
+- **Stop condition.** Reconnect stops when `attempt > maxRetry`, unless `maxRetry` is `-1`. The helper logs an error once when it gives up. `maxRetry: 0` stops on the first attempt.
+- **Bad values are refused.** `maxRetry` must be `0`, `-1` or a positive integer; a negative number other than `-1`, a fraction or `NaN` throws when the helper is built.
 - **This strategy does not retry commands.** It only schedules reconnection.
-- **BullMQ requirement.** The framework always sets `maxRetriesPerRequest: null` internally, which BullMQ requires.
+- **BullMQ requirement.** The framework sets `maxRetriesPerRequest: null` by default, which BullMQ requires. On a cluster it is a default of `redisOptions`, so an app's own `redisOptions.maxRetriesPerRequest` overrides it.
 
 ### What happens to commands while the connection is down
 
@@ -149,10 +160,10 @@ ioredis calls the strategy with `attempt` starting at `1`, so the first reconnec
 
 | `maxRetry` | Outcome for queued commands |
 |---|---|
-| `-1` or a positive number | Flushed to the server once the client reconnects |
-| `0` (default) | Rejected with `Connection is closed.` as soon as the client gives up |
+| `-1` or a positive number | Flushed to the server once the client reconnects, until `maxRetry` attempts fail |
+| `0` | Rejected with `Connection is closed.` as soon as the client gives up |
 
-To survive a restart or a failover without losing commands, set `maxRetry: -1`.
+The default of 5 attempts rides out a restart of a few seconds. To survive a longer outage or a failover without losing commands, set `maxRetry: -1`.
 
 ## Construction - Cluster
 
@@ -168,9 +179,8 @@ const cluster = new RedisClusterHelper({
     { host: 'redis-node-2', port: 7001 },
     { host: 'redis-node-3', port: 7002 },
   ],
-  clusterOptions: {
-    redisOptions: { password: 'cluster-password' },
-  },
+  username: 'app-user',        // data-node ACL user (omit it for the default user)
+  password: 'cluster-password',
   onReady: ({ name }) => {
     console.log(`[${name}] cluster ready`);
   },
@@ -182,11 +192,20 @@ const cluster = new RedisClusterHelper({
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `name` | `string` | Yes | - | Helper identifier |
-| `nodes` | `Array<{ host: string; port: string \| number; password?: string }>` | Yes | - | Startup nodes - ioredis discovers the rest |
+| `nodes` | `IRedisNode[]` | Yes | - | Startup nodes; the port defaults to `6379`. No per-node credentials: see [Credentials](#credentials-on-a-cluster) |
+| `username` | `string` | No | - | The ACL user of every data node, with `password`. Sent through `redisOptions` |
+| `password` | `string` | No | - | The password of every data node. Sent through `redisOptions`, so nodes found after startup get it |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` sets `lazyConnect` so you call `connect()` later |
-| `clusterOptions` | `ClusterOptions` | No | - | Merged over the two defaults below, then passed to `new Cluster(nodes, clusterOptions)` |
+| `maxRetry` | `number` | No | `5` | Reconnect attempts before giving up - see [Retry strategy](#retry-strategy) |
+| `clusterOptions` | `ClusterOptions` | No | - | Merged over the four defaults, then passed to `new Cluster` |
 | `module` | `typeof import('ioredis')` | No | loaded by name | Same as single |
 | `onInitialized` / `onConnected` / `onReady` / `onError` | callbacks | No | - | Same shape as single |
+
+#### Credentials on a cluster
+
+A node has no credentials of its own because ioredis gives nodes discovered after startup only `redisOptions` (host and port come from the cluster), so a per-node password reaches the startup nodes and nothing else. `username` and `password` are applied through `redisOptions` instead, so every node gets them. The rule is the same as in Sentinel: a first-class credential that is given wins, and `clusterOptions.redisOptions` only fills what is unset. The other `clusterOptions` knobs keep it as the last word.
+
+The four defaults of `clusterOptions`: `enableOfflineQueue: true`, `lazyConnect`, `clusterRetryStrategy` and `redisOptions.maxRetriesPerRequest: null`.
 
 ### Bind early, connect later
 
@@ -203,17 +222,16 @@ const cluster = new RedisClusterHelper({
 await cluster.connect();
 ```
 
-The helper sets two cluster options before your own:
+The helper sets these cluster options before your own:
 
 | Option | Value | Why it is stated, not inherited |
 |--------|-------|--------------------------------|
 | `lazyConnect` | `!autoConnect` | The same rule single and sentinel already follow |
 | `enableOfflineQueue` | `true` | Commands issued between bind and connect must queue, not throw |
+| `clusterRetryStrategy` | the [retry strategy](#retry-strategy) for `maxRetry` (default `5`) | Reconnects the cluster the way single and sentinel reconnect |
+| `redisOptions.maxRetriesPerRequest` | `null` | BullMQ requires it |
 
-`clusterOptions` is merged **over** both, so it stays the last word. A caller already passing `clusterOptions: { lazyConnect: true }` keeps exactly the timing it has today.
-
-> [!WARNING] No framework defaults injected
-> Cluster does not apply the backoff retry strategy or `maxRetriesPerRequest: null` automatically. Pass those inside `clusterOptions.redisOptions` if your consumers (e.g. BullMQ) require them.
+`clusterOptions` is merged **over** all of them, so it stays the last word. A caller already passing `clusterOptions: { lazyConnect: true }` keeps exactly the timing it has today. `redisOptions` is merged key by key: passing your own (a password, TLS) keeps `maxRetriesPerRequest: null` unless you set that key yourself.
 
 `duplicateClient()` on a cluster creates a **new** `Cluster` instance from the same startup nodes and options. ioredis `Cluster` doesn't implement `.duplicate()`, so the helper builds a fresh instance instead.
 
@@ -244,26 +262,29 @@ Redis Sentinel is a high-availability (HA) architecture made of three process ty
 ### Why your app connects to sentinels, not the master
 
 - **The master's address can change after a failover.** Hard-coding a master host would break on every failover.
-- **You give ioredis the sentinel addresses instead**, plus the monitored master group name (`masterName`). ioredis asks a sentinel for the current master, then connects to it.
+- **You give ioredis the sentinel addresses instead**, plus the monitored master group name (`sentinel.masterName`). ioredis asks a sentinel for the current master, then connects to it.
 - **ioredis re-queries sentinels automatically after a failover** - no manual reconnection logic needed.
-- **Your application code does not change during a failover.** The only observable effect is a few seconds of transient command failures. Set `maxRetry: -1` so the client reconnects and drains its queued commands - the default `maxRetry: 0` rejects them instead.
+- **Your application code does not change during a failover.** The only observable effect is a few seconds of transient command failures. Set `maxRetry: -1` so the client reconnects and drains its queued commands - `maxRetry: 0` rejects them instead (the default is `5`).
 
 ### Constructor
 
 ```typescript
-import { RedisSentinelHelper } from '@venizia/ignis-helpers';
+import { RedisSentinelHelper, RedisSentinelRoles } from '@venizia/ignis-helpers';
 
 const redis = new RedisSentinelHelper({
   name: 'ha-cache',          // helper identifier (logging/scope)
-  masterName: 'mymaster',    // group name in sentinel.conf "sentinel monitor mymaster ..."
-  sentinels: [
-    { host: '10.0.0.1', port: 26379 },
-    { host: '10.0.0.2', port: 26379 },
-    { host: '10.0.0.3' },   // port defaults to 26379
-  ],
-  role: 'master',            // 'master' (default) or 'slave'
-  password: 'data-secret',   // master/replica requirepass
-  sentinelPassword: 'sentinel-secret', // sentinel.conf requirepass
+  sentinel: {
+    masterName: 'mymaster',    // group name in sentinel.conf "sentinel monitor mymaster ..."
+    role: RedisSentinelRoles.MASTER, // MASTER (default) or SLAVE
+    password: 'sentinel-secret', // sentinel.conf requirepass
+    nodes: [
+      { host: '192.0.2.1', port: 26379 },
+      { host: '192.0.2.2', port: 26379 },
+      { host: '192.0.2.3' },   // port defaults to 26379
+    ],
+  },
+  username: 'app-user',      // data-node ACL user (omit it for the default user)
+  password: 'data-secret',   // master/replica password
   database: 0,
   autoConnect: true,
   maxRetry: 5,
@@ -275,29 +296,38 @@ const redis = new RedisSentinelHelper({
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `name` | `string` | Yes | - | Helper identifier (logs, `IRedisHelper.name`) |
-| `masterName` | `string` | Yes | - | Sentinel-monitored master group name - maps to ioredis `name` |
-| `sentinels` | `Array<{ host: string; port?: string \| number }>` | Yes | - | Sentinel process addresses |
-| `role` | `TRedisSentinelRole` (`RedisSentinelRoles.MASTER \| SLAVE`) | No | `RedisSentinelRoles.MASTER` | Connect to master (writes) or a replica (reads) |
-| `password` | `string` | No | - | Data-node `requirepass` (master and replicas) |
-| `sentinelPassword` | `string` | No | - | Sentinel-process `requirepass` |
-| `sentinelUsername` | `string` | No | - | Sentinel ACL username |
+| `sentinel` | `IRedisCredentials & { masterName; role?; nodes }` | Yes | - | Everything that belongs to Sentinel; see the table below |
+| `username` | `string` | No | - | Data-node ACL user (master and replicas), with `password` |
+| `password` | `string` | No | - | Data-node password (master and replicas) |
 | `database` | `number` | No | `0` | Redis database index |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately |
-| `maxRetry` | `number` | No | `0` | Reconnect attempts before giving up. `0` (default) = no reconnect; `-1` = reconnect forever. See [Retry strategy](#retry-strategy) |
-| `redisOptions` | `Partial<RedisOptions>` | No | - | Extra ioredis options; first-class fields above always override matching keys here |
+| `maxRetry` | `number` | No | `5` | Reconnect attempts before giving up - see [Retry strategy](#retry-strategy) |
+| `redisOptions` | `Partial<RedisOptions>` | No | - | Extra ioredis options. A first-class field wins over its key here; an unset auth field falls back to it |
 | `module` | `typeof import('ioredis')` | No | loaded by name | Same as single |
 | `onInitialized` / `onConnected` / `onReady` / `onError` | callbacks | No | - | Same shape as single |
 
-### Field clarity - name vs masterName
+### Field clarity - name vs sentinel.masterName
 
 This is the most common source of confusion:
 
 | Field | What it is | Where it goes |
 |-------|-----------|---------------|
 | `name` | The helper's own identifier used for logging and `IRedisHelper.name` | `AbstractRedisHelper` identifier |
-| `masterName` | The master group being monitored by Sentinel processes, matching `sentinel monitor <name> ...` in sentinel.conf | Maps to ioredis `name` option |
+| `sentinel.masterName` | The master group being monitored by Sentinel processes, matching `sentinel monitor <name> ...` in sentinel.conf | Maps to ioredis `name` option |
 
-They are independent. You can name the helper `'ha-cache'` while `masterName` is `'mymaster'`.
+They are independent. You can name the helper `'ha-cache'` while `sentinel.masterName` is `'mymaster'`.
+
+The fields of `sentinel`:
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `masterName` | `string` | Yes | - | Sentinel-monitored master group name - maps to ioredis `name` |
+| `role` | `TRedisSentinelRole` (`RedisSentinelRoles.MASTER \| SLAVE`) | No | `RedisSentinelRoles.MASTER` | Connect to the master (writes) or a replica (reads) |
+| `username` | `string` | No | - | ACL user of the Sentinel processes |
+| `password` | `string` | No | - | `requirepass` of the Sentinel processes |
+| `nodes` | `IRedisNode[]` | Yes | - | Sentinel addresses; port defaults to `26379`. No per-node credentials: use `sentinel.username` and `.password` |
+
+Other ioredis Sentinel options (`sentinelTLS`, `natMap`, `preferredSlaves`) stay reachable through `redisOptions`.
 
 ### The authentication model - 4 relationships
 
@@ -305,16 +335,16 @@ Sentinel deployments have four separate authentication relationships. The app co
 
 | # | From | To | App field | Server config |
 |---|------|----|-----------|---------------|
-| 1 | **App** | **Sentinel processes** | `sentinelPassword` | `requirepass` in sentinel.conf |
-| 2 | **App** | **Data nodes** (master/replica) | `password` | `requirepass` in redis.conf |
+| 1 | **App** | **Sentinel processes** | `sentinel.username`, `sentinel.password` | `requirepass` in sentinel.conf |
+| 2 | **App** | **Data nodes** (master/replica) | `username`, `password` | `requirepass` or an ACL user in redis.conf |
 | 3 | **Sentinel** | **Data nodes** | (not set by app) | `sentinel auth-pass <group> <pass>` in sentinel.conf |
 | 4 | **Replica** | **Master** (replication) | (not set by app) | `masterauth` in redis.conf |
 
 **Relationship 3 is the silent failure.** If the data nodes require a password but `sentinel.conf` has no `sentinel auth-pass`, the sentinel processes can't check master health. They trigger false failovers instead. Configure `sentinel auth-pass` on the server side, even when your app sets only `password`.
 
 **Common cases:**
-- Private network, sentinels unauthenticated: set only `password`.
-- Fully secured cluster: set both `password` and `sentinelPassword`; configure relationships 3 and 4 on the servers.
+- Private network, sentinels unauthenticated: set only `password` (and `username` for an ACL user).
+- Fully secured cluster: set both `password` and `sentinel.password`; configure relationships 3 and 4 on the servers.
 
 ### Failover behavior
 
@@ -323,7 +353,7 @@ When the master fails:
 1. Sentinels reach quorum and promote a replica.
 2. ioredis detects the master change via sentinel notification.
 3. ioredis reconnects to the new master transparently.
-4. Commands issued during the few-second window queue up, then flush once the client reconnects. This needs `maxRetry: -1` or a positive `maxRetry`; the default `0` rejects them.
+4. Commands issued during the few-second window queue up, then flush once the client reconnects. This needs `maxRetry: -1` or a positive `maxRetry`; `0` rejects them.
 5. **Your application code does not change.** The same `RedisSentinelHelper` instance continues to work after failover.
 
 ### Local testing with Docker Compose
@@ -375,10 +405,12 @@ import { RedisSentinelHelper } from '@venizia/ignis-helpers';
 
 const redis = new RedisSentinelHelper({
   name: 'test',
-  masterName: 'mymaster',
-  sentinels: [{ host: 'localhost', port: 26379 }],
+  sentinel: {
+    masterName: 'mymaster',
+    password: 'sentinel-secret',
+    nodes: [{ host: 'localhost', port: 26379 }],
+  },
   password: 'data-secret',
-  sentinelPassword: 'sentinel-secret',
   onReady: ({ name }) => console.log(`[${name}] ready`),
 });
 
@@ -394,53 +426,32 @@ console.log(val); // "world"
 
 `Source ->` [`packages/helpers/src/modules/redis/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/factory.ts)
 
-`RedisHelperFactory.create` is an overloaded factory that returns the concrete type when `mode` is a literal. The old bare `createRedisHelper(opts)` function is removed.
+`RedisHelperFactory` has one static method per topology. Each takes the options of that topology and returns its concrete helper.
 
 ```typescript
-import { RedisHelperFactory, RedisModes } from '@venizia/ignis-helpers';
+import { RedisHelperFactory } from '@venizia/ignis-helpers';
 
-// Type inferred as RedisSingleHelper
-const single = RedisHelperFactory.create({
-  mode: RedisModes.SINGLE,
+// Type: RedisSingleHelper
+const single = RedisHelperFactory.single({
   name: 'cache',
   host: process.env.REDIS_HOST!,
   port: Number(process.env.REDIS_PORT),
   password: process.env.REDIS_PASSWORD!,
 });
 
-// Type inferred as RedisSentinelHelper
-const sentinel = RedisHelperFactory.create({
-  mode: RedisModes.SENTINEL,
+// Type: RedisSentinelHelper
+const sentinel = RedisHelperFactory.sentinel({
   name: 'cache-ha',
-  masterName: 'mymaster',
-  sentinels: [{ host: process.env.SENTINEL_HOST! }],
+  sentinel: { masterName: 'mymaster', nodes: [{ host: process.env.SENTINEL_HOST! }] },
   password: process.env.REDIS_PASSWORD!,
 });
 ```
 
-Switch by environment:
-
-```typescript
-import { RedisHelperFactory, RedisModes, type IRedisHelper } from '@venizia/ignis-helpers';
-
-const mode = (process.env.REDIS_MODE ?? RedisModes.SINGLE) as typeof RedisModes.SINGLE;
-
-const redis: IRedisHelper = RedisHelperFactory.create({
-  mode,
-  name: 'app-cache',
-  host: process.env.REDIS_HOST!,
-  port: Number(process.env.REDIS_PORT),
-  password: process.env.REDIS_PASSWORD!,
-});
-```
-
-| `mode` value | Returns |
-|---|---|
-| `RedisModes.SINGLE` (`'single'`) | `RedisSingleHelper` |
-| `RedisModes.CLUSTER` (`'cluster'`) | `RedisClusterHelper` |
-| `RedisModes.SENTINEL` (`'sentinel'`) | `RedisSentinelHelper` |
-
-Unknown mode throws an `ApplicationError`.
+| Method | Options | Returns |
+|---|---|---|
+| `RedisHelperFactory.single(opts)` | `IRedisSingleHelperOptions` | `RedisSingleHelper` |
+| `RedisHelperFactory.cluster(opts)` | `IRedisClusterHelperOptions` | `RedisClusterHelper` |
+| `RedisHelperFactory.sentinel(opts)` | `IRedisSentinelHelperOptions` | `RedisSentinelHelper` |
 
 ## Lifecycle and Events
 
@@ -467,9 +478,12 @@ await redis.connect(); // resolves true when status === 'ready'
 
 | Method | Behavior |
 |--------|----------|
-| `connect()` | Resolves `false` (no-op) if status is `ready`, `reconnecting`, or `connecting`; otherwise calls ioredis `connect()` and resolves `true` when status reaches `ready` |
-| `disconnect()` | Resolves `false` (no-op) if status is `end` or `close`; otherwise sends `QUIT` and resolves `true` on `'OK'` |
+| `connect()` | Calls ioredis `connect()`; resolves `true` when status reaches `ready` |
+| `disconnect()` | Sends `QUIT`; resolves `true` on `'OK'` |
 | `ping()` | Sends `PING`; returns `'PONG'` |
+
+- `connect()` resolves `false` (no-op) if status is `ready`, `reconnecting`, or `connecting`.
+- `disconnect()` resolves `false` (no-op) if status is `end` or `close`.
 
 ### The four lifecycle callbacks
 
@@ -606,9 +620,11 @@ const dedicated = redis.duplicateClient();
 
 | Method | Signature | Behavior |
 |--------|-----------|----------|
-| `publish<T>` | `(opts: { topics: string[]; payload: T; useCompress?: boolean }): Promise<void>` | JSON-serializes `payload` into a `Buffer`, optionally zlib-deflates it, and publishes to each topic. Filters out empty/blank topics first; if none remain, logs an error and returns without publishing |
+| `publish<T>` | `(opts: { topics: string[]; payload: T; useCompress?: boolean }): Promise<void>` | JSON-serializes `payload`, optionally deflates it, and publishes to each topic |
 | `subscribe` | `(opts: { topic: string }): void` | Subscribes the client to `topic`; on subscription error the helper **logs** it and does not throw |
 | `unsubscribe` | `(opts: { topic: string }): void` | Unsubscribes from `topic`; on error the helper **logs** it and does not throw |
+
+`publish` filters out empty or blank topics first. If none remain, it logs an error and returns without publishing.
 
 > [!IMPORTANT]
 > A subscribed ioredis connection enters subscriber mode and cannot run regular commands. Use `duplicateClient()` to obtain a separate connection for pub/sub.
@@ -665,21 +681,21 @@ All three topologies implement `IRedisHelper` and are interchangeable in every i
 ### BullMQ (BullMQHelper)
 
 `BullMQHelper` accepts a `redisConnection: IRedisHelper`. Internally it:
-- Calls `redisConnection.duplicateClient()` to create dedicated `Queue` and `Worker` connections. BullMQ requires a separate connection per role.
-- Calls `redisConnection.getClient() instanceof Cluster` to detect cluster topology and adjust BullMQ configuration.
+- Passes `redisConnection.duplicateClient()` to the `Queue` and to the `Worker`, so each connects by itself whatever state the shared client is in. BullMQ never quits a client it is handed, so the helper quits each duplicate in `close()`. A duplicate that ends for good (ioredis stopped reconnecting) is logged as an error: give the helper `maxRetry: -1`.
+- Checks `redisConnection.getClient()` structurally (`isCluster === true`, or a `nodes` function) to detect cluster topology and adjust BullMQ configuration.
 
-`RedisSingleHelper` and `RedisSentinelHelper` are BullMQ-compatible out of the box. The framework sets `maxRetriesPerRequest: null` in `buildDefaultOpts`.
+`RedisSingleHelper`, `RedisSentinelHelper` and `RedisClusterHelper` are BullMQ-compatible out of the box. The framework sets `maxRetriesPerRequest: null` on each.
 
 ```typescript
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
-import { RedisSingleHelper } from '@venizia/ignis-helpers';
+import { BullQueueRoles, RedisSingleHelper } from '@venizia/ignis-helpers';
 
 const redis = new RedisSingleHelper({ name: 'queue-redis', host, port, password });
 
 const queue = BullMQHelper.newInstance({
   queueName: 'email',
   identifier: 'email-queue',
-  role: 'queue',
+  role: BullQueueRoles.QUEUE,
   redisConnection: redis,
 });
 ```
@@ -694,7 +710,7 @@ const queue = BullMQHelper.newInstance({
 import { AbstractRedisHelper, RedisSentinelHelper } from '@venizia/ignis-helpers';
 
 // In your Application preConfigure:
-const redis = new RedisSentinelHelper({ name: 'socket-redis', masterName: 'mymaster', sentinels, password });
+const redis = new RedisSentinelHelper({ name: 'socket-redis', sentinel: { masterName: 'mymaster', nodes }, password });
 this.bind<AbstractRedisHelper>({ key: '@app/socket-io/redis-connection' }).toValue(redis);
 ```
 
@@ -722,14 +738,18 @@ See the WebSocket component documentation for the full component registration.
 - **Any topology works** as the `connection`:
 
 ```typescript
+import { RedisSingleHelper } from '@venizia/ignis-helpers';
 import type { IRedisHelper } from '@venizia/ignis-helpers';
+
+// Any RedisSingleHelper / RedisClusterHelper / RedisSentinelHelper is an IRedisHelper:
+const redis: IRedisHelper = new RedisSingleHelper({ name: 'authz-cache', host: 'localhost', port: 6379 });
 
 // Shape of the cached-enforcer config (see the Authorization component docs for full setup):
 const cached = {
   use: true,
   driver: CasbinEnforcerCachedDrivers.REDIS,
   options: {
-    connection: redis as IRedisHelper, // any RedisSingleHelper / RedisClusterHelper / RedisSentinelHelper
+    connection: redis,
     expiresIn: 300_000, // cached-policy TTL in milliseconds
     keyFn: ({ user }) => `authz:policy:${user.id}`,
   },
@@ -777,9 +797,11 @@ import {
   RedisSentinelHelper,
   // Factory
   RedisHelperFactory,
-  RedisModes,
-  // Sentinel role const-class
+  // Sentinel const-classes
   RedisSentinelRoles,
+  RedisSentinelDefaults,
+  // Defaults shared by the modes
+  RedisDefaults,
 } from '@venizia/ignis-helpers';
 
 import type {
@@ -794,9 +816,11 @@ import type {
   IRedisSentinelHelperProps,
   IRedisHelperCallbacks,
   IRedisModuleOption,
+  // Shared pieces of the props types
+  IRedisNode,
+  IRedisCredentials,
   // Client + enum types
   TRedisClient,
-  TRedisMode,
   TRedisSentinelRole,
 } from '@venizia/ignis-helpers';
 ```

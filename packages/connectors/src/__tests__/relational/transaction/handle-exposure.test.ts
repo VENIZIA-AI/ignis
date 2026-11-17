@@ -65,6 +65,7 @@ const projectCycleSafe = (opts: {
   seen.add(value);
 
   const projected: Record<string, unknown> = {};
+
   for (const [key, entry] of Object.entries(value)) {
     projected[key] = projectCycleSafe({ value: entry, depth: depth + 1, seen });
   }

@@ -12,7 +12,7 @@ tags: [packages, connectors, drizzle, relational, search, browser]
 - [The root barrel is the abstract tiers, and only those](#the-root-barrel-is-the-abstract-tiers-and-only-those)
 - [`./http` - a datasource whose transport is not a database](#http---a-datasource-whose-transport-is-not-a-database)
 - [`./testing` - test doubles, never a production import](#testing---test-doubles-never-a-production-import)
-- [The 15 published sub-paths](#the-15-published-sub-paths)
+- [The 16 published sub-paths](#the-16-published-sub-paths)
 - [`core` re-exports it, and the two roots carry different symbols](#core-re-exports-it-and-the-two-roots-carry-different-symbols)
 - [Two ways to declare a model, both supported](#two-ways-to-declare-a-model-both-supported)
 - [What it owns](#what-it-owns)
@@ -27,7 +27,7 @@ tags: [packages, connectors, drizzle, relational, search, browser]
 
 `@venizia/ignis-connectors` holds every datasource, driver, entity base and repository chain that
 reaches a backing engine. Wave 3 of the kernel refactor carved it out of
-`packages/core-server/src/connectors` - 168 source files outside `__tests__`, around 14,200 lines.
+`packages/core-server/src/connectors`. Today it is 244 source files outside `__tests__`, around 23,400 lines.
 
 It depends on `kernel`, `filter`, `helpers`, and `inversion`, and sits between `kernel` and `core`:
 `dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core` (`boot` is a leaf off
@@ -58,7 +58,7 @@ packaging. A driver reaches a bundle only when the application names its class.
 
 ## `./http` - a datasource whose transport is not a database
 
-`AbstractDataSource` is engine-neutral (only `configure()` is required), so a request to another
+`HttpDataSource` extends `DataSourceRoot` (`@venizia/ignis-kernel/repository`), the datasource root with no metadata-registry import, so a browser bundle carries no DI mixins (measured 60.4 KB raw to 28.2 KB; `weight.test.ts`); it sends through `settings.fetch` or the platform `fetch`, never the node transport. `AbstractDataSource` extends the same root and adds what reads `@datasource` metadata (`open.on`, `open.timeoutMs`, model discovery); an `HttpDataSource` ignores those. A datasource is engine-neutral (only `configure()` is required), so a request to another
 IGNIS server is a datasource in the same sense Drizzle-over-Postgres is one: same role, different
 transport, same `@venizia/ignis-filter` vocabulary going in. `HttpRepository` implements the
 readable, updatable and deletable contracts rather than extending `AbstractRepository`, and has no
@@ -87,7 +87,7 @@ The load-bearing decision is that a list with no `Content-Range` has NO total, r
 rather than folded into the page length - a count of 1 for a table of 7000 reads healthy everywhere
 it is consumed. Generated CRUD routes always send the header; a hand-written `respond()` need not,
 which is when it fires. `countPath` is opt-in for an API that publishes a count route, because one
-publishes `/count`, another `/search/count`, and another deleted it. `findOnePath` is opt-in for the same reason: `defineCrudController` generates `GET /find-one`, which answers a missing row with HTTP 200 and no row (the connector always sends `x-request-count-data: false`, so the body is the bare row or `null`), and the connector reads it with `shape: 'one'` and returns `rs.data ?? null`; without it `findOne` asks the list route with `limit: 1`.
+publishes `/count`, another `/search/count`, and another deleted it. `findOnePath` is opt-in for the same reason: `CrudControllerFactory.build` generates `GET /find-one` when `findOne` is listed, which answers a missing row with HTTP 200 and no row (the connector always sends `x-request-count-data: false`, so the body is the bare row or `null`), and the connector reads it with `shape: 'one'` and returns `rs.data ?? null`; without it `findOne` asks the list route with `limit: 1`.
 
 An empty page is `records */N` - the total present, the range absent - and reads as that total; the
 start comes from the filter's `skip`/`offset`, the rule the server used. Missing it made `count()`
@@ -123,11 +123,14 @@ A failure is rebuilt as the error the server threw: status, `normalized`, the se
 field issues) as `cause`. `message` names the path only: a BFF that relays the error must not send an
 internal host or a filter's values to its clients. `errorRootKey` must match the
 server's `error.rootKey` - the connector does not guess, and a wrapped envelope otherwise reads as
-`core.system_error`. `HttpResponseReader` (`parseContentRange`, `readErrorEnvelope`, `readError`, `toApplicationError`, plus `isPlainObject`/`toText`)
+`core.system_error`. `HttpResponseReader` (`parseContentRange`, `readErrorEnvelope`, `readError`, `toApplicationError`, `readBody`, `readJson`, `readText`, plus `isPlainObject`/`toText`)
 lives in `@venizia/ignis-kernel/repository` and is re-exported from `/http`: another client of the same
 server shares the parsing without taking connectors. `HttpDataSource.toResponseError` delegates to
 `HttpResponseReader.toApplicationError({ response, context, rootKey })`, so a client without the
-connector (ARDOR's network service) maps a failed response to the very same `ApplicationError`.
+connector (ARDOR's network service) maps a failed response to the very same `ApplicationError`. A success
+body is read the same way, `readBody` (typed `TJsonValue`; by content type: `null` for a 204 or an empty body, JSON parsed when
+the type names JSON, else the text), `readJson` (typed `TJsonValue`; always JSON; `HttpDataSource.readJsonBody` calls it) and `readText` (a string); a body that
+claims JSON and is not is a 502 with the size and the type, never the content.
 
 Ids `''`, `.` and `..` are refused: WHATWG URL resolves `.`/`%2e` segments, so encoding cannot save
 them: `deleteById('.')` asks for `/<resource>/`, which a router or proxy that ignores the trailing
@@ -149,8 +152,8 @@ Reads take an extra `query` (`THttpExtraQuery`) beside `filter`/`where`, and eve
 ## `./testing` - test doubles, never a production import
 
 `@venizia/ignis-connectors/testing` (re-exported by core-server as `@venizia/ignis/testing`) exports
-four runtime names: `TransactionStates`, `TransactionDouble`, `PostgresTransactionDouble`, and
-`SqliteTransactionDouble`. None of the four is exported from the root barrel, `/relational`,
+five runtime names: `TransactionStates`, `TransactionDouble`, `PostgresTransactionDouble`,
+`SqliteTransactionDouble`, and `RepositoryDouble`. None of the five is exported from the root barrel, `/relational`,
 `/postgres`, `/sqlite`, or core-server's root - a test scans every `src/**` file outside `testing/`
 and `__tests__/` for an import of `@/testing` or the published specifier and fails the connectors
 test suite if one exists.
@@ -169,8 +172,9 @@ named: `new PostgresTransactionDouble<TRelationalConnector>(...)`); without it t
 `never`, as before. `onCommit` and `onRollback` run awaited when the end statement is reached: after the
 count goes up, before `commitError`/`rollbackError`; a throw from a hook fails the end. PGlite has no double
 of its own: its connector is the Postgres `TRelationalConnector`, so `PostgresTransactionDouble` is its double.
+`RepositoryDouble.withTransactions({ repository, transaction, source, logger? })` gives a hand-made repository double the real `runInTransaction`, `rollbackOwnedTransaction` and `resolveEndedByExecute` read off `source.prototype`, a repository class the caller passes (never reimplemented, and the testing entry imports no repository code: the clean-install check loads it without `drizzle-orm`), plus a `beginTransaction` that returns `transaction` and a logger.
 
-## The 15 published sub-paths
+## The 16 published sub-paths
 
 Every peer is optional in `peerDependenciesMeta`; a sub-path needs what it imports. Measured on
 `dist` (static import graph, 2026-09-19): the root barrel imports `drizzle-orm` (with `/pg-core` and
@@ -179,7 +183,7 @@ Every peer is optional in `peerDependenciesMeta`; a sub-path needs what it impor
 `/postgres`, `/sqlite`). `./search`, `./typesense` and `./meilisearch` import neither `hono` nor
 `drizzle-orm` - they reach only `kernel/metadata` and `kernel/repository` - so the search
 controllers (`AbstractSearchController`, `SearchControllerFactory` with `defineRouteConfigs`,
-`ISearchControllerOptions`, `ISearchCustomizableRoutes`) are NOT exported from them any more, nor
+`ISearchControllerOptions`, `ISearchRoutes`) are NOT exported from them any more, nor
 from the package root: only `./search/controllers` and `./typesense/controllers` carry them, and only
 those two import `@hono/zod-openapi`. `./http` loads with no hono and no `@hono/zod-openapi` either.
 What each sub-path may need is pinned per sub-path in `scripts/checks/clean-install/manifest.ts` and proved
@@ -325,7 +329,7 @@ shipped, so nothing migrates from it.
 | `relational/postgres/supabase` | `PoolerModes`, `SupabasePooler` and `SupabaseRls` |
 | `relational/sqlite` | `BaseSqliteDataSource`, `LibSqlDriver`, `DefaultSqliteRepository` and its chain, `SqliteQueryDialect`, `SqliteBeginModes` |
 | `search/core` | `ISearchConnector` and `BaseSearchConnector`, `BaseSearchDataSource`, `SearchCollectionFactory`, the search repository chain |
-| `search/core/controllers` | `AbstractSearchController`, `SearchControllerFactory` (with `defineRouteConfigs`) - published only as `./search/controllers` and `./typesense/controllers` |
+| `search/core/controllers` | `AbstractSearchController`, `SearchControllerFactory` (with `defineRouteConfigs`) - published only as `./search/controllers` and `./typesense/controllers`; `request.body.extend` (a Zod shape) is added to each of the four `SearchInputSchema` members by `extendSearchBody` (a discriminated union has no `extend`), a key the base has throws at build, and the validated body reaches `scope` as `input` typed `TSearchInput & z.infer<z.ZodObject<Shape>>` (`TSearchScopeResolver`'s second type argument, `AbstractSearchController`'s last); `build` options: `authenticate` REQUIRED (`{ strategies }` or `{ skip: true }`, build throws otherwise), `routes` and `modes.raw` are `TToggle`s (`{ use: true }`), `query: { fixed, default, allow: { tuning } }` (server-chosen `queryBy`, `queryByWeights`, `order`, `tuning`; `allow.tuning` replaces the old `engineParams.allow`; tuning is typed only when the repository names its datasource as the second type argument), `response: { use: true, document, transform }` reshapes the hits of `POST /search`; `query.fixed`/`query.default` and `response` cannot combine with `modes.raw` or `routes.multiSearch` - see [Typesense search](/architecture/search-typesense.md) |
 | `search/typesense` | `TypesenseConnector`, `TypesenseDataSource`, `TypesenseQueryDialect`, the collection compiler |
 | `search/meilisearch` | `MeilisearchConnector`, `MeilisearchDataSource`, `MeilisearchQueryDialect`, the collection compiler |
 
@@ -428,6 +432,25 @@ also unscope every ordinary user whose `resolve()` happens to return nothing. `U
 object, so no request body, query string, or header can ever produce it - the bypass can only come
 from code the application wrote and reviewed.
 
+**`resolve({ operation })` receives ONE concrete operation, never a group.** `ScopeOperations`
+(`base/repositories/common/constants.ts`, kernel) holds the concrete `READ`/`CREATE`/`UPDATE`/`DELETE`
+and the groups `WRITE` (the three writes) and `ALL`; `TScopeOperation` is the four concrete values and
+`TScopeOperationGroup` all six. `includes({ group, operation })` is the only membership check (no
+`isWrite`). `applyScopeFilter` passes `mutation ?? READ`; `persistable.ts` passes `CREATE`, `UPDATE`
+(payload check and row selection; `restore` too) and `DELETE` (a hard delete AND a soft delete: `SoftDeletableRepository`
+calls `_update({ operation: DELETE })`, so the stored update is a delete to the resolver); a `findOne` with a row `lock` passes `READ`;
+`applyRelationScopeFilter` (`dialect/filter.ts`) passes `READ`. One resolver can return a wide `or`
+for `READ` and a narrow scope for a write; an `or` over two columns on a write is still refused.
+`ScopeWriteGuard.apply` and `mutationWhere` throw a plain error when handed a `READ` (caller bug). Any operation but `CREATE` is a partial payload to `apply`. `mutationWhere` refuses a scope shape the guard cannot read even with `write.sharedRows` (which only keeps the null branch).
+No string literal of the six values may appear in the row-scope files - `scope-operation-literals.test.ts`
+greps for them. `AuthorizationActions` is a different domain and is deliberately not reused.
+
+**`deletedAt` changes only through the delete and restore calls.** `PersistableRelationalRepository.validateUpdateData({ data })` is a no-op hook called at the top of `updateById`, `updateBy` (so `updateBy`), `updateEach` and `upsert`; `SoftDeletableRelationalRepository` overrides it to refuse, with a 400, a `data` that carries `deletedAt`, with any value (a column-name key is not refused by the hook: an update answers 400 from the transform, an upsert ignores it). Soft delete and restore call `_update` directly, so the hook never sees them. `deleteById`, `deleteBy` take an optional `data`, merged with `deletedAt` into the one `_update({ operation: DELETE })`: the row scope checks the extra values as a `DELETE`. `data` that carries `deletedAt` or `id`, or comes with `shouldHardDelete`, is a 400. Restore takes no `data`.
+
+**`access.through`.** `settings.access` is `TModelAccessSettings`: `IModelAccessSettings` (a `resolve`) or `IModelAccessThroughSettings` (`through` is a kernel `ScopeThrough`: a class with a private constructor and a `protected` member no plain object has, so only `ScopeThrough.of` makes one; its name type `TOneRelationNameOf` is derived from the entity's `relationDefinitions`; there is no `onMissing`, because `'allow'` on a through model shows every tenant's rows when the parent resolves null). `FilterBuilder.resolveAccessScope` (`dialect/filter.ts`) is the one resolver both `applyScopeFilter` and `applyRelationScopeFilter` (includes) call: for a through model it reads the parent's own scope with the SAME operation (recursively, `ScopeThroughLink.MAX_DEPTH` = 5), and returns `{ [fkProperty]: { inSql: <select pk from parent where <scope>> } }`. The subquery is wrapped in an opaque `{ getSQL }` object ON PURPOSE: drizzle's relational query rewrites every Column it finds in a `where` to the relation's alias, the parent's columns inside the subquery included, and the wrapper keeps them qualified. `ScopeThroughLink.of` finds the FK through `OneRelations.configFor`, so a key written out or read off the table resolves as the relation does, and returns the parent's registry entry from `ScopeThroughLink.entryOf` (by schema, then by table name: the one lookup the dialect and the boot check both use); it also holds `relationsOf` (a type guard over the registry's `unknown[]`, no cast) and `isIndexed`. A null FK is invisible under a restricting scope and visible under `UNRESTRICTED`. Writes: `guardScopedWrite` is async and, for a through model, calls `assertParentsInScope` (`core/base.ts`): the parent keys the rows name (a create's rows, or an update payload that names the FK) go through ONE `select` on the parent in the write's transaction, `WHERE pk IN (...) AND <parent scope for this operation>`, with `lock: share` when `queryExecutor.supportsRowLock` (Postgres true, SQLite false: its executor throws on a lock, and its transactions begin IMMEDIATE). A null/absent key, a missing parent and an out-of-scope parent are one `ScopeWriteGuard.parentDenied`. `UNRESTRICTED` checks existence only; `null` refuses. `_create` and `_update` re-enter themselves inside `runInTransaction` when the model is a through model and no transaction was passed. Selection for update/delete is the through scope (`FilterBuilder.resolveThrough` is shared by reads and the write check). For a write operation `resolveThrough` narrows the parent's scope with `ScopeWriteGuard.mutationWhere` and the parent's settings, once per hop, so the parent's `write.sharedRows` (and its refusal of a scope shape it cannot verify) holds for the row selection and for `assertParentsInScope`; a parent that is itself `through` is not narrowed again, its own hop did it. `applyScopeFilter` skips `mutationWhere` for a through model because the hop already did it. Reads are not narrowed. `assertParentsInScope` compares DISTINCT keys found with distinct keys named (not row counts): a non-unique parent column returning two rows for one key must not hide a key that matches none; the boot check does not require the parent column to be unique, the guide says it should be. Boot (`ScopeFilterUtility.assertScopeFilterSupported`, with `throughProblem` for the chain): resolve XOR through, no `onMissing`/`columns`/`write`, a `one` relation with one key, a parent with an access, no cycle, at most 5 hops, and an unindexed FK is a warning through the logger `core-server` passes in.
+
+**`upsert` is guarded on both branches.** `_upsert` (`core/repositories/core/persistable.ts`) checks the key and `update` first (`UpsertPlan`, `core/repositories/common/upsert-plan.ts`, internal: a handle of another table, a key column, `createdAt`/`createdBy`, a column `data` does not set, nothing to update), runs `guardScopedWrite` as CREATE on the row (so `assign` stamps), refuses a null or absent key column with a 400 unless the key is `nullsNotDistinct` (an explicit null before the guard, an absent one after it), runs `guardScopedWrite` as UPDATE on the SET columns, and sends `applyDefaultFilter({ mutation: UPDATE })` as `setWhere`, never reading `shouldSkipDefaultFilter`. Zero rows back means `setWhere` kept an existing row: `ScopeWriteGuard.conflictDenied` throws the same 403 `scope_write_denied`. A `through` model re-enters inside `runInTransaction` like `_create`. The key handle comes from `UniqueKeys.of` (`core/models/unique-keys.ts`, reading through the internal `core/models/common/unique-key-reader.ts`); the primary key from `UniqueKeyReader.primaryOf` when `on` is omitted.
+
 **The write guard covers `create` and an update payload that names a scope column.** Scope is a
 `where` AND-ed into the query and an `INSERT` has no `where`, so the guard is a separate check
 (`relational/core/repositories/common/scope-write-guard.ts`, called from `_create` and `_update`
@@ -448,13 +471,13 @@ per-row or polymorphic ownership below.
 **The mirror trap, on the side that IS scoped:** an administrative method that legitimately targets
 another principal's rows (`deleteAllForUser({ userId })`) silently narrows to the CALLER's rows,
 deletes nothing, and reports success. When adding `access` to a model, audit every
-`updateById`/`updateAll`/`deleteBy` taking another principal's id as an argument; the fix is a
+`updateById`/`updateBy`/`deleteBy` taking another principal's id as an argument; the fix is a
 method on the repository passing `dangerouslySkipScopeFilter`, never a flag in the request context.
 
 **Declaring `access` where it cannot take effect now REFUSES TO BOOT** -
 `ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled })` in `src/common/scope-filter.ts`, called from
-core-server's `initialize()` after `postConfigure()` so component-contributed models are covered. It
-catches the two silent configurations, which fail in OPPOSITE directions: a search-backed model
+core-server's `BaseApplication` as its last boot step (`validateScopeFilterSupport`, after `verifyBindings`) so component-contributed models are covered, and by `ApplicationBootAssertion.assert`. It
+refuses four groups of configuration: a search-backed model, `asyncContext.enable: false`, an invalid `through` (neither or both of `resolve` and `through`, `onMissing`/`columns`/`write` beside `through`, a bad relation, a cycle, more than 5 hops, a parent without `access`) and an invalid write guard (`write.mode`, `columns`). The first two are silent at run time and fail in OPPOSITE directions: a search-backed model
 (`BaseSearchEntity` in the prototype chain) never reads the setting and returns MORE rows, while
 `asyncContext.enable: false` leaves `resolve()` with no ambient context so `onMissing` denies EVERY
 query - and nothing named the flag as the cause. Search is reported first: it needs a code change,
@@ -517,7 +540,7 @@ with one include from 870 to 446 ns.
 
 **Each entry is read through `Sorts.parseEntry` (`@venizia/ignis-filter`), not a private parser.**
 `FilterBuilder`, `TypesenseQueryDialect` and `MeilisearchQueryDialect` used to each carry their own
-copy of the same `entry.trim().split(/\s+/)` logic; all three now call the one shared function (V-C-16,
+copy of the same `entry.trim().split(/\s+/)` logic; all three now call the one shared function (V-P-08,
 in the VULCAN base rules). It throws a `400` naming the whole entry for an empty field, an invalid
 direction, or more than two tokens - the last one is a genuine behavior change: an entry like
 `'createdAt DESC NULLS LAST'` used to silently sort on `createdAt DESC` and drop the tail, since
@@ -551,8 +574,8 @@ the cache.
 
 ## Every published sub-path is probed, and eight rows are waived
 
-`scripts/checks/purity/manifest.ts` derives its rows from this package's `exports` map, so all 14 sub-paths
-are measured. It used to carry three hand-written rows - the root, `relational/core` and the PGlite
+`scripts/checks/purity/manifest.ts` derives its rows from this package's `exports` map, so all 17 entries
+(the root and the 16 sub-paths) are measured. It used to carry three hand-written rows - the root, `relational/core` and the PGlite
 driver - and reported `11/11` green while saying nothing about the other eleven. No ESLint rule
 guards this package either: `.configs/lints/eslint.config.mjs` is `namingConventionConfigs` alone, unlike `core-worker`,
 which adds a `no-restricted-globals` and `no-restricted-imports` layer.
@@ -576,8 +599,8 @@ dropped the `export { anonRole, ... } from 'drizzle-orm/supabase'` re-export und
 `--target=browser` while still listing the names in the bundle's export block, and the row failed
 with `drizzle-orm/supabase` as an unresolved external import. Bun 1.4.1 binds them and the row is
 pure. The row carried a waiver for the 1.4.0 defect until a connectors release on 1.4.1 failed the
-gate with "STALE WAIVER"; the gate needs Bun >= 1.4.1 for that row, and the release workflow runs
-`bun-version: latest`.
+gate with "STALE WAIVER"; the gate needs Bun >= 1.4.1 for that row. The release workflow pins
+`bun-version: '1.4.4'`; `ci.yml` installs `latest`.
 
 `/postgres` and `/sqlite` were red too, on `node:async_hooks`. Both user-audit enrichers imported
 `tryGetContext` from `hono/context-storage`, whose module body runs `var asyncLocalStorage = new
@@ -651,6 +674,12 @@ catch rather than prove it absent.
   union, not a bare brand, is deliberate: `$inferSelect` and `$inferInsert` read the same `data`
   field, so a bare-brand `data` would have also blocked inserting a plain string literal. See
   [filter](/packages/filter.md).
+- A request filter value on a Drizzle `Date` column (pg `timestamp`/`date`, SQLite
+  `integer({ mode: 'timestamp' | 'timestamp_ms' })`) is parsed by `FilterBuilder` through
+  `DateOperandUtility` (`dialect/internal/date-operand.ts`): an ISO 8601 string or epoch
+  milliseconds becomes a `Date`, anything else is a 400. `isoTimestamp` is a custom type
+  (`dataType: 'custom'`) and keeps taking its string as written. Details in
+  [filter system](/architecture/filter-system.md).
 
 ## Related
 

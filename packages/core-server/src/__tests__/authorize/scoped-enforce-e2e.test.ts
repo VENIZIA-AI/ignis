@@ -16,16 +16,20 @@ class FixedScopedAdapter implements FilteredAdapter {
   async loadPolicy(): Promise<void> {}
   async loadFilteredPolicy(model: Model): Promise<void> {
     const { Helper } = await import('casbin');
+
     for (const l of this.lines) {
       Helper.loadPolicyLine(l, model);
     }
   }
+
   isFiltered(): boolean {
     return true;
   }
+
   async savePolicy(): Promise<boolean> {
     return true;
   }
+
   async addPolicy(): Promise<void> {}
   async removePolicy(): Promise<void> {}
   async removeFilteredPolicy(): Promise<void> {}
@@ -168,6 +172,7 @@ function dbAdapter(rowsFor: (sqlText: string, params: unknown[]) => unknown[]) {
   const connector = {
     execute: async (q: SQL) => {
       const { sql: text, params } = dialect.sqlToQuery(q);
+
       return { rows: rowsFor(text, params) };
     },
   };
@@ -178,6 +183,7 @@ function dbAdapter(rowsFor: (sqlText: string, params: unknown[]) => unknown[]) {
     domainTypes: ['Merchant', 'Organizer'],
     softDelete: { use: true, columnName: 'deleted_at' },
   };
+
   return new ScopedCasbinAdapter({
     // The adapter only ever calls `.execute`, so the stub implements only that out of drizzle's full generated node-postgres type.
     dataSource: { connector } as any,
@@ -274,6 +280,7 @@ describe('scoped + redis cache — cached payload completeness', () => {
       get: async (k: string) => store.get(k) ?? null,
       set: async (k: string, v: string) => {
         store.set(k, v);
+
         return 'OK';
       },
       del: async (...ks: string[]) => ks.reduce((n, k) => n + (store.delete(k) ? 1 : 0), 0),

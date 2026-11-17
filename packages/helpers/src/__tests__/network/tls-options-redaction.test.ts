@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test';
 import { REDACTED, RedactUtility } from '@/common/redact';
-import type { AnyType } from '@/common/types';
 import { NetworkTlsTcpClient } from '@/modules/network';
 
 const TLS_OPTIONS = {
@@ -21,25 +20,26 @@ describe('redactSecrets', () => {
         auth: { user: 'app', password: 'hunter2' },
         nested: [{ apiKey: 'abc123', label: 'keep' }],
       },
-    }) as AnyType;
+    });
 
-    expect(redacted.host).toBe('db.internal');
-    expect(redacted.port).toBe(5432);
-    expect(redacted.auth).toBe(REDACTED);
-    expect(redacted.nested[0].apiKey).toBe(REDACTED);
-    expect(redacted.nested[0].label).toBe('keep');
+    expect(redacted).toMatchObject({
+      host: 'db.internal',
+      port: 5432,
+      auth: REDACTED,
+      nested: [{ apiKey: REDACTED, label: 'keep' }],
+    });
   });
 
   test('a Buffer-valued secret is summarized, never serialized', () => {
     const redacted = RedactUtility.redactSecrets({
       value: { key: Buffer.from('private-key-bytes') },
-    }) as AnyType;
+    });
 
-    expect(redacted.key).toBe(REDACTED);
+    expect(redacted).toMatchObject({ key: REDACTED });
   });
 
   test('a circular structure does not hang', () => {
-    const node: AnyType = { name: 'root' };
+    const node: Record<string, unknown> = { name: 'root' };
     node.self = node;
 
     expect(RedactUtility.redactSecrets({ value: node })).toEqual({
@@ -53,8 +53,8 @@ describe('NetworkTlsTcpClient - the TLS material never reaches a log line', () =
   test('the logged options carry no private key, certificate or passphrase', () => {
     const client = new NetworkTlsTcpClient({
       identifier: 'redaction-probe',
-      options: TLS_OPTIONS as AnyType,
-    } as AnyType);
+      options: TLS_OPTIONS,
+    });
 
     // Exactly what the connect/close log lines render, NOT re-redacted here - otherwise the assertion would pass even against a client that logs its options verbatim; a TLS client's options ARE its private key.
     const logged = JSON.stringify(client['getLoggableOptions']());

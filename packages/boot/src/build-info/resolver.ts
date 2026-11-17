@@ -39,6 +39,7 @@ export class BuildInfoResolver extends BaseHelper {
     ]);
 
     const unspecified = BuildInfoRegistry.UNSPECIFIED;
+
     return {
       service: manifest.name ?? unspecified,
       version:
@@ -65,6 +66,7 @@ export class BuildInfoResolver extends BaseHelper {
   private resolveEnvironmentValue(opts: { keys: readonly string[] }): string | undefined {
     for (const key of opts.keys) {
       const value = process.env[key];
+
       if (value !== undefined && value.trim().length > 0) {
         return value.trim();
       }
@@ -86,6 +88,7 @@ export class BuildInfoResolver extends BaseHelper {
     try {
       const { stdout } = await execFileAsync('git', args, { cwd: root, windowsHide: true });
       const value = stdout.trim();
+
       return value.length > 0 ? value : undefined;
     } catch (error) {
       // `rev-parse --abbrev-ref HEAD` in a repository with no commit prints the literal `HEAD` on
@@ -106,13 +109,16 @@ export class BuildInfoResolver extends BaseHelper {
   /** `JSON.parse` promises nothing about the shape, so a manifest holding `{ "name": 42 }` must not become a numeric `service`. */
   private resolveManifest(opts: { root: string }): { name?: string; version?: string } {
     const manifest = resolve(opts.root, 'package.json');
+
     if (!existsSync(manifest)) {
       this.logger.debug('No package.json at %s', opts.root);
+
       return {};
     }
 
     try {
       const parsed: unknown = JSON.parse(readFileSync(manifest, 'utf8'));
+
       if (typeof parsed !== 'object' || parsed === null) {
         return {};
       }
@@ -126,6 +132,7 @@ export class BuildInfoResolver extends BaseHelper {
       };
     } catch (error) {
       this.logger.debug('Unreadable package.json at %s | %s', manifest, error);
+
       return {};
     }
   }

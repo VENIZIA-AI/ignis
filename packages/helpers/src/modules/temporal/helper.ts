@@ -123,6 +123,7 @@ export class TemporalHelper extends AbstractTemporalHelper {
     const tz = this.resolveTz({ tz: opts.tz });
 
     const read = pattern ? TemporalPattern.parse({ pattern, value }) : this.readIso({ value });
+
     if (!read) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
@@ -146,6 +147,7 @@ export class TemporalHelper extends AbstractTemporalHelper {
             parts: read.parts,
             offsetMilliseconds: read.offsetMilliseconds,
           });
+
     return TemporalHelper.ensureInstant({ epoch });
   }
 
@@ -153,6 +155,7 @@ export class TemporalHelper extends AbstractTemporalHelper {
     value: string;
   }): { parts: ITemporalParts; offsetMilliseconds?: number } | undefined {
     const match = ISO_8601.exec(opts.value);
+
     if (!match) {
       return undefined;
     }
@@ -171,6 +174,7 @@ export class TemporalHelper extends AbstractTemporalHelper {
     if (!offset) {
       return { parts };
     }
+
     if (offset.toUpperCase() === 'Z') {
       return { parts, offsetMilliseconds: 0 };
     }
@@ -179,11 +183,13 @@ export class TemporalHelper extends AbstractTemporalHelper {
     const hours = Number(offsetHours);
     const minutes = Number(offsetMinutes ?? 0);
     const seconds = Number(offsetSeconds ?? 0);
+
     if (!(hours <= 23 && minutes <= 59 && seconds <= 59)) {
       return undefined;
     }
 
     const milliseconds = ((hours * 60 + minutes) * 60 + seconds) * 1000;
+
     return { parts, offsetMilliseconds: sign === '-' ? -milliseconds : milliseconds };
   }
 
@@ -191,12 +197,14 @@ export class TemporalHelper extends AbstractTemporalHelper {
   tryParse(opts: { value: string; pattern?: string; tz?: string }): Date | null {
     // Outside the try: a bad zone is the caller's bug, as a broken pattern is.
     const tz = this.resolveTz({ tz: opts.tz });
+
     try {
       return this.parse({ ...opts, tz });
     } catch (error) {
       if (TemporalHelper.isRefusal(error)) {
         return null;
       }
+
       throw error;
     }
   }
@@ -208,14 +216,17 @@ export class TemporalHelper extends AbstractTemporalHelper {
     tz?: string;
   }): boolean {
     const { value, pattern, tz } = opts;
+
     if (typeof value === 'string') {
       return this.tryParse({ value, pattern, tz }) !== null;
     }
+
     if (!(value instanceof Date) && typeof value !== 'number') {
       return false;
     }
 
     const epoch = value instanceof Date ? value.getTime() : value;
+
     return epoch >= MIN_INSTANT && epoch <= MAX_INSTANT;
   }
 
@@ -235,6 +246,7 @@ export class TemporalHelper extends AbstractTemporalHelper {
     const locale = opts.locale ?? this.locale;
 
     const date = this.readDate({ value: opts.value, tz, fallback: opts.fallback });
+
     if (date === null) {
       return opts.fallback ?? this.fallback ?? '';
     }
@@ -261,18 +273,22 @@ export class TemporalHelper extends AbstractTemporalHelper {
         ? this.locale
         : TemporalHelper.ensureLocale({ locale: opts.locale });
     const date = this.readDate({ value: opts.value, tz, fallback: opts.fallback });
+
     if (date === null) {
       return opts.fallback ?? this.fallback ?? '';
     }
 
     const key = `${locale}|${tz}|${JSON.stringify(opts.options ?? {})}`;
     let formatter = TemporalHelper.intlFormatters.get(key);
+
     if (!formatter) {
       formatter = new Intl.DateTimeFormat(locale, { ...opts.options, timeZone: tz });
+
       if (TemporalHelper.intlFormatters.size < MAX_INTL_FORMATTERS) {
         TemporalHelper.intlFormatters.set(key, formatter);
       }
     }
+
     return formatter.format(date);
   }
 
@@ -287,11 +303,13 @@ export class TemporalHelper extends AbstractTemporalHelper {
 
     const tz = this.resolveTz({ tz: opts.tz });
     const date = this.toDate({ value: opts.value, tz });
+
     if (amount === 0) {
       return date;
     }
 
     const exact = TemporalCalendar.EXACT_UNIT_MILLISECONDS[unit];
+
     if (exact !== undefined) {
       return TemporalHelper.ensureInstant({ epoch: date.getTime() + amount * exact });
     }
@@ -321,11 +339,13 @@ export class TemporalHelper extends AbstractTemporalHelper {
 
     const tz = this.resolveTz({ tz: opts.tz });
     const date = this.toDate({ value: opts.value, tz });
+
     if (unit === TemporalUnits.MILLISECOND) {
       return date;
     }
 
     const { start } = this.unitBounds({ epoch: date.getTime(), unit, tz });
+
     return TemporalHelper.ensureInstant({ epoch: start });
   }
 
@@ -336,11 +356,13 @@ export class TemporalHelper extends AbstractTemporalHelper {
 
     const tz = this.resolveTz({ tz: opts.tz });
     const date = this.toDate({ value: opts.value, tz });
+
     if (unit === TemporalUnits.MILLISECOND) {
       return date;
     }
 
     const { end } = this.unitBounds({ epoch: date.getTime(), unit, tz });
+
     return TemporalHelper.ensureInstant({ epoch: end - 1 });
   }
 
@@ -373,6 +395,7 @@ export class TemporalHelper extends AbstractTemporalHelper {
         tz: opts.tz,
       });
     }
+
     return candidate;
   }
 
@@ -389,19 +412,24 @@ export class TemporalHelper extends AbstractTemporalHelper {
     });
 
     const next: ITemporalParts = { ...wall };
+
     for (const [field, [min, max]] of Object.entries(FIELD_RANGES)) {
       const given: unknown = Reflect.get(opts, field);
+
       if (given === undefined) {
         continue;
       }
+
       if (typeof given !== 'number' || !Number.isInteger(given) || given < min || given > max) {
         throw getError({
           statusCode: HTTP.ResultCodes.RS_4.BadRequest,
           message: `[TemporalHelper] ${field} must be an integer from ${min} to ${max} - received ${String(given)}`,
         });
       }
+
       Reflect.set(next, field, given);
     }
+
     next.day = Math.min(
       next.day,
       TemporalCalendar.daysInMonth({ year: next.year, month: next.month }),
@@ -470,6 +498,7 @@ export class TemporalHelper extends AbstractTemporalHelper {
     tz?: string;
   }): boolean {
     const { value, from, to, unit, inclusivity = TemporalInclusivities.EXCLUSIVE, tz } = opts;
+
     if (!TemporalInclusivities.isValid(inclusivity)) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
@@ -487,6 +516,7 @@ export class TemporalHelper extends AbstractTemporalHelper {
     // The range given backwards: `to` is the earlier end.
     const isAfterEnd = isEndIncluded ? toOrder >= 0 : toOrder > 0;
     const isBeforeStart = isStartIncluded ? fromOrder <= 0 : fromOrder < 0;
+
     return (isAfterStart && isBeforeEnd) || (isAfterEnd && isBeforeStart);
   }
 
@@ -512,11 +542,13 @@ export class TemporalHelper extends AbstractTemporalHelper {
 
     // `+ 0` turns a truncated `-0` into `0`.
     const exact = TemporalCalendar.EXACT_UNIT_MILLISECONDS[unit];
+
     if (exact !== undefined) {
       return Math.trunc((value - other) / exact) + 0;
     }
 
     const months = MONTHS_IN[unit];
+
     if (months !== undefined) {
       return Math.trunc(this.monthGap({ value, other, tz }) / months) + 0;
     }
@@ -531,6 +563,7 @@ export class TemporalHelper extends AbstractTemporalHelper {
         offsetMilliseconds: 0,
       });
     const days = wallClocks / DAY_MILLISECONDS;
+
     return Math.trunc(unit === TemporalUnits.WEEK ? days / 7 : days) + 0;
   }
 
@@ -557,6 +590,7 @@ export class TemporalHelper extends AbstractTemporalHelper {
         : this.startOf({ value: opts.other, unit, tz });
 
     const delta = value.getTime() - other.getTime();
+
     return delta < 0 ? -1 : delta > 0 ? 1 : 0;
   }
 
@@ -586,14 +620,17 @@ export class TemporalHelper extends AbstractTemporalHelper {
 
     let amount = 0;
     let said: TRelativeUnit = TemporalUnits.SECOND;
+
     if (unit !== undefined) {
       TemporalHelper.ensureUnit({ unit });
+
       if (unit === TemporalUnits.MILLISECOND) {
         throw getError({
           statusCode: HTTP.ResultCodes.RS_4.BadRequest,
           message: '[TemporalHelper] relative time has no millisecond unit | Use second or larger',
         });
       }
+
       amount = this.diff({
         value: this.startOf({ value, unit, tz }),
         other: this.startOf({ value: base, unit, tz }),
@@ -604,6 +641,7 @@ export class TemporalHelper extends AbstractTemporalHelper {
     } else {
       for (const candidate of RELATIVE_UNITS) {
         const counted = this.diff({ value, other: base, unit: candidate, tz });
+
         if (counted !== 0 || candidate === TemporalUnits.SECOND) {
           amount = counted;
           said = candidate;
@@ -637,6 +675,7 @@ export class TemporalHelper extends AbstractTemporalHelper {
       opts.locale === undefined
         ? this.locale
         : TemporalHelper.ensureLocale({ locale: opts.locale });
+
     return TemporalDuration.format({
       milliseconds: opts.milliseconds,
       style: opts.style,

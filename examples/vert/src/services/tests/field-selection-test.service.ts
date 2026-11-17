@@ -85,6 +85,7 @@ export class FieldSelectionTestService extends BaseTestService {
 
       if (results.length !== 3) {
         this.logger.error('[CASE 2] FAILED | Expected 3 records | got: %d', results.length);
+
         return;
       }
 
@@ -134,6 +135,7 @@ export class FieldSelectionTestService extends BaseTestService {
 
       if (results.length !== 3) {
         this.logger.error('[CASE 3] FAILED | Expected 3 records | got: %d', results.length);
+
         return;
       }
 
@@ -174,6 +176,7 @@ export class FieldSelectionTestService extends BaseTestService {
 
       if (results.length !== 3) {
         this.logger.error('[CASE 4] FAILED | Expected 3 records | got: %d', results.length);
+
         return;
       }
 
@@ -236,6 +239,7 @@ export class FieldSelectionTestService extends BaseTestService {
           arrayResults.length,
           objectResults.length,
         );
+
         return;
       }
 
@@ -266,7 +270,7 @@ export class FieldSelectionTestService extends BaseTestService {
     this.logCase('[CASE 6] Cleanup field selection test data');
 
     try {
-      const deleted = await repo.deleteAll({ where: { group: 'FIELDS_TEST' } });
+      const deleted = await repo.deleteBy({ where: { group: 'FIELDS_TEST' } });
       this.logger.info('[CASE 6] PASSED | Deleted %d records', deleted.count);
     } catch (error) {
       this.logger.error('[CASE 6] FAILED | Error: %s', (error as Error).message);

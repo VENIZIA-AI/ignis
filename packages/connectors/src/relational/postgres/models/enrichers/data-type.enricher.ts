@@ -1,5 +1,5 @@
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { boolean, customType, doublePrecision, jsonb, text } from 'drizzle-orm/pg-core';
+import type { TJsonValue } from '@venizia/ignis-helpers/common';
 import type { TColumnDefinitions, TDataTypeEnricherOptions } from '../common/types';
 
 const byteaType = customType<{ data: Buffer }>({
@@ -8,6 +8,7 @@ const byteaType = customType<{ data: Buffer }>({
   },
 });
 
+/** Adds the typed value columns `data_type`, `n_value`, `t_value`, `b_value`, `j_value` and `bo_value`; `defaultValue` sets a column default only when the key is present. */
 export class PostgresDataTypeEnricher {
   static generateColumnDefs(opts?: TDataTypeEnricherOptions) {
     const { defaultValue } = opts ?? {};
@@ -32,8 +33,8 @@ export class PostgresDataTypeEnricher {
           : byteaType('b_value'),
       jValue:
         defaultValue?.jValue !== undefined
-          ? jsonb('j_value').default(defaultValue.jValue).$type<Record<string, AnyType>>()
-          : jsonb('j_value').$type<Record<string, AnyType>>(),
+          ? jsonb('j_value').default(defaultValue.jValue).$type<TJsonValue>()
+          : jsonb('j_value').$type<TJsonValue>(),
       boValue:
         defaultValue?.boValue !== undefined
           ? boolean('bo_value').default(defaultValue.boValue)
@@ -44,6 +45,7 @@ export class PostgresDataTypeEnricher {
   static enrich(opts: { baseSchema: TColumnDefinitions; opts?: TDataTypeEnricherOptions }) {
     const { baseSchema, opts: enricherOpts } = opts;
     const defs = PostgresDataTypeEnricher.generateColumnDefs(enricherOpts);
+
     return { ...baseSchema, ...defs };
   }
 }

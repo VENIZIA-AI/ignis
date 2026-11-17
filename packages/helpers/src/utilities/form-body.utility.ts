@@ -8,8 +8,14 @@ export const RequestBodyErrors = {
     statusCode: HTTP.ResultCodes.RS_4.BadRequest,
     category: ErrorScopes.VALIDATION,
   },
+  TOO_MANY_FILES: {
+    message: { text: 'Too many files in one request', code: 'core.request.too_many_files' },
+    statusCode: HTTP.ResultCodes.RS_4.ContentTooLarge,
+    category: ErrorScopes.VALIDATION,
+  },
 } as const satisfies Record<string, TErrorDefinition>;
 
+/** Reads request form bodies so that a malformed body is a 400. */
 export class FormBodyUtility {
   /**
    * Reads a form body through the request's own cache, so every later reader gets the same
@@ -21,6 +27,7 @@ export class FormBodyUtility {
   }): Promise<FormData> {
     try {
       const result = await opts.req.formData();
+
       return result;
     } catch (error) {
       throw getError({

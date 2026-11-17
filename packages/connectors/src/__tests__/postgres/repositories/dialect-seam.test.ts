@@ -2,8 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { sql } from 'drizzle-orm';
 import { jsonb, PgDialect, pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 import type { SQL } from 'drizzle-orm';
-import type { AnyType } from '@venizia/ignis-helpers/common';
-import type { TQueryOperatorHandlers } from '@venizia/ignis-kernel';
+import type { TQueryOperatorHandlers, TSortDirection, TWhere } from '@venizia/ignis-kernel';
 import type { TTableColumns } from '@/relational/core/repositories/common';
 import { PostgresFilterBuilder } from '@/relational/postgres/repositories/dialect/filter';
 import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect/query-dialect';
@@ -41,7 +40,7 @@ class SqliteShapedDialect extends FilterBuilder {
 
   protected override buildJsonWhereCondition(opts: {
     key: string;
-    value: AnyType;
+    value: unknown;
     columns: TTableColumns;
     tableName: string;
   }): SQL[] {
@@ -54,18 +53,19 @@ class SqliteShapedDialect extends FilterBuilder {
 
     const extraction = `json_extract("${column.name}", '$.${path.join('.')}')`;
     // Reached through the base's own walk, so the numeric-cast decision stays inherited.
-    const needsNumericCast = this.jsonNeedsNumericCast({ operators: opts.value });
+    const operators = this.toOperatorObject({ value: opts.value }) ?? { eq: opts.value };
+    const needsNumericCast = this.jsonNeedsNumericCast({ operators });
 
     return this.buildJsonOperatorConditions({
       jsonPath: extraction,
       safeNumericCast: needsNumericCast ? `CAST(${extraction} AS REAL)` : extraction,
-      operators: opts.value,
+      operators,
     });
   }
 
   protected override buildJsonOrderBy(opts: {
     key: string;
-    direction: AnyType;
+    direction: TSortDirection;
     columns: TTableColumns;
     tableName: string;
   }): SQL {
@@ -85,7 +85,7 @@ class SqliteShapedDialect extends FilterBuilder {
 const postgresBuilder = new PostgresFilterBuilder();
 const sqliteBuilder = new SqliteShapedDialect();
 
-const toWhere = (builder: FilterBuilder, where: AnyType) =>
+const toWhere = (builder: FilterBuilder, where: TWhere) =>
   compile(builder.toWhere({ tableName: 'dialect_seam_accounts', schema: accounts, where }));
 
 const toOrderBy = (builder: FilterBuilder, order: string[]) =>

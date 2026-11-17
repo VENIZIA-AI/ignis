@@ -167,6 +167,7 @@ describe('Postgres - inSql and ninSql', () => {
     expect(() =>
       builder.toWhere({ tableName: 'WhereSqlOrder', schema: orderTable, where }),
     ).toThrow(/inSql/);
+
     try {
       builder.toWhere({ tableName: 'WhereSqlOrder', schema: orderTable, where });
     } catch (error) {

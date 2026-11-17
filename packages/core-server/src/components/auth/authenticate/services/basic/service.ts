@@ -51,6 +51,7 @@ export class BasicTokenService<E extends Env = Env> extends BaseService {
     }
 
     const parts = authHeaderValue.split(' ');
+
     if (parts.length !== 2) {
       throw getError({
         error: AuthenticationErrors.HEADER_MALFORMED,
@@ -73,6 +74,7 @@ export class BasicTokenService<E extends Env = Env> extends BaseService {
     };
 
     let decoded: string;
+
     try {
       decoded = Buffer.from(base64Credentials, 'base64').toString('utf-8');
     } catch (error) {
@@ -80,6 +82,7 @@ export class BasicTokenService<E extends Env = Env> extends BaseService {
     }
 
     const colonIndex = decoded.indexOf(':');
+
     if (colonIndex === -1) {
       return reject('Missing colon separator');
     }

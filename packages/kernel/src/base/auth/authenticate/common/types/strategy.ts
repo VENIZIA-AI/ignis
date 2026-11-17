@@ -1,6 +1,5 @@
 import type { TContext } from '@/base/controllers/common/types';
 import type { IdType } from '@/base/models/common';
-import type { AnyObject } from '@venizia/ignis-helpers/common';
 import type { Env, MiddlewareHandler } from 'hono';
 import type {
   TChangePasswordRequest,
@@ -9,37 +8,43 @@ import type {
 } from '../../../models/requests';
 import type { TAuthMode } from '../constants';
 
+/** The authenticated identity a strategy returns and the request context stores. Carries at least `userId`. */
 export interface IAuthUser {
   userId: IdType;
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 
+/** A strategy that authenticates a request. `name` is the name it is registered under; `authenticate` returns the user or throws. */
 export interface IAuthenticationStrategy<E extends Env = Env> {
   name: string;
   authenticate(context: TContext<E, string>): Promise<IAuthUser>;
 }
 
+/** Builds the authentication middleware for the listed strategy names. */
 export type TAuthenticateFn<RouteEnv extends Env = Env> = (opts: {
   strategies: string[];
+
+  /** @default 'any' */
   mode?: TAuthMode;
 }) => MiddlewareHandler<RouteEnv>;
 
+/** The service behind the auth controller routes. `getUserInformation` and `refreshToken` are optional. The type parameters set each route's request and response types. */
 export interface IAuthService<
   E extends Env = Env,
   // SignIn types
   SIRQ extends TSignInRequest = TSignInRequest,
-  SIRS = AnyObject,
+  SIRS = Record<string, unknown>,
   // SignUp types
   SURQ extends TSignUpRequest = TSignUpRequest,
-  SURS = AnyObject,
+  SURS = Record<string, unknown>,
   // ChangePassword types
   CPRQ extends TChangePasswordRequest = TChangePasswordRequest,
-  CPRS = AnyObject,
+  CPRS = Record<string, unknown>,
   // UserInformation types
-  UIRQ = AnyObject,
-  UIRS = AnyObject,
+  UIRQ = Record<string, unknown>,
+  UIRS = Record<string, unknown>,
   // RefreshToken types
-  RTRS = AnyObject,
+  RTRS = Record<string, unknown>,
 > {
   signIn(context: TContext<E>, opts: SIRQ): Promise<SIRS>;
   signUp(context: TContext<E>, opts: SURQ): Promise<SURS>;

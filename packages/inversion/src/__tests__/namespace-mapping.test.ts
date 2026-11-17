@@ -43,6 +43,7 @@ const KERNEL_SPECIFIERS = ['@venizia/ignis-kernel', '@venizia/ignis'];
 
 const loadModule = async (specifier: string): Promise<Record<string, unknown>> => {
   const source = SOURCES[specifier];
+
   if (!source) {
     throw new Error(`no source file is mapped to ${specifier}`);
   }
@@ -55,10 +56,12 @@ const hasOldName = async (opts: { specifier: string; oldName: string }): Promise
 
   if (KERNEL_SPECIFIERS.includes(specifier)) {
     const text = await Bun.file(join(ROOT, KERNEL_REEXPORT)).text();
+
     return new RegExp(`\\b${oldName}\\b`).test(text);
   }
 
   const loaded = await loadModule(specifier);
+
   return loaded[oldName] !== undefined;
 };
 
@@ -74,9 +77,11 @@ describe('the inversion entries of the namespace-functions table', () => {
     for (const entry of INVERSION_MAPPINGS) {
       for (const specifier of entry.modules) {
         const key = `${specifier}#${entry.oldName}`;
+
         if (seen.has(key)) {
           repeated.push(key);
         }
+
         seen.add(key);
       }
     }

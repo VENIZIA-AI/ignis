@@ -1,4 +1,4 @@
-import { Environment } from '@venizia/ignis-helpers';
+import { Environment, Hash } from '@venizia/ignis-helpers';
 import { BuildInfoRegistry, type TBuildInfoRecord } from '@venizia/ignis-helpers/core';
 import type { IApplicationInfo } from '@venizia/ignis-kernel';
 import type { IHealthCheckOptions } from './common';
@@ -36,11 +36,13 @@ export class HealthCheckReporter {
     environment?: () => string | undefined;
   }): boolean {
     const { enable } = opts.options.stats ?? {};
+
     if (typeof enable === 'boolean') {
       return enable;
     }
 
     const ambient = opts.environment ? opts.environment() : Environment.ambient;
+
     if (ambient === undefined) {
       return false;
     }
@@ -80,6 +82,7 @@ export class HealthCheckReporter {
     }
 
     const ambient = opts.environment ? opts.environment() : Environment.ambient;
+
     if (ambient === undefined) {
       return true;
     }
@@ -89,6 +92,7 @@ export class HealthCheckReporter {
 
   static isStatsAuthorized(opts: { options: IHealthCheckOptions; header?: string }): boolean {
     const secretKey = opts.options.stats?.secretKey;
+
     if (secretKey === undefined) {
       return true;
     }
@@ -97,7 +101,7 @@ export class HealthCheckReporter {
       return false;
     }
 
-    return opts.header === secretKey;
+    return Hash.equals({ value: opts.header ?? '', expected: secretKey });
   }
 
   /** The slot is a process-wide `globalThis` entry any dependency can write, and `IBuildInfo` types it without checking - so a non-string never reaches the response schema, which declares `z.string()`. */

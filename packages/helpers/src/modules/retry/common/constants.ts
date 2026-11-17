@@ -1,5 +1,6 @@
 import type { TConstValue } from '@/common';
 
+/** How the retry delay grows between attempts. */
 export class RetryBackoffStrategies {
   static readonly FIXED = 'fixed';
   static readonly LINEAR = 'linear';
@@ -20,8 +21,10 @@ export class RetryBackoffStrategies {
   }
 }
 
+/** Union of the `RetryBackoffStrategies` values. */
 export type TRetryBackoffStrategy = TConstValue<typeof RetryBackoffStrategies>;
 
+/** How randomness is applied to a computed retry delay. */
 export class RetryJitterModes {
   /** The computed delay is used as-is. */
   static readonly NONE = 'none';
@@ -39,4 +42,5 @@ export class RetryJitterModes {
   }
 }
 
+/** Union of the `RetryJitterModes` values. */
 export type TRetryJitterMode = TConstValue<typeof RetryJitterModes>;

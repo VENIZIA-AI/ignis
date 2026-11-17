@@ -3,6 +3,7 @@ import { isMainThread } from 'node:worker_threads';
 import { type IWorkerBus } from '../common';
 import { AbstractWorkerThreadHelper } from './abstract';
 
+/** Holds the message buses of a worker thread by key. Throws when constructed on the main thread. */
 export class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {
   constructor(opts: { scope: string }) {
     const { scope } = opts;
@@ -23,8 +24,10 @@ export class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {
     }
 
     const { key, bus } = opts;
+
     if (this.buses[key]) {
       this.logger.for(this.bindWorkerBus.name).warn('Worker Bus existed | key: %s', key);
+
       return;
     }
 
@@ -37,8 +40,10 @@ export class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {
     }
 
     const { key } = opts;
+
     if (!(key in this.buses)) {
       this.logger.for(this.unbindWorkerBus.name).warn('Worker Bus not existed | key: %s', key);
+
       return;
     }
 
@@ -48,6 +53,7 @@ export class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {
 
   getWorkerBus<IC, IP>(opts: { key: string }) {
     const rs = this.buses[opts.key];
+
     if (!rs) {
       throw getError({
         message: `[getWorkerBus] Not found worker bus | key: ${opts.key}`,

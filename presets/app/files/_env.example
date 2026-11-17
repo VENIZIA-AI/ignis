@@ -3,7 +3,7 @@
 
 # Application
 APP_ENV_APPLICATION_NAME={{app}}
-APP_ENV_APPLICATION_TIMEZONE=Asia/Ho_Chi_Minh
+APP_ENV_APPLICATION_TIMEZONE=UTC
 
 # Server. PORT, when set, wins over APP_ENV_SERVER_PORT: a container or a cloud host sets it.
 APP_ENV_SERVER_HOST=0.0.0.0

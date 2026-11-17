@@ -66,6 +66,7 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
     const sqlInjectionPayloadEntries = Object.entries(SQL_INJECTION_PAYLOADS);
+
     for (const [name, payload] of sqlInjectionPayloadEntries) {
       const userFilter: AnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
@@ -98,6 +99,7 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
     const xssPayloadEntries = Object.entries(XSS_PAYLOADS);
+
     for (const [name, payload] of xssPayloadEntries) {
       const userFilter: AnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
@@ -111,6 +113,7 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
     const commandInjectionPayloadEntries = Object.entries(COMMAND_INJECTION_PAYLOADS);
+
     for (const [name, payload] of commandInjectionPayloadEntries) {
       const userFilter: AnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
@@ -124,6 +127,7 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
     const pathTraversalPayloadEntries = Object.entries(PATH_TRAVERSAL_PAYLOADS);
+
     for (const [name, payload] of pathTraversalPayloadEntries) {
       const userFilter: AnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
@@ -167,10 +171,12 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
       const userFilter: AnyFilter = {
         where: { constructor: { prototype: { polluted: true } } },
       };
-      const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
 
+      // The key names no column: it is refused, and nothing reaches Object.prototype.
+      expect(() => filterBuilder.mergeFilter({ defaultFilter, userFilter })).toThrow(
+        /Column NOT FOUND/,
+      );
       expect(({} as Record<string, unknown>).polluted).toBeUndefined();
-      expect(result.where?.isDeleted).toBe(false);
     });
 
     test('literal "__proto__.isAdmin" string key does not pollute Object.prototype', () => {
@@ -188,6 +194,7 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
     const nosqlInjectionPayloadEntries = Object.entries(NOSQL_INJECTION_PAYLOADS);
+
     for (const [name, payload] of nosqlInjectionPayloadEntries) {
       const userFilter: AnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
@@ -201,6 +208,7 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
     const unicodeEdgeCaseEntries = Object.entries(UNICODE_EDGE_CASES);
+
     for (const [name, value] of unicodeEdgeCaseEntries) {
       const userFilter: AnyFilter = { where: { [name]: value } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
@@ -214,6 +222,7 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
     const redosPayloadValues = Object.values(REDOS_PAYLOADS);
+
     for (const payload of redosPayloadValues) {
       const userFilter: AnyFilter = { where: { pattern: payload } };
 
@@ -316,7 +325,7 @@ const scopedFixtureTable = pgTable('security_fixture_scoped_entities', {
   isDeleted: boolean('is_deleted'),
 });
 
-/** Fixture entity carrying a real @model `defaultFilter` (soft-delete style), so `applyDefaultFilter` is exercised through its actual `getDefaultFilter()`/`modelSettings` resolution path, not a mocked registry. */
+/** Fixture entity carrying a real @model `settings.query.filter` (soft-delete style), so `applyDefaultFilter` is exercised through its actual `getDefaultFilter()`/`modelSettings` resolution path, not a mocked registry. */
 @model({
   type: 'entity',
   settings: { query: { filter: { where: { isDeleted: false }, limit: 100 } } },

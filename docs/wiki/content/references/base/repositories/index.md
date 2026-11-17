@@ -21,7 +21,7 @@ import { PostgresDataSource } from '../datasources/postgres.datasource';
 export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {}
 ```
 
-That's it - `UserRepository` already has `find`, `findOne`, `findById`, `create`, `createAll`, `updateById`, `updateAll`, `deleteById`, `deleteAll`, `count`, and `existsWith`.
+That's it - `UserRepository` already has `find`, `findOne`, `findById`, `create`, `createAll`, `updateById`, `updateEach`, `updateBy`, `deleteById`, `deleteBy`, `count`, and `existsWith`.
 
 ## How it works
 
@@ -179,7 +179,7 @@ The datasource is still injected at constructor param[0] - by its class, so a da
 
 TypeScript rejects a `MODEL` repository without `model` and a `REMOTE` one with it. A JavaScript caller gets the same answer at decoration time, as does an unknown `type`.
 
-`findOne` asks the list route for one row. Pass `findOnePath: 'find-one'` to the constructor to call `GET /products/find-one` instead, the route `defineCrudController` generates; it answers a missing row with HTTP 200 and no row, so `findOne` returns `null`. `countPath` does the same for the count route.
+`findOne` asks the list route for one row. Pass `findOnePath: 'find-one'` to the constructor to call `GET /products/find-one` instead, the route `CrudControllerFactory.build` generates when `findOne` is listed; it answers a missing row with HTTP 200 and no row, so `findOne` returns `null`. `countPath` does the same for the count route.
 
 The same repository writes through the IGNIS CRUD routes the other service generates:
 
@@ -187,14 +187,14 @@ The same repository writes through the IGNIS CRUD routes the other service gener
 |---|---|
 | `create({ data })` | `POST /products` |
 | `updateById({ id, data })` | `PATCH /products/:id` |
-| `updateAll({ where, data })` / `updateBy` | `PATCH /products`, `where` in the body beside the data |
+| `updateBy({ where, data })` / `updateBy` | `PATCH /products`, `where` in the body beside the data |
 | `deleteById({ id })` | `DELETE /products/:id` |
-| `deleteAll({ where })` / `deleteBy` | `DELETE /products`, `where` in the body |
+| `deleteBy({ where })` / `deleteBy` | `DELETE /products`, `where` in the body |
 
 ```typescript
 const { data: product } = await productRepository.create({ data: { name: 'Lamp' } });
 await productRepository.updateById({ id: product.id, data: { name: 'Desk lamp' } });
-await productRepository.deleteAll({ where: { id: { inq: staleIds } } });
+await productRepository.deleteBy({ where: { id: { inq: staleIds } } });
 ```
 
 - A write sends a partial row by default (`HttpRepository<TRow, TWrite = Partial<TRow>>`), since the server fills ids and defaults.
@@ -204,6 +204,7 @@ await productRepository.deleteAll({ where: { id: { inq: staleIds } } });
 - `shouldReturn: false` answers the count with `data: null`. The count is the server's `x-response-count`.
 - A failed write - or read - throws the `ApplicationError` the server threw: its status, `normalized` code, args and text, and its `extra` with the `requestId` added. The message names the verb, status and path - never the host or the query. A 422's per-field issues (`{ path, message, code }`) are the error's `cause`.
 - An empty, `.` or `..` id is refused before any request: a URL resolves those to the list or the parent route.
+- A request path stays under the base path. `paths` on `request`, `read` and `write` is refused with a 400 when a segment is `.` or `..` (plain, `%2e`-encoded, or ended by `?`, `#` or a space), or holds a backslash (`\` or `%5c`) or a control character. Encode a value you put in a path with `encodeURIComponent`: a `?` in it would start the query. An id that really contains a backslash is refused too, because some servers decode `%5c` into a separator.
 - There is no `createAll`: the IGNIS REST contract has no bulk-create route.
 
 For a route the verbs do not cover - a `PUT`, an upload, an action endpoint - call the datasource:
@@ -238,12 +239,17 @@ new HttpDataSource({
 
 | Setting | Meaning |
 |---|---|
-| `baseUrl` | An absolute URL, or a path from the page origin (`/api`). A path-relative one (`api`) is refused: it would follow the current route. |
+| `baseUrl` | An absolute URL, or a path from the page origin (`/api`) |
 | `errorRootKey` | The server's `error.rootKey`. Without it, a wrapped error envelope reads as `core.system_error`. |
 | `headers` | Sent on every request. |
 | `headersResolver` | Headers for this request. Wins over `headers`. |
 | `authToken` / `authTokenResolver` | The token. A fixed `authToken` wins and goes on every request; the resolver answering `undefined` sends none. |
 | `onUnauthorized` | Runs on a 401; `true` retries once, `false` lets it stand. A call whose `signal` aborted meanwhile is not retried. |
+| `fetch` | What sends a request: `(url, init) => Promise<Response>` |
+
+A path-relative `baseUrl` (`api`) is refused: it would follow the current route. So is one with a `?` or `#`: the request paths would end up inside the query.
+
+`fetch` is the platform `fetch` when unset, looked up on each call. Name one to route through a test double, a proxy or an instrumented client.
 
 One call adds its own headers and an abort signal through `options`, on every verb:
 
@@ -270,6 +276,14 @@ extra.facets.status; // keys typed from what was asked for
 Without `shouldQueryRange`, `find` with `extra` answers `{ data, extra }`; asked for, `extra` is always present, and each entry is optional. `read({ extra })` and `write({ extra })` take the same request. The connector unwraps `{ data, extra }` only when the response carries `x-response-extra`. `count`, `existsWith` and `findOne` ask for the rows alone (`-*`), so no default is computed for them. A client without the connector builds the header with `HttpExtraRequest.toHeader` and reads the body with `HttpResponseReader.readExtra`, both from `@venizia/ignis-kernel/repository`.
 
 The connector's readers are exported for a client that talks to the same server - from `@venizia/ignis-kernel/repository`, so that client needs no connector, and re-exported from `/http`: `HttpResponseReader.parseContentRange({ header })`, `HttpResponseReader.readErrorEnvelope({ body, rootKey })`, `HttpResponseReader.readError({ response, rootKey })` and `HttpResponseReader.toApplicationError({ response, context, rootKey })`. The last one is the connector's own error mapping: the status, the normalized code, args and text (`HTTP <status>` when the server sent none), `extra` with `requestId` and the relayed `upstreamRequestIds`, and `details.cause` as `cause`. `context` is your log prefix, for example `[Client][read] 404 | /tickets`.
+
+The same class reads a success body (`readBody` and `readJson` answer a `TJsonValue`, never `any`):
+
+- `HttpResponseReader.readText({ response })`: the text, `''` for a 204 or an empty body.
+- `HttpResponseReader.readBody({ response, context })`: reads by content type. `null` for a 204 or an empty body; the parsed value when the type names JSON (`application/json`, `application/problem+json`); the text for any other type (`text/plain`, `text/csv`).
+- `HttpResponseReader.readJson({ response, context })`: `null` for a 204 or an empty body, else the parsed value whatever the content type says. `HttpDataSource` reads through it.
+
+A body that claims JSON and is not is a `502` whose message is `context`, the size of the body and its content type, never its content (a relaying server may pass the message on). `context` is where it happened, as for `toApplicationError`. Turning `null` into `[]` for a list stays with the client.
 
 ## See also
 

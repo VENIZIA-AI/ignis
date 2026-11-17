@@ -24,11 +24,13 @@ describe('TypesenseConnector collections', () => {
   test('createCollection rethrows (sanitized 503) on real failure', async () => {
     const { helper } = makeHelper({ throwOn: { 'collections.create': new Error('boom') } });
     let status = 0;
+
     try {
       await helper.createCollection({ schema });
     } catch (e) {
       status = (e as { statusCode: number }).statusCode;
     }
+
     expect(status).toBe(503);
   });
 
@@ -94,11 +96,13 @@ describe('TypesenseConnector collections', () => {
   test('getCollection throws a sanitized 404 (not 503) when the collection is missing', async () => {
     const { helper } = makeHelper({ throwOn: { 'collections.retrieve': { httpStatus: 404 } } });
     let caught: unknown;
+
     try {
       await helper.getCollection({ name: 'missing' });
     } catch (e) {
       caught = e;
     }
+
     expect(caught).toBeInstanceOf(ApplicationError);
     expect((caught as ApplicationError).statusCode).toBe(404);
     expect((caught as ApplicationError).normalized.code).toBe('core.search_engine.not_found');
@@ -107,11 +111,13 @@ describe('TypesenseConnector collections', () => {
   test('patchCollectionSchema throws a sanitized 404 when the collection is missing', async () => {
     const { helper } = makeHelper({ throwOn: { 'collections.update': { httpStatus: 404 } } });
     let caught: unknown;
+
     try {
       await helper.patchCollectionSchema({ name: 'missing', fields: [] });
     } catch (e) {
       caught = e;
     }
+
     expect(caught).toBeInstanceOf(ApplicationError);
     expect((caught as ApplicationError).statusCode).toBe(404);
   });

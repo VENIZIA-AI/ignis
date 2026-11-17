@@ -1,11 +1,11 @@
-import { type AnyType } from '@/common/types';
 import { type ILogger } from '@/modules/logger';
 import { ParseUtility } from './parse.utility';
 
 const DEFAULT_PERFORMANCE_DECIMAL = 6;
 
-type TLogMethod = (message: string, ...args: Array<AnyType>) => void;
+type TLogMethod = (message: string, ...args: unknown[]) => void;
 
+/** Timing helpers on `performance.now()`: checkpoints, elapsed milliseconds and a measured task runner. */
 export class PerformanceUtility {
   static getCheckpoint() {
     return performance.now();
@@ -18,13 +18,13 @@ export class PerformanceUtility {
     });
   }
 
-  static executeWithMeasure<R = any>(opts: {
+  static executeWithMeasure<R>(opts: {
     logger?: ILogger;
     level?: string;
     description?: string;
-    args?: any;
+    args?: unknown;
     scope: string;
-    task: Function;
+    task: () => R | Promise<R>;
   }) {
     return new Promise<R>((resolve, reject) => {
       const t = performance.now();
@@ -39,7 +39,7 @@ export class PerformanceUtility {
 
       // `level` names a method on whichever logger was passed, so it is looked up, not indexed; the call keeps `this` bound to that logger.
       const method: TLogMethod = Reflect.get(logger, level);
-      const log = (message: string, ...params: Array<AnyType>) =>
+      const log = (message: string, ...params: unknown[]) =>
         method.call(logger, message, ...params);
 
       if (args) {
@@ -53,6 +53,7 @@ export class PerformanceUtility {
         .catch(reject)
         .finally(() => {
           const took = performance.now() - t;
+
           if (args) {
             log('[%s] DONE | %s | Args: %j | Took: %s (ms)', scope, description, args, took);
           } else {

@@ -10,6 +10,7 @@ import {
 const configured = () => {
   const dataSource = new FakeDataSource();
   dataSource.configure();
+
   return dataSource;
 };
 
@@ -60,6 +61,7 @@ describe('BaseRawSqlDataSource - wiring', () => {
       wire(): FakeClient {
         const client = new FakeClient({ host: 'hand.local' });
         this.useDriver({ driver: new FakeDriver({ client }) });
+
         return client;
       }
     }

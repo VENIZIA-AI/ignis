@@ -21,6 +21,7 @@ export const NoteCreate = () => {
 
     if (title.trim().length === 0) {
       notify('Title is required');
+
       return;
     }
 

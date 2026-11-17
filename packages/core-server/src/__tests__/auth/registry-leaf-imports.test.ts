@@ -12,6 +12,7 @@ const readSource = async (opts: { relative: string }): Promise<string> => {
 
 const listTypeScriptFiles = async (opts: { relative: string }): Promise<string[]> => {
   const entries = await readdir(join(AUTH_ROOT, opts.relative));
+
   return entries.filter((entry) => entry.endsWith('.ts') && entry !== 'index.ts').sort();
 };
 
@@ -64,6 +65,7 @@ describe('auth providers import registry leaves, not barrels', () => {
     for (const source of sources) {
       expect(source).not.toMatch(/from '\.\.\/\.\.\/\.\.\/authenticate';/);
     }
+
     expect(
       sources.some((source) =>
         /from '\.\.\/\.\.\/\.\.\/authenticate\/common\/types';/.test(source),

@@ -13,7 +13,7 @@ import { pgTable, serial, text } from 'drizzle-orm/pg-core';
 
 // Two models over one drizzle table: the schema object no longer names ONE of them, so the registry
 // drops that mapping rather than answering with whichever registered last - which would apply the
-// wrong `hiddenProperties` and return a hidden column.
+// wrong `hidden properties` and return a hidden column.
 const TABLE_NAME = 'shared_table_account';
 
 const accountTable = pgTable(TABLE_NAME, {
@@ -22,7 +22,7 @@ const accountTable = pgTable(TABLE_NAME, {
   secret: text('secret').notNull(),
 });
 
-@model({ type: 'entity', settings: { hiddenProperties: ['secret'] } })
+@model({ type: 'entity', settings: { properties: { hidden: ['secret'] } } })
 class SharedTableAccount extends BasePostgresEntity<typeof accountTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = accountTable;

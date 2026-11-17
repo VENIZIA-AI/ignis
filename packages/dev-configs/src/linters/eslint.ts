@@ -1,15 +1,12 @@
 import js from '@eslint/js';
 import type { Linter } from 'eslint';
 import { defineConfig } from 'eslint/config';
-import n from 'eslint-plugin-n';
-import unicorn from 'eslint-plugin-unicorn';
 import tseslint from 'typescript-eslint';
-import {
-  NamingConventionRule,
-  NoRestrictedImportsRule,
-  NoUnusedVarsRule,
-  SwitchCaseBracesRule,
-} from './rules';
+import { HOUSE_PLUGIN_NAMESPACE } from './house/common';
+import { NoUnbracedCaseRule } from './house/no-unbraced-case.rule';
+import { houseEslintPlugin } from './house/plugin';
+import { paddingConfigs } from './padding';
+import { NamingConventionRule, NoRestrictedImportsRule, NoUnusedVarsRule } from './rules';
 
 /** Every file the preset lints. */
 const SOURCE_FILES = [
@@ -67,7 +64,6 @@ const STRICT_RULES: Linter.RulesRecord = {
   'no-void': 'error',
   'no-useless-escape': 'warn',
   'no-caller': 'error',
-  'n/prefer-node-protocol': ['error'],
   '@typescript-eslint/adjacent-overload-signatures': 'error',
   '@typescript-eslint/prefer-for-of': 'error',
   '@typescript-eslint/unified-signatures': 'error',
@@ -79,9 +75,14 @@ const STRICT_RULES: Linter.RulesRecord = {
   '@typescript-eslint/await-thenable': 'error',
   '@typescript-eslint/no-floating-promises': 'error',
   '@typescript-eslint/prefer-optional-chain': 'error',
+  // `||` on a string is mostly an intentional empty-string fallback (`value?.trim() || fallback`); `??` keeps `''`.
+  // The same exception as the oxlint preset: objects, numbers and booleans still report.
   '@typescript-eslint/prefer-nullish-coalescing': [
     'error',
-    { allowRuleToRunWithoutStrictNullChecksIKnowWhatIAmDoing: true },
+    {
+      allowRuleToRunWithoutStrictNullChecksIKnowWhatIAmDoing: true,
+      ignorePrimitives: { string: true },
+    },
   ],
   '@typescript-eslint/return-await': 'error',
 };
@@ -102,16 +103,17 @@ export const eslintConfigs: Linter.Config[] = defineConfig([
         projectService: { allowDefaultProject: ['*.js', '*.cjs', '*.mjs', '.*.js'] },
       },
     },
-    plugins: { n, unicorn },
+    plugins: { [HOUSE_PLUGIN_NAMESPACE]: houseEslintPlugin },
     rules: {
       ...OFF_RULES,
       ...STRICT_RULES,
+      [NoUnbracedCaseRule.NAME]: NoUnbracedCaseRule.build(),
       '@typescript-eslint/no-unused-vars': NoUnusedVarsRule.build() as Linter.RuleEntry,
       [NoRestrictedImportsRule.NAME]: NoRestrictedImportsRule.build() as Linter.RuleEntry,
-      [SwitchCaseBracesRule.NAME]: SwitchCaseBracesRule.build() as Linter.RuleEntry,
       [NamingConventionRule.NAME]: NamingConventionRule.build(),
     },
   },
+  ...paddingConfigs,
   {
     ignores: [
       '**/node_modules/',

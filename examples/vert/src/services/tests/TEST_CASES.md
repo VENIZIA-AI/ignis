@@ -36,8 +36,8 @@ Basic repository CRUD operations without transactions.
 | 4 | FindWithFilter | Test where, order (ASC/DESC), limit, skip/offset filters |
 | 5 | FindById | Find record by ID, test non-existent ID returns null |
 | 6 | UpdateById | Update single record by ID and verify changes |
-| 7 | UpdateAll | Batch update with where filter, test UpdateBy alias |
-| 8 | DeleteByIdAndDeleteAll | Delete single by ID, batch delete with filter |
+| 7 | UpdateBy | Batch update with where filter |
+| 8 | DeleteByIdAndDeleteBy | Delete single by ID, batch delete with filter |
 | 9 | CreateWithNullValues | Create record with explicit null values |
 | 10 | EmptyBatchCreate | Handle createAll with empty array |
 | 11 | UpdateNonExistentRecord | UpdateById for non-existent ID returns count: 0 |
@@ -183,8 +183,8 @@ Default filter (automatic query filtering) functionality.
 
 | Case | Name | Description |
 |------|------|-------------|
-| 21 | UpdateAllWithDefaultFilter | UpdateAll respects default filter |
-| 22 | DeleteAllWithDefaultFilter | DeleteAll respects default filter |
+| 21 | UpdateByWithDefaultFilter | UpdateBy respects default filter |
+| 22 | DeleteByWithDefaultFilter | DeleteBy respects default filter |
 | 23 | AndOrCombinationWithDefaultFilter | Complex AND/OR with default filter |
 | 24 | DefaultFilterWithFieldSelection | Field selection works with default filter |
 | 25 | ConcurrentQueriesWithDefaultFilter | 10 concurrent queries all apply default filter |
@@ -214,7 +214,7 @@ Tests for hidden properties filtering (password, secret fields excluded from res
 | 6 | Cleanup | Cleanup test data (runs last in test sequence) |
 | 7 | ConnectorQueryReturnsHidden | Connector query SHOULD return hidden properties (bypass repository) |
 | 8 | CreateAllExcludesHidden | CreateAll (batch create) excludes hidden properties |
-| 9 | UpdateAllExcludesHidden | UpdateAll (bulk update) excludes hidden properties |
+| 9 | UpdateByExcludesHidden | UpdateBy (bulk update) excludes hidden properties |
 | 10 | DeleteByIdExcludesHidden | DeleteById excludes hidden properties from response |
 | 11 | FieldsSelectionStillExcludesHidden | Fields selection still excludes hidden, even if explicitly requested |
 | 12 | VerifyDataActuallyStoredInDB | Verify data is actually stored in DB (via connector) |
@@ -247,7 +247,7 @@ Tests for automatic user audit tracking (createdBy/modifiedBy fields).
 |------|------|-------------|
 | 4 | UpdateById_ModifiedByChanges | modifiedBy changes to updater on UpdateById |
 | 5 | UpdateById_CreatedByUnchanged | createdBy remains unchanged after update attempt |
-| 6 | UpdateAll_BulkModifiedByChanges | modifiedBy changes for all matching records in batch update |
+| 6 | UpdateBy_BulkModifiedByChanges | modifiedBy changes for all matching records in batch update |
 | 7 | UpdateWithDifferentUser | Multiple updates by different users tracked correctly |
 
 ### Edge Cases

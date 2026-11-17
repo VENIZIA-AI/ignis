@@ -22,14 +22,13 @@ import {
   HealthCheckBindingKeys,
   inject,
   JOSEStandards,
+  JWKSAlgorithms,
+  JWKSKeyDrivers,
+  JWKSKeyFormats,
   JWKSModes,
   provide,
 } from '@venizia/ignis';
-import {
-  BaseMetaLinkModel,
-  StaticAssetComponentBindingKeys,
-  StaticAssetStorageTypes,
-} from '@venizia/ignis/static-asset';
+import { StaticAssetBindingKeys } from '@venizia/ignis/static-asset';
 // Type-only: a decorated method's return type lands in `design:returntype`, and bun keeps a value
 // import it cannot prove is a type - which then fails to link against the CJS dist.
 import type {
@@ -37,13 +36,11 @@ import type {
   IHealthCheckOptions,
   TAuthenticationRestOptions,
   TBasicTokenServiceOptions,
-  TJWKSAlgorithm,
-  TJWKSKeyDriver,
-  TJWKSKeyFormat,
   TJWTTokenServiceOptions,
 } from '@venizia/ignis';
-import type { TStaticAssetsComponentOptions } from '@venizia/ignis/static-asset';
+import type { TStaticAssetComponentOptions } from '@venizia/ignis/static-asset';
 import { applicationEnvironment, DiskHelper, getError, ParseUtility } from '@venizia/ignis-helpers';
+import { z } from '@hono/zod-openapi';
 import { MetaLinkRepository } from '@/repositories/meta-link.repository';
 
 /**
@@ -62,31 +59,42 @@ export class PlatformComponent extends BaseComponent {
   override binding(): void {}
 
   /**
-   * Two asset stores on one component. `staticAsset` turns on `useMetaLink`, so every upload also
+   * Two asset stores on one component, both behind the JWT strategy; `staticResource` also lets anyone read an object. `staticAsset` turns on `metaLink`, so every upload also
    * writes a row through the application's own repository - the repository resolves here rather than
    * in the constructor because a provider runs on first read, after every repository is bound.
    */
-  @provide({ key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS })
-  staticAssetOptions(): TStaticAssetsComponentOptions {
+  @provide({ key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS })
+  staticAssetOptions(): TStaticAssetComponentOptions {
     return {
       staticAsset: {
-        controller: { name: 'AssetController', basePath: '/assets', isStrict: true },
-        storage: StaticAssetStorageTypes.DISK,
-        helper: new DiskHelper({ basePath: './app_data/assets' }),
-        useMetaLink: true,
+        // Uploads and reads need a signed-in user.
+        auth: { authenticate: { strategies: [Authentication.STRATEGY_JWT] } },
+        name: 'AssetController',
+        basePath: '/assets',
+        bucket: 'assets',
+        helper: new DiskHelper({ basePath: './app_data' }),
+        serverUpload: { use: true },
+        directUpload: { use: false },
         metaLink: {
-          model: BaseMetaLinkModel,
+          use: true,
           repository: this.application.get<MetaLinkRepository>({
             key: { namespace: BindingNamespaces.REPOSITORY, key: MetaLinkRepository.name },
           }),
         },
-        extra: { parseMultipartBody: { storage: 'memory' } },
       },
       staticResource: {
-        controller: { name: 'ResourceController', basePath: '/resources', isStrict: true },
-        storage: StaticAssetStorageTypes.DISK,
-        helper: new DiskHelper({ basePath: './app_data/resources' }),
-        extra: { parseMultipartBody: { storage: 'memory' } },
+        // Anyone may read a resource; changing one needs a signed-in user.
+        auth: {
+          authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+          publicRead: { use: true },
+        },
+        name: 'ResourceController',
+        basePath: '/resources',
+        bucket: 'resources',
+        helper: new DiskHelper({ basePath: './app_data' }),
+        serverUpload: { use: true },
+        directUpload: { use: false },
+        metaLink: { use: false },
       },
     };
   }
@@ -130,27 +138,29 @@ export class PlatformComponent extends BaseComponent {
       standard: JOSEStandards.JWKS,
       options: {
         mode: JWKSModes.ISSUER,
-        algorithm: applicationEnvironment.get<TJWKSAlgorithm>(
-          EnvironmentKeys.APP_ENV_JWKS_ALGORITHM,
-        ),
+        algorithm: z
+          .enum([JWKSAlgorithms.ES256, JWKSAlgorithms.RS256, JWKSAlgorithms.EDDSA])
+          .parse(applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_JWKS_ALGORITHM)),
         keys: {
-          driver: applicationEnvironment.get<TJWKSKeyDriver>(
-            EnvironmentKeys.APP_ENV_JWKS_KEY_DRIVER,
-          ),
-          format: applicationEnvironment.get<TJWKSKeyFormat>(
-            EnvironmentKeys.APP_ENV_JWKS_KEY_FORMAT,
-          ),
-          private: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWKS_PRIVATE_KEY),
-          public: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWKS_PUBLIC_KEY),
+          driver: z
+            .enum([JWKSKeyDrivers.TEXT, JWKSKeyDrivers.FILE])
+            .parse(applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_JWKS_KEY_DRIVER)),
+          format: z
+            .enum([JWKSKeyFormats.PEM, JWKSKeyFormats.JWK])
+            .parse(applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_JWKS_KEY_FORMAT)),
+          private: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_JWKS_PRIVATE_KEY),
+          public: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_JWKS_PUBLIC_KEY),
         },
-        kid: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWKS_KID),
+        kid: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_JWKS_KID),
+        // This server issues and verifies its own tokens: both claims name it.
+        claims: { issuer: 'vert', audience: 'vert' },
         getTokenExpiresFn: () => {
-          const expiresIn = applicationEnvironment.get<string>(
-            EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN,
-          );
+          const expiresIn = applicationEnvironment.get(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN);
+
           if (!expiresIn) {
             throw getError({ message: '[getTokenExpiresFn] APP_ENV_JWT_EXPIRES_IN is not set' });
           }
+
           return ParseUtility.toInt({ input: expiresIn });
         },
       },
@@ -164,6 +174,7 @@ export class PlatformComponent extends BaseComponent {
         const authenticationService = this.application.get<AuthenticationService>({
           key: { namespace: BindingNamespaces.SERVICE, key: AuthenticationService.name },
         });
+
         return authenticationService.signIn(opts.context, {
           identifier: { scheme: 'username', value: opts.credentials.username },
           credential: { scheme: 'basic', value: opts.credentials.password },
@@ -180,6 +191,7 @@ export class PlatformComponent extends BaseComponent {
       // Scoped RBAC: the request domain is the authenticated user's organization.
       domainResolver: ({ context }) => {
         const organizationId = context.get(Authentication.CURRENT_USER)?.organizationId;
+
         return typeof organizationId === 'string'
           ? { type: Organization.name, id: organizationId }
           : null;

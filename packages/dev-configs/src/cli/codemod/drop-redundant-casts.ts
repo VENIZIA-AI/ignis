@@ -126,10 +126,12 @@ class TypecheckSession {
     host.getSourceFile = (fileName, languageVersionOrOptions) => {
       const key = resolve(fileName);
       let source = texts.get(key);
+
       if (source === undefined) {
         if (!this.disk.has(key)) {
           this.disk.set(key, typescript.sys.readFile(fileName));
         }
+
         source = this.disk.get(key);
       }
 
@@ -140,6 +142,7 @@ class TypecheckSession {
       const version = typescript.sys.createHash?.(source) ?? `${source.length}`;
       const cacheKey = `${key}\0${version}`;
       const cached = this.parsed.get(cacheKey);
+
       if (cached) {
         return cached;
       }
@@ -153,6 +156,7 @@ class TypecheckSession {
       // The builder reads a file's version to tell a changed file from an unchanged one; the type leaves it out.
       Object.assign(sourceFile, { version });
       this.parsed.set(cacheKey, sourceFile);
+
       return sourceFile;
     };
 
@@ -177,6 +181,7 @@ class TypecheckSession {
       ...builder.getSyntacticDiagnostics(),
       ...builder.getSemanticDiagnostics(),
     ];
+
     for (const diagnostic of diagnostics) {
       if (diagnostic.category !== typescript.DiagnosticCategory.Error) {
         continue;
@@ -260,6 +265,7 @@ export class RedundantCasts {
 
       for (const item of report.items) {
         const left = budget.get(item.key) ?? 0;
+
         if (left > 0) {
           budget.set(item.key, left - 1);
           continue;
@@ -270,6 +276,7 @@ export class RedundantCasts {
 
       return added;
     };
+
     const isBroken = (texts: Map<string, string>): boolean => newErrors(texts).length > 0;
 
     for (let round = 0; round < MAX_ROUNDS; round += 1) {
@@ -306,6 +313,7 @@ export class RedundantCasts {
       }
 
       const next = RedundantCasts.apply({ texts: current, chosen: accepted });
+
       for (const [file, text] of next) {
         current.set(file, text);
       }
@@ -318,6 +326,7 @@ export class RedundantCasts {
 
     session.check(finalTexts);
     const program = session.getProgram();
+
     for (const [file, text] of original) {
       const output = finalTexts.get(file) ?? text;
       const sourceFile = program.getSourceFile(file);
@@ -400,6 +409,7 @@ export class RedundantCasts {
       }
 
       const sourceFile = program.getSourceFile(file);
+
       if (!sourceFile) {
         continue;
       }
@@ -414,6 +424,7 @@ export class RedundantCasts {
 
           const inner = node.expression;
           const key = text.slice(node.getStart(sourceFile), node.end);
+
           if (rejected.has(`${file}|${key}`)) {
             return;
           }
@@ -433,12 +444,14 @@ export class RedundantCasts {
 
     const outermost: ICastCandidate[] = [];
     let last: ICastCandidate | undefined;
+
     for (const candidate of found) {
       const isInside =
         last !== undefined &&
         last.file === candidate.file &&
         candidate.start >= last.start &&
         candidate.end <= last.end;
+
       if (isInside) {
         continue;
       }
@@ -472,6 +485,7 @@ export class RedundantCasts {
     }
 
     let inner: ts.Expression = node.expression;
+
     while (typescript.isParenthesizedExpression(inner)) {
       inner = inner.expression;
     }
@@ -481,6 +495,7 @@ export class RedundantCasts {
     }
 
     const flags = checker.getTypeAtLocation(node.expression).flags;
+
     if (flags & typescript.TypeFlags.Any) {
       return CastKeepReasons.ANY_EXPRESSION;
     }
@@ -498,6 +513,7 @@ export class RedundantCasts {
     visit: (node: ts.AsExpression | ts.TypeAssertion) => void;
   }): void {
     const { typescript, sourceFile, visit } = opts;
+
     const walk = (node: ts.Node): void => {
       if (typescript.isAsExpression(node) || typescript.isTypeAssertionExpression(node)) {
         visit(node);
@@ -563,11 +579,13 @@ export class RedundantCasts {
     for (let attempt = 0; attempt < MAX_NAMED_ATTEMPTS && remaining.length > 0; attempt += 1) {
       const chosen = [...base, ...remaining];
       const found = newErrors(chosen);
+
       if (found.length === 0) {
         return remaining;
       }
 
       const suspects = suspectsOf(chosen, found);
+
       if (suspects.length === 0) {
         break;
       }
@@ -632,6 +650,7 @@ export class RedundantCasts {
         .filter((candidate) => candidate.file === error.file)
         .sort((a, b) => a.start - b.start);
       const sourceFile = program.getSourceFile(error.file);
+
       if (inFile.length === 0 || !sourceFile) {
         continue;
       }
@@ -640,6 +659,7 @@ export class RedundantCasts {
       const placed = inFile.map((candidate) => {
         const start = candidate.start - shift;
         shift += candidate.end - candidate.start - candidate.replacement.length;
+
         return { candidate, start, end: start + candidate.replacement.length };
       });
       const statement = RedundantCasts.enclosingStatement({
@@ -690,6 +710,7 @@ export class RedundantCasts {
           typescript.isModuleBlock(parent) ||
           typescript.isCaseClause(parent) ||
           typescript.isDefaultClause(parent));
+
       if (isStatement) {
         found = node;
       }
@@ -698,6 +719,7 @@ export class RedundantCasts {
     };
 
     walk(sourceFile);
+
     return found;
   }
 
@@ -716,6 +738,7 @@ export class RedundantCasts {
 
     for (const [file, edits] of byFile) {
       let text = output.get(file) ?? '';
+
       for (const edit of [...edits].sort((a, b) => b.start - a.start)) {
         text = text.slice(0, edit.start) + edit.replacement + text.slice(edit.end);
       }
@@ -738,6 +761,7 @@ export class RedundantCasts {
 
     for (const [file, after] of current) {
       const before = original.get(file);
+
       if (before === undefined || before === after) {
         continue;
       }
@@ -764,6 +788,7 @@ export class RedundantCasts {
 
         const clause = statement.importClause;
         const bindings = clause?.namedBindings;
+
         if (!clause || !bindings || !typescript.isNamedImports(bindings)) {
           continue;
         }
@@ -771,6 +796,7 @@ export class RedundantCasts {
         const stale = bindings.elements.filter(
           (element) => usedBefore.has(element.name.text) && !usedAfter.has(element.name.text),
         );
+
         if (stale.length === 0) {
           continue;
         }
@@ -804,6 +830,7 @@ export class RedundantCasts {
       }
 
       let text = after;
+
       for (const edit of edits.sort((a, b) => b.start - a.start)) {
         text = text.slice(0, edit.start) + edit.text + text.slice(edit.end);
       }
@@ -829,6 +856,7 @@ export class RedundantCasts {
       true,
     );
     const names = new Set<string>();
+
     const walk = (node: ts.Node): void => {
       if (typescript.isImportDeclaration(node)) {
         return;
@@ -842,6 +870,7 @@ export class RedundantCasts {
     };
 
     walk(sourceFile);
+
     return names;
   }
 
@@ -853,11 +882,13 @@ export class RedundantCasts {
 
     for (;;) {
       const candidate = join(directory, 'tsconfig.json');
+
       if (existsSync(candidate)) {
         return candidate;
       }
 
       const parent = dirname(directory);
+
       if (directory === top || parent === directory) {
         return undefined;
       }
@@ -920,6 +951,7 @@ export class DropRedundantCastsCommand {
 
     if (args.includes(CastFlags.HELP) || args.includes(CastFlags.HELP_SHORT)) {
       console.log(USAGE);
+
       return 0;
     }
 
@@ -933,10 +965,13 @@ export class DropRedundantCastsCommand {
       if (argument === CastFlags.PROJECT) {
         project = args[index + 1];
         index += 1;
+
         if (!project || project.startsWith('-')) {
           console.error(`devz codemod: ${CastFlags.PROJECT} needs a tsconfig path\n${USAGE}`);
+
           return USAGE_ERROR_CODE;
         }
+
         continue;
       }
 
@@ -953,10 +988,12 @@ export class DropRedundantCastsCommand {
     }
 
     const unknown = flags.filter((flag) => !CastFlags.isValid(flag));
+
     if (unknown.length > 0) {
       console.error(
         `devz codemod: unknown option ${unknown.map((flag) => `"${flag}"`).join(', ')}\n${USAGE}`,
       );
+
       return USAGE_ERROR_CODE;
     }
 
@@ -969,25 +1006,31 @@ export class DropRedundantCastsCommand {
       isAll: flags.includes(CastFlags.ALL),
       paths,
     });
+
     if (refusal) {
       console.error(`${refusal}\n${USAGE}`);
+
       return USAGE_ERROR_CODE;
     }
+
     const includeTests = flags.includes(CastFlags.INCLUDE_TESTS);
 
     if (isWrite && isCheck) {
       console.error(
         `devz codemod: ${CastFlags.WRITE} and ${CastFlags.CHECK} contradict each other\n${USAGE}`,
       );
+
       return USAGE_ERROR_CODE;
     }
 
     let typescript: TTypeScript;
+
     try {
       const result2 = await import('typescript');
       typescript = result2.default;
     } catch {
       console.error('devz codemod: the "typescript" package is required to check your sources');
+
       return 1;
     }
 
@@ -1030,6 +1073,7 @@ export class DropRedundantCastsCommand {
 
     for (const [tsconfig, files] of byProject) {
       let result: IProjectCastResult;
+
       try {
         result = RedundantCasts.run({
           typescript,
@@ -1042,6 +1086,7 @@ export class DropRedundantCastsCommand {
         console.error(
           `devz codemod: ${relative(root, tsconfig)}: ${error instanceof Error ? error.message : String(error)}`,
         );
+
         return 1;
       }
 
@@ -1056,6 +1101,7 @@ export class DropRedundantCastsCommand {
         removed += file.removed;
         importsRemoved += file.importsRemoved;
         kept += file.kept.length;
+
         for (const entry of file.kept) {
           reasons.set(entry.reason, (reasons.get(entry.reason) ?? 0) + 1);
         }
@@ -1076,6 +1122,7 @@ export class DropRedundantCastsCommand {
 
         if (file.changed) {
           changedFiles += 1;
+
           if (isWrite) {
             writeFileSync(file.file, file.output);
           }

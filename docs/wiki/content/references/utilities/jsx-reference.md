@@ -101,15 +101,18 @@ Defines and registers a JSX/HTML route in a single call - the JSX counterpart of
 defineJSXRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
   configs: RouteConfig;
   handler: TRouteHandler<ResponseType, RouteEnv>;
-  hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
 }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>
 ```
 
+An optional `hook` (Hono's validation `Hook`) is also accepted, see the table.
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `configs` | `RouteConfig` (extends `IAuthRouteConfig`) | Yes | `path`, `method`, `responses`, plus the same `authenticate`/`authorize`/`request`/`middleware` fields `defineRoute` accepts |
+| `configs` | `RouteConfig` (extends `IAuthRouteConfig`) | Yes | Route config, same fields `defineRoute` accepts |
 | `handler` | `TRouteHandler<ResponseType, RouteEnv>` | Yes | Receives the route context (`TRouteContext`); return `context.html(<Component />)` |
 | `hook` | `Hook<...>` | No | Same validation hook `defineRoute` accepts |
+
+`configs` carries `path`, `method`, `responses`, plus the same `authenticate`/`authorize`/`request`/`middleware` fields `defineRoute` accepts.
 
 ### Behavior
 
@@ -132,10 +135,12 @@ getJSXRouteConfigs<RouteConfig extends IAuthRouteConfig>(opts: { configs: RouteC
       ),
       tags: [...tags, this.scope],
       security,
-    }) as any,
+    }),
   );
 }
 ```
+
+The reassembled object is handed to `createRoute` at a typing boundary: the framework source narrows it there, and your own code never needs to.
 
 - **Default response merged in first.** `OpenApiResponses.htmlResponse({ description: 'HTML page' })` is the base object. Your own `responses` is merged over it with `Object.assign`, so any status code you declare (typically `200`) overrides the default entry with the same key.
 - **Everything else matches `defineRoute`.** Auth middleware, tags (`this.scope` is always appended), and OpenAPI security are built the same way as JSON routes via `buildRouteMiddlewares`.
@@ -292,8 +297,8 @@ See [Schema Utility](./schema.md) for `OpenApiResponses.jsonContent`/`OpenApiRes
 
 | Approach | When to use |
 |----------|-------------|
-| `this.defineJSXRoute({ configs, handler })` | Default choice - HTML response shape is inferred, override `responses[200]` only if you need a custom description |
-| `this.defineRoute({ configs: { responses: OpenApiResponses.htmlResponse({ description }) }, handler })` | You want the full `responses` object built explicitly via `OpenApiResponses.htmlResponse()`, without relying on the JSX default merge |
+| `this.defineJSXRoute({ configs, handler })` | Default choice; override `responses[200]` only for a custom description |
+| `this.defineRoute({ configs: { responses: OpenApiResponses.htmlResponse({ description }) }, handler })` | You build the full `responses` object yourself |
 | `this.bindRoute({ configs }).to({ handler })` | Fluent two-step registration, same `configs` shape as either of the above |
 
 Authentication and authorization on a JSX route use the same `configs.authenticate` / `configs.authorize` fields as JSON routes - see [Controllers](../base/controllers.md).

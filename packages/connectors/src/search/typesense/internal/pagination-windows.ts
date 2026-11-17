@@ -30,6 +30,7 @@ export class TypesenseSearchWindows {
     }
 
     const windows: ISearchWindow[] = [];
+
     for (let start = 0; start < limit; start += MAX_HITS_PER_PAGE) {
       windows.push({ offset: offset + start, limit: Math.min(MAX_HITS_PER_PAGE, limit - start) });
     }
@@ -70,6 +71,7 @@ export class TypesenseSearchWindows {
     const timings = results
       .map((result) => result.searchTimeMs)
       .filter((value): value is number => typeof value === 'number');
+
     if (timings.length > 0) {
       merged.searchTimeMs = Math.max(...timings);
     }
@@ -79,6 +81,7 @@ export class TypesenseSearchWindows {
     }
 
     const hits = results.flatMap((result) => result.hits ?? []);
+
     if (hits.length > 0) {
       merged.hits = hits;
     }
@@ -115,6 +118,7 @@ export class TypesenseSearchWindows {
     response['out_of'] = 0;
     response['search_time_ms'] = 0;
     response['request_params'] = {};
+
     return response;
   }
 }

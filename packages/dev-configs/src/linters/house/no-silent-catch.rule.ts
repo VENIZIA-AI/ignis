@@ -11,7 +11,7 @@ const isParameterUsed = (opts: { owner: Rule.Node; sourceCode: SourceCode }): bo
     .some(
       (variable) =>
         variable.defs.some((definition) =>
-          ['Parameter', 'CatchClause'].includes(definition.type),
+          ['Parameter', AstNodeTypes.CATCH_CLAUSE].includes(definition.type),
         ) && variable.references.length > 0,
     );
 
@@ -19,7 +19,7 @@ const isParameterUsed = (opts: { owner: Rule.Node; sourceCode: SourceCode }): bo
 const isPlainParameter = (opts: { parameter: unknown }): boolean =>
   opts.parameter === null ||
   opts.parameter === undefined ||
-  AstNode.getType({ node: opts.parameter }) === 'Identifier';
+  AstNode.getType({ node: opts.parameter }) === AstNodeTypes.IDENTIFIER;
 
 /**
  * `venizia/no-silent-catch`. A handled error leaves a trace (V-C-06). Reported: a `.catch(h)` (also `?.catch`,
@@ -59,14 +59,17 @@ export class NoSilentCatchRule {
           const args = AstNode.readField({ node, key: 'arguments' });
           const handler: unknown = Array.isArray(args) ? args[0] : undefined;
           const handlerType = AstNode.getType({ node: handler });
+
           if (
             !AwaitSupport.isNode(handler) ||
-            (handlerType !== 'ArrowFunctionExpression' && handlerType !== 'FunctionExpression')
+            (handlerType !== AstNodeTypes.ARROW_FUNCTION_EXPRESSION &&
+              handlerType !== AstNodeTypes.FUNCTION_EXPRESSION)
           ) {
             return;
           }
 
           const params = AstNode.readField({ node: handler, key: 'params' });
+
           if (
             !Array.isArray(params) ||
             !params.every((parameter) => isPlainParameter({ parameter })) ||
@@ -77,7 +80,7 @@ export class NoSilentCatchRule {
 
           const body = AstNode.readField({ node: handler, key: 'body' });
           const isSilent =
-            AstNode.getType({ node: body }) === 'BlockStatement'
+            AstNode.getType({ node: body }) === AstNodeTypes.BLOCK_STATEMENT
               ? PromiseChainSupport.isSilentBlock({
                   statements: AstNode.readField({ node: body, key: 'body' }),
                 })
@@ -96,6 +99,7 @@ export class NoSilentCatchRule {
           }
 
           const body = AstNode.readField({ node, key: 'body' });
+
           if (
             PromiseChainSupport.isSilentBlock({
               statements: AstNode.readField({ node: body, key: 'body' }),

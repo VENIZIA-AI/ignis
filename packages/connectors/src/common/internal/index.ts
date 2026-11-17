@@ -1,2 +1,2 @@
+export * from './duck-typing';
 export * from './echo';
-export * from './record';

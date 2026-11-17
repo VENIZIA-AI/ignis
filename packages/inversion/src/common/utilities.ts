@@ -1,5 +1,4 @@
 import type {
-  AnyType,
   TAsyncResolver,
   TClass,
   TInjectTarget,
@@ -60,6 +59,7 @@ export class ObjectUtility {
     const kept: Record<string, unknown> = {};
 
     const entries = Object.entries(source);
+
     for (const [key, value] of entries) {
       if (dropped.has(key)) {
         continue;
@@ -73,7 +73,7 @@ export class ObjectUtility {
 }
 
 /** Tells a CONSTRUCTOR from a RESOLVER via source text - `prototype !== undefined` is true of every non-arrow function. Sound only on ES2020+ output (classes emit as `class`); ES5 bundling breaks it. */
-export const isClass = <T>(target: any): target is TClass<T> => {
+export const isClass = <T>(target: unknown): target is TClass<T> => {
   if (typeof target !== 'function' || target.prototype === undefined) {
     return false;
   }
@@ -99,18 +99,21 @@ export class ResolverUtility {
   /** Reads a value-or-resolver. A class constructor is returned as-is; only a plain function is called. */
   static resolveValue<T>(opts: { value: TValueOrResolver<T> }): T {
     const { value } = opts;
+
     return ResolverUtility.isResolver(value) ? value() : value;
   }
 
   /** `resolveValue` for a resolver that may answer a promise. */
   static async resolveValueAsync<T>(opts: { value: TValueOrAsyncResolver<T> }): Promise<T> {
     const { value } = opts;
+
     return ResolverUtility.isAsyncResolver(value) ? value() : value;
   }
 
   /** Reads what `@inject({ target })` named. The function form is called HERE, never at decoration: that is what lets a class reached through an import cycle be named at all. Answers `undefined` when the function hands back something that is not a class. The container resolves synchronously, so there is no async form. */
-  static resolveInjectTarget(opts: { target: TInjectTarget }): TClass<AnyType> | undefined {
+  static resolveInjectTarget(opts: { target: TInjectTarget }): TClass<unknown> | undefined {
     const resolved = ResolverUtility.resolveValue({ value: opts.target });
+
     return isClass(resolved) ? resolved : undefined;
   }
 }

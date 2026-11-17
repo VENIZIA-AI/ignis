@@ -29,8 +29,8 @@ export class CrudTestService extends BaseTestService {
     await readCases.case4FindWithFilter();
     await readCases.case5FindById();
     await updateCases.case6UpdateById();
-    await updateCases.case7UpdateAll();
-    await deleteCases.case8DeleteByIdAndDeleteAll();
+    await updateCases.case7UpdateBy();
+    await deleteCases.case8DeleteByIdAndDeleteBy();
 
     // Edge cases and error handling
     await createCases.case9CreateWithNullValues();

@@ -1,35 +1,33 @@
-import { ControllerFactory } from '@/base/controllers/factory/controller';
-import { controller, inject } from '@/base/metadata';
+import { CrudRoutes } from '@/base/controllers/common';
+import { CrudControllerFactory } from '@/base/controllers/factory/controller';
+import {
+  controller as controllerDecorator,
+  inject,
+  repository as repositoryDecorator,
+} from '@/base/metadata';
 import { AbstractEntity } from '@/base/models';
 import { BindingNamespaces } from '@/common/bindings';
 import { BindingKeys, Container, MetadataRegistry } from '@/helpers/inversion';
 import { z } from '@hono/zod-openapi';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
+import { untyped } from '../support/untyped';
+import { StubRepository } from './stub-repository';
 
 const itemSchema = z.object({ id: z.string(), title: z.string() });
 
 /** One zod object for every schema type, held untyped so the generic abstract signature accepts it without a cast. */
-const schemas: Record<string, AnyType> = { item: itemSchema };
-
 class InjectionProbeItem extends AbstractEntity<typeof itemSchema> {
   constructor() {
     super({ name: InjectionProbeItem.name });
   }
 
   getSchema<T>(): T {
-    return schemas.item;
+    return untyped<T>(itemSchema);
   }
 }
 
-/** Answers the one read the tests call; the tag tells the two bound repositories apart. */
-class CountingRepository {
-  constructor(readonly tag: string) {}
-
-  async count() {
-    return { count: this.tag.length };
-  }
-}
+@repositoryDecorator({ model: InjectionProbeItem, dataSource: 'ProbeDataSource' })
+class InjectionProbeItemRepository extends StubRepository {}
 
 const repositoryKey = (opts: { name: string }) => {
   return BindingKeys.build({ namespace: BindingNamespaces.REPOSITORY, key: opts.name });
@@ -39,23 +37,23 @@ const buildContainer = () => {
   const container = new Container();
   container
     .bind({ key: repositoryKey({ name: 'InjectionProbeItemRepository' }) })
-    .toValue(new CountingRepository('named'));
+    .toValue(new InjectionProbeItemRepository('named'));
   container
     .bind({ key: repositoryKey({ name: 'ExplicitProbeRepository' }) })
-    .toValue(new CountingRepository('explicit-one'));
+    .toValue(new InjectionProbeItemRepository('explicit-one'));
+
   return container;
 };
 
-const ItemCrudController = ControllerFactory.defineCrudController({
-  entity: InjectionProbeItem,
-  repository: { name: 'InjectionProbeItemRepository' },
-  controller: { name: 'ItemController', basePath: '/items' },
+const ItemCrudController = CrudControllerFactory.build({
+  repository: InjectionProbeItemRepository,
+  routes: CrudRoutes.READ,
 });
 
-@controller({ path: '/items' })
+@controllerDecorator({ path: '/items' })
 class ItemController extends ItemCrudController {}
 
-@controller({ path: '/items' })
+@controllerDecorator({ path: '/items' })
 class ExplicitItemController extends ItemCrudController {
   constructor(
     @inject({ key: repositoryKey({ name: 'ExplicitProbeRepository' }) })
@@ -66,17 +64,18 @@ class ExplicitItemController extends ItemCrudController {
 }
 
 /** A second subclass of the same generated base with no constructor: the explicit sibling above must not have rewritten what the base injects. */
-@controller({ path: '/items' })
+@controllerDecorator({ path: '/items' })
 class SiblingItemController extends ItemCrudController {}
 
 const countThrough = async (opts: { controller: ItemController }) => {
   const router = await opts.controller.configure();
   const response = await router.request(`/count?where=${encodeURIComponent('{}')}`);
   const result = await response.json();
+
   return { status: response.status, body: result };
 };
 
-describe('defineCrudController injects the repository named in repository.name', () => {
+describe('CrudControllerFactory.build injects the repository class it is given', () => {
   test('a subclass with no constructor resolves its repository and serves GET /count', async () => {
     const container = buildContainer();
     const resolved = container.resolve(ItemController);
@@ -110,27 +109,25 @@ describe('defineCrudController injects the repository named in repository.name',
     });
   });
 
-  test('an empty repository name is refused when the controller is defined', () => {
-    expect(() =>
-      ControllerFactory.defineCrudController({
-        entity: InjectionProbeItem,
-        repository: { name: '' },
-        controller: { name: 'NamelessItemController', basePath: '/nameless' },
-      }),
-    ).toThrow(
-      '[defineCrudController] Invalid repository name | controller: NamelessItemController',
+  test('a repository class with an empty name is refused when the controller is defined', () => {
+    @repositoryDecorator({ model: InjectionProbeItem, dataSource: 'ProbeDataSource' })
+    class Anonymous extends StubRepository {}
+
+    Object.defineProperty(Anonymous, 'name', { value: '' });
+
+    expect(() => CrudControllerFactory.build({ repository: Anonymous })).toThrow(
+      '[CrudControllerFactory.build] Invalid repository name',
     );
   });
 });
 
-describe('ControllerFactory.registerRepositoryInjection - the one injection every generated controller uses', () => {
+describe('CrudControllerFactory.registerRepositoryInjection - the one injection every generated controller uses', () => {
   test('records repositories.<name> at parameter 0, required', () => {
     class GeneratedProbeController {}
 
-    ControllerFactory.registerRepositoryInjection({
+    CrudControllerFactory.registerRepositoryInjection({
       target: GeneratedProbeController,
       factoryName: 'defineProbeController',
-      controllerName: 'GeneratedProbeController',
       repositoryName: 'ProbeRepository',
     });
 
@@ -142,11 +139,10 @@ describe('ControllerFactory.registerRepositoryInjection - the one injection ever
   test('the target is a class - a plain function is a compile error', () => {
     const plainFunction = () => undefined;
 
-    ControllerFactory.registerRepositoryInjection({
+    CrudControllerFactory.registerRepositoryInjection({
       // @ts-expect-error - a factory registers the injection on the class it generated, never on a plain function
       target: plainFunction,
       factoryName: 'defineProbeController',
-      controllerName: 'PlainFunction',
       repositoryName: 'ProbeRepository',
     });
 
@@ -159,15 +155,12 @@ describe('ControllerFactory.registerRepositoryInjection - the one injection ever
     class NamelessProbeController {}
 
     expect(() =>
-      ControllerFactory.registerRepositoryInjection({
+      CrudControllerFactory.registerRepositoryInjection({
         target: NamelessProbeController,
         factoryName: 'defineProbeController',
-        controllerName: 'NamelessProbeController',
         repositoryName: '',
       }),
-    ).toThrow(
-      '[defineProbeController] Invalid repository name | controller: NamelessProbeController',
-    );
+    ).toThrow('[defineProbeController] Invalid repository name');
     expect(
       MetadataRegistry.getInstance().getInjectMetadata({ target: NamelessProbeController }),
     ).toBeUndefined();

@@ -1,6 +1,5 @@
 import { getError } from '@venizia/ignis-inversion';
 import winston from 'winston';
-import { type AnyType } from '@/common/types';
 import { LOGGER_FORMAT, LOGGER_PREFIX } from './common/constants';
 import { LoggerFormats, LoggerConfigUtility, type TLoggerFormat } from '../common';
 import { LogFormatUtility } from '../formatting';
@@ -28,13 +27,14 @@ export class WinstonFormatFactory {
   /** Drop-in replacement for `winston.format.splat()` that formats through {@link LogFormatUtility.formatMessage}; every transport reads `info.message`, so widening it here widens console, file and dgram at once. */
   static deepSplat() {
     return f((info) => {
-      const args = (info as AnyType)[SPLAT] as Array<unknown> | undefined;
+      const args: unknown = Reflect.get(info, SPLAT);
 
-      if (!args?.length || typeof info.message !== 'string') {
+      if (!Array.isArray(args) || !args.length || typeof info.message !== 'string') {
         return info;
       }
 
       info.message = LogFormatUtility.formatMessage({ message: info.message, args });
+
       return info;
     })();
   }

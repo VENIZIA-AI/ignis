@@ -6,6 +6,7 @@ import { AbstractAuthRegistry } from '../../base';
 import type { IAuthenticationStrategy } from '../common';
 import { Authentication } from '../common';
 
+/** Registry of authentication strategies by name. Use `getInstance()` for the shared one; register application strategies before controllers are bound. */
 export class AuthenticationStrategyRegistry extends AbstractAuthRegistry<IAuthenticationStrategy> {
   static readonly SINGLETON_REAL_KEY = 'authentication-strategy-registry';
 
@@ -67,13 +68,14 @@ export class AuthenticationStrategyRegistry extends AbstractAuthRegistry<IAuthen
    *
    * The framework does NOT call this - it reports instead. A hard failure cannot be the default
    * here: a route listing several strategies in ANY mode tolerates one that does not resolve, and
-   * `AuthControllerFactory.define` hard-codes `'jwt'` on four of its routes, so an application that
+   * `AuthControllerFactory.build` hard-codes `'jwt'` on four of its routes, so an application that
    * registers its JWT strategy under a different name works today and would stop booting.
    */
   assertRegistered(opts: { names: string[]; scope?: string }): void {
     const { names, scope = 'route' } = opts;
 
     const unregistered = this.findUnregistered({ names });
+
     if (unregistered.length === 0) {
       return;
     }
@@ -94,6 +96,7 @@ export class AuthenticationStrategyRegistry extends AbstractAuthRegistry<IAuthen
     const { names, scope = 'route' } = opts;
 
     const unregistered = this.findUnregistered({ names });
+
     if (unregistered.length === 0) {
       return;
     }

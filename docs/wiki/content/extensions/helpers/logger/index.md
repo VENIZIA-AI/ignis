@@ -61,7 +61,7 @@ const scoped = LoggerFactory.getLogger(['Payment', 'Stripe']); // [Payment-Strip
 const single = LoggerFactory.getLogger(['MyService']);         // [MyService]
 ```
 
-`ApplicationLogger` is removed. `devz codemod namespace-functions` rewrites `ApplicationLogger.get(...)` to `LoggerFactory.getLogger([scope])` and fixes the import.
+`ApplicationLogger` is removed. `bun run devz codemod namespace-functions` rewrites `ApplicationLogger.get(...)` to `LoggerFactory.getLogger([scope])` and fixes the import.
 
 ### Scope logs to a method
 

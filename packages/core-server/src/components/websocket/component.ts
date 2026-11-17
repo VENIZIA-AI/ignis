@@ -26,6 +26,7 @@ import {
 } from './common';
 import { WebSocketBunHandler } from './handlers';
 
+/** Starts a WebSocket server on Bun after the application starts. Requires a Redis helper at `WebSocketBindingKeys.REDIS_CONNECTION` and an authenticate handler at `AUTHENTICATE_HANDLER`; binding throws without them. */
 export class WebSocketComponent extends BaseComponent {
   protected serverOptions: IServerOptions;
 
@@ -91,6 +92,7 @@ export class WebSocketComponent extends BaseComponent {
     const redisConnection = this.application.get<AbstractRedisHelper>({
       key: WebSocketBindingKeys.REDIS_CONNECTION,
     });
+
     if (!isRedisHelper(redisConnection)) {
       throw getError({
         message:
@@ -101,6 +103,7 @@ export class WebSocketComponent extends BaseComponent {
     const authenticateFn = this.application.get<TWebSocketAuthenticateFn>({
       key: WebSocketBindingKeys.AUTHENTICATE_HANDLER,
     });
+
     if (!authenticateFn) {
       throw getError({
         message: '[WebSocketComponent] Invalid authenticateFn to setup WebSocket server!',

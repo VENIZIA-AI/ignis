@@ -1,5 +1,6 @@
 import { getError } from '@venizia/ignis-helpers/core';
 
+/** Normalizes the result of a raw Drizzle `execute()` call across the postgres-js and node-postgres drivers. */
 export class DrizzleResultUtility {
   /** Rows returned by `connector.execute(...)`. */
   static readResultRows<TRow>(opts: { result: unknown }): TRow[] {

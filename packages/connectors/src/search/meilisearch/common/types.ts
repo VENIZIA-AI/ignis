@@ -25,6 +25,7 @@ export class MeilisearchTaskStatuses {
   }
 }
 
+/** Union of the `MeilisearchTaskStatuses` values. */
 export type TMeilisearchTaskStatus = TConstValue<typeof MeilisearchTaskStatuses>;
 
 /** Page size used when walking `documents/fetch` for ids during an emulated update-by-filter. */
@@ -33,15 +34,23 @@ export const MEILISEARCH_DEFAULT_FETCH_PAGE_SIZE = 1000;
 /** Documents per merge-PUT batch. Bounded by the server's payload limit, not by a document count. */
 export const MEILISEARCH_DEFAULT_UPDATE_BATCH_SIZE = 1000;
 
+/** Options of `MeilisearchConnector`. */
 export interface IMeilisearchConnectorOptions {
   name: string;
   host: string;
   apiKey?: string;
 
-  /** Ceiling for awaiting a write task. The SDK's own `waitForTask` defaults to 5000 ms, far too short for a bulk import, so this connector never relies on that default. */
+  /** Ceiling for awaiting a write task. The SDK's own `waitForTask` defaults to 5000 ms, far too short for a bulk import, so this connector never relies on that default.
+   *
+   * @default 300_000
+   */
   taskTimeoutMs?: number;
 
-  /** Poll interval while awaiting a task. */
+  /**
+   * Starting poll interval while awaiting a task; it doubles up to a 1 s ceiling.
+   *
+   * @default 50
+   */
   taskIntervalMs?: number;
 
   scope?: string;
@@ -50,6 +59,7 @@ export interface IMeilisearchConnectorOptions {
   onError?: (opts: { name: string; error: unknown }) => void;
 }
 
+/** Datasource `config` for Meilisearch; the fields are forwarded to `IMeilisearchConnectorOptions`. */
 export interface IMeilisearchDataSourceSettings {
   host: string;
   apiKey?: string;
@@ -57,6 +67,7 @@ export interface IMeilisearchDataSourceSettings {
   taskIntervalMs?: number;
 }
 
+/** A Meilisearch task as a write call returns it (`getTask` answers {@link IMeilisearchPolledTask}); `status` is one of `MeilisearchTaskStatuses`. */
 export interface IMeilisearchTask {
   taskUid: number;
   status: string;
@@ -65,6 +76,12 @@ export interface IMeilisearchTask {
   details?: Record<string, unknown>;
 }
 
+/** A task as `getTask` returns it: the SDK names the id `uid`, so `taskUid` may be absent. */
+export interface IMeilisearchPolledTask extends Omit<IMeilisearchTask, 'taskUid'> {
+  taskUid?: number;
+}
+
+/** One page of `getDocuments` results with the total number of matching documents. */
 export interface IMeilisearchDocumentsPage {
   results: unknown[];
   total: number;
@@ -86,14 +103,15 @@ export interface IMeilisearchIndexApi {
   resetSynonyms(): Promise<IMeilisearchTask>;
 }
 
+/** Narrow structural view of the Meilisearch client the connector needs, so a test fake can stand in for the real client. */
 export interface IMeilisearchClientLike {
   index(uid: string): IMeilisearchIndexApi;
-  createIndex(uid: string, options?: unknown): Promise<IMeilisearchTask>;
+  createIndex(uid: string, options?: { primaryKey?: string }): Promise<IMeilisearchTask>;
   getIndex(uid: string): Promise<unknown>;
   getIndexes(params?: unknown): Promise<{ results: unknown[] }>;
   deleteIndex(uid: string): Promise<IMeilisearchTask>;
   swapIndexes(pairs: Array<{ indexes: string[] }>): Promise<IMeilisearchTask>;
-  getTask(taskUid: number): Promise<IMeilisearchTask>;
+  getTask(taskUid: number): Promise<IMeilisearchPolledTask>;
   health(): Promise<{ status: string }>;
   multiSearch(params: unknown): Promise<unknown>;
 }

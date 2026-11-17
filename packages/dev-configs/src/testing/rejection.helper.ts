@@ -1,5 +1,6 @@
 import { expect } from 'bun:test';
 
+/** Test helpers for asserting that a promise rejects, without the typing and un-awaited-assertion pitfalls of `expect(task).rejects`. */
 export class RejectionHelper {
   /**
    * Awaits a task that must reject and returns what it rejected with; throws when the task resolves.

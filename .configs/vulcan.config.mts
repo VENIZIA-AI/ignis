@@ -12,8 +12,68 @@ export default {
     },
   },
   rules: { 'V-W-01': 'on-user-word' },
+  // The Venizia-stack rules (V-B-05, V-B-09, V-C-07, V-C-08, V-C-20) ship as a pack, not in the base rules.
+  packs: ['venizia'],
+  // The wiki's accent family; vulcan sync writes the resolved tokens into the manifest, which config.mts reads.
+  theme: { accent: '#af5f5f', accentDark: '#c98a8a', accentText: '#a15757' },
   // Agents may not sign commits: vulcan sync prints the hook line that enforces it.
   commit: { message: { agent: { signature: 'deny' } } },
+  // A write outside the project is refused with a reason instead of prompting.
+  guard: { outside: 'deny' },
+  // Values `vulcan doctor` reads as private that are not: placeholders and examples the docs and sources show on purpose.
+  doctor: {
+    privateValues: {
+      acknowledged: [
+        {
+          path: 'docs/wiki/content/**',
+          kinds: ['url-credentials'],
+          reason:
+            'Wiki examples: placeholder connection strings (user:password@host) in a datasource, queue or environment sample.',
+        },
+        {
+          path: '{docs/wiki/content/best-practices/troubleshooting-tips.md,docs/wiki/content/changelogs/2026-01-06-basic-authentication.md,docs/wiki/content/extensions/components/authentication/errors.md,docs/wiki/content/references/configuration/environment-variables.md}',
+          kinds: ['token'],
+          reason:
+            'Wiki examples: the word Bearer or Basic in an auth header sample, and the AWS documentation example key.',
+        },
+        {
+          path: 'docs/wiki/content/**',
+          kinds: ['ipv4'],
+          reason:
+            'Wiki examples whose subject is a private, link-local or multicast address: the JWKS host allow-list, the URL-safety guard (the cloud metadata address), a Docker link, a UDP multicast group. The dated changelog entries are history and keep the addresses they were published with.',
+        },
+        {
+          path: 'packages/helpers/src/common/redact.ts',
+          kinds: ['url-credentials'],
+          reason: 'The redaction helper documents the user:password@host shape it removes.',
+        },
+        {
+          path: '{packages/core-server/src/components/auth/authenticate/services/bearer/abstract.service.ts,packages/helpers/src/modules/storage/bun-s3/utility.ts}',
+          kinds: ['token'],
+          reason:
+            'Code that names the Bearer scheme and builds an Authorization header from a variable; no literal credential.',
+        },
+        {
+          path: '{packages/core-server/src/components/auth/authenticate/services/jwks-url-policy.ts,packages/helpers/src/modules/network/utilities/url-safety/common/types.ts,packages/helpers/src/modules/network/utilities/url-safety/policy.ts,packages/kernel/src/base/auth/authenticate/common/types/jwt.ts,packages/core-server/src/base/applications/server.ts}',
+          kinds: ['ipv4'],
+          reason:
+            'The JWKS host policy and the URL-safety guard name the private and link-local addresses they refuse, and the server comment shows the Docker container-link form it ignores.',
+        },
+        {
+          path: '{examples/supabase/.env.example,examples/supabase/src/common/environments.ts,examples/vert/src/datasources/postgres.datasource.ts}',
+          kinds: ['url-credentials'],
+          reason:
+            'Example apps: the local Docker connection string (postgres:postgres@localhost) and the template that builds one from its parts.',
+        },
+        {
+          path: '{presets/app/files/.configs/builders/Dockerfile,scripts/preset/preset-smoke.ts}',
+          kinds: ['machine-path'],
+          reason:
+            'The home folder of the bun user inside the container image, not a developer machine.',
+        },
+      ],
+    },
+  },
   // The session digest names the rules sessions drop most, then prints the minimap shape from .agents/rules.md.
   digest: { oftenDropped: ['P-09', 'P-10', 'B-03', 'B-05', 'P-05', 'P-15', 'W-02'] },
   // Release order. A rename keeps its old tag prefix and npm name as aliases.
@@ -38,7 +98,9 @@ export default {
     bundle: '.agents/knowledge',
     wiki: 'docs/wiki/content',
     changelogs: 'docs/wiki/content/changelogs',
-    syncAreas: '.agents/knowledge/process/knowledge-sync-areas.md',
+    // Version folders (changelogs/<X.Y.Z>/log.md and migration.yaml) are the changelog from 0.4.5 on; the dated files up to `datedUntil` are history.
+    migrationFrom: '0.4.5',
+    datedUntil: '2026-11-15',
   },
   okf: {
     renderers: [
@@ -58,63 +120,11 @@ export default {
     regions: [
       { id: 'packages-table', file: 'overview/monorepo-layout.md', renderer: 'packages-table' },
     ],
-    sections: {
-      order: [
-        'overview',
-        'architecture',
-        'packages',
-        'conventions',
-        'process',
-        'examples',
-        'reference',
-      ],
-      labels: {
-        overview: 'Overview',
-        architecture: 'Architecture',
-        packages: 'Packages',
-        conventions: 'Conventions',
-        process: 'Process',
-        examples: 'Examples',
-        reference: 'Reference',
-      },
-    },
     coverage: [
       { name: 'packages', path: 'packages/*' },
       { name: 'examples', path: 'examples/*' },
     ],
-    viz: {
-      brand: 'IGNIS',
-      copy: {
-        en: {
-          heading: 'Understand IGNIS, one concept at a time.',
-          tagline:
-            'The IGNIS framework, end to end - packages, architecture, conventions, process and examples.',
-          sectionDescriptions: {
-            overview: 'Start here - what IGNIS is and how to work in it.',
-            architecture:
-              'How the pieces fit: DI, lifecycle, repositories, and cross-cutting design.',
-            packages: 'The published framework packages.',
-            conventions: 'How the code is written - patterns, style, and gotchas.',
-            process: 'How the team works - build, test, release, git.',
-            examples: 'Runnable apps that exercise the framework.',
-            reference: 'Look-ups - generated catalogs, glossary, key files.',
-          },
-        },
-        vi: {
-          heading: 'Hiểu IGNIS, từng khái niệm một.',
-          tagline: 'Toàn bộ framework IGNIS - package, kiến trúc, quy ước, quy trình và ví dụ.',
-          sectionDescriptions: {
-            overview: 'Bắt đầu ở đây - IGNIS là gì và cách làm việc.',
-            architecture: 'Cách các phần ghép lại: DI, vòng đời, repository, thiết kế xuyên suốt.',
-            packages: 'Các package của framework.',
-            conventions: 'Cách viết code - pattern, style, và các bẫy.',
-            process: 'Cách team làm việc - build, test, release, git.',
-            examples: 'Các app chạy được minh hoạ framework.',
-            reference: 'Tra cứu - catalog sinh tự động, glossary, file quan trọng.',
-          },
-        },
-      },
-    },
+    brand: 'IGNIS',
   },
   atlas: {
     tagPattern: '<dir>-v<version>',
