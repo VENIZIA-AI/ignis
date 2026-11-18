@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-225 exports, 225 with TSDoc. 229 more are re-exported from other entries (listed at the end).
+226 exports, 226 with TSDoc. 231 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -5212,6 +5212,39 @@ export type TWebSocketValidateRoomFn = (opts: {
 
 Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
 
+## `UrlFetchError`
+
+*class*
+
+The upstream answered, and the answer is not one `fetchGuarded` returns: a 4xx or 5xx, or a redirect it was not allowed
+to follow (`maxRedirects: 0`, or a `Location` that is not a url). `status` is the upstream's; `statusCode` (inherited)
+is the one this server answers with, and stays 400. The body is already cancelled, so the socket is free: read
+`response.headers` and `response.status`, not the body.
+
+```ts
+export declare class UrlFetchError extends ApplicationError {
+    /** The status the upstream answered with. */
+    readonly status: number;
+    /** The url the caller asked for (the first hop, not a redirect's target). */
+    readonly url: string;
+    /** The upstream's answer, body cancelled. */
+    readonly response?: Response;
+    /** The raw `Location` header of a redirect, as sent; unset for a non-redirect or when the header was missing. */
+    readonly location?: string;
+    constructor(opts: {
+        message: string;
+        status: number;
+        url: string;
+        response?: Response;
+        location?: string;
+    });
+    /** Whether `error` is a `UrlFetchError`: the shape a caller narrows on before it reads `status`. */
+    static is(error: unknown): error is UrlFetchError;
+}
+```
+
+Source: `packages/helpers/src/modules/network/utilities/url-safety/common/errors.ts`
+
 ## `UrlIngest`
 
 *class*
@@ -5224,9 +5257,14 @@ export declare class UrlIngest {
      * Resolves `hostname` once and returns every address it answered, refusing the host when ANY of them is non-public.
      * Checking only the first walks straight into a host that publishes one public A record beside an internal one.
      * An IP literal answers itself. `allowPrivateAddress` skips the check and returns an empty list: nothing to pin to.
+     *
+     * With `trusted` (the caller has judged the origin trusted AND every hop before it was trusted too) a private answer
+     * is accepted, and the addresses are still returned to pin to. A cloud metadata address is accepted only when the trusted origin's host IS
+     * that literal; a trusted host NAME that resolves to one is refused.
      */
     static resolvePublicAddresses(opts: {
         hostname: string;
+        trusted?: boolean;
         policy?: IUrlSafetyPolicy;
         signal?: AbortSignal;
     }): Promise<string[]>;
@@ -5238,6 +5276,7 @@ export declare class UrlIngest {
      */
     static assertPublicHost(opts: {
         hostname: string;
+        trusted?: boolean;
         policy?: IUrlSafetyPolicy;
     }): Promise<void>;
     /** Both halves, in the order they must run: shape first, then the network. */
@@ -5293,6 +5332,7 @@ export declare class UrlIngest {
         method?: string;
         headers?: Record<string, string>;
         body?: string | Uint8Array;
+        signal?: AbortSignal;
     }): Promise<Response>;
     /**
      * Enforces `maxBytes` on a stream nothing reads into this process - the shape a caller wants when
@@ -5770,6 +5810,7 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `ITreeNode` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IUidSegment` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IUrlSafetyPolicy` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IUrlTrustedHosts` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IUuidInspection` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IWalkAsyncOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IWalkOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -5882,6 +5923,7 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `TTemporalNameWidth` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `TTemporalUnit` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `TTemporalWrittenDateStyle` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
+- `TTrustedOrigin` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TUidCaseForm` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TUidTokenEncoding` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TUrlScheme` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)

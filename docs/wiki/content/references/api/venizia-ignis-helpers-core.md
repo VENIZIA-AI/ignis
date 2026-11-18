@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-111 exports, 111 with TSDoc. 59 more are re-exported from other entries (listed at the end).
+113 exports, 113 with TSDoc. 59 more are re-exported from other entries (listed at the end).
 
 ## `AbstractCryptoAlgorithm`
 
@@ -1266,8 +1266,14 @@ export interface IUrlSafetyPolicy {
      * @default false
      */
     allowPrivateAddress?: boolean;
-    /** When set, nothing outside the list passes, whatever it resolves to. */
-    allowedHosts?: string[];
+    /**
+     * Origins the caller trusts. An origin in `trusted` passes the guard even when it resolves to a private address, so a
+     * service on the internal network can be reached on purpose while every other url keeps the full guard. The request
+     * still connects to the addresses that were checked, and every redirect hop is judged again. With `strict` nothing
+     * outside the list passes. The cloud metadata addresses open only when the trusted origin's host IS that literal
+     * address, never because a trusted host name resolves to one.
+     */
+    hosts?: IUrlTrustedHosts;
     /**
      * Redirects followed. Each hop is re-checked, so a public host cannot bounce into a private one.
      * @default 3
@@ -1290,6 +1296,31 @@ export interface IUrlSafetyPolicy {
      * @default UrlSafetyDefaults.MAX_BYTES
      */
     maxBytes?: number;
+}
+```
+
+Source: `packages/helpers/src/modules/network/utilities/url-safety/common/types.ts`
+
+## `IUrlTrustedHosts`
+
+*interface*
+
+The origins a caller trusts, and whether it trusts nothing else.
+
+```ts
+export interface IUrlTrustedHosts {
+    /**
+     * Exact origins that pass whatever they resolve to: `https://cdn.example.com`, `http://vault.corp.local:8200`,
+     * `http://10.0.0.5:8080`, `http://[fd00::1]`. An entry is valid only when `new URL(entry).origin === entry`, so a path,
+     * a query, credentials, upper case, a trailing slash, a default port (`:443`) or an odd IP spelling
+     * (`http://2130706433`) is refused with a configuration error.
+     */
+    trusted: TTrustedOrigin[];
+    /**
+     * Only the trusted origins pass; every other origin is refused, a public one included. Needs at least one trusted origin.
+     * @default false
+     */
+    strict?: boolean;
 }
 ```
 
@@ -2416,6 +2447,18 @@ export type TRetryJitterMode = TConstValue<typeof RetryJitterModes>;
 
 Source: `packages/helpers/src/modules/retry/common/constants.ts`
 
+## `TTrustedOrigin`
+
+*type*
+
+An origin written the way `new URL(origin).origin` writes it: scheme, host and a non-default port, nothing else.
+
+```ts
+export type TTrustedOrigin = `${'http' | 'https'}://${string}`;
+```
+
+Source: `packages/helpers/src/modules/network/utilities/url-safety/common/types.ts`
+
 ## `TUidCaseForm`
 
 *type*
@@ -2560,6 +2603,60 @@ export declare class UrlPolicy {
     static isNonPublicAddress(opts: {
         address: string;
     }): boolean;
+    /** `127.0.0.0/8`, as the URL parser writes an IPv4 host. */
+    private static readonly LOOPBACK_IPV4_PATTERN;
+    private static readonly LOOPBACK_HOSTS;
+    /** The addresses that mean "any local address", not a host: as the URL parser writes them. */
+    private static readonly UNSPECIFIED_HOSTS;
+    /** Whether the URL parser's hostname is a loopback one: `localhost`, `127.0.0.0/8` or `::1`. */
+    static isLoopbackHost(opts: {
+        hostname: string;
+    }): boolean;
+    /** Whether the URL parser's hostname is an IP literal (a dotted quad or a bracketed IPv6), not a name. */
+    static isLiteralHost(opts: {
+        hostname: string;
+    }): boolean;
+    /** The IPv4 metadata services: the link-local block (AWS, GCP, Azure, ...) and Alibaba's address. */
+    private static isMetadataIPv4;
+    /**
+     * An address a cloud metadata service answers on: `169.254.0.0/16` (`169.254.169.254` among them), `100.100.100.200`,
+     * `fd00:ec2::254`, the IPv6 link-local block `fe80::/10`, and each IPv4 one written inside an IPv6 address
+     * (v4-mapped, v4-compatible, NAT64, 6to4). A trusted host name never opens one of these; only a trusted origin whose
+     * host IS the literal does. Anything unparseable answers `true`.
+     */
+    static isMetadataAddress(opts: {
+        address: string;
+    }): boolean;
+    /**
+     * Validates the trusted origins and answers them as a set. An entry is valid only when the URL parser writes the same
+     * origin back, so a path, a query, credentials, upper case, a trailing slash, a default port, an odd IP spelling
+     * (`http://2130706433`, `http://[::ffff:10.0.0.5]`) and a scheme other than http or https are refused, never
+     * corrected or ignored. `0.0.0.0` and `[::]` are not hosts and are refused too.
+     */
+    static resolveTrustedOrigins(opts: {
+        scope: string;
+        trusted?: unknown;
+        /** The config key the list came from, named in a refusal. */
+        label?: string;
+    }): ReadonlySet<string>;
+    /** Whether `entry` is exactly an http or https origin as the URL parser writes it. */
+    private static isOriginText;
+    /**
+     * Reads `policy.hosts`: its trusted origins, validated, and `strict`. A policy still carrying `allowedHosts` is refused:
+     * ignoring it would widen "only these hosts" to "any public host".
+     */
+    static readHosts(opts: {
+        policy?: IUrlSafetyPolicy;
+        scope?: string;
+    }): {
+        trusted: ReadonlySet<string>;
+        strict: boolean;
+    };
+    /** Whether `origin` (as `new URL(...).origin` writes it) is one the policy trusts. */
+    static isTrustedOrigin(opts: {
+        origin: string;
+        policy?: IUrlSafetyPolicy;
+    }): boolean;
     /** A bracketed IPv6 literal arrives as `[::1]`; the brackets are not part of the address. */
     static readHostAddress(opts: {
         hostname: string;
@@ -2571,10 +2668,12 @@ export declare class UrlPolicy {
     static assertSafeUrl(opts: {
         url: string;
         policy?: IUrlSafetyPolicy;
+        /** `false` judges a trusted origin like any other (`fetchGuarded` passes it once a hop of the chain was untrusted). @default true */
+        isTrustedAllowed?: boolean;
     }): URL;
     /**
      * True when the url will never be allowed, whatever happens next: a bad scheme, a non-public
-     * address, a host outside the allow-list, a malformed url, or too many hops. Retrying any of those
+     * address, an origin outside a strict trusted list, a malformed url, or too many hops. Retrying any of those
      * repeats the same rejection - drop the work instead.
      *
      * A timeout, a DNS failure or a 5xx answers `false`: those are worth another attempt.

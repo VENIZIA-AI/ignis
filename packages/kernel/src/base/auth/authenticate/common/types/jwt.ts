@@ -1,6 +1,6 @@
 import type { IdType } from '@/base/models/common';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
-import type { AESAlgorithmType } from '@venizia/ignis-helpers/core';
+import type { AESAlgorithmType, TTrustedOrigin } from '@venizia/ignis-helpers/core';
 import type { JWTPayload } from 'jose';
 import type {
   JOSEStandards,
@@ -147,21 +147,6 @@ export interface IJWKSVerifierVerifyOptions extends IJWTVerifyOptions {
   algorithms: string[];
 }
 
-/**
- * Where a JWKS may be fetched over plain `http:`. A JWKS URL is `https:` unless its host is loopback (`localhost`,
- * `127.0.0.0/8`, `::1`) or is listed in `http`.
- */
-export interface IJWKSHosts {
-  /**
-   * Exact hosts that may serve a JWKS over `http:`: a name (`identity-service`), an IPv4 address (`10.0.0.5`) or an
-   * IPv6 address in brackets (`[fd00::1]`), each with an optional `:port` (`10.0.0.5:8080`, `[fd00::1]:8443`). An entry
-   * without a port covers every port of that host; an entry with one covers that port only. Never a wildcard, range or
-   * CIDR. An entry is valid only when `new URL('http://' + entry)` gives the same host back, so `2130706433` and
-   * `[::ffff:10.0.0.5]` refuse the boot, as do a scheme, a path, credentials or an empty label.
-   */
-  http?: string[];
-}
-
 /** Options of a JWKS verifier, which checks tokens against the key set served at `jwksUrl`. */
 export interface IJWKSVerifierOptions {
   mode: typeof JWKSModes.VERIFIER;
@@ -170,8 +155,13 @@ export interface IJWKSVerifierOptions {
   /** The `iss` and `aud` required on every verified token. */
   claims: IJWTClaimsOptions;
 
-  /** Where the key set may be fetched from over `http:`. Unset means `https:` or loopback only. */
-  jwks?: { hosts?: IJWKSHosts };
+  /**
+   * Where the key set may be fetched from. `trusted` lists the exact `http:` origins that may serve it, written as the
+   * URL parser writes an origin (`http://identity-service`, `http://10.0.0.5:8080`, `http://[fd00::1]:8443`); each port
+   * is its own entry. A JWKS URL is `https:` unless its host is loopback (`localhost`, `127.0.0.0/8`, `::1`) or its
+   * origin is listed. An entry that is not exactly an origin refuses the boot. Unset means `https:` or loopback only.
+   */
+  jwks?: { trusted?: TTrustedOrigin[] };
 
   /**
    * How long the fetched key set stays cached, in ms (12 hours).

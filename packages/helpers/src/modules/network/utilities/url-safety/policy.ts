@@ -3,6 +3,7 @@
 // file must never import - `policy.ts` is re-exported from the `./core` subpath and is gated by
 // `make purity`.
 
+import { HTTP } from '@/common/constants';
 import { getError } from '@/modules/error';
 import { UrlSafetyDefaults, UrlSchemes } from './common/constants';
 import { UrlSafetyErrors } from './common/errors';
@@ -173,6 +174,196 @@ export class UrlPolicy {
           (g0 === 0x2001 && (g1 < 0x200 || g1 === 0xdb8)); // IETF protocol assignments 2001::/23 (Teredo, ORCHID, AMT, AS112, ...) and documentation
   }
 
+  /** `127.0.0.0/8`, as the URL parser writes an IPv4 host. */
+  private static readonly LOOPBACK_IPV4_PATTERN = /^127(?:\.\d{1,3}){3}$/;
+
+  private static readonly LOOPBACK_HOSTS: ReadonlySet<string> = new Set(['localhost', '[::1]']);
+
+  /** The addresses that mean "any local address", not a host: as the URL parser writes them. */
+  private static readonly UNSPECIFIED_HOSTS: ReadonlySet<string> = new Set(['0.0.0.0', '[::]']);
+
+  /** Whether the URL parser's hostname is a loopback one: `localhost`, `127.0.0.0/8` or `::1`. */
+  static isLoopbackHost(opts: { hostname: string }): boolean {
+    const { hostname } = opts;
+
+    return UrlPolicy.LOOPBACK_HOSTS.has(hostname) || UrlPolicy.LOOPBACK_IPV4_PATTERN.test(hostname);
+  }
+
+  /** Whether the URL parser's hostname is an IP literal (a dotted quad or a bracketed IPv6), not a name. */
+  static isLiteralHost(opts: { hostname: string }): boolean {
+    const address = UrlPolicy.readHostAddress(opts);
+
+    return /^[\d.]+$/.test(address) || address.includes(':');
+  }
+
+  /** The IPv4 metadata services: the link-local block (AWS, GCP, Azure, ...) and Alibaba's address. */
+  private static isMetadataIPv4(opts: { address: string }): boolean {
+    const { address } = opts;
+
+    return address.startsWith('169.254.') || address === '100.100.100.200';
+  }
+
+  /**
+   * An address a cloud metadata service answers on: `169.254.0.0/16` (`169.254.169.254` among them), `100.100.100.200`,
+   * `fd00:ec2::254`, the IPv6 link-local block `fe80::/10`, and each IPv4 one written inside an IPv6 address
+   * (v4-mapped, v4-compatible, NAT64, 6to4). A trusted host name never opens one of these; only a trusted origin whose
+   * host IS the literal does. Anything unparseable answers `true`.
+   */
+  static isMetadataAddress(opts: { address: string }): boolean {
+    const normalized = opts.address.toLowerCase().split('%')[0];
+
+    if (!normalized.includes(':')) {
+      return (
+        !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(normalized) ||
+        UrlPolicy.isMetadataIPv4({ address: normalized })
+      );
+    }
+
+    const groups = normalized.length > 45 ? null : UrlPolicy.expandIPv6({ address: normalized });
+
+    if (!groups) {
+      return true;
+    }
+
+    const [g0, g1, g2, g3, g4, g5, g6, g7] = groups;
+    const embedded = (high: number, low: number) =>
+      UrlPolicy.isMetadataIPv4({
+        address: [high >> 8, high & 0xff, low >> 8, low & 0xff].join('.'),
+      });
+
+    if ([g0, g1, g2, g3, g4].every((group) => group === 0) && (g5 === 0xffff || g5 === 0)) {
+      return embedded(g6, g7);
+    }
+
+    // v4-translated `::ffff:0:a.b.c.d`
+    if ([g0, g1, g2, g3].every((group) => group === 0) && g4 === 0xffff && g5 === 0) {
+      return embedded(g6, g7);
+    }
+
+    // NAT64: the well-known /96 carries an IPv4 address; the rest of 64:ff9b::/32 is not a translation prefix.
+    if (g0 === 0x64 && g1 === 0xff9b) {
+      return g2 === 0 && g3 === 0 && g4 === 0 && g5 === 0 ? embedded(g6, g7) : true;
+    }
+
+    if (g0 === 0x2002) {
+      return embedded(g1, g2);
+    }
+
+    const isAwsIPv6 =
+      g0 === 0xfd00 &&
+      g1 === 0x0ec2 &&
+      [g2, g3, g4, g5, g6].every((group) => group === 0) &&
+      g7 === 0x254;
+
+    return (g0 & 0xffc0) === 0xfe80 || isAwsIPv6;
+  }
+
+  /**
+   * Validates the trusted origins and answers them as a set. An entry is valid only when the URL parser writes the same
+   * origin back, so a path, a query, credentials, upper case, a trailing slash, a default port, an odd IP spelling
+   * (`http://2130706433`, `http://[::ffff:10.0.0.5]`) and a scheme other than http or https are refused, never
+   * corrected or ignored. `0.0.0.0` and `[::]` are not hosts and are refused too.
+   */
+  static resolveTrustedOrigins(opts: {
+    scope: string;
+    trusted?: unknown;
+    /** The config key the list came from, named in a refusal. */
+    label?: string;
+  }): ReadonlySet<string> {
+    const { scope, trusted } = opts;
+    const label = opts.label ?? 'policy.hosts.trusted';
+
+    if (trusted === undefined) {
+      return new Set();
+    }
+
+    if (!Array.isArray(trusted)) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        message: `[${scope}] ${label} must be a list of origins`,
+      });
+    }
+
+    const resolved = new Set<string>();
+
+    for (const entry of trusted) {
+      if (typeof entry !== 'string' || !UrlPolicy.isOriginText({ entry })) {
+        throw getError({
+          statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+          message: `[${scope}] ${label} holds ${JSON.stringify(entry)} | list exact origins only, written as the URL parser writes them: 'https://cdn.example.com', 'http://10.0.0.5:8080' or 'http://[fd00::1]' - no path, query, credentials, trailing slash, upper case, default port or wildcard`,
+        });
+      }
+
+      resolved.add(entry);
+    }
+
+    return resolved;
+  }
+
+  /** Whether `entry` is exactly an http or https origin as the URL parser writes it. */
+  private static isOriginText(opts: { entry: string }): boolean {
+    const { entry } = opts;
+
+    let parsed: URL;
+
+    try {
+      parsed = new URL(entry);
+      // eslint-disable-next-line venizia/no-silent-catch -- an entry the parser refuses is not an origin: the caller refuses it
+    } catch {
+      return false;
+    }
+
+    const isHttp = parsed.protocol === UrlSchemes.HTTP || parsed.protocol === UrlSchemes.HTTPS;
+
+    // The parser lets `*` and other odd characters through a host; an origin names a host, never a pattern.
+    const isPlainHost = /^(?:\[[0-9a-f:.]+\]|[a-z0-9][a-z0-9.-]*)$/.test(parsed.hostname);
+
+    return (
+      isHttp &&
+      isPlainHost &&
+      parsed.origin === entry &&
+      !UrlPolicy.UNSPECIFIED_HOSTS.has(parsed.hostname) &&
+      parsed.port !== '0'
+    );
+  }
+
+  /**
+   * Reads `policy.hosts`: its trusted origins, validated, and `strict`. A policy still carrying `allowedHosts` is refused:
+   * ignoring it would widen "only these hosts" to "any public host".
+   */
+  static readHosts(opts: { policy?: IUrlSafetyPolicy; scope?: string }): {
+    trusted: ReadonlySet<string>;
+    strict: boolean;
+  } {
+    const { policy } = opts;
+    const scope = opts.scope ?? 'readHosts';
+
+    if (policy && 'allowedHosts' in policy) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        message: `[${scope}] policy.allowedHosts was removed | use policy.hosts: { trusted: ['https://cdn.example.com'], strict: true }`,
+      });
+    }
+
+    const hosts = policy?.hosts;
+    const trusted = UrlPolicy.resolveTrustedOrigins({ scope, trusted: hosts?.trusted });
+    const strict = hosts?.strict ?? false;
+
+    if (strict && trusted.size === 0) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        message: `[${scope}] policy.hosts.strict needs at least one trusted origin | nothing would pass`,
+      });
+    }
+
+    return { trusted, strict };
+  }
+
+  /** Whether `origin` (as `new URL(...).origin` writes it) is one the policy trusts. */
+  static isTrustedOrigin(opts: { origin: string; policy?: IUrlSafetyPolicy }): boolean {
+    return UrlPolicy.readHosts({ policy: opts.policy }).trusted.has(opts.origin);
+  }
+
   /** A bracketed IPv6 literal arrives as `[::1]`; the brackets are not part of the address. */
   static readHostAddress(opts: { hostname: string }): string {
     const { hostname } = opts;
@@ -184,7 +375,12 @@ export class UrlPolicy {
    * A hostname that RESOLVES to a private address passes here on purpose - `UrlIngest` catches that,
    * and this half runs where `node:dns` does not exist.
    */
-  static assertSafeUrl(opts: { url: string; policy?: IUrlSafetyPolicy }): URL {
+  static assertSafeUrl(opts: {
+    url: string;
+    policy?: IUrlSafetyPolicy;
+    /** `false` judges a trusted origin like any other (`fetchGuarded` passes it once a hop of the chain was untrusted). @default true */
+    isTrustedAllowed?: boolean;
+  }): URL {
     const { url, policy } = opts;
     const allowedSchemes = policy?.allowedSchemes ?? UrlSafetyDefaults.ALLOWED_SCHEMES;
     const allowPrivateAddress =
@@ -201,13 +397,7 @@ export class UrlPolicy {
       });
     }
 
-    if (!allowedSchemes.includes(parsed.protocol)) {
-      throw getError({
-        error: UrlSafetyErrors.URL_REFUSED,
-        message: `[assertSafeUrl] Disallowed scheme | scheme: ${parsed.protocol} | allowed: ${allowedSchemes.join(', ')}`,
-      });
-    }
-
+    // Before the trusted check: an origin carries no credentials, so `http://user:pw@vault` has a trusted origin.
     if (parsed.username !== '' || parsed.password !== '') {
       throw getError({
         error: UrlSafetyErrors.URL_REFUSED,
@@ -216,17 +406,34 @@ export class UrlPolicy {
       });
     }
 
-    if (policy?.allowedHosts && !policy.allowedHosts.includes(parsed.hostname)) {
+    const { trusted, strict } = UrlPolicy.readHosts({ policy, scope: 'assertSafeUrl' });
+
+    // A trusted origin carries its own scheme and may be private: it skips the scheme and address checks below.
+    if (trusted.has(parsed.origin)) {
+      if (opts.isTrustedAllowed ?? true) {
+        return parsed;
+      }
+    } else if (strict) {
       throw getError({
         error: UrlSafetyErrors.URL_REFUSED,
-        message: `[assertSafeUrl] Host is not in the allow-list | host: ${parsed.hostname}`,
+        message: `[assertSafeUrl] Origin is not trusted | origin: ${parsed.origin}`,
+      });
+    }
+
+    if (!allowedSchemes.includes(parsed.protocol)) {
+      throw getError({
+        error: UrlSafetyErrors.URL_REFUSED,
+        message: `[assertSafeUrl] Disallowed scheme | scheme: ${parsed.protocol} | allowed: ${allowedSchemes.join(', ')}`,
       });
     }
 
     const address = UrlPolicy.readHostAddress({ hostname: parsed.hostname });
-    const isLiteralAddress = /^[\d.]+$/.test(address) || address.includes(':');
 
-    if (!allowPrivateAddress && isLiteralAddress && UrlPolicy.isNonPublicAddress({ address })) {
+    if (
+      !allowPrivateAddress &&
+      UrlPolicy.isLiteralHost({ hostname: parsed.hostname }) &&
+      UrlPolicy.isNonPublicAddress({ address })
+    ) {
       throw getError({
         error: UrlSafetyErrors.URL_REFUSED,
         message: `[assertSafeUrl] Url points at a non-public address | address: ${address}`,
@@ -238,7 +445,7 @@ export class UrlPolicy {
 
   /**
    * True when the url will never be allowed, whatever happens next: a bad scheme, a non-public
-   * address, a host outside the allow-list, a malformed url, or too many hops. Retrying any of those
+   * address, an origin outside a strict trusted list, a malformed url, or too many hops. Retrying any of those
    * repeats the same rejection - drop the work instead.
    *
    * A timeout, a DNS failure or a 5xx answers `false`: those are worth another attempt.

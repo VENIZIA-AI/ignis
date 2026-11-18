@@ -22,7 +22,11 @@ export * from './modules/uid';
 // The url guard, pure half only: `UrlPolicy` decides a url and a literal address with string and
 // number work. Its sibling `UrlIngest` reaches `node:dns` and stays out of this subpath.
 export * from './modules/network/utilities/url-safety/common/constants';
-export type { IUrlSafetyPolicy } from './modules/network/utilities/url-safety/common/types';
+export type {
+  IUrlSafetyPolicy,
+  IUrlTrustedHosts,
+  TTrustedOrigin,
+} from './modules/network/utilities/url-safety/common/types';
 export * from './modules/network/utilities/url-safety/policy';
 export * from './modules/network/utilities/query-string';
 export { RetryBackoffStrategies, RetryJitterModes } from './modules/retry/common/constants';

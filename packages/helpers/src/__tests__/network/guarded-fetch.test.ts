@@ -1,6 +1,7 @@
 /** The half `url-safety.test.ts` cannot reach: redirects, the timeout, and the body cap. */
 
 import { afterEach, describe, expect, test } from 'bun:test';
+import { UrlFetchError } from '@/modules/network/utilities/url-safety/common/errors';
 import { UrlIngest } from '@/modules/network/utilities/url-safety/ingest';
 import { UrlSchemes } from '@/modules/network/utilities/url-safety/common/constants';
 import { UrlPolicy } from '@/modules/network/utilities/url-safety/policy';
@@ -183,5 +184,372 @@ describe('isUrlRefusedError - permanent versus worth retrying', () => {
     );
 
     expect(UrlPolicy.isRefusedError({ error })).toBe(false);
+  });
+});
+
+const rejectionOf = async (task: Promise<unknown>): Promise<unknown> => {
+  try {
+    await task;
+  } catch (error) {
+    return error;
+  }
+
+  throw new Error('Expected the call to reject, but it resolved');
+};
+
+describe('UrlIngest.fetchGuarded - a typed error for an answer it does not return', () => {
+  test('a non-ok answer is a UrlFetchError with the upstream status, the url and the response', async () => {
+    stubResponses([new Response('nope', { status: 503, headers: { 'retry-after': '7' } })]);
+
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({ url: 'https://cdn.example.com/a.png', policy: publicPolicy }),
+    );
+
+    expect(UrlFetchError.is(error)).toBe(true);
+    const typed = error as UrlFetchError;
+    expect(typed.status).toBe(503);
+    expect(typed.url).toBe('https://cdn.example.com/a.png');
+    expect(typed.response?.headers.get('retry-after')).toBe('7');
+    expect(typed.message).toContain('Request failed | status: 503');
+    // Our own answer stays what it was, and a 5xx is still worth a retry.
+    expect(typed.statusCode).toBe(400);
+    expect(UrlPolicy.isRefusedError({ error })).toBe(false);
+  });
+
+  test('maxRedirects: 0 returns the 3xx as a typed error with its status and location', async () => {
+    const { calls } = stubResponses([redirectTo('https://cdn.example.com/moved.png')]);
+
+    const result = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'https://cdn.example.com/a.png',
+        policy: { ...publicPolicy, maxRedirects: 0 },
+      }),
+    );
+    const error = result as UrlFetchError;
+
+    expect(UrlFetchError.is(error)).toBe(true);
+    expect(error.status).toBe(302);
+    expect(error.location).toBe('https://cdn.example.com/moved.png');
+    expect(error.message).not.toContain('Too many redirects');
+    expect(calls).toHaveLength(1);
+  });
+
+  test('maxRedirects: 0 keeps a relative location as sent, and a 3xx without one is typed too', async () => {
+    stubResponses([new Response(null, { status: 301, headers: { location: '/moved' } })]);
+    const result2 = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'https://cdn.example.com/a.png',
+        policy: { ...publicPolicy, maxRedirects: 0 },
+      }),
+    );
+    const relative = result2 as UrlFetchError;
+
+    expect(relative.status).toBe(301);
+    expect(relative.location).toBe('/moved');
+
+    stubResponses([new Response(null, { status: 302 })]);
+    const result3 = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'https://cdn.example.com/a.png',
+        policy: { ...publicPolicy, maxRedirects: 0 },
+      }),
+    );
+    const missing = result3 as UrlFetchError;
+
+    expect(UrlFetchError.is(missing)).toBe(true);
+    expect(missing.location).toBeUndefined();
+  });
+
+  test('a Location that is not a url is a typed error, never a bare TypeError', async () => {
+    stubResponses([redirectTo('http://[bad')]);
+
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({ url: 'https://cdn.example.com/a.png', policy: publicPolicy }),
+    );
+
+    expect(error).not.toBeInstanceOf(TypeError);
+    expect(UrlFetchError.is(error)).toBe(true);
+    expect((error as UrlFetchError).status).toBe(302);
+    expect((error as UrlFetchError).location).toBe('http://[bad');
+  });
+
+  test('a positive budget that runs out is still the refusal it was', async () => {
+    stubResponses([redirectTo('https://cdn.example.com/next.png')]);
+
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'https://cdn.example.com/a.png',
+        policy: { ...publicPolicy, maxRedirects: 1 },
+      }),
+    );
+
+    expect(UrlFetchError.is(error)).toBe(false);
+    expect((error as Error).message).toContain('Too many redirects');
+    expect(UrlPolicy.isRefusedError({ error })).toBe(true);
+  });
+});
+
+describe('UrlIngest.fetchGuarded - the caller signal', () => {
+  const neverAnswering = () => {
+    globalThis.fetch = ((_input: unknown, init?: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        const signal = init?.signal as AbortSignal;
+
+        if (signal.aborted) {
+          reject(signal.reason);
+
+          return;
+        }
+
+        signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+      })) as typeof fetch;
+  };
+
+  test('a caller abort rejects with the caller reason, not a timeout', async () => {
+    neverAnswering();
+    const controller = new AbortController();
+    const reason = new Error('user cancelled');
+
+    const pending = rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'https://cdn.example.com/a.png',
+        policy: publicPolicy,
+        signal: controller.signal,
+      }),
+    );
+    controller.abort(reason);
+
+    const result = await pending;
+    expect(result).toBe(reason);
+  });
+
+  test('a caller abort with the default reason is an AbortError', async () => {
+    neverAnswering();
+    const controller = new AbortController();
+
+    const pending = rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'https://cdn.example.com/a.png',
+        policy: publicPolicy,
+        signal: controller.signal,
+      }),
+    );
+    controller.abort();
+
+    const result2 = await pending;
+    expect((result2 as Error).name).toBe('AbortError');
+  });
+
+  test('the internal timeout is still a TimeoutError, apart from the caller abort', async () => {
+    neverAnswering();
+    const controller = new AbortController();
+
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'https://cdn.example.com/a.png',
+        policy: { ...publicPolicy, timeout: { value: 20, unit: 'millisecond' } as never },
+        signal: controller.signal,
+      }),
+    );
+
+    expect((error as Error).name).toBe('TimeoutError');
+    expect(controller.signal.aborted).toBe(false);
+  });
+
+  test('an already aborted signal rejects before anything is fetched', async () => {
+    const { calls } = stubResponses([new Response('bytes')]);
+    const controller = new AbortController();
+    const reason = new Error('too late');
+    controller.abort(reason);
+
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'https://8.8.8.8/a.png',
+        policy: { allowedSchemes: [UrlSchemes.HTTPS] },
+        signal: controller.signal,
+      }),
+    );
+
+    expect(error).toBe(reason);
+    expect(calls).toHaveLength(0);
+  });
+});
+
+describe('UrlIngest.fetchGuarded - trusted origins', () => {
+  const trusted = (...origins: string[]) => ({
+    allowedSchemes: [UrlSchemes.HTTP, UrlSchemes.HTTPS],
+    hosts: { trusted: origins as never },
+  });
+
+  test('a trusted private origin is reached, and its answer returned, whatever allowedSchemes says', async () => {
+    const { calls } = stubResponses([new Response('secret-key')]);
+
+    const response = await UrlIngest.fetchGuarded({
+      url: 'http://10.0.0.5:8080/v1/key',
+      policy: { hosts: { trusted: ['http://10.0.0.5:8080'] } },
+    });
+
+    const result = await response.text();
+    expect(result).toBe('secret-key');
+    expect(calls).toHaveLength(1);
+  });
+
+  test('a redirect from a trusted origin to another trusted one is followed', async () => {
+    stubResponses([redirectTo('http://10.0.0.6:9000/k'), new Response('ok')]);
+
+    const response = await UrlIngest.fetchGuarded({
+      url: 'http://10.0.0.5:8080/v1/key',
+      policy: trusted('http://10.0.0.5:8080', 'http://10.0.0.6:9000'),
+    });
+
+    const result2 = await response.text();
+    expect(result2).toBe('ok');
+  });
+
+  test('a redirect from a trusted origin to an untrusted private one is refused on that hop', async () => {
+    const { calls } = stubResponses([redirectTo('http://10.9.9.9/k'), new Response('leak')]);
+
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'http://10.0.0.5:8080/v1/key',
+        policy: trusted('http://10.0.0.5:8080'),
+      }),
+    );
+
+    expect(UrlPolicy.isRefusedError({ error })).toBe(true);
+    expect((error as Error).message).toContain('non-public');
+    expect(calls).toHaveLength(1);
+  });
+
+  test('a redirect from a trusted origin to the metadata address is refused', async () => {
+    stubResponses([redirectTo('http://169.254.169.254/latest/meta-data/'), new Response('leak')]);
+
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'http://10.0.0.5:8080/v1/key',
+        policy: trusted('http://10.0.0.5:8080'),
+      }),
+    );
+
+    expect(UrlPolicy.isRefusedError({ error })).toBe(true);
+  });
+
+  test('trust is not entered through an untrusted hop: a public url cannot redirect into a trusted private origin', async () => {
+    const { calls } = stubResponses([redirectTo('http://10.0.0.5:8080/k'), new Response('leak')]);
+
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'https://8.8.8.8/a',
+        policy: trusted('http://10.0.0.5:8080'),
+      }),
+    );
+
+    expect(UrlPolicy.isRefusedError({ error })).toBe(true);
+    expect((error as Error).message).toContain('non-public');
+    expect(calls).toHaveLength(1);
+  });
+
+  test('a public url cannot redirect into a trusted metadata literal either', async () => {
+    const { calls } = stubResponses([
+      redirectTo('http://169.254.169.254/latest/meta-data/'),
+      new Response('leak'),
+    ]);
+
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'https://8.8.8.8/a',
+        policy: trusted('http://169.254.169.254'),
+      }),
+    );
+
+    expect(UrlPolicy.isRefusedError({ error })).toBe(true);
+    expect(calls).toHaveLength(1);
+  });
+
+  test('once a hop is untrusted, a later trusted origin is refused too (trusted -> public -> trusted)', async () => {
+    const { calls } = stubResponses([
+      redirectTo('https://8.8.8.8/b'),
+      redirectTo('http://10.0.0.5:8080/k'),
+      new Response('leak'),
+    ]);
+
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'http://10.0.0.6:9000/a',
+        policy: trusted('http://10.0.0.6:9000', 'http://10.0.0.5:8080'),
+      }),
+    );
+
+    expect(UrlPolicy.isRefusedError({ error })).toBe(true);
+    expect(calls).toHaveLength(2);
+  });
+
+  test('a chain that stays trusted is followed all the way (trusted -> trusted -> trusted)', async () => {
+    stubResponses([
+      redirectTo('http://10.0.0.6:9000/b'),
+      redirectTo('http://10.0.0.7:9001/c'),
+      new Response('ok'),
+    ]);
+
+    const response = await UrlIngest.fetchGuarded({
+      url: 'http://10.0.0.5:8080/a',
+      policy: trusted('http://10.0.0.5:8080', 'http://10.0.0.6:9000', 'http://10.0.0.7:9001'),
+    });
+
+    const result3 = await response.text();
+    expect(result3).toBe('ok');
+  });
+
+  test('strict refuses a public origin that is not trusted, before any request', async () => {
+    const { calls } = stubResponses([new Response('bytes')]);
+
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'https://8.8.8.8/a',
+        policy: { hosts: { trusted: ['http://10.0.0.5:8080'], strict: true } },
+      }),
+    );
+
+    expect(UrlPolicy.isRefusedError({ error })).toBe(true);
+    expect((error as Error).message).toContain('not trusted');
+    expect(calls).toHaveLength(0);
+  });
+
+  test('strict also judges every redirect hop', async () => {
+    stubResponses([redirectTo('https://8.8.8.8/elsewhere'), new Response('leak')]);
+
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'http://10.0.0.5:8080/v1/key',
+        policy: { hosts: { trusted: ['http://10.0.0.5:8080'], strict: true } },
+      }),
+    );
+
+    expect((error as Error).message).toContain('not trusted');
+  });
+
+  test('an invalid entry is a configuration error before any request', async () => {
+    const { calls } = stubResponses([new Response('bytes')]);
+
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'https://8.8.8.8/a',
+        policy: { hosts: { trusted: ['https://8.8.8.8/'] } },
+      }),
+    );
+
+    expect((error as Error).message).toContain(' holds ');
+    expect(calls).toHaveLength(0);
+  });
+
+  test('a leftover allowedHosts is refused, naming the replacement', async () => {
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'https://8.8.8.8/a',
+        policy: { allowedHosts: ['8.8.8.8'] } as never,
+      }),
+    );
+
+    expect((error as Error).message).toContain('allowedHosts was removed');
   });
 });

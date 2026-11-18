@@ -61,10 +61,10 @@ Thrown during `binding()` while validating options and wiring services.
 | `[defineJWSAuth] verify must be an object` | 500 | `verify` is a string, a number, a list or `null` | Pass an object, or remove it |
 | `[defineJWSAuth] the algorithm 'none' is refused` | 500 | `headerAlgorithm` or `verify.algorithms` names `none` | Name a real algorithm |
 | `[verify] Invalid or expired token` with cause `A service assertion is not a user token` | 401 | A token with `typ: svc+jwt` reached the user-token path | Send service assertions in the `x-service-assertion` header |
-| `[defineJWKSAuth] jwksUrl uses http: and the host '{host}' is not allowed` | 500 | A plain-http JWKS URL whose host is neither loopback nor in `jwks.hosts.http` | Use `https:`, or add the host (name, IP or `[IPv6]`, with an optional `:port`) to `jwks.hosts.http` |
+| `[defineJWKSAuth] jwksUrl uses http: and the origin '{origin}' is not trusted` | 500 | A plain-http JWKS URL whose origin is neither loopback nor in `jwks.trusted` | Use `https:`, or add the origin (`http://host:port`) to `jwks.trusted` |
 | `[defineJWKSAuth] jwksUrl uses port 0` | 500 | A plain-http JWKS URL on port 0 | Name the real port |
 | `[defineJWKSAuth] jwksUrl must use https \| scheme: {scheme}` | 500 | A JWKS URL that is not `http:` or `https:` | Use `https:` |
-| `[defineServiceAuth] jwks.hosts.http holds "{entry}" \| list exact hosts only ...` | 500 | An entry that is not an exact host (see the list below the table) | List exact hosts, for example `identity-service`, `10.0.0.5:8080` or `[fd00::1]:8443` |
+| `[defineServiceAuth] jwks.trusted holds "{entry}" \| list exact origins only ...` | 500 | An entry that is not an exact origin (see the list below the table) | List exact origins, for example `http://identity-service`, `http://10.0.0.5:8080` or `http://[fd00::1]:8443` |
 | `[defineJWKSAuth] verify.algorithms is required` | 500 | A JWKS verifier without `verify.algorithms` | Pass the algorithms the issuer signs with, for example `verify: { algorithms: ['RS256'] }` |
 | `[defineJWSAuth] jwtSecret is too short: {n} bytes, at least 32 are required` | 500 | `jwtSecret` is shorter than 32 UTF-8 bytes | Generate a longer secret, for example `openssl rand -base64 48` |
 | `[defineJWSAuth] getTokenExpiresFn is required` | 400 | `getTokenExpiresFn` missing from JWS options | Provide `() => Number(process.env.APP_ENV_JWT_EXPIRES_IN \|\| 86400)` |
@@ -81,7 +81,7 @@ Thrown during `binding()` while validating options and wiring services.
 
 The full messages of the rows above that are shortened (each `[defineJWKSAuth]` message also comes as `[defineServiceAuth] callers["{name}"].jwksUrl ...`):
 
-- `[defineJWKSAuth] jwksUrl uses http: and the host '{host}' is not allowed | use https, or list the host in jwks.hosts.http`
+- `[defineJWKSAuth] jwksUrl uses http: and the origin '{origin}' is not trusted | use https, or list the origin in jwks.trusted`
 - `[defineJWKSAuth] jwksUrl uses port 0 | the host is '{host}'`
 - `[defineJWSAuth] jwtSecret is too short: {n} bytes, at least 32 are required | Generate one with: openssl rand -base64 48` (also `[JWSTokenService]`). The message never shows the secret.
 - `[defineServiceAuth] resolvePrincipal is required | the framework proves WHICH SERVICE called, the application decides who that acts as`
@@ -90,14 +90,12 @@ For the first row: a service that only verifies assertions binds `SERVICE_OPTION
 
 The `claims is required` message also appears with the `[defineJWKSAuth]`, `[JWSTokenService]`, `[JWKSIssuerTokenService]` and `[JWKSVerifierTokenService]` prefixes.
 
-An entry in `jwks.hosts.http` is refused when it:
+An entry in `jwks.trusted` is refused when it:
 
-- carries a scheme, path, userinfo, wildcard, range or empty port;
-- is a number the URL parser rewrites (`2130706433`, `010.0.0.5`);
-- is an IPv6 address without brackets, or not in the parser's form;
-- is `0.0.0.0` or `[::]`;
-- is a name over 253 characters, or has a label over 63;
-- has a space, tab or newline around it;
+- is not exactly the origin the URL parser writes: a bare host, a path, a trailing slash, a query, userinfo, upper case, a default port or a wildcard;
+- is a number the URL parser rewrites (`http://2130706433`, `http://010.0.0.5`), or an IPv4-mapped IPv6 address;
+- is `http://0.0.0.0`, `http://[::]` or names port 0;
+- uses a scheme other than `http` or `https`;
 - is not a string.
 
 > [!NOTE]

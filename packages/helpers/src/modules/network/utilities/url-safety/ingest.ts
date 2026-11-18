@@ -5,7 +5,7 @@ import { DurationMultipliers } from '@/common/constants/duration';
 import { getError } from '@/modules/error';
 import { lookup } from 'node:dns/promises';
 import { UrlSafetyDefaults } from './common/constants';
-import { UrlSafetyErrors } from './common/errors';
+import { UrlFetchError, UrlSafetyErrors } from './common/errors';
 import type { IUrlSafetyPolicy } from './common/types';
 import { UrlPolicy } from './policy';
 
@@ -20,13 +20,18 @@ export class UrlIngest {
    * Resolves `hostname` once and returns every address it answered, refusing the host when ANY of them is non-public.
    * Checking only the first walks straight into a host that publishes one public A record beside an internal one.
    * An IP literal answers itself. `allowPrivateAddress` skips the check and returns an empty list: nothing to pin to.
+   *
+   * With `trusted` (the caller has judged the origin trusted AND every hop before it was trusted too) a private answer
+   * is accepted, and the addresses are still returned to pin to. A cloud metadata address is accepted only when the trusted origin's host IS
+   * that literal; a trusted host NAME that resolves to one is refused.
    */
   static async resolvePublicAddresses(opts: {
     hostname: string;
+    trusted?: boolean;
     policy?: IUrlSafetyPolicy;
     signal?: AbortSignal;
   }): Promise<string[]> {
-    const { hostname, policy, signal } = opts;
+    const { hostname, trusted, policy, signal } = opts;
 
     if (policy?.allowPrivateAddress ?? UrlSafetyDefaults.ALLOW_PRIVATE_ADDRESS) {
       return [];
@@ -47,8 +52,11 @@ export class UrlIngest {
       });
     }
 
+    const isLiteral = UrlPolicy.isLiteralHost({ hostname });
     const offender = addresses.find((entry) =>
-      UrlPolicy.isNonPublicAddress({ address: entry.address }),
+      trusted
+        ? !isLiteral && UrlPolicy.isMetadataAddress({ address: entry.address })
+        : UrlPolicy.isNonPublicAddress({ address: entry.address }),
     );
 
     if (offender) {
@@ -69,6 +77,7 @@ export class UrlIngest {
    */
   static async assertPublicHost(opts: {
     hostname: string;
+    trusted?: boolean;
     policy?: IUrlSafetyPolicy;
   }): Promise<void> {
     await UrlIngest.resolvePublicAddresses(opts);
@@ -77,7 +86,11 @@ export class UrlIngest {
   /** Both halves, in the order they must run: shape first, then the network. */
   static async assertReachableUrl(opts: { url: string; policy?: IUrlSafetyPolicy }): Promise<URL> {
     const parsed = UrlPolicy.assertSafeUrl(opts);
-    await UrlIngest.assertPublicHost({ hostname: parsed.hostname, policy: opts.policy });
+    await UrlIngest.assertPublicHost({
+      hostname: parsed.hostname,
+      trusted: UrlPolicy.isTrustedOrigin({ origin: parsed.origin, policy: opts.policy }),
+      policy: opts.policy,
+    });
 
     return parsed;
   }
@@ -183,10 +196,7 @@ export class UrlIngest {
     // the environment's proxy, which would resolve the name itself and undo the pin). A test pins it.
     const noProxy: IBunFetchInit = { proxy: false };
     const isHttps = target.protocol === 'https:';
-    const hasNameToVerify =
-      isHttps &&
-      !UrlPolicy.readHostAddress({ hostname: target.hostname }).includes(':') &&
-      !/^[\d.]+$/.test(target.hostname);
+    const hasNameToVerify = isHttps && !UrlPolicy.isLiteralHost({ hostname: target.hostname });
     const headers = {
       ...UrlIngest.withoutHeaders({
         headers: (init.headers as Record<string, string> | undefined) ?? {},
@@ -212,8 +222,8 @@ export class UrlIngest {
       } catch (error) {
         const name = (error as Error | undefined)?.name;
 
-        // The deadline is not a reason to try another address: it is spent.
-        if (name === 'AbortError' || name === 'TimeoutError') {
+        // The deadline, or the caller's own abort (whatever reason it carried), is not a reason to try another address.
+        if (init.signal?.aborted || name === 'AbortError' || name === 'TimeoutError') {
           throw error;
         }
 
@@ -263,6 +273,7 @@ export class UrlIngest {
     method?: string;
     headers?: Record<string, string>;
     body?: string | Uint8Array;
+    signal?: AbortSignal;
   }): Promise<Response> {
     const { url, policy } = opts;
     const maxRedirects = policy?.maxRedirects ?? UrlSafetyDefaults.MAX_REDIRECTS;
@@ -279,12 +290,18 @@ export class UrlIngest {
     }
 
     let target = UrlPolicy.assertSafeUrl({ url, policy });
-    // ONE deadline for the whole call, every lookup and every hop included, not one per hop.
-    const signal = AbortSignal.timeout(timeoutMilliseconds);
+    // Trust is entered at the first hop only: once a hop is not trusted, no later hop is trusted as a private target,
+    // so a public url cannot redirect a request into a trusted internal origin.
+    let isChainTrusted = UrlPolicy.isTrustedOrigin({ origin: target.origin, policy });
+    // ONE deadline for the whole call, every lookup and every hop included, not one per hop. The caller's own signal
+    // joins it: a caller abort rejects with the caller's reason, the deadline with a `TimeoutError`.
+    const deadline = AbortSignal.timeout(timeoutMilliseconds);
+    const signal = opts.signal ? AbortSignal.any([opts.signal, deadline]) : deadline;
 
     for (let hop = 0; hop <= maxRedirects; hop += 1) {
       const addresses = await UrlIngest.resolvePublicAddresses({
         hostname: target.hostname,
+        trusted: isChainTrusted,
         policy,
         signal,
       });
@@ -307,8 +324,11 @@ export class UrlIngest {
         if (!response.ok) {
           // Cancelled, or the socket stays open on every 4xx and 5xx.
           await response.body?.cancel();
-          throw getError({
+          throw new UrlFetchError({
             message: `[fetchGuarded] Request failed | status: ${response.status} | url: ${url}`,
+            status: response.status,
+            url,
+            response,
           });
         }
 
@@ -318,6 +338,17 @@ export class UrlIngest {
       const location = response.headers.get('location');
       await response.body?.cancel();
 
+      // With no redirect budget the 3xx is the answer: the caller reads its status and `Location`, nothing is followed.
+      if (maxRedirects === 0) {
+        throw new UrlFetchError({
+          message: `[fetchGuarded] Redirect not followed | status: ${response.status} | maxRedirects: 0 | url: ${url}`,
+          status: response.status,
+          url,
+          response,
+          location: location ?? undefined,
+        });
+      }
+
       if (!location) {
         throw getError({
           error: UrlSafetyErrors.URL_REFUSED,
@@ -325,7 +356,30 @@ export class UrlIngest {
         });
       }
 
-      const next = UrlPolicy.assertSafeUrl({ url: new URL(location, target).toString(), policy });
+      let resolvedLocation: string;
+
+      try {
+        resolvedLocation = new URL(location, target).toString();
+        // eslint-disable-next-line venizia/no-silent-catch -- rethrown below as a typed error that carries the raw Location
+      } catch {
+        throw new UrlFetchError({
+          message: `[fetchGuarded] Redirect location is not a valid url | status: ${response.status} | url: ${url}`,
+          status: response.status,
+          url,
+          response,
+          location,
+        });
+      }
+
+      isChainTrusted =
+        isChainTrusted &&
+        UrlPolicy.isTrustedOrigin({ origin: new URL(resolvedLocation).origin, policy });
+
+      const next = UrlPolicy.assertSafeUrl({
+        url: resolvedLocation,
+        policy,
+        isTrustedAllowed: isChainTrusted,
+      });
       const isSameOrigin = next.origin === target.origin;
       const becomesGet =
         response.status === 303 ||

@@ -1,6 +1,6 @@
 import { HTTP } from '@/common/constants';
 import type { TErrorDefinition, TRegisterErrors } from '@venizia/ignis-inversion';
-import { ErrorScopes } from '@venizia/ignis-inversion';
+import { ApplicationError, ErrorScopes } from '@venizia/ignis-inversion';
 
 /**
  * A url the policy refuses is refused forever - the same url will never be allowed. A caller that
@@ -14,6 +14,44 @@ export const UrlSafetyErrors = {
     category: ErrorScopes.BUSINESS,
   },
 } as const satisfies Record<string, TErrorDefinition>;
+
+/**
+ * The upstream answered, and the answer is not one `fetchGuarded` returns: a 4xx or 5xx, or a redirect it was not allowed
+ * to follow (`maxRedirects: 0`, or a `Location` that is not a url). `status` is the upstream's; `statusCode` (inherited)
+ * is the one this server answers with, and stays 400. The body is already cancelled, so the socket is free: read
+ * `response.headers` and `response.status`, not the body.
+ */
+export class UrlFetchError extends ApplicationError {
+  /** The status the upstream answered with. */
+  readonly status: number;
+  /** The url the caller asked for (the first hop, not a redirect's target). */
+  readonly url: string;
+  /** The upstream's answer, body cancelled. */
+  readonly response?: Response;
+  /** The raw `Location` header of a redirect, as sent; unset for a non-redirect or when the header was missing. */
+  readonly location?: string;
+
+  constructor(opts: {
+    message: string;
+    status: number;
+    url: string;
+    response?: Response;
+    location?: string;
+  }) {
+    super({ message: opts.message });
+
+    this.name = 'UrlFetchError';
+    this.status = opts.status;
+    this.url = opts.url;
+    this.response = opts.response;
+    this.location = opts.location;
+  }
+
+  /** Whether `error` is a `UrlFetchError`: the shape a caller narrows on before it reads `status`. */
+  static is(error: unknown): error is UrlFetchError {
+    return error instanceof UrlFetchError;
+  }
+}
 
 declare module '@venizia/ignis-inversion' {
   interface IErrorKeyRegistry extends TRegisterErrors<typeof UrlSafetyErrors> {}

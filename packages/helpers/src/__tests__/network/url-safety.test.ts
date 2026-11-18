@@ -44,6 +44,19 @@ const captureMessage = (task: () => unknown): string => {
   }
 };
 
+const refuseWith = (
+  url: string,
+  policy?: Parameters<typeof UrlPolicy.assertSafeUrl>[0]['policy'],
+): unknown => {
+  try {
+    UrlPolicy.assertSafeUrl({ url, policy });
+  } catch (error) {
+    return error;
+  }
+
+  return undefined;
+};
+
 describe('UrlPolicy.isNonPublicAddress', () => {
   test.each(NON_PUBLIC)('rejects %s', (address) => {
     expect(UrlPolicy.isNonPublicAddress({ address })).toBe(true);
@@ -106,15 +119,20 @@ describe('UrlPolicy.assertSafeUrl', () => {
     ).not.toThrow();
   });
 
-  test('an allowedHosts list refuses every host outside it', () => {
-    const policy = { allowedHosts: ['cdn.example.com'] };
+  test('a strict trusted list refuses every origin outside it', () => {
+    const policy = { hosts: { trusted: ['https://cdn.example.com' as const], strict: true } };
 
     expect(() =>
       UrlPolicy.assertSafeUrl({ url: 'https://cdn.example.com/a.png', policy }),
     ).not.toThrow();
     expect(
       captureMessage(() => UrlPolicy.assertSafeUrl({ url: 'https://evil.test/a.png', policy })),
-    ).toContain('host');
+    ).toContain('not trusted');
+    expect(
+      captureMessage(() =>
+        UrlPolicy.assertSafeUrl({ url: 'https://cdn.example.com:8443/a', policy }),
+      ),
+    ).toContain('not trusted');
   });
 
   test('a hostname is left for UrlIngest - this half never resolves', () => {
@@ -358,7 +376,7 @@ describe('UrlPolicy.assertSafeUrl - userinfo (#939)', () => {
   test('no policy flag lets userinfo through', () => {
     const error = refuse('https://user:pass@example.com/x', {
       allowPrivateAddress: true,
-      allowedHosts: ['example.com'],
+      hosts: { trusted: ['https://example.com' as const] },
     });
 
     expect(UrlPolicy.isRefusedError({ error })).toBe(true);
@@ -366,5 +384,197 @@ describe('UrlPolicy.assertSafeUrl - userinfo (#939)', () => {
 
   test('a url without userinfo, with an @ in the path or query, still passes', () => {
     expect(() => UrlPolicy.assertSafeUrl({ url: 'https://example.com/a@b?x=y@z' })).not.toThrow();
+  });
+});
+
+describe('UrlPolicy - trusted origins (policy.hosts)', () => {
+  const trust = (...trusted: string[]) => ({ hosts: { trusted: trusted as never } });
+
+  test('a trusted origin passes although it is private, and carries its own scheme', () => {
+    const policy = trust('http://10.0.0.5:8080', 'http://vault.corp.local');
+
+    expect(() =>
+      UrlPolicy.assertSafeUrl({ url: 'http://10.0.0.5:8080/v1/key', policy }),
+    ).not.toThrow();
+    expect(() =>
+      UrlPolicy.assertSafeUrl({ url: 'http://vault.corp.local/x', policy }),
+    ).not.toThrow();
+  });
+
+  test('an origin is exact: another port, scheme or host keeps the full guard', () => {
+    const policy = trust('http://10.0.0.5:8080');
+
+    for (const url of [
+      'http://10.0.0.5:8081/',
+      'https://10.0.0.5:8080/',
+      'http://10.0.0.6:8080/',
+    ]) {
+      expect(UrlPolicy.isRefusedError({ error: refuseWith(url, policy) })).toBe(true);
+    }
+  });
+
+  test('trusting one origin opens nothing else: public hosts still pass, private ones do not', () => {
+    const policy = trust('http://10.0.0.5');
+
+    expect(() => UrlPolicy.assertSafeUrl({ url: 'https://example.com/', policy })).not.toThrow();
+    expect(refuseWith('https://10.9.9.9/', policy)).toBeInstanceOf(Error);
+  });
+
+  test('credentials are refused even on a trusted origin', () => {
+    const error = refuseWith('http://user:pw@10.0.0.5/', trust('http://10.0.0.5'));
+
+    expect((error as Error).message).toContain('username or a password');
+  });
+
+  test('strict refuses a public origin that is not trusted, and needs a trusted origin', () => {
+    const policy = { hosts: { trusted: ['http://10.0.0.5' as const], strict: true } };
+
+    expect((refuseWith('https://example.com/', policy) as Error).message).toContain('not trusted');
+    expect(() => UrlPolicy.assertSafeUrl({ url: 'http://10.0.0.5/', policy })).not.toThrow();
+    expect(
+      captureMessage(() =>
+        UrlPolicy.assertSafeUrl({
+          url: 'https://example.com/',
+          policy: { hosts: { trusted: [], strict: true } },
+        }),
+      ),
+    ).toContain('at least one trusted origin');
+  });
+
+  test('a policy that still carries allowedHosts is refused, naming the replacement', () => {
+    const message = captureMessage(() =>
+      UrlPolicy.assertSafeUrl({
+        url: 'https://example.com/',
+        policy: { allowedHosts: ['example.com'] } as never,
+      }),
+    );
+
+    expect(message).toContain('allowedHosts was removed');
+    expect(message).toContain('policy.hosts');
+  });
+
+  test.each([
+    'cdn.example.com',
+    'https://cdn.example.com/',
+    'https://cdn.example.com/path',
+    'https://cdn.example.com?x=1',
+    'https://cdn.example.com#frag',
+    'https://user:pw@cdn.example.com',
+    'https://CDN.example.com',
+    'https://cdn.example.com:443',
+    'http://cdn.example.com:80',
+    'http://cdn.example.com:0',
+    'ftp://cdn.example.com',
+    'https://*.example.com',
+    'http://2130706433',
+    'http://0x7f000001',
+    'http://010.0.0.5',
+    'http://[::ffff:10.0.0.5]',
+    'http://0.0.0.0',
+    'http://[::]',
+    ' https://cdn.example.com',
+    '',
+  ])('refuses the trusted entry %j with a configuration error', (entry) => {
+    const message = captureMessage(() =>
+      UrlPolicy.resolveTrustedOrigins({ scope: 'test', trusted: [entry] }),
+    );
+
+    expect(message).toContain(' holds ');
+  });
+
+  test('refuses a trusted list that is not a list, and an entry that is not text', () => {
+    expect(
+      captureMessage(() => UrlPolicy.resolveTrustedOrigins({ scope: 't', trusted: 'x' })),
+    ).toContain('must be a list');
+    expect(
+      captureMessage(() => UrlPolicy.resolveTrustedOrigins({ scope: 't', trusted: [1] })),
+    ).toContain(' holds ');
+  });
+
+  test('accepts the origins the parser writes: name, port, IPv4 and bracketed IPv6', () => {
+    const set = UrlPolicy.resolveTrustedOrigins({
+      scope: 't',
+      trusted: [
+        'https://cdn.example.com',
+        'http://vault:8200',
+        'http://10.0.0.5',
+        'http://[fd00::1]:8443',
+      ],
+    });
+
+    expect([...set]).toEqual([
+      'https://cdn.example.com',
+      'http://vault:8200',
+      'http://10.0.0.5',
+      'http://[fd00::1]:8443',
+    ]);
+  });
+
+  test('isTrustedAllowed: false judges a trusted private origin like any other', () => {
+    const policy = trust('http://10.0.0.5:8080');
+
+    expect(() =>
+      UrlPolicy.assertSafeUrl({ url: 'http://10.0.0.5:8080/', policy, isTrustedAllowed: true }),
+    ).not.toThrow();
+    expect(
+      captureMessage(() =>
+        UrlPolicy.assertSafeUrl({ url: 'https://10.0.0.5:8080/', policy, isTrustedAllowed: false }),
+      ),
+    ).toContain('non-public');
+  });
+
+  test('a trusted metadata literal is the one way to open a metadata address', () => {
+    expect(() =>
+      UrlPolicy.assertSafeUrl({
+        url: 'http://169.254.169.254/latest/meta-data/',
+        policy: trust('http://169.254.169.254'),
+      }),
+    ).not.toThrow();
+    expect(refuseWith('http://169.254.169.254/', trust('http://10.0.0.5'))).toBeInstanceOf(Error);
+  });
+});
+
+describe('UrlPolicy.isMetadataAddress', () => {
+  test.each([
+    '169.254.169.254',
+    '169.254.0.1',
+    '100.100.100.200',
+    'fd00:ec2::254',
+    'FD00:EC2:0:0:0:0:0:254',
+    'fe80::1',
+    '::ffff:169.254.169.254',
+    '::ffff:a9fe:a9fe',
+    '::169.254.169.254',
+    '64:ff9b::169.254.169.254',
+    '2002:a9fe:a9fe::1',
+    '::ffff:0:169.254.169.254',
+    '::ffff:0:a9fe:a9fe',
+    '64:ff9b::1:0:a9fe:a9fe',
+    '64:ff9b:1::1',
+    'not-an-address',
+  ])('names %s as a metadata address', (address) => {
+    expect(UrlPolicy.isMetadataAddress({ address })).toBe(true);
+  });
+
+  test.each([
+    '10.0.0.5',
+    '127.0.0.1',
+    '8.8.8.8',
+    'fd00::1',
+    'fd00:ec2::1',
+    '::1',
+    '::ffff:10.0.0.5',
+  ])('does not name %s', (address) => {
+    expect(UrlPolicy.isMetadataAddress({ address })).toBe(false);
+  });
+});
+
+describe('UrlPolicy.isLoopbackHost', () => {
+  test.each(['localhost', '127.0.0.1', '127.9.9.9', '[::1]'])('%s is loopback', (hostname) => {
+    expect(UrlPolicy.isLoopbackHost({ hostname })).toBe(true);
+  });
+
+  test.each(['example.com', '10.0.0.5', '[::2]', '128.0.0.1'])('%s is not', (hostname) => {
+    expect(UrlPolicy.isLoopbackHost({ hostname })).toBe(false);
   });
 });
