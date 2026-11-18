@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, spyOn, test } from 'bun:test';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { ReleaseStamp } from '../stamp-release';
@@ -144,11 +144,23 @@ describe('ReleaseStamp.main', () => {
 });
 
 describe('the real changelog of this repository', () => {
-  test('the log.md of 0.4.8 takes a date, so its stable can be released', () => {
-    const folder = resolve(import.meta.dir, '../../../docs/wiki/content/changelogs/0.4.8/log.md');
+  test('the newest log.md takes a date while its line is open, and is stamped once it is released', () => {
+    const changelogs = resolve(import.meta.dir, '../../../docs/wiki/content/changelogs');
+    const newest = readdirSync(changelogs)
+      .filter((name) => /^\d+\.\d+\.\d+$/.test(name))
+      .sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
+      .at(-1) as string;
+    const text = readFileSync(resolve(changelogs, newest, 'log.md'), 'utf8');
 
-    expect(
-      ReleaseStampText.stamped({ text: readFileSync(folder, 'utf8'), date: '2099-01-01' }),
-    ).toContain('\nreleased: 2099-01-01\n---\n');
+    if (/\nreleased: \d{4}-\d{2}-\d{2}\n/.test(text)) {
+      // A released folder is frozen: it is stamped, and the stamp refuses another date.
+      expect(() => ReleaseStampText.stamped({ text, date: '2099-01-01' })).toThrow('frozen');
+
+      return;
+    }
+
+    expect(ReleaseStampText.stamped({ text, date: '2099-01-01' })).toContain(
+      '\nreleased: 2099-01-01\n---\n',
+    );
   });
 });
