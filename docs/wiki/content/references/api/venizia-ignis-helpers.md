@@ -5258,13 +5258,13 @@ export declare class UrlIngest {
      * Checking only the first walks straight into a host that publishes one public A record beside an internal one.
      * An IP literal answers itself. `allowPrivateAddress` skips the check and returns an empty list: nothing to pin to.
      *
-     * With `origin` (as `new URL(...).origin` writes it) in `policy.hosts.trusted` a private answer is accepted, and the
-     * addresses are still returned to pin to. A cloud metadata address is accepted only when the trusted origin's host IS
+     * With `trusted` (the caller has judged the origin trusted AND every hop before it was trusted too) a private answer
+     * is accepted, and the addresses are still returned to pin to. A cloud metadata address is accepted only when the trusted origin's host IS
      * that literal; a trusted host NAME that resolves to one is refused.
      */
     static resolvePublicAddresses(opts: {
         hostname: string;
-        origin?: string;
+        trusted?: boolean;
         policy?: IUrlSafetyPolicy;
         signal?: AbortSignal;
     }): Promise<string[]>;
@@ -5276,7 +5276,7 @@ export declare class UrlIngest {
      */
     static assertPublicHost(opts: {
         hostname: string;
-        origin?: string;
+        trusted?: boolean;
         policy?: IUrlSafetyPolicy;
     }): Promise<void>;
     /** Both halves, in the order they must run: shape first, then the network. */

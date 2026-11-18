@@ -2668,6 +2668,8 @@ export declare class UrlPolicy {
     static assertSafeUrl(opts: {
         url: string;
         policy?: IUrlSafetyPolicy;
+        /** `false` judges a trusted origin like any other (`fetchGuarded` passes it once a hop of the chain was untrusted). @default true */
+        isTrustedAllowed?: boolean;
     }): URL;
     /**
      * True when the url will never be allowed, whatever happens next: a bad scheme, a non-public
