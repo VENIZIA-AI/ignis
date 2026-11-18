@@ -598,3 +598,104 @@ describe('UrlIngest.fetchGuarded - replay, deadline and non-redirect 3xx', () =>
     expect(UrlPolicy.isRefusedError({ error })).toBe(false);
   });
 });
+
+describe('UrlIngest.fetchGuarded - a trusted host name is pinned, and never reaches the metadata address', () => {
+  const trustedPolicy = {
+    ...policy,
+    hosts: { trusted: ['http://vault.corp.test:8200' as const] },
+  };
+
+  const stubFetch = () => {
+    const calls: string[] = [];
+
+    globalThis.fetch = (async (input: URL | string) => {
+      calls.push(String(input));
+
+      return new Response('ok');
+    }) as unknown as typeof fetch;
+
+    return calls;
+  };
+
+  test('a trusted name that resolves to a private address is fetched at that address', async () => {
+    lookupMock.mockResolvedValue(answer('10.20.0.7'));
+    const calls = stubFetch();
+
+    await UrlIngest.fetchGuarded({
+      url: 'http://vault.corp.test:8200/v1/x',
+      policy: trustedPolicy,
+    });
+
+    expect(calls).toEqual(['http://10.20.0.7:8200/v1/x']);
+  });
+
+  test('the same name on another port, or an untrusted name, keeps the full guard', async () => {
+    lookupMock.mockResolvedValue(answer('10.20.0.7'));
+    const calls = stubFetch();
+
+    for (const url of ['http://vault.corp.test:8201/x', 'http://other.corp.test:8200/x']) {
+      const error = await rejectionOf(UrlIngest.fetchGuarded({ url, policy: trustedPolicy }));
+
+      expect(UrlPolicy.isRefusedError({ error })).toBe(true);
+    }
+
+    expect(calls).toHaveLength(0);
+  });
+
+  test.each(['169.254.169.254', 'fd00:ec2::254', '100.100.100.200', '::ffff:169.254.169.254'])(
+    'a trusted name that resolves to %s is refused, nothing is fetched',
+    async (metadata) => {
+      lookupMock.mockResolvedValue(answer('10.20.0.7', metadata));
+      const calls = stubFetch();
+
+      const error = await rejectionOf(
+        UrlIngest.fetchGuarded({ url: 'http://vault.corp.test:8200/x', policy: trustedPolicy }),
+      );
+
+      expect(UrlPolicy.isRefusedError({ error })).toBe(true);
+      expect(calls).toHaveLength(0);
+    },
+  );
+
+  test('a trusted metadata literal is reached, because the caller named that exact address', async () => {
+    lookupMock.mockImplementation(async (hostname: string) => answer(hostname));
+    const calls = stubFetch();
+
+    await UrlIngest.fetchGuarded({
+      url: 'http://169.254.169.254/latest/meta-data/',
+      policy: { ...policy, hosts: { trusted: ['http://169.254.169.254'] } },
+    });
+
+    expect(calls).toEqual(['http://169.254.169.254/latest/meta-data/']);
+  });
+
+  test('a trusted name that resolves to nothing is refused', async () => {
+    lookupMock.mockResolvedValue([]);
+    stubFetch();
+
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({ url: 'http://vault.corp.test:8200/x', policy: trustedPolicy }),
+    );
+
+    expect(error.message).toContain('resolves to nothing');
+  });
+
+  test('assertReachableUrl accepts a trusted private origin and refuses an untrusted one', async () => {
+    lookupMock.mockResolvedValue(answer('10.20.0.7'));
+
+    const parsed = await UrlIngest.assertReachableUrl({
+      url: 'http://vault.corp.test:8200/x',
+      policy: trustedPolicy,
+    });
+
+    expect(parsed.hostname).toBe('vault.corp.test');
+    const result = await rejectionOf(
+      UrlIngest.assertReachableUrl({ url: 'http://other.corp.test/x', policy: trustedPolicy }),
+    );
+    expect(
+      UrlPolicy.isRefusedError({
+        error: result,
+      }),
+    ).toBe(true);
+  });
+});

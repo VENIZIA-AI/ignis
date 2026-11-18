@@ -243,7 +243,7 @@ export class AuthenticateComponent extends BaseComponent {
           scope: 'defineJWKSAuth',
           label: 'jwksUrl',
           url: verifierOpts.jwksUrl,
-          hosts: verifierOpts.jwks?.hosts?.http,
+          trusted: verifierOpts.jwks?.trusted,
         });
 
         this.application
@@ -297,10 +297,10 @@ export class AuthenticateComponent extends BaseComponent {
       });
     }
 
-    // A caller's key set decides who may call: https, loopback, or a host listed in jwks.hosts.http. Checked at boot, so a bad URL never waits for its first request.
-    JWKSUrlPolicy.resolveHttpHosts({
+    // A caller's key set decides who may call: https, loopback, or an origin listed in jwks.trusted. Checked at boot, so a bad URL never waits for its first request.
+    JWKSUrlPolicy.resolveTrustedOrigins({
       scope: 'defineServiceAuth',
-      hosts: serviceOptions.jwks?.hosts?.http,
+      trusted: serviceOptions.jwks?.trusted,
     });
 
     for (const [caller, entry] of Object.entries(serviceOptions.callers ?? {})) {
@@ -308,7 +308,7 @@ export class AuthenticateComponent extends BaseComponent {
         scope: 'defineServiceAuth',
         label: `callers[${JSON.stringify(caller)}].jwksUrl`,
         url: typeof entry === 'string' ? entry : entry.jwksUrl,
-        hosts: serviceOptions.jwks?.hosts?.http,
+        trusted: serviceOptions.jwks?.trusted,
       });
     }
 

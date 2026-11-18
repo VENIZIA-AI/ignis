@@ -116,7 +116,7 @@ export class ServiceAssertionVerifierService extends BaseService {
         scope: ServiceAssertionVerifierService.name,
         label: 'the caller jwksUrl',
         url: jwksUrl,
-        hosts: this.options.jwks?.hosts?.http,
+        trusted: this.options.jwks?.trusted,
       }),
       {
         cacheMaxAge:

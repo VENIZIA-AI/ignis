@@ -256,33 +256,31 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 | `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Must match the issuer's codecs to decrypt custom fields |
 | `claims` | `{ issuer: string; audience?: string \| string[] }` | -- | Yes | `iss` required on verify; `aud` checked when set |
 | `verify` | `IJWKSVerifierVerifyOptions` | -- | Yes | `algorithms` is required (see below) |
-| `jwks.hosts.http` | `string[]` | `[]` | No | Hosts allowed to serve the key set over `http:` |
+| `jwks.trusted` | `TTrustedOrigin[]` | `[]` | No | `http:` origins allowed to serve the key set |
 
 `verify.algorithms` lists the accepted JWS algorithms, for example `['RS256']`: a verifier cannot know what the issuer signs with. `verify` also takes `subject`, `clockTolerance`, `maxTokenAge`, `typ` and `requiredClaims`.
 
-Each `jwks.hosts.http` entry is a name, an IPv4 address or an IPv6 address in brackets, with an optional `:port`. Without it the `jwksUrl` is `https:` or a loopback host. See [JWKS over http](#jwks-over-http).
+Each `jwks.trusted` entry is an exact origin (`http://identity-service`, `http://10.0.0.5:8080`). Without it the `jwksUrl` is `https:` or a loopback host. See [JWKS over http](#jwks-over-http).
 
 > [!IMPORTANT]
 > `JWKSVerifierTokenService` cannot sign tokens - `getSigner()`, `getSigningKey()`, and `getDefaultTokenExpiresFn()` all throw. Only `verify()` and `extractCredentials()` are functional.
 
 ### JWKS over http
 
-A JWKS URL is `https:`. It may be `http:` only when its host is loopback (`localhost`, `127.0.0.0/8`, `::1`) or is listed in `jwks.hosts.http`. Any other scheme is refused. A key set read over plain `http:` can be replaced on the way, and whoever replaces it signs tokens that verify.
+A JWKS URL is `https:`. It may be `http:` only when its host is loopback (`localhost`, `127.0.0.0/8`, `::1`) or its origin is listed in `jwks.trusted`. Any other scheme is refused. A key set read over plain `http:` can be replaced on the way, and whoever replaces it signs tokens that verify.
 
 | Where | Option |
 |-------|--------|
-| JWKS verifier | `options.jwks.hosts.http`, beside `jwksUrl` |
-| Service-assertion callers | `IServiceAuthOptions.jwks.hosts.http`, which covers every `callers[...].jwksUrl` |
+| JWKS verifier | `options.jwks.trusted`, beside `jwksUrl` |
+| Service-assertion callers | `IServiceAuthOptions.jwks.trusted`, which covers every `callers[...].jwksUrl` |
 
-- **Exact entries.** An entry is a host name (`identity-service`), an IPv4 address (`10.0.0.5`) or an IPv6 address in brackets (`[fd00::1]`), with an optional `:port` (`identity-service:3000`, `10.0.0.5:8080`, `[fd00::1]:8443`).
-- **Ports.** An entry without a port covers every port of that host. An entry with a port covers that port only. A URL with no port is on port 80, so `host:80` covers it.
-- **Spelled the way the URL parser writes it.** An entry is valid only when `new URL('http://' + entry)` gives the same host back, so `2130706433`, `0x7f000001`, `1.2.3`, `010.0.0.5` and `[::ffff:10.0.0.5]` refuse the boot, naming the entry. A URL is read by the same parser, so `http://167772165` is `10.0.0.5` and is covered by that entry, and `http://[::ffff:10.0.0.5]` is `[::ffff:a00:5]` and is not. A host name written with a trailing dot does not match its entry.
-- **The mapped form is the same machine.** `[::ffff:a00:5]` is `10.0.0.5` written as an IPv6 address. Listing one does not list the other, so list the form your JWKS URL uses; but know that both reach one host.
-- **Entries are not trimmed.** A space, tab or newline around an entry refuses the boot, naming the entry: it is a typo, not a value to correct.
-- **DNS limits.** A name is at most 253 characters and a label at most 63. An address is judged by the URL parser alone.
-- **Not hosts.** `0.0.0.0` and `[::]` mean "any local address" and are refused as entries.
-- **Port 0.** A `jwksUrl` on port 0 refuses the boot, whatever the entries: nothing listens there, and an entry without a port would otherwise cover it.
-- **No wildcards, ranges or CIDR.** A scheme, a path, a query, userinfo, a wildcard, an empty label or an empty port refuses the boot. There is no rule for private networks: what a name resolves to can change, so you opt in host by host. Loopback is always allowed.
+- **Exact origins.** An entry is an origin, written as the URL parser writes it: `http://identity-service`, `http://10.0.0.5:8080`, `http://[fd00::1]:8443`. The same rule validates `policy.hosts.trusted` of the [url guard](../../helpers/network/api.md#iurlsafetypolicy).
+- **Ports.** An origin names its port, so each port is its own entry. An entry without a port is port 80, and `:80` is never written (the parser drops it).
+- **Valid only as the parser writes it.** An entry is refused at boot, naming the entry, when `new URL(entry).origin` is not the entry: a bare host (`identity-service`), the old `host:port` form, a path, a trailing slash, a query, credentials, upper case, a default port, a wildcard, a range, a number the parser rewrites (`http://2130706433`, `http://010.0.0.5`) or an IPv4-mapped address (`http://[::ffff:10.0.0.5]`). Entries are not trimmed.
+- **Not hosts.** `http://0.0.0.0` and `http://[::]` mean "any local address" and are refused, and so is port 0.
+- **The mapped form is the same machine.** `[::ffff:a00:5]` is `10.0.0.5` written as an IPv6 address. Listing one does not list the other, so list the form your JWKS URL uses.
+- **Port 0.** A `jwksUrl` on port 0 refuses the boot, whatever the entries: nothing listens there.
+- **No wildcards, ranges or CIDR.** There is no rule for private networks: what a name resolves to can change, so you opt in origin by origin. Loopback is always allowed.
 - **Redirects are not followed.** The key set fetch reads only a `200`, so an `https:` URL cannot lead to an `http:` host; a URL that redirects fails verification.
 - **Checked at boot.** The component checks the verifier URL and every caller URL when the application starts; the services check again before they fetch.
 

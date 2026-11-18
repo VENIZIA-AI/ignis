@@ -36,7 +36,7 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
       scope: JWKSVerifierTokenService.name,
       label: 'jwksUrl',
       url: this.options.jwksUrl,
-      hosts: this.options.jwks?.hosts?.http,
+      trusted: this.options.jwks?.trusted,
     });
     this.jwksVerifier = createRemoteJWKSet(jwksUrl, {
       cacheMaxAge: this.options.cacheTtlMs ?? 43_200_000,

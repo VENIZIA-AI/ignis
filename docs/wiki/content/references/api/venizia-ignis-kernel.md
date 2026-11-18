@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-363 exports, 363 with TSDoc. 87 more are re-exported from other entries (listed at the end).
+362 exports, 362 with TSDoc. 87 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -3832,28 +3832,6 @@ interface IBaseControllerMetadata extends IArtifactRegistrationOptions {
 
 Source: `packages/kernel/src/helpers/inversion/common/types/controller.ts`
 
-## `IJWKSHosts`
-
-*interface*
-
-Where a JWKS may be fetched over plain `http:`. A JWKS URL is `https:` unless its host is loopback (`localhost`,
-`127.0.0.0/8`, `::1`) or is listed in `http`.
-
-```ts
-export interface IJWKSHosts {
-    /**
-     * Exact hosts that may serve a JWKS over `http:`: a name (`identity-service`), an IPv4 address (`10.0.0.5`) or an
-     * IPv6 address in brackets (`[fd00::1]`), each with an optional `:port` (`10.0.0.5:8080`, `[fd00::1]:8443`). An entry
-     * without a port covers every port of that host; an entry with one covers that port only. Never a wildcard, range or
-     * CIDR. An entry is valid only when `new URL('http://' + entry)` gives the same host back, so `2130706433` and
-     * `[::ffff:10.0.0.5]` refuse the boot, as do a scheme, a path, credentials or an empty label.
-     */
-    http?: string[];
-}
-```
-
-Source: `packages/kernel/src/base/auth/authenticate/common/types/jwt.ts`
-
 ## `IJWKSIssuerOptions`
 
 *interface*
@@ -3905,9 +3883,14 @@ export interface IJWKSVerifierOptions {
     jwksUrl: string;
     /** The `iss` and `aud` required on every verified token. */
     claims: IJWTClaimsOptions;
-    /** Where the key set may be fetched from over `http:`. Unset means `https:` or loopback only. */
+    /**
+     * Where the key set may be fetched from. `trusted` lists the exact `http:` origins that may serve it, written as the
+     * URL parser writes an origin (`http://identity-service`, `http://10.0.0.5:8080`, `http://[fd00::1]:8443`); each port
+     * is its own entry. A JWKS URL is `https:` unless its host is loopback (`localhost`, `127.0.0.0/8`, `::1`) or its
+     * origin is listed. An entry that is not exactly an origin refuses the boot. Unset means `https:` or loopback only.
+     */
     jwks?: {
-        hosts?: IJWKSHosts;
+        trusted?: TTrustedOrigin[];
     };
     /**
      * How long the fetched key set stays cached, in ms (12 hours).
@@ -4970,8 +4953,8 @@ export interface IServiceAuthOptions<E extends Env = Env> {
         cacheMaxAgeMs?: number;
         /** @default 30_000 */
         cooldownMs?: number;
-        /** Exact hosts (name, IP or bracketed IPv6, each with an optional `:port`) that may serve a caller's key set over `http:`. Unset means `https:` or loopback only. */
-        hosts?: IJWKSHosts;
+        /** Exact origins (`http://identity-service`, `http://10.0.0.5:8080`) that may serve a caller's key set over `http:`. Unset means `https:` or loopback only. */
+        trusted?: TTrustedOrigin[];
     };
     /**
      * WHO a verified assertion acts as. The framework has already proven the caller; this only maps a

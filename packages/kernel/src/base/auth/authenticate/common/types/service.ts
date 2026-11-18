@@ -1,9 +1,9 @@
 import type { TContext } from '@/base/controllers/common/types';
 import type { TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TTrustedOrigin } from '@venizia/ignis-helpers/core';
 import type { Env } from 'hono';
 import type { JWTPayload } from 'jose';
 import type { TJWKSKeyDriver, TJWKSKeyFormat } from '../constants';
-import type { IJWKSHosts } from './jwt';
 import type { IAuthUser } from './strategy';
 
 /**
@@ -105,8 +105,8 @@ export interface IServiceAuthOptions<E extends Env = Env> {
     /** @default 30_000 */
     cooldownMs?: number;
 
-    /** Exact hosts (name, IP or bracketed IPv6, each with an optional `:port`) that may serve a caller's key set over `http:`. Unset means `https:` or loopback only. */
-    hosts?: IJWKSHosts;
+    /** Exact origins (`http://identity-service`, `http://10.0.0.5:8080`) that may serve a caller's key set over `http:`. Unset means `https:` or loopback only. */
+    trusted?: TTrustedOrigin[];
   };
 
   /**

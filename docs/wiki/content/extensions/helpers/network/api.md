@@ -1098,14 +1098,15 @@ It ships as part of the network module, so the root barrel carries it:
 
 ```typescript
 import { UrlPolicy, UrlIngest, UrlSchemes, UrlSafetyDefaults } from '@venizia/ignis-helpers';
-import type { IUrlSafetyPolicy } from '@venizia/ignis-helpers';
+import type { IUrlSafetyPolicy, TTrustedOrigin } from '@venizia/ignis-helpers';
+import { UrlFetchError } from '@venizia/ignis-helpers';
 ```
 
 ### Two halves, split on purpose
 
 | Class | Needs | Decides |
 |---|---|---|
-| `UrlPolicy` | nothing but string and number work | The shape of a url: scheme, host allow-list, and a literal IP address |
+| `UrlPolicy` | nothing but string and number work | The shape of a url: scheme, trusted origins, and a literal IP address |
 | `UrlIngest` | `node:dns`, and `fetch` | What a hostname resolves to, and the request itself |
 
 `UrlPolicy` is re-exported from the browser-pure `@venizia/ignis-helpers/core` subpath. It never imports `ingest.ts`, and `make purity` fails the build if that changes. `UrlIngest` stays out of `/core`.
@@ -1120,8 +1121,8 @@ Every field is per call. An application that must reach plain `http` on one rout
 |---|---|---|---|
 | `allowedSchemes` | `string[]` | `['https:']` | The schemes a guarded fetch will speak. `file:` and `gopher:` are the classic pivots, and neither is reachable |
 | `allowPrivateAddress` | `boolean` | `false` | Turning it on in a path that takes user input re-opens the hole this guard exists to close |
-| `allowedHosts` | `string[]` | - | When set, nothing outside the list passes, whatever it resolves to |
-| `maxRedirects` | `number` | `3` | Hops allowed. Each one is re-checked |
+| `hosts` | `{ trusted: TTrustedOrigin[]; strict?: boolean }` | - | Origins you trust, and whether to trust nothing else (see [Trusted origins](#trusted-origins)) |
+| `maxRedirects` | `number` | `3` | Hops allowed. Each one is re-checked. `0` returns the 3xx as a `UrlFetchError` |
 | `timeout` | `IDuration` | 10 seconds | A slow host holds a worker slot for exactly this long |
 | `maxBytes` | `number` | `10485760` (10 MB) | The read stops and cancels the moment the body crosses it |
 | `proxy` | `string` | - | `http://host:port` of a proxy `fetchGuarded` sends the request through |
@@ -1135,10 +1136,13 @@ Every field is per call. An application that must reach plain `http` on one rout
 | Method | Signature | Does |
 |---|---|---|
 | `assertSafeUrl` | `(opts: { url: string; policy?: IUrlSafetyPolicy }): URL` | Parses and checks the url. Returns the parsed `URL`, or throws |
+| `resolveTrustedOrigins` | `(opts: { scope: string; trusted?: unknown; label?: string }): ReadonlySet<string>` | Validates a list of trusted origins and returns it as a set; throws a configuration error naming the bad entry |
+| `isMetadataAddress` | `(opts: { address: string }): boolean` | `true` for a cloud metadata address (`169.254.0.0/16`, `100.100.100.200`, `fd00:ec2::254`, `fe80::/10`) |
+| `isLoopbackHost` | `(opts: { hostname: string }): boolean` | `true` for `localhost`, `127.0.0.0/8` and `::1`, as the URL parser writes them |
 | `isNonPublicAddress` | `(opts: { address: string }): boolean` | `true` for any address an untrusted url must never reach. Takes an IP literal only: a domain name answers `true` |
 | `readHostAddress` | `(opts: { hostname: string }): string` | Strips the brackets off an IPv6 literal - `[::1]` becomes `::1` |
 
-`assertSafeUrl` refuses, in this order: a malformed url, a scheme outside `allowedSchemes`, a url that carries a username or a password (always, no policy flag; an empty `https://@host/` has none and passes), a host outside `allowedHosts`, and a literal address that is not public.
+`assertSafeUrl` refuses, in this order: a malformed url, a scheme outside `allowedSchemes`, a url that carries a username or a password (always, no policy flag; an empty `https://@host/` has none and passes), then the trusted origins: a trusted origin returns here, and with `hosts.strict` any other origin is refused. Past that, a scheme outside `allowedSchemes`, and a literal address that is not public. A policy that still carries the removed `allowedHosts` key throws a configuration error.
 
 `isNonPublicAddress` fails closed. An address it cannot parse counts as non-public, because a guard that fails open on a string it does not understand is not a guard. It covers loopback, the private v4 ranges, carrier-grade NAT, link-local (`169.254.0.0/16`, the metadata address), benchmarking, multicast, and the v6 equivalents. It also unwraps both spellings of an IPv4-mapped v6 address, because `new URL` rewrites `::ffff:169.254.169.254` into the hex form and a dotted-quad check alone would read green.
 
@@ -1150,7 +1154,7 @@ An IPv6 literal is expanded to its eight 16-bit groups before it is classified, 
 |---|---|---|
 | `assertPublicHost` | `(opts: { hostname: string; policy? }): Promise<void>` | Resolves the host and rejects if **any** address is non-public |
 | `assertReachableUrl` | `(opts: { url: string; policy? }): Promise<URL>` | Both halves, in the order they must run: shape, then network |
-| `fetchGuarded` | `(opts: { url: string; policy?; method?; headers?; body? }): Promise<Response>` | A request an untrusted url cannot steer inside your network; connects to the address it vetted |
+| `fetchGuarded` | `(opts: { url: string; policy?; method?; headers?; body?; signal?: AbortSignal }): Promise<Response>` | A request an untrusted url cannot steer inside your network; connects to the address it vetted |
 | `readCappedBody` | `(opts: { response: Response; policy? }): Promise<Buffer>` | Reads a body, cancelling the moment it crosses `maxBytes` |
 | `capStream` | `(opts: { source: ReadableStream<Uint8Array>; policy? }): ReadableStream<Uint8Array>` | Enforces `maxBytes` on a stream you pipe onward instead of buffering |
 
@@ -1193,13 +1197,80 @@ const response = await UrlIngest.fetchGuarded({
 > [!WARNING]
 > Two windows remain, and both are on purpose. `assertPublicHost` and `assertReachableUrl` called on their own only check: the address can change before your own connect, so connect through `fetchGuarded`. And `policy.proxy` sends the request through a proxy you chose, which resolves the name itself: the address check still runs, the connection is not pinned. The environment's `HTTP_PROXY` / `HTTPS_PROXY` is ignored on a pinned connection, so it cannot undo the pin.
 
+### Trusted origins
+
+`hosts` names the origins your application trusts. It is the one setting for "this internal service is allowed" and for "nothing but these".
+
+```typescript
+// An internal service, reached on purpose. Every other url keeps the full guard.
+await UrlIngest.fetchGuarded({
+  url: 'http://vault.corp.local:8200/v1/secret',
+  policy: { hosts: { trusted: ['http://vault.corp.local:8200'] } },
+});
+
+// Only the CDN, nothing else.
+const policy = { hosts: { trusted: ['https://cdn.example.com' as const], strict: true } };
+```
+
+- **Exact origins.** An entry is scheme, host and a non-default port, written as `new URL(entry).origin` writes it. Another port, scheme or host is another origin.
+- **Passes whatever it resolves to.** A trusted origin is reached even when it resolves to a private address. The request still connects to the addresses that were checked.
+- **Judged on every hop.** The first url and every redirect target. A redirect from a trusted origin to an untrusted private address is refused on that hop.
+- **`strict: true`.** Only trusted origins pass; a public origin that is not listed is refused before any request. It needs at least one trusted origin.
+- **`allowedSchemes`.** Applies to urls that are not trusted. A trusted origin carries its own scheme.
+- **Metadata addresses.** `169.254.169.254` and its kin open only when the trusted origin's host IS that IP literal. A trusted host name that resolves to one is refused.
+- **Credentials.** A url with a username or a password is refused even on a trusted origin.
+
+An entry that is not exactly an origin - a path, a trailing slash, credentials, upper case, a default port (`:443`), a wildcard, an odd IP spelling such as `http://2130706433` - throws a configuration error naming the entry. It is never ignored.
+
+`allowedHosts` was removed. A policy that still carries it throws, because dropping it would widen "only these hosts" to "any public host".
+
+### A typed error for an answer you did not get
+
+A 4xx, a 5xx, and a redirect that was not followed raise a `UrlFetchError`:
+
+| Field | Meaning |
+|---|---|
+| `status` | The status the upstream answered with |
+| `url` | The url you asked for |
+| `response` | The upstream's answer. Its body is already cancelled, so read the status and headers only |
+| `location` | The raw `Location` header of a redirect, when it had one |
+
+`statusCode` (the status this server answers with) stays 400. `UrlFetchError.is(error)` narrows an error.
+
+```typescript
+try {
+  await UrlIngest.fetchGuarded({ url, policy: { maxRedirects: 0 } });
+} catch (error) {
+  if (UrlFetchError.is(error) && error.status === 302) {
+    return error.location; // the redirect target, for you to judge
+  }
+
+  if (UrlFetchError.is(error) && error.status === 404) {
+    return null;
+  }
+
+  throw error;
+}
+```
+
+With `maxRedirects: 0` the first 3xx is that error and nothing is followed. A `Location` that is not a url raises it too, instead of a bare `TypeError`. With a positive `maxRedirects`, running out of hops is still the "Too many redirects" refusal.
+
+### Cancelling a request
+
+`signal` joins the one deadline: an abort by the caller rejects with the caller's own reason (`signal.reason`, an `AbortError` by default), the deadline with a `TimeoutError`. Tell them apart by `error.name`, or by `signal.aborted`. An already aborted signal rejects before any lookup.
+
+```typescript
+const controller = new AbortController();
+const response = await UrlIngest.fetchGuarded({ url, policy, signal: controller.signal });
+```
+
 ### Telling a refusal from a retryable failure
 
 Every refusal carries the same code, `core.url_safety.url_refused`, from the `UrlSafetyErrors.URL_REFUSED` definition. `UrlPolicy.isRefusedError({ error })` tests it.
 
-A refused url is refused forever. A bad scheme, a non-public address, a host outside the allow-list, a malformed url, too many hops, an oversized body - retrying any of those repeats the same rejection and turns your retry loop into a repeat scanner. Drop the work instead.
+A refused url is refused forever. A bad scheme, a non-public address, an origin outside a strict trusted list, a malformed url, too many hops, an oversized body - retrying any of those repeats the same rejection and turns your retry loop into a repeat scanner. Drop the work instead.
 
-A timeout, a DNS failure, or a 5xx answers `false`. Those are worth another attempt, and `fetchGuarded` raises them as a plain error with no refusal code.
+A timeout, a DNS failure, or a 5xx answers `false`. Those are worth another attempt, and `fetchGuarded` raises them without a refusal code (a 4xx or 5xx as a [`UrlFetchError`](#a-typed-error-for-an-answer-you-did-not-get)).
 
 ```typescript
 import { RetryHelper, UrlIngest, UrlPolicy } from '@venizia/ignis-helpers';
