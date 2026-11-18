@@ -21,17 +21,17 @@ export class UrlIngest {
    * Checking only the first walks straight into a host that publishes one public A record beside an internal one.
    * An IP literal answers itself. `allowPrivateAddress` skips the check and returns an empty list: nothing to pin to.
    *
-   * With `origin` (as `new URL(...).origin` writes it) in `policy.hosts.trusted` a private answer is accepted, and the
-   * addresses are still returned to pin to. A cloud metadata address is accepted only when the trusted origin's host IS
+   * With `trusted` (the caller has judged the origin trusted AND every hop before it was trusted too) a private answer
+   * is accepted, and the addresses are still returned to pin to. A cloud metadata address is accepted only when the trusted origin's host IS
    * that literal; a trusted host NAME that resolves to one is refused.
    */
   static async resolvePublicAddresses(opts: {
     hostname: string;
-    origin?: string;
+    trusted?: boolean;
     policy?: IUrlSafetyPolicy;
     signal?: AbortSignal;
   }): Promise<string[]> {
-    const { hostname, origin, policy, signal } = opts;
+    const { hostname, trusted, policy, signal } = opts;
 
     if (policy?.allowPrivateAddress ?? UrlSafetyDefaults.ALLOW_PRIVATE_ADDRESS) {
       return [];
@@ -52,10 +52,9 @@ export class UrlIngest {
       });
     }
 
-    const isTrusted = origin !== undefined && UrlPolicy.isTrustedOrigin({ origin, policy });
     const isLiteral = UrlPolicy.isLiteralHost({ hostname });
     const offender = addresses.find((entry) =>
-      isTrusted
+      trusted
         ? !isLiteral && UrlPolicy.isMetadataAddress({ address: entry.address })
         : UrlPolicy.isNonPublicAddress({ address: entry.address }),
     );
@@ -78,7 +77,7 @@ export class UrlIngest {
    */
   static async assertPublicHost(opts: {
     hostname: string;
-    origin?: string;
+    trusted?: boolean;
     policy?: IUrlSafetyPolicy;
   }): Promise<void> {
     await UrlIngest.resolvePublicAddresses(opts);
@@ -89,7 +88,7 @@ export class UrlIngest {
     const parsed = UrlPolicy.assertSafeUrl(opts);
     await UrlIngest.assertPublicHost({
       hostname: parsed.hostname,
-      origin: parsed.origin,
+      trusted: UrlPolicy.isTrustedOrigin({ origin: parsed.origin, policy: opts.policy }),
       policy: opts.policy,
     });
 
@@ -197,10 +196,7 @@ export class UrlIngest {
     // the environment's proxy, which would resolve the name itself and undo the pin). A test pins it.
     const noProxy: IBunFetchInit = { proxy: false };
     const isHttps = target.protocol === 'https:';
-    const hasNameToVerify =
-      isHttps &&
-      !UrlPolicy.readHostAddress({ hostname: target.hostname }).includes(':') &&
-      !/^[\d.]+$/.test(target.hostname);
+    const hasNameToVerify = isHttps && !UrlPolicy.isLiteralHost({ hostname: target.hostname });
     const headers = {
       ...UrlIngest.withoutHeaders({
         headers: (init.headers as Record<string, string> | undefined) ?? {},
@@ -294,6 +290,9 @@ export class UrlIngest {
     }
 
     let target = UrlPolicy.assertSafeUrl({ url, policy });
+    // Trust is entered at the first hop only: once a hop is not trusted, no later hop is trusted as a private target,
+    // so a public url cannot redirect a request into a trusted internal origin.
+    let isChainTrusted = UrlPolicy.isTrustedOrigin({ origin: target.origin, policy });
     // ONE deadline for the whole call, every lookup and every hop included, not one per hop. The caller's own signal
     // joins it: a caller abort rejects with the caller's reason, the deadline with a `TimeoutError`.
     const deadline = AbortSignal.timeout(timeoutMilliseconds);
@@ -302,7 +301,7 @@ export class UrlIngest {
     for (let hop = 0; hop <= maxRedirects; hop += 1) {
       const addresses = await UrlIngest.resolvePublicAddresses({
         hostname: target.hostname,
-        origin: target.origin,
+        trusted: isChainTrusted,
         policy,
         signal,
       });
@@ -372,7 +371,15 @@ export class UrlIngest {
         });
       }
 
-      const next = UrlPolicy.assertSafeUrl({ url: resolvedLocation, policy });
+      isChainTrusted =
+        isChainTrusted &&
+        UrlPolicy.isTrustedOrigin({ origin: new URL(resolvedLocation).origin, policy });
+
+      const next = UrlPolicy.assertSafeUrl({
+        url: resolvedLocation,
+        policy,
+        isTrustedAllowed: isChainTrusted,
+      });
       const isSameOrigin = next.origin === target.origin;
       const becomesGet =
         response.status === 303 ||

@@ -149,7 +149,14 @@ describe('the real changelog of this repository', () => {
     const newest = readdirSync(changelogs)
       .filter((name) => /^\d+\.\d+\.\d+$/.test(name))
       .sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
-      .at(-1) as string;
+      .at(-1);
+
+    expect(newest).toBeDefined();
+
+    if (newest === undefined) {
+      return;
+    }
+
     const text = readFileSync(resolve(changelogs, newest, 'log.md'), 'utf8');
 
     if (/\nreleased: \d{4}-\d{2}-\d{2}\n/.test(text)) {

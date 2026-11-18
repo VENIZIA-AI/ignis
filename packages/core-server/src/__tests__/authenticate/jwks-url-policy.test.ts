@@ -141,6 +141,12 @@ describe('JWKSUrlPolicy.assertUrl', () => {
     expect(refusal(() => assertUrl(url))).toContain('must use https');
   });
 
+  test('an https URL still refuses a bad jwks.trusted list', () => {
+    expect(refusal(() => assertUrl('https://identity.example.com/certs', ['garbage']))).toContain(
+      'jwks.trusted holds',
+    );
+  });
+
   test('a string that is not a URL is refused, naming the key', () => {
     const message = refusal(() => assertUrl('not a url'));
 
@@ -394,6 +400,14 @@ describe('the service-assertion callers', () => {
 
     const result2 = await boot({ serviceOptions });
     expect(result2).toBeNull();
+  });
+
+  test('a bad jwks.trusted refuses the boot although every URL is https', async () => {
+    const result = await boot({ serviceOptions: service({ jwks: { trusted: ['garbage'] } }) });
+    const verifierResult = await boot({ jwtOptions: verifier({ jwks: { trusted: ['garbage'] } }) });
+
+    expect(result).toContain('jwks.trusted holds');
+    expect(verifierResult).toContain('jwks.trusted holds');
   });
 
   test('a list entry that is not an origin refuses to boot even with no http caller', async () => {

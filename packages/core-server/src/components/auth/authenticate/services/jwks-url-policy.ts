@@ -41,6 +41,9 @@ export class JWKSUrlPolicy {
       });
     }
 
+    // Before the https early return: a bad `jwks.trusted` refuses the boot whatever the URL is.
+    const trusted = JWKSUrlPolicy.resolveTrustedOrigins({ scope, trusted: opts.trusted });
+
     if (parsed.protocol === 'https:') {
       return parsed;
     }
@@ -51,8 +54,6 @@ export class JWKSUrlPolicy {
         message: `[${scope}] ${label} must use https | scheme: ${parsed.protocol}`,
       });
     }
-
-    const trusted = JWKSUrlPolicy.resolveTrustedOrigins({ scope, trusted: opts.trusted });
 
     // Nothing listens on port 0: a URL that names it is a mistake, and no origin should cover it.
     if (parsed.port === '0') {

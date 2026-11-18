@@ -434,12 +434,66 @@ describe('UrlIngest.fetchGuarded - trusted origins', () => {
     expect(UrlPolicy.isRefusedError({ error })).toBe(true);
   });
 
-  test('a redirect from a public host into a trusted private origin is followed (the caller trusted it)', async () => {
-    stubResponses([redirectTo('http://10.0.0.5:8080/k'), new Response('ok')]);
+  test('trust is not entered through an untrusted hop: a public url cannot redirect into a trusted private origin', async () => {
+    const { calls } = stubResponses([redirectTo('http://10.0.0.5:8080/k'), new Response('leak')]);
+
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'https://8.8.8.8/a',
+        policy: trusted('http://10.0.0.5:8080'),
+      }),
+    );
+
+    expect(UrlPolicy.isRefusedError({ error })).toBe(true);
+    expect((error as Error).message).toContain('non-public');
+    expect(calls).toHaveLength(1);
+  });
+
+  test('a public url cannot redirect into a trusted metadata literal either', async () => {
+    const { calls } = stubResponses([
+      redirectTo('http://169.254.169.254/latest/meta-data/'),
+      new Response('leak'),
+    ]);
+
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'https://8.8.8.8/a',
+        policy: trusted('http://169.254.169.254'),
+      }),
+    );
+
+    expect(UrlPolicy.isRefusedError({ error })).toBe(true);
+    expect(calls).toHaveLength(1);
+  });
+
+  test('once a hop is untrusted, a later trusted origin is refused too (trusted -> public -> trusted)', async () => {
+    const { calls } = stubResponses([
+      redirectTo('https://8.8.8.8/b'),
+      redirectTo('http://10.0.0.5:8080/k'),
+      new Response('leak'),
+    ]);
+
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'http://10.0.0.6:9000/a',
+        policy: trusted('http://10.0.0.6:9000', 'http://10.0.0.5:8080'),
+      }),
+    );
+
+    expect(UrlPolicy.isRefusedError({ error })).toBe(true);
+    expect(calls).toHaveLength(2);
+  });
+
+  test('a chain that stays trusted is followed all the way (trusted -> trusted -> trusted)', async () => {
+    stubResponses([
+      redirectTo('http://10.0.0.6:9000/b'),
+      redirectTo('http://10.0.0.7:9001/c'),
+      new Response('ok'),
+    ]);
 
     const response = await UrlIngest.fetchGuarded({
-      url: 'https://8.8.8.8/a',
-      policy: trusted('http://10.0.0.5:8080'),
+      url: 'http://10.0.0.5:8080/a',
+      policy: trusted('http://10.0.0.5:8080', 'http://10.0.0.6:9000', 'http://10.0.0.7:9001'),
     });
 
     const result3 = await response.text();

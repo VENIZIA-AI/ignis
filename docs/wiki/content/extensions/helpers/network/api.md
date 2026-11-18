@@ -1142,7 +1142,7 @@ Every field is per call. An application that must reach plain `http` on one rout
 | `isNonPublicAddress` | `(opts: { address: string }): boolean` | `true` for any address an untrusted url must never reach. Takes an IP literal only: a domain name answers `true` |
 | `readHostAddress` | `(opts: { hostname: string }): string` | Strips the brackets off an IPv6 literal - `[::1]` becomes `::1` |
 
-`assertSafeUrl` refuses, in this order: a malformed url, a scheme outside `allowedSchemes`, a url that carries a username or a password (always, no policy flag; an empty `https://@host/` has none and passes), then the trusted origins: a trusted origin returns here, and with `hosts.strict` any other origin is refused. Past that, a scheme outside `allowedSchemes`, and a literal address that is not public. A policy that still carries the removed `allowedHosts` key throws a configuration error.
+`assertSafeUrl` checks, in this order: a malformed url (refused); a url that carries a username or a password (always, no policy flag; an empty `https://@host/` has none and passes); the policy's `hosts` (a leftover `allowedHosts` or an invalid trusted entry throws a configuration error); a trusted origin, which returns here; `hosts.strict`, which refuses any other origin; a scheme outside `allowedSchemes`; and a literal address that is not public.
 
 `isNonPublicAddress` fails closed. An address it cannot parse counts as non-public, because a guard that fails open on a string it does not understand is not a guard. It covers loopback, the private v4 ranges, carrier-grade NAT, link-local (`169.254.0.0/16`, the metadata address), benchmarking, multicast, and the v6 equivalents. It also unwraps both spellings of an IPv4-mapped v6 address, because `new URL` rewrites `::ffff:169.254.169.254` into the hex form and a dotted-quad check alone would read green.
 
@@ -1214,7 +1214,7 @@ const policy = { hosts: { trusted: ['https://cdn.example.com' as const], strict:
 
 - **Exact origins.** An entry is scheme, host and a non-default port, written as `new URL(entry).origin` writes it. Another port, scheme or host is another origin.
 - **Passes whatever it resolves to.** A trusted origin is reached even when it resolves to a private address. The request still connects to the addresses that were checked.
-- **Judged on every hop.** The first url and every redirect target. A redirect from a trusted origin to an untrusted private address is refused on that hop.
+- **Trust is entered only through a trusted hop.** A trusted origin passes as a private target when the first url is trusted, or when every hop before it was trusted (trusted to trusted). Once a hop is not trusted, every later hop gets the full guard: a public url cannot redirect into a trusted internal origin, and a trusted metadata literal is not reachable that way. Each hop is judged again and pinned to the addresses that were checked; a redirect from a trusted origin to an untrusted private address is refused on that hop.
 - **`strict: true`.** Only trusted origins pass; a public origin that is not listed is refused before any request. It needs at least one trusted origin.
 - **`allowedSchemes`.** Applies to urls that are not trusted. A trusted origin carries its own scheme.
 - **Metadata addresses.** `169.254.169.254` and its kin open only when the trusted origin's host IS that IP literal. A trusted host name that resolves to one is refused.

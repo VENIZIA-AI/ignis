@@ -235,8 +235,14 @@ export class UrlPolicy {
       return embedded(g6, g7);
     }
 
-    if (g0 === 0x64 && g1 === 0xff9b && g2 === 0 && g3 === 0 && g4 === 0 && g5 === 0) {
+    // v4-translated `::ffff:0:a.b.c.d`
+    if ([g0, g1, g2, g3].every((group) => group === 0) && g4 === 0xffff && g5 === 0) {
       return embedded(g6, g7);
+    }
+
+    // NAT64: the well-known /96 carries an IPv4 address; the rest of 64:ff9b::/32 is not a translation prefix.
+    if (g0 === 0x64 && g1 === 0xff9b) {
+      return g2 === 0 && g3 === 0 && g4 === 0 && g5 === 0 ? embedded(g6, g7) : true;
     }
 
     if (g0 === 0x2002) {
@@ -369,7 +375,12 @@ export class UrlPolicy {
    * A hostname that RESOLVES to a private address passes here on purpose - `UrlIngest` catches that,
    * and this half runs where `node:dns` does not exist.
    */
-  static assertSafeUrl(opts: { url: string; policy?: IUrlSafetyPolicy }): URL {
+  static assertSafeUrl(opts: {
+    url: string;
+    policy?: IUrlSafetyPolicy;
+    /** `false` judges a trusted origin like any other (`fetchGuarded` passes it once a hop of the chain was untrusted). @default true */
+    isTrustedAllowed?: boolean;
+  }): URL {
     const { url, policy } = opts;
     const allowedSchemes = policy?.allowedSchemes ?? UrlSafetyDefaults.ALLOWED_SCHEMES;
     const allowPrivateAddress =
@@ -399,10 +410,10 @@ export class UrlPolicy {
 
     // A trusted origin carries its own scheme and may be private: it skips the scheme and address checks below.
     if (trusted.has(parsed.origin)) {
-      return parsed;
-    }
-
-    if (strict) {
+      if (opts.isTrustedAllowed ?? true) {
+        return parsed;
+      }
+    } else if (strict) {
       throw getError({
         error: UrlSafetyErrors.URL_REFUSED,
         message: `[assertSafeUrl] Origin is not trusted | origin: ${parsed.origin}`,
@@ -417,9 +428,12 @@ export class UrlPolicy {
     }
 
     const address = UrlPolicy.readHostAddress({ hostname: parsed.hostname });
-    const isLiteralAddress = /^[\d.]+$/.test(address) || address.includes(':');
 
-    if (!allowPrivateAddress && isLiteralAddress && UrlPolicy.isNonPublicAddress({ address })) {
+    if (
+      !allowPrivateAddress &&
+      UrlPolicy.isLiteralHost({ hostname: parsed.hostname }) &&
+      UrlPolicy.isNonPublicAddress({ address })
+    ) {
       throw getError({
         error: UrlSafetyErrors.URL_REFUSED,
         message: `[assertSafeUrl] Url points at a non-public address | address: ${address}`,

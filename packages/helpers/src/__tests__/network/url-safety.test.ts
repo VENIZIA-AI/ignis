@@ -510,6 +510,19 @@ describe('UrlPolicy - trusted origins (policy.hosts)', () => {
     ]);
   });
 
+  test('isTrustedAllowed: false judges a trusted private origin like any other', () => {
+    const policy = trust('http://10.0.0.5:8080');
+
+    expect(() =>
+      UrlPolicy.assertSafeUrl({ url: 'http://10.0.0.5:8080/', policy, isTrustedAllowed: true }),
+    ).not.toThrow();
+    expect(
+      captureMessage(() =>
+        UrlPolicy.assertSafeUrl({ url: 'https://10.0.0.5:8080/', policy, isTrustedAllowed: false }),
+      ),
+    ).toContain('non-public');
+  });
+
   test('a trusted metadata literal is the one way to open a metadata address', () => {
     expect(() =>
       UrlPolicy.assertSafeUrl({
@@ -534,6 +547,10 @@ describe('UrlPolicy.isMetadataAddress', () => {
     '::169.254.169.254',
     '64:ff9b::169.254.169.254',
     '2002:a9fe:a9fe::1',
+    '::ffff:0:169.254.169.254',
+    '::ffff:0:a9fe:a9fe',
+    '64:ff9b::1:0:a9fe:a9fe',
+    '64:ff9b:1::1',
     'not-an-address',
   ])('names %s as a metadata address', (address) => {
     expect(UrlPolicy.isMetadataAddress({ address })).toBe(true);
