@@ -13,7 +13,7 @@ import { ServiceCertsRouteConfigs } from './definitions';
 export class ServiceCertsController extends BaseRestController {
   constructor(
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<ServiceAssertionSignerService>({
         namespace: BindingNamespaces.SERVICE,
         key: ServiceAssertionSignerService.name,
       }),

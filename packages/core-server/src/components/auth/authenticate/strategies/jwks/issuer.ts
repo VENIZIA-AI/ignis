@@ -22,7 +22,7 @@ export class JWKSIssuerAuthenticationStrategy<E extends Env = Env>
 
   constructor(
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<JWKSIssuerTokenService>({
         namespace: BindingNamespaces.SERVICE,
         key: JWKSIssuerTokenService.name,
       }),

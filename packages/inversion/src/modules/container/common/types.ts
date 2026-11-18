@@ -6,23 +6,23 @@ import type { MetadataRegistry } from '../../registry/registry';
 export interface IContainer {
   getMetadataRegistry(): MetadataRegistry;
 
-  bind<T>(opts: { key: TBindingKey }): IBinding<T>;
+  bind<T>(opts: { key: TBindingKey<T> }): IBinding<T>;
   isBound(opts: { key: TBindingKey }): boolean;
   getBinding<T>(opts: {
-    key: TBindingKey | { namespace: string; key: string };
+    key: TBindingKey<T> | { namespace: string; key: string };
   }): TNullable<IBinding<T>>;
   unbind(opts: { key: TBindingKey }): boolean;
   set<T>(opts: { binding: IBinding<T> }): void;
 
-  get<T>(opts: { key: TBindingKey | { namespace: string; key: string }; isOptional?: false }): T;
+  get<T>(opts: { key: TBindingKey<T> | { namespace: string; key: string }; isOptional?: false }): T;
   get<T>(opts: {
-    key: TBindingKey | { namespace: string; key: string };
+    key: TBindingKey<T> | { namespace: string; key: string };
     isOptional?: boolean;
   }): T | undefined;
   gets<T extends unknown[]>(opts: {
     bindings: {
       [K in keyof T]: {
-        key: TBindingKey | { namespace: string; key: string };
+        key: TBindingKey<T[K]> | { namespace: string; key: string };
         isOptional?: boolean;
       };
     };

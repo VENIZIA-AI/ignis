@@ -15,8 +15,6 @@ import {
   JWSAuthenticationStrategy,
   SignInRequestSchema,
   SignUpRequestSchema,
-  type TAuthenticationRestOptions,
-  type TJWTTokenServiceOptions,
 } from '@venizia/ignis';
 import { ParseUtility } from '@venizia/ignis-helpers';
 import appInfo from '../package.json';
@@ -38,7 +36,7 @@ export class Application extends BaseApplication {
 
   override preConfigure(): void {
     // Tokens are HMAC-signed (JWS). The component refuses to start without a secret.
-    this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
+    this.bind({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
       standard: JOSEStandards.JWS,
       options: {
         jwtSecret: process.env.APP_ENV_JWT_SECRET ?? '',
@@ -53,7 +51,7 @@ export class Application extends BaseApplication {
     });
 
     // Mounts /auth/sign-up, /auth/sign-in, ... and hands each request to AuthenticationService.
-    this.bind<TAuthenticationRestOptions>({ key: AuthenticateBindingKeys.REST_OPTIONS }).toValue({
+    this.bind({ key: AuthenticateBindingKeys.REST_OPTIONS }).toValue({
       useAuthController: true,
       controllerOpts: {
         serviceKey: BindingKeys.build({

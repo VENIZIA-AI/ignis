@@ -18,7 +18,7 @@ export class GrpcComponent extends BaseComponent {
       scope: GrpcComponent.name,
       initDefault: { enable: true, container: application },
       bindings: {
-        [GrpcBindingKeys.GRPC_COMPONENT_OPTIONS]: Binding.bind<IGrpcComponentConfig>({
+        [GrpcBindingKeys.GRPC_COMPONENT_OPTIONS]: Binding.bind({
           key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS,
         }).toValue(DEFAULT_OPTIONS),
       },
@@ -29,7 +29,7 @@ export class GrpcComponent extends BaseComponent {
     const logger = this.logger.for(this.binding.name);
     const router = this.application.getRootRouter();
 
-    const options = this.application.get<IGrpcComponentConfig>({
+    const options = this.application.get({
       key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS,
       isOptional: true,
     });

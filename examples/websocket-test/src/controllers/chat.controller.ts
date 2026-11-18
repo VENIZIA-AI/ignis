@@ -53,7 +53,7 @@ export class ChatController extends BaseRestController {
   // constructor.
   private get webSocket(): WebSocketServerHelper {
     this._webSocket ??=
-      this.application.get<WebSocketServerHelper>({
+      this.application.get({
         key: WebSocketBindingKeys.WEBSOCKET_INSTANCE,
         isOptional: true,
       }) ?? null;

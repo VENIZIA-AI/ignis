@@ -11,7 +11,6 @@ import {
   type IApplicationInfo,
   JOSEStandards,
   JWSAuthenticationStrategy,
-  type TJWTTokenServiceOptions,
 } from '@venizia/ignis';
 import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
 import { getJwtClaims } from '@/common/jwt-claims';
@@ -34,7 +33,7 @@ export class Application extends BaseApplication {
      * one minted elsewhere with the same secret. `getTokenExpiresFn` is only consulted when signing,
      * which `src/token.ts` does for this example's own test tokens.
      */
-    this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
+    this.bind({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
       standard: JOSEStandards.JWS,
       options: {
         jwtSecret: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_JWT_SECRET),

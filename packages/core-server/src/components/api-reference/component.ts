@@ -59,7 +59,7 @@ export class ApiReferenceComponent extends BaseComponent {
       scope: ApiReferenceComponent.name,
       initDefault: { enable: true, container: application },
       bindings: {
-        [ApiReferenceBindingKeys.API_REFERENCE_OPTIONS]: Binding.bind<IApiReferenceOptions>({
+        [ApiReferenceBindingKeys.API_REFERENCE_OPTIONS]: Binding.bind({
           key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS,
         }).toValue(DEFAULT_API_REFERENCE_OPTIONS),
       },
@@ -67,7 +67,7 @@ export class ApiReferenceComponent extends BaseComponent {
   }
 
   override async binding() {
-    const boundOptions = this.application.get<IApiReferenceOptions>({
+    const boundOptions = this.application.get({
       key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS,
       isOptional: true,
     });

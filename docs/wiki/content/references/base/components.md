@@ -127,7 +127,9 @@ Binding keys are string constants used to register and retrieve values from the 
 ```typescript
 // src/components/health-check/common/keys.ts
 export class HealthCheckBindingKeys {
-  static readonly HEALTH_CHECK_OPTIONS = '@app/health-check/options';
+  static readonly HEALTH_CHECK_OPTIONS = BindingKeys.build<IHealthCheckOptions>({
+    key: '@app/health-check/options',
+  });
 }
 ```
 
@@ -136,16 +138,22 @@ export class HealthCheckBindingKeys {
 ```typescript
 // src/components/auth/authenticate/common/keys.ts
 export class AuthenticateBindingKeys {
-  static readonly REST_OPTIONS = '@app/authenticate/rest-options';
-  static readonly JWT_OPTIONS = '@app/authenticate/jwt-options';
-  static readonly JWKS_OPTIONS = '@app/authenticate/jwks-options';
-  static readonly BASIC_OPTIONS = '@app/authenticate/basic-options';
+  static readonly REST_OPTIONS = BindingKeys.build<TAuthenticationRestOptions>({
+    key: '@app/authenticate/rest-options',
+  });
+  static readonly JWT_OPTIONS = BindingKeys.build<TJWTTokenServiceOptions>({
+    key: '@app/authenticate/jwt-options',
+  });
+  static readonly BASIC_OPTIONS = BindingKeys.build<TBasicTokenServiceOptions>({
+    key: '@app/authenticate/basic-options',
+  });
 }
 ```
 
 **Naming Convention:**
 - Class name: `[Feature]BindingKeys`
 - Key format: `@app/[component]/[feature]`
+- Build each key with `BindingKeys.build<T>`, where `T` is the type of the value bound under it, so `get` and `bind` are checked. A key names ONE type: bind a different type under a different key.
 
 ### 2. Types (`types.ts`)
 

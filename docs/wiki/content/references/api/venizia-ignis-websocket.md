@@ -17,16 +17,36 @@ Container keys of the WebSocket component: the server instance, its options, the
 
 ```ts
 export declare class WebSocketBindingKeys {
-    static readonly WEBSOCKET_INSTANCE = "@app/websocket/instance";
-    static readonly SERVER_OPTIONS = "@app/websocket/server-options";
-    static readonly REDIS_CONNECTION = "@app/websocket/redis-connection";
-    static readonly AUTHENTICATE_HANDLER = "@app/websocket/authenticate-handler";
-    static readonly VALIDATE_ROOM_HANDLER = "@app/websocket/validate-room-handler";
-    static readonly CLIENT_CONNECTED_HANDLER = "@app/websocket/client-connected-handler";
-    static readonly CLIENT_DISCONNECTED_HANDLER = "@app/websocket/client-disconnected-handler";
-    static readonly MESSAGE_HANDLER = "@app/websocket/message-handler";
-    static readonly OUTBOUND_TRANSFORMER = "@app/websocket/outbound-transformer";
-    static readonly HANDSHAKE_HANDLER = "@app/websocket/handshake-handler";
+    static readonly WEBSOCKET_INSTANCE: string & {
+        readonly valueType?: ((value: WebSocketServerHelper<Record<string, unknown>, Record<string, unknown>>) => void) | undefined;
+    };
+    static readonly SERVER_OPTIONS: string & {
+        readonly valueType?: ((value: Partial<IServerOptions>) => void) | undefined;
+    };
+    static readonly REDIS_CONNECTION: string & {
+        readonly valueType?: ((value: AbstractRedisHelper<import("@venizia/ignis-helpers").TRedisClient> | null) => void) | undefined;
+    };
+    static readonly AUTHENTICATE_HANDLER: string & {
+        readonly valueType?: ((value: TWebSocketAuthenticateFn | null) => void) | undefined;
+    };
+    static readonly VALIDATE_ROOM_HANDLER: string & {
+        readonly valueType?: ((value: TWebSocketValidateRoomFn | null) => void) | undefined;
+    };
+    static readonly CLIENT_CONNECTED_HANDLER: string & {
+        readonly valueType?: ((value: TWebSocketClientConnectedFn | null) => void) | undefined;
+    };
+    static readonly CLIENT_DISCONNECTED_HANDLER: string & {
+        readonly valueType?: ((value: TWebSocketClientDisconnectedFn | null) => void) | undefined;
+    };
+    static readonly MESSAGE_HANDLER: string & {
+        readonly valueType?: ((value: TWebSocketMessageHandler | null) => void) | undefined;
+    };
+    static readonly OUTBOUND_TRANSFORMER: string & {
+        readonly valueType?: ((value: TWebSocketOutboundTransformer | null) => void) | undefined;
+    };
+    static readonly HANDSHAKE_HANDLER: string & {
+        readonly valueType?: ((value: TWebSocketHandshakeFn | null) => void) | undefined;
+    };
 }
 ```
 

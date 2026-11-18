@@ -20,7 +20,7 @@ export class StaticAssetComponent<
       scope: StaticAssetComponent.name,
       initDefault: { enable: true, container: application },
       bindings: {
-        [StaticAssetBindingKeys.STATIC_ASSET_OPTIONS]: Binding.bind<TStaticAssetComponentOptions>({
+        [StaticAssetBindingKeys.STATIC_ASSET_OPTIONS]: Binding.bind({
           key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
         }).toValue({}),
       },
@@ -32,6 +32,7 @@ export class StaticAssetComponent<
     // through `configs.artifacts`, where an index carries classes and no options.
     const componentOptions =
       this.options ??
+      // The key is typed with the widest schema; this component is generic over its own, so it names it.
       this.application.get<TStaticAssetComponentOptions<Schema>>({
         key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
       });
@@ -71,7 +72,7 @@ export class StaticAssetComponent<
       .bind({ key: StaticAssetBindingKeys.policyService({ name: key }) })
       .toValue(services.policyService);
     this.application
-      .bind({ key: StaticAssetBindingKeys.commitService({ name: key }) })
+      .bind({ key: StaticAssetBindingKeys.commitService<Schema>({ name: key }) })
       .toValue(services.commitService);
 
     return services;

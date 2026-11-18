@@ -116,10 +116,10 @@ const container = new Container({ scope: 'MyApp' });
 
 | Method | Signature | Description |
 |--------|-----------|--------------|
-| `bind` | `bind<T>(opts: { key: TBindingKey }): Binding<T>` | Create a new `Binding`, register it under `String(key)`, and return it |
-| `get` | `get<T>(opts: { key: TBindingKey \| { namespace, key }, isOptional?: boolean }): T \| undefined` | Resolve a dependency by key. Throws if not found and `isOptional` is falsy |
+| `bind` | `bind<T>(opts: { key: TBindingKey<T> }): Binding<T>` | Create a new `Binding`, register it under `String(key)`, and return it |
+| `get` | `get<T>(opts: { key: TBindingKey<T> \| { namespace, key }, isOptional?: boolean }): T \| undefined` | Resolve a dependency by key. Throws if not found and `isOptional` is falsy |
 | `gets` | `gets<T extends unknown[]>({ bindings }): { [K in keyof T]: T[K] \| undefined }` | Resolve several dependencies as a tuple; each entry is re-issued with `isOptional: true` |
-| `getBinding` | `getBinding<T>(opts: { key: TBindingKey \| { namespace, key } }): Binding<T> \| undefined` | Retrieve the raw `Binding` without resolving it |
+| `getBinding` | `getBinding<T>(opts: { key: TBindingKey<T> \| { namespace, key } }): Binding<T> \| undefined` | Retrieve the raw `Binding` without resolving it |
 | `set` | `set<T>(opts: { binding: Binding<T> }): void` | Register an externally created `Binding` under its own `.key` |
 | `isBound` | `isBound(opts: { key: TBindingKey }): boolean` | Check whether a key is registered |
 | `unbind` | `unbind(opts: { key: TBindingKey }): boolean` | Remove a binding; returns `true` if one was removed |
@@ -395,6 +395,13 @@ BindingKeys.build({ namespace: 'services', key: '' });
 
 `key` is required and must be non-empty. `namespace` is optional - it's silently omitted from the joined string when empty.
 
+The signature is `build<T = unknown>(opts: { namespace?: string; key: string }): TBindingKey<T> & string`. The type argument names the value bound under the key; `bind`, `get`, `getBinding`, `gets` and `Binding.bind` read it. The result is the plain string at run time, so a key built with or without `T` is the same string. See [Typed keys](/extensions/helpers/inversion/#typed-keys).
+
+```typescript
+const MAILER = BindingKeys.build<IMailer>({ namespace: 'services', key: 'Mailer' });
+container.get({ key: MAILER }); // IMailer
+```
+
 ```typescript
 container.bind({ key: 'workers.EmailWorker' }).toClass(EmailWorker).setTags('background', 'email');
 // tags: ['workers', 'background', 'email']
@@ -513,7 +520,10 @@ type TConstructor<T> = new (...args: never[]) => T;
 type TAbstractConstructor<T> = abstract new (...args: never[]) => T;
 type TClass<T> = TConstructor<T>;
 type TConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string | number> & {};
-type TBindingKey = string | symbol;
+type TBindingKey<T = unknown> = (string | symbol) & {
+  readonly valueType?: { bivarianceHack(value: T): void }['bivarianceHack'];
+};
+type TBindingKeyValue<K> = /* the value type a key names, `unknown` for a plain string */;
 
 interface IBindingTag {
   [name: string]: unknown;

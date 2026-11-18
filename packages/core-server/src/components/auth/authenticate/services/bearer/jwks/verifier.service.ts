@@ -2,11 +2,11 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import {
   AuthenticateBindingKeys,
-  type IJWKSVerifierOptions,
   type IJWTTokenPayload,
   inject,
   type TGetTokenExpiresFn,
 } from '@venizia/ignis-kernel';
+import { type TBindingKeyValue } from '@venizia/ignis-inversion';
 import { type Env } from 'hono';
 import type { createRemoteJWKSet, SignJWT } from 'jose';
 import { JoseLoader } from '../../jose-loader';
@@ -18,8 +18,8 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
   protected jwksVerifier: ReturnType<typeof createRemoteJWKSet> | null = null;
 
   constructor(
-    @inject({ key: AuthenticateBindingKeys.JWKS_OPTIONS })
-    protected options: IJWKSVerifierOptions,
+    @inject({ key: AuthenticateBindingKeys.JWKS_VERIFIER_OPTIONS })
+    protected options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWKS_VERIFIER_OPTIONS>,
   ) {
     super({ scope: JWKSVerifierTokenService.name });
     this.configureClaims({ options: this.options });

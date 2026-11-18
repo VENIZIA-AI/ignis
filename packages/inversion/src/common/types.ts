@@ -28,8 +28,25 @@ export type TInjectTarget = TValueOrResolver<TClass<unknown>>;
 /** `& {}` keeps the literal set but stops it widening to `string` / `number` in mutable positions; see `TConstValue` in `@venizia/ignis-helpers`. */
 export type TConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string | number> & {};
 
-/** Identifier for a binding: a string or a symbol. */
-export type TBindingKey = string | symbol;
+/**
+ * Identifier for a binding: a string or a symbol that also names the type of the value bound under it. The type is a
+ * brand and exists at compile time only; at run time a key is the plain string or symbol.
+ *
+ * `bind`, `get`, `getBinding` and `gets` read `T` from the key, so `container.get({ key })` is typed with no generic. A
+ * plain `string` or `symbol` is a `TBindingKey<unknown>`, and an explicit generic works as it always did. The brand is
+ * bivariant: a claim that is a subtype or a supertype of the key's type is accepted, an unrelated one is a type error.
+ */
+export type TBindingKey<T = unknown> = (string | symbol) & {
+  readonly valueType?: { bivarianceHack(value: T): void }['bivarianceHack'];
+};
+
+/**
+ * The value type a key names: `TBindingKeyValue<typeof MAILER>` is `IMailer`, and a plain string is `unknown`. Use it to
+ * annotate an `@inject` parameter, which nothing else checks against the key.
+ */
+export type TBindingKeyValue<K> = K extends { readonly valueType?: (value: infer V) => void }
+  ? V
+  : unknown;
 
 /** Free-form map of tag names to values. */
 export interface IBindingTag {

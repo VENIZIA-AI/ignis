@@ -20,7 +20,7 @@ export class BasicAuthenticationStrategy<E extends Env = Env>
 
   constructor(
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<BasicTokenService>({
         namespace: BindingNamespaces.SERVICE,
         key: BasicTokenService.name,
       }),

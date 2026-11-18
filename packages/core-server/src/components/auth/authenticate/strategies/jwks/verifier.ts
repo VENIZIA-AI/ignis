@@ -22,7 +22,7 @@ export class JWKSVerifierAuthenticationStrategy<E extends Env = Env>
 
   constructor(
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<JWKSVerifierTokenService>({
         namespace: BindingNamespaces.SERVICE,
         key: JWKSVerifierTokenService.name,
       }),

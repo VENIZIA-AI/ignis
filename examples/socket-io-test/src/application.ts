@@ -9,7 +9,6 @@ import {
 import { SocketIOBindingKeys, SocketIOComponent } from '@venizia/ignis/socket-io';
 import { RedisSingleHelper } from '@venizia/ignis-helpers';
 import type {
-  SocketIOServerHelper,
   TSocketIOAuthenticateFn,
 } from '@venizia/ignis-helpers/socket-io';
 import appInfo from '../package.json';
@@ -44,7 +43,7 @@ export class Application extends BaseApplication {
       password: process.env.APP_ENV_REDIS_PASSWORD ?? '',
       autoConnect: false,
     });
-    this.bind<RedisSingleHelper>({ key: SocketIOBindingKeys.REDIS_CONNECTION }).toValue(
+    this.bind({ key: SocketIOBindingKeys.REDIS_CONNECTION }).toValue(
       this.redisHelper,
     );
 
@@ -53,7 +52,7 @@ export class Application extends BaseApplication {
     const expectedToken = process.env.APP_ENV_AUTH_TOKEN ?? 'demo-token';
     const authenticateFn: TSocketIOAuthenticateFn = (handshake) =>
       handshake.headers.authorization === `Bearer ${expectedToken}`;
-    this.bind<TSocketIOAuthenticateFn>({ key: SocketIOBindingKeys.AUTHENTICATE_HANDLER }).toValue(
+    this.bind({ key: SocketIOBindingKeys.AUTHENTICATE_HANDLER }).toValue(
       authenticateFn,
     );
 
@@ -64,7 +63,7 @@ export class Application extends BaseApplication {
     this.registerPostStopHook({
       identifier: 'socket-io.shutdown',
       hook: async () => {
-        const socketIOHelper = this.get<SocketIOServerHelper>({
+        const socketIOHelper = this.get({
           key: SocketIOBindingKeys.SOCKET_IO_INSTANCE,
           isOptional: true,
         });

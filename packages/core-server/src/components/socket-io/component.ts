@@ -5,14 +5,8 @@ import { CoreBindings } from '@venizia/ignis-kernel';
 import { Binding } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP, RuntimeModules, type ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { type AbstractRedisHelper, isRedisHelper } from '@venizia/ignis-helpers';
-import {
-  SocketIOServerHelper,
-  type TSocketIOAuthenticateFn,
-  type TSocketIOClientConnectedFn,
-  type TSocketIOValidateRoomFn,
-} from '@venizia/ignis-helpers/socket-io';
-import type { ServerOptions } from 'socket.io';
+import { isRedisHelper } from '@venizia/ignis-helpers';
+import { SocketIOServerHelper } from '@venizia/ignis-helpers/socket-io';
 import {
   SocketIOBindingKeys,
   DEFAULT_SERVER_OPTIONS,
@@ -32,39 +26,38 @@ export class SocketIOComponent extends BaseComponent {
       scope: SocketIOComponent.name,
       initDefault: { enable: true, container: application },
       bindings: {
-        [SocketIOBindingKeys.SERVER_OPTIONS]: Binding.bind<Partial<ServerOptions>>({
+        [SocketIOBindingKeys.SERVER_OPTIONS]: Binding.bind({
           key: SocketIOBindingKeys.SERVER_OPTIONS,
         }).toValue(DEFAULT_SERVER_OPTIONS),
 
-        [SocketIOBindingKeys.REDIS_CONNECTION]: Binding.bind<AbstractRedisHelper | null>({
+        [SocketIOBindingKeys.REDIS_CONNECTION]: Binding.bind({
           key: SocketIOBindingKeys.REDIS_CONNECTION,
         }).toValue(null),
 
-        [SocketIOBindingKeys.AUTHENTICATE_HANDLER]: Binding.bind<TSocketIOAuthenticateFn | null>({
+        [SocketIOBindingKeys.AUTHENTICATE_HANDLER]: Binding.bind({
           key: SocketIOBindingKeys.AUTHENTICATE_HANDLER,
         }).toValue(null),
 
-        [SocketIOBindingKeys.VALIDATE_ROOM_HANDLER]: Binding.bind<TSocketIOValidateRoomFn | null>({
+        [SocketIOBindingKeys.VALIDATE_ROOM_HANDLER]: Binding.bind({
           key: SocketIOBindingKeys.VALIDATE_ROOM_HANDLER,
         }).toValue(null),
 
-        [SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER]:
-          Binding.bind<TSocketIOClientConnectedFn | null>({
-            key: SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER,
-          }).toValue(null),
+        [SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER]: Binding.bind({
+          key: SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER,
+        }).toValue(null),
       },
     });
   }
 
   private resolveBindings(): IResolvedBindings {
     const extraServerOptions =
-      this.application.get<Partial<ServerOptions>>({
+      this.application.get({
         key: SocketIOBindingKeys.SERVER_OPTIONS,
         isOptional: true,
       }) ?? {};
     this.serverOptions = Object.assign({}, DEFAULT_SERVER_OPTIONS, extraServerOptions);
 
-    const redisConnection = this.application.get<AbstractRedisHelper>({
+    const redisConnection = this.application.get({
       key: SocketIOBindingKeys.REDIS_CONNECTION,
     });
 
@@ -75,7 +68,7 @@ export class SocketIOComponent extends BaseComponent {
       });
     }
 
-    const authenticateFn = this.application.get<TSocketIOAuthenticateFn>({
+    const authenticateFn = this.application.get({
       key: SocketIOBindingKeys.AUTHENTICATE_HANDLER,
     });
 
@@ -86,12 +79,12 @@ export class SocketIOComponent extends BaseComponent {
     }
 
     const validateRoomFn =
-      this.application.get<TSocketIOValidateRoomFn | null>({
+      this.application.get({
         key: SocketIOBindingKeys.VALIDATE_ROOM_HANDLER,
       }) ?? undefined;
 
     const clientConnectedFn =
-      this.application.get<TSocketIOClientConnectedFn | null>({
+      this.application.get({
         key: SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER,
       }) ?? undefined;
 

@@ -1,6 +1,6 @@
 import { getError } from '../error';
 import { BaseHelper } from '@/common/base-helper';
-import { type TClass, type TConstValue } from '@/common/types';
+import { type TBindingKey, type TClass, type TConstValue } from '@/common/types';
 import type { IContainer } from '../container/common/types';
 import { BindingScopes, BindingValueTypes, type TBindingScope } from './common/constants';
 import {
@@ -38,7 +38,7 @@ export class Binding<T = unknown> extends BaseHelper implements IBinding<T> {
     }
   }
 
-  static override bind<T = unknown>(opts: { key: string }): Binding<T> {
+  static override bind<T = unknown>(opts: { key: TBindingKey<T> & string }): Binding<T> {
     return new Binding<T>(opts);
   }
 

@@ -10,7 +10,6 @@ import { WebSocketBindingKeys, WebSocketComponent } from '@venizia/ignis/websock
 import {
   RedisSingleHelper,
   type TWebSocketAuthenticateFn,
-  type WebSocketServerHelper,
 } from '@venizia/ignis-helpers';
 import appInfo from '../package.json';
 
@@ -44,7 +43,7 @@ export class Application extends BaseApplication {
       password: process.env.APP_ENV_REDIS_PASSWORD ?? '',
       autoConnect: false,
     });
-    this.bind<RedisSingleHelper>({ key: WebSocketBindingKeys.REDIS_CONNECTION }).toValue(
+    this.bind({ key: WebSocketBindingKeys.REDIS_CONNECTION }).toValue(
       this.redisHelper,
     );
 
@@ -64,7 +63,7 @@ export class Application extends BaseApplication {
       return { userId };
     };
 
-    this.bind<TWebSocketAuthenticateFn>({ key: WebSocketBindingKeys.AUTHENTICATE_HANDLER }).toValue(
+    this.bind({ key: WebSocketBindingKeys.AUTHENTICATE_HANDLER }).toValue(
       authenticateFn,
     );
 
@@ -75,7 +74,7 @@ export class Application extends BaseApplication {
     this.registerPostStopHook({
       identifier: 'websocket.shutdown',
       hook: async () => {
-        const webSocketHelper = this.get<WebSocketServerHelper>({
+        const webSocketHelper = this.get({
           key: WebSocketBindingKeys.WEBSOCKET_INSTANCE,
           isOptional: true,
         });

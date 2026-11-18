@@ -7,7 +7,7 @@
  *
  * export const bindServerInfo = (application: BaseApplication) => {
  *   application
- *     .bind<IServerInfoOptions>({ key: ServerInfoBindingKeys.SERVER_INFO_OPTIONS })
+ *     .bind({ key: ServerInfoBindingKeys.SERVER_INFO_OPTIONS })
  *     .toValue({ restOptions: { path: '/clock' } });
  * };
  * ```

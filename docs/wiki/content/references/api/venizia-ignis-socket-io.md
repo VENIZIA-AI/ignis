@@ -17,12 +17,24 @@ Container keys of the Socket.IO component: the server instance, its options, the
 
 ```ts
 export declare class SocketIOBindingKeys {
-    static readonly SOCKET_IO_INSTANCE = "@app/socket-io/instance";
-    static readonly SERVER_OPTIONS = "@app/socket-io/server-options";
-    static readonly REDIS_CONNECTION = "@app/socket-io/redis-connection";
-    static readonly AUTHENTICATE_HANDLER = "@app/socket-io/authenticate-handler";
-    static readonly VALIDATE_ROOM_HANDLER = "@app/socket-io/validate-room-handler";
-    static readonly CLIENT_CONNECTED_HANDLER = "@app/socket-io/client-connected-handler";
+    static readonly SOCKET_IO_INSTANCE: string & {
+        readonly valueType?: ((value: SocketIOServerHelper) => void) | undefined;
+    };
+    static readonly SERVER_OPTIONS: string & {
+        readonly valueType?: ((value: Partial<ServerOptions>) => void) | undefined;
+    };
+    static readonly REDIS_CONNECTION: string & {
+        readonly valueType?: ((value: AbstractRedisHelper<import("@venizia/ignis-helpers").TRedisClient> | null) => void) | undefined;
+    };
+    static readonly AUTHENTICATE_HANDLER: string & {
+        readonly valueType?: ((value: TSocketIOAuthenticateFn | null) => void) | undefined;
+    };
+    static readonly VALIDATE_ROOM_HANDLER: string & {
+        readonly valueType?: ((value: TSocketIOValidateRoomFn | null) => void) | undefined;
+    };
+    static readonly CLIENT_CONNECTED_HANDLER: string & {
+        readonly valueType?: ((value: TSocketIOClientConnectedFn | null) => void) | undefined;
+    };
 }
 ```
 

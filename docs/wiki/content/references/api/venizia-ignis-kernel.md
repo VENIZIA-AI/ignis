@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-362 exports, 362 with TSDoc. 87 more are re-exported from other entries (listed at the end).
+362 exports, 362 with TSDoc. 88 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -280,16 +280,40 @@ Source: `packages/kernel/src/base/auth/authenticate/middlewares/authenticate.mid
 
 *class*
 
-Container binding keys under which the authenticate component stores each strategy's options and the service-certs controller path.
+Container binding keys under which the authenticate component stores each strategy's options and the service-certs
+controller path. Each key names ONE value type. `JWT_OPTIONS` is the one an application binds; the keys marked
+internal are bound by the component from it, and a service injects them.
 
 ```ts
 export declare class AuthenticateBindingKeys {
-    static readonly REST_OPTIONS = "@app/authenticate/rest-options";
-    static readonly JWT_OPTIONS = "@app/authenticate/jwt-options";
-    static readonly JWKS_OPTIONS = "@app/authenticate/jwks-options";
-    static readonly BASIC_OPTIONS = "@app/authenticate/basic-options";
-    static readonly SERVICE_OPTIONS = "@app/authenticate/service-options";
-    static readonly SERVICE_CERTS_PATH = "@app/authenticate/service-certs-path";
+    static readonly REST_OPTIONS: string & {
+        readonly valueType?: ((value: TAuthenticationRestOptions) => void) | undefined;
+    };
+    /** What an application binds for JWT or JWKS: the options with their `standard` (JWS or JWKS). */
+    static readonly JWT_OPTIONS: string & {
+        readonly valueType?: ((value: TJWTTokenServiceOptions) => void) | undefined;
+    };
+    /** Internal. The inner options of a JWS setup, bound by the component from `JWT_OPTIONS` and injected by `JWSTokenService`. */
+    static readonly JWS_OPTIONS: string & {
+        readonly valueType?: ((value: IJWSTokenServiceOptions) => void) | undefined;
+    };
+    /** Internal. The options of a JWKS issuer, bound by the component from `JWT_OPTIONS` and injected by `JWKSIssuerTokenService`. */
+    static readonly JWKS_ISSUER_OPTIONS: string & {
+        readonly valueType?: ((value: IJWKSIssuerOptions) => void) | undefined;
+    };
+    /** Internal. The options of a JWKS verifier, bound by the component from `JWT_OPTIONS` and injected by `JWKSVerifierTokenService`. */
+    static readonly JWKS_VERIFIER_OPTIONS: string & {
+        readonly valueType?: ((value: IJWKSVerifierOptions) => void) | undefined;
+    };
+    static readonly BASIC_OPTIONS: string & {
+        readonly valueType?: ((value: TBasicTokenServiceOptions) => void) | undefined;
+    };
+    static readonly SERVICE_OPTIONS: string & {
+        readonly valueType?: ((value: IServiceAuthOptions<import("hono").Env>) => void) | undefined;
+    };
+    static readonly SERVICE_CERTS_PATH: string & {
+        readonly valueType?: ((value: string) => void) | undefined;
+    };
 }
 ```
 
@@ -1322,9 +1346,14 @@ Container binding keys for the authorize options, the always-allow roles, and (t
 
 ```ts
 export declare class AuthorizeBindingKeys {
-    static readonly OPTIONS = "@app/authorize/options";
-    static readonly ALWAYS_ALLOW_ROLES = "@app/authorize/always-allow-roles";
-    static enforcerOptions(name: string): string;
+    static readonly OPTIONS: string & {
+        readonly valueType?: ((value: IAuthorizeOptions) => void) | undefined;
+    };
+    static readonly ALWAYS_ALLOW_ROLES: string & {
+        readonly valueType?: ((value: string[]) => void) | undefined;
+    };
+    /** The options of the enforcer named `name`; their type is the enforcer's, so the caller names it: `enforcerOptions<ICasbinOptions>(name)`. */
+    static enforcerOptions<T = unknown>(name: string): TBindingKey<T>;
 }
 ```
 
@@ -6202,7 +6231,9 @@ Binding keys of the REST component.
 
 ```ts
 export declare class RestBindingKeys {
-    static readonly REST_COMPONENT_OPTIONS = "@app/rest/options";
+    static readonly REST_COMPONENT_OPTIONS: string & {
+        readonly valueType?: ((value: IRestComponentConfig) => void) | undefined;
+    };
 }
 ```
 
@@ -9299,6 +9330,7 @@ Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`
 - `Sorts` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
 - `Statuses` from [`@venizia/ignis-kernel/statuses`](/references/api/venizia-ignis-kernel-statuses)
 - `TBindingKey` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `TBindingKeyValue` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TBindingNamespace` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `TBindingScope` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TBindingValueType` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)

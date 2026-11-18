@@ -98,7 +98,7 @@ export abstract class BaseContainer extends AbstractContainer {
     return keyStr;
   }
 
-  override bind<T>(opts: { key: TBindingKey }): Binding<T> {
+  override bind<T>(opts: { key: TBindingKey<T> }): Binding<T> {
     const { key } = opts;
     const keyStr = typeof key === 'symbol' ? this.bindSymbolKey({ key }) : key;
     const binding = new Binding<T>({ key: keyStr });
@@ -114,7 +114,7 @@ export abstract class BaseContainer extends AbstractContainer {
   }
 
   override getBinding<T>(opts: {
-    key: TBindingKey | { namespace: string; key: string };
+    key: TBindingKey<T> | { namespace: string; key: string };
   }): TNullable<Binding<T>> {
     const keyStr = this.toKeyString({ key: opts.key });
 
@@ -138,15 +138,15 @@ export abstract class BaseContainer extends AbstractContainer {
   }
 
   override get<T>(opts: {
-    key: TBindingKey | { namespace: string; key: string };
+    key: TBindingKey<T> | { namespace: string; key: string };
     isOptional?: false;
   }): T;
   override get<T>(opts: {
-    key: TBindingKey | { namespace: string; key: string };
+    key: TBindingKey<T> | { namespace: string; key: string };
     isOptional?: boolean;
   }): T | undefined;
   override get<T>(opts: {
-    key: TBindingKey | { namespace: string; key: string };
+    key: TBindingKey<T> | { namespace: string; key: string };
     isOptional?: boolean;
   }): T | undefined {
     const { key, isOptional = false } = opts;
@@ -205,7 +205,7 @@ export abstract class BaseContainer extends AbstractContainer {
   override gets<T extends unknown[]>(opts: {
     bindings: {
       [K in keyof T]: {
-        key: TBindingKey | { namespace: string; key: string };
+        key: TBindingKey<T[K]> | { namespace: string; key: string };
         isOptional?: boolean;
       };
     };
