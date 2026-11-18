@@ -4,9 +4,9 @@ import {
   AuthenticateBindingKeys,
   type IJWTTokenPayload,
   inject,
+  type TBindingKeyValue,
   type TGetTokenExpiresFn,
 } from '@venizia/ignis-kernel';
-import { type TBindingKeyValue } from '@venizia/ignis-inversion';
 import { type Env } from 'hono';
 import type { createRemoteJWKSet, SignJWT } from 'jose';
 import { JoseLoader } from '../../jose-loader';

@@ -47,6 +47,6 @@ export class BindingKeys {
 
     keyParts.push(key);
 
-    return keyParts.join('.') as TBindingKey<T> & string;
+    return keyParts.join('.');
   }
 }

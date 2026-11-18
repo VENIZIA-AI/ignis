@@ -1,11 +1,17 @@
 /**
- * The framework's own keys are typed (#1242) and every key string is exactly what it was: an application, a test or a
- * custom service binds and injects them by string. The `@ts-expect-error` lines pin the types.
+ * The framework's own keys are typed and every key string is exactly what it was: an application, a test or a custom
+ * service binds and injects them by string. The `@ts-expect-error` lines pin the types.
  */
 
 import { describe, expect, test } from 'bun:test';
 import { AuthenticateBindingKeys } from '@/base/auth/authenticate/common/keys';
-import { JOSEStandards } from '@/base/auth/authenticate/common/constants';
+import {
+  JOSEStandards,
+  JWKSAlgorithms,
+  JWKSKeyDrivers,
+  JWKSKeyFormats,
+  JWKSModes,
+} from '@/base/auth/authenticate/common/constants';
 import { AuthorizeBindingKeys } from '@/base/auth/authorize/common/constants/binding-keys';
 import { RestBindingKeys } from '@/base/components/controller/rest/common/types';
 import { Container } from '@/helpers/inversion';
@@ -33,6 +39,36 @@ describe('the kernel binding keys keep their strings', () => {
   });
 });
 
+const claims = { issuer: 'identity', audience: 'inventory' };
+const jwsOptions: IJWSTokenServiceOptions = {
+  jwtSecret: 'a-secret-of-at-least-thirty-two-bytes',
+  getTokenExpiresFn: () => 60,
+  claims,
+};
+const issuerOptions: IJWKSIssuerOptions = {
+  mode: JWKSModes.ISSUER,
+  algorithm: JWKSAlgorithms.ES256,
+  keys: {
+    driver: JWKSKeyDrivers.TEXT,
+    format: JWKSKeyFormats.PEM,
+    private: 'private',
+    public: 'public',
+  },
+  kid: 'key-1',
+  getTokenExpiresFn: () => 60,
+  claims,
+};
+const verifierOptions: IJWKSVerifierOptions = {
+  mode: JWKSModes.VERIFIER,
+  jwksUrl: 'https://identity.example.com/certs',
+  claims,
+  verify: { algorithms: [JWKSAlgorithms.ES256] },
+};
+const wrapperOptions: TJWTTokenServiceOptions = {
+  standard: JOSEStandards.JWS,
+  options: jwsOptions,
+};
+
 describe('the JWT keys each name one type', () => {
   test('the app-bound key is the wrapper; the internal keys are the inner options, under new strings', () => {
     expect(AuthenticateBindingKeys.JWS_OPTIONS).toBe('@app/authenticate/jws-options');
@@ -48,19 +84,10 @@ describe('the JWT keys each name one type', () => {
   test('each key reads and checks its own type', () => {
     const container = new Container();
 
-    container.bind({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
-      standard: JOSEStandards.JWS,
-      options: {} as IJWSTokenServiceOptions,
-    } as TJWTTokenServiceOptions);
-    container
-      .bind({ key: AuthenticateBindingKeys.JWS_OPTIONS })
-      .toValue({} as IJWSTokenServiceOptions);
-    container
-      .bind({ key: AuthenticateBindingKeys.JWKS_ISSUER_OPTIONS })
-      .toValue({} as IJWKSIssuerOptions);
-    container
-      .bind({ key: AuthenticateBindingKeys.JWKS_VERIFIER_OPTIONS })
-      .toValue({} as IJWKSVerifierOptions);
+    container.bind({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue(wrapperOptions);
+    container.bind({ key: AuthenticateBindingKeys.JWS_OPTIONS }).toValue(jwsOptions);
+    container.bind({ key: AuthenticateBindingKeys.JWKS_ISSUER_OPTIONS }).toValue(issuerOptions);
+    container.bind({ key: AuthenticateBindingKeys.JWKS_VERIFIER_OPTIONS }).toValue(verifierOptions);
 
     const wrapper: TJWTTokenServiceOptions = container.get({
       key: AuthenticateBindingKeys.JWT_OPTIONS,
@@ -74,12 +101,12 @@ describe('the JWT keys each name one type', () => {
       key: AuthenticateBindingKeys.JWKS_ISSUER_OPTIONS,
     });
     // @ts-expect-error the inner options are not the wrapper
-    wrapperBinding.toValue({} as IJWSTokenServiceOptions);
+    wrapperBinding.toValue(jwsOptions);
     // @ts-expect-error a verifier's options are not an issuer's
-    issuerBinding.toValue({} as IJWKSVerifierOptions);
+    issuerBinding.toValue(verifierOptions);
 
-    expect(wrapper).toBeDefined();
-    expect(inner).toBeDefined();
+    expect(wrapper).toBe(wrapperOptions);
+    expect(inner).toBe(jwsOptions);
   });
 });
 

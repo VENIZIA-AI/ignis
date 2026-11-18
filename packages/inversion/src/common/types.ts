@@ -29,21 +29,14 @@ export type TInjectTarget = TValueOrResolver<TClass<unknown>>;
 export type TConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string | number> & {};
 
 /**
- * Identifier for a binding: a string or a symbol that also names the type of the value bound under it. The type is a
- * brand and exists at compile time only; at run time a key is the plain string or symbol.
- *
- * `bind`, `get`, `getBinding` and `gets` read `T` from the key, so `container.get({ key })` is typed with no generic. A
- * plain `string` or `symbol` is a `TBindingKey<unknown>`, and an explicit generic works as it always did. The brand is
- * bivariant: a claim that is a subtype or a supertype of the key's type is accepted, an unrelated one is a type error.
+ * A binding key: a `string | symbol` branded with the type of the value bound under it (compile time only). Typed keys
+ * make `bind`, `get`, `getBinding` and `gets` infer `T`; a plain key is `TBindingKey<unknown>`. Bivariant.
  */
 export type TBindingKey<T = unknown> = (string | symbol) & {
   readonly valueType?: { bivarianceHack(value: T): void }['bivarianceHack'];
 };
 
-/**
- * The value type a key names: `TBindingKeyValue<typeof MAILER>` is `IMailer`, and a plain string is `unknown`. Use it to
- * annotate an `@inject` parameter, which nothing else checks against the key.
- */
+/** The value type a key names (`unknown` for a plain key): annotates an `@inject` parameter, which nothing checks. */
 export type TBindingKeyValue<K> = K extends { readonly valueType?: (value: infer V) => void }
   ? V
   : unknown;

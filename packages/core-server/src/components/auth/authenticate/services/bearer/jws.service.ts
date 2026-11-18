@@ -5,9 +5,9 @@ import {
   type IJWTIssueClaims,
   type IJWTTokenPayload,
   inject,
+  type TBindingKeyValue,
   type TGetTokenExpiresFn,
 } from '@venizia/ignis-kernel';
-import { type TBindingKeyValue } from '@venizia/ignis-inversion';
 import { type Env } from 'hono';
 import { JoseLoader } from '../jose-loader';
 import { AbstractBearerTokenService } from './abstract.service';

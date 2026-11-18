@@ -43,7 +43,7 @@ Inside `base/auth`, the providers and registries reach each other by **leaf impo
 
 `AuthenticateComponent` reads its configuration from bindings, not constructor arguments: `AuthenticateBindingKeys.JWT_OPTIONS`, `BASIC_OPTIONS`, `SERVICE_OPTIONS`, `REST_OPTIONS`. There are three independent branches - jwt, basic, service - and `binding()` throws only when all three are absent. Service options alone are a valid application: one that verifies incoming service calls and consumes no user token at all.
 
-Each key names ONE type: `JWT_OPTIONS` is the wrapper an application binds (`TJWTTokenServiceOptions`), and the component binds its inner options to `JWS_OPTIONS`, `JWKS_ISSUER_OPTIONS` or `JWKS_VERIFIER_OPTIONS`, which the token services inject. The earlier shared `JWKS_OPTIONS` and the re-binding of `JWT_OPTIONS` are gone.
+Each key names ONE type: `JWT_OPTIONS` is the wrapper an application binds (`TJWTTokenServiceOptions`), and the component binds its inner options to `JWS_OPTIONS`, `JWKS_ISSUER_OPTIONS` or `JWKS_VERIFIER_OPTIONS`, which the token services inject.
 
 The JWT branch is discriminated by `JOSEStandards`:
 

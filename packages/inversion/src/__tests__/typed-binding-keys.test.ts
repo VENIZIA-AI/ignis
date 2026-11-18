@@ -1,7 +1,6 @@
 /**
- * A key names the type of the value bound under it (#1242). The runtime half is plain: a key is still a string. The
- * type half is pinned by `@ts-expect-error` lines, which `make typecheck` fails when the error they expect stops
- * happening, so a loosened signature cannot pass quietly.
+ * A key names the type of the value bound under it. The runtime half is plain: a key is still a string. The type half
+ * is pinned by `@ts-expect-error` lines, which `make typecheck` fails when the error they expect stops happening.
  */
 
 import { describe, expect, test } from 'bun:test';
@@ -149,6 +148,34 @@ describe('a plain key still works, and an explicit generic is a claim checked ag
 
     expect(accepts(MAILER)).toBe(MAILER);
     expect(isBound).toBe(false);
+  });
+});
+
+describe('a key that is not one typed key', () => {
+  test('a union of typed keys resolves to unknown, as a plain key does, and still binds and gets', () => {
+    const container = new Container();
+    const key = Math.random() < 2 ? MAILER : LABEL;
+
+    container.bind({ key }).toValue(mailer);
+
+    const value: unknown = container.get({ key });
+    const optional: unknown = container.get({ key, isOptional: true });
+    const binding = container.getBinding({ key });
+
+    expect(value).toBe(mailer);
+    expect(optional).toBe(mailer);
+    expect(binding?.key).toBe('services.Mailer');
+  });
+
+  test('the unknown fallback takes no generic, so an unrelated claim is still refused', () => {
+    const container = new Container();
+    const key = Math.random() < 2 ? MAILER : LABEL;
+
+    // @ts-expect-error the fallback is not generic: a union key takes no claim
+    container.get<IMailer>({ key, isOptional: true });
+    // @ts-expect-error an unrelated claim on a single typed key is still refused
+    container.get<number>({ key: MAILER, isOptional: true });
+    expect(container.isBound({ key })).toBe(false);
   });
 });
 

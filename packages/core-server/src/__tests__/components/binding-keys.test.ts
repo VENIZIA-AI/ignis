@@ -1,6 +1,6 @@
 /**
- * Every component key of core-server keeps its string and is typed (#1242). The strings are what an application binds
- * and injects, so a changed one is a break; the `@ts-expect-error` lines pin the value types.
+ * Every component key of core-server keeps its string and is typed. The strings are what an application binds and
+ * injects, so a changed one is a break; the `@ts-expect-error` lines pin the value types.
  */
 
 import { describe, expect, test } from 'bun:test';

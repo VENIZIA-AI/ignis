@@ -152,6 +152,8 @@ const resolved = container.get({ key: MAILER }); // IMailer, no generic
 
 A plain `string` or `symbol` still works and gives `unknown`, or the generic you pass. A generic you pass is checked against the key: a type that is a subtype or a supertype of the key's type is accepted, an unrelated one (`get<number>({ key: MAILER })`) does not compile. The type exists at compile time only; a key is the plain string at run time.
 
+A key that is not one typed key - a union such as `cond ? MAILER : LABEL`, or a variable typed `TBindingKey` - resolves to `unknown`, like a plain key. It takes no generic: `get<IMailer>({ key })` on it does not compile. Narrow the key first, or cast the result.
+
 `TBindingKeyValue<typeof MAILER>` names the type, for an annotation that should follow the key. Use it on an `@inject` parameter, because nothing else checks that one:
 
 ```typescript

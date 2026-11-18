@@ -5,7 +5,6 @@ export interface IRestComponentConfig {}
 
 /** Binding keys of the REST component. */
 export class RestBindingKeys {
-  static readonly REST_COMPONENT_OPTIONS = BindingKeys.build<IRestComponentConfig>({
-    key: '@app/rest/options',
-  });
+  /** Untyped on purpose: `IRestComponentConfig` has no fields, so a type would check nothing. */
+  static readonly REST_COMPONENT_OPTIONS = BindingKeys.build({ key: '@app/rest/options' });
 }

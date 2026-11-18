@@ -8,9 +8,9 @@ import {
   inject,
   JWKSKeyDrivers,
   JWKSKeyFormats,
+  type TBindingKeyValue,
   type TGetTokenExpiresFn,
 } from '@venizia/ignis-kernel';
-import { type TBindingKeyValue } from '@venizia/ignis-inversion';
 import { type Env } from 'hono';
 import type { CryptoKey, JWK } from 'jose';
 import { readFile } from 'node:fs/promises';

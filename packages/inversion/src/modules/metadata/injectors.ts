@@ -9,11 +9,8 @@ export type TInjectOptions = {
 } & ({ key: TBindingKey; target?: never } | { target: TInjectTarget; key?: never });
 
 /**
- * Marks a property or constructor parameter for dependency injection.
- *
- * `key` takes a typed key, but the decorated parameter or property is NOT checked against its type: a parameter
- * decorator is handed no parameter type, and a property check would reject every `protected` or `private` field. Annotate
- * from the key so the two cannot drift: `options: TBindingKeyValue<typeof Keys.OPTIONS>`.
+ * Marks a property or constructor parameter for dependency injection. The decorated parameter is NOT checked against a
+ * typed `key`; annotate it `TBindingKeyValue<typeof Key>` so the two cannot drift.
  */
 export const inject = (opts: TInjectOptions) => {
   const { key, target: injected } = opts;

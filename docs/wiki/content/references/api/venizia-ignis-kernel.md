@@ -6231,8 +6231,9 @@ Binding keys of the REST component.
 
 ```ts
 export declare class RestBindingKeys {
+    /** Untyped on purpose: `IRestComponentConfig` has no fields, so a type would check nothing. */
     static readonly REST_COMPONENT_OPTIONS: string & {
-        readonly valueType?: ((value: IRestComponentConfig) => void) | undefined;
+        readonly valueType?: ((value: unknown) => void) | undefined;
     };
 }
 ```
