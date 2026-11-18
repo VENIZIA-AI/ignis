@@ -28,8 +28,18 @@ export type TInjectTarget = TValueOrResolver<TClass<unknown>>;
 /** `& {}` keeps the literal set but stops it widening to `string` / `number` in mutable positions; see `TConstValue` in `@venizia/ignis-helpers`. */
 export type TConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string | number> & {};
 
-/** Identifier for a binding: a string or a symbol. */
-export type TBindingKey = string | symbol;
+/**
+ * A binding key: a `string | symbol` branded with the type of the value bound under it (compile time only). Typed keys
+ * make `bind`, `get`, `getBinding` and `gets` infer `T`; a plain key is `TBindingKey<unknown>`. Bivariant.
+ */
+export type TBindingKey<T = unknown> = (string | symbol) & {
+  readonly valueType?: { bivarianceHack(value: T): void }['bivarianceHack'];
+};
+
+/** The value type a key names (`unknown` for a plain key): annotates an `@inject` parameter, which nothing checks. */
+export type TBindingKeyValue<K> = K extends { readonly valueType?: (value: infer V) => void }
+  ? V
+  : unknown;
 
 /** Free-form map of tag names to values. */
 export interface IBindingTag {

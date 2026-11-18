@@ -49,7 +49,7 @@ export class ChatController extends BaseRestController {
   // constructor.
   private get socketIO(): SocketIOServerHelper {
     this._socketIO ??=
-      this.application.get<SocketIOServerHelper>({
+      this.application.get({
         key: SocketIOBindingKeys.SOCKET_IO_INSTANCE,
         isOptional: true,
       }) ?? null;

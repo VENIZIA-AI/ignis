@@ -32,7 +32,7 @@ export class ServiceAuthenticationStrategy<E extends Env = Env>
 
   constructor(
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<ServiceAssertionVerifierService>({
         namespace: BindingNamespaces.SERVICE,
         key: ServiceAssertionVerifierService.name,
       }),

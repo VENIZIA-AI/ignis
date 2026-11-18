@@ -153,8 +153,8 @@ Bearer token service hierarchy:
 
 | Method | Purpose |
 |--------|---------|
-| `defineJWSAuth(opts)` | Validates the options, binds them to `JWT_OPTIONS`, registers `JWSTokenService` |
-| `defineJWKSAuth(opts)` | Switches on `mode`, validates, binds to `JWKS_OPTIONS`, registers the JWKS services |
+| `defineJWSAuth(opts)` | Validates the options, binds them to `JWS_OPTIONS`, registers `JWSTokenService` |
+| `defineJWKSAuth(opts)` | Switches on `mode`, validates, binds to `JWKS_ISSUER_OPTIONS` or `JWKS_VERIFIER_OPTIONS`, registers the JWKS services |
 | `defineServiceAuth(opts)` | Registers the verifier and the `service` strategy; does nothing without options |
 | `defineBasicAuth(opts)` | Validates `verifyCredentials` presence, registers `BasicTokenService`. Skips (debug log) if `basicOptions` not bound |
 | `defineControllers(opts)` | Builds and registers the auth controller with `AuthControllerFactory.build()` |
@@ -170,7 +170,7 @@ Details per method:
 - `defineControllers` requires `jwtOptions` when `useAuthController: true`.
 
 > [!NOTE]
-> The component reads the discriminated union from `JWT_OPTIONS`. It then re-binds only the inner options object - `IJWSTokenServiceOptions`, or `IJWKSIssuerOptions`/`IJWKSVerifierOptions` - to `JWKS_OPTIONS` or back to `JWT_OPTIONS`. The token service resolves it with a plain `@inject`.
+> The component reads the discriminated union from `JWT_OPTIONS`. It then binds the inner options object to a key of its own: `JWS_OPTIONS` for `IJWSTokenServiceOptions`, `JWKS_ISSUER_OPTIONS` for `IJWKSIssuerOptions`, `JWKS_VERIFIER_OPTIONS` for `IJWKSVerifierOptions`. The token service resolves its key with a plain `@inject`. Each key names one type.
 
 ## Binding keys
 
@@ -178,7 +178,9 @@ Details per method:
 |----------|-----------|------|----------|---------|
 | `AuthenticateBindingKeys.REST_OPTIONS` | `@app/authenticate/rest-options` | `TAuthenticationRestOptions` | No | <code v-pre>{ useAuthController: false }</code> |
 | `AuthenticateBindingKeys.JWT_OPTIONS` | `@app/authenticate/jwt-options` | `TJWTTokenServiceOptions` | Conditional | -- |
-| `AuthenticateBindingKeys.JWKS_OPTIONS` | `@app/authenticate/jwks-options` | `IJWKSIssuerOptions \| IJWKSVerifierOptions` | Internal | Bound by the component from `JWT_OPTIONS` |
+| `AuthenticateBindingKeys.JWS_OPTIONS` | `@app/authenticate/jws-options` | `IJWSTokenServiceOptions` | Internal | Bound by the component from `JWT_OPTIONS` |
+| `AuthenticateBindingKeys.JWKS_ISSUER_OPTIONS` | `@app/authenticate/jwks-issuer-options` | `IJWKSIssuerOptions` | Internal | Bound by the component from `JWT_OPTIONS` |
+| `AuthenticateBindingKeys.JWKS_VERIFIER_OPTIONS` | `@app/authenticate/jwks-verifier-options` | `IJWKSVerifierOptions` | Internal | Bound by the component from `JWT_OPTIONS` |
 | `AuthenticateBindingKeys.BASIC_OPTIONS` | `@app/authenticate/basic-options` | `TBasicTokenServiceOptions` | Conditional | -- |
 | `AuthenticateBindingKeys.SERVICE_OPTIONS` | `@app/authenticate/service-options` | `IServiceAuthOptions` | Conditional | -- |
 | `AuthenticateBindingKeys.SERVICE_CERTS_PATH` | `@app/authenticate/service-certs-path` | `string` | Internal | Bound by the component from `serviceOptions.rest.path` |

@@ -7,7 +7,6 @@ import { HealthCheckController } from './controller';
 import { HealthCheckReporter } from './reporter';
 import { Environment } from '@venizia/ignis-helpers';
 import { Binding } from '@venizia/ignis-kernel';
-import type { IApplicationInfo } from '@venizia/ignis-kernel';
 
 const DEFAULT_REST_PATH = '/health';
 const DEFAULT_OPTIONS: IHealthCheckOptions = {
@@ -37,7 +36,7 @@ export class HealthCheckComponent extends BaseComponent<IHealthCheckOptions> {
       scope: HealthCheckComponent.name,
       initDefault: { enable: true, container: application },
       bindings: {
-        [HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS]: Binding.bind<IHealthCheckOptions>({
+        [HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS]: Binding.bind({
           key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS,
         }).toValue(DEFAULT_OPTIONS),
       },
@@ -57,16 +56,14 @@ export class HealthCheckComponent extends BaseComponent<IHealthCheckOptions> {
     }
 
     if (opts !== undefined) {
-      this.application
-        .bind<IHealthCheckOptions>({ key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS })
-        .toValue(opts);
+      this.application.bind({ key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS }).toValue(opts);
     }
 
     await super.configure(opts);
   }
 
   override async binding(): Promise<void> {
-    const healthOptions = this.application.get<IHealthCheckOptions>({
+    const healthOptions = this.application.get({
       key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS,
       isOptional: true,
     });
@@ -89,7 +86,7 @@ export class HealthCheckComponent extends BaseComponent<IHealthCheckOptions> {
 
     // `getAppInfo()` is async while the container builds the controller synchronously, so the
     // resolved value is bound here rather than resolved inside the controller.
-    const binding = this.application.bind<IApplicationInfo>({
+    const binding = this.application.bind({
       key: HealthCheckBindingKeys.APPLICATION_INFO,
     });
     const appInfo = await this.application.getAppInfo();

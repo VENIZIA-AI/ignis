@@ -171,12 +171,18 @@ describe('the policy and commit service bindings', () => {
     expect(policyService).toBeInstanceOf(StaticAssetUploadPolicyService);
     expect(commitService).toBeInstanceOf(StaticAssetUploadCommitService);
 
-    for (const key of [
-      StaticAssetBindingKeys.policyService({ name: 'plain' }),
-      StaticAssetBindingKeys.commitService({ name: 'plain' }),
-    ]) {
-      expect(application.get({ key, isOptional: true })).toBeUndefined();
-    }
+    expect(
+      application.get({
+        key: StaticAssetBindingKeys.policyService({ name: 'plain' }),
+        isOptional: true,
+      }),
+    ).toBeUndefined();
+    expect(
+      application.get({
+        key: StaticAssetBindingKeys.commitService({ name: 'plain' }),
+        isOptional: true,
+      }),
+    ).toBeUndefined();
   });
 });
 

@@ -1,4 +1,5 @@
 import type { IConnectRpcModule } from '@/base/controllers/grpc/common/types';
+import { BindingKeys } from '@venizia/ignis-inversion';
 
 // Re-exported so an application can name the type without reaching into the base barrel.
 export type { IConnectRpcModule };
@@ -12,5 +13,7 @@ export interface IGrpcComponentConfig {
 
 /** Container keys of the gRPC component. */
 export class GrpcBindingKeys {
-  static readonly GRPC_COMPONENT_OPTIONS = '@app/grpc/options';
+  static readonly GRPC_COMPONENT_OPTIONS = BindingKeys.build<IGrpcComponentConfig>({
+    key: '@app/grpc/options',
+  });
 }

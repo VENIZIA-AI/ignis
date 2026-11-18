@@ -37,7 +37,7 @@ export class ServerInfoComponent extends BaseComponent<IServerInfoOptions> {
       scope: ServerInfoComponent.name,
       initDefault: { enable: true, container: application },
       bindings: {
-        [ServerInfoBindingKeys.SERVER_INFO_OPTIONS]: Binding.bind<IServerInfoOptions>({
+        [ServerInfoBindingKeys.SERVER_INFO_OPTIONS]: Binding.bind({
           key: ServerInfoBindingKeys.SERVER_INFO_OPTIONS,
         }).toValue(DEFAULT_OPTIONS),
       },
@@ -53,16 +53,14 @@ export class ServerInfoComponent extends BaseComponent<IServerInfoOptions> {
     }
 
     if (opts !== undefined) {
-      this.application
-        .bind<IServerInfoOptions>({ key: ServerInfoBindingKeys.SERVER_INFO_OPTIONS })
-        .toValue(opts);
+      this.application.bind({ key: ServerInfoBindingKeys.SERVER_INFO_OPTIONS }).toValue(opts);
     }
 
     await super.configure(opts);
   }
 
   override binding(): void {
-    const options = this.application.get<IServerInfoOptions>({
+    const options = this.application.get({
       key: ServerInfoBindingKeys.SERVER_INFO_OPTIONS,
       isOptional: true,
     });

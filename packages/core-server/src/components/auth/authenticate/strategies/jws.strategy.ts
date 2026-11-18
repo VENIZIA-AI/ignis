@@ -22,7 +22,7 @@ export class JWSAuthenticationStrategy<E extends Env = Env>
 
   constructor(
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<JWSTokenService>({
         namespace: BindingNamespaces.SERVICE,
         key: JWSTokenService.name,
       }),

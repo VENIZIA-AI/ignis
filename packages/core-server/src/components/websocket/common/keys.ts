@@ -1,15 +1,57 @@
+import { BindingKeys } from '@venizia/ignis-inversion';
+import type {
+  AbstractRedisHelper,
+  TWebSocketAuthenticateFn,
+  TWebSocketClientConnectedFn,
+  TWebSocketClientDisconnectedFn,
+  TWebSocketHandshakeFn,
+  TWebSocketMessageHandler,
+  TWebSocketOutboundTransformer,
+  TWebSocketValidateRoomFn,
+  WebSocketServerHelper,
+} from '@venizia/ignis-helpers';
+import type { IServerOptions } from './types';
+
 /** Container keys of the WebSocket component: the server instance, its options, the Redis connection and the handlers an application binds. */
 export class WebSocketBindingKeys {
-  static readonly WEBSOCKET_INSTANCE = '@app/websocket/instance';
+  static readonly WEBSOCKET_INSTANCE = BindingKeys.build<WebSocketServerHelper>({
+    key: '@app/websocket/instance',
+  });
 
-  static readonly SERVER_OPTIONS = '@app/websocket/server-options';
-  static readonly REDIS_CONNECTION = '@app/websocket/redis-connection';
+  static readonly SERVER_OPTIONS = BindingKeys.build<Partial<IServerOptions>>({
+    key: '@app/websocket/server-options',
+  });
 
-  static readonly AUTHENTICATE_HANDLER = '@app/websocket/authenticate-handler';
-  static readonly VALIDATE_ROOM_HANDLER = '@app/websocket/validate-room-handler';
-  static readonly CLIENT_CONNECTED_HANDLER = '@app/websocket/client-connected-handler';
-  static readonly CLIENT_DISCONNECTED_HANDLER = '@app/websocket/client-disconnected-handler';
-  static readonly MESSAGE_HANDLER = '@app/websocket/message-handler';
-  static readonly OUTBOUND_TRANSFORMER = '@app/websocket/outbound-transformer';
-  static readonly HANDSHAKE_HANDLER = '@app/websocket/handshake-handler';
+  static readonly REDIS_CONNECTION = BindingKeys.build<AbstractRedisHelper | null>({
+    key: '@app/websocket/redis-connection',
+  });
+
+  static readonly AUTHENTICATE_HANDLER = BindingKeys.build<TWebSocketAuthenticateFn | null>({
+    key: '@app/websocket/authenticate-handler',
+  });
+
+  static readonly VALIDATE_ROOM_HANDLER = BindingKeys.build<TWebSocketValidateRoomFn | null>({
+    key: '@app/websocket/validate-room-handler',
+  });
+
+  static readonly CLIENT_CONNECTED_HANDLER = BindingKeys.build<TWebSocketClientConnectedFn | null>({
+    key: '@app/websocket/client-connected-handler',
+  });
+
+  static readonly CLIENT_DISCONNECTED_HANDLER =
+    BindingKeys.build<TWebSocketClientDisconnectedFn | null>({
+      key: '@app/websocket/client-disconnected-handler',
+    });
+
+  static readonly MESSAGE_HANDLER = BindingKeys.build<TWebSocketMessageHandler | null>({
+    key: '@app/websocket/message-handler',
+  });
+
+  static readonly OUTBOUND_TRANSFORMER = BindingKeys.build<TWebSocketOutboundTransformer | null>({
+    key: '@app/websocket/outbound-transformer',
+  });
+
+  static readonly HANDSHAKE_HANDLER = BindingKeys.build<TWebSocketHandshakeFn | null>({
+    key: '@app/websocket/handshake-handler',
+  });
 }

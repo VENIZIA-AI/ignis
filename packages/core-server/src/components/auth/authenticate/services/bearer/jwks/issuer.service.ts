@@ -8,6 +8,7 @@ import {
   inject,
   JWKSKeyDrivers,
   JWKSKeyFormats,
+  type TBindingKeyValue,
   type TGetTokenExpiresFn,
 } from '@venizia/ignis-kernel';
 import { type Env } from 'hono';
@@ -23,8 +24,8 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
   protected jwks: { keys: JWK[] } | null = null;
 
   constructor(
-    @inject({ key: AuthenticateBindingKeys.JWKS_OPTIONS })
-    protected options: IJWKSIssuerOptions,
+    @inject({ key: AuthenticateBindingKeys.JWKS_ISSUER_OPTIONS })
+    protected options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWKS_ISSUER_OPTIONS>,
   ) {
     super({ scope: JWKSIssuerTokenService.name });
 

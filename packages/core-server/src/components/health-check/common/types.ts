@@ -9,7 +9,7 @@ import type { IBuildInfo } from '@venizia/ignis-helpers/core';
  *
  * export const bindHealth = (application: BaseApplication) => {
  *   application
- *     .bind<IHealthCheckOptions>({ key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS })
+ *     .bind({ key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS })
  *     .toValue({ restOptions: { path: '/status' }, stats: { secretKey: 'change-me' } });
  * };
  * ```

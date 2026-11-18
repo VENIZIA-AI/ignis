@@ -2,10 +2,10 @@ import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import {
   AuthenticateBindingKeys,
-  type IJWSTokenServiceOptions,
   type IJWTIssueClaims,
   type IJWTTokenPayload,
   inject,
+  type TBindingKeyValue,
   type TGetTokenExpiresFn,
 } from '@venizia/ignis-kernel';
 import { type Env } from 'hono';
@@ -38,8 +38,8 @@ export class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenSer
   }
 
   constructor(
-    @inject({ key: AuthenticateBindingKeys.JWT_OPTIONS })
-    protected options: IJWSTokenServiceOptions,
+    @inject({ key: AuthenticateBindingKeys.JWS_OPTIONS })
+    protected options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWS_OPTIONS>,
   ) {
     super({ scope: JWSTokenService.name });
 

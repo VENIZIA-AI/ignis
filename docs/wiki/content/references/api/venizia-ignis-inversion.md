@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-inversion, from the built declarati
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-71 exports, 71 with TSDoc.
+72 exports, 72 with TSDoc.
 
 ## `AbstractContainer`
 
@@ -22,17 +22,26 @@ export declare abstract class AbstractContainer extends BaseHelper implements IC
     });
     abstract getMetadataRegistry(): MetadataRegistry;
     abstract bind<T>(opts: {
-        key: TBindingKey;
+        key: TBindingKey<T>;
     }): IBinding<T>;
+    abstract bind(opts: {
+        key: TBindingKey;
+    }): IBinding;
     abstract isBound(opts: {
         key: TBindingKey;
     }): boolean;
     abstract getBinding<T>(opts: {
-        key: TBindingKey | {
+        key: TBindingKey<T> | {
             namespace: string;
             key: string;
         };
     }): TNullable<IBinding<T>>;
+    abstract getBinding(opts: {
+        key: TBindingKey | {
+            namespace: string;
+            key: string;
+        };
+    }): TNullable<IBinding>;
     abstract unbind(opts: {
         key: TBindingKey;
     }): boolean;
@@ -40,23 +49,30 @@ export declare abstract class AbstractContainer extends BaseHelper implements IC
         binding: IBinding<T>;
     }): void;
     abstract get<T>(opts: {
-        key: TBindingKey | {
+        key: TBindingKey<T> | {
             namespace: string;
             key: string;
         };
         isOptional?: false;
     }): T;
     abstract get<T>(opts: {
-        key: TBindingKey | {
+        key: TBindingKey<T> | {
             namespace: string;
             key: string;
         };
         isOptional?: boolean;
     }): T | undefined;
+    abstract get(opts: {
+        key: TBindingKey | {
+            namespace: string;
+            key: string;
+        };
+        isOptional?: boolean;
+    }): unknown;
     abstract gets<T extends unknown[]>(opts: {
         bindings: {
             [K in keyof T]: {
-                key: TBindingKey | {
+                key: TBindingKey<T[K]> | {
                     namespace: string;
                     key: string;
                 };
@@ -192,17 +208,26 @@ export declare abstract class BaseContainer extends AbstractContainer {
         key: symbol;
     }): string;
     bind<T>(opts: {
-        key: TBindingKey;
+        key: TBindingKey<T>;
     }): Binding<T>;
+    bind(opts: {
+        key: TBindingKey;
+    }): Binding;
     isBound(opts: {
         key: TBindingKey;
     }): boolean;
     getBinding<T>(opts: {
-        key: TBindingKey | {
+        key: TBindingKey<T> | {
             namespace: string;
             key: string;
         };
     }): TNullable<Binding<T>>;
+    getBinding(opts: {
+        key: TBindingKey | {
+            namespace: string;
+            key: string;
+        };
+    }): TNullable<Binding>;
     unbind(opts: {
         key: TBindingKey;
     }): boolean;
@@ -210,23 +235,30 @@ export declare abstract class BaseContainer extends AbstractContainer {
         binding: Binding<T>;
     }): void;
     get<T>(opts: {
-        key: TBindingKey | {
+        key: TBindingKey<T> | {
             namespace: string;
             key: string;
         };
         isOptional?: false;
     }): T;
     get<T>(opts: {
-        key: TBindingKey | {
+        key: TBindingKey<T> | {
             namespace: string;
             key: string;
         };
         isOptional?: boolean;
     }): T | undefined;
+    get(opts: {
+        key: TBindingKey | {
+            namespace: string;
+            key: string;
+        };
+        isOptional?: boolean;
+    }): unknown;
     gets<T extends unknown[]>(opts: {
         bindings: {
             [K in keyof T]: {
-                key: TBindingKey | {
+                key: TBindingKey<T[K]> | {
                     namespace: string;
                     key: string;
                 };
@@ -292,7 +324,7 @@ export declare class Binding<T = unknown> extends BaseHelper implements IBinding
         key: string;
     });
     static bind<T = unknown>(opts: {
-        key: string;
+        key: TBindingKey<T> & string;
     }): Binding<T>;
     toClass(value: TClass<T>): this;
     toValue(value: T): this;
@@ -322,14 +354,25 @@ Source: `packages/inversion/src/modules/binding/binding.ts`
 
 Helpers for building binding keys.
 
-```ts
+````ts
 export declare class BindingKeys {
-    static build(opts: {
-        namespace: string;
+    /**
+     * Builds a binding key: `<namespace>.<key>`, or `key` alone without a namespace. The type argument names the value
+     * bound under it, so `get`, `bind` and `Binding.bind` read it from the key:
+     *
+     * ```ts
+     * const MAILER = BindingKeys.build<IMailer>({ namespace: 'services', key: 'Mailer' });
+     * container.get({ key: MAILER }); // IMailer
+     * ```
+     *
+     * Without a type argument the key is `TBindingKey<unknown>`. The result is the plain string at run time.
+     */
+    static build<T = unknown>(opts: {
+        namespace?: string;
         key: string;
-    }): string;
+    }): TBindingKey<T> & string;
 }
-```
+````
 
 Source: `packages/inversion/src/modules/binding/common/constants.ts`
 
@@ -599,17 +642,26 @@ Binds keys, resolves them and instantiates classes with their injected dependenc
 export interface IContainer {
     getMetadataRegistry(): MetadataRegistry;
     bind<T>(opts: {
-        key: TBindingKey;
+        key: TBindingKey<T>;
     }): IBinding<T>;
+    bind(opts: {
+        key: TBindingKey;
+    }): IBinding;
     isBound(opts: {
         key: TBindingKey;
     }): boolean;
     getBinding<T>(opts: {
-        key: TBindingKey | {
+        key: TBindingKey<T> | {
             namespace: string;
             key: string;
         };
     }): TNullable<IBinding<T>>;
+    getBinding(opts: {
+        key: TBindingKey | {
+            namespace: string;
+            key: string;
+        };
+    }): TNullable<IBinding>;
     unbind(opts: {
         key: TBindingKey;
     }): boolean;
@@ -617,23 +669,30 @@ export interface IContainer {
         binding: IBinding<T>;
     }): void;
     get<T>(opts: {
-        key: TBindingKey | {
+        key: TBindingKey<T> | {
             namespace: string;
             key: string;
         };
         isOptional?: false;
     }): T;
     get<T>(opts: {
-        key: TBindingKey | {
+        key: TBindingKey<T> | {
             namespace: string;
             key: string;
         };
         isOptional?: boolean;
     }): T | undefined;
+    get(opts: {
+        key: TBindingKey | {
+            namespace: string;
+            key: string;
+        };
+        isOptional?: boolean;
+    }): unknown;
     gets<T extends unknown[]>(opts: {
         bindings: {
             [K in keyof T]: {
-                key: TBindingKey | {
+                key: TBindingKey<T[K]> | {
                     namespace: string;
                     key: string;
                 };
@@ -691,7 +750,8 @@ Source: `packages/inversion/src/modules/registry/common/types.ts`
 
 *const*
 
-Marks a property or constructor parameter for dependency injection.
+Marks a property or constructor parameter for dependency injection. The decorated parameter is NOT checked against a
+typed `key`; annotate it `TBindingKeyValue<typeof Key>` so the two cannot drift.
 
 ```ts
 export declare const inject: (opts: TInjectOptions) => (target: object, propertyName: string | symbol | undefined, parameterIndex?: number) => void;
@@ -1062,10 +1122,29 @@ Source: `packages/inversion/src/common/types.ts`
 
 *type*
 
-Identifier for a binding: a string or a symbol.
+A binding key: a `string | symbol` branded with the type of the value bound under it (compile time only). Typed keys
+make `bind`, `get`, `getBinding` and `gets` infer `T`; a plain key is `TBindingKey<unknown>`. Bivariant.
 
 ```ts
-export type TBindingKey = string | symbol;
+export type TBindingKey<T = unknown> = (string | symbol) & {
+    readonly valueType?: {
+        bivarianceHack(value: T): void;
+    }['bivarianceHack'];
+};
+```
+
+Source: `packages/inversion/src/common/types.ts`
+
+## `TBindingKeyValue`
+
+*type*
+
+The value type a key names (`unknown` for a plain key): annotates an `@inject` parameter, which nothing checks.
+
+```ts
+export type TBindingKeyValue<K> = K extends {
+    readonly valueType?: (value: infer V) => void;
+} ? V : unknown;
 ```
 
 Source: `packages/inversion/src/common/types.ts`

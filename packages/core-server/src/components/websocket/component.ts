@@ -6,14 +6,7 @@ import { Binding } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
-  type AbstractRedisHelper,
   isRedisHelper,
-  type TWebSocketAuthenticateFn,
-  type TWebSocketClientConnectedFn,
-  type TWebSocketClientDisconnectedFn,
-  type TWebSocketMessageHandler,
-  type TWebSocketHandshakeFn,
-  type TWebSocketOutboundTransformer,
   type TWebSocketValidateRoomFn,
   WebSocketDefaults,
   WebSocketServerHelper,
@@ -37,15 +30,15 @@ export class WebSocketComponent extends BaseComponent {
       scope: WebSocketComponent.name,
       initDefault: { enable: true, container: application },
       bindings: {
-        [WebSocketBindingKeys.SERVER_OPTIONS]: Binding.bind<Partial<IServerOptions>>({
+        [WebSocketBindingKeys.SERVER_OPTIONS]: Binding.bind({
           key: WebSocketBindingKeys.SERVER_OPTIONS,
         }).toValue(DEFAULT_SERVER_OPTIONS),
 
-        [WebSocketBindingKeys.REDIS_CONNECTION]: Binding.bind<AbstractRedisHelper | null>({
+        [WebSocketBindingKeys.REDIS_CONNECTION]: Binding.bind({
           key: WebSocketBindingKeys.REDIS_CONNECTION,
         }).toValue(null),
 
-        [WebSocketBindingKeys.AUTHENTICATE_HANDLER]: Binding.bind<TWebSocketAuthenticateFn | null>({
+        [WebSocketBindingKeys.AUTHENTICATE_HANDLER]: Binding.bind({
           key: WebSocketBindingKeys.AUTHENTICATE_HANDLER,
         }).toValue(null),
 
@@ -55,26 +48,23 @@ export class WebSocketComponent extends BaseComponent {
           },
         ).toValue(null),
 
-        [WebSocketBindingKeys.CLIENT_CONNECTED_HANDLER]:
-          Binding.bind<TWebSocketClientConnectedFn | null>({
-            key: WebSocketBindingKeys.CLIENT_CONNECTED_HANDLER,
-          }).toValue(null),
+        [WebSocketBindingKeys.CLIENT_CONNECTED_HANDLER]: Binding.bind({
+          key: WebSocketBindingKeys.CLIENT_CONNECTED_HANDLER,
+        }).toValue(null),
 
-        [WebSocketBindingKeys.CLIENT_DISCONNECTED_HANDLER]:
-          Binding.bind<TWebSocketClientDisconnectedFn | null>({
-            key: WebSocketBindingKeys.CLIENT_DISCONNECTED_HANDLER,
-          }).toValue(null),
+        [WebSocketBindingKeys.CLIENT_DISCONNECTED_HANDLER]: Binding.bind({
+          key: WebSocketBindingKeys.CLIENT_DISCONNECTED_HANDLER,
+        }).toValue(null),
 
-        [WebSocketBindingKeys.MESSAGE_HANDLER]: Binding.bind<TWebSocketMessageHandler | null>({
+        [WebSocketBindingKeys.MESSAGE_HANDLER]: Binding.bind({
           key: WebSocketBindingKeys.MESSAGE_HANDLER,
         }).toValue(null),
 
-        [WebSocketBindingKeys.OUTBOUND_TRANSFORMER]:
-          Binding.bind<TWebSocketOutboundTransformer | null>({
-            key: WebSocketBindingKeys.OUTBOUND_TRANSFORMER,
-          }).toValue(null),
+        [WebSocketBindingKeys.OUTBOUND_TRANSFORMER]: Binding.bind({
+          key: WebSocketBindingKeys.OUTBOUND_TRANSFORMER,
+        }).toValue(null),
 
-        [WebSocketBindingKeys.HANDSHAKE_HANDLER]: Binding.bind<TWebSocketHandshakeFn | null>({
+        [WebSocketBindingKeys.HANDSHAKE_HANDLER]: Binding.bind({
           key: WebSocketBindingKeys.HANDSHAKE_HANDLER,
         }).toValue(null),
       },
@@ -83,13 +73,13 @@ export class WebSocketComponent extends BaseComponent {
 
   private resolveBindings(): IResolvedBindings {
     const extraServerOptions =
-      this.application.get<Partial<IServerOptions>>({
+      this.application.get({
         key: WebSocketBindingKeys.SERVER_OPTIONS,
         isOptional: true,
       }) ?? {};
     this.serverOptions = Object.assign({}, DEFAULT_SERVER_OPTIONS, extraServerOptions);
 
-    const redisConnection = this.application.get<AbstractRedisHelper>({
+    const redisConnection = this.application.get({
       key: WebSocketBindingKeys.REDIS_CONNECTION,
     });
 
@@ -100,7 +90,7 @@ export class WebSocketComponent extends BaseComponent {
       });
     }
 
-    const authenticateFn = this.application.get<TWebSocketAuthenticateFn>({
+    const authenticateFn = this.application.get({
       key: WebSocketBindingKeys.AUTHENTICATE_HANDLER,
     });
 
@@ -111,27 +101,27 @@ export class WebSocketComponent extends BaseComponent {
     }
 
     const validateRoomFn =
-      this.application.get<TWebSocketValidateRoomFn | null>({
+      this.application.get({
         key: WebSocketBindingKeys.VALIDATE_ROOM_HANDLER,
       }) ?? undefined;
     const clientConnectedFn =
-      this.application.get<TWebSocketClientConnectedFn | null>({
+      this.application.get({
         key: WebSocketBindingKeys.CLIENT_CONNECTED_HANDLER,
       }) ?? undefined;
     const clientDisconnectedFn =
-      this.application.get<TWebSocketClientDisconnectedFn | null>({
+      this.application.get({
         key: WebSocketBindingKeys.CLIENT_DISCONNECTED_HANDLER,
       }) ?? undefined;
     const messageHandler =
-      this.application.get<TWebSocketMessageHandler | null>({
+      this.application.get({
         key: WebSocketBindingKeys.MESSAGE_HANDLER,
       }) ?? undefined;
     const outboundTransformer =
-      this.application.get<TWebSocketOutboundTransformer | null>({
+      this.application.get({
         key: WebSocketBindingKeys.OUTBOUND_TRANSFORMER,
       }) ?? undefined;
     const handshakeFn =
-      this.application.get<TWebSocketHandshakeFn | null>({
+      this.application.get({
         key: WebSocketBindingKeys.HANDSHAKE_HANDLER,
       }) ?? undefined;
 

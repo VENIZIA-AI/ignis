@@ -10,8 +10,6 @@ import {
   controller,
   CoreBindings,
   type IAuthenticateOptions,
-  type IJWKSIssuerOptions,
-  type IJWKSVerifierOptions,
   type IJWSTokenServiceOptions,
   inject,
   type IServiceAuthOptions,
@@ -19,10 +17,8 @@ import {
   JWKSKeyFormats,
   JWKSModes,
   ServiceAssertion,
-  type TAuthenticationRestOptions,
   type TBasicTokenServiceOptions,
   type TJWKSTokenServiceOptions,
-  type TJWTTokenServiceOptions,
 } from '@venizia/ignis-kernel';
 import { AuthControllerFactory, JWKSController } from './controllers';
 import { ServiceCertsController } from './controllers/service-certs';
@@ -50,7 +46,7 @@ export class AuthenticateComponent extends BaseComponent {
       scope: AuthenticateComponent.name,
       initDefault: { enable: true, container: application },
       bindings: {
-        [AuthenticateBindingKeys.REST_OPTIONS]: Binding.bind<TAuthenticationRestOptions>({
+        [AuthenticateBindingKeys.REST_OPTIONS]: Binding.bind({
           key: AuthenticateBindingKeys.REST_OPTIONS,
         }).toValue({ useAuthController: false }),
       },
@@ -58,19 +54,19 @@ export class AuthenticateComponent extends BaseComponent {
   }
 
   override binding(): ValueOrPromise<void> {
-    const jwtOptions = this.application.get<TJWTTokenServiceOptions>({
+    const jwtOptions = this.application.get({
       key: AuthenticateBindingKeys.JWT_OPTIONS,
       isOptional: true,
     });
-    const basicOptions = this.application.get<TBasicTokenServiceOptions>({
+    const basicOptions = this.application.get({
       key: AuthenticateBindingKeys.BASIC_OPTIONS,
       isOptional: true,
     });
-    const restOptions = this.application.get<TAuthenticationRestOptions>({
+    const restOptions = this.application.get({
       key: AuthenticateBindingKeys.REST_OPTIONS,
       isOptional: true,
     });
-    const serviceOptions = this.application.get<IServiceAuthOptions>({
+    const serviceOptions = this.application.get({
       key: AuthenticateBindingKeys.SERVICE_OPTIONS,
       isOptional: true,
     });
@@ -166,9 +162,7 @@ export class AuthenticateComponent extends BaseComponent {
 
     JWSTokenService.assertSecretStrength({ scope: 'defineJWSAuth', secret: jwtSecret });
 
-    this.application
-      .bind<IJWSTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
-      .toValue(jwsOptions);
+    this.application.bind({ key: AuthenticateBindingKeys.JWS_OPTIONS }).toValue(jwsOptions);
     this.application.service(JWSTokenService);
 
     this.logger.for(this.defineJWSAuth.name).info('JWS authentication configured');
@@ -210,7 +204,7 @@ export class AuthenticateComponent extends BaseComponent {
         });
 
         this.application
-          .bind<IJWKSIssuerOptions>({ key: AuthenticateBindingKeys.JWKS_OPTIONS })
+          .bind({ key: AuthenticateBindingKeys.JWKS_ISSUER_OPTIONS })
           .toValue(issuerOpts);
         this.application.service(JWKSIssuerTokenService);
 
@@ -247,7 +241,7 @@ export class AuthenticateComponent extends BaseComponent {
         });
 
         this.application
-          .bind<IJWKSVerifierOptions>({ key: AuthenticateBindingKeys.JWKS_OPTIONS })
+          .bind({ key: AuthenticateBindingKeys.JWKS_VERIFIER_OPTIONS })
           .toValue(verifierOpts);
         this.application.service(JWKSVerifierTokenService);
 
@@ -318,9 +312,7 @@ export class AuthenticateComponent extends BaseComponent {
       this.application.service(ServiceAssertionSignerService);
 
       const restPath = serviceOptions.rest?.path ?? ServiceAssertion.DEFAULT_REST_PATH;
-      this.application
-        .bind<string>({ key: AuthenticateBindingKeys.SERVICE_CERTS_PATH })
-        .toValue(restPath);
+      this.application.bind({ key: AuthenticateBindingKeys.SERVICE_CERTS_PATH }).toValue(restPath);
 
       // Path depends on a runtime option, so @controller cannot be applied statically.
       Reflect.decorate([controller({ path: restPath })], ServiceCertsController);
@@ -361,9 +353,7 @@ export class AuthenticateComponent extends BaseComponent {
       });
     }
 
-    this.application
-      .bind<TBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS })
-      .toValue(basicOptions);
+    this.application.bind({ key: AuthenticateBindingKeys.BASIC_OPTIONS }).toValue(basicOptions);
     this.application.service(BasicTokenService);
 
     this.logger.for(this.defineBasicAuth.name).info('Basic authentication configured');

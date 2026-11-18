@@ -17,7 +17,9 @@ Container keys of the gRPC component.
 
 ```ts
 export declare class GrpcBindingKeys {
-    static readonly GRPC_COMPONENT_OPTIONS = "@app/grpc/options";
+    static readonly GRPC_COMPONENT_OPTIONS: string & {
+        readonly valueType?: ((value: IGrpcComponentConfig) => void) | undefined;
+    };
 }
 ```
 

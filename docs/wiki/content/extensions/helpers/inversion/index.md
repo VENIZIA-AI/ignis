@@ -52,7 +52,7 @@ The framework layer (`@venizia/ignis`) creates these bindings for you - for cont
 
 - **Every constructor parameter must carry `@inject`.** The metadata array is index-keyed - an undecorated parameter leaves a hole the container has no way to fill. `instantiate()` refuses the class by name and parameter index rather than passing `undefined`.
 - **Namespaces auto-tag bindings.** A key like `services.UserService` tags the binding `services` automatically. `setTags()` adds more. `findByTag()` queries by tag, with an `exclude` list.
-- **Keys** can be a `string` or a `symbol`. Two symbols are two keys even when they share a description; `Symbol.for(name)` is one key wherever it is created. The lookup methods - `get`, `gets`, `getBinding` - also accept `{ namespace, key }`, which `BindingKeys.build` joins into a dotted string. `bind`, `isBound`, and `unbind` take the plain key only.
+- **Keys** can be a `string` or a `symbol`, typed or plain: a key built with `BindingKeys.build<T>` names the type of its value (see [Typed keys](#typed-keys)). Two symbols are two keys even when they share a description; `Symbol.for(name)` is one key wherever it is created. The lookup methods - `get`, `gets`, `getBinding` - also accept `{ namespace, key }`, which `BindingKeys.build` joins into a dotted string. `bind`, `isBound`, and `unbind` take the plain key only.
 - **`@inject` names a dependency by key or by class.** `@inject({ key: 'repositories.UserRepository' })` and `@inject({ target: UserRepository })` both work. They are the two arms of a union, so you pass one or the other, never both.
 
 **Scopes**
@@ -136,6 +136,37 @@ A dependency cycle throws with its path - `Circular dependency | services.A -> s
 ```typescript
 const maybeService = container.get<MyService>({ key: 'services.Optional', isOptional: true });
 ```
+
+### Typed keys
+
+A key can name the type of the value bound under it. `get`, `bind`, `getBinding` and `gets` read it from the key, so there is no generic to repeat and a wrong value does not compile.
+
+```typescript
+import { BindingKeys } from '@venizia/ignis-inversion';
+
+const MAILER = BindingKeys.build<IMailer>({ namespace: 'services', key: 'Mailer' });
+
+container.bind({ key: MAILER }).toValue(mailer); // checked against IMailer
+const resolved = container.get({ key: MAILER }); // IMailer, no generic
+```
+
+A plain `string` or `symbol` still works and gives `unknown`, or the generic you pass. A generic you pass is checked against the key: a type that is a subtype or a supertype of the key's type is accepted, an unrelated one (`get<number>({ key: MAILER })`) does not compile. The type exists at compile time only; a key is the plain string at run time.
+
+A key that is not one typed key - a union such as `cond ? MAILER : LABEL`, or a variable typed `TBindingKey` - resolves to `unknown`, like a plain key. It takes no generic: `get<IMailer>({ key })` on it does not compile. Narrow the key first, or cast the result.
+
+`TBindingKeyValue<typeof MAILER>` names the type, for an annotation that should follow the key. Use it on an `@inject` parameter, because nothing else checks that one:
+
+```typescript
+class Notifier {
+  constructor(
+    @inject({ key: MAILER })
+    private mailer: TBindingKeyValue<typeof MAILER>,
+  ) {}
+}
+```
+
+> [!WARNING]
+> `@inject` is not checked against the type it decorates. A parameter decorator is handed no parameter type, and checking a property would reject every `protected` or `private` field. Resolve with `container.get({ key })` where the type matters, and annotate injected parameters with `TBindingKeyValue`.
 
 ### Instantiate a class without registering it
 

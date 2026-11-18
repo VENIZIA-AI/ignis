@@ -9,6 +9,7 @@ export {
   ResolverUtility,
   type IProvider,
   type TBindingKey,
+  type TBindingKeyValue,
   type TBindingScope,
   type TBindingValueType,
   type IBindingTag,

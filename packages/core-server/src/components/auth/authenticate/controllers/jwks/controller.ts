@@ -10,7 +10,7 @@ import { RouteConfigs } from './definitions';
 export class JWKSController extends BaseRestController {
   constructor(
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<JWKSIssuerTokenService>({
         namespace: BindingNamespaces.SERVICE,
         key: JWKSIssuerTokenService.name,
       }),

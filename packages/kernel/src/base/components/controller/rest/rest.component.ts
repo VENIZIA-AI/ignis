@@ -29,7 +29,7 @@ export class RestComponent<
       scope: RestComponent.name,
       initDefault: { enable: true, container: application },
       bindings: {
-        [RestBindingKeys.REST_COMPONENT_OPTIONS]: Binding.bind<IRestComponentConfig>({
+        [RestBindingKeys.REST_COMPONENT_OPTIONS]: Binding.bind({
           key: RestBindingKeys.REST_COMPONENT_OPTIONS,
         }).toValue(DEFAULT_OPTIONS),
       },

@@ -8,7 +8,10 @@ export type TInjectOptions = {
   registry?: MetadataRegistry;
 } & ({ key: TBindingKey; target?: never } | { target: TInjectTarget; key?: never });
 
-/** Marks a property or constructor parameter for dependency injection. */
+/**
+ * Marks a property or constructor parameter for dependency injection. The decorated parameter is NOT checked against a
+ * typed `key`; annotate it `TBindingKeyValue<typeof Key>` so the two cannot drift.
+ */
 export const inject = (opts: TInjectOptions) => {
   const { key, target: injected } = opts;
 

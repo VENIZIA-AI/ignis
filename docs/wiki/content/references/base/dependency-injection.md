@@ -26,7 +26,7 @@ Technical reference for the DI system in IGNIS - managing resource lifecycles an
 | **Binding** | Single registered dependency configuration | `toClass()`, `toValue()`, `toProvider()`, `setScope()`, `setTags()`, `getValue()`, `clearCache()` |
 | **@inject** | Decorator marking injection points | Applied to constructor parameters and class properties |
 | **MetadataRegistry** | Stores decorator metadata | Singleton - base via `metadataRegistry` export, core via `MetadataRegistry.getInstance()` |
-| **BindingKeys** | Utility for building namespaced keys | `BindingKeys.build({ namespace, key })` |
+| **BindingKeys** | Utility for building namespaced, optionally typed keys | `BindingKeys.build<T>({ namespace?, key })` |
 | **registerArtifacts** | Binds every class in a generated index | Reads `configs.artifacts` at the `registerArtifacts` boot step |
 
 ## Prerequisites
@@ -223,7 +223,7 @@ The `@inject` decorator marks where dependencies should be injected - either on 
 
 ```typescript
 type TInjectOptions = { isOptional?: boolean } & (
-  | { key: TBindingKey; target?: never }
+  | { key: TBindingKey; target?: never } // the decorated parameter is not checked against the key's type
   | { target: TInjectTarget; key?: never }
 );
 ```

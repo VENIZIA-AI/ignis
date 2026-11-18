@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-108 exports, 108 with TSDoc. 985 more are re-exported from other entries (listed at the end).
+108 exports, 108 with TSDoc. 986 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -200,7 +200,9 @@ Container keys of the API reference component.
 
 ```ts
 export declare class ApiReferenceBindingKeys {
-    static readonly API_REFERENCE_OPTIONS = "@app/api-reference/options";
+    static readonly API_REFERENCE_OPTIONS: string & {
+        readonly valueType?: ((value: IApiReferenceOptions) => void) | undefined;
+    };
 }
 ```
 
@@ -1103,9 +1105,13 @@ Container keys of the health check component.
 
 ```ts
 export declare class HealthCheckBindingKeys {
-    static readonly HEALTH_CHECK_OPTIONS = "@app/health-check/options";
+    static readonly HEALTH_CHECK_OPTIONS: string & {
+        readonly valueType?: ((value: IHealthCheckOptions) => void) | undefined;
+    };
     /** The component resolves `getAppInfo()` once (it is async) and binds the result for the controller. */
-    static readonly APPLICATION_INFO = "@app/health-check/application-info";
+    static readonly APPLICATION_INFO: string & {
+        readonly valueType?: ((value: IApplicationInfo) => void) | undefined;
+    };
 }
 ```
 
@@ -1312,7 +1318,7 @@ import { ApiReferenceBindingKeys, type BaseApplication, type IApiReferenceOption
 
 export const bindApiReference = (application: BaseApplication) => {
   application
-    .bind<IApiReferenceOptions>({ key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS })
+    .bind({ key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS })
     .toValue({ restOptions: { base: { path: '/docs' }, ui: { type: 'swagger' } } });
 };
 ```
@@ -1544,7 +1550,7 @@ import { HealthCheckBindingKeys, type BaseApplication, type IHealthCheckOptions 
 
 export const bindHealth = (application: BaseApplication) => {
   application
-    .bind<IHealthCheckOptions>({ key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS })
+    .bind({ key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS })
     .toValue({ restOptions: { path: '/status' }, stats: { secretKey: 'change-me' } });
 };
 ```
@@ -1760,7 +1766,7 @@ import { ServerInfoBindingKeys, type BaseApplication, type IServerInfoOptions } 
 
 export const bindServerInfo = (application: BaseApplication) => {
   application
-    .bind<IServerInfoOptions>({ key: ServerInfoBindingKeys.SERVER_INFO_OPTIONS })
+    .bind({ key: ServerInfoBindingKeys.SERVER_INFO_OPTIONS })
     .toValue({ restOptions: { path: '/clock' } });
 };
 ```
@@ -1951,13 +1957,13 @@ Signs tokens with a private key loaded from `IJWKSIssuerOptions` and exposes the
 
 ```ts
 export declare class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTokenService<E> {
-    protected options: IJWKSIssuerOptions;
+    protected options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWKS_ISSUER_OPTIONS>;
     protected privateKey: TNullable<CryptoKey | Uint8Array>;
     protected publicKey: TNullable<CryptoKey | Uint8Array>;
     protected jwks: {
         keys: JWK[];
     } | null;
-    constructor(options: IJWKSIssuerOptions);
+    constructor(options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWKS_ISSUER_OPTIONS>);
     protected initialize(): Promise<void>;
     protected resolveKeyContent(opts: {
         keys: IJWKSIssuerOptions['keys'];
@@ -2074,9 +2080,9 @@ Verifies tokens against a remote JWKS fetched from `jwksUrl`. The key set is cac
 
 ```ts
 export declare class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKSTokenService<E> {
-    protected options: IJWKSVerifierOptions;
+    protected options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWKS_VERIFIER_OPTIONS>;
     protected jwksVerifier: ReturnType<typeof createRemoteJWKSet> | null;
-    constructor(options: IJWKSVerifierOptions);
+    constructor(options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWKS_VERIFIER_OPTIONS>);
     protected initialize(): Promise<void>;
     protected doVerify(token: string): Promise<IJWTTokenPayload>;
     getSigner(_opts: {
@@ -2116,7 +2122,7 @@ Symmetric JWT (JWS) token service with optional AES-encrypted payloads.
 
 ```ts
 export declare class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenService<E> {
-    protected options: IJWSTokenServiceOptions;
+    protected options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWS_OPTIONS>;
     /** The shortest `jwtSecret` accepted, in bytes: an HMAC key is as strong as it is long, and 32 bytes is the size of a SHA-256 output. */
     static readonly MIN_SECRET_BYTES = 32;
     protected jwtSecret: Uint8Array;
@@ -2129,7 +2135,7 @@ export declare class JWSTokenService<E extends Env = Env> extends AbstractBearer
         scope: string;
         secret: string;
     }): void;
-    constructor(options: IJWSTokenServiceOptions);
+    constructor(options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWS_OPTIONS>);
     protected doVerify(token: string): Promise<IJWTTokenPayload>;
     getSigner(opts: {
         payload: IJWTTokenPayload;
@@ -2503,7 +2509,9 @@ Container keys of the server info component.
 
 ```ts
 export declare class ServerInfoBindingKeys {
-    static readonly SERVER_INFO_OPTIONS = "@app/server-info/options";
+    static readonly SERVER_INFO_OPTIONS: string & {
+        readonly valueType?: ((value: IServerInfoOptions) => void) | undefined;
+    };
 }
 ```
 
@@ -3938,6 +3946,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TBasicTokenServiceOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TBigIntMode` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TBindingKey` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `TBindingKeyValue` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TBindingNamespace` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `TBindingScope` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TBindingValueType` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)

@@ -190,7 +190,7 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
 
     for (const [, metadata] of this.descriptors) {
       const { container } = metadata;
-      const options = container.get<IAuthorizeOptions>({
+      const options = container.get({
         key: AuthorizeBindingKeys.OPTIONS,
         isOptional: true,
       });

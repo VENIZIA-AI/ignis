@@ -20,7 +20,7 @@ export type TDocumentUIType = TConstValue<typeof DocumentUITypes>;
  *
  * export const bindApiReference = (application: BaseApplication) => {
  *   application
- *     .bind<IApiReferenceOptions>({ key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS })
+ *     .bind({ key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS })
  *     .toValue({ restOptions: { base: { path: '/docs' }, ui: { type: 'swagger' } } });
  * };
  * ```

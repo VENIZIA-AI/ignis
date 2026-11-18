@@ -7,11 +7,7 @@ import {
   type ValueOrPromise,
 } from '@venizia/ignis';
 import { WebSocketBindingKeys, WebSocketComponent } from '@venizia/ignis/websocket';
-import {
-  RedisSingleHelper,
-  type TWebSocketAuthenticateFn,
-  type WebSocketServerHelper,
-} from '@venizia/ignis-helpers';
+import { RedisSingleHelper, type TWebSocketAuthenticateFn } from '@venizia/ignis-helpers';
 import appInfo from '../package.json';
 
 export class Application extends BaseApplication {
@@ -44,9 +40,7 @@ export class Application extends BaseApplication {
       password: process.env.APP_ENV_REDIS_PASSWORD ?? '',
       autoConnect: false,
     });
-    this.bind<RedisSingleHelper>({ key: WebSocketBindingKeys.REDIS_CONNECTION }).toValue(
-      this.redisHelper,
-    );
+    this.bind({ key: WebSocketBindingKeys.REDIS_CONNECTION }).toValue(this.redisHelper);
 
     // A client sends this token in its `authenticate` message before it can join a room or
     // exchange messages - the handshake IGNIS requires regardless of transport.
@@ -64,9 +58,7 @@ export class Application extends BaseApplication {
       return { userId };
     };
 
-    this.bind<TWebSocketAuthenticateFn>({ key: WebSocketBindingKeys.AUTHENTICATE_HANDLER }).toValue(
-      authenticateFn,
-    );
+    this.bind({ key: WebSocketBindingKeys.AUTHENTICATE_HANDLER }).toValue(authenticateFn);
 
     this.component(WebSocketComponent);
 
@@ -75,7 +67,7 @@ export class Application extends BaseApplication {
     this.registerPostStopHook({
       identifier: 'websocket.shutdown',
       hook: async () => {
-        const webSocketHelper = this.get<WebSocketServerHelper>({
+        const webSocketHelper = this.get({
           key: WebSocketBindingKeys.WEBSOCKET_INSTANCE,
           isOptional: true,
         });
