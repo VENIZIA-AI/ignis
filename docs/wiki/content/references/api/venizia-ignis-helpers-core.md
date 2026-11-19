@@ -3339,7 +3339,7 @@ export declare class UrlPolicy {
         hostname: string;
     }): string;
     /**
-     * A hostname that RESOLVES to a private address passes here on purpose - `UrlIngest` catches that,
+     * A hostname that RESOLVES to a private address passes here on purpose - `UrlGuard` catches that,
      * and this half runs where `node:dns` does not exist.
      */
     static assertSafeUrl(opts: {

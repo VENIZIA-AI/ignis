@@ -23,7 +23,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-boot/generator`](/references/api/venizia-ignis-boot-generator) | 17 | 17 |
 | [`@venizia/ignis-boot/vite`](/references/api/venizia-ignis-boot-vite) | 2 | 2 |
 | [`@venizia/ignis-connectors`](/references/api/venizia-ignis-connectors) | 3 | 3 |
-| [`@venizia/ignis-connectors/http`](/references/api/venizia-ignis-connectors-http) | 20 | 20 |
+| [`@venizia/ignis-connectors/http`](/references/api/venizia-ignis-connectors-http) | 21 | 21 |
 | [`@venizia/ignis-connectors/meilisearch`](/references/api/venizia-ignis-connectors-meilisearch) | 17 | 17 |
 | [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres) | 54 | 54 |
 | [`@venizia/ignis-connectors/postgres/node-postgres`](/references/api/venizia-ignis-connectors-postgres-node-postgres) | 1 | 1 |
@@ -41,7 +41,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers) | 31 | 31 |
 | [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter) | 19 | 19 |
 | [`@venizia/ignis-filter/schemas`](/references/api/venizia-ignis-filter-schemas) | 11 | 11 |
-| [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers) | 225 | 225 |
+| [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers) | 224 | 224 |
 | [`@venizia/ignis-helpers/axios`](/references/api/venizia-ignis-helpers-axios) | 4 | 4 |
 | [`@venizia/ignis-helpers/bullmq`](/references/api/venizia-ignis-helpers-bullmq) | 2 | 2 |
 | [`@venizia/ignis-helpers/bun-s3`](/references/api/venizia-ignis-helpers-bun-s3) | 2 | 2 |

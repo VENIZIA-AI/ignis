@@ -1,4 +1,4 @@
-import { type THttpMethod } from '@/common/constants/http';
+import { HTTP, type THttpMethod } from '@/common/constants/http';
 import { getError } from '@/modules/error';
 import type { IUrlSafetyPolicy } from '@/modules/network/utilities/url-safety/common/types';
 import { UrlPolicy } from '@/modules/network/utilities/url-safety/policy';
@@ -174,7 +174,7 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
     const hasNameToVerify = isHttps && !UrlPolicy.isLiteralHost({ hostname: url.hostname });
     const headers = new Headers(init.headers);
 
-    headers.set('host', url.host);
+    headers.set(HTTP.Headers.HOST, url.host);
 
     let lastError: unknown;
 
@@ -313,7 +313,7 @@ export class NativeFetchNetworkRequest extends BaseNetworkRequest<'native'> {
     // Case-insensitive, like the wire: a caller's `Content-Type` replaces the default one.
     const mergedHeaders = FetchHeaders.merge({
       layers: [
-        { 'content-type': 'application/json; charset=utf-8' },
+        { [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON_UTF8 },
         headers === undefined ? undefined : new Headers(headers),
         opts.defaults?.headers,
       ],

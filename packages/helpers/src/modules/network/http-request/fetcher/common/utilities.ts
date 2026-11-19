@@ -1,3 +1,4 @@
+import { HTTP } from '@/common/constants/http';
 import { UrlPolicy } from '@/modules/network/utilities/url-safety/policy';
 import { UrlFetchError } from '@/modules/network/utilities/url-safety/common/errors';
 import { FetchSchemaError } from './errors';
@@ -65,9 +66,9 @@ export class FetchRedirects {
 
   /** Request headers that name the body; they go when a redirect turns the request into a GET. */
   static readonly BODY_HEADERS: ReadonlyArray<string> = [
-    'content-type',
-    'content-length',
-    'content-encoding',
+    HTTP.Headers.CONTENT_TYPE,
+    HTTP.Headers.CONTENT_LENGTH,
+    HTTP.Headers.CONTENT_ENCODING,
   ];
 
   /**
@@ -75,9 +76,9 @@ export class FetchRedirects {
    * (`x-api-key`, a signature) must not follow a redirect to a host that tenant did not name.
    */
   static readonly CROSS_ORIGIN_HEADERS: ReadonlyArray<string> = [
-    'accept',
-    'accept-language',
-    'user-agent',
+    HTTP.Headers.ACCEPT,
+    HTTP.Headers.ACCEPT_LANGUAGE,
+    HTTP.Headers.USER_AGENT,
   ];
 
   static isRedirect(opts: { status: number }): boolean {
@@ -125,7 +126,7 @@ export class FetchRetry {
       return undefined;
     }
 
-    const header = error.headers.get('retry-after')?.trim();
+    const header = error.headers.get(HTTP.Headers.RETRY_AFTER)?.trim();
 
     if (!header) {
       return undefined;

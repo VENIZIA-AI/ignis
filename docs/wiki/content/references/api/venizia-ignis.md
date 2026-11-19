@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-108 exports, 108 with TSDoc. 1010 more are re-exported from other entries (listed at the end).
+108 exports, 108 with TSDoc. 1009 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -2845,7 +2845,7 @@ export declare const ServiceCertsRouteConfigs: {
             200: {
                 description: string;
                 content: {
-                    'application/json': {
+                    "application/json": {
                         schema: z.ZodObject<{
                             keys: z.ZodArray<z.ZodObject<{
                                 kty: z.ZodString;
@@ -2863,7 +2863,7 @@ export declare const ServiceCertsRouteConfigs: {
                 headers: never;
                 description: string;
                 content: {
-                    'application/json': {
+                    "application/json": {
                         schema: z.ZodObject<{
                             keys: z.ZodArray<z.ZodObject<{
                                 kty: z.ZodString;
@@ -4249,7 +4249,6 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `UpdateBuilder` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `UrlFetchError` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UrlGuard` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
-- `UrlIngest` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `UrlPolicy` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UrlSafetyDefaults` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UrlSafetyErrors` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)

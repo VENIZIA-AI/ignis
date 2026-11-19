@@ -438,7 +438,7 @@ export abstract class AbstractNetworkFetchableHelper<
           break;
         }
 
-        const location = exchange.headers.get('location');
+        const location = exchange.headers.get(HTTP.Headers.LOCATION);
 
         // No redirect budget: the 3xx is the answer, unless the caller accepts that status as one.
         if (hop === maxRedirects && maxRedirects === 0) {

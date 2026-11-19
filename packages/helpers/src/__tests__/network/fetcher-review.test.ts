@@ -6,7 +6,10 @@
 import { afterAll, describe, expect, test } from 'bun:test';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
 import { z } from 'zod';
-import { AxiosFetcher } from '@/modules/network/http-request/fetcher/axios-fetcher';
+import {
+  AxiosFetcher,
+  AxiosNetworkRequest,
+} from '@/modules/network/http-request/fetcher/axios-fetcher';
 import { NativeFetcher } from '@/modules/network/http-request/fetcher/native-fetcher';
 import { FetchRetry } from '@/modules/network/http-request/fetcher/common/utilities';
 import type { IFetchGuard } from '@/modules/network/http-request/fetcher/common/guard';
@@ -173,6 +176,18 @@ describe('a guard refuses every option that chooses the connection', () => {
       expect(hits.length).toBe(before);
     });
   }
+
+  test("axios: a baseUrl on AxiosNetworkRequest is refused in the caller's words", async () => {
+    const request = new AxiosNetworkRequest({
+      name: 'a',
+      networkOptions: { baseUrl: base },
+      guardEngine: engine,
+    });
+    const message = await refusal(request.getNetworkService().get({ url: `${base}/x`, guard: {} }));
+
+    expect(message).toContain('needs one absolute url');
+    expect(message).toContain('AxiosFetcher without baseUrl');
+  });
 
   test('axios: a transformRequest that would move the request to a unix socket never runs', async () => {
     let hasRun = false;

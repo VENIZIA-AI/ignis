@@ -1,5 +1,5 @@
 /**
- * `UrlIngest.fetchGuarded` connects to the address it vetted (#945). The name never resolves in real DNS here: `lookup`
+ * A fetcher call with a `guard` connects to the address `UrlGuard` vetted (#945). The name never resolves in real DNS here: `lookup`
  * is replaced, and the address it answers is the only way the request can reach the local server, which is the proof.
  */
 
@@ -10,7 +10,6 @@ const lookupMock = mock(async (_hostname: string, _options?: unknown): Promise<u
 
 await mock.module('node:dns/promises', () => ({ lookup: lookupMock }));
 
-const { UrlIngest } = await import('@/modules/network/utilities/url-safety/ingest');
 const { UrlGuard } = await import('@/modules/network/utilities/url-safety/guard');
 const { createFetchGuarded } = await import('./fixtures/guarded');
 const { NativeFetcher } = await import('@/modules/network/http-request/fetcher/native-fetcher');
@@ -682,14 +681,14 @@ describe('NativeFetcher with a guard - a trusted host name is pinned, and never 
   test('assertReachableUrl accepts a trusted private origin and refuses an untrusted one', async () => {
     lookupMock.mockResolvedValue(answer('10.20.0.7'));
 
-    const parsed = await UrlIngest.assertReachableUrl({
+    const parsed = await UrlGuard.assertReachableUrl({
       url: 'http://vault.corp.test:8200/x',
       policy: trustedPolicy,
     });
 
     expect(parsed.hostname).toBe('vault.corp.test');
     const result = await rejectionOf(
-      UrlIngest.assertReachableUrl({ url: 'http://other.corp.test/x', policy: trustedPolicy }),
+      UrlGuard.assertReachableUrl({ url: 'http://other.corp.test/x', policy: trustedPolicy }),
     );
     expect(
       UrlPolicy.isRefusedError({

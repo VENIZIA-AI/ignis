@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Network - Full Reference
 
-Exhaustive reference for `BaseNetworkRequest` and its fetchers, the TCP/TLS client-server hierarchy, `NetworkUdpClient`, the `UrlPolicy`/`UrlIngest` safety guard, and every option type. For a readable introduction and the most common tasks, start with the [Network overview](/extensions/helpers/network/).
+Exhaustive reference for `BaseNetworkRequest` and its fetchers, the TCP/TLS client-server hierarchy, `NetworkUdpClient`, the `UrlPolicy`/`UrlGuard` safety guard, and every option type. For a readable introduction and the most common tasks, start with the [Network overview](/extensions/helpers/network/).
 
 ## Find what you need
 
@@ -38,7 +38,7 @@ Exhaustive reference for `BaseNetworkRequest` and its fetchers, the TCP/TLS clie
 - [`packages/helpers/src/modules/network/tcp-socket/network-tls-tcp-client.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/tcp-socket/network-tls-tcp-client.helper.ts) - `NetworkTlsTcpClient`
 - [`packages/helpers/src/modules/network/udp-socket/network-udp-client.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/udp-socket/network-udp-client.helper.ts) - `NetworkUdpClient`, `INetworkUdpClientProps`
 - [`packages/helpers/src/modules/network/utilities/url-safety/policy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/utilities/url-safety/policy.ts) - `UrlPolicy`
-- [`packages/helpers/src/modules/network/utilities/url-safety/ingest.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/utilities/url-safety/ingest.ts) - `UrlIngest`
+- [`packages/helpers/src/modules/network/utilities/url-safety/guard.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/utilities/url-safety/guard.ts) - `UrlGuard`
 - [`packages/helpers/src/modules/network/utilities/url-safety/common/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/utilities/url-safety/common) - `IUrlSafetyPolicy`, `UrlSafetyDefaults`, `UrlSchemes`, `UrlSafetyErrors`
 - [`packages/helpers/src/common/redact.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/redact.ts) - `RedactUtility.redactSecrets`, `RedactUtility.redactUrlCredentials`
 - [`packages/helpers/src/common/constants/http.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/http.ts) - `HTTP.Methods`, `THttpMethod`
@@ -358,7 +358,7 @@ An axios config where `body` is sent as axios `data`, plus [`IRequestOptions`](#
 > [!NOTE]
 > - **`maxBytes` is `maxContentLength` in axios.** Axios stops the read when the body crosses it, with its own error, not the cap's message.
 > - **HTTPS gets a shared `https.Agent`** with certificate verification ON and keep-alive. Pass `rejectUnauthorized: false` only when you mean to accept an unverified certificate. A caller `httpsAgent` wins.
-> - **A guarded call accepts only an allowlist of plain-data request options**, per call and in `defaultConfigs`: `withCredentials`, `responseType` (not `stream`), `responseEncoding`, `xsrfCookieName`, `xsrfHeaderName`, `withXSRFToken`, `maxContentLength`, `maxBodyLength`, `maxRate`, `decompress`, `transitional` and `rejectUnauthorized` (never `false`; neither is `rejectUnauthorized: false` on the fetcher). Any other key is refused with a message that names it. That covers an agent, `socketPath`, `lookup`, `transport`, `proxy`, `httpVersion`, `http2Options`, a custom `adapter` and any option axios adds later. Functions are refused too: `transformRequest`, `transformResponse`, `paramsSerializer`, `formSerializer` and the progress callbacks run with the axios config as `this` and could rewrite the url or the socket. `auth` (axios re-applies it after a cross-origin redirect) and `baseURL` / `allowAbsoluteUrls` (axios combines urls) are refused: pass `Authorization` in `headers`, one absolute `url`, and transform the body and the answer yourself.
+> - **A guarded call accepts only an allowlist of plain-data request options**, per call and in `defaultConfigs`: `withCredentials`, `responseType` (not `stream`), `responseEncoding`, `xsrfCookieName`, `xsrfHeaderName`, `withXSRFToken`, `maxContentLength`, `maxBodyLength`, `maxRate`, `decompress`, `transitional` and `rejectUnauthorized` (never `false`; neither is `rejectUnauthorized: false` on the fetcher). Any other key is refused with a message that names it. That covers an agent, `socketPath`, `lookup`, `transport`, `proxy`, `httpVersion`, `http2Options`, a custom `adapter` and any option axios adds later. Functions are refused too: `transformRequest`, `transformResponse`, `paramsSerializer`, `formSerializer` and the progress callbacks run with the axios config as `this` and could rewrite the url or the socket. `auth` (axios re-applies it after a cross-origin redirect) and `baseURL` / `allowAbsoluteUrls` (axios combines urls) are refused, and so is an `AxiosNetworkRequest` built with `baseUrl`: a guarded call needs one absolute url, so use an `AxiosFetcher` without `baseUrl`, or a `NativeFetcher`. pass `Authorization` in `headers`, one absolute `url`, and transform the body and the answer yourself.
 > - **A guarded call never uses the shared agent.** It gets an agent of its own whose `lookup` answers only the vetted addresses, with keep-alive off, destroyed after the exchange: no pin outlives the call, and the certificate is still verified for the name you asked for. A test pins SNI, certificate verification and the environment proxy on a real TLS server.
 
 ---
@@ -1101,7 +1101,7 @@ The guard for a url your application did not choose - a webhook target, an avata
 It ships as part of the network module, so the root barrel carries it:
 
 ```typescript
-import { UrlPolicy, UrlIngest, UrlGuard, UrlSchemes, UrlSafetyDefaults } from '@venizia/ignis-helpers';
+import { UrlPolicy, UrlGuard, UrlSchemes, UrlSafetyDefaults } from '@venizia/ignis-helpers';
 import type { IUrlSafetyPolicy, TTrustedOrigin } from '@venizia/ignis-helpers';
 import { UrlFetchError } from '@venizia/ignis-helpers';
 ```
@@ -1111,12 +1111,11 @@ import { UrlFetchError } from '@venizia/ignis-helpers';
 | Class | Needs | Decides |
 |---|---|---|
 | `UrlPolicy` | nothing but string and number work | The shape of a url: scheme, trusted origins, and a literal IP address |
-| `UrlIngest` | `node:dns` | What a hostname resolves to |
-| `UrlGuard` | `UrlIngest` | The per-call vetting a fetcher runs: resolve, check every address, pin, re-check each redirect hop |
+| `UrlGuard` | `node:dns` | What a hostname resolves to, and the per-call vetting a fetcher runs: resolve, check every address, pin, re-check each redirect hop |
 
-`UrlPolicy` is re-exported from the browser-pure `@venizia/ignis-helpers/core` subpath. It never imports `ingest.ts`, and `make purity` fails the build if that changes. `UrlIngest` stays out of `/core`.
+`UrlPolicy` is re-exported from the browser-pure `@venizia/ignis-helpers/core` subpath. It never imports `guard.ts`, and `make purity` fails the build if that changes. `UrlGuard` stays out of `/core`.
 
-The split has a consequence you must know: a hostname that **resolves** to a private address passes `UrlPolicy` on purpose. Only `UrlIngest` and `UrlGuard` catch that. Call `UrlPolicy` alone only where DNS does not exist.
+The split has a consequence you must know: a hostname that **resolves** to a private address passes `UrlPolicy` on purpose. Only `UrlGuard` catches that. Call `UrlPolicy` alone only where DNS does not exist.
 
 ### IUrlSafetyPolicy
 
@@ -1153,7 +1152,7 @@ Passed as `guard` on a fetcher call or in the fetcher's `defaults`. Every field 
 
 An IPv6 literal is expanded to its eight 16-bit groups before it is classified, so `::1`, `0:0:0:0:0:0:0:1` and `0000:0000:0000:0000:0000:0000:0000:0001` get one answer. An address that carries an IPv4 one is judged by the IPv4 rules: v4-mapped (`::ffff:0:0/96`), v4-compatible (`::a.b.c.d`), NAT64 (`64:ff9b::/96`, so `64:ff9b::a9fe:a9fe` is the metadata address) and 6to4 (`2002::/16`). Multicast (`ff00::/8`), site-local (`fec0::/10`), documentation (`2001:db8::/32`, `3fff::/20`), the IETF protocol assignments `2001::/23` (Teredo among them), discard (`100::/64`), SRv6 (`5f00::/16`), the rest of `64:ff9b::/32` and the reserved `::/8` are non-public. IPv4 text must be canonical dotted decimal: `0177.0.0.1` (octal to some parsers) and `1e2.0.0.1` answer `true`. A url is canonicalised by `new URL` first, so this matters to a caller that passes a raw string. A string longer than 45 characters is not an IPv6 address and answers `true` at once.
 
-### UrlIngest
+### UrlGuard
 
 | Method | Signature | Does |
 |---|---|---|
@@ -1163,7 +1162,7 @@ An IPv6 literal is expanded to its eight 16-bit groups before it is classified, 
 
 `assertPublicHost` checks every resolved address, not the first. A host can publish one public A record beside an internal one. Called on their own, these only check: the address can change before your own connect, so send through a fetcher with `guard`.
 
-`fetchGuarded`, `readCappedBody` and `capStream` of `UrlIngest` were removed: the fetchers do that work now, and `BodyLimit` holds the body cap.
+`UrlGuard` is also what you hand a fetcher as `guardEngine` (`createRoute`). The name `UrlIngest` is gone, with `fetchGuarded`, `readCappedBody` and `capStream`: the fetchers do that work now, and `BodyLimit` holds the body cap.
 
 ### Guarded fetching
 

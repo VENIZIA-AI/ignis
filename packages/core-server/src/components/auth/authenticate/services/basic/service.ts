@@ -34,7 +34,7 @@ export class BasicTokenService<E extends Env = Env> extends BaseService {
 
   /** Extracts username:password from Base64-encoded Authorization header. */
   extractCredentials(context: TContext<E, string>): { username: string; password: string } {
-    const authHeaderValue = context.req.header('Authorization');
+    const authHeaderValue = context.req.header(HTTP.Headers.AUTHORIZATION);
 
     if (!authHeaderValue) {
       throw getError({

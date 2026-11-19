@@ -100,7 +100,8 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
 
       const requestId = context.get(RequestSpyMiddleware.REQUEST_ID_KEY);
       const incomingIp = NetworkUtility.getIncomingIp(context);
-      const forwardedIp = req.header('x-real-ip') ?? req.header('x-forwarded-for') ?? null;
+      const forwardedIp =
+        req.header(HTTP.Headers.X_REAL_IP) ?? req.header(HTTP.Headers.X_FORWARDED_FOR) ?? null;
 
       const method = req.method;
       const path = req.path ?? '/';

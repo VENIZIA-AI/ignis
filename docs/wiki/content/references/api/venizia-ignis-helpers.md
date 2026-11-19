@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-225 exports, 225 with TSDoc. 256 more are re-exported from other entries (listed at the end).
+224 exports, 224 with TSDoc. 256 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -5216,7 +5216,7 @@ Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
 
 *class*
 
-The url guard as a fetcher's engine: `new NativeFetcher({ ..., guardEngine: UrlGuard })`, then `guard: {}` (or a policy)
+The server half of the url guard, the one name for it. As a fetcher's engine: `new NativeFetcher({ ..., guardEngine: UrlGuard })`, then `guard: {}` (or a policy)
 on a call. Per hop the host is resolved ONCE, every answer is checked, and the request connects to those addresses and
 to no other, so a DNS answer that changes after the check (DNS rebinding) is never looked up again.
 
@@ -5225,19 +5225,6 @@ export declare class UrlGuard {
     static createRoute(opts: {
         policy: IUrlSafetyPolicy;
     }): IFetchGuardRoute;
-}
-```
-
-Source: `packages/helpers/src/modules/network/utilities/url-safety/guard.ts`
-
-## `UrlIngest`
-
-*class*
-
-Checking an untrusted url's host without letting it reach inside the network: the half of the guard that resolves names.
-
-```ts
-export declare class UrlIngest {
     /**
      * Resolves `hostname` once and returns every address it answered, refusing the host when ANY of them is non-public.
      * Checking only the first walks straight into a host that publishes one public A record beside an internal one.
@@ -5274,7 +5261,7 @@ export declare class UrlIngest {
 }
 ```
 
-Source: `packages/helpers/src/modules/network/utilities/url-safety/ingest.ts`
+Source: `packages/helpers/src/modules/network/utilities/url-safety/guard.ts`
 
 ## `VaultAuthMethods`
 
