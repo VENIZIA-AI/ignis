@@ -100,7 +100,7 @@ constructor(opts: {
 
 ##### `getRequestUrl(opts)`
 
-Builds a full URL by combining a base URL with path segments. Throws if no base URL is available.
+Builds a full URL by combining a base URL with path segments, through [`UrlBuilder.join`](#urlbuilder). Throws if no base URL is available, or a path is refused.
 
 ```typescript
 getRequestUrl(opts: {
@@ -112,9 +112,11 @@ getRequestUrl(opts: {
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `baseUrl` | `string` | Overrides the instance's base URL; falls back to `this.baseUrl` |
-| `paths` | `string[]` | Path segments to append. Each is prefixed with `/` if missing |
+| `paths` | `string[]` | Path segments to append. Each is prefixed with `/` if missing. A dot segment (`..`, `%2e%2e`), a backslash, a control character and an empty segment (`a//b`) are refused with a `400` |
 
 An explicit empty `baseUrl` does **not** fall back - it throws.
+
+**Refuses (400):** a path that is a dot segment or hides one, carries a backslash or a control character, or contains `//`; the message starts with `[<client name>] A request path must stay under the base path`. The base may not carry a `?` or a `#` (500).
 
 **Throws:** `ApplicationError` (via `getError`, `statusCode: 500`) with message `'[getRequestUrl] Invalid configuration for third party request base url!'` when both `opts.baseUrl` and `this.baseUrl` resolve to empty.
 
@@ -1170,6 +1172,19 @@ An IPv6 literal is expanded to its eight 16-bit groups before it is classified, 
 | `resolvePublicAddresses` | `(opts: { hostname: string; trusted?; policy?; signal? }): Promise<string[]>` | The vetted addresses of a host |
 
 `assertPublicHost` checks every resolved address, not the first. A host can publish one public A record beside an internal one. Called on their own, these only check: the address can change before your own connect, so send through a fetcher with `guard`.
+
+### UrlBuilder
+
+`UrlBuilder.join({ baseUrl, paths, scope, origin?, isDoubleSlashRefused? })` returns the `URL` of a request and is the one place a base and path segments are joined: `BaseNetworkRequest.getRequestUrl` and the connectors' `HttpDataSource` both use it.
+
+| Method | Does |
+|---|---|
+| `join` | Checks the base and the paths, joins them, resolves a relative base (`/api`) against `origin` (the page's, by default) and refuses a result that leaves the base's origin or path |
+| `assertBase` | The base is absolute or a path from the origin, and carries no `?` or `#` |
+| `assertPaths` | No path is a dot segment, hides one (`%2e%2e`, `.%2e`, a trailing space, a `?` or `#` after the dots), or carries a backslash, `%5c` or a control character |
+| `toText` | `baseUrl` (no trailing slash) and each path with one leading slash |
+
+`isDoubleSlashRefused` also refuses an empty segment (`a//b`); `getRequestUrl` turns it on, and the data source leaves it off because an opaque id such as `//x` stays under the base.
 
 `ResponseReader.readText({ response, maxBytes? })` turns a `Response` into text, the one way every reader does it: `''` for a 204, an empty body or no body, and the read fails at `maxBytes`. The fetchers' schema path and the kernel's `HttpResponseReader` use it.
 

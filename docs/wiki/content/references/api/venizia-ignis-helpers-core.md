@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-134 exports, 134 with TSDoc. 59 more are re-exported from other entries (listed at the end).
+135 exports, 135 with TSDoc. 59 more are re-exported from other entries (listed at the end).
 
 ## `AbstractCryptoAlgorithm`
 
@@ -287,9 +287,14 @@ export declare class BaseNetworkRequest<T extends TFetcherVariant> extends BaseH
         baseUrl?: string;
         fetcher: IFetchable<T, IRequestOptions, TFetcherResponse<T>, TFetcherWorker<T>>;
     });
+    /** The paths as one path: each with one leading slash. */
     getRequestPath(opts: {
         paths: Array<string>;
     }): string;
+    /**
+     * The url of a request: the base and the paths, checked by `UrlBuilder.join`. A path may not be a dot segment, hide one,
+     * carry a backslash, a control character or an empty segment (`a//b`); a relative base is resolved against the page.
+     */
     getRequestUrl(opts: {
         baseUrl?: string;
         paths: Array<string>;
@@ -3186,6 +3191,55 @@ export declare class UidTokenEncodings {
 ```
 
 Source: `packages/helpers/src/modules/uid/common/constants.ts`
+
+## `UrlBuilder`
+
+*class*
+
+Building the url of a request from a base and path segments, so a segment cannot leave the base.
+
+```ts
+export declare class UrlBuilder {
+    /** The origin of the page or Web Worker that runs this, or `undefined` on a server: the browser global `location` is not declared for a server build, so it is probed. */
+    static readLocationOrigin(): string | undefined;
+    /** The base is an absolute url or a path from the origin (`/api`), and carries no query or fragment. */
+    static assertBase(opts: {
+        baseUrl: string;
+        scope: string;
+    }): void;
+    /** The request paths name a place under the base path, so none may be a dot segment, hide one, or carry a separator the URL parser would read differently from a server. */
+    static assertPaths(opts: {
+        paths: ReadonlyArray<string>;
+        scope: string;
+    }): void;
+    /** `baseUrl` (no trailing slash) followed by each path with one leading slash: `('/api/', ['a', '/b'])` is `/api/a/b`. */
+    static toText(opts: {
+        baseUrl: string;
+        paths: ReadonlyArray<string>;
+    }): string;
+    /**
+     * The url of a request: the base and the paths, checked. A path may not be a dot segment, hide one, or carry a backslash
+     * or a control character; a relative base (`/api`) is resolved against `origin` (the page's, by default); and the result
+     * must be on the base's origin and under its path. With `isDoubleSlashRefused` an empty segment (`a//b`) is refused too.
+     */
+    static join(opts: {
+        baseUrl: string;
+        paths: ReadonlyArray<string>;
+        scope: string;
+        origin?: string;
+        isDoubleSlashRefused?: boolean;
+    }): URL;
+    /** The resolved URL, whatever built it, is on the base's origin and under its path: the check that holds when the text checks above miss a form. */
+    static assertUnderBase(opts: {
+        url: URL;
+        baseUrl: string;
+        origin?: string;
+        scope: string;
+    }): void;
+}
+```
+
+Source: `packages/helpers/src/modules/network/utilities/url-builder.ts`
 
 ## `UrlFetchError`
 

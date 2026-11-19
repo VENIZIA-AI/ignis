@@ -1,6 +1,5 @@
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { isApplicationError, UrlBuilder } from '@venizia/ignis-helpers/core';
 import type { ApplicationError } from '@venizia/ignis-helpers/core';
-import { HttpWire } from '@/http/common/wire';
 import { HttpDataSource } from '@/http/datasource';
 import { afterEach, describe, expect, mock, spyOn, test } from 'bun:test';
 
@@ -114,7 +113,7 @@ describe('HttpDataSource.buildUrl keeps the request path under the base path', (
   test('the resolved URL is checked too: a builder that leaves the origin or the base path is refused', () => {
     const leaving = (url: string) => {
       const source = new HttpDataSource({ baseUrl: 'https://api.example.com/v1/tenant' });
-      spyOn(HttpWire, 'toRequestUrl').mockReturnValue(url);
+      spyOn(UrlBuilder, 'toText').mockReturnValue(url);
 
       return source;
     };

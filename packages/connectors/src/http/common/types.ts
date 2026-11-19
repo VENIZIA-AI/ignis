@@ -72,7 +72,7 @@ export interface IHttpDataSourceSettings {
   fetch?: THttpFetch;
 }
 
-/** What sends a request: a URL and its init, a `Response` back. The public name of the sender type (ARDOR re-exports it). */
+/** What sends a request: a URL and its init, a `Response` back. The public name of the sender type. */
 export type THttpFetch = TNativeFetchSender;
 
 /** A list with no `Content-Range` has no total - `hasRange` says so rather than using the page size. */

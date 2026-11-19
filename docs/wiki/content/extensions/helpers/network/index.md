@@ -31,7 +31,7 @@ class GitHubApi extends NativeFetchNetworkRequest {
 }
 ```
 
-`getRequestUrl()` joins the constructor's `baseUrl` with the path segments. `getNetworkService()` returns the underlying fetcher, which exposes `send()` plus `get`/`post`/`put`/`patch`/`delete`/`query` shortcuts. A status outside 2xx throws a `UrlFetchError`; pass a zod `schema` to get `{ data, status, headers, response }` with a typed `data`.
+`getRequestUrl()` joins the constructor's `baseUrl` with the path segments and refuses a path that is a dot segment, carries a backslash or a control character, or has an empty segment (`//`). `getNetworkService()` returns the underlying fetcher, which exposes `send()` plus `get`/`post`/`put`/`patch`/`delete`/`query` shortcuts. A status outside 2xx throws a `UrlFetchError`; pass a zod `schema` to get `{ data, status, headers, response }` with a typed `data`.
 
 ## How it works
 
