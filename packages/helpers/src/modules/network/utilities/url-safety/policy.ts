@@ -6,7 +6,7 @@
 import { HTTP } from '@/common/constants';
 import { getError } from '@/modules/error';
 import { UrlSafetyDefaults, UrlSchemes } from './common/constants';
-import { UrlSafetyErrors } from './common/errors';
+import { UrlSafetyErrors, UrlSafetyRefusals } from './common/errors';
 import type { IUrlSafetyPolicy } from './common/types';
 
 /** Everything about a url that can be decided without touching the network. */
@@ -451,9 +451,7 @@ export class UrlPolicy {
    * A timeout, a DNS failure or a 5xx answers `false`: those are worth another attempt.
    */
   static isRefusedError(opts: { error: unknown }): boolean {
-    const source = opts.error as { normalized?: { code?: string } };
-
-    return source?.normalized?.code === UrlSafetyErrors.URL_REFUSED.message.code;
+    return UrlSafetyRefusals.is(opts);
   }
 }
 

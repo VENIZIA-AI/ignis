@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-140 exports, 140 with TSDoc. 59 more are re-exported from other entries (listed at the end).
+141 exports, 141 with TSDoc. 59 more are re-exported from other entries (listed at the end).
 
 ## `AbstractCryptoAlgorithm`
 
@@ -669,6 +669,10 @@ export declare class FetchHeaders {
     static merge(opts: {
         layers: ReadonlyArray<TFetchHeaders | undefined>;
     }): Headers;
+    /** `merge` under a JSON content type: the layers may replace it (any case) or remove it with `null`. */
+    static withJsonDefault(opts: {
+        layers: ReadonlyArray<TFetchHeaders | undefined>;
+    }): Headers;
     /** A copy of `headers` keeping only the names in `names`. */
     static only(opts: {
         headers: Headers;
@@ -754,10 +758,6 @@ export declare class FetchRetry {
     static isRetryable(opts: {
         error: unknown;
         signal?: AbortSignal;
-    }): boolean;
-    /** Whether `error` is a url-guard refusal (a refused url is refused forever). */
-    static isRefusal(opts: {
-        error: unknown;
     }): boolean;
     /** The wait a 429 or 503 asks for in `Retry-After`, in milliseconds: seconds, or an HTTP date. `undefined` when there is none. */
     static readRetryAfterMs(opts: {
@@ -2628,6 +2628,24 @@ export declare class RequestIdGenerator extends BaseHelper {
 ```
 
 Source: `packages/helpers/src/modules/uid/request-id.ts`
+
+## `ResponseReader`
+
+*class*
+
+Turning a `Response` into text, the one way every reader does it.
+
+```ts
+export declare class ResponseReader {
+    /** The body as text: `''` for a 204, an empty body or no body; with `maxBytes` the read stops and fails at the cap. */
+    static readText(opts: {
+        response: Response;
+        maxBytes?: number;
+    }): Promise<string>;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/response-reader.ts`
 
 ## `RetryBackoffStrategies`
 

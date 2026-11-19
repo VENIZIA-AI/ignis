@@ -172,6 +172,7 @@ describe('HfLogFlusher lifecycle and sinks', () => {
   });
 
   test('filePath default sink appends parseable lines and a lap marker when dropped > 0', async () => {
+    fs.mkdirSync('./app_data/logs', { recursive: true });
     const filePath = path.join('./app_data/logs', `hf-sink-test-${process.pid}.log`);
     fs.rmSync(filePath, { force: true });
     const flusher = new HfLogFlusher({ filePath });
@@ -184,6 +185,7 @@ describe('HfLogFlusher lifecycle and sinks', () => {
   });
 
   test('filePath default sink writes the lap marker line when the ring is lapped', async () => {
+    fs.mkdirSync('./app_data/logs', { recursive: true });
     const filePath = path.join('./app_data/logs', `hf-sink-lap-test-${process.pid}.log`);
     fs.rmSync(filePath, { force: true });
     const flusher = new HfLogFlusher({ filePath });

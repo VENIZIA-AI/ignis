@@ -16,6 +16,7 @@ import {
   type TFetcherLogger,
 } from './base-fetcher';
 import { BodyLimit } from './common/body-limit';
+import { ResponseReader } from './common/response-reader';
 import type { IFetchGuard } from './common/guard';
 import type { IFetcherDefaults, IFetcherHooks } from './common/types';
 import { FetchHeaders } from './common/utilities';
@@ -314,13 +315,7 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
         });
       },
       readJson: async ({ maxBytes }) => {
-        if (maxBytes === undefined) {
-          const whole = await response.text();
-
-          return JSON.parse(whole);
-        }
-
-        const text = await BodyLimit.readText({ response, maxBytes });
+        const text = await ResponseReader.readText({ response, maxBytes });
 
         return JSON.parse(text);
       },
@@ -365,12 +360,8 @@ export class NativeFetchNetworkRequest extends BaseNetworkRequest<'native'> {
     } = networkOptions;
 
     // Case-insensitive, like the wire: a caller's `Content-Type` replaces the default one.
-    const mergedHeaders = FetchHeaders.merge({
-      layers: [
-        { [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON_UTF8 },
-        headers === undefined ? undefined : new Headers(headers),
-        opts.defaults?.headers,
-      ],
+    const mergedHeaders = FetchHeaders.withJsonDefault({
+      layers: [headers === undefined ? undefined : new Headers(headers), opts.defaults?.headers],
     });
 
     super({

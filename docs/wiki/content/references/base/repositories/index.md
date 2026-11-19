@@ -279,7 +279,8 @@ The connector's readers are exported for a client that talks to the same server 
 
 The same class reads a success body (`readBody` and `readJson` answer a `TJsonValue`, never `any`):
 
-- `HttpResponseReader.readText({ response })`: the text, `''` for a 204 or an empty body.
+- `HttpResponseReader.readText({ response })`: the text, `''` for a 204 or an empty body (it is `ResponseReader.readText` of `@venizia/ignis-helpers/core`, the one reader the fetchers use too).
+- `HttpResponseReader.fromFetchError({ error, context, rootKey })`: `toApplicationError` for a fetcher's refused answer; it reads the body the `UrlFetchError` kept.
 - `HttpResponseReader.readBody({ response, context })`: reads by content type. `null` for a 204 or an empty body; the parsed value when the type names JSON (`application/json`, `application/problem+json`); the text for any other type (`text/plain`, `text/csv`).
 - `HttpResponseReader.readJson({ response, context })`: `null` for a 204 or an empty body, else the parsed value whatever the content type says. `HttpDataSource` reads through it.
 

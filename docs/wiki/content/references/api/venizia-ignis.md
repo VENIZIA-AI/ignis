@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-108 exports, 108 with TSDoc. 1011 more are re-exported from other entries (listed at the end).
+108 exports, 108 with TSDoc. 1013 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3885,6 +3885,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `ResolverUtility` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `ResponseExtras` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `ResponseFormats` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `ResponseReader` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `RestApplication` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `RestBindingKeys` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `RestComponent` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -4254,6 +4255,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `UrlPolicy` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UrlSafetyDefaults` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UrlSafetyErrors` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `UrlSafetyRefusals` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `UrlSchemes` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UserStatuses` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `UserTypes` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
