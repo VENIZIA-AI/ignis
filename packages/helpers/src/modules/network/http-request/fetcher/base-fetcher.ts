@@ -27,6 +27,9 @@ import type {
 } from './common/types';
 import { FetchHeaders, FetchRedirects, FetchRetry } from './common/utilities';
 
+/** The attempts a call makes when its `retry` names no `maxAttempts` (the retry helper's own default). */
+const DEFAULT_MAX_ATTEMPTS = 3;
+
 /** What a fetcher calls on the logger it is handed, so a host logger with only these two (a browser app's) is accepted as is. */
 export type TFetcherLogger = Pick<ILogger, 'debug' | 'info'>;
 
@@ -217,6 +220,8 @@ export abstract class AbstractNetworkFetchableHelper<
       typeof body === 'string' ||
       ArrayBuffer.isView(body) ||
       body instanceof ArrayBuffer ||
+      (typeof Blob !== 'undefined' && body instanceof Blob) ||
+      (typeof URLSearchParams !== 'undefined' && body instanceof URLSearchParams) ||
       Array.isArray(body) ||
       (typeof body === 'object' && Object.getPrototypeOf(body) === Object.prototype)
     );
@@ -275,9 +280,13 @@ export abstract class AbstractNetworkFetchableHelper<
 
     const retry = request.retry ?? this.defaults.retry;
 
-    if (retry !== undefined && !this.isReplayable({ body: request.body })) {
+    if (
+      retry !== undefined &&
+      (retry.maxAttempts ?? DEFAULT_MAX_ATTEMPTS) > 1 &&
+      !this.isReplayable({ body: request.body })
+    ) {
       throw getError({
-        message: `[${this.name}] A call with retry cannot carry a body that is sent once (a stream, a FormData, a Blob) | url: ${request.url}`,
+        message: `[${this.name}] A call with retry cannot carry a body that is sent once (a stream, a FormData) unless maxAttempts is 1 | url: ${request.url}`,
       });
     }
 

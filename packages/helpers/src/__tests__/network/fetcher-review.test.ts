@@ -124,7 +124,7 @@ describe('a guard refuses every option that chooses the connection', () => {
     expect(result5).toContain('stream');
   });
 
-  for (const option of ['unix', 'dispatcher', 'proxy', 'tls']) {
+  for (const option of ['unix', 'dispatcher', 'proxy', 'tls', 'agent', 'someFutureBunKnob']) {
     test(`native: ${option} is refused per call and in defaultConfigs`, async () => {
       const perCall = new NativeFetcher({ name: 'n', guardEngine: engine });
       const inDefaults = new NativeFetcher({
@@ -304,6 +304,39 @@ describe('replay', () => {
       maxRedirects: 2,
     });
     expect(axiosResponse.data).toEqual({ b: 2 });
+  });
+
+  test('with maxAttempts 1 a once-only body is fine even when the fetcher defaults to retry', async () => {
+    const fetcher = new NativeFetcher({ name: 'n', defaults: { retry: { maxAttempts: 3 } } });
+    const response = await fetcher.post({
+      url: `${base}/x`,
+      body: new Blob(['x']),
+      retry: { maxAttempts: 1 },
+    });
+    const form = await fetcher.post({
+      url: `${base}/x`,
+      body: new FormData(),
+      retry: { maxAttempts: 1 },
+    });
+
+    expect(response.status).toBe(200);
+    expect(form.status).toBe(200);
+  });
+
+  test('a Blob and URLSearchParams can be retried, a FormData cannot', async () => {
+    const fetcher = new NativeFetcher({ name: 'n' });
+    const retry = { maxAttempts: 2, backoff: FAST };
+
+    const result2 = await fetcher.post({ url: `${base}/x`, body: new Blob(['x']), retry });
+    expect(result2.status).toBe(200);
+    const result3 = await fetcher.post({
+      url: `${base}/x`,
+      body: new URLSearchParams({ a: '1' }),
+      retry,
+    });
+    expect(result3.status).toBe(200);
+    const result4 = await refusal(fetcher.post({ url: `${base}/x`, body: new FormData(), retry }));
+    expect(result4).toContain('sent once');
   });
 
   test('a body that can be sent only once cannot be retried: a clear error, nothing sent', async () => {

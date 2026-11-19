@@ -19,16 +19,35 @@ import type { IFetchGuard } from './common/guard';
 import type { IFetcherDefaults, IFetcherHooks } from './common/types';
 import { FetchHeaders } from './common/utilities';
 
-/** The axios options that choose where a request connects; a guard refuses every one. */
-const CONNECTION_OPTIONS = [
-  'socketPath',
-  'lookup',
-  'transport',
-  'proxy',
-  'httpAgent',
-  'httpsAgent',
-  'family',
-];
+/**
+ * The request options a guarded call accepts, besides the ones the pipeline owns. An allowlist, not a denylist: axios keeps
+ * adding transport knobs (`httpVersion`, `http2Options`, ...) that connect on their own and ignore the pinned agent, so
+ * anything not listed here is refused, per call and in `defaultConfigs`.
+ */
+const GUARDED_OPTIONS = new Set([
+  'baseURL',
+  'auth',
+  'withCredentials',
+  'responseType',
+  'responseEncoding',
+  'xsrfCookieName',
+  'xsrfHeaderName',
+  'withXSRFToken',
+  'transformRequest',
+  'transformResponse',
+  'paramsSerializer',
+  'maxContentLength',
+  'maxBodyLength',
+  'maxRate',
+  'decompress',
+  'transitional',
+  'formSerializer',
+  'allowAbsoluteUrls',
+  'cancelToken',
+  'onUploadProgress',
+  'onDownloadProgress',
+  'rejectUnauthorized',
+]);
 
 /** The fields of an axios config the pipeline owns. */
 type TOwnedAxiosFields =
@@ -97,6 +116,8 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
    */
   private readonly httpsAgent: https.Agent;
   private readonly isRejectingUnauthorized: boolean;
+  /** What the caller put in `defaultConfigs`: a guarded call checks it like its own options. */
+  private readonly configured: Record<string, unknown>;
 
   constructor(opts: {
     name: string;
@@ -128,6 +149,7 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
       rejectUnauthorized: this.isRejectingUnauthorized,
     });
 
+    this.configured = { ...opts.defaultConfigs };
     this.worker = axios.create({ ...opts.defaultConfigs });
   }
 
@@ -147,17 +169,14 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
       });
     }
 
-    const source: Record<string | symbol, unknown> = { ...this.worker.defaults, ...extra };
-    const found = CONNECTION_OPTIONS.filter((name) => source[name] !== undefined);
-
-    // The default `adapter` is a list of names; only a function of the caller's own can choose the connection.
-    if (typeof source.adapter === 'function') {
-      found.push('adapter');
-    }
+    const source: Record<string, unknown> = { ...this.configured, ...extra };
+    const found = Object.keys(source).filter(
+      (name) => source[name] !== undefined && !GUARDED_OPTIONS.has(name),
+    );
 
     if (found.length > 0) {
       throw getError({
-        message: `[${this.name}] A guarded call cannot set ${found.join(', ')} | an option that chooses the connection could reach an address the guard did not vet`,
+        message: `[${this.name}] A guarded call cannot set ${found.join(', ')} | only ${[...GUARDED_OPTIONS].join(', ')} are accepted with a guard: any other option could connect to an address the guard did not vet`,
       });
     }
 

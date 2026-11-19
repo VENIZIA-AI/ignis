@@ -25,6 +25,8 @@ export declare class AxiosFetcher extends AbstractNetworkFetchableHelper<'axios'
      */
     private readonly httpsAgent;
     private readonly isRejectingUnauthorized;
+    /** What the caller put in `defaultConfigs`: a guarded call checks it like its own options. */
+    private readonly configured;
     constructor(opts: {
         name: string;
         defaultConfigs?: AxiosRequestConfig;

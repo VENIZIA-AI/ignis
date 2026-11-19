@@ -54,8 +54,20 @@ const isRawBody = (body: unknown): body is NonNullable<RequestInit['body']> => {
   });
 };
 
-/** The `fetch` options (Bun's) that choose where a request connects; a guard refuses every one. */
-const CONNECTION_OPTIONS = ['unix', 'dispatcher', 'proxy', 'tls', 'agent'];
+/**
+ * The `fetch` options a guarded call accepts, besides the ones the pipeline owns. An allowlist: Bun adds options that choose
+ * the connection (`unix`, `proxy`, `tls`, ...) and a guard must not meet a new one by surprise.
+ */
+const GUARDED_OPTIONS = new Set([
+  'credentials',
+  'mode',
+  'cache',
+  'referrer',
+  'referrerPolicy',
+  'integrity',
+  'keepalive',
+  'priority',
+]);
 
 /** Connect-phase errors: nothing was sent, so trying the next vetted address cannot deliver a request twice. */
 const CONNECT_ERROR_CODES = ['ECONNREFUSED', 'ENETUNREACH', 'EHOSTUNREACH', 'EADDRNOTAVAIL'];
@@ -105,12 +117,14 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
       return;
     }
 
-    const source: Record<string | symbol, unknown> = { ...this.requestInit, ...opts.extra };
-    const found = CONNECTION_OPTIONS.filter((name) => source[name] !== undefined);
+    const source: Record<string, unknown> = { ...this.requestInit, ...opts.extra };
+    const found = Object.keys(source).filter(
+      (name) => source[name] !== undefined && !GUARDED_OPTIONS.has(name),
+    );
 
     if (found.length > 0) {
       throw getError({
-        message: `[${this.name}] A guarded call cannot set ${found.join(', ')} | an option that chooses the connection could reach an address the guard did not vet`,
+        message: `[${this.name}] A guarded call cannot set ${found.join(', ')} | only ${[...GUARDED_OPTIONS].join(', ')} are accepted with a guard: any other option could connect to an address the guard did not vet`,
       });
     }
   }
