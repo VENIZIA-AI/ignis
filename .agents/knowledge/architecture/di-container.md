@@ -35,14 +35,14 @@ Split so that a variant implementation only re-earns what it actually varies:
   abstract, because resolution is the part worth swapping.
 - `Container extends BaseContainer` - resolution via decorator metadata.
 
-Public keys are `TBindingKey<T = unknown>`: a `string | symbol` branded with the type of the value bound under it (a compile-time brand, bivariant, so a claim that is a subtype or supertype of the key's type is accepted and an unrelated one is a type error). `BindingKeys.build<T>({ namespace?, key })` makes a typed key; `bind`, `get`, `getBinding`, `gets` and `Binding.bind` read `T` from it. A key is normalized to string form via `String(key)` and is a plain string at run time. `@inject({ key })` accepts a typed key but nothing checks the decorated parameter against it (a parameter decorator gets no parameter type; a property check would reject `protected` fields): annotate with `TBindingKeyValue<typeof Key>`.
+Public keys are `TBindingKey<T = unknown>`: a string branded with the type of the value bound under it (a compile-time brand, required and bivariant, so a claim that is a subtype or supertype of the key's type is accepted and an unrelated one is a type error). Only `BindingKeys.build<T>({ namespace?, key })` makes one, and `T` must be written (`build<unknown>` for a key with no common type); `bind`, `get`, `getBinding`, `gets`, `isBound`, `unbind`, `Binding.bind` and `@inject({ key })` take nothing else, so a raw string, a template literal, a symbol and the `{ namespace, key }` object do not compile. A key is a plain string at run time. Reflect-metadata keys are `TMetadataKey` (`string | symbol`), not container keys. `@inject({ key })` accepts a typed key but nothing checks the decorated parameter against it (a parameter decorator gets no parameter type; a property check would reject `protected` fields): annotate with `TBindingKeyValue<typeof Key>`.
 
 ## Binding: the fluent API
 
 A binding says how a key resolves - three resolver kinds, one scope, plus tags:
 
 ```typescript
-container.bind({ key: 'services.UserService' })
+container.bind({ key: BindingKeys.build<UserService>({ key: 'services.UserService' }) })
   .toClass(UserService)          // container instantiates with DI
   .setScope(BindingScopes.SINGLETON)
   .setTags('services');

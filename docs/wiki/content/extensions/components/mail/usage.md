@@ -265,6 +265,7 @@ try {
 
 ```typescript
 import { z } from '@hono/zod-openapi';
+import { BindingKeys } from '@venizia/ignis';
 
 const templateSchema = z.object({
   content: z.string(),
@@ -277,8 +278,8 @@ async syncTemplatesFromDatabase() {
     key: MailKeys.MAIL_TEMPLATE_ENGINE,
   });
 
-  const configRepository = this.application.get<ConfigurationRepository>({
-    key: 'repositories.ConfigurationRepository',
+  const configRepository = this.application.get({
+    key: BindingKeys.build<ConfigurationRepository>({ key: 'repositories.ConfigurationRepository' }),
   });
 
   const templateConfigs = await configRepository.find({

@@ -615,18 +615,8 @@ describe('EventBus - invalid handler shapes throw at register()', () => {
     ).toThrow(/Unknown handler\.type/);
   });
 
-  test('an empty handler.key throws', () => {
-    const { bus } = buildBus();
-
-    expect(() =>
-      bus.register({
-        name: 'testEvent',
-        handler: {
-          type: EventHandlerTypes.BINDING_KEY,
-          key: BindingKeys.build<IEventHandler>({ key: '' }),
-        },
-      }),
-    ).toThrow(/Invalid handler\.key/);
+  test('an empty handler.key cannot be built: the key builder refuses it before the bus is asked', () => {
+    expect(() => BindingKeys.build<IEventHandler>({ key: '' })).toThrow('Invalid key to build');
   });
 
   test('a non-function handler.fn throws', () => {

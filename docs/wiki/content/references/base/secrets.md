@@ -252,11 +252,12 @@ Any provider-fed code injects the singleton at `@app/config`.
 
 ```typescript
 import type { ISecretsHelper } from '@venizia/ignis-helpers';
+import { BindingKeys } from '@venizia/ignis';
 
 @service()
 export class PaymentService {
   constructor(
-    @inject({ key: '@app/config' }) private secrets: ISecretsHelper,
+    @inject({ key: BindingKeys.build<ISecretsHelper>({ key: '@app/config' }) }) private secrets: ISecretsHelper,
   ) {}
 
   async charge() {

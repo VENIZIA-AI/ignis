@@ -87,7 +87,7 @@ export class ConfigurationController extends _Controller {
     // The @inject decorator tells the container to provide
     // an instance of ConfigurationRepository here.
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<ConfigurationRepository>({
         namespace: BindingNamespaces.REPOSITORY,
         key: ConfigurationRepository.name,
       }),
@@ -154,7 +154,7 @@ You can encapsulate your own logic or third-party integrations (like Socket.IO, 
 **Example (`SocketIOComponent`):**
 
 ```typescript
-import { BaseApplication, BaseComponent, inject, CoreBindings, Binding } from '@venizia/ignis';
+import { BaseApplication, BaseComponent, inject, CoreBindings, Binding, BindingKeys } from '@venizia/ignis';
 
 export class MySocketComponent extends BaseComponent {
   constructor(
@@ -166,14 +166,14 @@ export class MySocketComponent extends BaseComponent {
       initDefault: { enable: true, container: application },
       bindings: {
         // Define default configuration binding
-        'my.socket.options': Binding.bind({ key: 'my.socket.options' }).toValue({ port: 8080 }),
+        'my.socket.options': Binding.bind({ key: BindingKeys.build<unknown>({ key: 'my.socket.options' }) }).toValue({ port: 8080 }),
       },
     });
   }
 
   // The binding method is called when the application configures components (registerComponents)
   override binding(): void {
-    const options = this.application.get({ key: 'my.socket.options' });
+    const options = this.application.get({ key: BindingKeys.build<unknown>({ key: 'my.socket.options' }) });
     
     this.logger.info('Initializing Socket.IO with options: %j', options);
     
@@ -267,8 +267,8 @@ export class Application extends BaseApplication {
   // Called after all registrations complete
   async postConfigure(): Promise<void> {
     // Access registered services
-    const userRepository = this.get<UserRepository>({
-      key: BindingKeys.build({
+    const userRepository = this.get({
+      key: BindingKeys.build<UserRepository>({
         namespace: BindingNamespaces.REPOSITORY,
         key: UserRepository.name,
       }),

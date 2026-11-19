@@ -37,18 +37,18 @@ When you need constructor control (e.g., read-only repository or additional depe
 // src/repositories/user.repository.ts
 import { User } from '@/models/entities';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
-import { inject, ReadableRepository, repository } from '@venizia/ignis';
+import { inject, ReadableRepository, repository, BindingKeys } from '@venizia/ignis';
 import { CacheService } from '@/services/cache.service';
 
 @repository({ model: User, dataSource: PostgresDataSource })
 export class UserRepository extends ReadableRepository<typeof User.schema> {
   constructor(
     // First parameter MUST be DataSource injection
-    @inject({ key: 'datasources.PostgresDataSource' })
+    @inject({ key: BindingKeys.build<PostgresDataSource>({ key: 'datasources.PostgresDataSource' }) })
     dataSource: PostgresDataSource, // Must be concrete type, not 'any'
 
     // After first arg, you can inject any additional dependencies
-    @inject({ key: 'services.CacheService' })
+    @inject({ key: BindingKeys.build<CacheService>({ key: 'services.CacheService' }) })
     private cacheService: CacheService,
   ) {
     super(dataSource);
@@ -103,7 +103,7 @@ For advanced filtering with operators like `gt`, `lt`, `like`, `in`, `between`, 
 Return shapes: read methods return values directly (`find` returns an array, `findOne`/`findById` return a record or `null`, `count` returns `{ count }`), while write methods (`create`, `updateById`, `deleteById`, ...) return a `{ count, data }` envelope.
 
 ```typescript
-const repo = this.get<ConfigurationRepository>({ key: 'repositories.ConfigurationRepository' });
+const repo = this.get({ key: BindingKeys.build<ConfigurationRepository>({ key: 'repositories.ConfigurationRepository' }) });
 
 // Find multiple records
 const configs = await repo.find({
@@ -175,7 +175,7 @@ It runs one update per row, in the order given, inside one transaction: a refuse
 The key is a handle declared once with `UniqueKeys.of` (see [Unique Keys](./models#unique-keys)). Without `on`, the key is the primary key.
 
 ```typescript
-const cache = this.get<SelfOrderCacheRepository>({ key: 'repositories.SelfOrderCacheRepository' });
+const cache = this.get({ key: BindingKeys.build<SelfOrderCacheRepository>({ key: 'repositories.SelfOrderCacheRepository' }) });
 
 // `merchantId` is not named: `write.mode: 'assign'` fills it from the scope.
 const { data } = await cache.upsert({

@@ -161,8 +161,8 @@ Repositories are used to interact with your database. The `DefaultRelationalRepo
 // In src/application.ts
 
 // Get the repository instance from the DI container
-const configurationRepository = this.get<ConfigurationRepository>({
-  key: BindingKeys.build({
+const configurationRepository = this.get({
+  key: BindingKeys.build<ConfigurationRepository>({
     namespace: BindingNamespaces.REPOSITORY,
     key: ConfigurationRepository.name,
   }),
@@ -351,7 +351,7 @@ import { BaseService, inject, BindingKeys, BindingNamespaces } from '@venizia/ig
 export class UserService extends BaseService {
   constructor(
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<UserRepository>({
         namespace: BindingNamespaces.REPOSITORY,
         key: UserRepository.name,
       }),
@@ -359,7 +359,7 @@ export class UserService extends BaseService {
     private userRepository: UserRepository,
 
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<OrderRepository>({
         namespace: BindingNamespaces.REPOSITORY,
         key: OrderRepository.name,
       }),
@@ -409,7 +409,7 @@ export class UserService extends BaseService {
 export class UserController extends BaseRestController {
   constructor(
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<UserService>({
         namespace: BindingNamespaces.SERVICE,
         key: UserService.name,
       }),

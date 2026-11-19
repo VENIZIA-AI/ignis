@@ -18,12 +18,12 @@ must declare `experimentalDecorators: true` itself (see [Decorators](#decorators
 Bind values and classes under string keys, then ask the container for a key.
 
 ```typescript
-import { BindingScopes, Container, inject } from '@venizia/ignis-inversion';
+import { BindingScopes, Container, inject, BindingKeys } from '@venizia/ignis-inversion';
 
 class GreetingService {
   constructor(
-    @inject({ key: 'config.prefix' }) private readonly prefix: string,
-    @inject({ key: 'config.locale', isOptional: true }) private readonly locale?: string,
+    @inject({ key: BindingKeys.build<string>({ key: 'config.prefix' }) }) private readonly prefix: string,
+    @inject({ key: BindingKeys.build<string>({ key: 'config.locale' }), isOptional: true }) private readonly locale?: string,
   ) {}
 
   greet(name: string) {
@@ -33,13 +33,13 @@ class GreetingService {
 
 const container = new Container();
 
-container.bind({ key: 'config.prefix' }).toValue('Hello');
+container.bind({ key: BindingKeys.build<unknown>({ key: 'config.prefix' }) }).toValue('Hello');
 container
-  .bind({ key: 'services.GreetingService' })
+  .bind({ key: BindingKeys.build<GreetingService>({ key: 'services.GreetingService' }) })
   .toClass(GreetingService)
   .setScope(BindingScopes.SINGLETON);
 
-const service = container.get<GreetingService>({ key: 'services.GreetingService' });
+const service = container.get({ key: BindingKeys.build<GreetingService>({ key: 'services.GreetingService' }) });
 console.log(service.greet('IGNIS')); // Hello IGNIS (en)
 
 // The first segment of a dotted key becomes a tag.
@@ -74,7 +74,7 @@ Every method takes an options object: `container.get({ key })`, never `container
 | `clearCache()` | Discards the cached singleton |
 
 `AbstractContainer` (the contract) and `BaseContainer` (the storage) are exported for custom
-containers. `BindingKeys.build({ namespace, key })` joins a namespace and a key with a dot.
+containers. `BindingKeys.build<T>({ namespace, key })` joins a namespace and a key with a dot and types the key with the value bound under it; it is the only way to make a key.
 
 ## Decorators
 
@@ -83,7 +83,7 @@ resolve through the key that class was registered under.
 
 | Option | Type | Meaning |
 | :--- | :--- | :--- |
-| `key` | `string \| symbol` | The binding key to resolve |
+| `key` | `TBindingKey` | The binding key to resolve, made by `BindingKeys.build<T>` |
 | `target` | class, or a function returning one | Resolve the class's recorded key. The function form survives an import cycle |
 | `isOptional` | `boolean` | Resolve an unbound key to `undefined` instead of throwing |
 

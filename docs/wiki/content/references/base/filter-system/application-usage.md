@@ -86,14 +86,14 @@ import {
   OpenApiResponses,
   type TInferSchema,
   type TRouteContext,
-  type ValueOrPromise,
+  type ValueOrPromise, BindingKeys,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 @controller({ path: '/products' })
 export class ProductController extends BaseRestController {
   constructor(
-    @inject({ key: 'repositories.ProductRepository' })
+    @inject({ key: BindingKeys.build<ProductRepository>({ key: 'repositories.ProductRepository' }) })
     private _productRepository: ProductRepository,
   ) {
     super({ scope: 'ProductController', path: '/products' });
@@ -145,7 +145,7 @@ Add a service between the controller and the repository when a constraint is a c
 @service()
 export class ProductService {
   constructor(
-    @inject({ key: 'repositories.ProductRepository' })
+    @inject({ key: BindingKeys.build<ProductRepository>({ key: 'repositories.ProductRepository' }) })
     private _productRepository: ProductRepository,
   ) {}
 

@@ -298,7 +298,7 @@ export class UserRepository extends DefaultCRUDRepository<typeof userTable> {}
 // src/repositories/room.repository.ts
 import { Room, RoomMember, type roomTable, type roomMemberTable } from '@/models/room.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
-import { inject, repository } from '@venizia/ignis';
+import { inject, repository, BindingKeys } from '@venizia/ignis';
 import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 @repository({ model: RoomMember, dataSource: PostgresDataSource })
@@ -308,11 +308,11 @@ export class RoomMemberRepository extends DefaultCRUDRepository<typeof roomMembe
 export class RoomRepository extends DefaultCRUDRepository<typeof roomTable> {
   constructor(
     // First parameter MUST be DataSource injection
-    @inject({ key: 'datasources.PostgresDataSource' })
+    @inject({ key: BindingKeys.build<PostgresDataSource>({ key: 'datasources.PostgresDataSource' }) })
     dataSource: PostgresDataSource,
 
     // From 2nd parameter, inject additional dependencies
-    @inject({ key: 'repositories.RoomMemberRepository' })
+    @inject({ key: BindingKeys.build<RoomMemberRepository>({ key: 'repositories.RoomMemberRepository' }) })
     private _memberRepository: RoomMemberRepository,
   ) {
     super(dataSource);
@@ -369,7 +369,7 @@ export class RoomRepository extends DefaultCRUDRepository<typeof roomTable> {
 // src/repositories/message.repository.ts
 import { Message, DirectMessage, type messageTable, type directMessageTable } from '@/models/message.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
-import { inject, repository } from '@venizia/ignis';
+import { inject, repository, BindingKeys } from '@venizia/ignis';
 import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 @repository({ model: DirectMessage, dataSource: PostgresDataSource })
@@ -379,11 +379,11 @@ export class DirectMessageRepository extends DefaultCRUDRepository<typeof direct
 export class MessageRepository extends DefaultCRUDRepository<typeof messageTable> {
   constructor(
     // First parameter MUST be DataSource injection
-    @inject({ key: 'datasources.PostgresDataSource' })
+    @inject({ key: BindingKeys.build<PostgresDataSource>({ key: 'datasources.PostgresDataSource' }) })
     dataSource: PostgresDataSource,
 
     // From 2nd parameter, inject additional dependencies
-    @inject({ key: 'repositories.DirectMessageRepository' })
+    @inject({ key: BindingKeys.build<DirectMessageRepository>({ key: 'repositories.DirectMessageRepository' }) })
     private _directMessageRepository: DirectMessageRepository,
   ) {
     super(dataSource);
@@ -469,7 +469,7 @@ export class ChatService extends BaseService {
     private application: BaseApplication,
 
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<MessageRepository>({
         namespace: BindingNamespaces.REPOSITORY,
         key: 'MessageRepository',
       }),
@@ -477,7 +477,7 @@ export class ChatService extends BaseService {
     private _messageRepository: MessageRepository,
 
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<RoomRepository>({
         namespace: BindingNamespaces.REPOSITORY,
         key: 'RoomRepository',
       }),
@@ -485,7 +485,7 @@ export class ChatService extends BaseService {
     private _roomRepository: RoomRepository,
 
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<UserRepository>({
         namespace: BindingNamespaces.REPOSITORY,
         key: 'UserRepository',
       }),
@@ -1045,8 +1045,8 @@ export class ChatApp extends BaseApplication {
     // 3. Client connected handler - called AFTER successful authentication
     //    This is where you register custom event handlers on each socket
     const clientConnectedFn: ISocketIOServerBaseOptions['clientConnectedFn'] = ({ socket }) => {
-      const chatService = this.get<ChatService>({
-        key: BindingKeys.build({
+      const chatService = this.get({
+        key: BindingKeys.build<ChatService>({
           namespace: BindingNamespaces.SERVICE,
           key: ChatService.name,
         }),
@@ -1227,7 +1227,7 @@ const ChatRoutes = {
 export class ChatController extends BaseRestController {
   constructor(
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<ChatService>({
         namespace: BindingNamespaces.SERVICE,
         key: 'ChatService',
       }),

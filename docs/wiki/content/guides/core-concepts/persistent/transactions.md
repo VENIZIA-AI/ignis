@@ -195,9 +195,9 @@ When building services that support transactions, follow this pattern:
 ```typescript
 export class OrderService extends BaseService {
   constructor(
-    @inject({ key: 'repositories.OrderRepository' })
+    @inject({ key: BindingKeys.build<OrderRepository>({ key: 'repositories.OrderRepository' }) })
     private _orderRepository: OrderRepository,
-    @inject({ key: 'repositories.OrderItemRepository' })
+    @inject({ key: BindingKeys.build<OrderItemRepository>({ key: 'repositories.OrderItemRepository' }) })
     private _orderItemRepository: OrderItemRepository,
   ) {
     super({ scope: OrderService.name });
@@ -235,9 +235,9 @@ export class OrderService extends BaseService {
 @controller({ path: '/orders' })
 export class OrderController extends BaseRestController {
   constructor(
-    @inject({ key: 'repositories.OrderRepository' })
+    @inject({ key: BindingKeys.build<OrderRepository>({ key: 'repositories.OrderRepository' }) })
     private _orderRepository: OrderRepository,
-    @inject({ key: 'services.OrderService' })
+    @inject({ key: BindingKeys.build<OrderService>({ key: 'services.OrderService' }) })
     private _orderService: OrderService,
   ) {
     super({ scope: OrderController.name });

@@ -56,13 +56,13 @@ const container = new Container({ scope: 'MyApp' }); // scope is optional, defau
 
 | Method | Signature | Description |
 | :--- | :--- | :--- |
-| **`bind`** | `bind<T>({ key: string \| symbol }): Binding<T>` | Creates and registers a new `Binding` for the given key. Returns the `Binding` for fluent configuration. |
+| **`bind`** | `bind<T>({ key: TBindingKey<T> }): Binding<T>` | Creates and registers a new `Binding` for the given key. Returns the `Binding` for fluent configuration. |
 | **`get`** | `get<T>({ key, isOptional? }): T` | Retrieves a resolved dependency. Throws if not found, unless `isOptional` is `true`. |
 | **`gets`** | `gets<T extends unknown[]>({ bindings }): { [K in keyof T]: T[K] \| undefined }` | Resolves several dependencies at once. Missing bindings resolve to `undefined`. |
-| **`getBinding`** | `getBinding<T>({ key }): Binding<T> \| undefined` | Returns the raw `Binding` object without resolving it. `key` accepts `string`, `symbol`, or `{ namespace, key }`. |
+| **`getBinding`** | `getBinding<T>({ key }): Binding<T> \| undefined` | Returns the raw `Binding` object without resolving it. `key` is a key made by `BindingKeys.build`. |
 | **`set`** | `set<T>({ binding: Binding<T> }): void` | Directly sets a pre-built `Binding` into the container. |
-| **`isBound`** | `isBound({ key: string \| symbol }): boolean` | Checks if a binding exists for the given key. |
-| **`unbind`** | `unbind({ key: string \| symbol }): boolean` | Removes a binding. Returns `true` if it existed. |
+| **`isBound`** | `isBound({ key: TBindingKey }): boolean` | Checks if a binding exists for the given key. |
+| **`unbind`** | `unbind({ key: TBindingKey }): boolean` | Removes a binding. Returns `true` if it existed. |
 | **`resolve`** | `resolve<T>(cls: TClass<T>): T` | Alias for `instantiate()`. Creates a new instance of the class with DI. |
 | **`instantiate`** | `instantiate<T>(cls: TClass<T>): T` | Creates a new instance of a class, injecting constructor parameters and property dependencies from the container. |
 | **`findByTag`** | `findByTag<T = unknown>({ tag, exclude? }): Binding<T>[]` | Finds all bindings tagged with `tag`. |
@@ -81,11 +81,11 @@ When `container.instantiate(MyClass)` is called:
 ```typescript
 // Both constructor and property injection in action
 class UserController {
-  @inject({ key: 'services.NotificationService' })
+  @inject({ key: BindingKeys.build<NotificationService>({ key: 'services.NotificationService' }) })
   private notificationService!: NotificationService; // Property injection
 
   constructor(
-    @inject({ key: 'services.UserService' })
+    @inject({ key: BindingKeys.build<UserService>({ key: 'services.UserService' }) })
     private userService: UserService, // Constructor injection
   ) {}
 }
@@ -121,7 +121,7 @@ When a binding key contains a dot (e.g., `services.MyService`), the namespace po
 
 Notes on `get` and `gets`:
 
-- `key` on `get` can be a `string`, `symbol`, or `{ namespace, key }` object. With `isOptional: true` it returns `undefined` when nothing is bound.
+- `key` on `get` is a key made by `BindingKeys.build<T>`, and `get` returns its `T`. With `isOptional: true` it returns `undefined` when nothing is bound.
 - Each entry in `bindings` on `gets` accepts `{ key, isOptional? }`, and the result is a tuple-preserving array.
 - `exclude` on `findByTag` accepts `Array<string>` or `Set<string>` of binding keys.
 
@@ -145,7 +145,7 @@ Notes on `get` and `gets`:
 
 ```typescript
 container
-  .bind<UserService>({ key: 'services.UserService' })
+  .bind({ key: BindingKeys.build<UserService>({ key: 'services.UserService' }) })
   .toClass(UserService)
   .setScope(BindingScopes.SINGLETON)
   .setTags('core');
@@ -157,8 +157,8 @@ Providers allow complex creation logic. Two forms are supported:
 
 **Function provider:**
 ```typescript
-container.bind({ key: 'config.db' }).toProvider((container) => {
-  const env = container.get<EnvConfig>({ key: 'config.env' });
+container.bind({ key: BindingKeys.build<unknown>({ key: 'config.db' }) }).toProvider((container) => {
+  const env = container.get({ key: BindingKeys.build<EnvConfig>({ key: 'config.env' }) });
   return { host: env.DB_HOST, port: env.DB_PORT };
 });
 ```
@@ -167,12 +167,12 @@ container.bind({ key: 'config.db' }).toProvider((container) => {
 ```typescript
 class DbConfigProvider implements IProvider<DbConfig> {
   value(container: Container): DbConfig {
-    const env = container.get<EnvConfig>({ key: 'config.env' });
+    const env = container.get({ key: BindingKeys.build<EnvConfig>({ key: 'config.env' }) });
     return { host: env.DB_HOST, port: env.DB_PORT };
   }
 }
 
-container.bind({ key: 'config.db' }).toProvider(DbConfigProvider);
+container.bind({ key: BindingKeys.build<unknown>({ key: 'config.db' }) }).toProvider(DbConfigProvider);
 ```
 
 For `CLASS` and `PROVIDER` types, `getValue` needs a `container` argument.
@@ -201,13 +201,13 @@ Builds namespaced binding keys from structured objects.
 **File:** `packages/inversion/src/modules/binding/common/constants.ts`
 
 ```typescript
-BindingKeys.build({ namespace: 'services', key: 'UserService' });
+BindingKeys.build<unknown>({ namespace: 'services', key: 'UserService' });
 // → 'services.UserService'
 
-BindingKeys.build({ namespace: '', key: 'AppConfig' });
+BindingKeys.build<unknown>({ namespace: '', key: 'AppConfig' });
 // → 'AppConfig'
 
-BindingKeys.build({ namespace: 'services', key: '' });
+BindingKeys.build<unknown>({ namespace: 'services', key: '' });
 // → Throws error: key is required
 ```
 
@@ -232,7 +232,7 @@ Name the binding key, or name the class bound under it. Never both - the union r
 
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `key` | `string \| symbol` | - | The binding key to resolve from the container. |
+| `key` | `TBindingKey` | - | The binding key to resolve from the container, made by `BindingKeys.build<T>`. |
 | `target` | `TInjectTarget` | - | The artifact class, or a function returning it. The container looks up the key that class was registered under. |
 | `isOptional` | `boolean` | `false` | If `true`, returns `undefined` instead of throwing when the binding is not found. |
 
@@ -252,10 +252,10 @@ class UserController {
 ```typescript
 class UserController {
   constructor(
-    @inject({ key: 'services.UserService' })
+    @inject({ key: BindingKeys.build<UserService>({ key: 'services.UserService' }) })
     private userService: UserService,
 
-    @inject({ key: 'services.CacheService', isOptional: true })
+    @inject({ key: BindingKeys.build<CacheService>({ key: 'services.CacheService' }), isOptional: true })
     private cacheService?: CacheService, // Won't throw if not registered
   ) {}
 }
@@ -265,10 +265,10 @@ class UserController {
 
 ```typescript
 class UserController {
-  @inject({ key: 'services.UserService' })
+  @inject({ key: BindingKeys.build<UserService>({ key: 'services.UserService' }) })
   private userService!: UserService;
 
-  @inject({ key: 'services.CacheService', isOptional: true })
+  @inject({ key: BindingKeys.build<CacheService>({ key: 'services.CacheService' }), isOptional: true })
   private cacheService?: CacheService;
 }
 ```
@@ -295,14 +295,14 @@ No class decorator is needed to make a class injectable. A class becomes resolva
 ```typescript
 class UserService extends BaseService {
   constructor(
-    @inject({ key: 'repositories.UserRepository' })
+    @inject({ key: BindingKeys.build<UserRepository>({ key: 'repositories.UserRepository' }) })
     private userRepository: UserRepository,
   ) {
     super({ scope: UserService.name });
   }
 }
 
-app.bind({ key: 'services.UserService' })
+app.bind({ key: BindingKeys.build<UserService>({ key: 'services.UserService' }) })
   .toClass(UserService)
   .setScope(BindingScopes.SINGLETON); // default is TRANSIENT
 ```
@@ -394,7 +394,7 @@ export class UserService extends BaseService {}
 
 // ... and injected like any other binding
 class UserController {
-  constructor(@inject({ key: 'services.UserService' }) private userService: UserService) {}
+  constructor(@inject({ key: BindingKeys.build<UserService>({ key: 'services.UserService' }) }) private userService: UserService) {}
 }
 ```
 

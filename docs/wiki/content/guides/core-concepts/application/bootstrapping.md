@@ -340,7 +340,7 @@ Or ask the container from a script, before `start()`:
 ```typescript
 application.init();
 await application.registerArtifacts(configs.artifacts!);
-application.isBound({ key: 'services.PricingService' }); // true
+application.isBound({ key: BindingKeys.build<unknown>({ key: 'services.PricingService' }) }); // true
 ```
 
 A bound key is not yet a resolvable one: a dependency a `when` excluded, or an `@inject` key nobody binds, only fails at the first `get`. Turn on the boot checks while you migrate, and the boot itself proves all three:

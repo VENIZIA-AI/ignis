@@ -14,7 +14,7 @@ export class Application extends BaseApplication {
     this.service(TokenService);
     this.service(AuthService);
     this.controller(AuthController);
-    this.bind({ key: 'auth.secret' }).toValue(process.env.JWT_SECRET);
+    this.bind({ key: BindingKeys.build<unknown>({ key: 'auth.secret' }) }).toValue(process.env.JWT_SECRET);
 
     // Health check - copied to every project
     this.controller(HealthController);
@@ -134,7 +134,7 @@ import {
   post,
   inject,
   OpenApiResponses,
-  TRouteContext,
+  TRouteContext, BindingKeys,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
@@ -161,7 +161,7 @@ const NotificationRoutes = {
 @controller({ path: '/notifications' })
 export class NotificationController extends BaseRestController {
   constructor(
-    @inject({ key: 'services.NotificationService' })
+    @inject({ key: BindingKeys.build<NotificationService>({ key: 'services.NotificationService' }) })
     private _notificationService: NotificationService,
   ) {
     super({ scope: NotificationController.name });

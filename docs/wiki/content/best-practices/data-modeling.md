@@ -371,7 +371,7 @@ If you need to perform custom initialization or inject additional dependencies, 
 @repository({ model: User, dataSource: PostgresDataSource })
 export class UserRepository extends ReadableRepository<typeof User.schema> {
   constructor(
-    @inject({ key: 'datasources.PostgresDataSource' })
+    @inject({ key: BindingKeys.build<PostgresDataSource>({ key: 'datasources.PostgresDataSource' }) })
     dataSource: PostgresDataSource,
   ) {
     super(dataSource);

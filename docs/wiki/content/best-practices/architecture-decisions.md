@@ -40,7 +40,7 @@ export class ItemController extends CrudControllerFactory.build({
 @controller({ path: '/orders' })
 export class OrderController extends BaseRestController {
   constructor(
-    @inject({ key: 'services.OrderService' })
+    @inject({ key: BindingKeys.build<OrderService>({ key: 'services.OrderService' }) })
     private orderService: OrderService,
   ) {
     super({ scope: OrderController.name });
@@ -95,7 +95,7 @@ export class NotificationComponent extends BaseComponent {
       initDefault: { enable: true, container: application },
       bindings: {
         // Default configuration - applications can rebind to override
-        'notification.options': Binding.bind({ key: 'notification.options' }).toValue({
+        'notification.options': Binding.bind({ key: BindingKeys.build<unknown>({ key: 'notification.options' }) }).toValue({
           email: { enabled: true },
           sms: { enabled: false },
         }),
@@ -105,7 +105,7 @@ export class NotificationComponent extends BaseComponent {
 
   // Called when the application configures components (registerComponents)
   override binding(): void {
-    const options = this.application.get({ key: 'notification.options' });
+    const options = this.application.get({ key: BindingKeys.build<unknown>({ key: 'notification.options' }) });
     // Register notification services based on the resolved options
     this.application.service(EmailNotificationService);
   }
@@ -244,7 +244,7 @@ export class UserController extends BaseRestController {
 ```typescript
 export class UserService extends BaseService {
   constructor(
-    @inject({ key: 'repositories.UserRepository' })
+    @inject({ key: BindingKeys.build<UserRepository>({ key: 'repositories.UserRepository' }) })
     private userRepository: UserRepository,
   ) {
     super({ scope: UserService.name });

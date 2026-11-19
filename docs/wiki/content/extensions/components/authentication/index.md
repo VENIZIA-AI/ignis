@@ -131,7 +131,7 @@ this.bind<TAuthenticationRestOptions>({ key: AuthenticateBindingKeys.REST_OPTION
   useAuthController: true,
   controllerOpts: {
     restPath: '/auth',
-    serviceKey: BindingKeys.build({ namespace: BindingNamespaces.SERVICE, key: AuthenticationService.name }),
+    serviceKey: BindingKeys.build<unknown>({ namespace: BindingNamespaces.SERVICE, key: AuthenticationService.name }),
   },
 });
 ```

@@ -97,7 +97,7 @@ Production-ready patterns, security guidelines, and optimization strategies for 
 Controller → Service → Repository → DataSource
 
 // ✅ Dependency Injection
-@inject({ key: BindingKeys.build({ namespace: BindingNamespaces.SERVICE, key: UserService.name }) })
+@inject({ key: BindingKeys.build<unknown>({ namespace: BindingNamespaces.SERVICE, key: UserService.name }) })
 
 // ✅ Error Handling
 throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'User not found' });
