@@ -13,7 +13,12 @@ Rewrites the raw binding keys of the @venizia/ignis-inversion release where a ke
   container.get({ key: \`\${namespace}.Name\` })         becomes  container.get({ key: BindingKeys.build<unknown>({ namespace, key: 'Name' }) })
   BindingKeys.build({ key })                          becomes  BindingKeys.build<unknown>({ key })
 
-The key string is never changed. The call's own type argument moves into build<T>, so the caller keeps the type it
+The key string is never changed.
+
+A call is rewritten only when the TypeScript checker resolves it to the framework's container (Container, IContainer,
+Binding) or to its inject and provide, under any local name. A redis.get<T>({ key }), a worker pool or a class of your own
+is left alone, type argument included. The checker reads your project through the nearest tsconfig.json, so run the codemod
+from the project root with the dependencies installed; a receiver it cannot resolve is listed as "manual". The call's own type argument moves into build<T>, so the caller keeps the type it
 claimed; without one the codemod writes build<unknown> and lists the site ("type"): name the real type there.
 
 It rewrites a call named get, gets, getBinding, bind, isBound or unbind whose argument is an object literal with a
@@ -57,6 +62,19 @@ const KEY_DECORATORS = new Set(['inject', 'provide']);
 const IGNIS_MODULE = /^@venizia\/ignis(?:-kernel|-inversion)?$/;
 
 const BUILDER = 'BindingKeys';
+
+/** The classes and interfaces whose key methods are the container's. */
+const CONTAINER_TYPES = new Set([
+  'IContainer',
+  'AbstractContainer',
+  'BaseContainer',
+  'Container',
+  'Binding',
+]);
+
+/** Where the framework's declarations live: an installed package, or this repository's own packages. */
+const FRAMEWORK_PATH =
+  /[\\/]node_modules[\\/]@venizia[\\/]ignis|[\\/]packages[\\/](?:inversion|kernel)[\\/]/;
 
 /** A module of the framework: a file's own barrel is not a place to take `BindingKeys` from. */
 const VENIZIA_MODULE = /^@venizia\//;
@@ -141,16 +159,52 @@ export class BindingKeysCodemod {
     return { module: injectModule ?? ignisModule ?? fallback, declared, named };
   }
 
+  /** The local name `BindingKeys` is imported under (an alias included), or `BindingKeys` when the file does not import it. */
+  private static readBuilderName(opts: {
+    typescript: typeof import('typescript');
+    file: import('typescript').SourceFile;
+  }): string {
+    const { typescript: ts, file } = opts;
+
+    for (const statement of file.statements) {
+      const bindings = ts.isImportDeclaration(statement)
+        ? statement.importClause?.namedBindings
+        : undefined;
+
+      if (bindings === undefined || !ts.isNamedImports(bindings)) {
+        continue;
+      }
+
+      for (const element of bindings.elements) {
+        if ((element.propertyName ?? element.name).text === BUILDER) {
+          return element.name.text;
+        }
+      }
+    }
+
+    return BUILDER;
+  }
+
   static rewrite(opts: {
     typescript: typeof import('typescript');
     fileName: string;
     source: string;
     /** The module `BindingKeys` is imported from when the file gives no better one. */
     importFrom?: string;
+    /** The program's source file for `fileName` and its checker: a call is rewritten only when the checker resolves it to the container. */
+    program?: {
+      sourceFile: import('typescript').SourceFile;
+      checker: import('typescript').TypeChecker;
+    };
   }): IBindingKeysResult {
-    const { typescript: ts, fileName, source, importFrom } = opts;
+    const { typescript: ts, fileName, importFrom, program } = opts;
     const language = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
-    const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, language);
+    const file =
+      program?.sourceFile ??
+      ts.createSourceFile(fileName, opts.source, ts.ScriptTarget.Latest, true, language);
+    const source = file.text;
+    const checker = program?.checker;
+    const builder = BindingKeysCodemod.readBuilderName({ typescript: ts, file });
     const edits: Array<{ start: number; end: number; text: string }> = [];
     const manual: Array<{ line: number; reason: string }> = [];
     const unnamed: number[] = [];
@@ -204,7 +258,7 @@ export class BindingKeysCodemod {
       ts.isCallExpression(node) &&
       ts.isPropertyAccessExpression(node.expression) &&
       ts.isIdentifier(node.expression.expression) &&
-      node.expression.expression.text === BUILDER &&
+      node.expression.expression.text === builder &&
       node.expression.name.text === 'build';
 
     const isSymbolExpression = (node: import('typescript').Expression): boolean =>
@@ -268,7 +322,7 @@ export class BindingKeysCodemod {
         edits.push({
           start: value.getStart(file),
           end: value.getEnd(),
-          text: `${BUILDER}.build<${text}>({ key: ${value.getText(file)} })`,
+          text: `${builder}.build<${text}>({ key: ${value.getText(file)} })`,
         });
       } else if (
         ts.isObjectLiteralExpression(value) &&
@@ -283,13 +337,13 @@ export class BindingKeysCodemod {
         edits.push({
           start: value.getStart(file),
           end: value.getEnd(),
-          text: `${BUILDER}.build<${text}>(${value.getText(file)})`,
+          text: `${builder}.build<${text}>(${value.getText(file)})`,
         });
       } else if (ts.isTemplateExpression(value) && namespaceKeyOf(value) !== undefined) {
         edits.push({
           start: value.getStart(file),
           end: value.getEnd(),
-          text: `${BUILDER}.build<${text}>(${namespaceKeyOf(value)})`,
+          text: `${builder}.build<${text}>(${namespaceKeyOf(value)})`,
         });
       } else if (
         ts.isIdentifier(value) &&
@@ -306,7 +360,7 @@ export class BindingKeysCodemod {
         edits.push({
           start: declaration.initializer.getStart(file),
           end: declaration.initializer.getEnd(),
-          text: `${BUILDER}.build<${text}>({ key: ${declaration.initializer.getText(file)} })`,
+          text: `${builder}.build<${text}>({ key: ${declaration.initializer.getText(file)} })`,
         });
 
         if (typeText === undefined) {
@@ -344,6 +398,18 @@ export class BindingKeysCodemod {
           ts.isPropertyAccessExpression(value) ||
           ts.isElementAccessExpression(value);
 
+        if (isReference && checker !== undefined) {
+          const type = checker.getTypeAtLocation(value);
+
+          if (type.flags & ts.TypeFlags.StringLike && type.getProperty('valueType') === undefined) {
+            manual.push({
+              line: lineOf(value),
+              reason:
+                'a string held in a name: build it with BindingKeys.build<T>({ key }) where it is defined (a key of a package you do not own is built by that package)',
+            });
+          }
+        }
+
         if (!isReference) {
           manual.push({
             line: lineOf(value),
@@ -364,40 +430,100 @@ export class BindingKeysCodemod {
       return true;
     };
 
-    /** Whether `node` names a type parameter of a function, method or class that encloses it. */
-    const isTypeParameterInScope = (node: import('typescript').TypeNode): boolean => {
-      if (!ts.isTypeReferenceNode(node) || !ts.isIdentifier(node.typeName)) {
+    /** The declaration the checker resolves a call to, or `undefined` when it cannot (an unresolved receiver). */
+    const declarationOf = (
+      node: import('typescript').CallExpression,
+    ): import('typescript').Declaration | undefined =>
+      checker?.getResolvedSignature(node)?.declaration;
+
+    const isFrameworkFile = (declaration: import('typescript').Node): boolean =>
+      FRAMEWORK_PATH.test(declaration.getSourceFile().fileName);
+
+    /** `container.get(...)`: the checker resolves the method to the container's (or `Binding`'s), declared by the framework. */
+    const isContainerMethod = (
+      declaration: import('typescript').Declaration | undefined,
+    ): boolean => {
+      if (declaration === undefined || !isFrameworkFile(declaration)) {
         return false;
       }
 
-      const name = node.typeName.text;
+      const owner = declaration.parent;
+
+      return (
+        (ts.isClassLike(owner) || ts.isInterfaceDeclaration(owner)) &&
+        owner.name !== undefined &&
+        CONTAINER_TYPES.has(owner.name.text)
+      );
+    };
+
+    /** `inject(...)` or `provide(...)` under any local name: the checker follows the import to the framework's. */
+    const isFrameworkDecorator = (callee: import('typescript').Expression): boolean => {
+      if (checker === undefined || !ts.isIdentifier(callee)) {
+        return false;
+      }
+
+      const symbol = checker.getSymbolAtLocation(callee);
+      const target =
+        symbol !== undefined && symbol.flags & ts.SymbolFlags.Alias
+          ? checker.getAliasedSymbol(symbol)
+          : symbol;
+      const declaration = target?.declarations?.[0];
+
+      return (
+        declaration !== undefined &&
+        KEY_DECORATORS.has(target?.name ?? '') &&
+        isFrameworkFile(declaration)
+      );
+    };
+
+    /** Whether a type mentions a type parameter of a function or class that encloses `from`. */
+    const mentionsScopedTypeParameter = (
+      type: import('typescript').TypeNode,
+      from: import('typescript').Node,
+    ): boolean => {
+      const scoped = new Set<string>();
 
       for (
-        let scope: import('typescript').Node | undefined = node.parent;
+        let scope: import('typescript').Node | undefined = from;
         scope !== undefined;
         scope = scope.parent
       ) {
         const parameters =
           ts.isFunctionLike(scope) || ts.isClassLike(scope) ? scope.typeParameters : undefined;
 
-        if (parameters?.some((parameter) => parameter.name.text === name)) {
-          return true;
+        for (const parameter of parameters ?? []) {
+          scoped.add(parameter.name.text);
         }
       }
 
-      return false;
+      const search = (node: import('typescript').Node): boolean =>
+        (ts.isTypeReferenceNode(node) &&
+          ts.isIdentifier(node.typeName) &&
+          scoped.has(node.typeName.text)) ||
+        ts.forEachChild(node, (child) => (search(child) ? true : undefined)) === true;
+
+      return search(type);
+    };
+
+    /** The text of a decorated parameter's type with `undefined` left out: the key names what is injected, not its absence. */
+    const liftedTypeText = (type: import('typescript').TypeNode): string => {
+      if (!ts.isUnionTypeNode(type)) {
+        return type.getText(file);
+      }
+
+      const kept = type.types.filter((member) => member.kind !== ts.SyntaxKind.UndefinedKeyword);
+
+      return kept.map((member) => member.getText(file)).join(' | ');
     };
 
     const visit = (node: import('typescript').Node): void => {
       if (ts.isCallExpression(node)) {
         const callee = node.expression;
         const first = node.arguments[0];
-        const isInject = ts.isIdentifier(callee) && KEY_DECORATORS.has(callee.text);
-        const isMethod =
-          ts.isPropertyAccessExpression(callee) &&
-          ts.isIdentifier(callee.name) &&
-          KEY_METHODS.has(callee.name.text);
-        const methodName = ts.isPropertyAccessExpression(callee) ? callee.name.text : '';
+        const methodName =
+          ts.isPropertyAccessExpression(callee) && KEY_METHODS.has(callee.name.text)
+            ? callee.name.text
+            : undefined;
 
         if (
           isBuilderCall(node) &&
@@ -421,50 +547,84 @@ export class BindingKeysCodemod {
             rewritten += 1;
             unnamed.push(lineOf(node));
           }
-        } else if (
-          isMethod &&
-          methodName === 'gets' &&
-          first !== undefined &&
-          ts.isObjectLiteralExpression(first)
-        ) {
-          const list = propertyOf(first, 'bindings')?.initializer;
+        } else if (methodName !== undefined || ts.isIdentifier(callee)) {
+          const isGets =
+            methodName === 'gets' && first !== undefined && ts.isObjectLiteralExpression(first);
+          const hasShape = isGets || isKeyOptions(first);
+          const declaration = methodName === undefined ? undefined : declarationOf(node);
+          const isContainer =
+            methodName === undefined
+              ? hasShape && isFrameworkDecorator(callee)
+              : hasShape && isContainerMethod(declaration);
 
-          if (list !== undefined && ts.isArrayLiteralExpression(list)) {
-            for (const element of list.elements) {
-              if (isKeyOptions(element)) {
-                rewriteKey(element, undefined);
+          if (hasShape && methodName !== undefined && !isContainer && declaration === undefined) {
+            manual.push({
+              line: lineOf(node),
+              reason: `${methodName}(...) with a key: the receiver's type is not resolved (no tsconfig reaches this file, or it is any), so it is not known to be the container: change it by hand if it is`,
+            });
+          }
+
+          if (isContainer && isGets && ts.isObjectLiteralExpression(first)) {
+            const list = propertyOf(first, 'bindings')?.initializer;
+
+            if (list !== undefined && ts.isArrayLiteralExpression(list)) {
+              for (const element of list.elements) {
+                if (isKeyOptions(element)) {
+                  rewriteKey(element, undefined);
+                }
               }
             }
-          }
-        } else if ((isInject || isMethod) && isKeyOptions(first)) {
-          // `@inject({ key }) service: Mailer`: the type the parameter or property already claims is the key's type.
-          const decorated =
-            isInject &&
-            ts.isDecorator(node.parent) &&
-            (ts.isParameter(node.parent.parent) || ts.isPropertyDeclaration(node.parent.parent))
-              ? node.parent.parent.type
-              : undefined;
-          const claimed =
-            isMethod && node.typeArguments?.length === 1 ? node.typeArguments[0] : decorated;
-          // A type parameter of the enclosing function cannot go into `build<T>` (the type argument is checked while it
-          // is still unresolved): the key is built for `unknown` and the call keeps its claim.
-          const typeArgument =
-            claimed !== undefined && isTypeParameterInScope(claimed) ? undefined : claimed;
-          const isKeyBuilt = (() => {
-            const value = propertyOf(first, 'key')?.initializer;
+          } else if (isContainer && isKeyOptions(first)) {
+            // `@inject({ key }) service: Mailer`: the type the parameter or property already claims is the key's type.
+            const decorated =
+              methodName === undefined &&
+              ts.isDecorator(node.parent) &&
+              (ts.isParameter(node.parent.parent) || ts.isPropertyDeclaration(node.parent.parent))
+                ? node.parent.parent.type
+                : undefined;
+            const callArgument =
+              methodName !== undefined && node.typeArguments?.length === 1
+                ? node.typeArguments[0]
+                : undefined;
+            const claimed = callArgument ?? decorated;
 
-            return value !== undefined && isBuilderCall(value) && value.typeArguments !== undefined;
-          })();
+            // A type that names a type parameter of the enclosing code cannot go into `build<T>`: the check on the type
+            // argument is made while it is still unresolved.
+            if (claimed !== undefined && mentionsScopedTypeParameter(claimed, node)) {
+              manual.push({
+                line: lineOf(node),
+                reason:
+                  'a key whose type names a type parameter of the enclosing code: a generic key factory builds BindingKeys.build<unknown> and returns it typed as TBindingKey<T>',
+              });
+            } else {
+              const isKeyBuilt = (() => {
+                const value = propertyOf(first, 'key')?.initializer;
 
-          if (!isKeyBuilt) {
-            const done = rewriteKey(first, typeArgument?.getText(file));
+                return (
+                  value !== undefined && isBuilderCall(value) && value.typeArguments !== undefined
+                );
+              })();
 
-            // The type argument moved into `build<T>`; the call no longer needs it.
-            if (done && typeArgument !== undefined && typeArgument === node.typeArguments?.[0]) {
-              const open = node.expression.getEnd();
-              const close = source.indexOf('(', typeArgument.getEnd());
+              if (!isKeyBuilt) {
+                const typeText =
+                  callArgument !== undefined
+                    ? callArgument.getText(file)
+                    : decorated === undefined
+                      ? undefined
+                      : liftedTypeText(decorated);
+                const done = rewriteKey(first, typeText);
 
-              edits.push({ start: open, end: close, text: '' });
+                // The type argument moved into `build<T>`; the call no longer needs it. Comments inside it stay.
+                if (done && callArgument !== undefined) {
+                  const open = node.expression.getEnd();
+                  const close = source.indexOf('(', callArgument.getEnd());
+                  const comments = source
+                    .slice(open, close)
+                    .match(/\/\*[\s\S]*?\*\/|\/\/[^\n]*\n?/g);
+
+                  edits.push({ start: open, end: close, text: comments ? comments.join(' ') : '' });
+                }
+              }
             }
           }
         }
@@ -531,7 +691,7 @@ export class BindingKeysCodemod {
           .reverse()
           .find((statement) => ts.isImportDeclaration(statement));
         const position = lastImport === undefined ? 0 : lastImport.getEnd();
-        const text = `${lastImport === undefined ? '' : '\n'}import { ${BUILDER} } from '${module}';${lastImport === undefined ? '\n' : ''}`;
+        const text = `${lastImport === undefined ? '' : '\n'}import { ${builder} } from '${module}';${lastImport === undefined ? '\n' : ''}`;
 
         edits.push({ start: position, end: position, text });
       }
@@ -552,6 +712,41 @@ export class BindingKeysCodemod {
 /** `devz codemod binding-keys [paths...] [--write | --check]`: rewrites raw binding keys to `BindingKeys.build<T>`. */
 export class BindingKeysCommand {
   static readonly USAGE = USAGE;
+
+  /**
+   * The program the checker answers from: the project's own tsconfig (the nearest one above `root`) with the files the
+   * codemod reads added, so a receiver resolves the way the project's typecheck resolves it.
+   */
+  static createProgram(opts: {
+    typescript: typeof import('typescript');
+    root: string;
+    files: string[];
+  }): import('typescript').Program {
+    const { typescript: ts, root, files } = opts;
+    const configPath = ts.findConfigFile(root, (path) => ts.sys.fileExists(path), 'tsconfig.json');
+    const read =
+      configPath === undefined
+        ? undefined
+        : ts.readConfigFile(configPath, (path) => ts.sys.readFile(path));
+    const parsed =
+      configPath === undefined || read === undefined || read.error !== undefined
+        ? undefined
+        : ts.parseJsonConfigFileContent(read.config, ts.sys, resolve(configPath, '..'));
+    const options: import('typescript').CompilerOptions = {
+      target: ts.ScriptTarget.ESNext,
+      module: ts.ModuleKind.ESNext,
+      moduleResolution: ts.ModuleResolutionKind.Bundler,
+      experimentalDecorators: true,
+      ...parsed?.options,
+      noEmit: true,
+      skipLibCheck: true,
+      incremental: false,
+      composite: false,
+      allowJs: false,
+    };
+
+    return ts.createProgram({ rootNames: files, options });
+  }
 
   static async run(opts: { root: string; args: string[] }): Promise<number> {
     const { root, args } = opts;
@@ -639,8 +834,16 @@ export class BindingKeysCommand {
     let unnamedCount = 0;
     let refusedCount = 0;
 
-    for (const target of targets) {
-      const files = CodemodFiles.collect({ target });
+    const collected = targets.map((target) => CodemodFiles.collect({ target }));
+    const program = BindingKeysCommand.createProgram({
+      typescript,
+      root,
+      files: collected.flat(),
+    });
+    const checker = program.getTypeChecker();
+
+    for (const [index, target] of targets.entries()) {
+      const files = collected[index];
       const dirty = isWrite ? CodemodFiles.dirty({ target }) : undefined;
 
       if (files.length === 0 && paths.length > 0) {
@@ -656,11 +859,13 @@ export class BindingKeysCommand {
           continue;
         }
 
+        const sourceFile = program.getSourceFile(file);
         const result = BindingKeysCodemod.rewrite({
           typescript,
           fileName: file,
           source,
           importFrom,
+          ...(sourceFile === undefined ? {} : { program: { sourceFile, checker } }),
         });
         const shown = relative(root, file).split('\\').join('/') || file;
 
