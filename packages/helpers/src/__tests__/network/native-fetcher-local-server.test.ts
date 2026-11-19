@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import { NodeFetchNetworkRequest } from '@/modules/network';
+import { NativeFetchNetworkRequest } from '@/modules/network';
 
 /** The ARDOR path end to end against a real server: no `fetch` stub, so what is asserted is what a server receives. */
 let server: ReturnType<typeof Bun.serve>;
@@ -35,7 +35,7 @@ afterAll(async () => {
 });
 
 const buildRequest = () => {
-  return new NodeFetchNetworkRequest({
+  return new NativeFetchNetworkRequest({
     name: 'local-server',
     networkOptions: {
       baseUrl,
@@ -44,7 +44,7 @@ const buildRequest = () => {
   });
 };
 
-describe('NodeFetchNetworkRequest against a local server', () => {
+describe('NativeFetchNetworkRequest against a local server', () => {
   test('a JSON body, a JSON filter in the query and the default content type arrive intact', async () => {
     const request = buildRequest();
     const filter = { where: { id: { inq: [1, 2] } } };

@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { BaseNetworkRequest, NodeFetcher } from '@/modules/network';
+import { BaseNetworkRequest, NativeFetcher } from '@/modules/network';
 
 const buildRequest = (opts: { baseUrl?: string }) => {
-  const fetcher = new NodeFetcher({ name: 'base-network-request', defaultConfigs: {} });
+  const fetcher = new NativeFetcher({ name: 'base-network-request', defaultConfigs: {} });
 
-  const request = new BaseNetworkRequest<'node-fetch'>({
+  const request = new BaseNetworkRequest<'native'>({
     name: 'base-network-request',
     baseUrl: opts.baseUrl,
     fetcher,

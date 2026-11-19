@@ -1,7 +1,7 @@
 import { inject } from '@/base/metadata';
 import { AuthenticateBindingKeys, BaseService, ServiceAssertion } from '@venizia/ignis-kernel';
 import type { IServiceAuthOptions } from '@venizia/ignis-kernel';
-import { getError, RequestIdGenerator } from '@venizia/ignis-helpers/core';
+import { getError, RequestIdGenerator, type IFetcherHooks } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { CryptoKey, JWK } from 'jose';
 import { readFile } from 'node:fs/promises';
@@ -38,6 +38,27 @@ export class ServiceAssertionSignerService extends BaseService {
     const restPath = this.options.rest?.path ?? ServiceAssertion.DEFAULT_REST_PATH;
 
     return this.options.keys?.kid ?? `${this.options.name}_${restPath.replace(/^\//, '')}`;
+  }
+
+  /**
+   * The `onRequest` hook of a fetcher that calls `audience`: before EVERY send - each retry attempt included, so the
+   * `jti` is fresh - it signs the method and the percent-encoded path of the request and sets the assertion header.
+   * `Authorization` is left alone, so the end user's token still travels on the same request.
+   *
+   * `new NativeFetcher({ name, hooks: { onRequest: signer.createRequestHook({ audience: 'pricing' }) } })`
+   */
+  createRequestHook(opts: { audience: string }): NonNullable<IFetcherHooks['onRequest']> {
+    const { audience } = opts;
+
+    return async (request) => {
+      const assertion = await this.sign({
+        method: request.method,
+        path: new URL(request.url).pathname,
+        audience,
+      });
+
+      request.headers.set(ServiceAssertion.HEADER, assertion);
+    };
   }
 
   /**

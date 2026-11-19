@@ -61,7 +61,7 @@ export interface IUrlSafetyPolicy {
   timeout?: IDuration;
 
   /**
-   * A proxy for `UrlIngest.fetchGuarded` to send the request through, as `http://host:port`. Off by default, and the
+   * A proxy for a guarded fetcher call (`NativeFetcher` only) to send the request through, as `http://host:port`. Off by default, and the
    * environment's `HTTP_PROXY` / `HTTPS_PROXY` is ignored: a proxy resolves the host name itself, so the vetted address
    * the guard pins to would never be used. With this set the address check still runs, but the connection is NOT pinned:
    * the proxy decides where the request goes, so only point it at a proxy you trust to refuse internal addresses.

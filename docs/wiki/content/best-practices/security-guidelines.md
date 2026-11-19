@@ -54,7 +54,7 @@ String values are scrubbed as well: the password of a url (`scheme://user:passwo
 
 It also handles the shapes naive redaction breaks on. An `Error` is reprojected so its non-enumerable `message`/`stack` survive. Cycles become `'[Circular]'`, and buffers/typed arrays are summarized as `[Binary N bytes]` instead of serialized.
 
-These are the primitives the framework itself uses. Outbound HTTP request configs (`NodeFetcher`/`AxiosFetcher`, see [Network Helper](/extensions/helpers/network/)) and MQTT broker URLs (`MQTTClientHelper`, see [Queue Helper](/extensions/helpers/queue/)) are both redacted this way before they reach a log line.
+These are the primitives the framework itself uses. Outbound HTTP request configs (`NativeFetcher`/`AxiosFetcher`, see [Network Helper](/extensions/helpers/network/)) and MQTT broker URLs (`MQTTClientHelper`, see [Queue Helper](/extensions/helpers/queue/)) are both redacted this way before they reach a log line.
 
 > [!WARNING]
 > `APP_ENV_LOGGER_DO_REDACT=false` turns both functions into the identity function. It is a local-debugging kill-switch and must never be set in production. The check is fail-closed - only the literal string `false` disables redaction - and is read per call, so it can be flipped at runtime.

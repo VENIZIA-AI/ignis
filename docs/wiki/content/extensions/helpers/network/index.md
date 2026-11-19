@@ -10,12 +10,12 @@ Network helpers give you HTTP request clients (fetch or Axios), symmetric TCP/TL
 
 ## In one example
 
-Extend `NodeFetchNetworkRequest` to build a typed HTTP client backed by native `fetch` - no extra dependency required.
+Extend `NativeFetchNetworkRequest` to build a typed HTTP client backed by native `fetch` - no extra dependency required.
 
 ```typescript
-import { NodeFetchNetworkRequest } from '@venizia/ignis-helpers';
+import { NativeFetchNetworkRequest } from '@venizia/ignis-helpers';
 
-class GitHubApi extends NodeFetchNetworkRequest {
+class GitHubApi extends NativeFetchNetworkRequest {
   constructor() {
     super({
       name: 'GitHubApi',
@@ -31,7 +31,7 @@ class GitHubApi extends NodeFetchNetworkRequest {
 }
 ```
 
-`getRequestUrl()` joins the constructor's `baseUrl` with the path segments. `getNetworkService()` returns the underlying fetcher, which exposes `send()` plus `get`/`post`/`put`/`patch`/`delete`/`query` shortcuts.
+`getRequestUrl()` joins the constructor's `baseUrl` with the path segments. `getNetworkService()` returns the underlying fetcher, which exposes `send()` plus `get`/`post`/`put`/`patch`/`delete`/`query` shortcuts. A status outside 2xx throws a `UrlFetchError`; pass a zod `schema` to get `{ data, status, headers, response }` with a typed `data`.
 
 ## How it works
 
@@ -39,7 +39,7 @@ class GitHubApi extends NodeFetchNetworkRequest {
 
   | Client | Wraps | Import from |
   |---|---|---|
-  | `NodeFetchNetworkRequest` | native `fetch` | root barrel |
+  | `NativeFetchNetworkRequest` | native `fetch` | root barrel |
   | `AxiosNetworkRequest` | Axios | `@venizia/ignis-helpers/axios` sub-path |
 
 - **`axios` is optional.** It is an optional peer dependency. `AxiosNetworkRequest` is exported only from the `/axios` sub-path, never from the root barrel.
@@ -93,7 +93,6 @@ class PaymentGateway extends AxiosNetworkRequest {
 |---|---|
 | `content-type` header | `application/json; charset=utf-8` |
 | `withCredentials` | `true` |
-| `validateStatus` | `status < 500` |
 | `timeout` | `60000` ms |
 
 ### Log a request with secrets redacted
@@ -110,6 +109,31 @@ async charge(amount: number, currency: string) {
   return response.data;
 }
 ```
+
+### Validate, retry and hook every call
+
+Both fetchers share one pipeline. A schema types the body, `retry` turns retrying on, and `hooks` run around every attempt.
+
+```typescript
+import { NativeFetcher } from '@venizia/ignis-helpers';
+import { z } from 'zod';
+
+const fetcher = new NativeFetcher({
+  name: 'catalog',
+  defaults: { timeout: 5000, headers: { 'x-app': 'shop' }, retry: { maxAttempts: 3 } },
+  hooks: { onError: ({ error }) => console.error(error) },
+});
+
+const { data } = await fetcher.get({
+  url: 'https://catalog.example.com/items/7',
+  schema: z.object({ id: z.number(), name: z.string() }),
+});
+```
+
+- A status outside 2xx throws a `UrlFetchError`. `acceptStatus` is the opt-out.
+- A body that does not fit the schema throws a `FetchSchemaError` (502) that names paths, never values.
+- A 5xx, a 429, a timeout and a network error are retried; a `Retry-After` is honoured.
+- For a url a user supplied, add `guardEngine: UrlGuard` and a per-call `guard`: see [URL Safety](/extensions/helpers/network/api#url-safety).
 
 ### Open a TCP connection
 
@@ -182,7 +206,7 @@ udpClient.getClient()?.send('Hello', 5001, '239.1.2.3');
 **Files:**
 
 - [`packages/helpers/src/modules/network/http-request/base-network-request.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/http-request/base-network-request.helper.ts) - `BaseNetworkRequest`
-- [`packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts) - `NodeFetcher`, `NodeFetchNetworkRequest`
+- [`packages/helpers/src/modules/network/http-request/fetcher/native-fetcher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/http-request/fetcher/native-fetcher.ts) - `NativeFetcher`, `NativeFetchNetworkRequest`
 - [`packages/helpers/src/modules/network/http-request/fetcher/axios-fetcher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/http-request/fetcher/axios-fetcher.ts) - `AxiosFetcher`, `AxiosNetworkRequest` (sub-path export)
 - [`packages/helpers/src/modules/network/tcp-socket/base-tcp-server.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/tcp-socket/base-tcp-server.helper.ts) - `BaseNetworkTcpServer`
 - [`packages/helpers/src/modules/network/tcp-socket/base-tcp-client.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/tcp-socket/base-tcp-client.helper.ts) - `BaseNetworkTcpClient`

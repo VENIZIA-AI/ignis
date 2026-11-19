@@ -191,6 +191,7 @@ export class RetryHelper extends BaseHelper {
     backoff?: IRetryBackoffOptions;
     execution: (context: { attempt: number; signal?: AbortSignal }) => ValueOrPromise<T>;
     shouldRetry?: (context: IRetryContext) => boolean;
+    getDelayMs?: (context: IRetryContext) => number | undefined;
     onRetry?: (context: IRetryContext & { nextDelayMs: number }) => ValueOrPromise<void>;
   }): Promise<TRetryAttemptOutcome<T>> {
     const {
@@ -205,6 +206,7 @@ export class RetryHelper extends BaseHelper {
       backoff,
       execution,
       shouldRetry,
+      getDelayMs,
       onRetry,
     } = opts;
 
@@ -227,7 +229,11 @@ export class RetryHelper extends BaseHelper {
         return { isResolved: false, error, isRetryAllowed: false };
       }
 
-      const nextDelayMs = RetryHelper.computeBackoffDelayMs({ attempt, backoff });
+      // `getDelayMs` is a FLOOR (a server's Retry-After): the backoff never shortens it, and the deadline check below sees the longer wait.
+      const nextDelayMs = Math.max(
+        RetryHelper.computeBackoffDelayMs({ attempt, backoff }),
+        getDelayMs?.({ attempt, error, elapsedMs }) ?? 0,
+      );
 
       if (deadline && Date.now() + nextDelayMs >= deadline) {
         return { isResolved: false, error, isRetryAllowed: false };
@@ -276,6 +282,9 @@ export class RetryHelper extends BaseHelper {
     /** Return `false` to stop retrying and rethrow `context.error` immediately. */
     shouldRetry?: (context: IRetryContext) => boolean;
 
+    /** The least wait before the next attempt, in milliseconds (a server's `Retry-After`); the backoff delay applies when it is longer. `undefined` leaves the backoff alone. */
+    getDelayMs?: (context: IRetryContext) => number | undefined;
+
     /** Observability hook, awaited before the backoff sleep. */
     onRetry?: (context: IRetryContext & { nextDelayMs: number }) => ValueOrPromise<void>;
   }): Promise<T> {
@@ -287,6 +296,7 @@ export class RetryHelper extends BaseHelper {
       perAttemptTimeoutMs,
       backoff,
       shouldRetry,
+      getDelayMs,
       onRetry,
       signal,
       logger,
@@ -330,6 +340,7 @@ export class RetryHelper extends BaseHelper {
         backoff,
         execution,
         shouldRetry,
+        getDelayMs,
         onRetry,
       });
 

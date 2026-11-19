@@ -559,3 +559,21 @@ describe('the logger scrubs a string argument', () => {
     expect(line).toBe('connecting to postgres://u:[REDACTED]@h/db');
   });
 });
+
+describe('redactSecrets - a signed assertion header', () => {
+  test('x-service-assertion and any *-assertion header are redacted, a plain word is not', () => {
+    const redacted = RedactUtility.redactSecrets({
+      value: {
+        headers: {
+          'x-service-assertion': 'signed.jwt.value',
+          'X-Other-Assertion': 'abc',
+          accept: 'json',
+        },
+      },
+    }) as { headers: Record<string, unknown> };
+
+    expect(redacted.headers['x-service-assertion']).toBe(REDACTED);
+    expect(redacted.headers['X-Other-Assertion']).toBe(REDACTED);
+    expect(redacted.headers.accept).toBe('json');
+  });
+});

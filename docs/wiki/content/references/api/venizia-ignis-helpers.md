@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-226 exports, 226 with TSDoc. 231 more are re-exported from other entries (listed at the end).
+225 exports, 225 with TSDoc. 256 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -5212,44 +5212,29 @@ export type TWebSocketValidateRoomFn = (opts: {
 
 Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
 
-## `UrlFetchError`
+## `UrlGuard`
 
 *class*
 
-The upstream answered, and the answer is not one `fetchGuarded` returns: a 4xx or 5xx, or a redirect it was not allowed
-to follow (`maxRedirects: 0`, or a `Location` that is not a url). `status` is the upstream's; `statusCode` (inherited)
-is the one this server answers with, and stays 400. The body is already cancelled, so the socket is free: read
-`response.headers` and `response.status`, not the body.
+The url guard as a fetcher's engine: `new NativeFetcher({ ..., guardEngine: UrlGuard })`, then `guard: {}` (or a policy)
+on a call. Per hop the host is resolved ONCE, every answer is checked, and the request connects to those addresses and
+to no other, so a DNS answer that changes after the check (DNS rebinding) is never looked up again.
 
 ```ts
-export declare class UrlFetchError extends ApplicationError {
-    /** The status the upstream answered with. */
-    readonly status: number;
-    /** The url the caller asked for (the first hop, not a redirect's target). */
-    readonly url: string;
-    /** The upstream's answer, body cancelled. */
-    readonly response?: Response;
-    /** The raw `Location` header of a redirect, as sent; unset for a non-redirect or when the header was missing. */
-    readonly location?: string;
-    constructor(opts: {
-        message: string;
-        status: number;
-        url: string;
-        response?: Response;
-        location?: string;
-    });
-    /** Whether `error` is a `UrlFetchError`: the shape a caller narrows on before it reads `status`. */
-    static is(error: unknown): error is UrlFetchError;
+export declare class UrlGuard {
+    static createRoute(opts: {
+        policy: IUrlSafetyPolicy;
+    }): IFetchGuardRoute;
 }
 ```
 
-Source: `packages/helpers/src/modules/network/utilities/url-safety/common/errors.ts`
+Source: `packages/helpers/src/modules/network/utilities/url-safety/guard.ts`
 
 ## `UrlIngest`
 
 *class*
 
-Fetching an untrusted url without letting it reach inside the network.
+Checking an untrusted url's host without letting it reach inside the network: the half of the guard that resolves names.
 
 ```ts
 export declare class UrlIngest {
@@ -5272,7 +5257,7 @@ export declare class UrlIngest {
      * Rejects when ANY resolved address is non-public.
      *
      * A rebinding window remains when this is called on its own: the address can change between this check and a
-     * later connect. {@link UrlIngest.fetchGuarded} closes it by connecting to the address it vetted.
+     * later connect. a fetcher call with a `guard` closes it by connecting to the address it vetted.
      */
     static assertPublicHost(opts: {
         hostname: string;
@@ -5284,99 +5269,12 @@ export declare class UrlIngest {
         url: string;
         policy?: IUrlSafetyPolicy;
     }): Promise<URL>;
-    private static readTimeoutMilliseconds;
     /** Settles with `work`, or rejects with the signal's reason when the deadline passes first: a slow resolver must not outlive it. */
     private static withDeadline;
-    /** Request headers that name the body; they go when a redirect turns the request into a GET. */
-    private static readonly BODY_HEADERS;
-    /**
-     * The only caller headers a cross-origin redirect keeps. Every other one is dropped: a tenant's webhook secret
-     * (`x-api-key`, a signature) must not follow a redirect to a host that tenant did not name.
-     */
-    private static readonly CROSS_ORIGIN_HEADERS;
-    /** The statuses that name a new location; a 304 or a 300 is an answer, not a redirect. */
-    private static readonly REDIRECT_STATUSES;
-    /** Connect-phase errors: nothing was sent, so trying the next vetted address cannot deliver a request twice. */
-    private static readonly CONNECT_ERROR_CODES;
-    private static onlyHeaders;
-    private static withoutHeaders;
-    /**
-     * One request to `target`. With `addresses` it connects to those vetted addresses and nowhere else, in order, and
-     * moves to the next one only when the connection itself fails: the url's host is set as the `Host` header, and for
-     * https as the TLS server name, so the certificate is still checked against the name the caller asked for.
-     */
-    private static send;
-    /**
-     * A request that an untrusted url cannot steer inside the network. GET by default; `method`, `headers` and `body`
-     * (text or bytes, so a redirect can replay it) make it a signed webhook dispatch.
-     *
-     * The host is resolved ONCE per hop, every answer is checked, and the request connects to those addresses and to no
-     * other, so a DNS answer that changes after the check (DNS rebinding) is never looked up again. The `Host` header and,
-     * for https, the TLS server name stay the url's own, so the certificate is verified for that name. A `Host` in
-     * `headers` is ignored. The environment's `HTTP_PROXY` / `HTTPS_PROXY` is ignored on a pinned
-     * connection, because a proxy would resolve the name itself and undo the pin. `policy.proxy` sends the request through a
-     * proxy on purpose; that connection is not pinned (see `IUrlSafetyPolicy.proxy`). `allowPrivateAddress` turns the guard,
-     * and so the pin, off.
-     *
-     * Redirects are followed by hand so every hop is re-checked and re-pinned - `redirect: 'follow'` would land on an
-     * internal host with no second look. 301, 302 (for a POST) and 303 turn the request into a GET without a body. A 307 or
-     * 308 repeats the request; with a body it is refused when it leaves the origin, so a signed payload is never replayed to
-     * a host a redirect chose. When a hop changes origin every caller header is dropped except `accept`, `accept-language` and `user-agent`.
-     *
-     * The body is returned unread: the caller decides whether to stream it onward or cap it with
-     * {@link UrlIngest.readCappedBody}. Nothing is buffered here.
-     */
-    static fetchGuarded(opts: {
-        url: string;
-        policy?: IUrlSafetyPolicy;
-        method?: string;
-        headers?: Record<string, string>;
-        body?: string | Uint8Array;
-        signal?: AbortSignal;
-    }): Promise<Response>;
-    /**
-     * Enforces `maxBytes` on a stream nothing reads into this process - the shape a caller wants when
-     * the body is piped onward rather than held. Without it a `maxBytes` policy is inert on that path.
-     */
-    static capStream(opts: {
-        source: ReadableStream<Uint8Array>;
-        policy?: IUrlSafetyPolicy;
-    }): ReadableStream<Uint8Array>;
-    /**
-     * Reads a body that must not exceed `maxBytes`, cancelling the moment it does. `content-length` is
-     * checked first because it is free, and counted anyway because it may be absent or lie.
-     */
-    static readCappedBody(opts: {
-        response: Response;
-        policy?: IUrlSafetyPolicy;
-    }): Promise<Buffer>;
 }
 ```
 
 Source: `packages/helpers/src/modules/network/utilities/url-safety/ingest.ts`
-
-## `UrlSafetyErrors`
-
-*const*
-
-A url the policy refuses is refused forever - the same url will never be allowed. A caller that
-retries on failure has to tell that apart from a host that timed out, or it retries a rejection
-and turns the guard into a repeat scanner.
-
-```ts
-export declare const UrlSafetyErrors: {
-    readonly URL_REFUSED: {
-        readonly message: {
-            readonly text: "Url refused by the safety policy";
-            readonly code: "core.url_safety.url_refused";
-        };
-        readonly statusCode: 400;
-        readonly category: "business";
-    };
-};
-```
-
-Source: `packages/helpers/src/modules/network/utilities/url-safety/common/errors.ts`
 
 ## `VaultAuthMethods`
 
@@ -5724,6 +5622,7 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `BaseHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `BaseNetworkRequest` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `BasePoolHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `BodyLimit` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `BuildInfoRegistry` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `ClassResolver` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `ConsoleLogger` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -5750,6 +5649,12 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `EnvironmentNames` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `ErrorLogLevels` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `ErrorScopes` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `FetchErrors` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `FetchHeaders` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `FetchRedirects` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `FetchRequestContext` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `FetchRetry` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `FetchSchemaError` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `FieldMappingDataTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `FileExtensions` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `FormBodyUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -5768,6 +5673,17 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `IECDHExtraOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IErrorKeyRegistry` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `IFetchable` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetcherDefaults` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetcherHooks` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetchExchange` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetchExchangeRequest` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetchGuard` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetchGuardHop` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetchGuardRoute` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetchParsed` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetchRequestContext` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetchRetryOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetchSchemaIssue` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IFieldMapping` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `IHeightWhereOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IHfQueueNode` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -5777,10 +5693,10 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `ILoggerProvider` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `ILuxonDateTime` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `ILuxonDateTimeFactory` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
+- `INativeFetchNetworkRequestOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `INativeFetchRequestOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `INextOpaqueUidOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `INextTokenUidOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `INodeFetchNetworkRequestOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `INodeFetchRequestOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `INodeWithPath` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IntlTemporalAdapter` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `INumericUidOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -5823,9 +5739,9 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `MimeTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `MIN_TOKEN_BYTES` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `MIN_UID_ALPHABET_SIZE` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `NativeFetcher` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `NativeFetchNetworkRequest` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `NativeTemporalAdapter` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
-- `NodeFetcher` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `NodeFetchNetworkRequest` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `NumericUidHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `ObjectUtility` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `OpaqueUidHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -5879,6 +5795,10 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `TErrorNormalizeTransformFn` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TErrorScope` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TFetcherLogger` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `TFetcherResponse` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `TFetcherWorker` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `TFetchHeaders` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `TFetchResult` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TFieldMappingDataType` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TFieldMappingNames` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TFileExtension` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
@@ -5894,6 +5814,7 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `TMimeTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TMixinConstructor` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TMixinTarget` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `TNativeRequestInit` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TNodePredicate` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TNullable` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TNumberConstValue` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
@@ -5932,8 +5853,10 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `UidAlphabets` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UidCaseForms` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UidTokenEncodings` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `UrlFetchError` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UrlPolicy` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UrlSafetyDefaults` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `UrlSafetyErrors` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UrlSchemes` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UUID_PATTERN` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UuidHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)

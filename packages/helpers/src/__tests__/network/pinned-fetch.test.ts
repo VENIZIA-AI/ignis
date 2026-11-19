@@ -4,12 +4,17 @@
  */
 
 import { afterAll, afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 
 const lookupMock = mock(async (_hostname: string, _options?: unknown): Promise<unknown[]> => []);
 
 await mock.module('node:dns/promises', () => ({ lookup: lookupMock }));
 
 const { UrlIngest } = await import('@/modules/network/utilities/url-safety/ingest');
+const { UrlGuard } = await import('@/modules/network/utilities/url-safety/guard');
+const { createFetchGuarded } = await import('./fixtures/guarded');
+const { NativeFetcher } = await import('@/modules/network/http-request/fetcher/native-fetcher');
+const fetchGuarded = createFetchGuarded({ engine: UrlGuard });
 const { UrlPolicy } = await import('@/modules/network/utilities/url-safety/policy');
 const { UrlSchemes } = await import('@/modules/network/utilities/url-safety/common/constants');
 
@@ -82,7 +87,7 @@ afterAll(() => {
   mock.restore();
 });
 
-describe('UrlIngest.fetchGuarded - the connect goes to the vetted address', () => {
+describe('NativeFetcher with a guard - the connect goes to the vetted address', () => {
   test('a host whose second lookup answers 127.0.0.1 is still fetched at the first, vetted address', async () => {
     lookupMock.mockResolvedValueOnce(answer('203.0.113.10')).mockResolvedValue(answer('127.0.0.1'));
     const calls: Array<{ url: string; init: RequestInit & { tls?: { serverName?: string } } }> = [];
@@ -93,12 +98,12 @@ describe('UrlIngest.fetchGuarded - the connect goes to the vetted address', () =
       return new Response('ok');
     }) as unknown as typeof fetch;
 
-    await UrlIngest.fetchGuarded({ url: 'https://hook.example.test/in', policy });
+    await fetchGuarded({ url: 'https://hook.example.test/in', policy });
 
     expect(lookupMock).toHaveBeenCalledTimes(1);
     expect(calls).toHaveLength(1);
     expect(calls[0].url).toBe('https://203.0.113.10/in');
-    expect((calls[0].init.headers as Record<string, string>).Host).toBe('hook.example.test');
+    expect(new Headers(calls[0].init.headers).get('host')).toBe('hook.example.test');
     expect(calls[0].init.tls?.serverName).toBe('hook.example.test');
     expect((calls[0].init as { proxy?: unknown }).proxy).toBe(false);
   });
@@ -113,9 +118,7 @@ describe('UrlIngest.fetchGuarded - the connect goes to the vetted address', () =
       return new Response('ok');
     }) as unknown as typeof fetch;
 
-    const error = await rejectionOf(
-      UrlIngest.fetchGuarded({ url: 'https://hook.example.test/in', policy }),
-    );
+    const error = await rejectionOf(fetchGuarded({ url: 'https://hook.example.test/in', policy }));
 
     expect(UrlPolicy.isRefusedError({ error })).toBe(true);
     expect(fetched).toBe(false);
@@ -123,18 +126,18 @@ describe('UrlIngest.fetchGuarded - the connect goes to the vetted address', () =
 
   test('http pins by address and Host, with no TLS server name', async () => {
     lookupMock.mockResolvedValue(answer('203.0.113.10'));
-    const calls: Array<{ url: string; init: Record<string, unknown> }> = [];
+    const calls: Array<{ url: string; init: RequestInit & { tls?: unknown } }> = [];
 
-    globalThis.fetch = (async (input: URL | string, init: Record<string, unknown>) => {
+    globalThis.fetch = (async (input: URL | string, init: RequestInit & { tls?: unknown }) => {
       calls.push({ url: String(input), init });
 
       return new Response('ok');
     }) as unknown as typeof fetch;
 
-    await UrlIngest.fetchGuarded({ url: 'http://hook.example.test:8080/in?x=1', policy });
+    await fetchGuarded({ url: 'http://hook.example.test:8080/in?x=1', policy });
 
     expect(calls[0].url).toBe('http://203.0.113.10:8080/in?x=1');
-    expect((calls[0].init.headers as Record<string, string>).Host).toBe('hook.example.test:8080');
+    expect(new Headers(calls[0].init.headers).get('host')).toBe('hook.example.test:8080');
     expect(calls[0].init.tls).toBeUndefined();
   });
 
@@ -148,30 +151,30 @@ describe('UrlIngest.fetchGuarded - the connect goes to the vetted address', () =
       return new Response('ok');
     }) as unknown as typeof fetch;
 
-    await UrlIngest.fetchGuarded({ url: 'https://hook.example.test/in', policy });
+    await fetchGuarded({ url: 'https://hook.example.test/in', policy });
 
     expect(urls[0]).toBe('https://[2606:4700:4700::1111]/in');
   });
 
   test('a Host header from the caller is ignored', async () => {
     lookupMock.mockResolvedValue(answer('203.0.113.10'));
-    const seen: Array<Record<string, string>> = [];
+    const seen: Headers[] = [];
 
     globalThis.fetch = (async (_input: URL | string, init: RequestInit) => {
-      seen.push(init.headers as Record<string, string>);
+      seen.push(new Headers(init.headers));
 
       return new Response('ok');
     }) as unknown as typeof fetch;
 
-    await UrlIngest.fetchGuarded({
+    await fetchGuarded({
       url: 'https://hook.example.test/in',
       policy,
       headers: { host: 'internal.example.test', 'X-Signature': 'abc' },
     });
 
-    expect(seen[0].Host).toBe('hook.example.test');
-    expect(seen[0]['X-Signature']).toBe('abc');
-    expect(Object.keys(seen[0]).filter((name) => name.toLowerCase() === 'host')).toEqual(['Host']);
+    expect(seen[0].get('host')).toBe('hook.example.test');
+    expect(seen[0].get('x-signature')).toBe('abc');
+    expect([...seen[0].keys()].filter((name) => name === 'host')).toEqual(['host']);
   });
 
   test('a connect error moves to the next vetted address, the deadline does not', async () => {
@@ -188,7 +191,7 @@ describe('UrlIngest.fetchGuarded - the connect goes to the vetted address', () =
       return new Response('ok');
     }) as unknown as typeof fetch;
 
-    const response = await UrlIngest.fetchGuarded({ url: 'https://hook.example.test/', policy });
+    const response = await fetchGuarded({ url: 'https://hook.example.test/', policy });
 
     const result = await response.text();
     expect(result).toBe('ok');
@@ -201,9 +204,7 @@ describe('UrlIngest.fetchGuarded - the connect goes to the vetted address', () =
       throw Object.assign(new Error('The operation timed out'), { name: 'TimeoutError' });
     }) as unknown as typeof fetch;
 
-    const error = await rejectionOf(
-      UrlIngest.fetchGuarded({ url: 'https://hook.example.test/', policy }),
-    );
+    const error = await rejectionOf(fetchGuarded({ url: 'https://hook.example.test/', policy }));
 
     expect(error.name).toBe('TimeoutError');
     expect(urls).toHaveLength(1);
@@ -219,7 +220,7 @@ describe('UrlIngest.fetchGuarded - the connect goes to the vetted address', () =
       return new Response('ok');
     }) as unknown as typeof fetch;
 
-    await UrlIngest.fetchGuarded({
+    await fetchGuarded({
       url: 'https://hook.example.test/in',
       policy: { ...policy, proxy: 'http://proxy.example.test:3128' },
     });
@@ -229,7 +230,7 @@ describe('UrlIngest.fetchGuarded - the connect goes to the vetted address', () =
   });
 });
 
-describe('UrlIngest.fetchGuarded - a POST with headers and a body, over a real socket', () => {
+describe('NativeFetcher with a guard - a POST with headers and a body, over a real socket', () => {
   test('is delivered to the vetted address with its method, headers, body and the original Host', async () => {
     const { server, seen, port } = startServer({ '/in': () => new Response('accepted') });
 
@@ -237,7 +238,7 @@ describe('UrlIngest.fetchGuarded - a POST with headers and a body, over a real s
       treatLoopbackAsPublic();
       lookupMock.mockResolvedValue(answer('127.0.0.1'));
 
-      const response = await UrlIngest.fetchGuarded({
+      const response = await fetchGuarded({
         url: `http://hook.example.test:${port}/in`,
         policy,
         method: 'POST',
@@ -265,7 +266,7 @@ describe('UrlIngest.fetchGuarded - a POST with headers and a body, over a real s
       treatLoopbackAsPublic();
       lookupMock.mockResolvedValue(answer('127.0.0.1'));
 
-      await UrlIngest.fetchGuarded({
+      await fetchGuarded({
         url: `http://hook.example.test:${port}/in`,
         policy,
         method: 'PUT',
@@ -281,7 +282,7 @@ describe('UrlIngest.fetchGuarded - a POST with headers and a body, over a real s
 
   test('a GET or HEAD with a body is refused before any lookup', async () => {
     const error = await rejectionOf(
-      UrlIngest.fetchGuarded({ url: 'https://hook.example.test/', policy, body: 'x' }),
+      fetchGuarded({ url: 'https://hook.example.test/', policy, body: 'x' }),
     );
 
     expect(error.message).toContain('cannot carry a body');
@@ -289,7 +290,7 @@ describe('UrlIngest.fetchGuarded - a POST with headers and a body, over a real s
   });
 });
 
-describe('UrlIngest.fetchGuarded - redirects are re-vetted, re-pinned and do not leak the request', () => {
+describe('NativeFetcher with a guard - redirects are re-vetted, re-pinned and do not leak the request', () => {
   test('a redirect to an internal address is refused', async () => {
     const { server, port } = startServer({
       '/start': () =>
@@ -301,7 +302,7 @@ describe('UrlIngest.fetchGuarded - redirects are re-vetted, re-pinned and do not
       lookupMock.mockResolvedValue(answer('127.0.0.1'));
 
       const error = await rejectionOf(
-        UrlIngest.fetchGuarded({ url: `http://hook.example.test:${port}/start`, policy }),
+        fetchGuarded({ url: `http://hook.example.test:${port}/start`, policy }),
       );
 
       expect(UrlPolicy.isRefusedError({ error })).toBe(true);
@@ -327,7 +328,7 @@ describe('UrlIngest.fetchGuarded - redirects are re-vetted, re-pinned and do not
       );
 
       const error = await rejectionOf(
-        UrlIngest.fetchGuarded({ url: `http://hook.example.test:${port}/start`, policy }),
+        fetchGuarded({ url: `http://hook.example.test:${port}/start`, policy }),
       );
 
       expect(UrlPolicy.isRefusedError({ error })).toBe(true);
@@ -347,7 +348,7 @@ describe('UrlIngest.fetchGuarded - redirects are re-vetted, re-pinned and do not
       treatLoopbackAsPublic();
       lookupMock.mockResolvedValue(answer('127.0.0.1'));
 
-      const response = await UrlIngest.fetchGuarded({
+      const response = await fetchGuarded({
         url: `http://hook.example.test:${port}/start`,
         policy,
         method: 'POST',
@@ -376,7 +377,7 @@ describe('UrlIngest.fetchGuarded - redirects are re-vetted, re-pinned and do not
       treatLoopbackAsPublic();
       lookupMock.mockResolvedValue(answer('127.0.0.1'));
 
-      await UrlIngest.fetchGuarded({
+      await fetchGuarded({
         url: `http://hook.example.test:${port}/start`,
         policy,
         method: 'POST',
@@ -405,7 +406,7 @@ describe('UrlIngest.fetchGuarded - redirects are re-vetted, re-pinned and do not
       lookupMock.mockResolvedValue(answer('127.0.0.1'));
 
       const error = await rejectionOf(
-        UrlIngest.fetchGuarded({
+        fetchGuarded({
           url: `http://hook.example.test:${port}/start`,
           policy,
           method: 'POST',
@@ -443,12 +444,12 @@ describe('UrlIngest.fetchGuarded - redirects are re-vetted, re-pinned and do not
         accept: 'application/json',
       };
 
-      await UrlIngest.fetchGuarded({
+      await fetchGuarded({
         url: `http://hook.example.test:${port}/same`,
         policy,
         headers,
       });
-      await UrlIngest.fetchGuarded({
+      await fetchGuarded({
         url: `http://hook.example.test:${port}/cross`,
         policy,
         headers,
@@ -471,7 +472,7 @@ describe('UrlIngest.fetchGuarded - redirects are re-vetted, re-pinned and do not
   });
 });
 
-describe('UrlIngest.fetchGuarded - replay, deadline and non-redirect 3xx', () => {
+describe('NativeFetcher with a guard - replay, deadline and non-redirect 3xx', () => {
   test('a POST that may have reached the server is not repeated on the next address; a refused connect is', async () => {
     lookupMock.mockResolvedValue(answer('203.0.113.10', '203.0.113.11'));
     const urls: string[] = [];
@@ -485,7 +486,7 @@ describe('UrlIngest.fetchGuarded - replay, deadline and non-redirect 3xx', () =>
     }) as unknown as typeof fetch;
 
     const error = await rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'https://hook.example.test/',
         policy,
         method: 'POST',
@@ -507,7 +508,7 @@ describe('UrlIngest.fetchGuarded - replay, deadline and non-redirect 3xx', () =>
       return new Response('ok');
     }) as unknown as typeof fetch;
 
-    await UrlIngest.fetchGuarded({
+    await fetchGuarded({
       url: 'https://hook.example.test/',
       policy,
       method: 'POST',
@@ -531,7 +532,7 @@ describe('UrlIngest.fetchGuarded - replay, deadline and non-redirect 3xx', () =>
       return new Response('ok');
     }) as unknown as typeof fetch;
 
-    await UrlIngest.fetchGuarded({ url: 'https://hook.example.test/', policy });
+    await fetchGuarded({ url: 'https://hook.example.test/', policy });
 
     expect(urls).toHaveLength(2);
   });
@@ -550,7 +551,7 @@ describe('UrlIngest.fetchGuarded - replay, deadline and non-redirect 3xx', () =>
 
     const started = performance.now();
     const error = await rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'https://hook.example.test/',
         policy: { ...policy, timeout: { value: 100, unit: 'millisecond' } },
       }),
@@ -575,7 +576,7 @@ describe('UrlIngest.fetchGuarded - replay, deadline and non-redirect 3xx', () =>
 
     const started = performance.now();
     const error = await rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'https://hook.example.test/',
         policy: { ...policy, maxRedirects: 10, timeout: { value: 200, unit: 'millisecond' } },
       }),
@@ -590,16 +591,14 @@ describe('UrlIngest.fetchGuarded - replay, deadline and non-redirect 3xx', () =>
     lookupMock.mockResolvedValue(answer('203.0.113.10'));
     globalThis.fetch = (async () => new Response(null, { status: 304 })) as unknown as typeof fetch;
 
-    const error = await rejectionOf(
-      UrlIngest.fetchGuarded({ url: 'https://hook.example.test/', policy }),
-    );
+    const error = await rejectionOf(fetchGuarded({ url: 'https://hook.example.test/', policy }));
 
     expect(error.message).toContain('Request failed | status: 304');
     expect(UrlPolicy.isRefusedError({ error })).toBe(false);
   });
 });
 
-describe('UrlIngest.fetchGuarded - a trusted host name is pinned, and never reaches the metadata address', () => {
+describe('NativeFetcher with a guard - a trusted host name is pinned, and never reaches the metadata address', () => {
   const trustedPolicy = {
     ...policy,
     hosts: { trusted: ['http://vault.corp.test:8200' as const] },
@@ -621,7 +620,7 @@ describe('UrlIngest.fetchGuarded - a trusted host name is pinned, and never reac
     lookupMock.mockResolvedValue(answer('10.20.0.7'));
     const calls = stubFetch();
 
-    await UrlIngest.fetchGuarded({
+    await fetchGuarded({
       url: 'http://vault.corp.test:8200/v1/x',
       policy: trustedPolicy,
     });
@@ -634,7 +633,7 @@ describe('UrlIngest.fetchGuarded - a trusted host name is pinned, and never reac
     const calls = stubFetch();
 
     for (const url of ['http://vault.corp.test:8201/x', 'http://other.corp.test:8200/x']) {
-      const error = await rejectionOf(UrlIngest.fetchGuarded({ url, policy: trustedPolicy }));
+      const error = await rejectionOf(fetchGuarded({ url, policy: trustedPolicy }));
 
       expect(UrlPolicy.isRefusedError({ error })).toBe(true);
     }
@@ -649,7 +648,7 @@ describe('UrlIngest.fetchGuarded - a trusted host name is pinned, and never reac
       const calls = stubFetch();
 
       const error = await rejectionOf(
-        UrlIngest.fetchGuarded({ url: 'http://vault.corp.test:8200/x', policy: trustedPolicy }),
+        fetchGuarded({ url: 'http://vault.corp.test:8200/x', policy: trustedPolicy }),
       );
 
       expect(UrlPolicy.isRefusedError({ error })).toBe(true);
@@ -661,7 +660,7 @@ describe('UrlIngest.fetchGuarded - a trusted host name is pinned, and never reac
     lookupMock.mockImplementation(async (hostname: string) => answer(hostname));
     const calls = stubFetch();
 
-    await UrlIngest.fetchGuarded({
+    await fetchGuarded({
       url: 'http://169.254.169.254/latest/meta-data/',
       policy: { ...policy, hosts: { trusted: ['http://169.254.169.254'] } },
     });
@@ -674,7 +673,7 @@ describe('UrlIngest.fetchGuarded - a trusted host name is pinned, and never reac
     stubFetch();
 
     const error = await rejectionOf(
-      UrlIngest.fetchGuarded({ url: 'http://vault.corp.test:8200/x', policy: trustedPolicy }),
+      fetchGuarded({ url: 'http://vault.corp.test:8200/x', policy: trustedPolicy }),
     );
 
     expect(error.message).toContain('resolves to nothing');
@@ -697,5 +696,98 @@ describe('UrlIngest.fetchGuarded - a trusted host name is pinned, and never reac
         error: result,
       }),
     ).toBe(true);
+  });
+});
+
+describe('the guard inside the pipeline: retries, defaults and hooks', () => {
+  const FAST = { initialDelayMs: 1, maxDelayMs: 2 };
+
+  const stubFetch = (statuses: number[]) => {
+    const calls: Array<{ url: string; headers: Headers }> = [];
+
+    globalThis.fetch = (async (input: URL | string, init: RequestInit) => {
+      calls.push({ url: String(input), headers: new Headers(init.headers) });
+
+      return new Response('body', {
+        status: statuses[Math.min(calls.length - 1, statuses.length - 1)],
+      });
+    }) as unknown as typeof fetch;
+
+    return calls;
+  };
+
+  test('every retry attempt re-runs the whole guard: a fresh lookup, a fresh pin', async () => {
+    lookupMock
+      .mockResolvedValueOnce(answer('203.0.113.10'))
+      .mockResolvedValueOnce(answer('203.0.113.11'));
+    const calls = stubFetch([503, 200]);
+
+    const fetcher = new NativeFetcher({ name: 'retry-guard', guardEngine: UrlGuard });
+    const response = await fetcher.get({
+      url: 'https://hook.example.test/in',
+      guard: policy,
+      retry: { maxAttempts: 2, backoff: FAST },
+    });
+
+    expect(response.status).toBe(200);
+    expect(lookupMock).toHaveBeenCalledTimes(2);
+    expect(calls.map((call) => call.url)).toEqual([
+      'https://203.0.113.10/in',
+      'https://203.0.113.11/in',
+    ]);
+  });
+
+  test('a host that turns private between attempts is refused on the second, and a refusal is not retried', async () => {
+    lookupMock.mockResolvedValueOnce(answer('203.0.113.10')).mockResolvedValue(answer('10.0.0.5'));
+    const calls = stubFetch([503, 200]);
+
+    const fetcher = new NativeFetcher({ name: 'rebind', guardEngine: UrlGuard });
+    const error = await RejectionHelper.rejectionOf({
+      task: fetcher.get({
+        url: 'https://hook.example.test/in',
+        guard: policy,
+        retry: { maxAttempts: 4, backoff: FAST },
+      }),
+    });
+
+    expect(UrlPolicy.isRefusedError({ error })).toBe(true);
+    expect(calls).toHaveLength(1);
+    expect(lookupMock).toHaveBeenCalledTimes(2);
+  });
+
+  test('a default guard cannot be switched off by a call: an absent guard keeps it, a policy replaces it', async () => {
+    lookupMock.mockResolvedValue(answer('10.0.0.5'));
+    stubFetch([200]);
+    const fetcher = new NativeFetcher({
+      name: 'default-guard',
+      guardEngine: UrlGuard,
+      defaults: { guard: policy },
+    });
+
+    const refused = await RejectionHelper.rejectionOf({
+      task: fetcher.get({ url: 'https://hook.example.test/in', guard: undefined }),
+    });
+    expect(UrlPolicy.isRefusedError({ error: refused })).toBe(true);
+
+    const trusted = await fetcher.get({
+      url: 'http://vault.corp.test:8200/x',
+      guard: { hosts: { trusted: ['http://vault.corp.test:8200'] } },
+    });
+    expect(trusted.status).toBe(200);
+  });
+
+  test('onRequest runs before the guard, so what it signs is what the pinned request carries', async () => {
+    lookupMock.mockResolvedValue(answer('203.0.113.10'));
+    const calls = stubFetch([200]);
+
+    const fetcher = new NativeFetcher({
+      name: 'hook-guard',
+      guardEngine: UrlGuard,
+      hooks: { onRequest: ({ headers }) => headers.set('x-signed', 'yes') },
+    });
+    await fetcher.get({ url: 'https://hook.example.test/in', guard: policy });
+
+    expect(calls[0].headers.get('x-signed')).toBe('yes');
+    expect(calls[0].headers.get('host')).toBe('hook.example.test');
   });
 });

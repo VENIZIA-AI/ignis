@@ -378,7 +378,7 @@ export class UrlPolicy {
   static assertSafeUrl(opts: {
     url: string;
     policy?: IUrlSafetyPolicy;
-    /** `false` judges a trusted origin like any other (`fetchGuarded` passes it once a hop of the chain was untrusted). @default true */
+    /** `false` judges a trusted origin like any other (a guarded fetcher call passes it once a hop of the chain was untrusted). @default true */
     isTrustedAllowed?: boolean;
   }): URL {
     const { url, policy } = opts;

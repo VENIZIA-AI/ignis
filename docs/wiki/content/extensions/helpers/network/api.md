@@ -14,7 +14,8 @@ Exhaustive reference for `BaseNetworkRequest` and its fetchers, the TCP/TLS clie
 |---|---|
 | The HTTP client base class and URL helpers | [BaseNetworkRequest](#basenetworkrequest) |
 | Axios-backed HTTP client | [AxiosFetcher](#axiosfetcher) / [AxiosNetworkRequest](#axiosnetworkrequest) |
-| Native-`fetch`-backed HTTP client | [NodeFetcher](#nodefetcher) / [NodeFetchNetworkRequest](#nodefetchnetworkrequest) |
+| Native-`fetch`-backed HTTP client | [NativeFetcher](#nativefetcher) / [NativeFetchNetworkRequest](#nativefetchnetworkrequest) |
+| Schema, retry, hooks, status check on every call | [AbstractNetworkFetchableHelper](#abstractnetworkfetchablehelper) |
 | Why the `QUERY` method must reach the wire uppercase | [HTTP.Methods](#http-methods) |
 | Secret redaction in request logs | [Request Logging and Redaction](#request-logging-and-redaction) |
 | Plain TCP or TLS server, client tracking, authentication | [BaseNetworkTcpServer](#basenetworktcpserver) |
@@ -27,7 +28,7 @@ Exhaustive reference for `BaseNetworkRequest` and its fetchers, the TCP/TLS clie
 
 - [`packages/helpers/src/modules/network/http-request/base-network-request.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/http-request/base-network-request.helper.ts) - `BaseNetworkRequest`
 - [`packages/helpers/src/modules/network/http-request/fetcher/base-fetcher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/http-request/fetcher/base-fetcher.ts) - `IFetchable`, `IRequestOptions`, `AbstractNetworkFetchableHelper`
-- [`packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts) - `NodeFetcher`, `NodeFetchNetworkRequest`
+- [`packages/helpers/src/modules/network/http-request/fetcher/native-fetcher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/http-request/fetcher/native-fetcher.ts) - `NativeFetcher`, `NativeFetchNetworkRequest`
 - [`packages/helpers/src/modules/network/http-request/fetcher/axios-fetcher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/http-request/fetcher/axios-fetcher.ts) - `AxiosFetcher`, `AxiosNetworkRequest` (`@venizia/ignis-helpers/axios` sub-path)
 - [`packages/helpers/src/modules/network/tcp-socket/base-tcp-server.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/tcp-socket/base-tcp-server.helper.ts) - `BaseNetworkTcpServer`, `ITcpSocketClient`, `ITcpSocketServerOptions`
 - [`packages/helpers/src/modules/network/tcp-socket/base-tcp-client.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/tcp-socket/base-tcp-client.helper.ts) - `BaseNetworkTcpClient`, `INetworkTcpClientProps`
@@ -48,7 +49,7 @@ Exhaustive reference for `BaseNetworkRequest` and its fetchers, the TCP/TLS clie
 BaseHelper
   ├── BaseNetworkRequest<T extends TFetcherVariant>
   │     ├── AxiosNetworkRequest        (T = 'axios')
-  │     └── NodeFetchNetworkRequest    (T = 'node-fetch')
+  │     └── NativeFetchNetworkRequest  (T = 'native')
   │
   ├── BaseNetworkTcpServer<ServerOpts, ServerType, ClientType>
   │     ├── NetworkTcpServer           (net.createServer, net.Socket)
@@ -62,7 +63,7 @@ BaseHelper
 
 AbstractNetworkFetchableHelper<V, RQ, RS>  (implements IFetchable, NOT a BaseHelper)
   ├── AxiosFetcher                     (V = 'axios')
-  └── NodeFetcher                      (V = 'node-fetch')
+  └── NativeFetcher                    (V = 'native')
 ```
 
 Every class that extends `BaseHelper` inherits scoped logging via `this.logger`. `AbstractNetworkFetchableHelper` and its two fetchers do **not** extend `BaseHelper`. They accept an optional `logger` parameter per call instead - see [Request Logging and Redaction](#request-logging-and-redaction).
@@ -168,31 +169,46 @@ interface IFetchable<
   RQ extends IRequestOptions,
   RS extends TFetcherResponse<V>,
 > {
-  send(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
-  get(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
-  post(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
-  put(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
-  patch(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
-  delete(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
-  query(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
+  send(opts: RQ & { schema?: undefined }, logger?: TFetcherLogger): Promise<RS>;
+  send<S extends z.ZodType>(opts: RQ & { schema: S }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+  // get, post, put, patch, delete and query have the same two overloads
 
   getWorker(): TFetcherWorker<V>;
 }
 ```
 
-All HTTP method shortcuts (`get`, `post`, `put`, `patch`, `delete`, `query`) delegate to `send()` with the `method` field set accordingly. `query` sends the HTTP `QUERY` method ([RFC 9110/10008](https://www.ietf.org/archive/id/draft-ietf-httpbis-safe-method-w-body-10.html)). It behaves like `GET` but carries a body - useful for search payloads too large to fit a query string.
+Without `schema` a call answers the raw `Response` (`AxiosResponse` for Axios). With `schema` it answers `IFetchParsed`:
+
+```typescript
+interface IFetchParsed<D, RS> {
+  data: D;          // z.infer of the schema
+  status: number;
+  headers: Headers;
+  response: RS;     // the raw answer
+}
+```
+
+All shortcuts (`get`, `post`, `put`, `patch`, `delete`, `query`) set `method` and call the same pipeline as `send()`. `query` sends the HTTP `QUERY` method ([RFC 9110/10008](https://www.ietf.org/archive/id/draft-ietf-httpbis-safe-method-w-body-10.html)). It behaves like `GET` but carries a body - useful for search payloads too large to fit a query string. `send<T>()` no longer exists: pass a `schema` to get a typed body.
 
 ### IRequestOptions
 
-```typescript
-interface IRequestOptions {
-  url: string;
-  method?: THttpMethod;
-  params?: Record<string, unknown>;
-  timeout?: number;
-  [extra: symbol | string]: unknown;
-}
-```
+Every field is per call, and wins over the fetcher's `defaults`.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `url` | `string` | Absolute url |
+| `method` | `THttpMethod` | Defaults to `get`; either case |
+| `params` | `Record<string, unknown>` | Written into the url query |
+| `headers` | `Headers \| Record<string, string \| null \| undefined>` | Merged per header with the defaults; the call wins; `null` or `undefined` removes a default |
+| `body` | per fetcher | The request body |
+| `timeout` | `number` | Milliseconds, **per attempt** |
+| `signal` | `AbortSignal` | The caller's own abort. It rejects with the caller's reason, apart from a timeout (`TimeoutError`) |
+| `schema` | `z.ZodType` | Parse the JSON body; a mismatch is a [`FetchSchemaError`](#fetchschemaerror) |
+| `acceptStatus` | `(status: number) => boolean` | The one opt-out of "a status outside 2xx throws". See [Status check](#status-check) |
+| `retry` | `IFetchRetryOptions` | Present turns retrying on. See [Retry](#retry) |
+| `guard` | `IUrlSafetyPolicy` | Present turns the [url guard](#url-safety) on for this call |
+| `maxBytes` | `number` | Cap on the response body |
+| `maxRedirects` | `number` | `0` returns a 3xx as a `UrlFetchError`; a positive number walks the redirects by hand |
 
 ### HTTP.Methods
 
@@ -224,52 +240,85 @@ abstract class AbstractNetworkFetchableHelper<
 > implements IFetchable<V, RQ, RS>
 ```
 
-Abstract base for fetcher implementations. Provides convenience HTTP method wrappers and protocol detection. Does **not** extend `BaseHelper` - it has no `this.logger`.
+The one pipeline both fetchers run. A concrete fetcher supplies only the exchange (one request on the wire); the status check, the schema, retries, hooks, the guard, redirects and the body cap are shared. Does **not** extend `BaseHelper` - it has no `this.logger`.
 
 #### Constructor
 
 ```typescript
-constructor(opts: { name: string; variant: V })
+constructor(opts: {
+  name: string;
+  variant: V;
+  defaults?: IFetcherDefaults;
+  hooks?: IFetcherHooks;
+  guardEngine?: IFetchGuard;
+})
 ```
+
+| Option | Meaning |
+|---|---|
+| `defaults` | `{ timeout, headers, retry, maxBytes, guard }` for every call, see below |
+| `hooks` | `{ onRequest, onResponse, onError }`, see [Hooks](#hooks) |
+| `guardEngine` | The server half of the url guard: pass `UrlGuard` |
+
+A call replaces `timeout`, `retry`, `maxBytes` and `guard`; `headers` merge per header. A call can replace a default `guard` with its own policy, never remove it. A call with `guard` and no engine fails with an error that says so.
+
+#### Pipeline order
+
+For each attempt: `onRequest` → the guard vets the url and pins its addresses → the request is sent → redirects are walked by hand → `onResponse` → the status check → the body cap and the schema. A retry repeats all of it, so a signature and a DNS lookup are fresh each time.
+
+#### Status check
+
+A status outside 2xx throws `UrlFetchError<RS>` with `status`, `url`, `headers`, `location` (a redirect) and the `response`, whose body is already cancelled. A 3xx the client followed is judged on its final answer.
+
+`acceptStatus` is the only opt-out:
+
+```typescript
+const response = await fetcher.get({
+  url,
+  acceptStatus: (status) => status === 404 || status < 300,
+});
+```
+
+#### Retry
+
+`retry` is `IFetchRetryOptions`: `maxAttempts` (default 3), `maxTotalMs` (the budget across every attempt and wait), `backoff`, `shouldRetry`, `onRetry`. It runs on `RetryHelper.executeWithRetry`.
+
+- Retried by default: a network error, a timeout, a 5xx and a 429.
+- Never retried by default: any other 4xx, a 3xx, a guard refusal, a schema mismatch, a caller abort.
+- A `Retry-After` header (seconds or an HTTP date) on a 429 or 503 is the least wait before the next attempt. A wait above `backoff.maxDelayMs` (30 seconds by default) or above `maxTotalMs` ends the retries: the last error is thrown. A negative or garbled value is ignored.
+- A POST is retried only because the caller passed `retry`. Keep the call idempotent (an idempotency key).
+- A body that can be sent only once (a stream, a `FormData`) cannot be retried when `maxAttempts` is above 1: the call fails before anything is sent. A string, bytes, a `Blob`, `URLSearchParams`, an array and a plain object can.
+- `shouldRetry` replaces the default decision.
+
+#### Hooks
+
+Exactly three functions, none returns a value.
+
+| Hook | Runs | Gets |
+|---|---|---|
+| `onRequest` | Before every send, each retry attempt included | `{ method, url, headers, attempt }` |
+| `onResponse` | Once per attempt, before the status check and the schema | `{ request, status, headers, durationMs }` |
+| `onError` | Once, with the final error, which is then rethrown | `{ request, error, attempt }` |
+
+`headers` of `onRequest` is mutable; its `url` is read-only, so a hook cannot send the call to a host the guard did not vet. `onError` sees a timeout, a network failure, a refused status, a schema mismatch and a guard refusal. A hook that throws fails the call. For signed service calls see [the signed service calls hook](/extensions/components/authentication/usage).
+
+#### FetchSchemaError
+
+A body that does not fit the `schema` (or is not JSON, or is empty) throws `FetchSchemaError`: status code 502, code `core.fetch.schema_mismatch`, with `status`, `url` and `issues: Array<{ path, code }>`. It names the paths and the rules. It never carries the body or the values.
 
 #### Methods
 
-##### `abstract send(opts, logger?)`
+##### `send` / `get` / `post` / `put` / `patch` / `delete` / `query`
 
-Subclasses must implement the actual request dispatch.
-
-```typescript
-abstract send(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
-```
-
-##### `get(opts, logger?)` / `post(opts, logger?)` / `put(opts, logger?)` / `patch(opts, logger?)` / `delete(opts, logger?)` / `query(opts, logger?)`
-
-```typescript
-get(opts: RQ, logger?: TFetcherLogger): Promise<RS>
-post(opts: RQ, logger?: TFetcherLogger): Promise<RS>
-put(opts: RQ, logger?: TFetcherLogger): Promise<RS>
-patch(opts: RQ, logger?: TFetcherLogger): Promise<RS>
-delete(opts: RQ, logger?: TFetcherLogger): Promise<RS>
-query(opts: RQ, logger?: TFetcherLogger): Promise<RS>
-```
-
-Each calls `send()` with `method` set to the matching `HTTP.Methods` token (`get` → `HTTP.Methods.GET`, ... `query` → `HTTP.Methods.QUERY`). Any other field on `opts` (`body`, `headers`, `params`, ...) passes through untouched.
+See [IFetchable](#ifetchable-interface). Each takes `(opts, logger?)`.
 
 ##### `getProtocol(url)`
 
 Returns `HTTP.Protocols.HTTP` (`'http'`) if `url` starts with `'http:'`, otherwise `HTTP.Protocols.HTTPS` (`'https'`).
 
-```typescript
-getProtocol(url: string): 'http' | 'https'
-```
-
 ##### `getWorker()`
 
-Returns the underlying HTTP client instance (set by the concrete fetcher's constructor).
-
-```typescript
-getWorker(): TFetcherWorker<V>
-```
+Returns the underlying HTTP client instance (`fetch` or the axios instance).
 
 ---
 
@@ -279,54 +328,38 @@ getWorker(): TFetcherWorker<V>
 class AxiosFetcher extends AbstractNetworkFetchableHelper<
   'axios',
   IAxiosRequestOptions,
-  AxiosResponse['data']
+  AxiosResponse<unknown>,
+  AxiosInstance
 >
 ```
 
-Axios-based fetcher implementation. Creates an `axios` instance with the provided default configuration.
+Axios as the client. The status check, redirects and deadline belong to the pipeline: the instance runs with `validateStatus: () => true`, so axios no longer throws on a status.
 
 #### Constructor
 
 ```typescript
 constructor(opts: {
   name: string;
-  defaultConfigs: AxiosRequestConfig;
-  logger?: TFetcherLogger;
+  defaultConfigs?: AxiosRequestConfig;
+  defaults?: IFetcherDefaults;
+  hooks?: IFetcherHooks;
+  guardEngine?: IFetchGuard;
+  logger?: ILogger;
+  rejectUnauthorized?: boolean;
 })
 ```
 
-`opts.logger`, if provided, logs `'Creating new network request worker instance! Name: %s'` once at construction time. This is unrelated to the per-call `logger` argument on `send()`.
+`opts.logger`, if provided, logs `'Creating new network request worker instance! Name: %s'` once at construction time.
 
 #### IAxiosRequestOptions
 
-```typescript
-interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOptions {
-  url: string;
-  method?: THttpMethod;
-  params?: Record<string, unknown>;
-  body?: Record<string, unknown>;       // Mapped to Axios `data`
-  headers?: Record<string, string>;
-}
-```
+An axios config where `body` is sent as axios `data`, plus [`IRequestOptions`](#irequestoptions). The fields the pipeline owns (`url`, `method`, `params`, `data`, `headers`, `signal`, `timeout`, `maxRedirects`, `validateStatus`) are not taken from the axios config.
 
 > [!NOTE]
-> - **`body` maps to Axios's `data`** field internally.
-> - **Query `params` are serialized** using `node:querystring` via Axios's `paramsSerializer`.
-> - **HTTPS gets an `https.Agent` automatically.** Certificate verification is ON, and connections are kept alive. Pass `rejectUnauthorized: false` - on the fetcher, for the whole instance, or on a single request - only when you genuinely mean to accept an unverified certificate. A caller-supplied `httpsAgent` always wins, so a custom CA, pinning or mTLS agent is honoured as given.
-
-#### Methods
-
-##### `send(opts, logger?)`
-
-```typescript
-override send<T = unknown>(opts: IAxiosRequestOptions, logger?: ILogger): Promise<AxiosResponse<T>>
-```
-
-Dispatches the request via the internal `axios` instance.
-
-- `method` defaults to `HTTP.Methods.GET` and is uppercased before dispatch.
-- HTTPS URLs automatically get an `https.Agent` configured.
-- If `logger` is passed, logs `'URL: %s | Props: %s'` at `info` level with the assembled request config run through `RedactUtility.redactSecrets()`.
+> - **`maxBytes` is `maxContentLength` in axios.** Axios stops the read when the body crosses it, with its own error, not the cap's message.
+> - **HTTPS gets a shared `https.Agent`** with certificate verification ON and keep-alive. Pass `rejectUnauthorized: false` only when you mean to accept an unverified certificate. A caller `httpsAgent` wins.
+> - **A guarded call accepts only an allowlist of plain-data request options**, per call and in `defaultConfigs`: `withCredentials`, `responseType` (not `stream`), `responseEncoding`, `xsrfCookieName`, `xsrfHeaderName`, `withXSRFToken`, `maxContentLength`, `maxBodyLength`, `maxRate`, `decompress`, `transitional` and `rejectUnauthorized` (never `false`; neither is `rejectUnauthorized: false` on the fetcher). Any other key is refused with a message that names it. That covers an agent, `socketPath`, `lookup`, `transport`, `proxy`, `httpVersion`, `http2Options`, a custom `adapter` and any option axios adds later. Functions are refused too: `transformRequest`, `transformResponse`, `paramsSerializer`, `formSerializer` and the progress callbacks run with the axios config as `this` and could rewrite the url or the socket. `auth` (axios re-applies it after a cross-origin redirect) and `baseURL` / `allowAbsoluteUrls` (axios combines urls) are refused: pass `Authorization` in `headers`, one absolute `url`, and transform the body and the answer yourself.
+> - **A guarded call never uses the shared agent.** It gets an agent of its own whose `lookup` answers only the vetted addresses, with keep-alive off, destroyed after the exchange: no pin outlives the call, and the certificate is still verified for the name you asked for. A test pins SNI, certificate verification and the environment proxy on a real TLS server.
 
 ---
 
@@ -338,128 +371,99 @@ class AxiosNetworkRequest extends BaseNetworkRequest<'axios'>
 
 Pre-configured HTTP client using Axios. Import only from the sub-path - `import { AxiosNetworkRequest } from '@venizia/ignis-helpers/axios'`.
 
-#### Constructor
-
-```typescript
-constructor(opts: IAxiosNetworkRequestOptions)
-```
-
 ```typescript
 interface IAxiosNetworkRequestOptions {
   name: string;
-  networkOptions: Omit<AxiosRequestConfig, 'baseURL'> & {
+  networkOptions: Omit<AxiosRequestConfig, 'baseURL' | 'headers' | 'timeout'> & {
     baseUrl?: string;
+    headers?: Record<string, string>;
+    timeout?: number;
   };
+  defaults?: IFetcherDefaults;
+  hooks?: IFetcherHooks;
+  guardEngine?: IFetchGuard;
 }
 ```
-
-**Default configuration applied:**
 
 | Setting | Default |
 |---------|---------|
 | `headers['content-type']` | `'application/json; charset=utf-8'` |
 | `withCredentials` | `true` |
-| `validateStatus` | `(status) => status < 500` |
-| `timeout` | `60000` (1 minute) |
+| `timeout` | `60000` (1 minute), per attempt |
 
-User-provided values in `networkOptions` override all defaults. `networkOptions.baseUrl` maps to Axios's `baseURL`.
+`validateStatus` is gone: a status outside 2xx throws a `UrlFetchError`; use `acceptStatus` per call. `networkOptions.baseUrl` maps to Axios's `baseURL`.
 
 ---
 
-### NodeFetcher
+### NativeFetcher
 
 ```typescript
-class NodeFetcher extends AbstractNetworkFetchableHelper<
-  'node-fetch',
-  INodeFetchRequestOptions,
-  Awaited<ReturnType<typeof fetch>>
+class NativeFetcher extends AbstractNetworkFetchableHelper<
+  'native',
+  INativeFetchRequestOptions,
+  Response,
+  typeof fetch
 >
 ```
 
-Native `fetch`-based fetcher implementation.
+Native `fetch` as the client.
 
 #### Constructor
 
 ```typescript
 constructor(opts: {
   name: string;
-  defaultConfigs: RequestInit;
+  defaultConfigs?: TNativeRequestInit;
+  defaults?: IFetcherDefaults;
+  hooks?: IFetcherHooks;
+  guardEngine?: IFetchGuard;
   queryString?: IQueryStringOptions;
   logger?: TFetcherLogger;
 })
 ```
 
-`queryString` decides how `params` are written into the url (see [`QueryStringUtility.toQueryString`](#querystringutility-toquerystring)); omitted, it is `node:querystring`'s behavior. `TFetcherLogger` is `Pick<ILogger, 'debug' | 'info'>`: a logger with only those two methods is accepted as is. `getWorker()` returns the global `fetch`.
+`defaultConfigs` carries the `RequestInit` settings the pipeline does not own (`credentials`, `mode`, `cache`, ...); `headers` and `signal` are not part of it, they belong to `defaults` and to the call. `queryString` decides how `params` are written into the url (see [`QueryStringUtility.toQueryString`](#querystringutility-toquerystring)). `TFetcherLogger` is `Pick<ILogger, 'debug' | 'info'>`. `getWorker()` returns the global `fetch`.
 
-#### INodeFetchRequestOptions
+#### INativeFetchRequestOptions
 
-```typescript
-interface INodeFetchRequestOptions extends RequestInit, IRequestOptions {
-  url: string;
-  method?: THttpMethod;
-  params?: Record<string, unknown>;
-}
-```
+`RequestInit` (less `body`, `headers`, `method`, `signal`, `redirect`, which the pipeline owns) plus [`IRequestOptions`](#irequestoptions).
 
-#### Methods
+#### Behavior
 
-##### `send(opts, logger?)`
-
-```typescript
-override async send(opts: INodeFetchRequestOptions, logger?: TFetcherLogger): Promise<Response>
-```
-
-Dispatches the request using the native `fetch` API. Behavior:
-
-- `method` defaults to `HTTP.Methods.GET` and is uppercased before dispatch.
-- `body` is sent as given when it is a string, `Blob`, `ArrayBuffer`, typed array, `FormData`, `URLSearchParams` or `ReadableStream`; a plain object or an array is JSON-encoded; `null` or `undefined` sends no body.
-- `headers` of the call replace `defaultConfigs.headers` (a caller sending a `FormData` body leaves the content type out so `fetch` writes the boundary); a call that passes none keeps the defaults.
-- Query `params` are serialized by [`QueryStringUtility.toQueryString`](#querystringutility-toquerystring) (with the fetcher's `queryString` options) and appended to `url`. The separator adapts: `?` when the URL carries no query string yet, `&` when it already does - never a double `?`.
-- If `timeout` is provided, an internal `AbortController` aborts the request after that many milliseconds.
-  - The internal timeout signal is **composed**, never substituted, with a caller-supplied `signal`. When both are present, IGNIS builds `AbortSignal.any([signal, timeoutController.signal])`. That way a caller aborting its own signal still cancels the request, even while a timeout is also armed.
-  - The timer is cleared as soon as the request settles.
-- If `logger` is passed, logs `'[send] URL: %s | Props: %s | Timeout: %s'` at `debug` level with the request config run through `RedactUtility.redactSecrets()`; the body is never logged, only its size. With no logger nothing is logged and no default logger is built, so the call is safe in a browser.
+- `method` defaults to `get` and is uppercased before dispatch.
+- `body` is sent as given when it is a string, `Blob`, `ArrayBuffer`, typed array, `FormData`, `URLSearchParams` or `ReadableStream`; a plain object or an array is JSON-encoded; `null` or `undefined` sends no body. A `GET` or `HEAD` with a body is refused.
+- Query `params` are appended to `url`; the separator is `?` when the url has no query yet, `&` when it has.
+- `timeout` is per attempt and composed with the caller's `signal`, never substituted.
+- With `guard`, the request goes to the address the guard vetted (`Host` and TLS server name stay the url's own), and `HTTP_PROXY` / `HTTPS_PROXY` is ignored on that connection. With a guard only `credentials`, `mode`, `cache`, `referrer`, `referrerPolicy`, `integrity`, `keepalive` and `priority` are accepted besides the pipeline's own options, per call and in `defaultConfigs`; any other key (`unix`, `dispatcher`, `proxy`, `tls`, one Bun adds later) is refused. `guard.proxy` is the one way through a proxy.
 
 ---
 
-### NodeFetchNetworkRequest
+### NativeFetchNetworkRequest
 
 ```typescript
-class NodeFetchNetworkRequest extends BaseNetworkRequest<'node-fetch'>
+class NativeFetchNetworkRequest extends BaseNetworkRequest<'native'>
 ```
 
 Pre-configured HTTP client using native `fetch`. Exported from the root barrel - no extra dependency.
 
-#### Constructor
-
 ```typescript
-constructor(opts: INodeFetchNetworkRequestOptions)
-```
-
-```typescript
-interface INodeFetchNetworkRequestOptions {
+interface INativeFetchNetworkRequestOptions {
   name: string;
   networkOptions: RequestInit & {
     baseUrl?: string;
     queryString?: IQueryStringOptions;
   };
+  defaults?: IFetcherDefaults;
+  hooks?: IFetcherHooks;
+  guardEngine?: IFetchGuard;
 }
 ```
-
-**Default configuration applied:**
 
 | Setting | Default |
 |---------|---------|
 | `headers['content-type']` | `'application/json; charset=utf-8'` |
 
-If `headers` is a `Headers` instance, it is converted to a plain object via `Object.fromEntries(headers.entries())` before merging with the default.
-
-> [!WARNING] `timeout` is per-call, not per-instance
-> `networkOptions` is `RequestInit`, which has no `timeout` field. Passing one there has no effect on request cancellation. `NodeFetcher.send()` only reads `timeout` from the arguments of each individual `send()`/`get()`/... call. Pass it every time you need an abort:
->
-> ```typescript
-> await this.getNetworkService().send({ url: '/slow-endpoint', method: 'get', timeout: 5000 });
-> ```
+A caller's `Content-Type`, in any case, replaces the default. Set `timeout` in `defaults` or on the call: it is per attempt.
 
 ---
 
@@ -480,7 +484,7 @@ Writes `params` as a query string without `node:querystring`, so it works in a b
 
 With `nested: 'json'` an array becomes `ids=%5B1%2C2%5D` and an object `filter=%7B%22where%22...`; primitives are unchanged.
 
-A client that sends a JSON filter passes `{ nullish: 'skip', nested: 'json' }`, through `NodeFetchNetworkRequest`'s `networkOptions.queryString`.
+A client that sends a JSON filter passes `{ nullish: 'skip', nested: 'json' }`, through `NativeFetchNetworkRequest`'s `networkOptions.queryString`.
 
 ---
 
@@ -980,10 +984,10 @@ handleError(opts: { identifier: string; error: Error }): void
 ### TFetcherVariant / TFetcherResponse / TFetcherWorker
 
 ```typescript
-type TFetcherVariant = TConstValue<typeof FetcherVariants>; // 'node-fetch' | 'axios'
+type TFetcherVariant = TConstValue<typeof FetcherVariants>; // 'native' | 'axios'
 
 type TFetcherResponse<T extends TFetcherVariant> =
-  T extends 'node-fetch' ? Response : AxiosResponse;
+  T extends 'native' ? Response : AxiosResponse<unknown>;
 
 type TFetcherWorker<T extends TFetcherVariant> =
   T extends 'axios' ? AxiosInstance : typeof fetch;
@@ -1097,7 +1101,7 @@ The guard for a url your application did not choose - a webhook target, an avata
 It ships as part of the network module, so the root barrel carries it:
 
 ```typescript
-import { UrlPolicy, UrlIngest, UrlSchemes, UrlSafetyDefaults } from '@venizia/ignis-helpers';
+import { UrlPolicy, UrlIngest, UrlGuard, UrlSchemes, UrlSafetyDefaults } from '@venizia/ignis-helpers';
 import type { IUrlSafetyPolicy, TTrustedOrigin } from '@venizia/ignis-helpers';
 import { UrlFetchError } from '@venizia/ignis-helpers';
 ```
@@ -1107,25 +1111,26 @@ import { UrlFetchError } from '@venizia/ignis-helpers';
 | Class | Needs | Decides |
 |---|---|---|
 | `UrlPolicy` | nothing but string and number work | The shape of a url: scheme, trusted origins, and a literal IP address |
-| `UrlIngest` | `node:dns`, and `fetch` | What a hostname resolves to, and the request itself |
+| `UrlIngest` | `node:dns` | What a hostname resolves to |
+| `UrlGuard` | `UrlIngest` | The per-call vetting a fetcher runs: resolve, check every address, pin, re-check each redirect hop |
 
 `UrlPolicy` is re-exported from the browser-pure `@venizia/ignis-helpers/core` subpath. It never imports `ingest.ts`, and `make purity` fails the build if that changes. `UrlIngest` stays out of `/core`.
 
-The split has a consequence you must know: a hostname that **resolves** to a private address passes `UrlPolicy` on purpose. Only `UrlIngest` catches that. Call `UrlPolicy` alone only where DNS does not exist.
+The split has a consequence you must know: a hostname that **resolves** to a private address passes `UrlPolicy` on purpose. Only `UrlIngest` and `UrlGuard` catch that. Call `UrlPolicy` alone only where DNS does not exist.
 
 ### IUrlSafetyPolicy
 
-Every field is per call. An application that must reach plain `http` on one route says so at that call site, rather than weakening a constant for everyone.
+Passed as `guard` on a fetcher call or in the fetcher's `defaults`. Every field is per call. An application that must reach plain `http` on one route says so at that call site, rather than weakening a constant for everyone.
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `allowedSchemes` | `string[]` | `['https:']` | The schemes a guarded fetch will speak. `file:` and `gopher:` are the classic pivots, and neither is reachable |
+| `allowedSchemes` | `string[]` | `['https:']` | The schemes a guarded call will speak. `file:` and `gopher:` are the classic pivots, and neither is reachable |
 | `allowPrivateAddress` | `boolean` | `false` | Turning it on in a path that takes user input re-opens the hole this guard exists to close |
 | `hosts` | `{ trusted: TTrustedOrigin[]; strict?: boolean }` | - | Origins you trust, and whether to trust nothing else (see [Trusted origins](#trusted-origins)) |
 | `maxRedirects` | `number` | `3` | Hops allowed. Each one is re-checked. `0` returns the 3xx as a `UrlFetchError` |
 | `timeout` | `IDuration` | 10 seconds | A slow host holds a worker slot for exactly this long |
 | `maxBytes` | `number` | `10485760` (10 MB) | The read stops and cancels the moment the body crosses it |
-| `proxy` | `string` | - | `http://host:port` of a proxy `fetchGuarded` sends the request through |
+| `proxy` | `string` | - | `http://host:port` of a proxy the guarded request goes through |
 
 `proxy`: the address check still runs, but the connection is NOT pinned, because the proxy resolves the name. The environment proxy is never used.
 
@@ -1154,48 +1159,44 @@ An IPv6 literal is expanded to its eight 16-bit groups before it is classified, 
 |---|---|---|
 | `assertPublicHost` | `(opts: { hostname: string; policy? }): Promise<void>` | Resolves the host and rejects if **any** address is non-public |
 | `assertReachableUrl` | `(opts: { url: string; policy? }): Promise<URL>` | Both halves, in the order they must run: shape, then network |
-| `fetchGuarded` | `(opts: { url: string; policy?; method?; headers?; body?; signal?: AbortSignal }): Promise<Response>` | A request an untrusted url cannot steer inside your network; connects to the address it vetted |
-| `readCappedBody` | `(opts: { response: Response; policy? }): Promise<Buffer>` | Reads a body, cancelling the moment it crosses `maxBytes` |
-| `capStream` | `(opts: { source: ReadableStream<Uint8Array>; policy? }): ReadableStream<Uint8Array>` | Enforces `maxBytes` on a stream you pipe onward instead of buffering |
+| `resolvePublicAddresses` | `(opts: { hostname: string; trusted?; policy?; signal? }): Promise<string[]>` | The vetted addresses of a host |
 
-`fetchGuarded` sends a GET by default; `method`, `headers` and `body` (text or bytes) make it a signed webhook dispatch.
+`assertPublicHost` checks every resolved address, not the first. A host can publish one public A record beside an internal one. Called on their own, these only check: the address can change before your own connect, so send through a fetcher with `guard`.
 
-`assertPublicHost` checks every resolved address, not the first. A host can publish one public A record beside an internal one.
+`fetchGuarded`, `readCappedBody` and `capStream` of `UrlIngest` were removed: the fetchers do that work now, and `BodyLimit` holds the body cap.
 
-`fetchGuarded` resolves the host once per hop, checks every answer, and connects to those addresses and no other, so a DNS answer that changes after the check (DNS rebinding) is never looked up again. The `Host` header and, for https, the TLS server name stay the url's own: the certificate is still verified for the name you asked for. If the first address fails to connect it tries the next vetted one. A `Host` in `headers` is ignored.
+### Guarded fetching
 
-It follows redirects by hand, with `redirect: 'manual'`, so every hop is checked and pinned again. Letting `fetch` follow them would land on an internal host with no second look. A 301 or 302 on a POST, and a 303, become a GET without the body. A 307 or 308 repeats the request; with a body it is refused when it leaves the origin, so a signed payload is never replayed to a host a redirect chose. When a hop changes origin, every caller header is dropped except `accept`, `accept-language` and `user-agent`: a tenant's `x-api-key` or signature never follows a redirect to a host that tenant did not name. The one deadline (`timeout`) covers the whole call, every lookup and every hop. Only 301, 302, 303, 307 and 308 are followed; any other status is returned or raised as a failed request. A request that may already have reached the server (a reset after the body went out) is not repeated on the next vetted address unless it is a GET or HEAD, so a webhook is not delivered twice; a refused connection does move on.
-
-It returns the body unread, so you choose between `readCappedBody` and `capStream`. Nothing is buffered for you.
-
-`readCappedBody` checks `content-length` first because it is free, then counts anyway, because the header may be absent or may lie.
+Pass `guard` to a call, or set it in the fetcher's `defaults`, and give the fetcher the engine:
 
 ```typescript
-const response = await UrlIngest.fetchGuarded({
-  url: userSuppliedUrl,
-  policy: { maxBytes: 2 * 1024 * 1024, timeout: { value: 5, unit: 'second' } },
-});
+import { NativeFetcher, UrlGuard } from '@venizia/ignis-helpers';
 
-const body = await UrlIngest.readCappedBody({ response, policy: { maxBytes: 2 * 1024 * 1024 } });
-```
+const fetcher = new NativeFetcher({ name: 'webhooks', guardEngine: UrlGuard });
 
-```typescript
-import { HTTP } from '@venizia/ignis-helpers/common';
-
-// A signed webhook dispatch to a customer-supplied url.
-const response = await UrlIngest.fetchGuarded({
+const response = await fetcher.post({
   url: customerWebhookUrl,
-  method: 'POST',
-  headers: {
-    [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON,
-    'x-signature': signature,
-  },
-  body: JSON.stringify(event),
+  body: event,
+  headers: { 'x-signature': signature },
+  guard: { maxRedirects: 0 },
+  maxBytes: 2 * 1024 * 1024,
+  timeout: 5000,
+  retry: { maxAttempts: 3 },
 });
 ```
+
+Per attempt the guard resolves the host, checks every answer, and the request connects to those addresses and no other, so a DNS answer that changes after the check (DNS rebinding) is never looked up again. The `Host` header and, for https, the TLS server name stay the url's own: the certificate is still verified for the name you asked for. A `Host` in `headers` is ignored.
+
+Redirects are walked by hand, so every hop is checked and pinned again. A 301 or 302 on a POST, and a 303, become a GET without the body. A 307 or 308 repeats the request; with a body it is refused when it leaves the origin, so a signed payload is never replayed to a host a redirect chose. When a hop changes origin, every caller header is dropped except `accept`, `accept-language` and `user-agent`. Running out of hops is the "Too many redirects" refusal. A request that may already have reached the server (a reset after the body went out) is not repeated on the next vetted address unless it is a GET or HEAD, so a webhook is not delivered twice; a refused connection does move on.
+
+`timeout` is per attempt; `retry.maxTotalMs` is the total budget. A guard in `defaults` can be replaced by a call's own policy, never removed. A call with `guard` and no `guardEngine` fails with an error that says what to pass, and sends nothing.
+
+Both fetchers can guard. The Axios fetcher connects through a per-exchange agent whose `lookup` answers only the vetted addresses; an option outside the allowlist is refused with a guard, and so is `guard.proxy` (use `NativeFetcher`). A guarded call always caps the body it reads: `maxBytes` defaults to the policy's 10 MB.
+
+To store what comes back without buffering it, `fetcher.get({ url, guard, maxBytes })` returns a response whose body fails the moment it crosses `maxBytes`; pipe `response.body` onward.
 
 > [!WARNING]
-> Two windows remain, and both are on purpose. `assertPublicHost` and `assertReachableUrl` called on their own only check: the address can change before your own connect, so connect through `fetchGuarded`. And `policy.proxy` sends the request through a proxy you chose, which resolves the name itself: the address check still runs, the connection is not pinned. The environment's `HTTP_PROXY` / `HTTPS_PROXY` is ignored on a pinned connection, so it cannot undo the pin.
+> `policy.proxy` sends the request through a proxy you chose, which resolves the name itself: the address check still runs, the connection is not pinned. The environment's `HTTP_PROXY` / `HTTPS_PROXY` is ignored on a pinned connection, so it cannot undo the pin.
 
 ### Trusted origins
 
@@ -1203,9 +1204,9 @@ const response = await UrlIngest.fetchGuarded({
 
 ```typescript
 // An internal service, reached on purpose. Every other url keeps the full guard.
-await UrlIngest.fetchGuarded({
+await fetcher.get({
   url: 'http://vault.corp.local:8200/v1/secret',
-  policy: { hosts: { trusted: ['http://vault.corp.local:8200'] } },
+  guard: { hosts: { trusted: ['http://vault.corp.local:8200'] } },
 });
 
 // Only the CDN, nothing else.
@@ -1226,12 +1227,13 @@ An entry that is not exactly an origin - a path, a trailing slash, credentials, 
 
 ### A typed error for an answer you did not get
 
-A 4xx, a 5xx, and a redirect that was not followed raise a `UrlFetchError`:
+Any status outside 2xx, and a redirect that was not followed, raise a `UrlFetchError<RS>` (`RS` is the raw response type):
 
 | Field | Meaning |
 |---|---|
 | `status` | The status the upstream answered with |
 | `url` | The url you asked for |
+| `headers` | The response headers |
 | `response` | The upstream's answer. Its body is already cancelled, so read the status and headers only |
 | `location` | The raw `Location` header of a redirect, when it had one |
 
@@ -1239,7 +1241,7 @@ A 4xx, a 5xx, and a redirect that was not followed raise a `UrlFetchError`:
 
 ```typescript
 try {
-  await UrlIngest.fetchGuarded({ url, policy: { maxRedirects: 0 } });
+  await fetcher.get({ url, guard: { maxRedirects: 0 } });
 } catch (error) {
   if (UrlFetchError.is(error) && error.status === 302) {
     return error.location; // the redirect target, for you to judge
@@ -1261,7 +1263,7 @@ With `maxRedirects: 0` the first 3xx is that error and nothing is followed. A `L
 
 ```typescript
 const controller = new AbortController();
-const response = await UrlIngest.fetchGuarded({ url, policy, signal: controller.signal });
+const response = await fetcher.get({ url, guard: policy, signal: controller.signal });
 ```
 
 ### Telling a refusal from a retryable failure
@@ -1270,16 +1272,10 @@ Every refusal carries the same code, `core.url_safety.url_refused`, from the `Ur
 
 A refused url is refused forever. A bad scheme, a non-public address, an origin outside a strict trusted list, a malformed url, too many hops, an oversized body - retrying any of those repeats the same rejection and turns your retry loop into a repeat scanner. Drop the work instead.
 
-A timeout, a DNS failure, or a 5xx answers `false`. Those are worth another attempt, and `fetchGuarded` raises them without a refusal code (a 4xx or 5xx as a [`UrlFetchError`](#a-typed-error-for-an-answer-you-did-not-get)).
+A timeout, a DNS failure, or a 5xx answers `false`. Those are worth another attempt, and the fetcher raises them without a refusal code (a 4xx or 5xx as a [`UrlFetchError`](#a-typed-error-for-an-answer-you-did-not-get)). The fetcher's own `retry` already applies this rule: it never retries a guard refusal.
 
 ```typescript
-import { RetryHelper, UrlIngest, UrlPolicy } from '@venizia/ignis-helpers';
-
-await RetryHelper.executeWithRetry({
-  operation: 'fetchAvatar',
-  execution: () => UrlIngest.fetchGuarded({ url: userSuppliedUrl }),
-  shouldRetry: context => !UrlPolicy.isRefusedError({ error: context.error }),
-});
+await fetcher.get({ url: userSuppliedUrl, guard: {}, retry: { maxAttempts: 3 } });
 ```
 
 ## See also

@@ -10,10 +10,11 @@ export type { ILogger, ILoggerProvider, TLogLevel } from './modules/logger/commo
 export { ConsoleLogger } from './modules/logger/base/console';
 export { LoggerFactory } from './modules/logger/factory';
 export * from './modules/network/http-request/fetcher/base-fetcher';
+export * from './modules/network/http-request/fetcher/common';
 // The node fetcher carries no node builtin - its one `querystring.stringify` is written out - so the
 // framework HTTP layer is reachable from a browser bundle, and a connector on HTTP need not
 // re-implement one.
-export * from './modules/network/http-request/fetcher/node-fetcher';
+export * from './modules/network/http-request/fetcher/native-fetcher';
 export * from './modules/network/http-request/base-network-request.helper';
 export * from './modules/pool';
 export * from './modules/queue/internal/hf';
@@ -27,6 +28,10 @@ export type {
   IUrlTrustedHosts,
   TTrustedOrigin,
 } from './modules/network/utilities/url-safety/common/types';
+export {
+  UrlFetchError,
+  UrlSafetyErrors,
+} from './modules/network/utilities/url-safety/common/errors';
 export * from './modules/network/utilities/url-safety/policy';
 export * from './modules/network/utilities/query-string';
 export { RetryBackoffStrategies, RetryJitterModes } from './modules/retry/common/constants';

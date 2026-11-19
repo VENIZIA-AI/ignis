@@ -245,6 +245,22 @@ options: { mode: JWKSModes.VERIFIER, jwksUrl: 'http://auth-service:3000/certs', 
 jwks: { trusted: ['http://10.0.0.5:8080', 'http://[fd00::1]:8443'] }
 ```
 
+**Call another service with a signed assertion.** A caller with `keys` signs every outgoing request with a fetcher hook. The hook runs before each send, retries included, so every attempt carries a fresh `jti`. It signs the method and the percent-encoded path of the request and sets the `ServiceAssertion.HEADER` header; `Authorization` is left alone.
+
+```typescript
+import { NativeFetcher } from '@venizia/ignis-helpers';
+
+const pricing = new NativeFetcher({
+  name: 'pricing-client',
+  hooks: { onRequest: signer.createRequestHook({ audience: 'pricing' }) },
+  defaults: { retry: { maxAttempts: 3 } },
+});
+
+const response = await pricing.post({ url: 'https://pricing.internal/v1/api/calc', body: { sku } });
+```
+
+`signer` is the `ServiceAssertionSignerService`. A call signed for one audience is refused by every other callee.
+
 **Generate ES256 or RS256 keys.**
 
 ```bash

@@ -2,11 +2,13 @@
 
 import { afterEach, describe, expect, test } from 'bun:test';
 import { UrlFetchError } from '@/modules/network/utilities/url-safety/common/errors';
-import { UrlIngest } from '@/modules/network/utilities/url-safety/ingest';
+import { UrlGuard } from '@/modules/network/utilities/url-safety/guard';
+import { createFetchGuarded } from './fixtures/guarded';
 import { UrlSchemes } from '@/modules/network/utilities/url-safety/common/constants';
 import { UrlPolicy } from '@/modules/network/utilities/url-safety/policy';
 
 const originalFetch = globalThis.fetch;
+const fetchGuarded = createFetchGuarded({ engine: UrlGuard });
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
@@ -44,11 +46,11 @@ const stubResponses = (responses: Response[]): { calls: string[] } => {
 const redirectTo = (location: string): Response =>
   new Response(null, { status: 302, headers: { location } });
 
-describe('UrlIngest.fetchGuarded - the redirect walk', () => {
+describe('NativeFetcher with a guard - the redirect walk', () => {
   test('follows a redirect and returns the final response', async () => {
     stubResponses([redirectTo('https://cdn.example.com/final.png'), new Response('bytes')]);
 
-    const response = await UrlIngest.fetchGuarded({
+    const response = await fetchGuarded({
       url: 'https://cdn.example.com/a.png',
       policy: publicPolicy,
     });
@@ -62,7 +64,7 @@ describe('UrlIngest.fetchGuarded - the redirect walk', () => {
     // A literal public address: `lookup` answers it without a network round trip, so this case
     // measures the redirect walk rather than whatever DNS happens to do.
     const message = await captureMessage(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'https://8.8.8.8/a.png',
         // Private addresses NOT allowed: this is the case the guard exists for.
         policy: { allowedSchemes: [UrlSchemes.HTTP, UrlSchemes.HTTPS] },
@@ -76,7 +78,7 @@ describe('UrlIngest.fetchGuarded - the redirect walk', () => {
     stubResponses([redirectTo('https://cdn.example.com/next.png')]);
 
     const message = await captureMessage(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'https://cdn.example.com/a.png',
         policy: { ...publicPolicy, maxRedirects: 2 },
       }),
@@ -89,7 +91,7 @@ describe('UrlIngest.fetchGuarded - the redirect walk', () => {
     stubResponses([new Response(null, { status: 302 })]);
 
     const message = await captureMessage(
-      UrlIngest.fetchGuarded({ url: 'https://cdn.example.com/a.png', policy: publicPolicy }),
+      fetchGuarded({ url: 'https://cdn.example.com/a.png', policy: publicPolicy }),
     );
 
     expect(message).toContain('no location');
@@ -99,47 +101,10 @@ describe('UrlIngest.fetchGuarded - the redirect walk', () => {
     stubResponses([new Response('nope', { status: 404 })]);
 
     const message = await captureMessage(
-      UrlIngest.fetchGuarded({ url: 'https://cdn.example.com/a.png', policy: publicPolicy }),
+      fetchGuarded({ url: 'https://cdn.example.com/a.png', policy: publicPolicy }),
     );
 
     expect(message).toContain('404');
-  });
-});
-
-describe('UrlIngest.readCappedBody', () => {
-  test('returns a body inside the cap', async () => {
-    const body = await UrlIngest.readCappedBody({
-      response: new Response('hello'),
-      policy: { maxBytes: 1024 },
-    });
-
-    expect(body.toString()).toBe('hello');
-  });
-
-  test('refuses on a declared content-length over the cap, before reading', async () => {
-    const response = new Response('x', { headers: { 'content-length': '999999' } });
-    const message = await captureMessage(
-      UrlIngest.readCappedBody({ response, policy: { maxBytes: 8 } }),
-    );
-
-    expect(message).toContain('declared');
-  });
-
-  test('refuses a body that lies about its length and overruns while streaming', async () => {
-    // No content-length, so the cap can only be enforced by counting - which is the point.
-    const stream = new ReadableStream<Uint8Array>({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode('0123456789'));
-        controller.enqueue(new TextEncoder().encode('0123456789'));
-        controller.close();
-      },
-    });
-
-    const message = await captureMessage(
-      UrlIngest.readCappedBody({ response: new Response(stream), policy: { maxBytes: 12 } }),
-    );
-
-    expect(message).toContain('received');
   });
 });
 
@@ -159,7 +124,7 @@ describe('isUrlRefusedError - permanent versus worth retrying', () => {
     ['a non-public literal', 'https://169.254.169.254/latest'],
     ['a malformed url', 'not a url'],
   ])('%s is permanent', async (_label, url) => {
-    const error = await refusedFrom(UrlIngest.fetchGuarded({ url }));
+    const error = await refusedFrom(fetchGuarded({ url }));
     expect(UrlPolicy.isRefusedError({ error })).toBe(true);
   });
 
@@ -167,7 +132,7 @@ describe('isUrlRefusedError - permanent versus worth retrying', () => {
     stubResponses([redirectTo('http://10.0.0.5/internal')]);
 
     const error = await refusedFrom(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'https://8.8.8.8/a.png',
         policy: { allowedSchemes: [UrlSchemes.HTTP, UrlSchemes.HTTPS] },
       }),
@@ -180,7 +145,7 @@ describe('isUrlRefusedError - permanent versus worth retrying', () => {
     stubResponses([new Response('boom', { status: 503 })]);
 
     const error = await refusedFrom(
-      UrlIngest.fetchGuarded({ url: 'https://cdn.example.com/a.png', policy: publicPolicy }),
+      fetchGuarded({ url: 'https://cdn.example.com/a.png', policy: publicPolicy }),
     );
 
     expect(UrlPolicy.isRefusedError({ error })).toBe(false);
@@ -197,12 +162,12 @@ const rejectionOf = async (task: Promise<unknown>): Promise<unknown> => {
   throw new Error('Expected the call to reject, but it resolved');
 };
 
-describe('UrlIngest.fetchGuarded - a typed error for an answer it does not return', () => {
+describe('NativeFetcher with a guard - a typed error for an answer it does not return', () => {
   test('a non-ok answer is a UrlFetchError with the upstream status, the url and the response', async () => {
     stubResponses([new Response('nope', { status: 503, headers: { 'retry-after': '7' } })]);
 
     const error = await rejectionOf(
-      UrlIngest.fetchGuarded({ url: 'https://cdn.example.com/a.png', policy: publicPolicy }),
+      fetchGuarded({ url: 'https://cdn.example.com/a.png', policy: publicPolicy }),
     );
 
     expect(UrlFetchError.is(error)).toBe(true);
@@ -220,7 +185,7 @@ describe('UrlIngest.fetchGuarded - a typed error for an answer it does not retur
     const { calls } = stubResponses([redirectTo('https://cdn.example.com/moved.png')]);
 
     const result = await rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'https://cdn.example.com/a.png',
         policy: { ...publicPolicy, maxRedirects: 0 },
       }),
@@ -237,7 +202,7 @@ describe('UrlIngest.fetchGuarded - a typed error for an answer it does not retur
   test('maxRedirects: 0 keeps a relative location as sent, and a 3xx without one is typed too', async () => {
     stubResponses([new Response(null, { status: 301, headers: { location: '/moved' } })]);
     const result2 = await rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'https://cdn.example.com/a.png',
         policy: { ...publicPolicy, maxRedirects: 0 },
       }),
@@ -249,7 +214,7 @@ describe('UrlIngest.fetchGuarded - a typed error for an answer it does not retur
 
     stubResponses([new Response(null, { status: 302 })]);
     const result3 = await rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'https://cdn.example.com/a.png',
         policy: { ...publicPolicy, maxRedirects: 0 },
       }),
@@ -264,7 +229,7 @@ describe('UrlIngest.fetchGuarded - a typed error for an answer it does not retur
     stubResponses([redirectTo('http://[bad')]);
 
     const error = await rejectionOf(
-      UrlIngest.fetchGuarded({ url: 'https://cdn.example.com/a.png', policy: publicPolicy }),
+      fetchGuarded({ url: 'https://cdn.example.com/a.png', policy: publicPolicy }),
     );
 
     expect(error).not.toBeInstanceOf(TypeError);
@@ -277,7 +242,7 @@ describe('UrlIngest.fetchGuarded - a typed error for an answer it does not retur
     stubResponses([redirectTo('https://cdn.example.com/next.png')]);
 
     const error = await rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'https://cdn.example.com/a.png',
         policy: { ...publicPolicy, maxRedirects: 1 },
       }),
@@ -289,7 +254,7 @@ describe('UrlIngest.fetchGuarded - a typed error for an answer it does not retur
   });
 });
 
-describe('UrlIngest.fetchGuarded - the caller signal', () => {
+describe('NativeFetcher with a guard - the caller signal', () => {
   const neverAnswering = () => {
     globalThis.fetch = ((_input: unknown, init?: RequestInit) =>
       new Promise((_resolve, reject) => {
@@ -311,7 +276,7 @@ describe('UrlIngest.fetchGuarded - the caller signal', () => {
     const reason = new Error('user cancelled');
 
     const pending = rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'https://cdn.example.com/a.png',
         policy: publicPolicy,
         signal: controller.signal,
@@ -328,7 +293,7 @@ describe('UrlIngest.fetchGuarded - the caller signal', () => {
     const controller = new AbortController();
 
     const pending = rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'https://cdn.example.com/a.png',
         policy: publicPolicy,
         signal: controller.signal,
@@ -345,7 +310,7 @@ describe('UrlIngest.fetchGuarded - the caller signal', () => {
     const controller = new AbortController();
 
     const error = await rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'https://cdn.example.com/a.png',
         policy: { ...publicPolicy, timeout: { value: 20, unit: 'millisecond' } as never },
         signal: controller.signal,
@@ -363,7 +328,7 @@ describe('UrlIngest.fetchGuarded - the caller signal', () => {
     controller.abort(reason);
 
     const error = await rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'https://8.8.8.8/a.png',
         policy: { allowedSchemes: [UrlSchemes.HTTPS] },
         signal: controller.signal,
@@ -375,7 +340,7 @@ describe('UrlIngest.fetchGuarded - the caller signal', () => {
   });
 });
 
-describe('UrlIngest.fetchGuarded - trusted origins', () => {
+describe('NativeFetcher with a guard - trusted origins', () => {
   const trusted = (...origins: string[]) => ({
     allowedSchemes: [UrlSchemes.HTTP, UrlSchemes.HTTPS],
     hosts: { trusted: origins as never },
@@ -384,7 +349,7 @@ describe('UrlIngest.fetchGuarded - trusted origins', () => {
   test('a trusted private origin is reached, and its answer returned, whatever allowedSchemes says', async () => {
     const { calls } = stubResponses([new Response('secret-key')]);
 
-    const response = await UrlIngest.fetchGuarded({
+    const response = await fetchGuarded({
       url: 'http://10.0.0.5:8080/v1/key',
       policy: { hosts: { trusted: ['http://10.0.0.5:8080'] } },
     });
@@ -397,7 +362,7 @@ describe('UrlIngest.fetchGuarded - trusted origins', () => {
   test('a redirect from a trusted origin to another trusted one is followed', async () => {
     stubResponses([redirectTo('http://10.0.0.6:9000/k'), new Response('ok')]);
 
-    const response = await UrlIngest.fetchGuarded({
+    const response = await fetchGuarded({
       url: 'http://10.0.0.5:8080/v1/key',
       policy: trusted('http://10.0.0.5:8080', 'http://10.0.0.6:9000'),
     });
@@ -410,7 +375,7 @@ describe('UrlIngest.fetchGuarded - trusted origins', () => {
     const { calls } = stubResponses([redirectTo('http://10.9.9.9/k'), new Response('leak')]);
 
     const error = await rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'http://10.0.0.5:8080/v1/key',
         policy: trusted('http://10.0.0.5:8080'),
       }),
@@ -425,7 +390,7 @@ describe('UrlIngest.fetchGuarded - trusted origins', () => {
     stubResponses([redirectTo('http://169.254.169.254/latest/meta-data/'), new Response('leak')]);
 
     const error = await rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'http://10.0.0.5:8080/v1/key',
         policy: trusted('http://10.0.0.5:8080'),
       }),
@@ -438,7 +403,7 @@ describe('UrlIngest.fetchGuarded - trusted origins', () => {
     const { calls } = stubResponses([redirectTo('http://10.0.0.5:8080/k'), new Response('leak')]);
 
     const error = await rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'https://8.8.8.8/a',
         policy: trusted('http://10.0.0.5:8080'),
       }),
@@ -456,7 +421,7 @@ describe('UrlIngest.fetchGuarded - trusted origins', () => {
     ]);
 
     const error = await rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'https://8.8.8.8/a',
         policy: trusted('http://169.254.169.254'),
       }),
@@ -474,7 +439,7 @@ describe('UrlIngest.fetchGuarded - trusted origins', () => {
     ]);
 
     const error = await rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'http://10.0.0.6:9000/a',
         policy: trusted('http://10.0.0.6:9000', 'http://10.0.0.5:8080'),
       }),
@@ -491,7 +456,7 @@ describe('UrlIngest.fetchGuarded - trusted origins', () => {
       new Response('ok'),
     ]);
 
-    const response = await UrlIngest.fetchGuarded({
+    const response = await fetchGuarded({
       url: 'http://10.0.0.5:8080/a',
       policy: trusted('http://10.0.0.5:8080', 'http://10.0.0.6:9000', 'http://10.0.0.7:9001'),
     });
@@ -504,7 +469,7 @@ describe('UrlIngest.fetchGuarded - trusted origins', () => {
     const { calls } = stubResponses([new Response('bytes')]);
 
     const error = await rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'https://8.8.8.8/a',
         policy: { hosts: { trusted: ['http://10.0.0.5:8080'], strict: true } },
       }),
@@ -519,7 +484,7 @@ describe('UrlIngest.fetchGuarded - trusted origins', () => {
     stubResponses([redirectTo('https://8.8.8.8/elsewhere'), new Response('leak')]);
 
     const error = await rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'http://10.0.0.5:8080/v1/key',
         policy: { hosts: { trusted: ['http://10.0.0.5:8080'], strict: true } },
       }),
@@ -532,7 +497,7 @@ describe('UrlIngest.fetchGuarded - trusted origins', () => {
     const { calls } = stubResponses([new Response('bytes')]);
 
     const error = await rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'https://8.8.8.8/a',
         policy: { hosts: { trusted: ['https://8.8.8.8/'] } },
       }),
@@ -544,7 +509,7 @@ describe('UrlIngest.fetchGuarded - trusted origins', () => {
 
   test('a leftover allowedHosts is refused, naming the replacement', async () => {
     const error = await rejectionOf(
-      UrlIngest.fetchGuarded({
+      fetchGuarded({
         url: 'https://8.8.8.8/a',
         policy: { allowedHosts: ['8.8.8.8'] } as never,
       }),

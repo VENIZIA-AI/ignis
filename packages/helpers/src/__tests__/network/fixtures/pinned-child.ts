@@ -10,7 +10,9 @@ await mock.module('node:dns/promises', () => ({
   lookup: async () => [{ address: '127.0.0.1', family: 4 }],
 }));
 
-const { UrlIngest } = await import('@/modules/network/utilities/url-safety/ingest');
+const { UrlGuard } = await import('@/modules/network/utilities/url-safety/guard');
+const { createFetchGuarded } = await import('./guarded');
+const fetchGuarded = createFetchGuarded({ engine: UrlGuard });
 const { UrlPolicy } = await import('@/modules/network/utilities/url-safety/policy');
 const { UrlSchemes } = await import('@/modules/network/utilities/url-safety/common/constants');
 
@@ -27,7 +29,7 @@ describe('pinned fetch in a child process', () => {
   test.skipIf(process.env.PIN_MODE !== 'tls')(
     'https: connects to the vetted address, sends the host as SNI, verifies the certificate for it',
     async () => {
-      const response = await UrlIngest.fetchGuarded({
+      const response = await fetchGuarded({
         url: `https://${process.env.PIN_NAME}:${port}/hello`,
         policy,
       });
@@ -43,7 +45,7 @@ describe('pinned fetch in a child process', () => {
       let message = '';
 
       try {
-        await UrlIngest.fetchGuarded({ url: `https://not-in-the-cert.test:${port}/hello`, policy });
+        await fetchGuarded({ url: `https://not-in-the-cert.test:${port}/hello`, policy });
       } catch (error) {
         message = `${(error as { code?: string }).code ?? ''} ${(error as Error).message}`;
       }
@@ -55,7 +57,7 @@ describe('pinned fetch in a child process', () => {
   test.skipIf(process.env.PIN_MODE !== 'proxy')(
     'an HTTP_PROXY in the environment is ignored on a pinned connection',
     async () => {
-      const response = await UrlIngest.fetchGuarded({
+      const response = await fetchGuarded({
         url: `http://hook.example.test:${port}/hello`,
         policy,
       });
@@ -68,7 +70,7 @@ describe('pinned fetch in a child process', () => {
   test.skipIf(process.env.PIN_MODE !== 'proxy')(
     'policy.proxy sends the request through that proxy, unpinned',
     async () => {
-      const response = await UrlIngest.fetchGuarded({
+      const response = await fetchGuarded({
         url: `http://hook.example.test:${port}/hello`,
         policy: { ...policy, proxy: process.env.HTTP_PROXY },
       });

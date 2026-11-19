@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-108 exports, 108 with TSDoc. 986 more are re-exported from other entries (listed at the end).
+108 exports, 108 with TSDoc. 1010 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -2663,6 +2663,16 @@ export declare class ServiceAssertionSignerService extends BaseService {
     /** `<name>_<rest path without its slash>`, so a rotated mount changes the kid rather than colliding. */
     getKeyId(): string;
     /**
+     * The `onRequest` hook of a fetcher that calls `audience`: before EVERY send - each retry attempt included, so the
+     * `jti` is fresh - it signs the method and the percent-encoded path of the request and sets the assertion header.
+     * `Authorization` is left alone, so the end user's token still travels on the same request.
+     *
+     * `new NativeFetcher({ name, hooks: { onRequest: signer.createRequestHook({ audience: 'pricing' }) } })`
+     */
+    createRequestHook(opts: {
+        audience: string;
+    }): NonNullable<IFetcherHooks['onRequest']>;
+    /**
      * One assertion, bound to this exact call.
      *
      * `path` must be the percent-ENCODED pathname - `new URL(target).pathname`. The verifier compares
@@ -3348,6 +3358,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `BindingNamespaces` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `BindingScopes` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `BindingValueTypes` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `BodyLimit` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `BodyLimits` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `BootSequence` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `BootSteps` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -3434,6 +3445,12 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `EventDispatchRetry` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `EventHandlerTypes` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `FC` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `FetchErrors` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `FetchHeaders` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `FetchRedirects` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `FetchRequestContext` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `FetchRetry` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `FetchSchemaError` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `FieldMappingDataTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `FieldsSchema` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `FileExtensions` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
@@ -3547,6 +3564,17 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `IEventHandlerRetryOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IExtraOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IFetchable` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetcherDefaults` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetcherHooks` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetchExchange` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetchExchangeRequest` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetchGuard` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetchGuardHop` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetchGuardRoute` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetchParsed` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetchRequestContext` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetchRetryOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IFetchSchemaIssue` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IFieldMapping` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `IFileStat` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IGetSecretOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -3582,6 +3610,8 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `IModelQuerySettings` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IModelRegistryEntry` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IModelSettings` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `INativeFetchNetworkRequestOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `INativeFetchRequestOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `InclusionSchema` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `INetworkTcpClientProps` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `INextOpaqueUidOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -3590,8 +3620,6 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `injectable` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `InjectableUtility` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `Injection` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
-- `INodeFetchNetworkRequestOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `INodeFetchRequestOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `INodeWithPath` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IntlTemporalAdapter` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `INumericUidOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -3769,14 +3797,14 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `ModelUtility` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `ModuleUtility` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `MultipartStorages` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `NativeFetcher` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `NativeFetchNetworkRequest` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `NativeTemporalAdapter` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `NetworkTcpClient` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `NetworkTcpServer` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `NetworkTlsTcpClient` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `NetworkTlsTcpServer` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `NetworkUdpClient` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
-- `NodeFetcher` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `NodeFetchNetworkRequest` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `NON_SLUG_CHARACTERS_PATTERN` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `notFoundHandler` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `NotSupportedUtility` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
@@ -4013,6 +4041,10 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TEventHandlerReference` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TEventHandlerType` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TFetcherLogger` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `TFetcherResponse` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `TFetcherWorker` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `TFetchHeaders` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `TFetchResult` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TFieldMappingDataType` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TFieldMappingNames` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TFields` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
@@ -4075,6 +4107,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TModelClass` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TModelType` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TMultipartStorage` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `TNativeRequestInit` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TNodePredicate` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TNullable` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TNumberConstValue` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
@@ -4214,11 +4247,12 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `UidTokenEncodings` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `unary` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `UpdateBuilder` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
-- `UrlFetchError` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `UrlFetchError` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `UrlGuard` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `UrlIngest` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `UrlPolicy` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UrlSafetyDefaults` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `UrlSafetyErrors` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `UrlSafetyErrors` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UrlSchemes` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UserStatuses` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `UserTypes` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)

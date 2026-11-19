@@ -1,8 +1,8 @@
 import { getError } from '@venizia/ignis-helpers/core';
 import {
-  UrlIngest,
+  NativeFetcher,
+  UrlGuard,
   UrlSafetyDefaults,
-  UrlSafetyErrors,
   type IBucketRef,
   type IObjectRef,
   type IFileStat,
@@ -70,9 +70,9 @@ export class StaticAssetIngestUtility {
    * Fetches an untrusted url and stores what comes back, without the bytes passing through this
    * process: the guarded body is capped and handed to `writeStream` as a stream.
    *
-   * The url is guarded by `UrlIngest.fetchGuarded` - scheme allow-list, every resolved address
-   * checked, redirects walked by hand with a per-hop re-check, and a timeout. The connection goes to the
-   * address that was checked, so a DNS answer that changes afterwards is never used; see `UrlIngest.fetchGuarded`.
+   * The url is fetched by a `NativeFetcher` with a `guard` - scheme allow-list, every resolved address
+   * checked, redirects walked by hand with a per-hop re-check, a timeout and a size cap. The connection goes to the
+   * address that was checked, so a DNS answer that changes afterwards is never used; see `UrlGuard`.
    *
    * The served content type is decided from the stored KEY, never from what the remote host
    * claimed - the same rule the asset routes apply, and for the same reason.
@@ -82,7 +82,13 @@ export class StaticAssetIngestUtility {
   ): Promise<IStaticAssetIngestFromUrlResult> {
     const { helper, url, bucket, folderPath, policy, resolveKey, normalizeLinkFn } = opts;
 
-    const response = await UrlIngest.fetchGuarded({ url, policy });
+    const maxBytes = policy?.maxBytes ?? UrlSafetyDefaults.MAX_BYTES;
+    const fetcher = new NativeFetcher({
+      name: StaticAssetIngestUtility.name,
+      guardEngine: UrlGuard,
+    });
+    // The fetcher refuses a declared size over the cap before anything is read, and hands back a body that fails the moment the bytes cross it.
+    const response = await fetcher.get({ url, guard: policy ?? {}, maxBytes });
     const remoteType = response.headers.get('content-type')?.split(';')[0]?.trim() ?? '';
     const parsed = new URL(url);
 
@@ -99,19 +105,6 @@ export class StaticAssetIngestUtility {
       });
     }
 
-    // Refused before the write starts, so a declared size never opens a multipart upload. A body
-    // that lies or omits it is caught by `capStream`; Bun's client aborts the upload, leaving no parts.
-    const declaredLength = Number(response.headers.get('content-length') ?? 0);
-    const maxBytes = policy?.maxBytes ?? UrlSafetyDefaults.MAX_BYTES;
-
-    if (declaredLength > maxBytes) {
-      await response.body?.cancel();
-      throw getError({
-        error: UrlSafetyErrors.URL_REFUSED,
-        message: `[StaticAssetIngestUtility.fromUrl] Body exceeds the cap | declared: ${declaredLength} | max: ${maxBytes}`,
-      });
-    }
-
     if (!response.body) {
       throw getError({
         message: `[StaticAssetIngestUtility.fromUrl] Response carried no body | url: ${url}`,
@@ -124,7 +117,7 @@ export class StaticAssetIngestUtility {
     await helper.writeStream({
       bucket,
       object,
-      source: UrlIngest.capStream({ source: response.body, policy }),
+      source: response.body,
       contentType,
       maxFolderDepth: opts.maxFolderDepth,
     });
