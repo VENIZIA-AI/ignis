@@ -1,5 +1,5 @@
 // The browser-pure half of the guard: a url and a literal address are decided with string and
-// number work alone. Resolving a hostname needs `node:dns` and lives in `ingest.ts`, which this
+// number work alone. Resolving a hostname needs `node:dns` and lives in `guard.ts`, which this
 // file must never import - `policy.ts` is re-exported from the `./core` subpath and is gated by
 // `make purity`.
 
@@ -372,7 +372,7 @@ export class UrlPolicy {
   }
 
   /**
-   * A hostname that RESOLVES to a private address passes here on purpose - `UrlIngest` catches that,
+   * A hostname that RESOLVES to a private address passes here on purpose - `UrlGuard` catches that,
    * and this half runs where `node:dns` does not exist.
    */
   static assertSafeUrl(opts: {

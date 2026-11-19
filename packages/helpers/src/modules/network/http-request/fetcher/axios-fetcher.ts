@@ -169,6 +169,12 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
         (!GUARDED_OPTIONS.has(name) || typeof source[name] === 'function'),
     );
 
+    if (found.includes('baseURL') || found.includes('allowAbsoluteUrls')) {
+      throw getError({
+        message: `[${this.name}] A guarded call needs one absolute url | use an AxiosFetcher without baseUrl, or a NativeFetcher (found: ${found.join(', ')})`,
+      });
+    }
+
     if (found.length > 0) {
       throw getError({
         message: `[${this.name}] A guarded call cannot set ${found.join(', ')} | only ${[...GUARDED_OPTIONS].join(', ')} are accepted with a guard: any other option could connect to an address the guard did not vet`,
@@ -336,7 +342,7 @@ export class AxiosNetworkRequest extends BaseNetworkRequest<'axios'> {
           ...opts.defaults,
           headers: FetchHeaders.merge({
             layers: [
-              { 'content-type': 'application/json; charset=utf-8' },
+              { [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON_UTF8 },
               headers,
               opts.defaults?.headers,
             ],

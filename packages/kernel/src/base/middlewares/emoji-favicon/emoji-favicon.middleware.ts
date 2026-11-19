@@ -1,3 +1,4 @@
+import { HTTP } from '@venizia/ignis-helpers/common';
 import type { MiddlewareHandler } from 'hono';
 import { createMiddleware } from 'hono/factory';
 
@@ -12,7 +13,7 @@ export class EmojiFaviconMiddleware {
         return next();
       }
 
-      context.res.headers.set('content-type', 'image/svg+xml');
+      context.res.headers.set(HTTP.Headers.CONTENT_TYPE, HTTP.HeaderValues.IMAGE_SVG);
 
       return context.body(
         `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" x="-0.1em" font-size="90">${icon}</text></svg>`,

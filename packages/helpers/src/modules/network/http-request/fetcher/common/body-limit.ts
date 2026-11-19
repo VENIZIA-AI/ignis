@@ -1,3 +1,4 @@
+import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
 import { UrlSafetyErrors } from '@/modules/network/utilities/url-safety/common/errors';
 import { UrlSafetyDefaults } from '@/modules/network/utilities/url-safety/common/constants';
@@ -42,7 +43,7 @@ export class BodyLimit {
 
   /** The size a response declares, or `0` when it declares none or an unreadable one. */
   static readDeclaredLength(opts: { headers: Headers }): number {
-    const declared = Number(opts.headers.get('content-length') ?? 0);
+    const declared = Number(opts.headers.get(HTTP.Headers.CONTENT_LENGTH) ?? 0);
 
     return Number.isFinite(declared) ? declared : 0;
   }
