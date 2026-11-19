@@ -2,6 +2,7 @@ import { HTTP } from '@/common/constants/http';
 import { ObjectUtility } from '@venizia/ignis-inversion';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
+import { UrlBuilder } from '../utilities/url-builder';
 import { type TFetcherVariant } from './common';
 import { type IFetchable, type IRequestOptions } from './fetcher/base-fetcher';
 import { type TFetcherResponse, type TFetcherWorker } from './fetcher/common';
@@ -21,25 +22,17 @@ export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
     this.fetcher = opts.fetcher;
   }
 
+  /** The paths as one path: each with one leading slash. */
   getRequestPath(opts: { paths: Array<string> }) {
-    const paths = opts?.paths ?? [];
-
-    const rs = paths
-      .map((path: string) => {
-        if (!path.startsWith('/')) {
-          path = `/${path}`;
-        }
-
-        return path;
-      })
-      .join('');
-
-    return rs;
+    return UrlBuilder.toText({ baseUrl: '', paths: opts?.paths ?? [] });
   }
 
+  /**
+   * The url of a request: the base and the paths, checked by `UrlBuilder.join`. A path may not be a dot segment, hide one,
+   * carry a backslash or a control character; a relative base is resolved against the page.
+   */
   getRequestUrl(opts: { baseUrl?: string; paths: Array<string> }) {
-    let baseUrl = opts?.baseUrl ?? this.baseUrl ?? '';
-    const paths = opts?.paths ?? [];
+    const baseUrl = opts?.baseUrl ?? this.baseUrl ?? '';
 
     if (!baseUrl || ObjectUtility.isEmpty({ value: baseUrl })) {
       throw getError({
@@ -48,13 +41,13 @@ export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
       });
     }
 
-    if (baseUrl.endsWith('/')) {
-      baseUrl = baseUrl.slice(0, -1);
-    }
+    const url = UrlBuilder.join({
+      baseUrl,
+      paths: opts?.paths ?? [],
+      scope: this.scope,
+    });
 
-    const joined = this.getRequestPath({ paths });
-
-    return `${baseUrl ?? this.baseUrl}${joined}`;
+    return url.toString();
   }
 
   getNetworkService() {

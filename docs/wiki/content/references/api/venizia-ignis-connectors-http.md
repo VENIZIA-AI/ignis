@@ -22,8 +22,6 @@ export declare class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettin
     schema: never;
     /** Normalised once: every request copies these, never re-parses `settings.headers`. */
     protected configuredHeaders: Array<[string, string]>;
-    /** Decided once: a relative baseUrl (`/api`) is resolved against the page origin on every request. */
-    protected isRelativeBaseUrl: boolean;
     constructor(opts: IHttpDataSourceSettings & {
         name?: string;
     });
@@ -44,21 +42,6 @@ export declare class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettin
         isJsonBody?: boolean;
         isFormDataBody?: boolean;
     }): Headers;
-    /** The browser global `location` is not declared for a server build, so it is probed, not assumed. */
-    protected resolveLocationOrigin(): string | undefined;
-    /** The path as an error message quotes it: cut at 200 characters, with an ellipsis. */
-    protected static toEchoedPath(opts: {
-        path: string;
-    }): string;
-    /** The request paths name a place under the base path, so none may be a dot segment, hide one, or carry a separator the URL parser would read differently from a server. */
-    protected assertPathsStayUnderBase(opts: {
-        paths: Array<string>;
-    }): void;
-    /** The resolved URL, whatever built it, is on the base's origin and under its path: the check that holds when the text checks above miss a form. */
-    protected assertUnderBase(opts: {
-        url: URL;
-        origin?: string;
-    }): void;
     buildUrl(opts: {
         paths: Array<string>;
         query?: Record<string, unknown>;
@@ -613,7 +596,7 @@ Source: `packages/connectors/src/http/common/types.ts`
 
 *type*
 
-What sends a request: a URL and its init, a `Response` back. The public name of the sender type (ARDOR re-exports it).
+What sends a request: a URL and its init, a `Response` back. The public name of the sender type.
 
 ```ts
 export type THttpFetch = TNativeFetchSender;
