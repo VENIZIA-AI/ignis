@@ -37,7 +37,7 @@ export interface IFetchRetryOptions {
   maxTotalMs?: number;
   backoff?: IRetryBackoffOptions;
   /** Replaces the default decision (network error, timeout, 5xx and 429 retry; any other 4xx, a 3xx, a guard refusal, a schema mismatch and a caller abort do not). */
-  shouldRetry?: (context: IRetryContext) => boolean;
+  shouldRetry?: (context: IRetryContext) => ValueOrPromise<boolean>;
   onRetry?: (context: IRetryContext & { nextDelayMs: number }) => ValueOrPromise<void>;
 }
 

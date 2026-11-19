@@ -48,6 +48,51 @@ export class BodyLimit {
     return Number.isFinite(declared) ? declared : 0;
   }
 
+  /** At most `maxBytes` of the body, then the rest released; a body that fails halfway answers what arrived. Never throws on size: a refused status must still say what it was. */
+  static async readPrefix(opts: { response: Response; maxBytes: number }): Promise<Uint8Array> {
+    const { response, maxBytes } = opts;
+    const reader = response.body?.getReader();
+    const chunks: Uint8Array[] = [];
+    let received = 0;
+
+    if (!reader) {
+      return new Uint8Array();
+    }
+
+    try {
+      while (received < maxBytes) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        chunks.push(value.subarray(0, maxBytes - received));
+        received += chunks[chunks.length - 1].length;
+      }
+      // eslint-disable-next-line venizia/no-silent-catch -- the status is the answer; a body that broke off is reported as the shorter body it was
+    } catch {
+      // The chunks that arrived stand.
+    }
+
+    try {
+      await reader.cancel();
+      // eslint-disable-next-line venizia/no-silent-catch -- the stream is released as far as it can be; nothing is left to report
+    } catch {
+      // Already closed or errored.
+    }
+
+    const bytes = new Uint8Array(received);
+    let offset = 0;
+
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    return bytes;
+  }
+
   /** `readBytes`, decoded as UTF-8 text. */
   static async readText(opts: { response: Response; maxBytes?: number }): Promise<string> {
     const bytes = await BodyLimit.readBytes(opts);

@@ -36,7 +36,7 @@ export type TFetcherLogger = Pick<ILogger, 'debug' | 'info'>;
 /** Options every fetcher accepts. `timeout` is in milliseconds and counts per attempt; other keys pass through to the underlying client. */
 export interface IRequestOptions {
   url: string;
-  method?: THttpMethod;
+  method?: THttpMethod | (string & Record<never, never>);
   params?: Record<string, unknown>;
   /** Merged over the fetcher's default headers, header by header; a `null` or `undefined` value removes a default. */
   headers?: TFetchHeaders;
@@ -67,8 +67,10 @@ export interface IFetchExchange<RS> {
   status: number;
   statusText: string;
   headers: Headers;
-  /** Frees the socket of a body nobody will read (a redirect, a refused status). */
+  /** Frees the socket of a body nobody will read (a redirect). */
   discard(): Promise<void>;
+  /** The same answer with at most `maxBytes` of its body kept readable, the rest released: what a refused status hands back. */
+  keepBody(opts: { maxBytes: number }): Promise<RS>;
   /** The body as JSON; throws a `SyntaxError` when it is not. */
   readJson(opts: { maxBytes?: number }): Promise<unknown>;
   /** The same answer with its body cut off at `maxBytes`. */
@@ -341,15 +343,14 @@ export abstract class AbstractNetworkFetchableHelper<
     url: string;
   }): Promise<UrlFetchError<R>> {
     const { exchange, url } = opts;
-
-    await exchange.discard();
+    const response = await exchange.keepBody({ maxBytes: UrlFetchError.MAX_BODY_BYTES });
 
     return new UrlFetchError<R>({
       message: `[fetch] Request failed | status: ${exchange.status} | url: ${url}`,
       status: exchange.status,
       url,
       headers: exchange.headers,
-      response: exchange.response,
+      response,
     });
   }
 
@@ -711,7 +712,7 @@ export abstract class AbstractNetworkFetchableHelper<
         maxAttempts,
         maxTotalMs,
         backoff,
-        shouldRetry: (context) => {
+        shouldRetry: async (context) => {
           // A server that asks for a longer wait than the backoff allows ends the retries: the last error is the answer.
           const asked = FetchRetry.readRetryAfterMs({ error: context.error });
 
@@ -722,9 +723,13 @@ export abstract class AbstractNetworkFetchableHelper<
             return false;
           }
 
-          return shouldRetry
-            ? shouldRetry(context)
-            : FetchRetry.isRetryable({ error: context.error, signal: call.signal });
+          if (shouldRetry) {
+            const isAllowed = await shouldRetry(context);
+
+            return isAllowed;
+          }
+
+          return FetchRetry.isRetryable({ error: context.error, signal: call.signal });
         },
         getDelayMs: ({ error }) => FetchRetry.readRetryAfterMs({ error }),
         onRetry,

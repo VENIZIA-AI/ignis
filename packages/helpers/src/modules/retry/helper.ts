@@ -190,7 +190,7 @@ export class RetryHelper extends BaseHelper {
     logger?: ILogger;
     backoff?: IRetryBackoffOptions;
     execution: (context: { attempt: number; signal?: AbortSignal }) => ValueOrPromise<T>;
-    shouldRetry?: (context: IRetryContext) => boolean;
+    shouldRetry?: (context: IRetryContext) => ValueOrPromise<boolean>;
     getDelayMs?: (context: IRetryContext) => number | undefined;
     onRetry?: (context: IRetryContext & { nextDelayMs: number }) => ValueOrPromise<void>;
   }): Promise<TRetryAttemptOutcome<T>> {
@@ -221,7 +221,7 @@ export class RetryHelper extends BaseHelper {
     } catch (error) {
       const elapsedMs = Date.now() - startedAt;
 
-      if (shouldRetry && !shouldRetry({ attempt, error, elapsedMs })) {
+      if (shouldRetry && !(await shouldRetry({ attempt, error, elapsedMs }))) {
         throw error;
       }
 
@@ -280,7 +280,7 @@ export class RetryHelper extends BaseHelper {
     execution: (context: { attempt: number; signal?: AbortSignal }) => ValueOrPromise<T>;
 
     /** Return `false` to stop retrying and rethrow `context.error` immediately. */
-    shouldRetry?: (context: IRetryContext) => boolean;
+    shouldRetry?: (context: IRetryContext) => ValueOrPromise<boolean>;
 
     /** The least wait before the next attempt, in milliseconds (a server's `Retry-After`); the backoff delay applies when it is longer. `undefined` leaves the backoff alone. */
     getDelayMs?: (context: IRetryContext) => number | undefined;
