@@ -1,13 +1,12 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { SearchToggles } from './toggles';
-import type { TSearchInput } from '@/search/core/repositories/common';
-import { SearchModes } from '@/search/core/repositories/common';
 
 /**
  * Whether a search controller serves the engine's own parameters over HTTP. `mode: 'raw'` and a multi-search entry hand
  * the engine their parameters as they are: the model's default filter and its hidden fields are not applied to them.
- * So every generated search controller refuses both (400) unless `modes.raw` is `{ use: true }`. Server code is not
+ * So every generated search controller refuses both (400) unless `modes.raw` is `{ use: true }`: `raw` is left out of the
+ * body schema (the validator refuses it, and the OpenAPI document does not show it), and multi-search answers 400. Server code is not
  * affected: the repository's `search({ mode: 'raw' })` and `multiSearch()` work as before.
  */
 export class SearchRawAccess {
@@ -23,16 +22,6 @@ export class SearchRawAccess {
     }
 
     return isAllowed;
-  }
-
-  /** Refuses (400) a `raw` search body when the controller did not opt in. */
-  static assertSearchInput(opts: { input: TSearchInput; isAllowed: boolean }): void {
-    if (opts.input.mode === SearchModes.RAW && !opts.isAllowed) {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-        message: "[search] mode 'raw' is not available on this search controller",
-      });
-    }
   }
 
   /** Refuses (400) a multi-search request when the controller did not opt in: its entries carry the engine's own parameters and name any collection. */

@@ -16,6 +16,8 @@ import { isClass } from '@venizia/ignis-inversion';
 import { BaseSearchEntity } from '@/search/core/models';
 import type { ISearchFieldDefinition } from '@/search/core/models';
 import { SearchEngineParams } from './engine-params';
+import { SearchModeAllowlist } from './modes';
+import type { TSearchFriendlyMode } from './modes';
 import { SearchRawAccess } from './raw-access';
 import { SearchToggles } from './toggles';
 import type { ISearchRouteOptions } from './factory';
@@ -35,7 +37,7 @@ export interface ISearchOptionsInput {
   authenticate?: TRouteAuthenticateConfig;
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
   routes: { search?: TToggle<ISearchRouteOptions>; multiSearch?: TToggle<ISearchRouteOptions> };
-  modes?: { raw?: TToggle };
+  modes?: { raw?: TToggle; allow?: unknown };
   query?: { fixed?: unknown; default?: unknown; normalize?: unknown; allow?: { tuning?: unknown } };
   /** `inject`: the classes the function sources receive as `injected`. */
   inject?: unknown;
@@ -53,6 +55,8 @@ export interface ISearchResolvedOptions<
   /** `authenticate: { skip: true }` drops it, as for any route: with no caller, no authorization applies. */
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
   isRawAllowed: boolean;
+  /** The friendly modes the body schema takes (`modes.allow`; every one when left out). */
+  allowedModes: ReadonlyArray<TSearchFriendlyMode>;
   allowedEngineParams: ReadonlySet<string>;
   isSearchOn: boolean;
   isMultiSearchOn: boolean;
@@ -225,6 +229,7 @@ export class SearchControllerOptionsUtility {
       raw: options.modes?.raw,
       isScoped: hasScope,
     });
+    const allowedModes = SearchModeAllowlist.resolve({ scope, allow: options.modes?.allow });
     const allowedEngineParams = SearchEngineParams.resolveAllowlist({
       scope,
       allow: query?.allow?.tuning,
@@ -242,6 +247,7 @@ export class SearchControllerOptionsUtility {
       authenticate,
       authorize: 'strategies' in authenticate ? options.authorize : undefined,
       isRawAllowed,
+      allowedModes,
       allowedEngineParams,
       isSearchOn,
       isMultiSearchOn,

@@ -92,14 +92,12 @@ describe('an unscoped controller that did not opt in', () => {
     ['no modes', undefined],
     ['modes without raw', {}],
     ['use: false', { raw: { use: false } }],
-  ])("refuses mode 'raw' with 400, and the engine is not reached (%s)", async (_name, modes) => {
-    const { controller, dataSource } = build({ modes });
+  ])("the body schema does not list mode 'raw' (%s), so the validator refuses it", (_name, modes) => {
+    const { controller } = build({ modes });
+    const body = controller.definitions.SEARCH.request.body.content['application/json'].schema;
 
-    const error = await refusal(controller['search']({ context: fakeContext(RAW) as never }));
-
-    expect(error.statusCode).toBe(400);
-    expect(error.message).toContain("mode 'raw' is not available on this search controller");
-    expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
+    expect(body.safeParse(RAW).success).toBe(false);
+    expect(body.safeParse(KEYWORD).success).toBe(true);
   });
 
   test('refuses multi-search with 400, and the engine is not reached', async () => {
