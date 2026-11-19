@@ -142,6 +142,94 @@ describe('a guard refuses every option that chooses the connection', () => {
     });
   }
 
+  for (const [option, value] of [
+    ['transformRequest', [() => undefined]],
+    ['transformResponse', [() => undefined]],
+    ['paramsSerializer', { serialize: () => '' }],
+    ['formSerializer', { visitor: () => true }],
+    ['onUploadProgress', () => undefined],
+    ['onDownloadProgress', () => undefined],
+    ['cancelToken', {}],
+    ['auth', { username: 'u', password: 'p' }],
+    ['baseURL', 'http://evil.example'],
+    ['allowAbsoluteUrls', false],
+    ['withXSRFToken', () => true],
+  ] as const) {
+    test(`axios: ${option} is refused with a guard, per call and in defaultConfigs, and nothing is sent`, async () => {
+      const before = hits.length;
+      const perCall = new AxiosFetcher({ name: 'a', guardEngine: engine });
+      const inDefaults = new AxiosFetcher({
+        name: 'a',
+        guardEngine: engine,
+        defaultConfigs: Object.fromEntries([[option, value]]),
+      });
+
+      const result8 = await refusal(
+        perCall.get({ url: `${base}/x`, guard: {}, ...Object.fromEntries([[option, value]]) }),
+      );
+      expect(result8).toContain(option);
+      const result9 = await refusal(inDefaults.get({ url: `${base}/x`, guard: {} }));
+      expect(result9).toContain(option);
+      expect(hits.length).toBe(before);
+    });
+  }
+
+  test('axios: a transformRequest that would move the request to a unix socket never runs', async () => {
+    let hasRun = false;
+    const error = await refusal(
+      new AxiosFetcher({ name: 'a', guardEngine: engine }).post({
+        url: `${base}/x`,
+        guard: {},
+        body: { a: 1 },
+        transformRequest: [
+          function moveToSocket(this: { socketPath?: string | null }) {
+            hasRun = true;
+            this.socketPath = '/tmp/internal.sock';
+          },
+        ],
+      }),
+    );
+
+    expect(error).toContain('transformRequest');
+    expect(hasRun).toBe(false);
+  });
+
+  test('axios: turning TLS verification off is refused with a guard, per call and on the instance', async () => {
+    const perCall = new AxiosFetcher({ name: 'a', guardEngine: engine });
+    const onInstance = new AxiosFetcher({
+      name: 'a',
+      guardEngine: engine,
+      rejectUnauthorized: false,
+    });
+
+    const result10 = await refusal(
+      perCall.get({ url: `${base}/x`, guard: {}, rejectUnauthorized: false }),
+    );
+    expect(result10).toContain('TLS verification');
+    const result11 = await refusal(onInstance.get({ url: `${base}/x`, guard: {} }));
+    expect(result11).toContain('TLS verification');
+  });
+
+  test('an option on the allowlist passes with a guard', async () => {
+    const axiosFetcher = new AxiosFetcher({ name: 'a', guardEngine: engine });
+    const response = await axiosFetcher.get({
+      url: `${base}/x`,
+      guard: {},
+      withCredentials: true,
+      responseType: 'text',
+      rejectUnauthorized: true,
+    });
+    const nativeFetcher2 = new NativeFetcher({
+      name: 'n',
+      guardEngine: engine,
+      defaultConfigs: { credentials: 'omit', cache: 'no-store' },
+    });
+    const native = await nativeFetcher2.get({ url: `${base}/x`, guard: {} });
+
+    expect(response.status).toBe(200);
+    expect(native.status).toBe(200);
+  });
+
   test("without a guard the same options are the caller's own business", async () => {
     const nativeFetcher = new NativeFetcher({ name: 'n', guardEngine: engine });
     const response = await nativeFetcher.get({ url: `${base}/x`, tls: {} });

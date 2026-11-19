@@ -22,30 +22,23 @@ import { FetchHeaders } from './common/utilities';
 /**
  * The request options a guarded call accepts, besides the ones the pipeline owns. An allowlist, not a denylist: axios keeps
  * adding transport knobs (`httpVersion`, `http2Options`, ...) that connect on their own and ignore the pinned agent, so
- * anything not listed here is refused, per call and in `defaultConfigs`.
+ * anything not listed here is refused, per call and in `defaultConfigs`. Plain data only: a function runs with the axios
+ * config as `this` (`transformRequest` can rewrite `url` or `socketPath`), `auth` is re-applied after the cross-origin
+ * header strip, and `baseURL` makes axios combine urls, so none of them is listed. A caller sets `Authorization` through
+ * `headers`, transforms the body before the call and the answer after it.
  */
 const GUARDED_OPTIONS = new Set([
-  'baseURL',
-  'auth',
   'withCredentials',
   'responseType',
   'responseEncoding',
   'xsrfCookieName',
   'xsrfHeaderName',
   'withXSRFToken',
-  'transformRequest',
-  'transformResponse',
-  'paramsSerializer',
   'maxContentLength',
   'maxBodyLength',
   'maxRate',
   'decompress',
   'transitional',
-  'formSerializer',
-  'allowAbsoluteUrls',
-  'cancelToken',
-  'onUploadProgress',
-  'onDownloadProgress',
   'rejectUnauthorized',
 ]);
 
@@ -171,12 +164,20 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
 
     const source: Record<string, unknown> = { ...this.configured, ...extra };
     const found = Object.keys(source).filter(
-      (name) => source[name] !== undefined && !GUARDED_OPTIONS.has(name),
+      (name) =>
+        source[name] !== undefined &&
+        (!GUARDED_OPTIONS.has(name) || typeof source[name] === 'function'),
     );
 
     if (found.length > 0) {
       throw getError({
         message: `[${this.name}] A guarded call cannot set ${found.join(', ')} | only ${[...GUARDED_OPTIONS].join(', ')} are accepted with a guard: any other option could connect to an address the guard did not vet`,
+      });
+    }
+
+    if (source.rejectUnauthorized === false || !this.isRejectingUnauthorized) {
+      throw getError({
+        message: `[${this.name}] A guarded call cannot turn TLS verification off | rejectUnauthorized: false has no use on an untrusted url`,
       });
     }
 
