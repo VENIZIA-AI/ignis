@@ -341,13 +341,7 @@ export class AxiosNetworkRequest extends BaseNetworkRequest<'axios'> {
         defaults: {
           timeout: timeout ?? 60 * 1000,
           ...opts.defaults,
-          headers: FetchHeaders.merge({
-            layers: [
-              { [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON_UTF8 },
-              headers,
-              opts.defaults?.headers,
-            ],
-          }),
+          headers: FetchHeaders.withJsonDefault({ layers: [headers, opts.defaults?.headers] }),
         },
         hooks: opts.hooks,
         guardEngine: opts.guardEngine,

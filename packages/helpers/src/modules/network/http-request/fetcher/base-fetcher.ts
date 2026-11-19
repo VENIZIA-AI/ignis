@@ -159,7 +159,7 @@ interface IResolvedCall {
   headers: Headers;
   body: unknown;
   signal?: AbortSignal;
-  /** The call's own `timeout`; the guard policy's, then the fetcher's `defaults.timeout`, decide when it is unset (see `readTimeout`). */
+  /** The call's own `timeout`. When unset, each attempt takes the guard policy's, then `defaultTimeout`, then (guarded) the 10 s default. */
   timeout?: number;
   defaultTimeout?: number;
   retry?: IFetchRetryOptions;

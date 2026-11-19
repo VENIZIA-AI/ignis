@@ -1,6 +1,6 @@
 import { HTTP } from '@/common/constants';
 import type { TErrorDefinition, TRegisterErrors } from '@venizia/ignis-inversion';
-import { ApplicationError, ErrorScopes } from '@venizia/ignis-inversion';
+import { ApplicationError, ErrorScopes, isApplicationError } from '@venizia/ignis-inversion';
 
 /**
  * A url the policy refuses is refused forever - the same url will never be allowed. A caller that
@@ -62,4 +62,17 @@ export class UrlFetchError<R = Response> extends ApplicationError {
 
 declare module '@venizia/ignis-inversion' {
   interface IErrorKeyRegistry extends TRegisterErrors<typeof UrlSafetyErrors> {}
+}
+
+/** Telling a url-guard refusal from a failure worth another attempt. */
+export class UrlSafetyRefusals {
+  /** Whether `error` is the guard's `URL_REFUSED`: refused forever, so a caller that retries must drop it. */
+  static is(opts: { error: unknown }): boolean {
+    const { error } = opts;
+
+    return (
+      isApplicationError(error) &&
+      error.normalized.code === UrlSafetyErrors.URL_REFUSED.message.code
+    );
+  }
 }
