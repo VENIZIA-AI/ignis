@@ -94,14 +94,14 @@ This assumes a Postgres datasource is already registered - see [DataSources](/gu
 import {
   AuthorizeBindingKeys, AuthorizeComponent, AuthorizationDecisions, AuthorizationEnforcerRegistry,
   AuthorizationEnforcerTypes, CasbinAuthorizationEnforcer, CasbinEnforcerModelDrivers,
-  ScopedCasbinAdapter, CASBIN_RBAC_DOMAIN_SCOPED_MODEL, BaseApplication, IAuthorizeOptions,
+  ScopedCasbinAdapter, CASBIN_RBAC_DOMAIN_SCOPED_MODEL, BaseApplication, IAuthorizeOptions, BindingKeys,
 } from '@venizia/ignis';
 import { PostgresDataSource } from './datasources/postgres.datasource';
 import { Organization, Permission, PolicyDefinition, Role } from './models/entities';
 
 export class Application extends BaseApplication {
   preConfigure() {
-    const dataSource = this.get<PostgresDataSource>({ key: 'datasources.PostgresDataSource' });
+    const dataSource = this.get({ key: BindingKeys.build<PostgresDataSource>({ key: 'datasources.PostgresDataSource' }) });
 
     this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
       defaultDecision: AuthorizationDecisions.DENY,

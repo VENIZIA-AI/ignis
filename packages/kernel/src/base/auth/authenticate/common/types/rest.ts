@@ -1,9 +1,11 @@
+import type { TBindingKey } from '@/helpers/inversion';
+import type { IAuthService } from './strategy';
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
 
 /** Options for defining the auth controller. `serviceKey` is the container key of the `IAuthService` it calls; each `payload` entry overrides the request or response schema of one route. */
 export type TDefineAuthControllerOpts = {
   restPath?: string;
-  serviceKey: string;
+  serviceKey: TBindingKey<IAuthService>;
   requireAuthenticatedSignUp?: boolean;
   payload?: {
     signIn?: {

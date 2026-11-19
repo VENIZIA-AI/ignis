@@ -112,12 +112,12 @@ class GreeterController extends BaseGrpcController {
 ### BaseService
 
 ```typescript
-import { BaseService, inject } from '@venizia/ignis';
+import { BaseService, inject, BindingKeys } from '@venizia/ignis';
 import { UserRepository } from '../repositories';
 
 class UserService extends BaseService {
   constructor(
-    @inject({ key: 'repositories.UserRepository' }) private userRepository: UserRepository,
+    @inject({ key: BindingKeys.build<UserRepository>({ key: 'repositories.UserRepository' }) }) private userRepository: UserRepository,
   ) {
     super({ scope: UserService.name });
   }
@@ -214,13 +214,13 @@ export type TUser = TEntityObject<typeof User>;
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { BaseRestController, controller, get, inject, OpenApiResponses, post, TRouteContext } from '@venizia/ignis';
+import { BaseRestController, controller, get, inject, OpenApiResponses, post, TRouteContext, BindingKeys } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 @controller({ path: '/users' })
 class UserController extends BaseRestController {
   constructor(
-    @inject({ key: 'services.UserService' }) private userService: UserService,
+    @inject({ key: BindingKeys.build<UserService>({ key: 'services.UserService' }) }) private userService: UserService,
   ) {
     super({ scope: UserController.name });
   }
@@ -381,11 +381,11 @@ const users = await userRepository.find({
 ### Inject Decorator
 
 ```typescript
-import { inject } from '@venizia/ignis';
+import { inject, BindingKeys } from '@venizia/ignis';
 
 class UserController extends BaseRestController {
   constructor(
-    @inject({ key: 'services.UserService' })
+    @inject({ key: BindingKeys.build<UserService>({ key: 'services.UserService' }) })
     private userService: UserService,
   ) {
     super({ scope: UserController.name, path: '/users' });
@@ -646,7 +646,7 @@ import {
   OpenApiResponses,
   post,
   repository,
-  TRouteContext,
+  TRouteContext, BindingKeys,
 } from '@venizia/ignis';
 import { HTTP, CredentialHelper } from '@venizia/ignis-helpers';
 import { PostgresDataSource } from '../datasources';
@@ -658,7 +658,7 @@ type CreateUserDto = { name: string; email: string; password: string };
 @controller({ path: '/users' })
 class UserController extends BaseRestController {
   constructor(
-    @inject({ key: 'services.UserService' })
+    @inject({ key: BindingKeys.build<UserService>({ key: 'services.UserService' }) })
     private userService: UserService,
   ) {
     super({ scope: UserController.name });
@@ -696,7 +696,7 @@ class UserController extends BaseRestController {
 // Service
 class UserService extends BaseService {
   constructor(
-    @inject({ key: 'repositories.UserRepository' })
+    @inject({ key: BindingKeys.build<UserRepository>({ key: 'repositories.UserRepository' }) })
     private userRepository: UserRepository,
   ) {
     super({ scope: UserService.name });

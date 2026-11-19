@@ -130,7 +130,7 @@ const container = new Container({ scope: 'MyApp' });
 | `reset` | `reset(): void` | Remove all bindings entirely |
 | `getMetadataRegistry` | `getMetadataRegistry(): MetadataRegistry` | Return the shared `metadataRegistry` singleton |
 
-All keys passed to `bind`, `isBound`, and `unbind` are normalized with `String(key)` before being used as the `Map` key. A `Symbol` key resolves to its `.toString()` form (`'Symbol(...)'`), so a `symbol` and the equivalent string are distinct entries.
+A key is the string `BindingKeys.build` made, and the container stores it under that string. A symbol is not a key.
 
 ### `instantiate()` - two-phase algorithm
 
@@ -169,20 +169,20 @@ Otherwise, for each `[propertyKey, metadata]` entry, resolves the key with `reso
 `get`, `getBinding`, and `gets` accept three key shapes:
 
 ```typescript
-container.get<UserService>({ key: 'services.UserService' });
+container.get({ key: BindingKeys.build<UserService>({ key: 'services.UserService' }) });
 container.get<UserService>({ key: Symbol.for('services.UserService') });
-container.get<UserService>({ key: { namespace: 'services', key: 'UserService' } });
+container.get({ key: BindingKeys.build<UserService>({ namespace: 'services', key: 'UserService' }) });
 ```
 
-`getBinding` throws `[getBinding] Invalid binding key type | ...` if `opts.key` is not a `string`, `symbol`, or `{ namespace, key }` object.
+A key that is not a string made by `BindingKeys.build` does not compile.
 
 ### `gets()` behavior
 
 ```typescript
 const [svcA, svcB] = container.gets<[ServiceA, ServiceB]>({
   bindings: [
-    { key: 'services.ServiceA' },
-    { key: 'services.ServiceB', isOptional: true },
+    { key: BindingKeys.build<unknown>({ key: 'services.ServiceA' }) },
+    { key: BindingKeys.build<unknown>({ key: 'services.ServiceB' }), isOptional: true },
   ],
 });
 ```
@@ -235,15 +235,16 @@ If `bindScope` is `SINGLETON`, the resolved instance is cached on `this.cached`.
 
 ```typescript
 import type { IContainer, IProvider } from '@venizia/ignis-inversion';
+import { BindingKeys } from '@venizia/ignis';
 
 class DatabaseConnectionProvider implements IProvider<DatabaseConnection> {
   value(container: IContainer): DatabaseConnection {
-    const config = container.get<Config>({ key: 'config.database' });
+    const config = container.get({ key: BindingKeys.build<Config>({ key: 'config.database' }) });
     return new DatabaseConnection(config);
   }
 }
 
-container.bind<DatabaseConnection>({ key: 'db.connection' }).toProvider(DatabaseConnectionProvider);
+container.bind({ key: BindingKeys.build<DatabaseConnection>({ key: 'db.connection' }) }).toProvider(DatabaseConnectionProvider);
 ```
 
 `isClassProvider` detects this shape at runtime: `typeof target === 'function' && target.prototype && typeof target.prototype.value === 'function'`.
@@ -251,9 +252,9 @@ container.bind<DatabaseConnection>({ key: 'db.connection' }).toProvider(Database
 ### Static factory
 
 ```typescript
-import { Binding, BindingScopes } from '@venizia/ignis-inversion';
+import { Binding, BindingScopes, BindingKeys } from '@venizia/ignis-inversion';
 
-const binding = Binding.bind<IHealthCheckOptions>({ key: 'options.healthCheck' })
+const binding = Binding.bind({ key: BindingKeys.build<IHealthCheckOptions>({ key: 'options.healthCheck' }) })
   .toValue({ restOptions: { path: '/health' } });
 
 container.set({ binding }); // registers under binding.key
@@ -368,12 +369,12 @@ Note which field each branch writes. A constructor parameter stores the key unde
 ```typescript
 class UserService {
   constructor(
-    @inject({ key: 'repositories.UserRepository' }) private userRepository: UserRepository,
+    @inject({ key: BindingKeys.build<UserRepository>({ key: 'repositories.UserRepository' }) }) private userRepository: UserRepository,
     @inject({ target: AuditRepository }) private auditRepository: AuditRepository,
-    @inject({ key: 'services.Logger', isOptional: true }) private logger?: Logger,
+    @inject({ key: BindingKeys.build<Logger>({ key: 'services.Logger' }), isOptional: true }) private logger?: Logger,
   ) {}
 
-  @inject({ key: 'config.retryCount' })
+  @inject({ key: BindingKeys.build<number>({ key: 'config.retryCount' }) })
   private retryCount: number;
 }
 ```
@@ -383,13 +384,13 @@ class UserService {
 ```typescript
 import { BindingKeys } from '@venizia/ignis-inversion';
 
-BindingKeys.build({ namespace: 'services', key: 'UserService' });
+BindingKeys.build<unknown>({ namespace: 'services', key: 'UserService' });
 // => 'services.UserService'
 
-BindingKeys.build({ namespace: '', key: 'UserService' });
+BindingKeys.build<unknown>({ namespace: '', key: 'UserService' });
 // => 'UserService' (empty namespace segment is dropped)
 
-BindingKeys.build({ namespace: 'services', key: '' });
+BindingKeys.build<unknown>({ namespace: 'services', key: '' });
 // throws: [BindingKeys][build] Invalid key to build | key:
 ```
 
@@ -403,7 +404,7 @@ container.get({ key: MAILER }); // IMailer
 ```
 
 ```typescript
-container.bind({ key: 'workers.EmailWorker' }).toClass(EmailWorker).setTags('background', 'email');
+container.bind({ key: BindingKeys.build<EmailWorker>({ key: 'workers.EmailWorker' }) }).toClass(EmailWorker).setTags('background', 'email');
 // tags: ['workers', 'background', 'email']
 
 const serviceBindings = container.findByTag({ tag: 'services' });
@@ -520,10 +521,11 @@ type TConstructor<T> = new (...args: never[]) => T;
 type TAbstractConstructor<T> = abstract new (...args: never[]) => T;
 type TClass<T> = TConstructor<T>;
 type TConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string | number> & {};
-type TBindingKey<T = unknown> = (string | symbol) & {
-  readonly valueType?: { bivarianceHack(value: T): void }['bivarianceHack'];
+type TBindingKey<T = unknown> = string & {
+  readonly valueType: { bivarianceHack(value: T): void }['bivarianceHack'];
 };
-type TBindingKeyValue<K> = /* the value type a key names, `unknown` for a plain string */;
+type TMetadataKey = string | symbol; // a reflect-metadata key, not a container key
+type TBindingKeyValue<K> = /* the value type a key names */;
 
 interface IBindingTag {
   [name: string]: unknown;
@@ -588,15 +590,15 @@ function isClassProvider<T>(target: unknown): target is TClass<IProvider<T>>;
 
 ### "[getBinding] Invalid binding key type"
 
-**Cause:** The key passed to `getBinding()` is not a `string`, `symbol`, or `{ namespace, key }` object.
+**Cause:** Gone with the raw key forms: the container takes only a key made by `BindingKeys.build`, which the compiler checks.
 
-**Fix:** Use one of the three supported key formats.
+**Fix:** Build the key: `BindingKeys.build<T>({ namespace, key })`.
 
 ### "[BindingKeys][build] Invalid key to build"
 
 **Cause:** `BindingKeys.build()` was called with an empty `key`.
 
-**Fix:** Provide a non-empty `key`: `BindingKeys.build({ namespace: 'services', key: 'UserService' })`.
+**Fix:** Provide a non-empty `key`: `BindingKeys.build<UserService>({ namespace: 'services', key: 'UserService' })`.
 
 ### "[ClassName] Constructor parameter N has no @inject"
 

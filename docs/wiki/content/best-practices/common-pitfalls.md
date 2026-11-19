@@ -39,14 +39,14 @@ The class must be a named export. See [Registering artifacts](/guides/core-conce
 ```typescript
 // ✅ GOOD
 @inject({
-  key: BindingKeys.build({
+  key: BindingKeys.build<unknown>({
     namespace: BindingNamespaces.REPOSITORY,
     key: ConfigurationRepository.name,
   }),
 })
 
 // ❌ BAD - typo in string (note: "Repository" is misspelled)
-@inject({ key: 'repositories.ConfigurationRepositry' })
+@inject({ key: BindingKeys.build<unknown>({ key: 'repositories.ConfigurationRepositry' }) })
 ```
 
 ## 3. Business Logic in Controllers

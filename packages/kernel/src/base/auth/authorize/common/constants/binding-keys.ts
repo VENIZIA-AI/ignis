@@ -10,6 +10,7 @@ export class AuthorizeBindingKeys {
 
   /** The options of the enforcer named `name`; their type is the enforcer's, so the caller names it: `enforcerOptions<ICasbinOptions>(name)`. */
   static enforcerOptions<T = unknown>(name: string): TBindingKey<T> {
-    return BindingKeys.build<T>({ key: `@app/authorize/enforcers/${name}/options` });
+    // A key built for `unknown` is the key of any `T`: the brand is bivariant.
+    return BindingKeys.build<unknown>({ key: `@app/authorize/enforcers/${name}/options` });
   }
 }

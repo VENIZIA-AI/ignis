@@ -33,7 +33,7 @@ class AuditContextApplication extends BaseApplication {
     await super.registerDefaultMiddlewares();
 
     this.bind({
-      key: BindingKeys.build({
+      key: BindingKeys.build<unknown>({
         namespace: BindingNamespaces.COMPONENT,
         key: RequestTrackerComponent.name,
       }),

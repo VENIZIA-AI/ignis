@@ -6,7 +6,7 @@ import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
 import { inject, model, repository } from '@/base/metadata';
 import { BasePostgresDataSource, BasePostgresEntity } from '@venizia/ignis-connectors/postgres';
-import { MetadataRegistry } from '@venizia/ignis-kernel';
+import { MetadataRegistry, BindingKeys, type TBindingKey } from '@venizia/ignis-kernel';
 
 const registry = MetadataRegistry.getInstance();
 
@@ -43,7 +43,7 @@ const declareParamTypes = (opts: { target: Function; paramTypes: Array<Function>
   Reflect.defineMetadata('design:paramtypes', opts.paramTypes, opts.target);
 };
 
-const applyParamInject = (opts: { target: Function; index: number; key: string }): void => {
+const applyParamInject = (opts: { target: Function; index: number; key: TBindingKey }): void => {
   inject({ key: opts.key })(opts.target, undefined, opts.index);
 };
 
@@ -58,7 +58,7 @@ describe('@repository - datasource auto-injection at param[0]', () => {
     const injects = registry.getInjectMetadata({ target: AutoInjectedRepository });
     expect(injects?.[0]).toEqual({
       target: InjectorPrimaryDataSource,
-      key: 'datasources.InjectorPrimaryDataSource',
+      key: BindingKeys.build<unknown>({ key: 'datasources.InjectorPrimaryDataSource' }),
       index: 0,
       isOptional: false,
     });
@@ -71,9 +71,9 @@ describe('@repository - datasource auto-injection at param[0]', () => {
       StringDataSourceRepository,
     );
 
-    expect(registry.getInjectMetadata({ target: StringDataSourceRepository })?.[0]?.key).toBe(
-      'datasources.InjectorPrimaryDataSource',
-    );
+    expect(
+      String(registry.getInjectMetadata({ target: StringDataSourceRepository })?.[0]?.key),
+    ).toBe('datasources.InjectorPrimaryDataSource');
   });
 
   test('resolver-form model and dataSource are resolved into the binding', () => {
@@ -100,14 +100,14 @@ describe('@repository - datasource auto-injection at param[0]', () => {
     applyParamInject({
       target: ExplicitInjectRepository,
       index: 0,
-      key: 'datasources.InjectorSecondaryDataSource',
+      key: BindingKeys.build<unknown>({ key: 'datasources.InjectorSecondaryDataSource' }),
     });
 
     repository({ model: InjectorAccount, dataSource: InjectorSecondaryDataSource })(
       ExplicitInjectRepository,
     );
 
-    expect(registry.getInjectMetadata({ target: ExplicitInjectRepository })?.[0]?.key).toBe(
+    expect(String(registry.getInjectMetadata({ target: ExplicitInjectRepository })?.[0]?.key)).toBe(
       'datasources.InjectorSecondaryDataSource',
     );
   });
@@ -124,7 +124,7 @@ describe('@repository - datasource auto-injection at param[0]', () => {
     applyParamInject({
       target: ServiceInjectedRepository,
       index: 0,
-      key: 'services.AccountService',
+      key: BindingKeys.build<unknown>({ key: 'services.AccountService' }),
     });
 
     expect(() => {
@@ -169,7 +169,7 @@ describe('@repository - datasource auto-injection at param[0]', () => {
       }).not.toThrow();
       expect(registry.getInjectMetadata({ target: TypeOnlyParameterRepository })?.[0]).toEqual({
         target: InjectorPrimaryDataSource,
-        key: 'datasources.InjectorPrimaryDataSource',
+        key: BindingKeys.build<unknown>({ key: 'datasources.InjectorPrimaryDataSource' }),
         index: 0,
         isOptional: false,
       });
@@ -201,12 +201,12 @@ describe('@repository - datasource auto-injection at param[0]', () => {
       ReplicaAccountRepository,
     );
 
-    expect(registry.getInjectMetadata({ target: ReplicaAccountRepository })?.[0]?.key).toBe(
+    expect(String(registry.getInjectMetadata({ target: ReplicaAccountRepository })?.[0]?.key)).toBe(
       'datasources.InjectorSecondaryDataSource',
     );
 
     // ...and the subclass must not have rewritten the base repository's own injection.
-    expect(registry.getInjectMetadata({ target: BaseAccountRepository })?.[0]?.key).toBe(
+    expect(String(registry.getInjectMetadata({ target: BaseAccountRepository })?.[0]?.key)).toBe(
       'datasources.InjectorPrimaryDataSource',
     );
   });
@@ -238,7 +238,7 @@ describe('@inject - property injection', () => {
       dataSource!: InjectorPrimaryDataSource;
     }
 
-    inject({ key: 'datasources.InjectorPrimaryDataSource' })(
+    inject({ key: BindingKeys.build<unknown>({ key: 'datasources.InjectorPrimaryDataSource' }) })(
       PropertyInjectedService.prototype,
       'dataSource',
       undefined,
@@ -248,7 +248,7 @@ describe('@inject - property injection', () => {
       target: PropertyInjectedService.prototype,
     });
     expect(properties?.get('dataSource')).toEqual({
-      bindingKey: 'datasources.InjectorPrimaryDataSource',
+      bindingKey: BindingKeys.build<unknown>({ key: 'datasources.InjectorPrimaryDataSource' }),
       isOptional: false,
     });
     expect(registry.getInjectMetadata({ target: PropertyInjectedService })).toBeUndefined();
@@ -256,7 +256,7 @@ describe('@inject - property injection', () => {
 
   test('@inject outside a property or constructor parameter is rejected', () => {
     expect(() => {
-      inject({ key: 'datasources.InjectorPrimaryDataSource' })(
+      inject({ key: BindingKeys.build<unknown>({ key: 'datasources.InjectorPrimaryDataSource' }) })(
         class Orphan {},
         undefined,
         undefined,

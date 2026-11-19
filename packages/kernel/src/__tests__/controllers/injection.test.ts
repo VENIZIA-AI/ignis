@@ -2,6 +2,7 @@ import { Injection } from '@/base/controllers/factory/injection';
 import type { TInjected, TInjectMap } from '@/base/controllers/factory/injection';
 import { Container, MetadataRegistry } from '@/helpers/inversion';
 import { describe, expect, test } from 'bun:test';
+import { BindingKeys } from '@/helpers/inversion';
 
 class InjectionClock {
   now() {
@@ -35,7 +36,11 @@ const build = <Inject extends TInjectMap>(opts: { inject: Inject }) => {
   MetadataRegistry.getInstance().setInjectMetadata({
     target: generated,
     index: 0,
-    metadata: { key: 'repositories.InjectionRepo', index: 0, isOptional: false },
+    metadata: {
+      key: BindingKeys.build<unknown>({ key: 'repositories.InjectionRepo' }),
+      index: 0,
+      isOptional: false,
+    },
   });
   Injection.register({ target: generated, inject: opts.inject, offset: 1 });
 
@@ -43,16 +48,22 @@ const build = <Inject extends TInjectMap>(opts: { inject: Inject }) => {
 };
 
 const bindAll = (container: Container) => {
-  container.bind({ key: 'repositories.InjectionRepo' }).toClass(InjectionRepo);
-  container.bind({ key: 'services.InjectionClock' }).toClass(InjectionClock);
-  container.bind({ key: 'services.InjectionMailer' }).toClass(InjectionMailer);
+  container
+    .bind({ key: BindingKeys.build<unknown>({ key: 'repositories.InjectionRepo' }) })
+    .toClass(InjectionRepo);
+  container
+    .bind({ key: BindingKeys.build<unknown>({ key: 'services.InjectionClock' }) })
+    .toClass(InjectionClock);
+  container
+    .bind({ key: BindingKeys.build<unknown>({ key: 'services.InjectionMailer' }) })
+    .toClass(InjectionMailer);
   MetadataRegistry.getInstance().setBindingKey({
     target: InjectionClock,
-    key: 'services.InjectionClock',
+    key: BindingKeys.build<unknown>({ key: 'services.InjectionClock' }),
   });
   MetadataRegistry.getInstance().setBindingKey({
     target: InjectionMailer,
-    key: 'services.InjectionMailer',
+    key: BindingKeys.build<unknown>({ key: 'services.InjectionMailer' }),
   });
 };
 
@@ -72,7 +83,9 @@ describe('Injection through the real container', () => {
 
   test('a class that is not registered fails when the controller is built, not at request time', () => {
     const container = new Container();
-    container.bind({ key: 'repositories.InjectionRepo' }).toClass(InjectionRepo);
+    container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'repositories.InjectionRepo' }) })
+      .toClass(InjectionRepo);
 
     class Unregistered {}
     class Sub extends build({ inject: { missing: Unregistered } }) {}
@@ -83,7 +96,9 @@ describe('Injection through the real container', () => {
   test('a test double bound under the key is what the callback receives', () => {
     const container = new Container();
     bindAll(container);
-    container.bind({ key: 'services.InjectionClock' }).toValue({ now: () => 7 });
+    container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'services.InjectionClock' }) })
+      .toValue({ now: () => 7 });
 
     class Sub extends build({ inject: { clock: InjectionClock } }) {}
 
@@ -105,7 +120,11 @@ describe('Injection through the real container', () => {
     MetadataRegistry.getInstance().setInjectMetadata({
       target: Sub,
       index: 0,
-      metadata: { key: 'repositories.InjectionRepo', index: 0, isOptional: false },
+      metadata: {
+        key: BindingKeys.build<unknown>({ key: 'repositories.InjectionRepo' }),
+        index: 0,
+        isOptional: false,
+      },
     });
 
     expect(() => container.resolve(Sub)).toThrow(/declared dependency was not injected/);

@@ -186,7 +186,7 @@ CREATE INDEX "IDX_MetaLink_principal_sequence" ON "MetaLink"(principal_type, pri
 **3. Register the repository and switch `metaLink` on:**
 
 ```ts
-import { BaseApplication } from '@venizia/ignis';
+import { BaseApplication, BindingKeys } from '@venizia/ignis';
 import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 import { StaticAssetComponent, type TStaticAssetComponentOptions } from '@venizia/ignis/static-asset';
 import { MetaLinkRepository } from '@/repositories/meta-link.repository';
@@ -208,7 +208,7 @@ export abstract class Application extends BaseApplication {
         directUpload: { use: false },
         metaLink: {
           use: true,
-          repository: this.get<MetaLinkRepository>({ key: 'repositories.MetaLinkRepository' }),
+          repository: this.get({ key: BindingKeys.build<MetaLinkRepository>({ key: 'repositories.MetaLinkRepository' }) }),
         },
       },
     };

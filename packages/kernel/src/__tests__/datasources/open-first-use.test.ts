@@ -7,6 +7,7 @@ import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
 import { beforeEach, describe, expect, test } from 'bun:test';
+import { BindingKeys } from '@/helpers/inversion';
 
 /**
  * `@datasource({ open: { on: 'first-use' } })`: the application starts without opening the datasource, the first
@@ -178,7 +179,9 @@ const boot = async (...classes: Array<new () => DataSourceRoot>) => {
 };
 
 const lazyOf = (application: TestApplication) =>
-  application.get<LazyDataSource>({ key: 'datasources.LazyDataSource' });
+  application.get({
+    key: BindingKeys.build<LazyDataSource>({ key: 'datasources.LazyDataSource' }),
+  });
 
 beforeEach(() => {
   Journal.reset();
@@ -203,7 +206,9 @@ describe('the application starts without opening a datasource that opens on firs
 
   test('ensureOpen() of a datasource that opens at start resolves at once and opens nothing more', async () => {
     const application = await boot(EagerDataSource);
-    const eager = application.get<EagerDataSource>({ key: 'datasources.EagerDataSource' });
+    const eager = application.get({
+      key: BindingKeys.build<EagerDataSource>({ key: 'datasources.EagerDataSource' }),
+    });
 
     await eager.ensureOpen();
     await eager.ensureOpen();
@@ -352,8 +357,10 @@ describe('a failed open', () => {
     await application.registerDataSources();
     OpenControl.failures = 1;
 
-    const dataSource = application.get<BrokenCleanupDataSource>({
-      key: 'datasources.BrokenCleanupDataSource',
+    const dataSource = application.get({
+      key: BindingKeys.build<BrokenCleanupDataSource>({
+        key: 'datasources.BrokenCleanupDataSource',
+      }),
     });
 
     await RejectionHelper.expectRejection({
@@ -553,7 +560,9 @@ describe('the handles exist only as the argument of configure()', () => {
 describe('isOpen() and the order of the checks', () => {
   test('a datasource that opens at start is open until it is closed', async () => {
     const application = await boot(EagerDataSource);
-    const eager = application.get<EagerDataSource>({ key: 'datasources.EagerDataSource' });
+    const eager = application.get({
+      key: BindingKeys.build<EagerDataSource>({ key: 'datasources.EagerDataSource' }),
+    });
 
     expect(eager.isOpen()).toBe(true);
 
@@ -599,8 +608,8 @@ describe('the timeout of the open', () => {
     application.dataSource(ShortTimeoutDataSource);
     await application.registerDataSources();
 
-    const dataSource = application.get<ShortTimeoutDataSource>({
-      key: 'datasources.ShortTimeoutDataSource',
+    const dataSource = application.get({
+      key: BindingKeys.build<ShortTimeoutDataSource>({ key: 'datasources.ShortTimeoutDataSource' }),
     });
     OpenControl.hold = gate();
 
@@ -628,8 +637,8 @@ describe('the timeout of the open', () => {
     application.dataSource(ShortTimeoutDataSource);
     await application.registerDataSources();
 
-    const dataSource = application.get<ShortTimeoutDataSource>({
-      key: 'datasources.ShortTimeoutDataSource',
+    const dataSource = application.get({
+      key: BindingKeys.build<ShortTimeoutDataSource>({ key: 'datasources.ShortTimeoutDataSource' }),
     });
     const hold = gate();
     OpenControl.hold = hold;
@@ -667,8 +676,8 @@ describe('the timeout of the open', () => {
     application.dataSource(ShortTimeoutDataSource);
     await application.registerDataSources();
 
-    const dataSource = application.get<ShortTimeoutDataSource>({
-      key: 'datasources.ShortTimeoutDataSource',
+    const dataSource = application.get({
+      key: BindingKeys.build<ShortTimeoutDataSource>({ key: 'datasources.ShortTimeoutDataSource' }),
     });
     OpenControl.hold = gate();
 

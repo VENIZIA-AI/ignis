@@ -73,7 +73,7 @@ export const registerDataSourceInjection = (opts: {
     );
   }
 
-  const derivedKey = BindingKeys.build({
+  const derivedKey = BindingKeys.build<unknown>({
     namespace: BindingNamespaces.DATASOURCE,
     key: typeof resolvedDataSource === 'string' ? resolvedDataSource : resolvedDataSource.name,
   });

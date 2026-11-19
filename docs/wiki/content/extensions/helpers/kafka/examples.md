@@ -54,10 +54,10 @@ import {
   KafkaConsumerHelper,
 } from '@venizia/ignis-helpers/kafka';
 import { stringSerializers, stringDeserializers } from '@platformatic/kafka';
-import { inject } from '@venizia/ignis-inversion';
+import { inject, BindingKeys } from '@venizia/ignis-inversion';
 
 // Register helpers in the IoC container
-app.bind({ key: 'kafka.producer' }).toValue(
+app.bind({ key: BindingKeys.build<unknown>({ key: 'kafka.producer' }) }).toValue(
   KafkaProducerHelper.newInstance({
     bootstrapBrokers: ['localhost:9092'],
     clientId: 'order-service-producer',
@@ -66,7 +66,7 @@ app.bind({ key: 'kafka.producer' }).toValue(
   }),
 );
 
-app.bind({ key: 'kafka.consumer' }).toValue(
+app.bind({ key: BindingKeys.build<unknown>({ key: 'kafka.consumer' }) }).toValue(
   KafkaConsumerHelper.newInstance({
     bootstrapBrokers: ['localhost:9092'],
     clientId: 'order-service-consumer',
@@ -82,8 +82,8 @@ app.bind({ key: 'kafka.consumer' }).toValue(
 // Inject into services
 export class OrderEventService {
   constructor(
-    @inject({ key: 'kafka.producer' }) private producer: KafkaProducerHelper,
-    @inject({ key: 'kafka.consumer' }) private consumer: KafkaConsumerHelper,
+    @inject({ key: BindingKeys.build<KafkaProducerHelper>({ key: 'kafka.producer' }) }) private producer: KafkaProducerHelper,
+    @inject({ key: BindingKeys.build<KafkaConsumerHelper>({ key: 'kafka.consumer' }) }) private consumer: KafkaConsumerHelper,
   ) {}
 
   async publishOrderCreated(orderId: string, data: Record<string, unknown>) {

@@ -581,17 +581,17 @@ The service reads the product through the scoped `ProductRepository`, so a produ
 
 ```typescript
 // src/services/variant.service.ts
-import { BaseService, inject, service } from '@venizia/ignis';
+import { BaseService, inject, service, BindingKeys } from '@venizia/ignis';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 import { ProductRepository, VariantRepository } from '../repositories';
 
 @service()
 export class VariantService extends BaseService {
   constructor(
-    @inject({ key: 'repositories.ProductRepository' })
+    @inject({ key: BindingKeys.build<ProductRepository>({ key: 'repositories.ProductRepository' }) })
     private productRepository: ProductRepository,
 
-    @inject({ key: 'repositories.VariantRepository' })
+    @inject({ key: BindingKeys.build<VariantRepository>({ key: 'repositories.VariantRepository' }) })
     private variantRepository: VariantRepository,
   ) {
     super({ scope: VariantService.name });

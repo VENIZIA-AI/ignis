@@ -56,13 +56,13 @@ class OverriddenService {
 
 describe('the binding key a class is registered under is recorded on the class', () => {
   test('@service records the key it would derive, before any application exists', () => {
-    expect(MetadataRegistry.getInstance().getBindingKey({ target: DecoratedService })).toBe(
+    expect(String(MetadataRegistry.getInstance().getBindingKey({ target: DecoratedService }))).toBe(
       `${BindingNamespaces.SERVICE}.DecoratedService`,
     );
   });
 
   test('a declared binding wins over the derived one', () => {
-    expect(MetadataRegistry.getInstance().getBindingKey({ target: RenamedService })).toBe(
+    expect(String(MetadataRegistry.getInstance().getBindingKey({ target: RenamedService }))).toBe(
       `${BindingNamespaces.SERVICE}.otp-sender`,
     );
   });
@@ -71,9 +71,9 @@ describe('the binding key a class is registered under is recorded on the class',
     const application = buildApplication();
     application.service(ImperativeService);
 
-    expect(MetadataRegistry.getInstance().getBindingKey({ target: ImperativeService })).toBe(
-      `${BindingNamespaces.SERVICE}.ImperativeService`,
-    );
+    expect(
+      String(MetadataRegistry.getInstance().getBindingKey({ target: ImperativeService })),
+    ).toBe(`${BindingNamespaces.SERVICE}.ImperativeService`);
   });
 
   /** The case metadata alone cannot answer: only `registerArtifact` sees the call site's binding. */
@@ -83,9 +83,9 @@ describe('the binding key a class is registered under is recorded on the class',
       binding: { namespace: BindingNamespaces.SERVICE, key: 'RenamedAtCallSite' },
     });
 
-    expect(MetadataRegistry.getInstance().getBindingKey({ target: OverriddenService })).toBe(
-      `${BindingNamespaces.SERVICE}.RenamedAtCallSite`,
-    );
+    expect(
+      String(MetadataRegistry.getInstance().getBindingKey({ target: OverriddenService })),
+    ).toBe(`${BindingNamespaces.SERVICE}.RenamedAtCallSite`);
   });
 });
 

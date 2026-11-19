@@ -905,9 +905,7 @@ Container keys of the static asset component.
 ```ts
 export declare class StaticAssetBindingKeys {
     /** The options an application registers through `configs.artifacts` land here, because an artifact index carries classes and no options. `application.component(StaticAssetComponent, { options })` passes them directly and wins over this key. */
-    static readonly STATIC_ASSET_OPTIONS: string & {
-        readonly valueType?: ((value: TStaticAssetComponentOptions<TMetaLinkCompatibleSchema>) => void) | undefined;
-    };
+    static readonly STATIC_ASSET_OPTIONS: TBindingKey<TStaticAssetComponentOptions<TMetaLinkCompatibleSchema>>;
     /** The `StaticAssetUploadPolicyService` of one options entry, bound only for an entry that turns `directUpload` on. `name` is the entry's KEY in the options object, not the controller name. */
     static policyService(opts: {
         name: string;

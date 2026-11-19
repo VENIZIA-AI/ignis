@@ -708,10 +708,11 @@ const queue = BullMQHelper.newInstance({
 
 ```typescript
 import { AbstractRedisHelper, RedisSentinelHelper } from '@venizia/ignis-helpers';
+import { BindingKeys } from '@venizia/ignis';
 
 // In your Application preConfigure:
 const redis = new RedisSentinelHelper({ name: 'socket-redis', sentinel: { masterName: 'mymaster', nodes }, password });
-this.bind<AbstractRedisHelper>({ key: '@app/socket-io/redis-connection' }).toValue(redis);
+this.bind({ key: BindingKeys.build<AbstractRedisHelper>({ key: '@app/socket-io/redis-connection' }) }).toValue(redis);
 ```
 
 See the Socket.IO component documentation for the full component registration and adapter setup.
@@ -724,9 +725,10 @@ See the Socket.IO component documentation for the full component registration an
 
 ```typescript
 import { AbstractRedisHelper, RedisClusterHelper } from '@venizia/ignis-helpers';
+import { BindingKeys } from '@venizia/ignis';
 
 const redis = new RedisClusterHelper({ name: 'ws-redis', nodes });
-this.bind<AbstractRedisHelper>({ key: '@app/websocket/redis-connection' }).toValue(redis);
+this.bind({ key: BindingKeys.build<AbstractRedisHelper>({ key: '@app/websocket/redis-connection' }) }).toValue(redis);
 ```
 
 See the WebSocket component documentation for the full component registration.
@@ -760,7 +762,7 @@ const cached = {
 
 ```typescript
 import { RedisSingleHelper } from '@venizia/ignis-helpers';
-import { BaseApplication } from '@venizia/ignis';
+import { BaseApplication, BindingKeys } from '@venizia/ignis';
 
 class MyApp extends BaseApplication {
   async preConfigure() {
@@ -772,7 +774,7 @@ class MyApp extends BaseApplication {
     });
 
     // Bind so components and services can resolve it
-    this.bind<RedisSingleHelper>({ key: 'helpers.RedisCache' }).toValue(redis);
+    this.bind({ key: BindingKeys.build<RedisSingleHelper>({ key: 'helpers.RedisCache' }) }).toValue(redis);
   }
 }
 ```

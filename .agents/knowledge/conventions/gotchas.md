@@ -503,7 +503,7 @@ key never mounts the route, and nothing depends on `NODE_ENV`.
   1.4.1 with a two-class fixture: plain build and `--compile` without minify keep `X`,
   `--minify-syntax` and `--compile --minify-syntax` still produce `X_1`. `--keep-names` does not
   help. Keys and scopes built from `Class.name` stay consistent with each other; a literal
-  `'services.X'` does not. Build keys with `BindingKeys.build({ namespace, key: X.name })`, never
+  `'services.X'` does not. Build keys with `BindingKeys.build<X>({ namespace, key: X.name })`, never
   from a string. `--minify` (identifiers) turns names into `Aw`/`Iw` - use
   `--minify-whitespace --minify-syntax`.
 - If the bundle holds two copies of helpers (two installed versions), `LoggerFactory` keeps the provider

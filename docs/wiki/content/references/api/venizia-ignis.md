@@ -200,9 +200,7 @@ Container keys of the API reference component.
 
 ```ts
 export declare class ApiReferenceBindingKeys {
-    static readonly API_REFERENCE_OPTIONS: string & {
-        readonly valueType?: ((value: IApiReferenceOptions) => void) | undefined;
-    };
+    static readonly API_REFERENCE_OPTIONS: import("@venizia/ignis-inversion").TBindingKey<IApiReferenceOptions>;
 }
 ```
 
@@ -1105,13 +1103,9 @@ Container keys of the health check component.
 
 ```ts
 export declare class HealthCheckBindingKeys {
-    static readonly HEALTH_CHECK_OPTIONS: string & {
-        readonly valueType?: ((value: IHealthCheckOptions) => void) | undefined;
-    };
+    static readonly HEALTH_CHECK_OPTIONS: import("@venizia/ignis-inversion").TBindingKey<IHealthCheckOptions>;
     /** The component resolves `getAppInfo()` once (it is async) and binds the result for the controller. */
-    static readonly APPLICATION_INFO: string & {
-        readonly valueType?: ((value: IApplicationInfo) => void) | undefined;
-    };
+    static readonly APPLICATION_INFO: import("@venizia/ignis-inversion").TBindingKey<IApplicationInfo>;
 }
 ```
 
@@ -2274,7 +2268,7 @@ Installs the request spy middleware on the application server, which tracks each
 ```ts
 export declare class RequestTrackerComponent extends BaseComponent {
     private application;
-    static readonly REQUEST_TRACKER_MW_BINDING_KEY: string;
+    static readonly REQUEST_TRACKER_MW_BINDING_KEY: import("@venizia/ignis-inversion").TBindingKey<MiddlewareHandler>;
     constructor(application: BaseApplication);
     /** No `requestId()` here: the id is installed by `RestApplication.registerDefaultMiddlewares()`, which runs first and uses `RequestIdGenerator`. Same UUID v4 shape hono's own default produces, but hono calls `crypto.randomUUID` unguarded, and a browser leaves that one `undefined` outside a secure context. */
     binding(): ValueOrPromise<void>;
@@ -2509,9 +2503,7 @@ Container keys of the server info component.
 
 ```ts
 export declare class ServerInfoBindingKeys {
-    static readonly SERVER_INFO_OPTIONS: string & {
-        readonly valueType?: ((value: IServerInfoOptions) => void) | undefined;
-    };
+    static readonly SERVER_INFO_OPTIONS: import("@venizia/ignis-inversion").TBindingKey<IServerInfoOptions>;
 }
 ```
 

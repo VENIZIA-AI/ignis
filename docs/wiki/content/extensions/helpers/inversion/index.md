@@ -13,20 +13,20 @@ difficulty: intermediate
 The smallest real use: bind a class with constructor injection, then resolve it through the container.
 
 ```typescript
-import { Container, inject, BindingScopes } from '@venizia/ignis-inversion';
+import { Container, inject, BindingScopes, BindingKeys } from '@venizia/ignis-inversion';
 
 class UserService {
-  constructor(@inject({ key: 'config.appName' }) private appName: string) {}
+  constructor(@inject({ key: BindingKeys.build<string>({ key: 'config.appName' }) }) private appName: string) {}
 }
 
 const container = new Container({ scope: 'MyApp' });
 
-container.bind<string>({ key: 'config.appName' }).toValue('MyApp');
-container.bind<UserService>({ key: 'services.UserService' })
+container.bind({ key: BindingKeys.build<string>({ key: 'config.appName' }) }).toValue('MyApp');
+container.bind({ key: BindingKeys.build<UserService>({ key: 'services.UserService' }) })
   .toClass(UserService)
   .setScope(BindingScopes.SINGLETON);
 
-const userService = container.get<UserService>({ key: 'services.UserService' });
+const userService = container.get({ key: BindingKeys.build<UserService>({ key: 'services.UserService' }) });
 ```
 
 A class needs no decorator to be bindable. The binding is always created explicitly with `container.bind()`, and its scope is set via `setScope()`.
@@ -52,7 +52,7 @@ The framework layer (`@venizia/ignis`) creates these bindings for you - for cont
 
 - **Every constructor parameter must carry `@inject`.** The metadata array is index-keyed - an undecorated parameter leaves a hole the container has no way to fill. `instantiate()` refuses the class by name and parameter index rather than passing `undefined`.
 - **Namespaces auto-tag bindings.** A key like `services.UserService` tags the binding `services` automatically. `setTags()` adds more. `findByTag()` queries by tag, with an `exclude` list.
-- **Keys** can be a `string` or a `symbol`, typed or plain: a key built with `BindingKeys.build<T>` names the type of its value (see [Typed keys](#typed-keys)). Two symbols are two keys even when they share a description; `Symbol.for(name)` is one key wherever it is created. The lookup methods - `get`, `gets`, `getBinding` - also accept `{ namespace, key }`, which `BindingKeys.build` joins into a dotted string. `bind`, `isBound`, and `unbind` take the plain key only.
+- **Keys** are made by `BindingKeys.build<T>({ namespace?, key })`, which joins namespace and key into a dotted string and names the type of the value bound under it (see [Typed keys](#typed-keys)). `bind`, `get`, `gets`, `getBinding`, `isBound`, `unbind` and `@inject({ key })` take only a key made by `build`: a raw string, a template literal, a symbol or a `{ namespace, key }` object does not compile.
 - **`@inject` names a dependency by key or by class.** `@inject({ key: 'repositories.UserRepository' })` and `@inject({ target: UserRepository })` both work. They are the two arms of a union, so you pass one or the other, never both.
 
 **Scopes**
@@ -78,8 +78,8 @@ The [Full reference](/extensions/helpers/inversion/reference) covers `MetadataRe
 ```typescript
 class OrderService {
   constructor(
-    @inject({ key: 'repositories.OrderRepository' }) private orderRepository: OrderRepository,
-    @inject({ key: 'services.Logger', isOptional: true }) private logger?: Logger,
+    @inject({ key: BindingKeys.build<OrderRepository>({ key: 'repositories.OrderRepository' }) }) private orderRepository: OrderRepository,
+    @inject({ key: BindingKeys.build<Logger>({ key: 'services.Logger' }), isOptional: true }) private logger?: Logger,
   ) {}
 }
 ```
@@ -101,11 +101,11 @@ The class has to be a registered artifact. If it is not, the container throws an
 ### Bind a value or a provider
 
 ```typescript
-container.bind<string>({ key: 'APP_NAME' }).toValue('MyApp');
+container.bind({ key: BindingKeys.build<string>({ key: 'APP_NAME' }) }).toValue('MyApp');
 
-container.bind<DatabaseConnection>({ key: 'db.connection' })
+container.bind({ key: BindingKeys.build<DatabaseConnection>({ key: 'db.connection' }) })
   .toProvider((container) => {
-    const config = container.get<Config>({ key: 'config.database' });
+    const config = container.get({ key: BindingKeys.build<Config>({ key: 'config.database' }) });
     return new DatabaseConnection(config);
   });
 ```
@@ -113,7 +113,7 @@ container.bind<DatabaseConnection>({ key: 'db.connection' })
 ### Set the scope
 
 ```typescript
-container.bind({ key: 'services.CacheService' })
+container.bind({ key: BindingKeys.build<CacheService>({ key: 'services.CacheService' }) })
   .toClass(CacheService)
   .setScope(BindingScopes.SINGLETON); // default is TRANSIENT if omitted
 ```
@@ -122,7 +122,7 @@ container.bind({ key: 'services.CacheService' })
 
 ```typescript
 class UserService {
-  @inject({ key: 'repositories.UserRepository' })
+  @inject({ key: BindingKeys.build<UserRepository>({ key: 'repositories.UserRepository' }) })
   private userRepository: UserRepository;
 }
 ```
@@ -134,7 +134,7 @@ class UserService {
 A dependency cycle throws with its path - `Circular dependency | services.A -> services.B -> services.A` - instead of overflowing the stack. A cycle that passes through an `await` is not detected. `gets()` resolves several keys at once, always treating each as optional.
 
 ```typescript
-const maybeService = container.get<MyService>({ key: 'services.Optional', isOptional: true });
+const maybeService = container.get({ key: BindingKeys.build<MyService>({ key: 'services.Optional' }), isOptional: true });
 ```
 
 ### Typed keys
@@ -150,9 +150,11 @@ container.bind({ key: MAILER }).toValue(mailer); // checked against IMailer
 const resolved = container.get({ key: MAILER }); // IMailer, no generic
 ```
 
-A plain `string` or `symbol` still works and gives `unknown`, or the generic you pass. A generic you pass is checked against the key: a type that is a subtype or a supertype of the key's type is accepted, an unrelated one (`get<number>({ key: MAILER })`) does not compile. The type exists at compile time only; a key is the plain string at run time.
+`build` needs its type argument: `build<unknown>` is the explicit form for a key with no common value type (one built from a runtime name). A generic you pass to `get` or `bind` is checked against the key: a type that is a subtype or a supertype of the key's type is accepted, an unrelated one (`get<number>({ key: MAILER })`) does not compile. The type exists at compile time only; a key is the plain string at run time.
 
-A key that is not one typed key - a union such as `cond ? MAILER : LABEL`, or a variable typed `TBindingKey` - resolves to `unknown`, like a plain key. It takes no generic: `get<IMailer>({ key })` on it does not compile. Narrow the key first, or cast the result.
+In generic code, where `T` is not known yet, build the key for `unknown` and return it as `TBindingKey<T>`: `BindingKeys.build<T>` with a type parameter does not compile, and the brand is bivariant so the return is accepted.
+
+A key that is not one typed key - a union such as `cond ? MAILER : LABEL`, or a variable typed `TBindingKey` - resolves to `unknown`. It takes no generic: `get<IMailer>({ key })` on it does not compile. Narrow the key first, or cast the result.
 
 `TBindingKeyValue<typeof MAILER>` names the type, for an annotation that should follow the key. Use it on an `@inject` parameter, because nothing else checks that one:
 

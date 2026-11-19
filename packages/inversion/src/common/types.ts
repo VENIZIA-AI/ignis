@@ -28,16 +28,24 @@ export type TInjectTarget = TValueOrResolver<TClass<unknown>>;
 /** `& {}` keeps the literal set but stops it widening to `string` / `number` in mutable positions; see `TConstValue` in `@venizia/ignis-helpers`. */
 export type TConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string | number> & {};
 
+declare const typeArgumentRequired: unique symbol;
+
+/** The default type argument of `BindingKeys.build`: left unwritten, the call does not compile. */
+export type TTypeArgumentRequired = { readonly [typeArgumentRequired]: never };
+
 /**
- * A binding key: a `string | symbol` branded with the type of the value bound under it (compile time only). Typed keys
- * make `bind`, `get`, `getBinding` and `gets` infer `T`; a plain key is `TBindingKey<unknown>`. Bivariant.
+ * A binding key: a string made by `BindingKeys.build<T>`, branded with the type of the value bound under it (compile
+ * time only). `bind`, `get`, `getBinding` and `gets` infer `T` from it. Bivariant.
  */
-export type TBindingKey<T = unknown> = (string | symbol) & {
-  readonly valueType?: { bivarianceHack(value: T): void }['bivarianceHack'];
+export type TBindingKey<T = unknown> = string & {
+  readonly valueType: { bivarianceHack(value: T): void }['bivarianceHack'];
 };
 
+/** A reflect-metadata key (`Symbol.for('ignis:model')`, a string constant): not a container key. */
+export type TMetadataKey = string | symbol;
+
 /** The value type a key names (`unknown` for a plain key): annotates an `@inject` parameter, which nothing checks. */
-export type TBindingKeyValue<K> = K extends { readonly valueType?: (value: infer V) => void }
+export type TBindingKeyValue<K> = K extends { readonly valueType: (value: infer V) => void }
   ? V
   : unknown;
 

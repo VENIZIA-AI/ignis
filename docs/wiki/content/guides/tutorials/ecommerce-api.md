@@ -388,7 +388,7 @@ export class CategoryRepository extends DefaultCRUDRepository<typeof categoryTab
 // src/repositories/cart.repository.ts
 import { Cart, CartItem, type cartTable, type cartItemTable } from '@/models/cart.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
-import { inject, repository } from '@venizia/ignis';
+import { inject, repository, BindingKeys } from '@venizia/ignis';
 import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 @repository({ model: CartItem, dataSource: PostgresDataSource })
@@ -398,11 +398,11 @@ export class CartItemRepository extends DefaultCRUDRepository<typeof cartItemTab
 export class CartRepository extends DefaultCRUDRepository<typeof cartTable> {
   constructor(
     // First parameter MUST be DataSource injection
-    @inject({ key: 'datasources.PostgresDataSource' })
+    @inject({ key: BindingKeys.build<PostgresDataSource>({ key: 'datasources.PostgresDataSource' }) })
     dataSource: PostgresDataSource,
 
     // From 2nd parameter, inject additional dependencies
-    @inject({ key: 'repositories.CartItemRepository' })
+    @inject({ key: BindingKeys.build<CartItemRepository>({ key: 'repositories.CartItemRepository' }) })
     private _cartItemRepository: CartItemRepository,
   ) {
     super(dataSource);
@@ -443,7 +443,7 @@ export class CartRepository extends DefaultCRUDRepository<typeof cartTable> {
 // src/repositories/order.repository.ts
 import { Order, OrderItem, type orderTable, type orderItemTable } from '@/models/order.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
-import { inject, repository } from '@venizia/ignis';
+import { inject, repository, BindingKeys } from '@venizia/ignis';
 import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 @repository({ model: OrderItem, dataSource: PostgresDataSource })
@@ -453,11 +453,11 @@ export class OrderItemRepository extends DefaultCRUDRepository<typeof orderItemT
 export class OrderRepository extends DefaultCRUDRepository<typeof orderTable> {
   constructor(
     // First parameter MUST be DataSource injection
-    @inject({ key: 'datasources.PostgresDataSource' })
+    @inject({ key: BindingKeys.build<PostgresDataSource>({ key: 'datasources.PostgresDataSource' }) })
     dataSource: PostgresDataSource,
 
     // From 2nd parameter, inject additional dependencies
-    @inject({ key: 'repositories.OrderItemRepository' })
+    @inject({ key: BindingKeys.build<OrderItemRepository>({ key: 'repositories.OrderItemRepository' }) })
     private _orderItemRepository: OrderItemRepository,
   ) {
     super(dataSource);
@@ -484,7 +484,7 @@ export class OrderRepository extends DefaultCRUDRepository<typeof orderTable> {
 
 ```typescript
 // src/services/product.service.ts
-import { BaseService, inject, service } from '@venizia/ignis';
+import { BaseService, inject, service, BindingKeys } from '@venizia/ignis';
 import { ProductRepository } from '../repositories/product.repository';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 import type { TWhere } from '@venizia/ignis-filter';
@@ -492,7 +492,7 @@ import type { TWhere } from '@venizia/ignis-filter';
 @service()
 export class ProductService extends BaseService {
   constructor(
-    @inject({ key: 'repositories.ProductRepository' })
+    @inject({ key: BindingKeys.build<ProductRepository>({ key: 'repositories.ProductRepository' }) })
     private _productRepository: ProductRepository,
   ) {
     super({ scope: ProductService.name });
@@ -555,7 +555,7 @@ export class ProductService extends BaseService {
 
 ```typescript
 // src/services/cart.service.ts
-import { BaseService, inject, service } from '@venizia/ignis';
+import { BaseService, inject, service, BindingKeys } from '@venizia/ignis';
 import { CartRepository } from '../repositories/cart.repository';
 import { ProductService } from './product.service';
 import { getError, HTTP } from '@venizia/ignis-helpers';
@@ -568,9 +568,9 @@ interface ICartItem {
 @service()
 export class CartService extends BaseService {
   constructor(
-    @inject({ key: 'repositories.CartRepository' })
+    @inject({ key: BindingKeys.build<CartRepository>({ key: 'repositories.CartRepository' }) })
     private _cartRepository: CartRepository,
-    @inject({ key: 'services.ProductService' })
+    @inject({ key: BindingKeys.build<ProductService>({ key: 'services.ProductService' }) })
     private _productService: ProductService,
   ) {
     super({ scope: CartService.name });
@@ -692,7 +692,7 @@ export class CartService extends BaseService {
 
 ```typescript
 // src/services/order.service.ts
-import { BaseService, inject, service } from '@venizia/ignis';
+import { BaseService, inject, service, BindingKeys } from '@venizia/ignis';
 import { OrderRepository } from '../repositories/order.repository';
 import { CartService } from './cart.service';
 import { ProductService } from './product.service';
@@ -719,13 +719,13 @@ export interface ICreateOrderInput {
 @service()
 export class OrderService extends BaseService {
   constructor(
-    @inject({ key: 'repositories.OrderRepository' })
+    @inject({ key: BindingKeys.build<OrderRepository>({ key: 'repositories.OrderRepository' }) })
     private _orderRepository: OrderRepository,
-    @inject({ key: 'services.CartService' })
+    @inject({ key: BindingKeys.build<CartService>({ key: 'services.CartService' }) })
     private _cartService: CartService,
-    @inject({ key: 'services.ProductService' })
+    @inject({ key: BindingKeys.build<ProductService>({ key: 'services.ProductService' }) })
     private _productService: ProductService,
-    @inject({ key: 'services.PaymentService' })
+    @inject({ key: BindingKeys.build<PaymentService>({ key: 'services.PaymentService' }) })
     private _paymentService: PaymentService,
   ) {
     super({ scope: OrderService.name });
@@ -928,7 +928,7 @@ import {
   get,
   inject,
   OpenApiResponses,
-  TRouteContext,
+  TRouteContext, BindingKeys,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { ProductService } from '../services/product.service';
@@ -975,7 +975,7 @@ type ProductRoutes = typeof ProductRoutes;
 @controller({ path: '/products' })
 export class ProductController extends BaseRestController {
   constructor(
-    @inject({ key: 'services.ProductService' })
+    @inject({ key: BindingKeys.build<ProductService>({ key: 'services.ProductService' }) })
     private _productService: ProductService,
   ) {
     super({ scope: ProductController.name, path: '/products' });
@@ -1019,7 +1019,7 @@ import {
   del,
   inject,
   OpenApiResponses,
-  TRouteContext,
+  TRouteContext, BindingKeys,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { CartService } from '../services/cart.service';
@@ -1090,7 +1090,7 @@ type CartRoutes = typeof CartRoutes;
 @controller({ path: '/cart' })
 export class CartController extends BaseRestController {
   constructor(
-    @inject({ key: 'services.CartService' })
+    @inject({ key: BindingKeys.build<CartService>({ key: 'services.CartService' }) })
     private _cartService: CartService,
   ) {
     super({ scope: CartController.name, path: '/cart' });
@@ -1156,7 +1156,7 @@ import {
   post,
   inject,
   OpenApiResponses,
-  TRouteContext,
+  TRouteContext, BindingKeys,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { type ICreateOrderInput, OrderService } from '../services/order.service';
@@ -1230,7 +1230,7 @@ type OrderRoutes = typeof OrderRoutes;
 @controller({ path: '/orders' })
 export class OrderController extends BaseRestController {
   constructor(
-    @inject({ key: 'services.OrderService' })
+    @inject({ key: BindingKeys.build<OrderService>({ key: 'services.OrderService' }) })
     private _orderService: OrderService,
   ) {
     super({ scope: OrderController.name, path: '/orders' });

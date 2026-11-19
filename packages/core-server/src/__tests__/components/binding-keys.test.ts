@@ -49,7 +49,7 @@ describe('the component binding keys keep their strings', () => {
     [WebSocketBindingKeys.OUTBOUND_TRANSFORMER, '@app/websocket/outbound-transformer'],
     [WebSocketBindingKeys.HANDSHAKE_HANDLER, '@app/websocket/handshake-handler'],
   ])('%s', (key, expected) => {
-    expect(key).toBe(expected);
+    expect(String(key)).toBe(expected);
   });
 });
 
@@ -86,6 +86,6 @@ describe('a component key reads its value type', () => {
     // @ts-expect-error a string is not a policy service
     container.bind({ key: policyKey }).toValue('x');
 
-    expect(policyKey).toBe('@app/static-asset/policy-service/a');
+    expect(String(policyKey)).toBe('@app/static-asset/policy-service/a');
   });
 });

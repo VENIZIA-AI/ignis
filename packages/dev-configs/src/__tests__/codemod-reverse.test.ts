@@ -295,6 +295,7 @@ describe('devz codemod --list and --reverse', () => {
         'connector-imports',
         'env-get',
         'any-aliases',
+        'binding-keys',
       ].join('\n'),
     ]);
     expect(errors).toEqual([]);

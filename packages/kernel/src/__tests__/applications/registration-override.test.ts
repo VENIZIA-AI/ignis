@@ -8,6 +8,7 @@ import { BindingScopes, BindingValueTypes } from '@/helpers/inversion';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 import { ProbeDataSource, ProbeRepository } from '../support/artifact-fixtures';
+import { BindingKeys } from '@/helpers/inversion';
 
 class ConcreteRestApplication extends RestApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
@@ -125,7 +126,10 @@ describe('registration collision guard - allowOverride, on every registration me
 describe('controller() binds one instance per application', () => {
   test('two resolutions of a registered controller are the same instance', () => {
     const application = buildApplication();
-    const key = `${BindingNamespaces.CONTROLLER}.${Probe.name}`;
+    const key = BindingKeys.build<unknown>({
+      namespace: BindingNamespaces.CONTROLLER,
+      key: Probe.name,
+    });
 
     application.controller(Probe);
 
@@ -138,7 +142,10 @@ describe('controller() binds one instance per application', () => {
 describe('registration override - the second registration replaces the first', () => {
   test('service(): the key resolves to the later class, on a fresh binding with default scope', () => {
     const application = buildApplication();
-    const key = `${BindingNamespaces.SERVICE}.${Probe.name}`;
+    const key = BindingKeys.build<unknown>({
+      namespace: BindingNamespaces.SERVICE,
+      key: Probe.name,
+    });
 
     const first = application.service(Probe).setScope(BindingScopes.SINGLETON);
     const second = application.service(OtherProbe, {
@@ -154,7 +161,10 @@ describe('registration override - the second registration replaces the first', (
 
   test('component(): the key points at the later class', () => {
     const application = buildApplication();
-    const key = `${BindingNamespaces.COMPONENT}.${ProbeComponent.name}`;
+    const key = BindingKeys.build<unknown>({
+      namespace: BindingNamespaces.COMPONENT,
+      key: ProbeComponent.name,
+    });
 
     const first = application.component(ProbeComponent);
     const second = application.component(OtherProbeComponent, {
@@ -175,7 +185,10 @@ describe('registration reads the class decorator as its defaults', () => {
 
     application.service(Cached);
 
-    const key = `${BindingNamespaces.SERVICE}.${Cached.name}`;
+    const key = BindingKeys.build<unknown>({
+      namespace: BindingNamespaces.SERVICE,
+      key: Cached.name,
+    });
     expect(application.getBinding({ key })?.getScope()).toBe(BindingScopes.SINGLETON);
     expect(application.get({ key })).toBe(application.get({ key }));
   });
@@ -186,12 +199,20 @@ describe('registration reads the class decorator as its defaults', () => {
     const application = buildApplication();
 
     application.service(Named);
-    expect(application.isBound({ key: `${BindingNamespaces.SERVICE}.Aliased` })).toBe(true);
+    expect(
+      application.isBound({
+        key: BindingKeys.build<unknown>({ namespace: BindingNamespaces.SERVICE, key: 'Aliased' }),
+      }),
+    ).toBe(true);
 
     application.service(Named, {
       binding: { namespace: BindingNamespaces.SERVICE, key: 'Explicit' },
     });
-    expect(application.isBound({ key: `${BindingNamespaces.SERVICE}.Explicit` })).toBe(true);
+    expect(
+      application.isBound({
+        key: BindingKeys.build<unknown>({ namespace: BindingNamespaces.SERVICE, key: 'Explicit' }),
+      }),
+    ).toBe(true);
   });
 
   test('allowOverride: false on the decorator makes a second registration throw; the call site can relax it', () => {
@@ -214,9 +235,14 @@ describe('registration reads the class decorator as its defaults', () => {
 
     application.service(Conditional);
 
-    expect(application.isBound({ key: `${BindingNamespaces.SERVICE}.${Conditional.name}` })).toBe(
-      true,
-    );
+    expect(
+      application.isBound({
+        key: BindingKeys.build<unknown>({
+          namespace: BindingNamespaces.SERVICE,
+          key: Conditional.name,
+        }),
+      }),
+    ).toBe(true);
   });
 
   test('an undecorated class keeps the defaults: derived key, TRANSIENT service, overwrite allowed', () => {
@@ -225,7 +251,14 @@ describe('registration reads the class decorator as its defaults', () => {
     application.service(Probe);
 
     expect(
-      application.getBinding({ key: `${BindingNamespaces.SERVICE}.${Probe.name}` })?.getScope(),
+      application
+        .getBinding({
+          key: BindingKeys.build<unknown>({
+            namespace: BindingNamespaces.SERVICE,
+            key: Probe.name,
+          }),
+        })
+        ?.getScope(),
     ).toBe(BindingScopes.TRANSIENT);
   });
 });

@@ -12,7 +12,7 @@ import {
 
 /** One container entry under `key`, resolved to a class, a value or a provider (set with `toClass`, `toValue`, `toProvider`). Scope is transient unless `setScope` selects singleton; a key with a dot gets its first segment as a tag. */
 export class Binding<T = unknown> extends BaseHelper implements IBinding<T> {
-  key: string;
+  key: TBindingKey<T>;
 
   private bindScope: TBindingScope = BindingScopes.TRANSIENT;
   private tags: Set<string>;
@@ -24,7 +24,7 @@ export class Binding<T = unknown> extends BaseHelper implements IBinding<T> {
     | { type: typeof BindingValueTypes.VALUE; value: T }
     | { type: typeof BindingValueTypes.PROVIDER; value: TBindingProvider<T> };
 
-  constructor(opts: { key: string }) {
+  constructor(opts: { key: TBindingKey<T> }) {
     super({ scope: opts.key });
     this.tags = new Set([]);
 
@@ -38,7 +38,7 @@ export class Binding<T = unknown> extends BaseHelper implements IBinding<T> {
     }
   }
 
-  static override bind<T = unknown>(opts: { key: TBindingKey<T> & string }): Binding<T> {
+  static override bind<T = unknown>(opts: { key: TBindingKey<T> }): Binding<T> {
     return new Binding<T>(opts);
   }
 

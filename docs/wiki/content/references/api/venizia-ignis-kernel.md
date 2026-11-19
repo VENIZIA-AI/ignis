@@ -74,7 +74,7 @@ export declare abstract class AbstractAuthRegistry<TItem> extends BaseHelper {
     protected abstract getBindingPrefix(): string;
     getKey(opts: {
         name: string;
-    }): string;
+    }): TBindingKey;
     /**
      * Whether a name resolves. The registry is the only source of truth for that: the strategy type is
      * open (`TAuthStrategy` accepts any string), so nothing upstream can tell a registered name from a
@@ -286,34 +286,18 @@ internal are bound by the component from it, and a service injects them.
 
 ```ts
 export declare class AuthenticateBindingKeys {
-    static readonly REST_OPTIONS: string & {
-        readonly valueType?: ((value: TAuthenticationRestOptions) => void) | undefined;
-    };
+    static readonly REST_OPTIONS: import("@venizia/ignis-inversion").TBindingKey<TAuthenticationRestOptions>;
     /** What an application binds for JWT or JWKS: the options with their `standard` (JWS or JWKS). */
-    static readonly JWT_OPTIONS: string & {
-        readonly valueType?: ((value: TJWTTokenServiceOptions) => void) | undefined;
-    };
+    static readonly JWT_OPTIONS: import("@venizia/ignis-inversion").TBindingKey<TJWTTokenServiceOptions>;
     /** Internal. The inner options of a JWS setup, bound by the component from `JWT_OPTIONS` and injected by `JWSTokenService`. */
-    static readonly JWS_OPTIONS: string & {
-        readonly valueType?: ((value: IJWSTokenServiceOptions) => void) | undefined;
-    };
+    static readonly JWS_OPTIONS: import("@venizia/ignis-inversion").TBindingKey<IJWSTokenServiceOptions>;
     /** Internal. The options of a JWKS issuer, bound by the component from `JWT_OPTIONS` and injected by `JWKSIssuerTokenService`. */
-    static readonly JWKS_ISSUER_OPTIONS: string & {
-        readonly valueType?: ((value: IJWKSIssuerOptions) => void) | undefined;
-    };
+    static readonly JWKS_ISSUER_OPTIONS: import("@venizia/ignis-inversion").TBindingKey<IJWKSIssuerOptions>;
     /** Internal. The options of a JWKS verifier, bound by the component from `JWT_OPTIONS` and injected by `JWKSVerifierTokenService`. */
-    static readonly JWKS_VERIFIER_OPTIONS: string & {
-        readonly valueType?: ((value: IJWKSVerifierOptions) => void) | undefined;
-    };
-    static readonly BASIC_OPTIONS: string & {
-        readonly valueType?: ((value: TBasicTokenServiceOptions) => void) | undefined;
-    };
-    static readonly SERVICE_OPTIONS: string & {
-        readonly valueType?: ((value: IServiceAuthOptions<import("hono").Env>) => void) | undefined;
-    };
-    static readonly SERVICE_CERTS_PATH: string & {
-        readonly valueType?: ((value: string) => void) | undefined;
-    };
+    static readonly JWKS_VERIFIER_OPTIONS: import("@venizia/ignis-inversion").TBindingKey<IJWKSVerifierOptions>;
+    static readonly BASIC_OPTIONS: import("@venizia/ignis-inversion").TBindingKey<TBasicTokenServiceOptions>;
+    static readonly SERVICE_OPTIONS: import("@venizia/ignis-inversion").TBindingKey<IServiceAuthOptions<import("hono").Env>>;
+    static readonly SERVICE_CERTS_PATH: import("@venizia/ignis-inversion").TBindingKey<string>;
 }
 ```
 
@@ -1346,12 +1330,8 @@ Container binding keys for the authorize options, the always-allow roles, and (t
 
 ```ts
 export declare class AuthorizeBindingKeys {
-    static readonly OPTIONS: string & {
-        readonly valueType?: ((value: IAuthorizeOptions) => void) | undefined;
-    };
-    static readonly ALWAYS_ALLOW_ROLES: string & {
-        readonly valueType?: ((value: string[]) => void) | undefined;
-    };
+    static readonly OPTIONS: TBindingKey<IAuthorizeOptions>;
+    static readonly ALWAYS_ALLOW_ROLES: TBindingKey<string[]>;
     /** The options of the enforcer named `name`; their type is the enforcer's, so the caller names it: `enforcerOptions<ICasbinOptions>(name)`. */
     static enforcerOptions<T = unknown>(name: string): TBindingKey<T>;
 }
@@ -1475,7 +1455,7 @@ Base of every component: `configure()` stores the options once, then runs `bindi
 
 ```ts
 export declare abstract class BaseComponent<ConfigurableOptions extends object = {}> extends BaseHelper implements IConfigurable<ConfigurableOptions> {
-    protected bindings: Record<TBindingKey, Binding>;
+    protected bindings: Record<string, Binding>;
     protected initDefault: TInitDefault;
     protected isConfigured: boolean;
     /** What `application.component(Ctor, { options })` handed this instance, set before `binding()` runs. Optional, not defaulted to `{}`: a component registered through `configs.artifacts` gets no options and uses `??` to fall back to its binding, which an empty object would silently defeat. */
@@ -1483,7 +1463,7 @@ export declare abstract class BaseComponent<ConfigurableOptions extends object =
     constructor(opts: {
         scope: string;
         initDefault?: TInitDefault;
-        bindings?: Record<TBindingKey, Binding>;
+        bindings?: Record<string, Binding>;
     });
     abstract binding(): ValueOrPromise<void>;
     /** Override this, not the field, to resolve options lazily. */
@@ -2031,13 +2011,13 @@ Core binding keys for fundamental application components and configuration.
 
 ```ts
 export declare class CoreBindings extends BindingKeys {
-    static readonly APPLICATION_INSTANCE = "@app/instance";
-    static readonly APPLICATION_SERVER = "@app/server";
-    static readonly APPLICATION_CONFIG = "@app/config";
-    static readonly APPLICATION_PROJECT_ROOT = "@app/project_root";
-    static readonly APPLICATION_ROOT_ROUTER = "@app/router/root";
-    static readonly APPLICATION_ENVIRONMENTS = "@app/environments";
-    static readonly APPLICATION_MIDDLEWARE_OPTIONS = "@app/middleware_options";
+    static readonly APPLICATION_INSTANCE: import("@venizia/ignis-inversion").TBindingKey<unknown>;
+    static readonly APPLICATION_SERVER: import("@venizia/ignis-inversion").TBindingKey<unknown>;
+    static readonly APPLICATION_CONFIG: import("@venizia/ignis-inversion").TBindingKey<unknown>;
+    static readonly APPLICATION_PROJECT_ROOT: import("@venizia/ignis-inversion").TBindingKey<string>;
+    static readonly APPLICATION_ROOT_ROUTER: import("@venizia/ignis-inversion").TBindingKey<unknown>;
+    static readonly APPLICATION_ENVIRONMENTS: import("@venizia/ignis-inversion").TBindingKey<unknown>;
+    static readonly APPLICATION_MIDDLEWARE_OPTIONS: import("@venizia/ignis-inversion").TBindingKey<unknown>;
 }
 ```
 
@@ -3774,7 +3754,7 @@ Source: `packages/kernel/src/base/events/common/types.ts`
 ```ts
 export interface IEventHandlerBindingKeyReference {
     type: typeof EventHandlerTypes.BINDING_KEY;
-    key: string;
+    key: TBindingKey<IEventHandler>;
 }
 ```
 
@@ -4546,7 +4526,7 @@ One `@provide` method: the key it binds, and the binding scope of the value.
 ```ts
 export interface IProvideMetadata {
     methodName: string | symbol;
-    key: string;
+    key: TBindingKey;
     /** @default BindingScopes.SINGLETON */
     scope?: TBindingScope;
 }
@@ -6162,7 +6142,7 @@ export declare abstract class RestApplication<AppEnv extends Env = Env, AppSchem
     protected registerDynamicBindings<T extends IConfigurable = IConfigurable>(opts: IRegisterDynamicBindingsOptions<T>): Promise<void>;
     /** The same-key guard behind every artifact registration (`component`/`controller`/`service`/`repository`/`dataSource`). `allowOverride` defaults true to match `bind()`'s overwrite behavior; `allowOverride: false` on one registration, or `bootChecks.binding.allowOverride: false` for the whole application, opts into strict mode. */
     protected assertNoBindingCollision(opts: {
-        key: string;
+        key: TBindingKey;
         allowOverride?: boolean;
         caller: string;
     }): void;
@@ -6232,9 +6212,7 @@ Binding keys of the REST component.
 ```ts
 export declare class RestBindingKeys {
     /** Untyped on purpose: `IRestComponentConfig` has no fields, so a type would check nothing. */
-    static readonly REST_COMPONENT_OPTIONS: string & {
-        readonly valueType?: ((value: unknown) => void) | undefined;
-    };
+    static readonly REST_COMPONENT_OPTIONS: import("@venizia/ignis-inversion").TBindingKey<unknown>;
 }
 ```
 
@@ -7998,7 +7976,7 @@ Options for defining the auth controller. `serviceKey` is the container key of t
 ```ts
 export type TDefineAuthControllerOpts = {
     restPath?: string;
-    serviceKey: string;
+    serviceKey: TBindingKey<IAuthService>;
     requireAuthenticatedSignUp?: boolean;
     payload?: {
         signIn?: {

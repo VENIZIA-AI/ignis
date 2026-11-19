@@ -1,5 +1,5 @@
 import { ObjectUtility } from '@venizia/ignis-helpers/common';
-import { BindingScopes } from '@venizia/ignis-inversion';
+import { BindingKeys, BindingScopes, type TBindingKey } from '@venizia/ignis-inversion';
 import type { Container } from '@/helpers/inversion/container';
 import type { TClass } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
@@ -21,12 +21,12 @@ export abstract class AbstractAuthRegistry<TItem> extends BaseHelper {
 
   protected abstract getBindingPrefix(): string;
 
-  getKey(opts: { name: string }): string {
+  getKey(opts: { name: string }): TBindingKey {
     if (!opts?.name || ObjectUtility.isEmpty({ value: opts.name })) {
       throw getError({ message: `[getKey] Invalid name | name: ${opts.name}` });
     }
 
-    return [this.getBindingPrefix(), opts.name].join('.');
+    return BindingKeys.build<unknown>({ namespace: this.getBindingPrefix(), key: opts.name });
   }
 
   /**

@@ -17,6 +17,7 @@ import {
   type IApplicationInfo,
   JWKSIssuerAuthenticationStrategy,
   ScopedCasbinAdapter,
+  BindingKeys,
 } from '@venizia/ignis';
 import { StaticAssetComponent } from '@venizia/ignis/static-asset';
 import {
@@ -117,8 +118,11 @@ export class Application extends BaseApplication {
       });
     }
 
-    await this.get<RepositoryTestService>({
-      key: { namespace: BindingNamespaces.SERVICE, key: RepositoryTestService.name },
+    await this.get({
+      key: BindingKeys.build<RepositoryTestService>({
+        namespace: BindingNamespaces.SERVICE,
+        key: RepositoryTestService.name,
+      }),
     }).runAllTests();
   }
 
@@ -127,8 +131,11 @@ export class Application extends BaseApplication {
    * user's policy lines are cached in Redis for five minutes.
    */
   private registerAuthorizationEnforcer(): void {
-    const dataSource = this.get<PostgresDataSource>({
-      key: { namespace: BindingNamespaces.DATASOURCE, key: PostgresDataSource.name },
+    const dataSource = this.get({
+      key: BindingKeys.build<PostgresDataSource>({
+        namespace: BindingNamespaces.DATASOURCE,
+        key: PostgresDataSource.name,
+      }),
     });
 
     const adapter = new ScopedCasbinAdapter({

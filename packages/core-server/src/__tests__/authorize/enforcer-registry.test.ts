@@ -1,5 +1,9 @@
 import { describe, test, expect } from 'bun:test';
-import { AuthorizationEnforcerTypes, AuthorizeBindingKeys } from '@venizia/ignis-kernel';
+import {
+  AuthorizationEnforcerTypes,
+  AuthorizeBindingKeys,
+  BindingKeys,
+} from '@venizia/ignis-kernel';
 import { AuthorizationEnforcerRegistry } from '@venizia/ignis-kernel';
 import type { IAuthorizeOptions } from '@venizia/ignis-kernel';
 import { Container } from '@venizia/ignis-kernel';
@@ -15,13 +19,13 @@ describe('AuthorizationEnforcerRegistry', () => {
   test('should generate enforcer keys', () => {
     const registry = AuthorizationEnforcerRegistry.getInstance();
     const key = registry.getKey({ name: 'test' });
-    expect(key).toBe('authorization.enforcer.test');
+    expect(String(key)).toBe('authorization.enforcer.test');
   });
 
   test('should generate enforcer keys for casbin', () => {
     const registry = AuthorizationEnforcerRegistry.getInstance();
     const key = registry.getKey({ name: 'casbin' });
-    expect(key).toBe('authorization.enforcer.casbin');
+    expect(String(key)).toBe('authorization.enforcer.casbin');
   });
 
   describe('register and resolve', () => {
@@ -45,7 +49,7 @@ describe('AuthorizationEnforcerRegistry', () => {
       });
 
       const isBound = container.isBound({
-        key: 'authorization.enforcer.test',
+        key: BindingKeys.build<unknown>({ key: 'authorization.enforcer.test' }),
       });
       expect(isBound).toBe(true);
     });
@@ -102,8 +106,12 @@ describe('AuthorizationEnforcerRegistry', () => {
         ],
       });
 
-      const isBoundTest = container.isBound({ key: 'authorization.enforcer.test' });
-      const isBoundCustom = container.isBound({ key: 'authorization.enforcer.custom' });
+      const isBoundTest = container.isBound({
+        key: BindingKeys.build<unknown>({ key: 'authorization.enforcer.test' }),
+      });
+      const isBoundCustom = container.isBound({
+        key: BindingKeys.build<unknown>({ key: 'authorization.enforcer.custom' }),
+      });
       expect(isBoundTest).toBe(true);
       expect(isBoundCustom).toBe(true);
     });

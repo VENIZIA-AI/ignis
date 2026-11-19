@@ -86,9 +86,9 @@ For other values or more complex setups, use the `bind` method directly.
 
 ```typescript
 // In your application class's preConfigure()
-this.bind<MyCustomClass>({ key: 'MyCustomClass' }).toClass(MyCustomClass);
+this.bind({ key: BindingKeys.build<MyCustomClass>({ key: 'MyCustomClass' }) }).toClass(MyCustomClass);
 
-this.bind<string>({ key: 'API_KEY' }).toValue('my-secret-api-key');
+this.bind({ key: BindingKeys.build<string>({ key: 'API_KEY' }) }).toValue('my-secret-api-key');
 ```
 
 ### Binding Scopes
@@ -99,9 +99,9 @@ You can control the lifecycle of your dependencies with scopes.
 -   **`SINGLETON`**: A single instance is created once and cached. All subsequent resolutions return the same instance.
 
 ```typescript
-import { BindingScopes } from '@venizia/ignis-inversion';
+import { BindingScopes, BindingKeys } from '@venizia/ignis-inversion';
 
-this.bind({ key: 'services.MySingletonService' })
+this.bind({ key: BindingKeys.build<MySingletonService>({ key: 'services.MySingletonService' }) })
   .toClass(MySingletonService)
   .setScope(BindingScopes.SINGLETON); // Use SINGLETON for this service
 ```
@@ -111,7 +111,7 @@ this.bind({ key: 'services.MySingletonService' })
 Bindings are automatically tagged with their namespace prefix. For example, a binding with key `'services.UserService'` is auto-tagged with `'services'`. You can also add custom tags:
 
 ```typescript
-this.bind({ key: 'services.UserService' })
+this.bind({ key: BindingKeys.build<UserService>({ key: 'services.UserService' }) })
   .toClass(UserService)
   .setTags('critical', 'user-domain');
 ```
@@ -127,13 +127,13 @@ Tags are used by the container's `findByTag()` method to discover bindings by ca
 This makes dependencies explicit and ensures they are available right away.
 
 ```typescript
-import { BaseRestController, controller, inject } from '@venizia/ignis';
+import { BaseRestController, controller, inject, BindingKeys } from '@venizia/ignis';
 import { UserService } from '../services/user.service';
 
 @controller({ path: '/users' })
 export class UserController extends BaseRestController {
   constructor(
-    @inject({ key: 'services.UserService' })
+    @inject({ key: BindingKeys.build<UserService>({ key: 'services.UserService' }) })
     private userService: UserService
   ) {
     super({ scope: UserController.name });
@@ -148,11 +148,11 @@ export class UserController extends BaseRestController {
 You can also inject dependencies directly as class properties.
 
 ```typescript
-import { inject } from '@venizia/ignis';
+import { inject, BindingKeys } from '@venizia/ignis';
 import { UserService } from '../services/user.service';
 
 export class UserComponent {
-  @inject({ key: 'services.UserService' })
+  @inject({ key: BindingKeys.build<UserService>({ key: 'services.UserService' }) })
   private userService: UserService;
 
   // ...
@@ -165,7 +165,7 @@ Mark a dependency as optional to avoid errors when it's not bound:
 
 ```typescript
 constructor(
-  @inject({ key: 'services.CacheService', isOptional: true })
+  @inject({ key: BindingKeys.build<unknown>({ key: 'services.CacheService' }), isOptional: true })
   private cache?: CacheService
 ) {
   super({ scope: MyService.name });
@@ -181,9 +181,9 @@ Providers are used for dependencies that require complex setup logic. A provider
 
 ```typescript
 // In your application class
-this.bind<ThirdPartyApiClient>({ key: 'services.ApiClient' })
+this.bind({ key: BindingKeys.build<ThirdPartyApiClient>({ key: 'services.ApiClient' }) })
   .toProvider((container) => {
-    const config = container.get<IConfig>({ key: 'configs.api' });
+    const config = container.get({ key: BindingKeys.build<IConfig>({ key: 'configs.api' }) });
     return new ThirdPartyApiClient({
       apiKey: config.apiKey,
       baseUrl: config.baseUrl,
@@ -194,11 +194,11 @@ this.bind<ThirdPartyApiClient>({ key: 'services.ApiClient' })
 ### Class-Based Provider
 
 ```typescript
-import { IProvider, Container } from '@venizia/ignis-inversion';
+import { IProvider, Container, BindingKeys } from '@venizia/ignis-inversion';
 
 export class ApiClientProvider implements IProvider<ThirdPartyApiClient> {
   value(container: Container): ThirdPartyApiClient {
-    const config = container.get<IConfig>({ key: 'configs.api' });
+    const config = container.get({ key: BindingKeys.build<IConfig>({ key: 'configs.api' }) });
     const client = new ThirdPartyApiClient({
       apiKey: config.apiKey,
       baseUrl: config.baseUrl,
@@ -213,7 +213,7 @@ You would then bind this provider in your application:
 
 ```typescript
 // In your application class
-this.bind<ThirdPartyApiClient>({ key: 'services.ApiClient' })
+this.bind({ key: BindingKeys.build<ThirdPartyApiClient>({ key: 'services.ApiClient' }) })
   .toProvider(ApiClientProvider);
 ```
 
@@ -224,27 +224,27 @@ You can create independent DI containers using the `Container` class directly. T
 ### Creating an Independent Container
 
 ```typescript
-import { Container, BindingScopes } from '@venizia/ignis-inversion';
+import { Container, BindingScopes, BindingKeys } from '@venizia/ignis-inversion';
 
 // Create a standalone container
 const container = new Container({ scope: 'MyCustomContainer' });
 
 // Bind dependencies
-container.bind({ key: 'config.apiKey' }).toValue('my-secret-key');
-container.bind({ key: 'services.Logger' }).toClass(LoggerService);
-container.bind({ key: 'services.Cache' })
+container.bind({ key: BindingKeys.build<unknown>({ key: 'config.apiKey' }) }).toValue('my-secret-key');
+container.bind({ key: BindingKeys.build<LoggerService>({ key: 'services.Logger' }) }).toClass(LoggerService);
+container.bind({ key: BindingKeys.build<CacheService>({ key: 'services.Cache' }) })
   .toClass(CacheService)
   .setScope(BindingScopes.SINGLETON);
 
 // Resolve dependencies
-const logger = container.get<LoggerService>({ key: 'services.Logger' });
-const apiKey = container.get<string>({ key: 'config.apiKey' });
+const logger = container.get({ key: BindingKeys.build<LoggerService>({ key: 'services.Logger' }) });
+const apiKey = container.get({ key: BindingKeys.build<string>({ key: 'config.apiKey' }) });
 
 // Resolve multiple at once
 const [svcA, svcB] = container.gets<[ServiceA, ServiceB]>({
   bindings: [
-    { key: 'services.A' },
-    { key: 'services.B', isOptional: true },
+    { key: BindingKeys.build<unknown>({ key: 'services.A' }) },
+    { key: BindingKeys.build<unknown>({ key: 'services.B' }), isOptional: true },
   ],
 });
 ```
@@ -262,7 +262,7 @@ const [svcA, svcB] = container.gets<[ServiceA, ServiceB]>({
 ### Example: Testing with Isolated Container
 
 ```typescript
-import { Container } from '@venizia/ignis-inversion';
+import { Container, BindingKeys } from '@venizia/ignis-inversion';
 import { describe, it, expect, beforeEach } from 'bun:test';
 
 describe('UserService', () => {
@@ -273,15 +273,15 @@ describe('UserService', () => {
     container = new Container({ scope: 'TestContainer' });
 
     // Bind mock dependencies
-    container.bind({ key: 'repositories.UserRepository' }).toValue({
+    container.bind({ key: BindingKeys.build<unknown>({ key: 'repositories.UserRepository' }) }).toValue({
       findById: async () => ({ id: '1', name: 'Test User' }),
     });
 
-    container.bind({ key: 'services.UserService' }).toClass(UserService);
+    container.bind({ key: BindingKeys.build<UserService>({ key: 'services.UserService' }) }).toClass(UserService);
   });
 
   it('should find user by id', async () => {
-    const userService = container.get<UserService>({ key: 'services.UserService' });
+    const userService = container.get({ key: BindingKeys.build<UserService>({ key: 'services.UserService' }) });
     const user = await userService.findById({ id: '1' });
 
     expect(user.name).toBe('Test User');

@@ -54,7 +54,7 @@ export class Application extends BaseApplication {
     this.bind({ key: AuthenticateBindingKeys.REST_OPTIONS }).toValue({
       useAuthController: true,
       controllerOpts: {
-        serviceKey: BindingKeys.build({
+        serviceKey: BindingKeys.build<AuthenticationService>({
           namespace: BindingNamespaces.SERVICE,
           key: AuthenticationService.name,
         }),

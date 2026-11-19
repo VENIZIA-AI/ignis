@@ -2,9 +2,13 @@
 // can evaluate these modules before the entry does.
 import { inject } from '../../modules/metadata/injectors';
 import { metadataRegistry } from '../../modules/registry';
+import { BindingKeys } from '@/modules/binding/common/constants';
 
 class Consumer {
-  constructor(@inject({ key: 'values.dependency' }) readonly dependency: string) {}
+  constructor(
+    @inject({ key: BindingKeys.build<unknown>({ key: 'values.dependency' }) })
+    readonly dependency: string,
+  ) {}
 }
 
 const injects = metadataRegistry.getInjectMetadata({ target: Consumer });

@@ -4,7 +4,7 @@ import type {
   TBindingScope,
 } from '@/helpers/inversion';
 import { ArtifactNamespaces, BindingNamespaces } from '@/common/bindings';
-import { ArtifactTypes, MetadataRegistry } from '@/helpers/inversion';
+import { ArtifactTypes, MetadataRegistry, type TBindingKey } from '@/helpers/inversion';
 import { ArtifactBindingKeys } from './artifact-keys';
 import { getError } from '@venizia/ignis-helpers/core';
 
@@ -113,7 +113,7 @@ export const configuration = <ApplicationType = unknown>(
 };
 
 /** Marks a component method as the provider of `key`. `registerArtifacts` binds the key to a lazy provider that resolves the component and calls the method; SINGLETON unless `scope` says otherwise. */
-export const provide = (opts: { key: string; scope?: TBindingScope }): MethodDecorator => {
+export const provide = (opts: { key: TBindingKey; scope?: TBindingScope }): MethodDecorator => {
   return (target, propertyKey) => {
     MetadataRegistry.getInstance().addProvideMetadata({
       target: target.constructor,

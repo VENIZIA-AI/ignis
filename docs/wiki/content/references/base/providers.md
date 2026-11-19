@@ -136,7 +136,7 @@ class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
 // ✅ Configuration-based instance creation
 class DatabaseProvider extends BaseProvider<Database> {
   value(container: Container): Database {
-    const config = container.get<IDatabaseConfig>({ key: 'configs.database' });
+    const config = container.get({ key: BindingKeys.build<IDatabaseConfig>({ key: 'configs.database' }) });
     return new Database({
       host: config.host,
       port: config.port,
@@ -233,10 +233,10 @@ Register the provider with `.toProvider()`. Consumers then `get()` the **produce
 
 ```typescript
 // In your application (e.g. preConfigure)
-this.bind<ILogger>({ key: 'providers.Logger' }).toProvider(LoggerProvider);
+this.bind({ key: BindingKeys.build<ILogger>({ key: 'providers.Logger' }) }).toProvider(LoggerProvider);
 
 // Consumers receive the produced ILogger directly
-const logger = this.get<ILogger>({ key: 'providers.Logger' });
+const logger = this.get({ key: BindingKeys.build<ILogger>({ key: 'providers.Logger' }) });
 ```
 
 ### Factory Function Provider
@@ -246,6 +246,7 @@ Providers can return factory functions for deferred instantiation:
 ```typescript
 import { getError } from '@venizia/ignis-helpers';
 import { HTTP } from '@venizia/ignis-helpers/common';
+import { BindingKeys } from '@venizia/ignis';
 
 type TGetMailTransportFn = (options: MailOptions) => IMailTransport;
 
@@ -272,10 +273,10 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
 }
 
 // Registration
-app.bind({ key: 'providers.MailTransport' }).toProvider(MailTransportProvider);
+app.bind({ key: BindingKeys.build<unknown>({ key: 'providers.MailTransport' }) }).toProvider(MailTransportProvider);
 
 // Usage - get() returns the factory function produced by value()
-const getTransport = app.get<TGetMailTransportFn>({ key: 'providers.MailTransport' });
+const getTransport = app.get({ key: BindingKeys.build<TGetMailTransportFn>({ key: 'providers.MailTransport' }) });
 const transport = getTransport({ provider: 'nodemailer', config: {...} });
 ```
 
@@ -291,7 +292,7 @@ export class DatabaseProvider extends BaseProvider<Database> {
 
   value(container: Container): Database {
     // Resolve dependencies from container
-    const config = container.get<IDatabaseConfig>({ key: 'configs.database' });
+    const config = container.get({ key: BindingKeys.build<IDatabaseConfig>({ key: 'configs.database' }) });
 
     const database = new Database({
       host: config.host,
@@ -338,12 +339,12 @@ graph TD
 ```typescript
 // Singleton: value() runs once, produced instance is cached by the container
 app
-  .bind({ key: 'providers.Database' })
+  .bind({ key: BindingKeys.build<unknown>({ key: 'providers.Database' }) })
   .toProvider(DatabaseProvider)
   .setScope(BindingScopes.SINGLETON);
 
 // Transient (default): value() runs on every get()
-app.bind({ key: 'providers.Database' }).toProvider(DatabaseProvider);
+app.bind({ key: BindingKeys.build<unknown>({ key: 'providers.Database' }) }).toProvider(DatabaseProvider);
 ```
 
 
@@ -541,7 +542,7 @@ export class S3StorageProvider extends BaseProvider<S3Storage> {
   }
 
   value(container: Container): S3Storage {
-    const config = container.get<IS3Config>({ key: 'configs.s3' });
+    const config = container.get({ key: BindingKeys.build<IS3Config>({ key: 'configs.s3' }) });
 
     // Validate configuration
     if (!config?.accessKey || !config?.secretKey || !config?.bucket) {
@@ -570,7 +571,7 @@ export class DatabaseConnectionProvider extends BaseProvider<DatabaseConnection>
   value(container: Container): DatabaseConnection {
     if (!this.connection) {
       this.logger.info('[value] Creating database connection');
-      const config = container.get<IDatabaseConfig>({ key: 'configs.database' });
+      const config = container.get({ key: BindingKeys.build<IDatabaseConfig>({ key: 'configs.database' }) });
       this.connection = new DatabaseConnection(config.url);
     } else {
       this.logger.debug('[value] Reusing existing connection');
@@ -597,7 +598,7 @@ export class CacheProvider extends BaseProvider<ICache> {
 
     if (env === 'production') {
       this.logger.info('[value] Using RedisCache for production');
-      const config = container.get<IRedisConfig>({ key: 'configs.redis' });
+      const config = container.get({ key: BindingKeys.build<IRedisConfig>({ key: 'configs.redis' }) });
       return new RedisCache({
         host: config.host,
         port: config.port,
@@ -617,11 +618,11 @@ export class CacheProvider extends BaseProvider<ICache> {
 
 ```typescript
 // ❌ Wrong: Expecting the provider instance and calling value() yourself
-const provider = app.get<MailTransportProvider>({ key: 'providers.MailTransport' });
+const provider = app.get({ key: BindingKeys.build<MailTransportProvider>({ key: 'providers.MailTransport' }) });
 const getTransport = provider.value(container); // provider is NOT the instance - this fails
 
 // ✅ Correct: get() already returns the produced value (the container calls value() for you)
-const getTransport = app.get<TGetMailTransportFn>({ key: 'providers.MailTransport' });
+const getTransport = app.get({ key: BindingKeys.build<TGetMailTransportFn>({ key: 'providers.MailTransport' }) });
 const transport = getTransport({ provider: 'nodemailer' });
 ```
 
@@ -649,7 +650,7 @@ export class GoodProvider extends BaseProvider<Database> {
   }
 
   value(container: Container): Database {
-    const config = container.get<IDatabaseConfig>({ key: 'configs.database' });
+    const config = container.get({ key: BindingKeys.build<IDatabaseConfig>({ key: 'configs.database' }) });
     return new Database(config.url);
   }
 }
@@ -660,12 +661,12 @@ export class GoodProvider extends BaseProvider<Database> {
 ```typescript
 // ❌ Wrong: No error handling
 value(container: Container): IMailTransport {
-  return new MailTransport(container.get({ key: 'configs.mail' })); // Might throw
+  return new MailTransport(container.get({ key: BindingKeys.build<unknown>({ key: 'configs.mail' }) })); // Might throw
 }
 
 // ✅ Correct: Validate and handle errors
 value(container: Container): IMailTransport {
-  const mailConfig = container.get<IMailConfig>({ key: 'configs.mail', isOptional: true });
+  const mailConfig = container.get({ key: BindingKeys.build<IMailConfig>({ key: 'configs.mail' }), isOptional: true });
 
   if (!mailConfig) {
     throw getError({ message: 'Mail configuration is missing' });

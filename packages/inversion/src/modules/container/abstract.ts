@@ -15,31 +15,18 @@ export abstract class AbstractContainer extends BaseHelper implements IContainer
   abstract bind<T>(opts: { key: TBindingKey<T> }): IBinding<T>;
   abstract bind(opts: { key: TBindingKey }): IBinding;
   abstract isBound(opts: { key: TBindingKey }): boolean;
-  abstract getBinding<T>(opts: {
-    key: TBindingKey<T> | { namespace: string; key: string };
-  }): TNullable<IBinding<T>>;
-  abstract getBinding(opts: {
-    key: TBindingKey | { namespace: string; key: string };
-  }): TNullable<IBinding>;
+  abstract getBinding<T>(opts: { key: TBindingKey<T> }): TNullable<IBinding<T>>;
+  abstract getBinding(opts: { key: TBindingKey }): TNullable<IBinding>;
   abstract unbind(opts: { key: TBindingKey }): boolean;
   abstract set<T>(opts: { binding: IBinding<T> }): void;
 
-  abstract get<T>(opts: {
-    key: TBindingKey<T> | { namespace: string; key: string };
-    isOptional?: false;
-  }): T;
-  abstract get<T>(opts: {
-    key: TBindingKey<T> | { namespace: string; key: string };
-    isOptional?: boolean;
-  }): T | undefined;
-  abstract get(opts: {
-    key: TBindingKey | { namespace: string; key: string };
-    isOptional?: boolean;
-  }): unknown;
+  abstract get<T>(opts: { key: TBindingKey<T>; isOptional?: false }): T;
+  abstract get<T>(opts: { key: TBindingKey<T>; isOptional?: boolean }): T | undefined;
+  abstract get(opts: { key: TBindingKey; isOptional?: boolean }): unknown;
   abstract gets<T extends unknown[]>(opts: {
     bindings: {
       [K in keyof T]: {
-        key: TBindingKey<T[K]> | { namespace: string; key: string };
+        key: TBindingKey<T[K]>;
         isOptional?: boolean;
       };
     };

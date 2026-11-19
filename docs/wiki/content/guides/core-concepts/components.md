@@ -49,7 +49,7 @@ import {
   controller,
   CoreBindings,
   inject,
-  ValueOrPromise,
+  ValueOrPromise, BindingKeys,
 } from '@venizia/ignis';
 
 // Define a service
@@ -61,7 +61,7 @@ class NotificationService {
 @controller({ path: '/notifications' })
 class NotificationController extends BaseRestController {
   constructor(
-    @inject({ key: 'services.NotificationService' })
+    @inject({ key: BindingKeys.build<NotificationService>({ key: 'services.NotificationService' }) })
     private _notificationService: NotificationService
   ) {
     super({ scope: NotificationController.name });
@@ -78,7 +78,7 @@ export class NotificationComponent extends BaseComponent {
       scope: NotificationComponent.name,
       initDefault: { enable: true, container: _application },
       bindings: {
-        'services.NotificationService': Binding.bind({ key: 'services.NotificationService' })
+        'services.NotificationService': Binding.bind({ key: BindingKeys.build<NotificationService>({ key: 'services.NotificationService' }) })
           .toClass(NotificationService),
       },
     });

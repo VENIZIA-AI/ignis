@@ -86,7 +86,10 @@ const writeIntoInheritedList = <Target extends object = object>(opts: {
 };
 
 const buildDataSourceKey = (opts: { dataSource: Function }) =>
-  BindingKeys.build({ namespace: BindingNamespaces.DATASOURCE, key: opts.dataSource.name });
+  BindingKeys.build<unknown>({
+    namespace: BindingNamespaces.DATASOURCE,
+    key: opts.dataSource.name,
+  });
 
 /** The datasource the container hands each repository: two bound values tell the two apart. */
 const resolveDataSources = (opts: {

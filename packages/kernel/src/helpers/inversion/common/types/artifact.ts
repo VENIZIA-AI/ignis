@@ -1,5 +1,5 @@
 import type { TClass, TConstValue, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import type { TBindingScope } from '@venizia/ignis-inversion';
+import type { TBindingKey, TBindingScope } from '@venizia/ignis-inversion';
 import { type ArtifactTypes } from '../constants';
 
 /** Decorator target for any constructable class (includes Function for ClassDecorator). */
@@ -39,7 +39,7 @@ export interface IArtifactMetadata<
 /** One `@provide` method: the key it binds, and the binding scope of the value. */
 export interface IProvideMetadata {
   methodName: string | symbol;
-  key: string;
+  key: TBindingKey;
 
   /** @default BindingScopes.SINGLETON */
   scope?: TBindingScope;

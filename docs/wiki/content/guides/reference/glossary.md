@@ -25,6 +25,7 @@ Details on a few terms:
 ```typescript
 // Decorators mark the classes; the config registers them all
 import AutoArtifacts from '@venizia/ignis-boot/auto';
+import { BindingKeys } from '@venizia/ignis';
 
 export const appConfigs: IApplicationConfigs = {
   path: { base: '/api', isStrict: true },
@@ -43,7 +44,7 @@ const TodoRoutes = {
 @controller({ path: '/todos' })
 export class TodoController extends BaseRestController {
   constructor(
-    @inject({ key: 'repositories.TodoRepository' })
+    @inject({ key: BindingKeys.build<TodoRepository>({ key: 'repositories.TodoRepository' }) })
     private repository: TodoRepository,
   ) {
     super({ scope: TodoController.name });
@@ -90,7 +91,7 @@ class TodoController {
 // ✅ With DI - receives from container
 class TodoController {
   constructor(
-    @inject({ key: 'repositories.TodoRepository' })
+    @inject({ key: BindingKeys.build<TodoRepository>({ key: 'repositories.TodoRepository' }) })
     private repository: TodoRepository
   ) {}
 }
@@ -102,10 +103,10 @@ Container stores all dependencies. Binding registers classes/values under keys.
 ```typescript
 // Register in Application
 this.repository(TodoRepository);  // Key: 'repositories.TodoRepository'
-this.bind({ key: 'config.apiKey' }).toValue('sk_live_xxx');
+this.bind({ key: BindingKeys.build<unknown>({ key: 'config.apiKey' }) }).toValue('sk_live_xxx');
 
 // Resolve via @inject
-@inject({ key: 'repositories.TodoRepository' }) private repository: TodoRepository;
+@inject({ key: BindingKeys.build<unknown>({ key: 'repositories.TodoRepository' }) }) private repository: TodoRepository;
 ```
 
 ### Generic Types

@@ -6,6 +6,7 @@ import {
   controller,
   inject,
   unary,
+  BindingKeys,
 } from '@venizia/ignis';
 import {
   GreeterService as GreeterServiceDef,
@@ -21,7 +22,7 @@ import {
 })
 export class GreeterController extends BaseGrpcController {
   constructor(
-    @inject({ key: 'services.GreeterService' })
+    @inject({ key: BindingKeys.build<GreeterService>({ key: 'services.GreeterService' }) })
     private readonly greeterService: GreeterService,
   ) {
     super({ scope: 'GreeterController', path: '/grpc' });

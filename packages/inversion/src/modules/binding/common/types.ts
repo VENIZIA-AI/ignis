@@ -1,5 +1,5 @@
 import type { IContainer } from '../../container/common/types';
-import { type TClass, type TConstValue } from '@/common/types';
+import { type TBindingKey, type TClass, type TConstValue } from '@/common/types';
 import type { BindingValueTypes, TBindingScope } from './constants';
 
 /** A value source resolved against a container; `value` runs on each resolution of the binding it backs. */
@@ -24,8 +24,8 @@ export type TBindingResolverValue<T> = TClass<T> | T | TBindingProvider<T>;
 
 /** A container entry: one key bound to a class, a value or a provider, with a scope and tags. */
 export interface IBinding<T = unknown> {
-  /** Normalized at construction - a symbol key arrives here as its string form. */
-  key: string;
+  /** The key the binding is stored under, with the type of its value. */
+  key: TBindingKey<T>;
 
   toClass(value: TClass<T>): this;
   toValue(value: T): this;

@@ -24,14 +24,14 @@ Controllers stay thin. Repositories stay dumb. Everything in between is a servic
 Extend `BaseService`, decorate the class with `@service()`, and call `super({ scope: ClassName.name })` in the constructor:
 
 ```typescript
-import { BaseService, inject, service } from '@venizia/ignis';
+import { BaseService, inject, service, BindingKeys } from '@venizia/ignis';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 import { UserRepository } from '../repositories';
 
 @service()
 export class UserService extends BaseService {
   constructor(
-    @inject({ key: 'repositories.UserRepository' })
+    @inject({ key: BindingKeys.build<UserRepository>({ key: 'repositories.UserRepository' }) })
     private userRepository: UserRepository,
   ) {
     super({ scope: UserService.name });
@@ -97,10 +97,10 @@ Use `@inject({ key })` on each constructor parameter. Two equivalent forms:
 
 ```typescript
 constructor(
-  @inject({ key: 'repositories.UserRepository' })
+  @inject({ key: BindingKeys.build<unknown>({ key: 'repositories.UserRepository' }) })
   private userRepository: UserRepository,
 
-  @inject({ key: 'services.NotificationService' })
+  @inject({ key: BindingKeys.build<unknown>({ key: 'services.NotificationService' }) })
   private notificationService: NotificationService,
 ) {
   super({ scope: UserService.name });
@@ -114,7 +114,7 @@ import { BindingKeys, BindingNamespaces } from '@venizia/ignis';
 
 constructor(
   @inject({
-    key: BindingKeys.build({
+    key: BindingKeys.build<unknown>({
       namespace: BindingNamespaces.REPOSITORY,  // 'repositories'
       key: UserRepository.name,                 // 'UserRepository'
     }),
@@ -162,7 +162,7 @@ Services can inject other services the same way they inject repositories. This i
 export class RepositoryTestService extends BaseService {
   constructor(
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<CrudTestService>({
         namespace: BindingNamespaces.SERVICE,
         key: CrudTestService.name,
       }),
@@ -170,7 +170,7 @@ export class RepositoryTestService extends BaseService {
     private readonly crudTestService: CrudTestService,
 
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<TransactionTestService>({
         namespace: BindingNamespaces.SERVICE,
         key: TransactionTestService.name,
       }),
@@ -196,7 +196,7 @@ export class RepositoryTestService extends BaseService {
 The following is representative of `examples/vert/src/services/authentication.service.ts`. It shows the complete pattern: multiple injected dependencies, method-scoped logging, error handling, and calling other services.
 
 ```typescript
-import { BaseService, IAuthService, inject, JWKSIssuerTokenService, service, TContext } from '@venizia/ignis';
+import { BaseService, IAuthService, inject, JWKSIssuerTokenService, service, TContext, BindingKeys } from '@venizia/ignis';
 import { getError, HTTP, CredentialHelper } from '@venizia/ignis-helpers';
 import { Env } from 'hono';
 
@@ -207,11 +207,11 @@ export class AuthenticationService
 {
   constructor(
     // Inject a repository by string key
-    @inject({ key: 'repositories.UserRepository' })
+    @inject({ key: BindingKeys.build<UserRepository>({ key: 'repositories.UserRepository' }) })
     private userRepository: UserRepository,
 
     // Inject a built-in framework service by string key
-    @inject({ key: 'services.JWKSIssuerTokenService' })
+    @inject({ key: BindingKeys.build<JWKSIssuerTokenService>({ key: 'services.JWKSIssuerTokenService' }) })
     private jwksTokenService: JWKSIssuerTokenService,
   ) {
     super({ scope: AuthenticationService.name });
@@ -279,13 +279,13 @@ Use a datasource reference to begin a transaction, then pass the transaction han
 ```typescript
 export class CheckoutService extends BaseService {
   constructor(
-    @inject({ key: 'datasources.PostgresDataSource' })
+    @inject({ key: BindingKeys.build<PostgresDataSource>({ key: 'datasources.PostgresDataSource' }) })
     private dataSource: PostgresDataSource,
 
-    @inject({ key: 'repositories.OrderRepository' })
+    @inject({ key: BindingKeys.build<OrderRepository>({ key: 'repositories.OrderRepository' }) })
     private orderRepository: OrderRepository,
 
-    @inject({ key: 'repositories.InventoryRepository' })
+    @inject({ key: BindingKeys.build<InventoryRepository>({ key: 'repositories.InventoryRepository' }) })
     private inventoryRepository: InventoryRepository,
   ) {
     super({ scope: CheckoutService.name });

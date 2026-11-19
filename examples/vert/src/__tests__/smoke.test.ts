@@ -7,6 +7,7 @@ import {
   AuthorizationDecisions,
   AuthorizationPolicyVariants,
   BindingNamespaces,
+  BindingKeys,
 } from '@venizia/ignis';
 import { applicationEnvironment, getError, LoggerFactory } from '@venizia/ignis-helpers';
 import { UuidV7Generator } from '@venizia/ignis-helpers/uuid';
@@ -100,7 +101,12 @@ describe('vert', async () => {
     let baseUrl = '';
 
     const repository = <T>(opts: { name: string }) =>
-      application.get<T>({ key: { namespace: BindingNamespaces.REPOSITORY, key: opts.name } });
+      application.get<T>({
+        key: BindingKeys.build<unknown>({
+          namespace: BindingNamespaces.REPOSITORY,
+          key: opts.name,
+        }),
+      });
 
     const post = (opts: { path: string; body: object; headers?: Record<string, string> }) =>
       fetch(`${baseUrl}${opts.path}`, {

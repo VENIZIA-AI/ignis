@@ -11,7 +11,6 @@ import {
 import { EventDispatchRetry, EventHandlerTypes } from './common/constants';
 import type {
   IDomainEvent,
-  IEventHandler,
   IEventHandlerRetryOptions,
   TEventHandlerReference,
 } from './common/types';
@@ -139,7 +138,7 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
         }
 
         return {
-          invokeHandler: ({ event }) => container.get<IEventHandler>({ key }).handle({ event }),
+          invokeHandler: ({ event }) => container.get({ key }).handle({ event }),
           description: `binding-key:${key}`,
         };
       }

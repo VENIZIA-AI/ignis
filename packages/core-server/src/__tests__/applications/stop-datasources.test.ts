@@ -49,8 +49,8 @@ class StopApplication extends BaseApplication {
   setupMiddlewares(): void {}
 
   getProbeClient(): PGlite {
-    return this.get<StopProbeDataSource>({
-      key: BindingKeys.build({
+    return this.get({
+      key: BindingKeys.build<StopProbeDataSource>({
         namespace: BindingNamespaces.DATASOURCE,
         key: StopProbeDataSource.name,
       }),

@@ -1,6 +1,6 @@
 import type { TBindingNamespace } from '@/common/bindings';
 import { ArtifactNamespaces, BindingNamespaces, CoreBindings } from '@/common/bindings';
-import type { Binding, TBindingScope } from '@/helpers/inversion';
+import type { Binding, TBindingKey, TBindingScope } from '@/helpers/inversion';
 import { BindingScopes, MetadataRegistry } from '@/helpers/inversion';
 import { BindingVerifier } from '@venizia/ignis-inversion';
 import type { IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
@@ -89,7 +89,7 @@ export abstract class RestApplication<
   AppSchema extends Schema = {},
   BasePath extends string = '/',
 > extends AbstractApplication {
-  private registeredBindings: Record<string, Set<string>> = {};
+  private registeredBindings: Record<string, Set<TBindingKey>> = {};
   private artifactOptions = new Map<string, object>();
 
   /** The router, and nothing else. What runtime is underneath and what socket is bound are `ServerApplication`'s to know - a browser Worker has neither, and carrying the union here made `RuntimeModules.detect()` answer `'node'` inside a Worker. */
@@ -486,7 +486,7 @@ export abstract class RestApplication<
     const { namespace, onBeforeConfigure, onAfterConfigure } = opts;
 
     if (!this.registeredBindings[namespace]) {
-      this.registeredBindings[namespace] = new Set<string>();
+      this.registeredBindings[namespace] = new Set<TBindingKey>();
     }
 
     const configured = this.registeredBindings[namespace];
@@ -544,7 +544,7 @@ export abstract class RestApplication<
 
   /** The same-key guard behind every artifact registration (`component`/`controller`/`service`/`repository`/`dataSource`). `allowOverride` defaults true to match `bind()`'s overwrite behavior; `allowOverride: false` on one registration, or `bootChecks.binding.allowOverride: false` for the whole application, opts into strict mode. */
   protected assertNoBindingCollision(opts: {
-    key: string;
+    key: TBindingKey;
     allowOverride?: boolean;
     caller: string;
   }): void {
@@ -889,7 +889,7 @@ export abstract class RestApplication<
    * and never stops the rest. A datasource configured by hand is closed by whoever configured it.
    */
   protected async closeDataSources(): Promise<void> {
-    const keys = this.registeredBindings[BindingNamespaces.DATASOURCE] ?? new Set<string>();
+    const keys = this.registeredBindings[BindingNamespaces.DATASOURCE] ?? new Set<TBindingKey>();
     const timeoutMs = this.configs.dataSourceCloseTimeoutMs ?? 10_000;
     const logger = this.logger.for(this.closeDataSources.name);
 

@@ -633,7 +633,7 @@ Binding key: `StaticAssetBindingKeys.commitService({ name })`
 Commit while you save your own record, and clean up when the save fails. `'helpers.AssetStorage'` is a placeholder for the key your own application bound the entry's helper under, not one IGNIS provides.
 
 ```ts
-import { BaseService, inject } from '@venizia/ignis';
+import { BaseService, inject, BindingKeys } from '@venizia/ignis';
 import type { IStorageHelper } from '@venizia/ignis-helpers';
 import { StaticAssetBindingKeys } from '@venizia/ignis/static-asset';
 import type { StaticAssetUploadCommitService } from '@venizia/ignis/static-asset';
@@ -643,7 +643,7 @@ export abstract class OrderImportService extends BaseService {
     @inject({ key: StaticAssetBindingKeys.commitService({ name: 'orderImport' }) })
     private assetCommit: StaticAssetUploadCommitService,
     // Your own binding of the helper the entry was configured with.
-    @inject({ key: 'helpers.AssetStorage' }) private storage: IStorageHelper,
+    @inject({ key: BindingKeys.build<IStorageHelper>({ key: 'helpers.AssetStorage' }) }) private storage: IStorageHelper,
   ) {
     super({ scope: OrderImportService.name });
   }

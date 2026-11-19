@@ -148,16 +148,16 @@ Inject repositories, other services, or datasources via `@inject` in the constru
 ### String-literal keys
 
 ```typescript
-import { BaseService, inject } from '@venizia/ignis';
+import { BaseService, inject, BindingKeys } from '@venizia/ignis';
 import { UserRepository } from '../repositories';
 import { JWKSIssuerTokenService } from '@venizia/ignis';
 
 export class AuthenticationService extends BaseService {
   constructor(
-    @inject({ key: 'repositories.UserRepository' })
+    @inject({ key: BindingKeys.build<UserRepository>({ key: 'repositories.UserRepository' }) })
     private userRepository: UserRepository,
 
-    @inject({ key: 'services.JWKSIssuerTokenService' })
+    @inject({ key: BindingKeys.build<JWKSIssuerTokenService>({ key: 'services.JWKSIssuerTokenService' }) })
     private jwksTokenService: JWKSIssuerTokenService,
   ) {
     super({ scope: AuthenticationService.name });
@@ -167,7 +167,7 @@ export class AuthenticationService extends BaseService {
 
 ### Programmatic keys with `BindingKeys.build`
 
-`BindingKeys.build({ namespace, key })` produces the same `namespace.key` string. Use this form when you want a compile-time reference to a class name rather than a plain string:
+`BindingKeys.build<T>({ namespace, key })` produces the same `namespace.key` string, typed with the value bound under it. Use this form when you want a compile-time reference to a class name rather than a plain string:
 
 ```typescript
 import { BaseService, BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
@@ -176,7 +176,7 @@ import { UserRepository } from '../repositories';
 export class AuthenticationService extends BaseService {
   constructor(
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<UserRepository>({
         namespace: BindingNamespaces.REPOSITORY,   // 'repositories'
         key: UserRepository.name,                  // 'UserRepository'
       }),
@@ -235,7 +235,7 @@ import { BaseService, BindingKeys, BindingNamespaces, inject } from '@venizia/ig
 export class OrderService extends BaseService {
   constructor(
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<OrderRepository>({
         namespace: BindingNamespaces.REPOSITORY,
         key: OrderRepository.name,
       }),
@@ -243,7 +243,7 @@ export class OrderService extends BaseService {
     private orderRepository: OrderRepository,
 
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<InventoryRepository>({
         namespace: BindingNamespaces.REPOSITORY,
         key: InventoryRepository.name,
       }),
@@ -251,7 +251,7 @@ export class OrderService extends BaseService {
     private inventoryRepository: InventoryRepository,
 
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<NotificationService>({
         namespace: BindingNamespaces.SERVICE,
         key: NotificationService.name,
       }),
@@ -292,7 +292,7 @@ export abstract class BaseTestService extends BaseService {
   constructor(
     scope: string,
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<UserRepository>({
         namespace: BindingNamespaces.REPOSITORY,
         key: UserRepository.name,
       }),
@@ -320,7 +320,7 @@ export abstract class BaseTestService extends BaseService {
 export class UserAuditTestService extends BaseTestService {
   constructor(
     @inject({
-      key: BindingKeys.build({
+      key: BindingKeys.build<UserRepository>({
         namespace: BindingNamespaces.REPOSITORY,
         key: UserRepository.name,
       }),
@@ -358,13 +358,13 @@ import { PostgresDataSource } from '../datasources';
 
 export class CheckoutService extends BaseService {
   constructor(
-    @inject({ key: 'datasources.PostgresDataSource' })
+    @inject({ key: BindingKeys.build<PostgresDataSource>({ key: 'datasources.PostgresDataSource' }) })
     private dataSource: PostgresDataSource,
 
-    @inject({ key: 'repositories.OrderRepository' })
+    @inject({ key: BindingKeys.build<OrderRepository>({ key: 'repositories.OrderRepository' }) })
     private orderRepository: OrderRepository,
 
-    @inject({ key: 'repositories.InventoryRepository' })
+    @inject({ key: BindingKeys.build<InventoryRepository>({ key: 'repositories.InventoryRepository' }) })
     private inventoryRepository: InventoryRepository,
   ) {
     super({ scope: CheckoutService.name });
@@ -410,8 +410,8 @@ When you need to pull a service out of the container at runtime (rather than thr
 
 ```typescript
 // In Application.postConfigure() or a lifecycle hook
-const testService = this.get<RowLockingTestService>({
-  key: BindingKeys.build({
+const testService = this.get({
+  key: BindingKeys.build<RowLockingTestService>({
     namespace: BindingNamespaces.SERVICE,
     key: RowLockingTestService.name,
   }),

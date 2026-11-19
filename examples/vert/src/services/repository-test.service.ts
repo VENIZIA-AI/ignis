@@ -5,6 +5,7 @@ import {
   CoreBindings,
   inject,
   service,
+  BindingKeys,
 } from '@venizia/ignis';
 import {
   AdvancedFilterQueryTestService,
@@ -57,8 +58,11 @@ export class RepositoryTestService extends BaseService {
 
   async runAllTests(): Promise<void> {
     for (const suite of RepositoryTestService.SUITES) {
-      const instance = this.application.get<BaseTestService>({
-        key: { namespace: BindingNamespaces.SERVICE, key: suite.name },
+      const instance = this.application.get({
+        key: BindingKeys.build<BaseTestService>({
+          namespace: BindingNamespaces.SERVICE,
+          key: suite.name,
+        }),
       });
       await instance.run();
     }

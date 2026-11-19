@@ -31,7 +31,7 @@ class TypesProbeDataSource extends AbstractDataSource {
 
 const registry = MetadataRegistry.getInstance();
 
-const dataSourceKey = BindingKeys.build({
+const dataSourceKey = BindingKeys.build<unknown>({
   namespace: BindingNamespaces.DATASOURCE,
   key: TypesProbeDataSource.name,
 });

@@ -1,6 +1,5 @@
 import { type TBindingKey, type TClass, type TNullable } from '@/common/types';
 import { Binding } from '../binding/binding';
-import { BindingKeys } from '../binding/common/constants';
 import { getError } from '../error';
 import { metadataRegistry } from '../registry/registry';
 import { AbstractContainer } from './abstract';
@@ -29,12 +28,6 @@ export abstract class BaseContainer extends AbstractContainer {
   /** Whether `startResolutionCounting` has ever run. A report read without it would name every binding, which is a wrong answer rather than an empty one. */
   protected hasStartedResolutionCounting = false;
 
-  /** The string each BOUND symbol is stored under: `Symbol('x')` twice is two keys, and both print as "Symbol(x)". */
-  protected symbolKeys = new Map<symbol, string>();
-
-  /** How many symbols have been bound per description, so a new one gets its suffix in one step. */
-  protected symbolDescriptionCounts = new Map<string, number>();
-
   /**
    * Nesting depth of the reads in progress. Past {@link CYCLE_CHECK_DEPTH} the keys are tracked, and
    * a key met again is a cycle: a real graph is far shallower, so the common read pays one counter.
@@ -51,93 +44,46 @@ export abstract class BaseContainer extends AbstractContainer {
     return metadataRegistry;
   }
 
-  /**
-   * The string a key is stored under, or `undefined` for a symbol that was never bound - a lookup
-   * never records one, so reading with throwaway symbols leaves nothing behind.
-   */
-  protected toKeyString(opts: {
-    key: TBindingKey | { namespace: string; key: string };
-  }): string | undefined {
-    const { key } = opts;
-
-    switch (typeof key) {
-      case 'string': {
-        return key;
-      }
-      case 'symbol': {
-        return this.symbolKeys.get(key);
-      }
-      case 'object': {
-        return BindingKeys.build(key);
-      }
-      default: {
-        throw getError({
-          message: `[getBinding] Invalid binding key type | opts: ${String(key)} | allowed: [string, symbol, { namespace: string, key: string }]`,
-        });
-      }
-    }
-  }
-
-  /** A bound symbol's own string: its description, suffixed (`Symbol(x)#2`) when another symbol holds it. */
-  protected bindSymbolKey(opts: { key: symbol }): string {
-    const { key } = opts;
-
-    const known = this.symbolKeys.get(key);
-
-    if (known !== undefined) {
-      return known;
+  /** A JavaScript caller can still pass a removed form (a symbol, `{ namespace, key }`): say what replaced it. */
+  private static assertKey(opts: { key: unknown; caller: string }): void {
+    if (typeof opts.key === 'string') {
+      return;
     }
 
-    const description = key.toString();
-    const count = (this.symbolDescriptionCounts.get(description) ?? 0) + 1;
-    this.symbolDescriptionCounts.set(description, count);
-
-    const keyStr = count === 1 ? description : `${description}#${count}`;
-    this.symbolKeys.set(key, keyStr);
-
-    return keyStr;
+    throw getError({
+      message: `[${opts.caller}] A binding key is a string made by BindingKeys.build<T>({ namespace?, key }) | got: ${typeof opts.key} | a symbol and the { namespace, key } object are no longer keys`,
+    });
   }
 
   override bind<T>(opts: { key: TBindingKey<T> }): Binding<T>;
   override bind(opts: { key: TBindingKey }): Binding;
   override bind<T>(opts: { key: TBindingKey<T> }): Binding<T> {
     const { key } = opts;
-    const keyStr = typeof key === 'symbol' ? this.bindSymbolKey({ key }) : key;
-    const binding = new Binding<T>({ key: keyStr });
-    this.bindings.set(keyStr, binding);
+    BaseContainer.assertKey({ key, caller: 'bind' });
+    const binding = new Binding<T>({ key });
+    this.bindings.set(key, binding);
 
     return binding;
   }
 
   override isBound(opts: { key: TBindingKey }): boolean {
-    const keyStr = this.toKeyString({ key: opts.key });
+    BaseContainer.assertKey({ key: opts.key, caller: 'isBound' });
 
-    return keyStr !== undefined && this.bindings.has(keyStr);
+    return this.bindings.has(opts.key);
   }
 
-  override getBinding<T>(opts: {
-    key: TBindingKey<T> | { namespace: string; key: string };
-  }): TNullable<Binding<T>>;
-  override getBinding(opts: {
-    key: TBindingKey | { namespace: string; key: string };
-  }): TNullable<Binding>;
-  override getBinding<T>(opts: {
-    key: TBindingKey<T> | { namespace: string; key: string };
-  }): TNullable<Binding<T>> {
-    const keyStr = this.toKeyString({ key: opts.key });
+  override getBinding<T>(opts: { key: TBindingKey<T> }): TNullable<Binding<T>>;
+  override getBinding(opts: { key: TBindingKey }): TNullable<Binding>;
+  override getBinding<T>(opts: { key: TBindingKey<T> }): TNullable<Binding<T>> {
+    BaseContainer.assertKey({ key: opts.key, caller: 'getBinding' });
 
-    return keyStr === undefined ? undefined : this.bindings.get(keyStr);
+    return this.bindings.get(opts.key);
   }
 
   override unbind(opts: { key: TBindingKey }): boolean {
-    const { key } = opts;
-    const keyStr = this.toKeyString({ key });
+    BaseContainer.assertKey({ key: opts.key, caller: 'unbind' });
 
-    if (typeof key === 'symbol') {
-      this.symbolKeys.delete(key);
-    }
-
-    return keyStr !== undefined && this.bindings.delete(keyStr);
+    return this.bindings.delete(opts.key);
   }
 
   override set<T>(opts: { binding: Binding<T> }): void {
@@ -145,23 +91,12 @@ export abstract class BaseContainer extends AbstractContainer {
     this.bindings.set(binding.key, binding);
   }
 
-  override get<T>(opts: {
-    key: TBindingKey<T> | { namespace: string; key: string };
-    isOptional?: false;
-  }): T;
-  override get<T>(opts: {
-    key: TBindingKey<T> | { namespace: string; key: string };
-    isOptional?: boolean;
-  }): T | undefined;
-  override get(opts: {
-    key: TBindingKey | { namespace: string; key: string };
-    isOptional?: boolean;
-  }): unknown;
-  override get<T>(opts: {
-    key: TBindingKey<T> | { namespace: string; key: string };
-    isOptional?: boolean;
-  }): T | undefined {
+  override get<T>(opts: { key: TBindingKey<T>; isOptional?: false }): T;
+  override get<T>(opts: { key: TBindingKey<T>; isOptional?: boolean }): T | undefined;
+  override get(opts: { key: TBindingKey; isOptional?: boolean }): unknown;
+  override get<T>(opts: { key: TBindingKey<T>; isOptional?: boolean }): T | undefined {
     const { key, isOptional = false } = opts;
+    BaseContainer.assertKey({ key, caller: 'get' });
 
     const binding = this.getBinding<T>({ key });
 
@@ -203,11 +138,9 @@ export abstract class BaseContainer extends AbstractContainer {
     }
 
     if (!isOptional) {
-      const printed = typeof key === 'object' ? BindingKeys.build(key) : String(key);
-
       throw getError({
-        message: `Binding key: ${printed} is not bounded in context!`,
-        extra: { unboundKey: printed },
+        message: `Binding key: ${key} is not bounded in context!`,
+        extra: { unboundKey: key },
       });
     }
 
@@ -217,7 +150,7 @@ export abstract class BaseContainer extends AbstractContainer {
   override gets<T extends unknown[]>(opts: {
     bindings: {
       [K in keyof T]: {
-        key: TBindingKey<T[K]> | { namespace: string; key: string };
+        key: TBindingKey<T[K]>;
         isOptional?: boolean;
       };
     };
@@ -287,7 +220,5 @@ export abstract class BaseContainer extends AbstractContainer {
 
   override reset(): void {
     this.bindings.clear();
-    this.symbolKeys.clear();
-    this.symbolDescriptionCounts.clear();
   }
 }

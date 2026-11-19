@@ -86,13 +86,31 @@ export class ArtifactNamespaces {
 
 /** Core binding keys for fundamental application components and configuration. */
 export class CoreBindings extends BindingKeys {
-  static readonly APPLICATION_INSTANCE = '@app/instance';
-  static readonly APPLICATION_SERVER = '@app/server';
-  static readonly APPLICATION_CONFIG = '@app/config';
-  static readonly APPLICATION_PROJECT_ROOT = '@app/project_root';
+  static readonly APPLICATION_INSTANCE = BindingKeys.build<unknown>({
+    key: '@app/instance',
+  });
 
-  static readonly APPLICATION_ROOT_ROUTER = '@app/router/root';
+  static readonly APPLICATION_SERVER = BindingKeys.build<unknown>({
+    key: '@app/server',
+  });
 
-  static readonly APPLICATION_ENVIRONMENTS = '@app/environments';
-  static readonly APPLICATION_MIDDLEWARE_OPTIONS = '@app/middleware_options';
+  static readonly APPLICATION_CONFIG = BindingKeys.build<unknown>({
+    key: '@app/config',
+  });
+
+  static readonly APPLICATION_PROJECT_ROOT = BindingKeys.build<string>({
+    key: '@app/project_root',
+  });
+
+  static readonly APPLICATION_ROOT_ROUTER = BindingKeys.build<unknown>({
+    key: '@app/router/root',
+  });
+
+  static readonly APPLICATION_ENVIRONMENTS = BindingKeys.build<unknown>({
+    key: '@app/environments',
+  });
+
+  static readonly APPLICATION_MIDDLEWARE_OPTIONS = BindingKeys.build<unknown>({
+    key: '@app/middleware_options',
+  });
 }

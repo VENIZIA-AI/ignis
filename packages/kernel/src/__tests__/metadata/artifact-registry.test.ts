@@ -1,3 +1,4 @@
+import { BindingKeys } from '@/helpers/inversion';
 import { ArtifactTypes, BindingScopes, MetadataRegistry } from '@/helpers/inversion';
 import { describe, expect, test } from 'bun:test';
 
@@ -38,14 +39,14 @@ describe('MetadataRegistry - artifact metadata', () => {
 
     registry.addProvideMetadata({
       target: Holder,
-      metadata: { methodName: 'first', key: 'a.first' },
+      metadata: { methodName: 'first', key: BindingKeys.build<unknown>({ key: 'a.first' }) },
     });
     registry.addProvideMetadata({
       target: Holder,
-      metadata: { methodName: 'second', key: 'a.second' },
+      metadata: { methodName: 'second', key: BindingKeys.build<unknown>({ key: 'a.second' }) },
     });
 
-    expect(registry.getProvideMetadata({ target: Holder }).map((m) => m.key)).toEqual([
+    expect(registry.getProvideMetadata({ target: Holder }).map((m) => String(m.key))).toEqual([
       'a.first',
       'a.second',
     ]);

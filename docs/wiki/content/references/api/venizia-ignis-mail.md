@@ -974,17 +974,17 @@ DI binding keys the mail component registers and reads: options, queue executor 
 
 ```ts
 export declare class MailKeys {
-    static readonly MAIL_OPTIONS = "@app/components/mail/options";
-    static readonly MAIL_QUEUE_EXECUTOR_CONFIG = "@app/components/mail/queue/executor-config";
-    static readonly MAIL_TRANSPORT_PROVIDER = "@app/components/mail/transport-provider";
-    static readonly MAIL_TRANSPORT_INSTANCE = "@app/components/mail/transport-instance";
-    static readonly MAIL_TEMPLATE_ENGINE = "@app/components/mail/services/template-engine";
-    static readonly MAIL_SERVICE = "@app/components/mail/service";
-    static readonly MAIL_VERIFICATION_CODE_GENERATOR = "@app/components/mail/verification/code-generator";
-    static readonly MAIL_VERIFICATION_TOKEN_GENERATOR = "@app/components/mail/verification/token-generator";
-    static readonly MAIL_VERIFICATION_DATA_GENERATOR = "@app/components/mail/verification/data-generator";
-    static readonly MAIL_QUEUE_EXECUTOR_PROVIDER = "@app/components/mail/queue-executor-provider";
-    static readonly MAIL_QUEUE_EXECUTOR_INSTANCE = "@app/components/mail/queue-executor-instance";
+    static readonly MAIL_OPTIONS: import("@venizia/ignis-inversion").TBindingKey<TMailOptions>;
+    static readonly MAIL_QUEUE_EXECUTOR_CONFIG: import("@venizia/ignis-inversion").TBindingKey<TMailQueueExecutorConfig>;
+    static readonly MAIL_TRANSPORT_PROVIDER: import("@venizia/ignis-inversion").TBindingKey<TGetMailTransportFn>;
+    static readonly MAIL_TRANSPORT_INSTANCE: import("@venizia/ignis-inversion").TBindingKey<IMailTransport>;
+    static readonly MAIL_TEMPLATE_ENGINE: import("@venizia/ignis-inversion").TBindingKey<TemplateEngineService>;
+    static readonly MAIL_SERVICE: import("@venizia/ignis-inversion").TBindingKey<MailService>;
+    static readonly MAIL_VERIFICATION_CODE_GENERATOR: import("@venizia/ignis-inversion").TBindingKey<IVerificationCodeGenerator>;
+    static readonly MAIL_VERIFICATION_TOKEN_GENERATOR: import("@venizia/ignis-inversion").TBindingKey<IVerificationTokenGenerator>;
+    static readonly MAIL_VERIFICATION_DATA_GENERATOR: import("@venizia/ignis-inversion").TBindingKey<IVerificationDataGenerator>;
+    static readonly MAIL_QUEUE_EXECUTOR_PROVIDER: import("@venizia/ignis-inversion").TBindingKey<TGetMailQueueExecutorFn>;
+    static readonly MAIL_QUEUE_EXECUTOR_INSTANCE: import("@venizia/ignis-inversion").TBindingKey<IMailQueueExecutor>;
 }
 ```
 

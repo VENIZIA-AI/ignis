@@ -11,6 +11,7 @@ import {
   OpenApiResponses,
   post,
   type TRouteContext,
+  BindingKeys,
 } from '@venizia/ignis';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
@@ -82,7 +83,7 @@ const RouteConfigs: Record<string, IAuthRouteConfig> = {
 @controller({ path: '/notes' })
 export class NoteController extends BaseRestController {
   constructor(
-    @inject({ key: 'services.NoteService' })
+    @inject({ key: BindingKeys.build<NoteService>({ key: 'services.NoteService' }) })
     private noteService: NoteService,
   ) {
     super({ scope: NoteController.name });

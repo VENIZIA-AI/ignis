@@ -835,13 +835,13 @@ Register it with `.toProvider()` (the same pattern `RequestTrackerComponent` use
 ```typescript
 export class MyApplication extends BaseApplication {
   preConfigure() {
-    this.bind({ key: 'middlewares.MyMiddleware' })
+    this.bind({ key: BindingKeys.build<unknown>({ key: 'middlewares.MyMiddleware' }) })
       .toProvider(MyMiddleware)
       .setScope(BindingScopes.SINGLETON);
   }
 
   async setupMiddlewares() {
-    const myMiddleware = this.get<MiddlewareHandler>({ key: 'middlewares.MyMiddleware' });
+    const myMiddleware = this.get({ key: BindingKeys.build<MiddlewareHandler>({ key: 'middlewares.MyMiddleware' }) });
     this.getServer().use(myMiddleware);
   }
 }

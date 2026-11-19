@@ -42,7 +42,7 @@ import {
   controller,
   inject,
   unary,
-  TRouteContext,
+  TRouteContext, BindingKeys,
 } from '@venizia/ignis';
 // The generated service descriptor is a value, not a type. Alias it so it does not
 // collide with your own application service class of the same name.
@@ -61,7 +61,7 @@ import { GreeterService } from '../../services/greeter.service';
 })
 export class GreeterController extends BaseGrpcController {
   constructor(
-    @inject({ key: 'services.GreeterService' })
+    @inject({ key: BindingKeys.build<GreeterService>({ key: 'services.GreeterService' }) })
     private readonly greeterService: GreeterService,
   ) {
     super({ scope: 'GreeterController' });

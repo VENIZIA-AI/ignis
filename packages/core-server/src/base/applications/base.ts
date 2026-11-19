@@ -1,6 +1,6 @@
 import { ScopeFilterUtility } from '@venizia/ignis-connectors';
 import { ControllerTransports } from '@venizia/ignis-kernel';
-import { BindingNamespaces, CoreBindings } from '@venizia/ignis-kernel';
+import { BindingKeys, BindingNamespaces, CoreBindings } from '@venizia/ignis-kernel';
 import { EnvironmentKeys } from '@/common/environments';
 import { RequestTrackerComponent } from '@/components';
 import { GrpcComponent } from '@/components/controller/grpc';
@@ -314,7 +314,10 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     }
 
     for (const entry of registration.lease) {
-      const instance = this.get<ISecretRotatable>({ key: entry.key, isOptional: true });
+      const instance = this.get({
+        key: BindingKeys.build<ISecretRotatable>({ key: entry.key }),
+        isOptional: true,
+      });
 
       if (instance && typeof instance.onSecretRotated === 'function') {
         provider.registerRotatable({ key: entry.key, target: instance });

@@ -53,7 +53,7 @@ metadata registry; the controller's `configure()` later turns each into a real r
 @controller({ path: '/users' })
 export class UserController extends BaseRestController {
   constructor(
-    @inject({ key: 'services.UserService' }) private userService: UserService,
+    @inject({ key: BindingKeys.build<UserService>({ key: 'services.UserService' }) }) private userService: UserService,
   ) { super({ scope: UserController.name }); }
 
   @get({ configs: { path: '/', responses: { 200: { /* zod schema */ } } } })

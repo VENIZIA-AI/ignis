@@ -127,7 +127,7 @@ import { Env } from 'hono';
 
 export class AuthenticationService extends BaseService implements IAuthService {
   constructor(
-    @inject({ key: BindingKeys.build({ namespace: BindingNamespaces.SERVICE, key: JWSTokenService.name }) })
+    @inject({ key: BindingKeys.build<JWSTokenService>({ namespace: BindingNamespaces.SERVICE, key: JWSTokenService.name }) })
     private _tokenService: JWSTokenService,
   ) {
     super({ scope: AuthenticationService.name });
@@ -155,7 +155,7 @@ export class AuthenticationService extends BaseService implements IAuthService {
 
 ```typescript
 constructor(
-  @inject({ key: BindingKeys.build({ namespace: BindingNamespaces.SERVICE, key: JWKSIssuerTokenService.name }) })
+  @inject({ key: BindingKeys.build<unknown>({ namespace: BindingNamespaces.SERVICE, key: JWKSIssuerTokenService.name }) })
   private _tokenService: JWKSIssuerTokenService,
 ) { super({ scope: AuthenticationService.name }); }
 ```
