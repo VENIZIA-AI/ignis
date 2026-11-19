@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { HTTP, type THttpMethod } from '@/common';
-import { NodeFetchNetworkRequest } from '@/modules/network';
+import { NativeFetchNetworkRequest } from '@/modules/network';
 // Module path, never the barrel: axios is an optional peer.
 import { AxiosNetworkRequest } from '@/modules/network/http-request/fetcher/axios-fetcher';
 
@@ -32,7 +32,7 @@ describe('HTTP method case - every method, both spellings, both clients', () => 
 
     test(`NodeFetch: '${lower}' and '${upper}' both reach the wire as ${upper}`, async () => {
       await withEchoServer(async ({ baseUrl }) => {
-        const client = new NodeFetchNetworkRequest({
+        const client = new NativeFetchNetworkRequest({
           name: 'node-case',
           networkOptions: { baseUrl },
         });
@@ -71,7 +71,7 @@ describe('HTTP method case - every method, both spellings, both clients', () => 
 
   test('an omitted method defaults to GET on the wire', async () => {
     await withEchoServer(async ({ baseUrl }) => {
-      const nodeClient = new NodeFetchNetworkRequest({
+      const nodeClient = new NativeFetchNetworkRequest({
         name: 'node-default',
         networkOptions: { baseUrl },
       });
@@ -90,7 +90,7 @@ describe('HTTP method case - every method, both spellings, both clients', () => 
 
   test('the convenience verbs put the uppercase token on the wire', async () => {
     await withEchoServer(async ({ baseUrl }) => {
-      const client = new NodeFetchNetworkRequest({
+      const client = new NativeFetchNetworkRequest({
         name: 'node-verbs',
         networkOptions: { baseUrl },
       });

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { NodeFetcher } from '@/modules/network';
+import { NativeFetcher } from '@/modules/network';
 
 const originalFetch = globalThis.fetch;
 
@@ -26,10 +26,10 @@ const captureRequest = (): ICapturedRequest => {
 };
 
 const buildFetcher = () => {
-  return new NodeFetcher({ name: 'request-building', defaultConfigs: {} });
+  return new NativeFetcher({ name: 'request-building', defaultConfigs: {} });
 };
 
-describe('NodeFetcher - query string assembly', () => {
+describe('NativeFetcher - query string assembly', () => {
   test('params are appended with ? when the url carries none', async () => {
     const captured = captureRequest();
 
@@ -67,7 +67,7 @@ describe('NodeFetcher - query string assembly', () => {
   });
 });
 
-describe('NodeFetcher - abort signal', () => {
+describe('NativeFetcher - abort signal', () => {
   test("the caller's signal is forwarded when no timeout is set", async () => {
     const captured = captureRequest();
     const caller = new AbortController();

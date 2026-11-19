@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { HTTP, type THttpMethod } from '@/common';
-import { NodeFetcher } from '@/modules/network';
+import { NativeFetcher } from '@/modules/network';
 // Module path, never the barrel: axios is an optional peer.
 import { AxiosFetcher } from '@/modules/network/http-request/fetcher/axios-fetcher';
 
@@ -22,7 +22,7 @@ const captureNodeFetchMethod = async (method?: THttpMethod): Promise<string | un
     return Promise.resolve(new Response(null, { status: 204 }));
   });
 
-  const fetcher = new NodeFetcher({ name: 'boundary-node', defaultConfigs: {} });
+  const fetcher = new NativeFetcher({ name: 'boundary-node', defaultConfigs: {} });
   await fetcher.send({ url: 'http://example.test/probe', method });
 
   return captured;
@@ -35,7 +35,7 @@ const captureAxiosMethod = async (method?: THttpMethod): Promise<string | undefi
   Reflect.set(fetcher.getWorker(), 'request', (props: { method?: string }) => {
     captured = props.method;
 
-    return Promise.resolve({ data: null });
+    return Promise.resolve({ data: null, status: 200, statusText: 'OK', headers: {} });
   });
 
   await fetcher.send({ url: 'http://example.test/probe', method });
@@ -47,7 +47,7 @@ describe('fetchers hand an UPPERCASE method to their transport', () => {
   for (const method of METHODS) {
     const upper = method.toUpperCase();
 
-    test(`NodeFetcher normalizes '${method}' and '${upper}' to ${upper} before fetch()`, async () => {
+    test(`NativeFetcher normalizes '${method}' and '${upper}' to ${upper} before fetch()`, async () => {
       const result = await captureNodeFetchMethod(method);
       expect(result).toBe(upper);
       const result2 = await captureNodeFetchMethod(upper as THttpMethod);

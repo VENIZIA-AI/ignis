@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { LoggerFactory } from '@/modules/logger/factory';
-import { type IQueryStringOptions, NodeFetcher, NodeFetchNetworkRequest } from '@/modules/network';
+import { type IQueryStringOptions, NativeFetcher, NativeFetchNetworkRequest } from '@/modules/network';
 
 const originalFetch = globalThis.fetch;
 
@@ -28,11 +28,11 @@ const captureRequest = (): ICaptured => {
 };
 
 const buildFetcher = (opts?: { queryString?: IQueryStringOptions }) => {
-  return new NodeFetcher({ name: 'body-test', defaultConfigs: {}, queryString: opts?.queryString });
+  return new NativeFetcher({ name: 'body-test', defaultConfigs: {}, queryString: opts?.queryString });
 };
 
 // The body type is `BodyInit`; a plain object is JSON-encoded at runtime, so these cases feed one through `JSON.parse` (typed `any`).
-describe('NodeFetcher - body', () => {
+describe('NativeFetcher - body', () => {
   test('a plain object is JSON-encoded', async () => {
     const captured = captureRequest();
 
@@ -81,13 +81,13 @@ describe('NodeFetcher - body', () => {
   });
 });
 
-describe('NodeFetcher - worker', () => {
+describe('NativeFetcher - worker', () => {
   test('getWorker() is the fetch the fetcher sends with', () => {
     expect(buildFetcher().getWorker()).toBe(fetch);
   });
 
   test('and through a network request', () => {
-    const request = new NodeFetchNetworkRequest({
+    const request = new NativeFetchNetworkRequest({
       name: 'worker-test',
       networkOptions: { baseUrl: 'http://example.test' },
     });
@@ -96,7 +96,7 @@ describe('NodeFetcher - worker', () => {
   });
 });
 
-describe('NodeFetcher - query string options', () => {
+describe('NativeFetcher - query string options', () => {
   const filter = { where: { id: 1 } };
 
   test('the default writes an object param as an empty value', async () => {
@@ -120,9 +120,9 @@ describe('NodeFetcher - query string options', () => {
     );
   });
 
-  test('NodeFetchNetworkRequest carries the options to its fetcher and keeps them out of RequestInit', async () => {
+  test('NativeFetchNetworkRequest carries the options to its fetcher and keeps them out of RequestInit', async () => {
     const captured = captureRequest();
-    const request = new NodeFetchNetworkRequest({
+    const request = new NativeFetchNetworkRequest({
       name: 'qs-test',
       networkOptions: {
         baseUrl: 'http://example.test',
@@ -142,7 +142,7 @@ describe('NodeFetcher - query string options', () => {
   });
 });
 
-describe('NodeFetcher - logging', () => {
+describe('NativeFetcher - logging', () => {
   test('a logger with only debug and info is accepted, and gets one debug line without the body', async () => {
     captureRequest();
     const lines: string[] = [];
@@ -193,7 +193,7 @@ describe('NodeFetcher - logging', () => {
     // `use()` re-points the loggers other suites in this process created, which builds one each: count from here.
     resolved = 0;
 
-    const request = new NodeFetchNetworkRequest({
+    const request = new NativeFetchNetworkRequest({
       name: 'no-logger',
       networkOptions: { baseUrl: 'http://example.test', headers: { a: 'b' } },
     });
@@ -204,16 +204,16 @@ describe('NodeFetcher - logging', () => {
   });
 });
 
-describe('NodeFetcher - headers', () => {
+describe('NativeFetcher - headers', () => {
   const headersOf = (captured: ICaptured) => {
     return Object.fromEntries(new Headers(captured.init?.headers));
   };
 
   test('the default headers survive a call that passes none', async () => {
     const captured = captureRequest();
-    const fetcher = new NodeFetcher({
+    const fetcher = new NativeFetcher({
       name: 'h',
-      defaultConfigs: { headers: { 'content-type': 'application/json', 'x-app': 'one' } },
+      defaults: { headers: { 'content-type': 'application/json', 'x-app': 'one' } },
     });
 
     await fetcher.get({ url: 'http://example.test/a' });
@@ -221,16 +221,38 @@ describe('NodeFetcher - headers', () => {
     expect(headersOf(captured)).toEqual({ 'content-type': 'application/json', 'x-app': 'one' });
   });
 
-  test("a call's headers replace the defaults, so a body can leave the content type to fetch", async () => {
+  test("a call's headers merge over the defaults header by header, and the call wins", async () => {
     const captured = captureRequest();
-    const fetcher = new NodeFetcher({
+    const fetcher = new NativeFetcher({
       name: 'h',
-      defaultConfigs: { headers: { 'content-type': 'application/json', 'x-app': 'one' } },
+      defaults: { headers: { 'content-type': 'application/json', 'x-app': 'one' } },
     });
 
-    await fetcher.post({ url: 'http://example.test/a', headers: { authorization: 'Bearer t' } });
+    await fetcher.post({
+      url: 'http://example.test/a',
+      headers: { authorization: 'Bearer t', 'X-App': 'two' },
+    });
 
-    expect(headersOf(captured)).toEqual({ authorization: 'Bearer t' });
+    expect(headersOf(captured)).toEqual({
+      'content-type': 'application/json',
+      'x-app': 'two',
+      authorization: 'Bearer t',
+    });
+  });
+
+  test('a null header removes a default, so a body can leave the content type to fetch', async () => {
+    const captured = captureRequest();
+    const fetcher = new NativeFetcher({
+      name: 'h',
+      defaults: { headers: { 'content-type': 'application/json', 'x-app': 'one' } },
+    });
+
+    await fetcher.post({
+      url: 'http://example.test/a',
+      headers: { 'content-type': null, authorization: 'Bearer t' },
+    });
+
+    expect(headersOf(captured)).toEqual({ 'x-app': 'one', authorization: 'Bearer t' });
   });
 
   test('no headers anywhere sends none', async () => {
@@ -238,6 +260,6 @@ describe('NodeFetcher - headers', () => {
 
     await buildFetcher().get({ url: 'http://example.test/a' });
 
-    expect(captured.init?.headers).toBeUndefined();
+    expect(headersOf(captured)).toEqual({});
   });
 });
