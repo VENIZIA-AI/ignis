@@ -32,6 +32,7 @@ import type {
   ITypesenseClientLike,
   ITypesenseConnectorOptions,
   ITypesenseCallOptions,
+  ITypesenseRemoteEmbeddingOptions,
   IUnionSearchResult,
   TCollectionCreateSchema,
   TCollectionFieldSchema,
@@ -716,12 +717,24 @@ export class TypesenseConnector extends BaseSearchConnector {
 
   /** The camelCase import options as Typesense's snake_case parameters; a number must be a positive integer and a flag a boolean, so a typo is refused here and not by the engine. The connector's own `action`, `batchSize`, `dirtyValues` and `throwOnFail` are not in this list: they stay single-source. */
   private toImportParams(opts: {
-    remoteEmbedding?: { batchSize?: number; timeoutMs?: number; numTries?: number };
+    remoteEmbedding?: ITypesenseRemoteEmbeddingOptions;
     returnId?: boolean;
     returnDoc?: boolean;
   }): Record<string, number | boolean> {
     const method = this.importDocuments.name;
     const params: Record<string, number | boolean> = {};
+    const remote = opts.remoteEmbedding;
+
+    // An untyped caller's string or array would otherwise be dropped without a word.
+    if (
+      remote !== undefined &&
+      (remote === null || typeof remote !== 'object' || Array.isArray(remote))
+    ) {
+      throw getError({
+        message: `[${method}] Invalid remoteEmbedding | value: ${JSON.stringify(remote)} | it must be an object such as { batchSize, timeoutMs, numTries }`,
+      });
+    }
+
     const numbers: Array<[string, string, number | undefined]> = [
       ['remoteEmbedding.batchSize', 'remote_embedding_batch_size', opts.remoteEmbedding?.batchSize],
       ['remoteEmbedding.timeoutMs', 'remote_embedding_timeout_ms', opts.remoteEmbedding?.timeoutMs],
@@ -778,13 +791,8 @@ export class TypesenseConnector extends BaseSearchConnector {
        * @default false
        */
       throwOnFail?: boolean;
-      /**
-       * Typesense-only (Meilisearch has no equivalent). For a collection whose fields are embedded by a remote provider: the batch
-       * Typesense sends the provider, how long it waits for it, and how often it tries. Sent as `remote_embedding_batch_size`,
-       * `remote_embedding_timeout_ms` and `remote_embedding_num_tries`; each is a positive integer, and a field left out is the
-       * engine's own default. `timeoutMs` is the engine's wait for the provider, not this client's request timeout (`timeoutMs` of the call).
-       */
-      remoteEmbedding?: { batchSize?: number; timeoutMs?: number; numTries?: number };
+      /** For a collection embedded by a remote provider: the embedding batch, wait and tries of this import. See {@link ITypesenseRemoteEmbeddingOptions}. */
+      remoteEmbedding?: ITypesenseRemoteEmbeddingOptions;
       /** Typesense-only. Each row of `responses` carries the document `id` (`return_id`). Memory grows with the import. */
       returnId?: boolean;
       /** Typesense-only. Each row of `responses` carries the stored `document` (`return_doc`): the whole import stays in memory as `responses`. */

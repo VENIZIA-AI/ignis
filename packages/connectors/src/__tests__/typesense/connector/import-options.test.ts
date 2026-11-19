@@ -101,6 +101,28 @@ describe('importDocuments: remote embedding, returnId and returnDoc', () => {
     },
   );
 
+  test.each([
+    ['a string', 'big'],
+    ['an array', [1]],
+    ['null', null],
+    ['a number', 5],
+  ])(
+    'remoteEmbedding as %s is refused, never dropped (an untyped caller)',
+    async (_name, remoteEmbedding) => {
+      const { helper } = makeHelper();
+      const untyped: Record<string, unknown> = { remoteEmbedding };
+      const error = await RejectionHelper.rejectionOf({
+        task: helper.importDocuments({
+          collection: 'products',
+          documents: [{ id: '1' }],
+          ...untyped,
+        }),
+      });
+
+      expect((error as Error).message).toContain('Invalid remoteEmbedding');
+    },
+  );
+
   test('a flag that is not a boolean is refused (an untyped caller)', async () => {
     const { helper } = makeHelper();
     const untyped: Record<string, unknown> = { returnId: 'yes' };
@@ -124,12 +146,12 @@ describe('what Typesense receives, and the extra fields of each row', () => {
     fetch: async (request) => {
       const url = new URL(request.url);
 
-      const result2 = await request.text();
+      const text = await request.text();
       seen.push({
         method: request.method,
         path: url.pathname,
         query: url.searchParams,
-        body: result2,
+        body: text,
       });
 
       // Typesense answers an import as JSON lines, one per document; return_id and return_doc add fields to each.

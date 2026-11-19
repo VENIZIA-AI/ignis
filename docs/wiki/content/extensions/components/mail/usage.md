@@ -392,6 +392,7 @@ this.bind({ key: MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG }).toValue({
       sentinel: { masterName: 'mymaster', nodes: [{ host: 'sentinel-1', port: 26379 }] },
       maxRetry: -1,
     }),
+    // `prefix` is optional: it is the Redis key prefix of the queue and of every worker (BullMQ's `bull` when left out).
     queue: { identifier: 'mail-queue', name: 'mail-queue' },
     mode: BullMQExecutorModes.BOTH,
   },

@@ -96,7 +96,7 @@ const worker = new BullMQHelper({
 
 ### IBullMQOptions
 
-`IBullMQOptions<TQueueElement = unknown, TQueueResult = unknown>`
+`IBullMQOptions<TQueueElement = unknown, TQueueResult = unknown, TMetadata extends object = Record<string, unknown>>`
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -105,9 +105,11 @@ const worker = new BullMQHelper({
 | `role` | `TBullQueueRole` (`'queue' \| 'worker'`) | - | `'queue'` initializes a producer; `'worker'` initializes a consumer. |
 | `redisConnection` | `IRedisHelper` | - | Connection backend. The helper passes a `duplicateClient()` of it to BullMQ - never a raw ioredis client. |
 | `module` | `typeof import('bullmq')` | loaded by name | `bullmq` itself, for a compiled binary. Omitted, it is loaded when the queue or worker is built. |
+| `prefix` | `string` | BullMQ's `bull` | The prefix of every Redis key of the queue, on the Queue and the Worker alike. Opt-in; see [Key prefix](#key-prefix). |
+| `metadata` | `() => ValueOrPromise<TMetadata>` | - | A block stamped on every job added through `add`, outside `job.data`. See [Job metadata](#job-metadata). |
 | `numberOfWorker` | `number` | `1` | Worker concurrency (BullMQ `Worker` `concurrency` option). Ignored for `role: 'queue'`. |
 | `lockDuration` | `number` | `5400000` (90 minutes) | Job lock duration in milliseconds. Ignored for `role: 'queue'`. |
-| `onWorkerData` | `(job: Job<TQueueElement, TQueueResult>) => Promise<TQueueResult>` | - | Job processor. If omitted, the worker logs `id`, `name`, `data` at info level and resolves `undefined`. |
+| `onWorkerData` | `(job: Job<TQueueElement, TQueueResult>, context: { metadata: TMetadata \| undefined }) => Promise<TQueueResult>` | - | Job processor; `context.metadata` is the stamp of the producer's helper. If omitted, the worker logs `id`, `name`, `data` at info level and resolves `undefined`. |
 | `onWorkerDataCompleted` | `(job, result: TQueueResult) => Promise<void>` | - | Fired on the BullMQ `Worker` `'completed'` event. |
 | `onWorkerDataFail` | `(job \| undefined, error: Error) => Promise<void>` | - | Fired on the BullMQ `Worker` `'failed'` event. `job` may be `undefined`. |
 
@@ -142,6 +144,53 @@ const producer = new BullMQHelper({
 ```
 
 The static import is what puts each library inside the binary; `module` is how the helper finds it. To cover every helper at once instead, register both at the entrypoint: `ModuleUtility.register({ modules: { ioredis, bullmq } })`.
+
+### Job metadata
+
+`metadata` is a function run on every `add`; its answer (a plain object) is stored in the job's `opts.metadata`, **not** in `job.data`. A processor that parses `job.data` strictly sees exactly what the producer added, and a raw `Worker`, `QueueEvents` or a dashboard sees the same payload.
+
+```typescript
+const producer = BullMQHelper.newInstance<IMail, void, { requestId: string }>({
+  queueName: 'mail',
+  identifier: 'mail-producer',
+  role: 'queue',
+  redisConnection: redis,
+  metadata: () => ({ requestId: requestContext.currentId() }),
+});
+
+await producer.add({ name: 'send', data: { to: 'a@b.c' }, opts: { attempts: 3 } });
+
+const worker = BullMQHelper.newInstance<IMail, void, { requestId: string }>({
+  queueName: 'mail',
+  identifier: 'mail-worker',
+  role: 'worker',
+  redisConnection: redis,
+  onWorkerData: async (job, { metadata }) => {
+    // job.data is { to: 'a@b.c' }; metadata is { requestId } - or undefined for a job nobody stamped
+  },
+});
+```
+
+- A throw from `metadata` fails the `add`: a job is never enqueued unstamped by accident. The answer must be a plain object (not an array, `null` or a string).
+- `data` may be any shape; it is forwarded as given and never read. A `metadata` key inside `data` is yours.
+- `opts.metadata` set by the caller is refused: the stamp is the one source, never overwritten.
+- A job added by `queue.add` (or by another producer) has no stamp: the worker gets `metadata: undefined`.
+- The stamp lives in the job's `opts` hash field, so a dashboard that shows job options shows it, and it lives as long as the job (the helper's default `removeOnComplete` deletes the job).
+
+### Key prefix
+
+`prefix` sets the prefix of every Redis key the queue uses (BullMQ's default is `bull`), on the Queue and on the Worker, so one option cannot leave them disagreeing. It is opt-in and unset changes nothing. It is a non-empty string without whitespace or braces (a brace would move the cluster hash tag the helper puts around the queue name). A `queueOptions.prefix` or `workerOptions.prefix` that differs from it is refused.
+
+A developer machine that sometimes runs against the shared DEV Redis must not take DEV jobs. Give it a prefix of its own and leave DEV, UAT and PROD on today's keys:
+
+```typescript
+const prefix = process.env.NODE_ENV === 'development' ? `bull:local:${process.env.USER}` : undefined;
+
+const worker = BullMQHelper.newInstance({ queueName: 'mail', identifier: 'mail-worker', role: 'worker', redisConnection: redis, prefix });
+```
+
+> [!WARNING]
+> Changing the prefix of a queue that already has data **strands the old keys**: waiting, active, delayed and failed jobs, repeatable jobs and job schedulers all live under `<old prefix>:<queue>:*`, and a helper with the new prefix sees an empty queue. To move a queue: stop the producers; let the workers drain the queue under the old prefix; switch producers and workers to the new prefix together; re-register repeatable jobs and job schedulers on the new prefix (`upsertJobScheduler`) and remove the old ones with a `Queue` on the old prefix; then delete what is left under the old prefix.
 
 ### Configuration lifecycle
 
@@ -235,7 +284,9 @@ Calls `worker?.close()` then `queue?.close()` in sequence, then quits every conn
 | `configureQueue()` | `void` | Builds the BullMQ `Queue`. |
 | `configureWorker()` | `void` | Builds the BullMQ `Worker`. |
 | `close()` | `Promise<void>` | Gracefully closes worker and queue connections. |
-| `queue` | `Queue<TQueueElement, TQueueResult>` | Present when `role: 'queue'`. |
+| `add({ name, data, opts? })` | `Promise<Job>` | Adds a job, stamped by the `metadata` option. `role: 'queue'` only. |
+| `static readMetadata({ job })` | `TMetadata \| undefined` | The stamp on a job, for `onWorkerDataCompleted`, `onWorkerDataFail` and a direct `Worker`. |
+| `queue` | `Queue<TQueueElement, TQueueResult>` | Present when `role: 'queue'`. Adding through it directly is allowed and **unstamped**. |
 | `worker` | `Worker<TQueueElement, TQueueResult>` | Present when `role: 'worker'`. |
 
 ## SequentialQueueHelper
