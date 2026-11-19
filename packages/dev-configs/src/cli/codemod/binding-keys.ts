@@ -413,8 +413,12 @@ export class BindingKeysCodemod {
             }
           }
         } else if ((isInject || isMethod) && isKeyOptions(first)) {
-          const typeArgument =
+          const claimed =
             isMethod && node.typeArguments?.length === 1 ? node.typeArguments[0] : undefined;
+          // A type parameter of the enclosing function cannot go into `build<T>` (the type argument is checked while it
+          // is still unresolved): the key is built for `unknown` and the call keeps its claim.
+          const typeArgument =
+            claimed !== undefined && isTypeParameterInScope(claimed) ? undefined : claimed;
           const isKeyBuilt = (() => {
             const value = propertyOf(first, 'key')?.initializer;
 
@@ -436,6 +440,30 @@ export class BindingKeysCodemod {
       }
 
       ts.forEachChild(node, visit);
+    };
+
+    /** Whether `node` names a type parameter of a function, method or class that encloses it. */
+    const isTypeParameterInScope = (node: import('typescript').TypeNode): boolean => {
+      if (!ts.isTypeReferenceNode(node) || !ts.isIdentifier(node.typeName)) {
+        return false;
+      }
+
+      const name = node.typeName.text;
+
+      for (
+        let scope: import('typescript').Node | undefined = node.parent;
+        scope !== undefined;
+        scope = scope.parent
+      ) {
+        const parameters =
+          ts.isFunctionLike(scope) || ts.isClassLike(scope) ? scope.typeParameters : undefined;
+
+        if (parameters?.some((parameter) => parameter.name.text === name)) {
+          return true;
+        }
+      }
+
+      return false;
     };
 
     const collect = (node: import('typescript').Node): void => {

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { Application } from '../src/worker/application';
 import { PGliteDataSource } from '../src/worker/datasources/pglite.datasource';
 import { NoteRepository } from '../src/worker/repositories/note.repository';
+import { BindingKeys } from '@venizia/ignis-kernel';
 
 const boot = async () => {
   const application = new Application({
@@ -19,8 +20,12 @@ const boot = async () => {
 
   return {
     application,
-    dataSource: application.get<PGliteDataSource>({ key: 'datasources.PGliteDataSource' }),
-    notes: application.get<NoteRepository>({ key: 'repositories.NoteRepository' }),
+    dataSource: application.get({
+      key: BindingKeys.build<PGliteDataSource>({ key: 'datasources.PGliteDataSource' }),
+    }),
+    notes: application.get({
+      key: BindingKeys.build<NoteRepository>({ key: 'repositories.NoteRepository' }),
+    }),
   };
 };
 

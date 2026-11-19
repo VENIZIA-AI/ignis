@@ -10,22 +10,14 @@ export interface IContainer {
   bind<T>(opts: { key: TBindingKey<T> }): IBinding<T>;
   bind(opts: { key: TBindingKey }): IBinding;
   isBound(opts: { key: TBindingKey }): boolean;
-  getBinding<T>(opts: {
-    key: TBindingKey<T>;
-  }): TNullable<IBinding<T>>;
+  getBinding<T>(opts: { key: TBindingKey<T> }): TNullable<IBinding<T>>;
   getBinding(opts: { key: TBindingKey }): TNullable<IBinding>;
   unbind(opts: { key: TBindingKey }): boolean;
   set<T>(opts: { binding: IBinding<T> }): void;
 
   get<T>(opts: { key: TBindingKey<T>; isOptional?: false }): T;
-  get<T>(opts: {
-    key: TBindingKey<T>;
-    isOptional?: boolean;
-  }): T | undefined;
-  get(opts: {
-    key: TBindingKey;
-    isOptional?: boolean;
-  }): unknown;
+  get<T>(opts: { key: TBindingKey<T>; isOptional?: boolean }): T | undefined;
+  get(opts: { key: TBindingKey; isOptional?: boolean }): unknown;
   gets<T extends unknown[]>(opts: {
     bindings: {
       [K in keyof T]: {

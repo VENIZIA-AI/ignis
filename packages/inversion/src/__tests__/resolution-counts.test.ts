@@ -12,8 +12,12 @@ describe('the container counts what it hands out', () => {
 
   beforeEach(() => {
     container = new Container({ scope: 'resolution-counts-test' });
-    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) }).toClass(NoteService);
-    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.AuditService' }) }).toClass(AuditService);
+    container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) })
+      .toClass(NoteService);
+    container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'services.AuditService' }) })
+      .toClass(AuditService);
     container.startResolutionCounting();
   });
 
@@ -34,7 +38,10 @@ describe('the container counts what it hands out', () => {
   });
 
   test('a miss is not a resolution', () => {
-    container.get({ key: BindingKeys.build<unknown>({ key: 'services.Absent' }), isOptional: true });
+    container.get({
+      key: BindingKeys.build<unknown>({ key: 'services.Absent' }),
+      isOptional: true,
+    });
 
     expect(container.getResolutionCounts().has('services.Absent')).toBe(false);
   });
@@ -51,7 +58,9 @@ describe('the container counts what it hands out', () => {
   /** Off by default: an application that never reads the report pays nothing on the hottest path. */
   test('nothing is counted before counting starts', () => {
     const fresh = new Container({ scope: 'off-by-default' });
-    fresh.bind({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) }).toClass(NoteService);
+    fresh
+      .bind({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) })
+      .toClass(NoteService);
 
     fresh.get({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) });
 

@@ -25,20 +25,27 @@ describe('Binding - resolvers and scopes', () => {
   test('toValue returns the exact value', () => {
     container.bind({ key: BindingKeys.build<unknown>({ key: 'config' }) }).toValue({ port: 3000 });
 
-    expect(container.get({ key: BindingKeys.build<{ port: number }>({ key: 'config' }) })).toEqual({ port: 3000 });
+    expect(container.get({ key: BindingKeys.build<{ port: number }>({ key: 'config' }) })).toEqual({
+      port: 3000,
+    });
   });
 
   test('toClass instantiates through the container', () => {
     container.bind({ key: BindingKeys.build<unknown>({ key: 'greeter' }) }).toClass(Greeter);
 
-    expect(container.get({ key: BindingKeys.build<Greeter>({ key: 'greeter' }) }).greet()).toBe('hello');
+    expect(container.get({ key: BindingKeys.build<Greeter>({ key: 'greeter' }) }).greet()).toBe(
+      'hello',
+    );
   });
 
   test('toProvider with a factory function receives the container', () => {
     container.bind({ key: BindingKeys.build<unknown>({ key: 'base' }) }).toValue(10);
     container
       .bind({ key: BindingKeys.build<unknown>({ key: 'derived' }) })
-      .toProvider((dependencyContainer) => dependencyContainer.get({ key: BindingKeys.build<number>({ key: 'base' }) }) + 5);
+      .toProvider(
+        (dependencyContainer) =>
+          dependencyContainer.get({ key: BindingKeys.build<number>({ key: 'base' }) }) + 5,
+      );
 
     expect(container.get({ key: BindingKeys.build<number>({ key: 'derived' }) })).toBe(15);
   });
@@ -64,7 +71,10 @@ describe('Binding - resolvers and scopes', () => {
   });
 
   test('SINGLETON caches the first resolution', () => {
-    container.bind({ key: BindingKeys.build<unknown>({ key: 'greeter' }) }).toClass(Greeter).setScope(BindingScopes.SINGLETON);
+    container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'greeter' }) })
+      .toClass(Greeter)
+      .setScope(BindingScopes.SINGLETON);
 
     const first = container.get({ key: BindingKeys.build<Greeter>({ key: 'greeter' }) });
     const second = container.get({ key: BindingKeys.build<Greeter>({ key: 'greeter' }) });
@@ -73,7 +83,10 @@ describe('Binding - resolvers and scopes', () => {
   });
 
   test('clear() empties singleton caches but keeps the bindings', () => {
-    container.bind({ key: BindingKeys.build<unknown>({ key: 'greeter' }) }).toClass(Greeter).setScope(BindingScopes.SINGLETON);
+    container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'greeter' }) })
+      .toClass(Greeter)
+      .setScope(BindingScopes.SINGLETON);
     const cached = container.get({ key: BindingKeys.build<Greeter>({ key: 'greeter' }) });
 
     container.clear();
@@ -83,13 +96,17 @@ describe('Binding - resolvers and scopes', () => {
   });
 
   test('getValue without a container throws for class/provider resolvers', () => {
-    const binding = new Binding<Greeter>({ key: BindingKeys.build<Greeter>({ key: 'orphan' }) }).toClass(Greeter);
+    const binding = new Binding<Greeter>({
+      key: BindingKeys.build<Greeter>({ key: 'orphan' }),
+    }).toClass(Greeter);
 
     expect(() => binding.getValue()).toThrow(/Invalid context\/container/);
   });
 
   test('getBindingMeta returns the resolver value on type match and throws on mismatch', () => {
-    const binding = new Binding<Greeter>({ key: BindingKeys.build<Greeter>({ key: 'meta' }) }).toClass(Greeter);
+    const binding = new Binding<Greeter>({
+      key: BindingKeys.build<Greeter>({ key: 'meta' }),
+    }).toClass(Greeter);
 
     expect(binding.getBindingMeta({ type: BindingValueTypes.CLASS })).toBe(Greeter);
     expect(() => binding.getBindingMeta({ type: BindingValueTypes.VALUE })).toThrow(
@@ -100,7 +117,9 @@ describe('Binding - resolvers and scopes', () => {
 
 describe('Binding - namespace auto-tagging', () => {
   test('a dotted key auto-tags with its namespace', () => {
-    const binding = new Binding({ key: BindingKeys.build<unknown>({ key: 'services.UserService' }) });
+    const binding = new Binding({
+      key: BindingKeys.build<unknown>({ key: 'services.UserService' }),
+    });
 
     expect(binding.hasTag('services')).toBe(true);
     expect(binding.getTags()).toEqual(['services']);
@@ -121,23 +140,34 @@ describe('Container - storage semantics', () => {
   });
 
   test('a { namespace, key } address resolves to the dotted binding', () => {
-    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.UserService' }) }).toValue('user-service');
+    container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'services.UserService' }) })
+      .toValue('user-service');
 
-    expect(container.get({ key: BindingKeys.build<string>({ namespace: 'services', key: 'UserService' }) })).toBe(
-      'user-service',
-    );
+    expect(
+      container.get({
+        key: BindingKeys.build<string>({ namespace: 'services', key: 'UserService' }),
+      }),
+    ).toBe('user-service');
   });
 
   test('get on a missing key throws; isOptional returns undefined', () => {
-    expect(() => container.get({ key: BindingKeys.build<unknown>({ key: 'missing' }) })).toThrow(/not bounded/);
-    expect(container.get({ key: BindingKeys.build<unknown>({ key: 'missing' }), isOptional: true })).toBeUndefined();
+    expect(() => container.get({ key: BindingKeys.build<unknown>({ key: 'missing' }) })).toThrow(
+      /not bounded/,
+    );
+    expect(
+      container.get({ key: BindingKeys.build<unknown>({ key: 'missing' }), isOptional: true }),
+    ).toBeUndefined();
   });
 
   test('gets resolves a batch, missing entries as undefined', () => {
     container.bind({ key: BindingKeys.build<unknown>({ key: 'present' }) }).toValue(1);
 
     const [present, absent] = container.gets<[number, number]>({
-      bindings: [{ key: BindingKeys.build<unknown>({ key: 'present' }) }, { key: BindingKeys.build<unknown>({ key: 'absent' }) }],
+      bindings: [
+        { key: BindingKeys.build<unknown>({ key: 'present' }) },
+        { key: BindingKeys.build<unknown>({ key: 'absent' }) },
+      ],
     });
 
     expect(present).toBe(1);
@@ -156,7 +186,9 @@ describe('Container - storage semantics', () => {
   });
 
   test('set() registers an externally built binding under its own key', () => {
-    const binding = new Binding<number>({ key: BindingKeys.build<number>({ key: 'external' }) }).toValue(7);
+    const binding = new Binding<number>({
+      key: BindingKeys.build<number>({ key: 'external' }),
+    }).toValue(7);
     container.set({ binding });
 
     expect(container.get({ key: BindingKeys.build<number>({ key: 'external' }) })).toBe(7);
@@ -170,10 +202,14 @@ describe('Container - storage semantics', () => {
       .bind({ key: BindingKeys.build<unknown>({ key: 'greeter' }) })
       .toClass(Greeter)
       .setScope(BindingScopes.SINGLETON);
-    const second = container.bind({ key: BindingKeys.build<unknown>({ key: 'greeter' }) }).toClass(Greeter);
+    const second = container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'greeter' }) })
+      .toClass(Greeter);
 
     expect(second).not.toBe(first);
-    expect(container.getBinding({ key: BindingKeys.build<unknown>({ key: 'greeter' }) })).toBe(second);
+    expect(container.getBinding({ key: BindingKeys.build<unknown>({ key: 'greeter' }) })).toBe(
+      second,
+    );
     // The replacement starts from defaults - TRANSIENT again, so two resolutions are two instances.
     expect(container.get({ key: BindingKeys.build<Greeter>({ key: 'greeter' }) })).not.toBe(
       container.get({ key: BindingKeys.build<Greeter>({ key: 'greeter' }) }),
@@ -186,7 +222,10 @@ describe('Container - storage semantics', () => {
     container.bind({ key: BindingKeys.build<unknown>({ key: 'repositories.Gamma' }) }).toValue('c');
 
     const all = container.findByTag({ tag: 'services' });
-    expect(all.map((binding) => String(binding.key)).sort()).toEqual(['services.Alpha', 'services.Beta']);
+    expect(all.map((binding) => String(binding.key)).sort()).toEqual([
+      'services.Alpha',
+      'services.Beta',
+    ]);
 
     const excludedByArray = container.findByTag({ tag: 'services', exclude: ['services.Alpha'] });
     expect(excludedByArray.map((binding) => String(binding.key))).toEqual(['services.Beta']);
@@ -203,8 +242,10 @@ describe('Container - decorator-driven injection', () => {
   test('constructor injection resolves @inject params in index order', () => {
     class ReportService {
       constructor(
-        @inject({ key: BindingKeys.build<unknown>({ key: 'report.prefix' }) }) readonly prefix: string,
-        @inject({ key: BindingKeys.build<unknown>({ key: 'report.suffix' }) }) readonly suffix: string,
+        @inject({ key: BindingKeys.build<unknown>({ key: 'report.prefix' }) })
+        readonly prefix: string,
+        @inject({ key: BindingKeys.build<unknown>({ key: 'report.suffix' }) })
+        readonly suffix: string,
       ) {}
 
       render(): string {
@@ -222,7 +263,8 @@ describe('Container - decorator-driven injection', () => {
   test('an optional constructor dependency resolves to undefined instead of throwing', () => {
     class LooseService {
       constructor(
-        @inject({ key: BindingKeys.build<unknown>({ key: 'not.bound' }), isOptional: true }) readonly missing: string | undefined,
+        @inject({ key: BindingKeys.build<unknown>({ key: 'not.bound' }), isOptional: true })
+        readonly missing: string | undefined,
       ) {}
     }
 

@@ -77,8 +77,11 @@ export class PlatformComponent extends BaseComponent {
         directUpload: { use: false },
         metaLink: {
           use: true,
-          repository: this.application.get<MetaLinkRepository>({
-            key: { namespace: BindingNamespaces.REPOSITORY, key: MetaLinkRepository.name },
+          repository: this.application.get({
+            key: BindingKeys.build<MetaLinkRepository>({
+              namespace: BindingNamespaces.REPOSITORY,
+              key: MetaLinkRepository.name,
+            }),
           }),
         },
       },
@@ -110,7 +113,7 @@ export class PlatformComponent extends BaseComponent {
       useAuthController: true,
       controllerOpts: {
         restPath: '/auth',
-        serviceKey: BindingKeys.build({
+        serviceKey: BindingKeys.build<AuthenticationService>({
           namespace: BindingNamespaces.SERVICE,
           key: AuthenticationService.name,
         }),
@@ -171,8 +174,11 @@ export class PlatformComponent extends BaseComponent {
   basicOptions(): TBasicTokenServiceOptions {
     return {
       verifyCredentials: async (opts) => {
-        const authenticationService = this.application.get<AuthenticationService>({
-          key: { namespace: BindingNamespaces.SERVICE, key: AuthenticationService.name },
+        const authenticationService = this.application.get({
+          key: BindingKeys.build<AuthenticationService>({
+            namespace: BindingNamespaces.SERVICE,
+            key: AuthenticationService.name,
+          }),
         });
 
         return authenticationService.signIn(opts.context, {

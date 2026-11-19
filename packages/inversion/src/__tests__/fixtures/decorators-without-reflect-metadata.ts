@@ -5,7 +5,10 @@ import { metadataRegistry } from '../../modules/registry';
 import { BindingKeys } from '@/modules/binding/common/constants';
 
 class Consumer {
-  constructor(@inject({ key: BindingKeys.build<unknown>({ key: 'values.dependency' }) }) readonly dependency: string) {}
+  constructor(
+    @inject({ key: BindingKeys.build<unknown>({ key: 'values.dependency' }) })
+    readonly dependency: string,
+  ) {}
 }
 
 const injects = metadataRegistry.getInjectMetadata({ target: Consumer });

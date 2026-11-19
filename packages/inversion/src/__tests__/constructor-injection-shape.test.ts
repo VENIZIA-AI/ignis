@@ -23,15 +23,20 @@ describe('every constructor parameter of a container-instantiated class must be 
 
   beforeEach(() => {
     container = new Container({ scope: 'ctor-shape-test' });
-    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) }).toClass(NoteService);
-    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.AuditService' }) }).toClass(AuditService);
+    container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) })
+      .toClass(NoteService);
+    container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'services.AuditService' }) })
+      .toClass(AuditService);
   });
 
   test('an UNDECORATED parameter before a decorated one is refused, by name and by index', () => {
     class LeadingHoleController {
       constructor(
         public options: object,
-        @inject({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) }) public noteService: NoteService,
+        @inject({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) })
+        public noteService: NoteService,
       ) {}
     }
 
@@ -53,9 +58,11 @@ describe('every constructor parameter of a container-instantiated class must be 
   test('an undecorated parameter BETWEEN two decorated ones is refused too', () => {
     class MiddleHoleController {
       constructor(
-        @inject({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) }) public noteService: NoteService,
+        @inject({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) })
+        public noteService: NoteService,
         public options: object,
-        @inject({ key: BindingKeys.build<unknown>({ key: 'services.AuditService' }) }) public auditService: AuditService,
+        @inject({ key: BindingKeys.build<unknown>({ key: 'services.AuditService' }) })
+        public auditService: AuditService,
       ) {}
     }
 
@@ -75,8 +82,10 @@ describe('every constructor parameter of a container-instantiated class must be 
   test('a fully decorated constructor still resolves every dependency, in the right position', () => {
     class WellFormedController {
       constructor(
-        @inject({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) }) public noteService: NoteService,
-        @inject({ key: BindingKeys.build<unknown>({ key: 'services.AuditService' }) }) public auditService: AuditService,
+        @inject({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) })
+        public noteService: NoteService,
+        @inject({ key: BindingKeys.build<unknown>({ key: 'services.AuditService' }) })
+        public auditService: AuditService,
       ) {}
     }
 
@@ -98,8 +107,10 @@ describe('every constructor parameter of a container-instantiated class must be 
     // Parameter decorators run right-to-left; the container assigns `args[meta.index]`, so evaluation order must not matter.
     class OrderSensitiveController {
       constructor(
-        @inject({ key: BindingKeys.build<unknown>({ key: 'services.AuditService' }) }) public first: AuditService,
-        @inject({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) }) public second: NoteService,
+        @inject({ key: BindingKeys.build<unknown>({ key: 'services.AuditService' }) })
+        public first: AuditService,
+        @inject({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) })
+        public second: NoteService,
       ) {}
     }
 

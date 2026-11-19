@@ -47,7 +47,10 @@ describe('optional property injection', () => {
 
   test('optional parameter injection keeps working (the path that was never broken)', () => {
     class Service {
-      constructor(@inject({ key: BindingKeys.build<unknown>({ key: 'services.Absent' }), isOptional: true }) readonly absent?: object) {}
+      constructor(
+        @inject({ key: BindingKeys.build<unknown>({ key: 'services.Absent' }), isOptional: true })
+        readonly absent?: object,
+      ) {}
     }
 
     expect(container.instantiate(Service).absent).toBeUndefined();

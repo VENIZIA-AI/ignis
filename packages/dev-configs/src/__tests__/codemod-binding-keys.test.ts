@@ -215,15 +215,31 @@ describe('devz codemod binding-keys: the rewrite', () => {
       ].join('\n'),
     );
 
-    expect(result.output).toContain("a.isBound({ key: BindingKeys.build<unknown>({ namespace: NS.SERVICE, key: 'Svc' }) });");
-    expect(result.output).toContain('a.get({ key: BindingKeys.build<Probe>({ namespace: NS.SERVICE, key: Probe.name }) });');
+    expect(result.output).toContain(
+      "a.isBound({ key: BindingKeys.build<unknown>({ namespace: NS.SERVICE, key: 'Svc' }) });",
+    );
+    expect(result.output).toContain(
+      'a.get({ key: BindingKeys.build<Probe>({ namespace: NS.SERVICE, key: Probe.name }) });',
+    );
     expect(result.manual.map((item) => item.line)).toEqual([3]);
   });
 
   test('provide takes a key like inject does, scope included', () => {
     const result = body(`@provide({ key: 'options.alpha', scope: 'transient' }) alpha() {}\n`);
 
-    expect(result.output).toContain("@provide({ key: BindingKeys.build<unknown>({ key: 'options.alpha' }), scope: 'transient' })");
+    expect(result.output).toContain(
+      "@provide({ key: BindingKeys.build<unknown>({ key: 'options.alpha' }), scope: 'transient' })",
+    );
+  });
+
+  test('a type parameter of the enclosing function stays on the call, and the key is built for unknown', () => {
+    const result = body(
+      `const read = <T>(name: string) => a.get<T>({ key: { namespace: 'repositories', key: name } });\n`,
+    );
+
+    expect(result.output).toBe(
+      `const read = <T>(name: string) => a.get<T>({ key: BindingKeys.build<unknown>({ namespace: 'repositories', key: name }) });\n`,
+    );
   });
 
   test('a key already built with its type is left alone, and a second run changes nothing', () => {

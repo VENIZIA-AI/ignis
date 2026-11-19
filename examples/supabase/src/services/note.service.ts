@@ -1,7 +1,7 @@
 import { type SupabaseDataSource } from '@/datasources/supabase.datasource';
 import type { TNote } from '@/models/note.model';
 import { type NoteRepository } from '@/repositories/note.repository';
-import { BaseService, inject, service } from '@venizia/ignis';
+import { BaseService, inject, service, BindingKeys } from '@venizia/ignis';
 import type { IDatabaseTransaction } from '@venizia/ignis-connectors/postgres';
 import { SupabaseRls } from '@venizia/ignis-connectors/postgres/supabase';
 
@@ -16,10 +16,10 @@ import { SupabaseRls } from '@venizia/ignis-connectors/postgres/supabase';
 @service()
 export class NoteService extends BaseService {
   constructor(
-    @inject({ key: 'datasources.SupabaseDataSource' })
+    @inject({ key: BindingKeys.build<SupabaseDataSource>({ key: 'datasources.SupabaseDataSource' }) })
     private dataSource: SupabaseDataSource,
 
-    @inject({ key: 'repositories.NoteRepository' })
+    @inject({ key: BindingKeys.build<NoteRepository>({ key: 'repositories.NoteRepository' }) })
     private noteRepository: NoteRepository,
   ) {
     super({ scope: NoteService.name });

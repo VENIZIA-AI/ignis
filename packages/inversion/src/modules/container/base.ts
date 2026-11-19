@@ -58,15 +58,9 @@ export abstract class BaseContainer extends AbstractContainer {
     return this.bindings.has(opts.key);
   }
 
-  override getBinding<T>(opts: {
-    key: TBindingKey<T>;
-  }): TNullable<Binding<T>>;
-  override getBinding(opts: {
-    key: TBindingKey;
-  }): TNullable<Binding>;
-  override getBinding<T>(opts: {
-    key: TBindingKey<T>;
-  }): TNullable<Binding<T>> {
+  override getBinding<T>(opts: { key: TBindingKey<T> }): TNullable<Binding<T>>;
+  override getBinding(opts: { key: TBindingKey }): TNullable<Binding>;
+  override getBinding<T>(opts: { key: TBindingKey<T> }): TNullable<Binding<T>> {
     return this.bindings.get(opts.key);
   }
 
@@ -79,22 +73,10 @@ export abstract class BaseContainer extends AbstractContainer {
     this.bindings.set(binding.key, binding);
   }
 
-  override get<T>(opts: {
-    key: TBindingKey<T>;
-    isOptional?: false;
-  }): T;
-  override get<T>(opts: {
-    key: TBindingKey<T>;
-    isOptional?: boolean;
-  }): T | undefined;
-  override get(opts: {
-    key: TBindingKey;
-    isOptional?: boolean;
-  }): unknown;
-  override get<T>(opts: {
-    key: TBindingKey<T>;
-    isOptional?: boolean;
-  }): T | undefined {
+  override get<T>(opts: { key: TBindingKey<T>; isOptional?: false }): T;
+  override get<T>(opts: { key: TBindingKey<T>; isOptional?: boolean }): T | undefined;
+  override get(opts: { key: TBindingKey; isOptional?: boolean }): unknown;
+  override get<T>(opts: { key: TBindingKey<T>; isOptional?: boolean }): T | undefined {
     const { key, isOptional = false } = opts;
 
     const binding = this.getBinding<T>({ key });

@@ -40,12 +40,18 @@ class GammaRepository {
 
 /** Needs a key nobody bound. */
 class NeedsMissingKey {
-  constructor(@inject({ key: BindingKeys.build<unknown>({ key: 'services.NeverBound' }) }) readonly missing: unknown) {}
+  constructor(
+    @inject({ key: BindingKeys.build<unknown>({ key: 'services.NeverBound' }) })
+    readonly missing: unknown,
+  ) {}
 }
 
 /** Needs `NeedsMissingKey`, so it fails through a dependency. */
 class NeedsTheNeedy {
-  constructor(@inject({ key: BindingKeys.build<unknown>({ key: 'services.NeedsMissingKey' }) }) readonly needy: NeedsMissingKey) {}
+  constructor(
+    @inject({ key: BindingKeys.build<unknown>({ key: 'services.NeedsMissingKey' }) })
+    readonly needy: NeedsMissingKey,
+  ) {}
 }
 
 /** Never registered: the shape of a service that lost its decorator. */
@@ -68,9 +74,15 @@ beforeEach(() => {
   calls.beta = 0;
   calls.gamma = 0;
   container = new Container({ scope: 'verify-bindings-test' });
-  container.bind({ key: BindingKeys.build<unknown>({ key: 'services.Alpha' }) }).toClass(AlphaService);
-  container.bind({ key: BindingKeys.build<unknown>({ key: 'services.Beta' }) }).toClass(BetaService);
-  container.bind({ key: BindingKeys.build<unknown>({ key: 'repositories.Gamma' }) }).toClass(GammaRepository);
+  container
+    .bind({ key: BindingKeys.build<unknown>({ key: 'services.Alpha' }) })
+    .toClass(AlphaService);
+  container
+    .bind({ key: BindingKeys.build<unknown>({ key: 'services.Beta' }) })
+    .toClass(BetaService);
+  container
+    .bind({ key: BindingKeys.build<unknown>({ key: 'repositories.Gamma' }) })
+    .toClass(GammaRepository);
   // A different namespace: never part of a run that does not name it.
   container.bind({ key: BindingKeys.build<unknown>({ key: 'other.Thing' }) }).toValue('thing');
 });
@@ -79,7 +91,9 @@ const NAMESPACES = ['services', 'repositories'];
 
 describe('verifyBindings - what it finds', () => {
   test('K1 a service that needs an unregistered key is one failure naming the key', () => {
-    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.NeedsMissingKey' }) }).toClass(NeedsMissingKey);
+    container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'services.NeedsMissingKey' }) })
+      .toClass(NeedsMissingKey);
 
     const result = BindingVerifier.verify({ container, namespaces: NAMESPACES });
 
@@ -90,7 +104,9 @@ describe('verifyBindings - what it finds', () => {
   });
 
   test('K2 the thrown error names both and extra.missing is a record of arrays', () => {
-    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.NeedsMissingKey' }) }).toClass(NeedsMissingKey);
+    container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'services.NeedsMissingKey' }) })
+      .toClass(NeedsMissingKey);
 
     let thrown: unknown;
 
@@ -109,7 +125,9 @@ describe('verifyBindings - what it finds', () => {
   });
 
   test('K3 a class injected by class that nobody registered is reported as unregisteredClass', () => {
-    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.NeedsUndecorated' }) }).toClass(NeedsUndecorated);
+    container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'services.NeedsUndecorated' }) })
+      .toClass(NeedsUndecorated);
 
     const result = BindingVerifier.verify({ container, namespaces: NAMESPACES });
 
@@ -121,8 +139,12 @@ describe('verifyBindings - what it finds', () => {
   });
 
   test('K4 a failure through a dependency lists both, and only the enumerated ones', () => {
-    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.NeedsMissingKey' }) }).toClass(NeedsMissingKey);
-    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.NeedsTheNeedy' }) }).toClass(NeedsTheNeedy);
+    container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'services.NeedsMissingKey' }) })
+      .toClass(NeedsMissingKey);
+    container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'services.NeedsTheNeedy' }) })
+      .toClass(NeedsTheNeedy);
 
     const both = BindingVerifier.verify({ container, namespaces: NAMESPACES });
     const onlyOuter = BindingVerifier.verify({
@@ -175,7 +197,9 @@ describe('verifyBindings - what it finds', () => {
   });
 
   test('K7 a constructor that throws its own error carries neither missing field, and the object is kept', () => {
-    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.Throwing' }) }).toClass(Throwing);
+    container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'services.Throwing' }) })
+      .toClass(Throwing);
 
     const result = BindingVerifier.verify({ container, namespaces: NAMESPACES });
 
@@ -213,7 +237,9 @@ describe('verifyBindings - skip', () => {
   });
 
   test('K10 one class name that two bindings share skips both', () => {
-    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.AlphaTwin' }) }).toClass(makeTwin());
+    container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'services.AlphaTwin' }) })
+      .toClass(makeTwin());
 
     const result = BindingVerifier.verify({
       container,
@@ -260,7 +286,9 @@ describe('verifyBindings - skip', () => {
 
   test('K12 a subclass is not matched by its parent class', () => {
     class ChildService extends AlphaService {}
-    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.Child' }) }).toClass(ChildService);
+    container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'services.Child' }) })
+      .toClass(ChildService);
 
     const result = BindingVerifier.verify({
       container,
@@ -284,7 +312,9 @@ describe('verifyBindings - the edges', () => {
   });
 
   test('K14 the container holds the same keys before and after', () => {
-    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.NeedsMissingKey' }) }).toClass(NeedsMissingKey);
+    container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'services.NeedsMissingKey' }) })
+      .toClass(NeedsMissingKey);
     const before = [
       ...container.findByTag({ tag: 'services' }),
       ...container.findByTag({ tag: 'repositories' }),
@@ -301,7 +331,9 @@ describe('verifyBindings - the edges', () => {
       .map((binding) => binding.key)
       .sort();
     expect(after).toEqual(before);
-    expect(container.isBound({ key: BindingKeys.build<unknown>({ key: 'services.NeverBound' }) })).toBe(false);
+    expect(
+      container.isBound({ key: BindingKeys.build<unknown>({ key: 'services.NeverBound' }) }),
+    ).toBe(false);
   });
 });
 

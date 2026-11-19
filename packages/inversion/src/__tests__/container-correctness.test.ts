@@ -92,18 +92,28 @@ describe('metadata that carries a class and a fallback key', () => {
     metadataRegistry.setInjectMetadata({
       target: Holder,
       index: 0,
-      metadata: { target: Unrecorded, key: BindingKeys.build<unknown>({ key: 'derived.Unrecorded' }), index: 0, isOptional: false },
+      metadata: {
+        target: Unrecorded,
+        key: BindingKeys.build<unknown>({ key: 'derived.Unrecorded' }),
+        index: 0,
+        isOptional: false,
+      },
     });
 
     const container = buildContainer();
-    container.bind({ key: BindingKeys.build<unknown>({ key: 'derived.Unrecorded' }) }).toValue('by-hand');
+    container
+      .bind({ key: BindingKeys.build<unknown>({ key: 'derived.Unrecorded' }) })
+      .toValue('by-hand');
 
     expect(container.resolve(Holder).value).toBe('by-hand');
   });
 
   test('a recorded class is read by its recorded key', () => {
     class Pinned {}
-    metadataRegistry.setBindingKey({ target: Pinned, key: BindingKeys.build<unknown>({ key: 'pinned.Pinned' }) });
+    metadataRegistry.setBindingKey({
+      target: Pinned,
+      key: BindingKeys.build<unknown>({ key: 'pinned.Pinned' }),
+    });
 
     class Reader {
       constructor(readonly value: string) {}
@@ -111,7 +121,12 @@ describe('metadata that carries a class and a fallback key', () => {
     metadataRegistry.setInjectMetadata({
       target: Reader,
       index: 0,
-      metadata: { target: Pinned, key: BindingKeys.build<unknown>({ key: 'derived.zz' }), index: 0, isOptional: false },
+      metadata: {
+        target: Pinned,
+        key: BindingKeys.build<unknown>({ key: 'derived.zz' }),
+        index: 0,
+        isOptional: false,
+      },
     });
 
     const container = buildContainer();
@@ -123,11 +138,15 @@ describe('metadata that carries a class and a fallback key', () => {
 
 describe('a dependency cycle is named, not a stack overflow', () => {
   class CycleX {
-    constructor(@inject({ key: BindingKeys.build<unknown>({ key: 'cycle.y' }) }) readonly y: unknown) {}
+    constructor(
+      @inject({ key: BindingKeys.build<unknown>({ key: 'cycle.y' }) }) readonly y: unknown,
+    ) {}
   }
 
   class CycleY {
-    constructor(@inject({ key: BindingKeys.build<unknown>({ key: 'cycle.x' }) }) readonly x: unknown) {}
+    constructor(
+      @inject({ key: BindingKeys.build<unknown>({ key: 'cycle.x' }) }) readonly x: unknown,
+    ) {}
   }
 
   test('the error names the path', () => {
@@ -154,17 +173,22 @@ describe('a dependency cycle is named, not a stack overflow', () => {
     class Leaf {}
 
     class Left {
-      constructor(@inject({ key: BindingKeys.build<unknown>({ key: 'diamond.leaf' }) }) readonly leaf: Leaf) {}
+      constructor(
+        @inject({ key: BindingKeys.build<unknown>({ key: 'diamond.leaf' }) }) readonly leaf: Leaf,
+      ) {}
     }
 
     class Right {
-      constructor(@inject({ key: BindingKeys.build<unknown>({ key: 'diamond.leaf' }) }) readonly leaf: Leaf) {}
+      constructor(
+        @inject({ key: BindingKeys.build<unknown>({ key: 'diamond.leaf' }) }) readonly leaf: Leaf,
+      ) {}
     }
 
     class Top {
       constructor(
         @inject({ key: BindingKeys.build<unknown>({ key: 'diamond.left' }) }) readonly left: Left,
-        @inject({ key: BindingKeys.build<unknown>({ key: 'diamond.right' }) }) readonly right: Right,
+        @inject({ key: BindingKeys.build<unknown>({ key: 'diamond.right' }) })
+        readonly right: Right,
       ) {}
     }
 
@@ -191,7 +215,9 @@ describe('the singleton cache holds any value, falsy ones included', () => {
     session = 'signed-in';
     container.clear();
 
-    expect(container.get({ key: BindingKeys.build<unknown>({ key: 'session' }) })).toBe('signed-in');
+    expect(container.get({ key: BindingKeys.build<unknown>({ key: 'session' }) })).toBe(
+      'signed-in',
+    );
   });
 
   test('a singleton that answers undefined runs once', () => {
@@ -225,7 +251,9 @@ describe('the singleton cache holds any value, falsy ones included', () => {
       .setScope(BindingScopes.SINGLETON);
 
     const read = () =>
-      container.get({ key: BindingKeys.build<Promise<string>>({ key: 'config' }) }).catch((error: Error) => error.message);
+      container
+        .get({ key: BindingKeys.build<Promise<string>>({ key: 'config' }) })
+        .catch((error: Error) => error.message);
 
     const result = await read();
     expect(result).toBe('offline');
@@ -277,7 +305,9 @@ describe('a deep resolution that throws leaves nothing behind', () => {
       return 'end';
     });
 
-    expect(() => container.get({ key: BindingKeys.build<unknown>({ key: 'chain.0' }) })).toThrow('not ready');
+    expect(() => container.get({ key: BindingKeys.build<unknown>({ key: 'chain.0' }) })).toThrow(
+      'not ready',
+    );
 
     isReady = true;
     expect(container.get({ key: BindingKeys.build<unknown>({ key: 'chain.0' }) })).toBe('end');
@@ -286,8 +316,10 @@ describe('a deep resolution that throws leaves nothing behind', () => {
 
 describe('a missing namespaced key names the key', () => {
   test('the message carries namespace.key, not [object Object]', () => {
-    expect(() => buildContainer().get({ key: BindingKeys.build<unknown>({ namespace: 'services', key: 'Mail' }) })).toThrow(
-      /Binding key: services\.Mail is not bounded/,
-    );
+    expect(() =>
+      buildContainer().get({
+        key: BindingKeys.build<unknown>({ namespace: 'services', key: 'Mail' }),
+      }),
+    ).toThrow(/Binding key: services\.Mail is not bounded/);
   });
 });

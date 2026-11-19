@@ -15,11 +15,17 @@ class Base {
 metadataRegistry.setInjectMetadata({
   target: Base,
   index: 0,
-  metadata: { key: BindingKeys.build<unknown>({ key: 'values.base' }), index: 0, isOptional: false },
+  metadata: {
+    key: BindingKeys.build<unknown>({ key: 'values.base' }),
+    index: 0,
+    isOptional: false,
+  },
 });
 
 class ExplicitChild extends Base {
-  constructor(@inject({ key: BindingKeys.build<unknown>({ key: 'values.explicit' }) }) dependency: string) {
+  constructor(
+    @inject({ key: BindingKeys.build<unknown>({ key: 'values.explicit' }) }) dependency: string,
+  ) {
     super(dependency);
   }
 }
@@ -29,7 +35,9 @@ class PlainChild extends Base {}
 const buildContainer = () => {
   const container = new Container({ scope: 'inherited-inject-test' });
   container.bind({ key: BindingKeys.build<unknown>({ key: 'values.base' }) }).toValue('base');
-  container.bind({ key: BindingKeys.build<unknown>({ key: 'values.explicit' }) }).toValue('explicit');
+  container
+    .bind({ key: BindingKeys.build<unknown>({ key: 'values.explicit' }) })
+    .toValue('explicit');
 
   return container;
 };
