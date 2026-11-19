@@ -1,3 +1,4 @@
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import {
   NativeFetcher,
@@ -89,7 +90,7 @@ export class StaticAssetIngestUtility {
     });
     // The fetcher refuses a declared size over the cap before anything is read, and hands back a body that fails the moment the bytes cross it.
     const response = await fetcher.get({ url, guard: policy ?? {}, maxBytes });
-    const remoteType = response.headers.get('content-type')?.split(';')[0]?.trim() ?? '';
+    const remoteType = response.headers.get(HTTP.Headers.CONTENT_TYPE)?.split(';')[0]?.trim() ?? '';
     const parsed = new URL(url);
 
     const key = resolveKey

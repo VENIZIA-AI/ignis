@@ -64,6 +64,7 @@ export class HTTP {
     X_FORWARDED_FOR: 'x-forwarded-for',
     X_FORWARDED_HOST: 'x-forwarded-host',
     X_FORWARDED_PROTO: 'x-forwarded-proto',
+    X_REAL_IP: 'x-real-ip',
 
     // Rate limiting (de facto standard)
     X_RATELIMIT_LIMIT: 'x-ratelimit-limit',
@@ -111,6 +112,8 @@ export class HTTP {
     APPLICATION_GZIP: 'application/gzip',
     APPLICATION_JAVASCRIPT: 'application/javascript',
     APPLICATION_JSON: 'application/json',
+    /** A JSON body with its charset named, the value a client sends by default. */
+    APPLICATION_JSON_UTF8: 'application/json; charset=utf-8',
     APPLICATION_MSGPACK: 'application/msgpack',
     APPLICATION_NDJSON: 'application/x-ndjson',
     APPLICATION_OCTET_STREAM: 'application/octet-stream',

@@ -207,7 +207,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
   extractCredentials(context: TContext<E, string>): { type: string; token: string } {
     const request = context.req;
 
-    const authHeaderValue = request.header('Authorization');
+    const authHeaderValue = request.header(HTTP.Headers.AUTHORIZATION);
 
     if (!authHeaderValue) {
       throw getError({

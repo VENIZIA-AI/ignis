@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/http, from the built dec
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-20 exports, 20 with TSDoc. 3 more are re-exported from other entries (listed at the end).
+21 exports, 21 with TSDoc. 3 more are re-exported from other entries (listed at the end).
 
 ## `HttpDataSource`
 
@@ -429,6 +429,21 @@ export declare class HttpResourceEntity extends AbstractEntity {
 ```
 
 Source: `packages/connectors/src/http/repository.ts`
+
+## `HttpWireHeaders`
+
+*class*
+
+Headers the HTTP datasource owns on the wire, beside the shared ones in `HTTP.Headers`.
+
+```ts
+export declare class HttpWireHeaders {
+    /** The credential's `provider`, when it names one. */
+    static readonly AUTH_PROVIDER = "x-auth-provider";
+}
+```
+
+Source: `packages/connectors/src/http/common/constants.ts`
 
 ## `IAuthToken`
 

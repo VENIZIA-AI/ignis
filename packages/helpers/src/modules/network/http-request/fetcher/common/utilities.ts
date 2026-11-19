@@ -1,3 +1,4 @@
+import { HTTP } from '@/common/constants/http';
 import { UrlPolicy } from '@/modules/network/utilities/url-safety/policy';
 import { UrlFetchError } from '@/modules/network/utilities/url-safety/common/errors';
 import { FetchSchemaError } from './errors';
@@ -58,6 +59,30 @@ export class FetchHeaders {
   }
 }
 
+/** Which statuses a fetcher takes as an answer. */
+export class FetchStatus {
+  /** Whether `status` is 2xx. */
+  static isSuccess(opts: { status: number }): boolean {
+    // The hundreds digit: 2xx is the success class.
+    return Math.floor(opts.status / 100) === 2;
+  }
+
+  /** The one place `acceptStatus` becomes a decision: a list adds to 2xx, a function replaces it, unset is 2xx. */
+  static toPredicate(opts: {
+    accept: ReadonlyArray<number> | ((status: number) => boolean) | undefined;
+  }): (status: number) => boolean {
+    const { accept } = opts;
+
+    if (typeof accept === 'function') {
+      return accept;
+    }
+
+    const extra = new Set(accept);
+
+    return (status) => FetchStatus.isSuccess({ status }) || extra.has(status);
+  }
+}
+
 /** The redirect rules of a fetcher that walks redirects by hand. */
 export class FetchRedirects {
   /** The statuses that name a new location; a 304 or a 300 is an answer, not a redirect. */
@@ -65,9 +90,9 @@ export class FetchRedirects {
 
   /** Request headers that name the body; they go when a redirect turns the request into a GET. */
   static readonly BODY_HEADERS: ReadonlyArray<string> = [
-    'content-type',
-    'content-length',
-    'content-encoding',
+    HTTP.Headers.CONTENT_TYPE,
+    HTTP.Headers.CONTENT_LENGTH,
+    HTTP.Headers.CONTENT_ENCODING,
   ];
 
   /**
@@ -75,9 +100,9 @@ export class FetchRedirects {
    * (`x-api-key`, a signature) must not follow a redirect to a host that tenant did not name.
    */
   static readonly CROSS_ORIGIN_HEADERS: ReadonlyArray<string> = [
-    'accept',
-    'accept-language',
-    'user-agent',
+    HTTP.Headers.ACCEPT,
+    HTTP.Headers.ACCEPT_LANGUAGE,
+    HTTP.Headers.USER_AGENT,
   ];
 
   static isRedirect(opts: { status: number }): boolean {
@@ -125,7 +150,7 @@ export class FetchRetry {
       return undefined;
     }
 
-    const header = error.headers.get('retry-after')?.trim();
+    const header = error.headers.get(HTTP.Headers.RETRY_AFTER)?.trim();
 
     if (!header) {
       return undefined;

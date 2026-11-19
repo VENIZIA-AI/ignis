@@ -25,7 +25,7 @@ import type {
   IFetcherHooks,
   TFetchHeaders,
 } from './common/types';
-import { FetchHeaders, FetchRedirects, FetchRetry } from './common/utilities';
+import { FetchHeaders, FetchRedirects, FetchRetry, FetchStatus } from './common/utilities';
 
 /** The attempts a call makes when its `retry` names no `maxAttempts` (the retry helper's own default). */
 const DEFAULT_MAX_ATTEMPTS = 3;
@@ -51,8 +51,11 @@ export interface IRequestOptions {
   maxBytes?: number;
   /** Redirects followed by hand; `0` hands back the 3xx as a `UrlFetchError`. Unset: the client follows (a guard follows 3). */
   maxRedirects?: number;
-  /** Whether a status is an answer; the default is 2xx, so any other status throws a `UrlFetchError`. */
-  acceptStatus?: (status: number) => boolean;
+  /**
+   * Which statuses are an answer; any other throws a `UrlFetchError`. A list ADDS to 2xx (`[HTTP.ResultCodes.RS_4.NotFound]`
+   * is 2xx or 404); a function decides alone. Unset, only 2xx.
+   */
+  acceptStatus?: ReadonlyArray<number> | ((status: number) => boolean);
   /** The body is parsed with it, and the call answers `{ data, status, headers, response }`. */
   schema?: z.ZodType;
   [extra: symbol | string]: unknown;
@@ -306,7 +309,7 @@ export abstract class AbstractNetworkFetchableHelper<
         this.defaults.maxBytes ??
         (guard === undefined ? undefined : UrlSafetyDefaults.MAX_BYTES),
       maxRedirects: request.maxRedirects ?? guard?.maxRedirects,
-      acceptStatus: request.acceptStatus ?? ((status: number) => status >= 200 && status < 300),
+      acceptStatus: FetchStatus.toPredicate({ accept: request.acceptStatus }),
       schema: request.schema,
       extra,
     };
@@ -438,7 +441,7 @@ export abstract class AbstractNetworkFetchableHelper<
           break;
         }
 
-        const location = exchange.headers.get('location');
+        const location = exchange.headers.get(HTTP.Headers.LOCATION);
 
         // No redirect budget: the 3xx is the answer, unless the caller accepts that status as one.
         if (hop === maxRedirects && maxRedirects === 0) {

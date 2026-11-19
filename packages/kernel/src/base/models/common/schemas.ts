@@ -153,7 +153,7 @@ export class OpenApiResponses {
   }) {
     return {
       description: opts.description,
-      content: { 'application/json': { schema: opts.schema } },
+      content: { [HTTP.HeaderValues.APPLICATION_JSON]: { schema: opts.schema } },
       required: opts.required,
     };
   }

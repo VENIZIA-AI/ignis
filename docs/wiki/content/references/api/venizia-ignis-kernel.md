@@ -5358,7 +5358,7 @@ export declare class OpenApiResponses {
         '4XX': {
             description: string;
             content: {
-                'application/json': {
+                "application/json": {
                     schema: z.ZodObject<{
                         statusCode: z.ZodOptional<z.ZodNumber>;
                         message: z.ZodString;
@@ -5378,7 +5378,7 @@ export declare class OpenApiResponses {
         '5XX': {
             description: string;
             content: {
-                'application/json': {
+                "application/json": {
                     schema: z.ZodObject<{
                         statusCode: z.ZodOptional<z.ZodNumber>;
                         message: z.ZodString;
@@ -5412,7 +5412,7 @@ export declare class OpenApiResponses {
     }): {
         description: string;
         content: {
-            'application/json': {
+            "application/json": {
                 schema: T;
             };
         };
@@ -5423,7 +5423,7 @@ export declare class OpenApiResponses {
         '4XX': {
             description: string;
             content: {
-                'application/json': {
+                "application/json": {
                     schema: z.ZodObject<{
                         statusCode: z.ZodOptional<z.ZodNumber>;
                         message: z.ZodString;
@@ -5443,7 +5443,7 @@ export declare class OpenApiResponses {
         '5XX': {
             description: string;
             content: {
-                'application/json': {
+                "application/json": {
                     schema: z.ZodObject<{
                         statusCode: z.ZodOptional<z.ZodNumber>;
                         message: z.ZodString;
@@ -5465,7 +5465,7 @@ export declare class OpenApiResponses {
         '4XX': {
             description: string;
             content: {
-                'application/json': {
+                "application/json": {
                     schema: z.ZodObject<{
                         statusCode: z.ZodOptional<z.ZodNumber>;
                         message: z.ZodString;
@@ -5485,7 +5485,7 @@ export declare class OpenApiResponses {
         '5XX': {
             description: string;
             content: {
-                'application/json': {
+                "application/json": {
                     schema: z.ZodObject<{
                         statusCode: z.ZodOptional<z.ZodNumber>;
                         message: z.ZodString;
@@ -5505,7 +5505,7 @@ export declare class OpenApiResponses {
         200: {
             description: string;
             content: {
-                'application/json': {
+                "application/json": {
                     schema: ContentSchema;
                 };
             };
@@ -5514,7 +5514,7 @@ export declare class OpenApiResponses {
             headers: NonNullable<HeaderSchema>;
             description: string;
             content: {
-                'application/json': {
+                "application/json": {
                     schema: ContentSchema;
                 };
             };
@@ -6556,7 +6556,7 @@ export declare class RouteConfigResolver {
                 '4XX': {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodObject<{
                                 statusCode: z.ZodOptional<z.ZodNumber>;
                                 message: z.ZodString;
@@ -6576,7 +6576,7 @@ export declare class RouteConfigResolver {
                 '5XX': {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodObject<{
                                 statusCode: z.ZodOptional<z.ZodNumber>;
                                 message: z.ZodString;
@@ -6596,7 +6596,7 @@ export declare class RouteConfigResolver {
                 200: {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodUnion<readonly [z.ZodObject<{
                                 count: z.ZodDefault<z.ZodNumber>;
                                 data: z.ZodArray<SelectSchema>;
@@ -6608,7 +6608,7 @@ export declare class RouteConfigResolver {
                     headers: import("../index.js").TResponseHeaders;
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodUnion<readonly [z.ZodObject<{
                                 count: z.ZodDefault<z.ZodNumber>;
                                 data: z.ZodArray<SelectSchema>;
@@ -6645,7 +6645,7 @@ export declare class RouteConfigResolver {
                 '4XX': {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodObject<{
                                 statusCode: z.ZodOptional<z.ZodNumber>;
                                 message: z.ZodString;
@@ -6665,7 +6665,7 @@ export declare class RouteConfigResolver {
                 '5XX': {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodObject<{
                                 statusCode: z.ZodOptional<z.ZodNumber>;
                                 message: z.ZodString;
@@ -6685,7 +6685,7 @@ export declare class RouteConfigResolver {
                 200: {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodUnion<readonly [z.ZodObject<{
                                 count: z.ZodDefault<z.ZodNumber>;
                                 data: SelectSchema;
@@ -6697,7 +6697,7 @@ export declare class RouteConfigResolver {
                     headers: import("../index.js").TResponseHeaders;
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodUnion<readonly [z.ZodObject<{
                                 count: z.ZodDefault<z.ZodNumber>;
                                 data: SelectSchema;
@@ -6727,7 +6727,7 @@ export declare class RouteConfigResolver {
                 body?: {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: TAnyObjectSchema;
                         };
                     };
@@ -6741,7 +6741,7 @@ export declare class RouteConfigResolver {
                 '4XX': {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodObject<{
                                 statusCode: z.ZodOptional<z.ZodNumber>;
                                 message: z.ZodString;
@@ -6761,7 +6761,7 @@ export declare class RouteConfigResolver {
                 '5XX': {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodObject<{
                                 statusCode: z.ZodOptional<z.ZodNumber>;
                                 message: z.ZodString;
@@ -6781,7 +6781,7 @@ export declare class RouteConfigResolver {
                 200: {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodUnion<readonly [z.ZodObject<{
                                 count: z.ZodDefault<z.ZodNumber>;
                                 data: z.ZodArray<SelectSchema>;
@@ -6793,7 +6793,7 @@ export declare class RouteConfigResolver {
                     headers: import("../index.js").TResponseHeaders;
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodUnion<readonly [z.ZodObject<{
                                 count: z.ZodDefault<z.ZodNumber>;
                                 data: z.ZodArray<SelectSchema>;
@@ -6830,7 +6830,7 @@ export declare class RouteConfigResolver {
                 '4XX': {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodObject<{
                                 statusCode: z.ZodOptional<z.ZodNumber>;
                                 message: z.ZodString;
@@ -6850,7 +6850,7 @@ export declare class RouteConfigResolver {
                 '5XX': {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodObject<{
                                 statusCode: z.ZodOptional<z.ZodNumber>;
                                 message: z.ZodString;
@@ -6870,7 +6870,7 @@ export declare class RouteConfigResolver {
                 200: {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodUnion<readonly [z.ZodObject<{
                                 count: z.ZodDefault<z.ZodNumber>;
                                 data: SelectSchema;
@@ -6882,7 +6882,7 @@ export declare class RouteConfigResolver {
                     headers: import("../index.js").TResponseHeaders;
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodUnion<readonly [z.ZodObject<{
                                 count: z.ZodDefault<z.ZodNumber>;
                                 data: SelectSchema;
@@ -6909,7 +6909,7 @@ export declare class RouteConfigResolver {
                 body: {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: TAnyObjectSchema;
                         };
                     };
@@ -6926,7 +6926,7 @@ export declare class RouteConfigResolver {
                 '4XX': {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodObject<{
                                 statusCode: z.ZodOptional<z.ZodNumber>;
                                 message: z.ZodString;
@@ -6946,7 +6946,7 @@ export declare class RouteConfigResolver {
                 '5XX': {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodObject<{
                                 statusCode: z.ZodOptional<z.ZodNumber>;
                                 message: z.ZodString;
@@ -6966,7 +6966,7 @@ export declare class RouteConfigResolver {
                 200: {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodUnion<readonly [z.ZodObject<{
                                 count: z.ZodDefault<z.ZodNumber>;
                                 data: z.ZodArray<SelectSchema>;
@@ -6978,7 +6978,7 @@ export declare class RouteConfigResolver {
                     headers: import("../index.js").TResponseHeaders;
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodUnion<readonly [z.ZodObject<{
                                 count: z.ZodDefault<z.ZodNumber>;
                                 data: z.ZodArray<SelectSchema>;
@@ -7007,7 +7007,7 @@ export declare class RouteConfigResolver {
                 body: {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: TAnyObjectSchema;
                         };
                     };

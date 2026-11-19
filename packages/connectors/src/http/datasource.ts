@@ -1,5 +1,5 @@
 import { EchoUtility } from '@/common/internal';
-import { HttpReadShapes, type THttpReadShape } from './common/constants';
+import { HttpReadShapes, HttpWireHeaders, type THttpReadShape } from './common/constants';
 import { DataSourceRoot } from '@venizia/ignis-kernel/repository';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
@@ -112,7 +112,7 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
     }
 
     if (isJsonBody && !headers.has(HTTP.Headers.CONTENT_TYPE)) {
-      headers.set(HTTP.Headers.CONTENT_TYPE, 'application/json');
+      headers.set(HTTP.Headers.CONTENT_TYPE, HTTP.HeaderValues.APPLICATION_JSON);
     }
 
     // Only `fetch` knows the multipart boundary; any other content-type here would drop it.
@@ -131,7 +131,7 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
 
     // Unconditionally it would send the string "undefined".
     if (token.provider) {
-      headers.set('x-auth-provider', token.provider);
+      headers.set(HttpWireHeaders.AUTH_PROVIDER, token.provider);
     }
 
     return headers;

@@ -455,6 +455,7 @@ export declare class HTTP {
         readonly X_FORWARDED_FOR: "x-forwarded-for";
         readonly X_FORWARDED_HOST: "x-forwarded-host";
         readonly X_FORWARDED_PROTO: "x-forwarded-proto";
+        readonly X_REAL_IP: "x-real-ip";
         readonly X_RATELIMIT_LIMIT: "x-ratelimit-limit";
         readonly X_RATELIMIT_REMAINING: "x-ratelimit-remaining";
         readonly X_RATELIMIT_RESET: "x-ratelimit-reset";
@@ -483,6 +484,8 @@ export declare class HTTP {
         readonly APPLICATION_GZIP: "application/gzip";
         readonly APPLICATION_JAVASCRIPT: "application/javascript";
         readonly APPLICATION_JSON: "application/json";
+        /** A JSON body with its charset named, the value a client sends by default. */
+        readonly APPLICATION_JSON_UTF8: "application/json; charset=utf-8";
         readonly APPLICATION_MSGPACK: "application/msgpack";
         readonly APPLICATION_NDJSON: "application/x-ndjson";
         readonly APPLICATION_OCTET_STREAM: "application/octet-stream";
@@ -1081,6 +1084,7 @@ export declare class HTTP {
         readonly X_FORWARDED_FOR: "x-forwarded-for";
         readonly X_FORWARDED_HOST: "x-forwarded-host";
         readonly X_FORWARDED_PROTO: "x-forwarded-proto";
+        readonly X_REAL_IP: "x-real-ip";
         readonly X_RATELIMIT_LIMIT: "x-ratelimit-limit";
         readonly X_RATELIMIT_REMAINING: "x-ratelimit-remaining";
         readonly X_RATELIMIT_RESET: "x-ratelimit-reset";
@@ -1109,6 +1113,8 @@ export declare class HTTP {
         readonly APPLICATION_GZIP: "application/gzip";
         readonly APPLICATION_JAVASCRIPT: "application/javascript";
         readonly APPLICATION_JSON: "application/json";
+        /** A JSON body with its charset named, the value a client sends by default. */
+        readonly APPLICATION_JSON_UTF8: "application/json; charset=utf-8";
         readonly APPLICATION_MSGPACK: "application/msgpack";
         readonly APPLICATION_NDJSON: "application/x-ndjson";
         readonly APPLICATION_OCTET_STREAM: "application/octet-stream";
@@ -1280,6 +1286,7 @@ export declare class HTTP {
         readonly X_FORWARDED_FOR: "x-forwarded-for";
         readonly X_FORWARDED_HOST: "x-forwarded-host";
         readonly X_FORWARDED_PROTO: "x-forwarded-proto";
+        readonly X_REAL_IP: "x-real-ip";
         readonly X_RATELIMIT_LIMIT: "x-ratelimit-limit";
         readonly X_RATELIMIT_REMAINING: "x-ratelimit-remaining";
         readonly X_RATELIMIT_RESET: "x-ratelimit-reset";
@@ -1308,6 +1315,8 @@ export declare class HTTP {
         readonly APPLICATION_GZIP: "application/gzip";
         readonly APPLICATION_JAVASCRIPT: "application/javascript";
         readonly APPLICATION_JSON: "application/json";
+        /** A JSON body with its charset named, the value a client sends by default. */
+        readonly APPLICATION_JSON_UTF8: "application/json; charset=utf-8";
         readonly APPLICATION_MSGPACK: "application/msgpack";
         readonly APPLICATION_NDJSON: "application/x-ndjson";
         readonly APPLICATION_OCTET_STREAM: "application/octet-stream";
@@ -1479,6 +1488,7 @@ export declare class HTTP {
         readonly X_FORWARDED_FOR: "x-forwarded-for";
         readonly X_FORWARDED_HOST: "x-forwarded-host";
         readonly X_FORWARDED_PROTO: "x-forwarded-proto";
+        readonly X_REAL_IP: "x-real-ip";
         readonly X_RATELIMIT_LIMIT: "x-ratelimit-limit";
         readonly X_RATELIMIT_REMAINING: "x-ratelimit-remaining";
         readonly X_RATELIMIT_RESET: "x-ratelimit-reset";
@@ -1507,6 +1517,8 @@ export declare class HTTP {
         readonly APPLICATION_GZIP: "application/gzip";
         readonly APPLICATION_JAVASCRIPT: "application/javascript";
         readonly APPLICATION_JSON: "application/json";
+        /** A JSON body with its charset named, the value a client sends by default. */
+        readonly APPLICATION_JSON_UTF8: "application/json; charset=utf-8";
         readonly APPLICATION_MSGPACK: "application/msgpack";
         readonly APPLICATION_NDJSON: "application/x-ndjson";
         readonly APPLICATION_OCTET_STREAM: "application/octet-stream";

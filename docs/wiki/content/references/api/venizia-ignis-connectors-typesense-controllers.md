@@ -467,7 +467,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                 readonly body: {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodDiscriminatedUnion<[z.ZodObject<{
                                 facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                 facetQuery: z.ZodOptional<z.ZodString>;
@@ -788,7 +788,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                 200: {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodObject<{
                                 found: z.ZodNumber;
                                 isFoundExact: z.ZodBoolean;
@@ -803,7 +803,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                     headers: never;
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodObject<{
                                 found: z.ZodNumber;
                                 isFoundExact: z.ZodBoolean;
@@ -830,7 +830,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                 readonly body: {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodObject<{
                                 searches: z.ZodArray<z.ZodObject<{
                                     facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
@@ -910,7 +910,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                 200: {
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodRecord<z.ZodString, z.ZodUnknown>;
                         };
                     };
@@ -919,7 +919,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                     headers: never;
                     description: string;
                     content: {
-                        'application/json': {
+                        "application/json": {
                             schema: z.ZodRecord<z.ZodString, z.ZodUnknown>;
                         };
                     };

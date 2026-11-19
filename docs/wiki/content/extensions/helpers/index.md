@@ -63,7 +63,7 @@ bundles both entry points for a browser target and fails if that ever changes.
 
 `/core` is hand-curated one symbol at a time, never `export *` from a module barrel. `./modules/env`
 carries `applicationEnvironment`, which reads `process.env`, so only `EnvironmentNames` crosses over.
-`UrlPolicy` crosses, its `UrlIngest` sibling does not, because `UrlIngest` reaches `node:dns`.
+`UrlPolicy` crosses, its `UrlGuard` sibling does not, because `UrlGuard` reaches `node:dns`.
 
 ```typescript
 import { HTTP } from '@venizia/ignis-helpers/common';

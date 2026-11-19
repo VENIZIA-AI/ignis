@@ -135,9 +135,9 @@ describe('UrlPolicy.assertSafeUrl', () => {
     ).toContain('not trusted');
   });
 
-  test('a hostname is left for UrlIngest - this half never resolves', () => {
+  test('a hostname is left for UrlGuard - this half never resolves', () => {
     // `assertSafeUrl` is the browser-pure half: it cannot do DNS, so a hostname that resolves to
-    // loopback passes HERE and is caught by `UrlIngest.assertPublicHost`.
+    // loopback passes HERE and is caught by `UrlGuard.assertPublicHost`.
     expect(() =>
       UrlPolicy.assertSafeUrl({ url: 'https://localhost.example.com/a.png' }),
     ).not.toThrow();

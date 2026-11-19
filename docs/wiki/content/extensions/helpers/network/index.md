@@ -130,7 +130,7 @@ const { data } = await fetcher.get({
 });
 ```
 
-- A status outside 2xx throws a `UrlFetchError`. `acceptStatus` is the opt-out.
+- A status outside 2xx throws a `UrlFetchError`. `acceptStatus` is the opt-out: a list of statuses that add to 2xx, or a function.
 - A body that does not fit the schema throws a `FetchSchemaError` (502) that names paths, never values.
 - A 5xx, a 429, a timeout and a network error are retried; a `Retry-After` is honoured.
 - For a url a user supplied, add `guardEngine: UrlGuard` and a per-call `guard`: see [URL Safety](/extensions/helpers/network/api#url-safety).
