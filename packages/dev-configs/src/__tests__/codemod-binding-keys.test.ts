@@ -205,6 +205,27 @@ describe('devz codemod binding-keys: the rewrite', () => {
     expect(result.changed).toBe(false);
   });
 
+  test('a template written as ${namespace}.Name or ${namespace}.${name} becomes build({ namespace, key })', () => {
+    const result = body(
+      [
+        'a.isBound({ key: `${NS.SERVICE}.Svc` });',
+        'a.get<Probe>({ key: `${NS.SERVICE}.${Probe.name}` });',
+        'a.bind({ key: `${prefix}-x` });',
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.output).toContain("a.isBound({ key: BindingKeys.build<unknown>({ namespace: NS.SERVICE, key: 'Svc' }) });");
+    expect(result.output).toContain('a.get({ key: BindingKeys.build<Probe>({ namespace: NS.SERVICE, key: Probe.name }) });');
+    expect(result.manual.map((item) => item.line)).toEqual([3]);
+  });
+
+  test('provide takes a key like inject does, scope included', () => {
+    const result = body(`@provide({ key: 'options.alpha', scope: 'transient' }) alpha() {}\n`);
+
+    expect(result.output).toContain("@provide({ key: BindingKeys.build<unknown>({ key: 'options.alpha' }), scope: 'transient' })");
+  });
+
   test('a key already built with its type is left alone, and a second run changes nothing', () => {
     const source = `${IMPORT}a.get({ key: BindingKeys.build<Mailer>({ key: 'services.Mailer' }) });\n`;
 

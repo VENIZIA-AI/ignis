@@ -1,3 +1,4 @@
+import type { TBindingKey } from '@/helpers/inversion';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { type EventHandlerTypes } from './constants';
 
@@ -38,7 +39,7 @@ export type TEventHandlerFunction<TPayload = unknown> = (opts: {
 /** `register`'s binding-key handler shape: resolved from the container by `key` on every retry attempt. */
 export interface IEventHandlerBindingKeyReference {
   type: typeof EventHandlerTypes.BINDING_KEY;
-  key: string;
+  key: TBindingKey<IEventHandler>;
 }
 
 /** `register`'s function handler shape: `fn` is invoked directly, captured as a closure - see `TEventHandlerReference`. */

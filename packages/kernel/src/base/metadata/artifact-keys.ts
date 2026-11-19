@@ -1,4 +1,4 @@
-import { BindingKeys } from '@/helpers/inversion';
+import { BindingKeys, type TBindingKey } from '@/helpers/inversion';
 import { getError } from '@venizia/ignis-helpers/core';
 
 /**
@@ -14,14 +14,14 @@ export class ArtifactBindingKeys {
     target: Function;
     namespace: string;
     binding?: { namespace: string; key: string };
-  }): { key: string; isDerived: boolean } {
+  }): { key: TBindingKey; isDerived: boolean } {
     const { target, namespace, binding } = opts;
 
     if (binding) {
-      return { key: BindingKeys.build(binding), isDerived: false };
+      return { key: BindingKeys.build<unknown>(binding), isDerived: false };
     }
 
-    return { key: BindingKeys.build({ namespace, key: target.name }), isDerived: true };
+    return { key: BindingKeys.build<unknown>({ namespace, key: target.name }), isDerived: true };
   }
 
   /**

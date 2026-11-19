@@ -10,14 +10,16 @@ Rewrites the raw binding keys of the @venizia/ignis-inversion release where a ke
   container.bind({ key: 'services.Mailer' })          becomes  container.bind({ key: BindingKeys.build<unknown>({ key: 'services.Mailer' }) })
   @inject({ key: 'services.Mailer' })                 becomes  @inject({ key: BindingKeys.build<unknown>({ key: 'services.Mailer' }) })
   container.get({ key: { namespace, key } })          becomes  container.get({ key: BindingKeys.build<unknown>({ namespace, key }) })
+  container.get({ key: \`\${namespace}.Name\` })         becomes  container.get({ key: BindingKeys.build<unknown>({ namespace, key: 'Name' }) })
   BindingKeys.build({ key })                          becomes  BindingKeys.build<unknown>({ key })
 
 The key string is never changed. The call's own type argument moves into build<T>, so the caller keeps the type it
 claimed; without one the codemod writes build<unknown> and lists the site ("type"): name the real type there.
 
 It rewrites a call named get, gets, getBinding, bind, isBound or unbind whose argument is an object literal with a
-\`key\` (and, for get, \`isOptional\`), and a call of inject. A container cannot be told from syntax, so the shape is the
-test. A string key, a substitution-free template literal and a { namespace, key } literal are rewritten. These are listed
+\`key\` (and, for get, \`isOptional\`), and a call of inject or provide. A container cannot be told from syntax, so the shape is the
+test. A string key, a substitution-free template literal, a { namespace, key } literal and a template written
+\${namespace}.Name or \${namespace}.\${name} are rewritten. These are listed
 as "manual" and left alone: a key made at run time (a template with substitutions, a call) and a Symbol key (symbols are no
 longer keys). A key that is a const of the file (const MAILER = 'services.Mailer') is rewritten where it is declared. Any
 other name or property (Keys.MAILER) is left alone without a line: it may already be a built key, and your typecheck
@@ -46,7 +48,10 @@ const USAGE_ERROR_CODE = 2;
 const KEY_METHODS = new Set(['get', 'gets', 'getBinding', 'bind', 'isBound', 'unbind']);
 
 /** The other properties a key options object may carry and still be one. */
-const OPTION_NAMES = new Set(['key', 'isOptional']);
+const OPTION_NAMES = new Set(['key', 'isOptional', 'scope']);
+
+/** The decorators that take a key options object. */
+const KEY_DECORATORS = new Set(['inject', 'provide']);
 
 /** Where a file already imports the container API from. */
 const IGNIS_MODULE = /^@venizia\/ignis(?:-kernel|-inversion)?$/;
@@ -213,6 +218,36 @@ export class BindingKeysCodemod {
         node.expression.text === 'Symbol');
 
     /**
+     * The `{ namespace, key }` text of a template written as `${namespace}.Name` or `${namespace}.${name}` (the two
+     * shapes the framework's own keys take), or `undefined` for any other template.
+     */
+    const namespaceKeyOf = (node: import('typescript').TemplateExpression): string | undefined => {
+      const { head, templateSpans } = node;
+
+      if (head.text !== '') {
+        return undefined;
+      }
+
+      if (templateSpans.length === 1 && templateSpans[0].literal.text.startsWith('.')) {
+        const tail = templateSpans[0].literal.text.slice(1);
+
+        return tail === ''
+          ? undefined
+          : `{ namespace: ${templateSpans[0].expression.getText(file)}, key: '${tail.replace(/'/g, "\\'")}' }`;
+      }
+
+      if (
+        templateSpans.length === 2 &&
+        templateSpans[0].literal.text === '.' &&
+        templateSpans[1].literal.text === ''
+      ) {
+        return `{ namespace: ${templateSpans[0].expression.getText(file)}, key: ${templateSpans[1].expression.getText(file)} }`;
+      }
+
+      return undefined;
+    };
+
+    /**
      * Wraps the key of one options object. `typeText` is the value type the call already claimed, or `undefined` for
      * `unknown`. Answers whether the key was rewritten.
      */
@@ -249,6 +284,12 @@ export class BindingKeysCodemod {
           start: value.getStart(file),
           end: value.getEnd(),
           text: `${BUILDER}.build<${text}>(${value.getText(file)})`,
+        });
+      } else if (ts.isTemplateExpression(value) && namespaceKeyOf(value) !== undefined) {
+        edits.push({
+          start: value.getStart(file),
+          end: value.getEnd(),
+          text: `${BUILDER}.build<${text}>(${namespaceKeyOf(value)})`,
         });
       } else if (
         ts.isIdentifier(value) &&
@@ -327,7 +368,7 @@ export class BindingKeysCodemod {
       if (ts.isCallExpression(node)) {
         const callee = node.expression;
         const first = node.arguments[0];
-        const isInject = ts.isIdentifier(callee) && callee.text === 'inject';
+        const isInject = ts.isIdentifier(callee) && KEY_DECORATORS.has(callee.text);
         const isMethod =
           ts.isPropertyAccessExpression(callee) &&
           ts.isIdentifier(callee.name) &&
