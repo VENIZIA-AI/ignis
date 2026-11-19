@@ -29,7 +29,7 @@ export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
 
   /**
    * The url of a request: the base and the paths, checked by `UrlBuilder.join`. A path may not be a dot segment, hide one,
-   * carry a backslash, a control character or an empty segment (`a//b`); a relative base is resolved against the page.
+   * carry a backslash or a control character; a relative base is resolved against the page.
    */
   getRequestUrl(opts: { baseUrl?: string; paths: Array<string> }) {
     const baseUrl = opts?.baseUrl ?? this.baseUrl ?? '';
@@ -45,7 +45,6 @@ export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
       baseUrl,
       paths: opts?.paths ?? [],
       scope: this.scope,
-      isDoubleSlashRefused: true,
     });
 
     return url.toString();

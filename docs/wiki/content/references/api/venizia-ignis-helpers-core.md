@@ -293,7 +293,7 @@ export declare class BaseNetworkRequest<T extends TFetcherVariant> extends BaseH
     }): string;
     /**
      * The url of a request: the base and the paths, checked by `UrlBuilder.join`. A path may not be a dot segment, hide one,
-     * carry a backslash, a control character or an empty segment (`a//b`); a relative base is resolved against the page.
+     * carry a backslash or a control character; a relative base is resolved against the page.
      */
     getRequestUrl(opts: {
         baseUrl?: string;
@@ -3220,14 +3220,13 @@ export declare class UrlBuilder {
     /**
      * The url of a request: the base and the paths, checked. A path may not be a dot segment, hide one, or carry a backslash
      * or a control character; a relative base (`/api`) is resolved against `origin` (the page's, by default); and the result
-     * must be on the base's origin and under its path. With `isDoubleSlashRefused` an empty segment (`a//b`) is refused too.
+     * must be on the base's origin and under its path.
      */
     static join(opts: {
         baseUrl: string;
         paths: ReadonlyArray<string>;
         scope: string;
         origin?: string;
-        isDoubleSlashRefused?: boolean;
     }): URL;
     /** The resolved URL, whatever built it, is on the base's origin and under its path: the check that holds when the text checks above miss a form. */
     static assertUnderBase(opts: {

@@ -15,7 +15,6 @@ import type {
 } from './common/types';
 import { HttpWire } from './common/wire';
 
-/** A scheme and `//` make a URL absolute - `localhost:3000` has neither. Read by pattern: `URL.canParse` needs Safari 17 or Chrome 120, and this runs in pages. */
 /** Reads an IGNIS REST server through the repository contract. Targets IGNIS, not any REST API. */
 export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
   override name: string;
@@ -106,7 +105,6 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
 
   buildUrl(opts: { paths: Array<string>; query?: Record<string, unknown> }): string {
     const { paths, query } = opts;
-    // An id with a double slash stays under the base, so it is not refused here as it is for a third-party client.
     const url = UrlBuilder.join({ baseUrl: this.settings.baseUrl, paths, scope: this.name });
 
     const parameters = Object.entries(query ?? {});

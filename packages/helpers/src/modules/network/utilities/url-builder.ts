@@ -84,29 +84,21 @@ export class UrlBuilder {
   /**
    * The url of a request: the base and the paths, checked. A path may not be a dot segment, hide one, or carry a backslash
    * or a control character; a relative base (`/api`) is resolved against `origin` (the page's, by default); and the result
-   * must be on the base's origin and under its path. With `isDoubleSlashRefused` an empty segment (`a//b`) is refused too.
+   * must be on the base's origin and under its path.
    */
   static join(opts: {
     baseUrl: string;
     paths: ReadonlyArray<string>;
     scope: string;
     origin?: string;
-    isDoubleSlashRefused?: boolean;
   }): URL {
-    const { baseUrl, paths, scope, isDoubleSlashRefused = false } = opts;
+    const { baseUrl, paths, scope } = opts;
 
     UrlBuilder.assertBase({ baseUrl, scope });
     UrlBuilder.assertPaths({ paths, scope });
 
     const isRelative = !ABSOLUTE_URL_PATTERN.test(baseUrl);
     const text = UrlBuilder.toText({ baseUrl, paths });
-
-    if (isDoubleSlashRefused && text.slice(baseUrl.length).includes('//')) {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-        message: `[${scope}] A request path must stay under the base path: no empty segment (a double slash) | path: '${EchoUtility.toSafeText({ value: paths.join('/').slice(0, MAX_ECHOED_PATH_LENGTH) })}'`,
-      });
-    }
 
     // A page or a Web Worker has an origin to resolve '/api' against; a server has none.
     const origin = isRelative ? (opts.origin ?? UrlBuilder.readLocationOrigin()) : undefined;

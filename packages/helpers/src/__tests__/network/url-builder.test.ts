@@ -81,29 +81,30 @@ describe('UrlBuilder.join: a path cannot leave the base', () => {
   });
 });
 
-describe('UrlBuilder.join: a double slash', () => {
-  test('is an empty segment: refused with isDoubleSlashRefused, joined as it is without', () => {
-    const paths = ['products', '//evil.example/x'];
-
-    expect(
-      failure(() =>
-        UrlBuilder.join({ baseUrl: BASE, paths, scope: 'T', isDoubleSlashRefused: true }),
-      ).message,
-    ).toContain('double slash');
-    expect(UrlBuilder.join({ baseUrl: BASE, paths, scope: 'T' }).toString()).toBe(
-      `${BASE}/products//evil.example/x`,
-    );
-  });
-
-  test('a path with one separator is not a double slash', () => {
-    expect(
-      UrlBuilder.join({
-        baseUrl: `${BASE}/`,
-        paths: ['a/b', '/c'],
-        scope: 'T',
-        isDoubleSlashRefused: true,
-      }).toString(),
-    ).toBe(`${BASE}/a/b/c`);
+describe('UrlBuilder.join: what is not a way out joins', () => {
+  test.each([
+    [
+      'a base with a trailing slash and a path with one',
+      `${BASE}/`,
+      ['v1/', 'users'],
+      `${BASE}/v1//users`,
+    ],
+    ['an empty path', BASE, ['', 'users'], `${BASE}//users`],
+    [
+      'a base with a trailing slash and a path that starts with two',
+      `${BASE}/`,
+      ['//x'],
+      `${BASE}//x`,
+    ],
+    [
+      'a url in a query that a segment carries',
+      BASE,
+      ['a?redirect=https://x.y/z'],
+      `${BASE}/a?redirect=https://x.y/z`,
+    ],
+    ['a path with one separator', `${BASE}/`, ['a/b', '/c'], `${BASE}/a/b/c`],
+  ])('%s', (_name, baseUrl, paths, expected) => {
+    expect(UrlBuilder.join({ baseUrl, paths, scope: 'T' }).toString()).toBe(expected);
   });
 });
 
@@ -142,6 +143,12 @@ describe('BaseNetworkRequest.getRequestUrl uses the builder', () => {
     }
   }
 
+  test('a segment that carries a query passes through as the query', () => {
+    expect(new Client('http://example.test').getRequestUrl({ paths: ['users?page=2'] })).toBe(
+      'http://example.test/users?page=2',
+    );
+  });
+
   test('what it accepted before still joins', () => {
     expect(new Client('http://example.test/').getRequestUrl({ paths: ['users', '10'] })).toBe(
       'http://example.test/users/10',
@@ -152,7 +159,6 @@ describe('BaseNetworkRequest.getRequestUrl uses the builder', () => {
     ['a dot-dot', ['users', '..', 'admin'], 'stay under the base path'],
     ['an encoded dot-dot', ['users', '%2e%2e'], 'stay under the base path'],
     ['a backslash', ['users\\x'], 'stay under the base path'],
-    ['a double slash', ['users', '//x'], 'double slash'],
   ])('%s is now refused with a 400', (_name, paths, message) => {
     const error = failure(() => new Client('http://example.test').getRequestUrl({ paths }));
 
