@@ -6,6 +6,7 @@
 
 import { afterAll, afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
 
+const realDns = { ...(await import('node:dns/promises')) };
 const lookupMock = mock(async (_hostname: string, _options?: unknown): Promise<unknown[]> => []);
 
 await mock.module('node:dns/promises', () => ({ lookup: lookupMock }));
@@ -48,16 +49,18 @@ beforeEach(() => {
   );
 });
 
-afterEach(() => {
+afterEach(async () => {
   mock.restore();
 
   for (const server of servers.splice(0)) {
-    server.stop(true);
+    await server.stop(true);
   }
 });
 
-afterAll(() => {
+afterAll(async () => {
   mock.restore();
+  // Later files in this process resolve names for real again.
+  await mock.module('node:dns/promises', () => realDns);
 });
 
 describe('AxiosFetcher with a guard connects to the vetted address', () => {

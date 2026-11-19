@@ -299,7 +299,7 @@ Exactly three functions, none returns a value.
 | `onResponse` | Once per attempt, before the status check and the schema | `{ request, status, headers, durationMs }` |
 | `onError` | Once, with the final error, which is then rethrown | `{ request, error, attempt }` |
 
-`headers` of `onRequest` is mutable; its `url` is read-only, so a hook cannot send the call to a host the guard did not vet. `onError` sees a timeout, a network failure, a refused status, a schema mismatch and a guard refusal. A hook that throws fails the call. For signed service calls see [the service assertion hook](/extensions/components/authentication/service-assertion).
+`headers` of `onRequest` is mutable; its `url` is read-only, so a hook cannot send the call to a host the guard did not vet. `onError` sees a timeout, a network failure, a refused status, a schema mismatch and a guard refusal. A hook that throws fails the call. For signed service calls see [the signed service calls hook](/extensions/components/authentication/usage).
 
 #### FetchSchemaError
 

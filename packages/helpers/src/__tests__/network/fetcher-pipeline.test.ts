@@ -95,8 +95,8 @@ beforeAll(() => {
   hits.length = 0;
 });
 
-afterAll(() => {
-  server.stop(true);
+afterAll(async () => {
+  await server.stop(true);
 });
 
 const buildFetcher = (opts?: ConstructorParameters<typeof NativeFetcher>[0]) =>
@@ -336,7 +336,11 @@ describe('hooks', () => {
     const errors: unknown[] = [];
     const fetcher = buildFetcher({
       name: 'hooks-error',
-      hooks: { onError: ({ error, attempt }) => void errors.push([error, attempt]) },
+      hooks: {
+        onError: ({ error, attempt }) => {
+          errors.push([error, attempt]);
+        },
+      },
     });
 
     const failure = await fetcher
@@ -376,11 +380,13 @@ describe('hooks', () => {
         onRequest: () => {
           throw new Error('cannot sign');
         },
-        onError: ({ error }) => void seen.push((error as Error).message),
+        onError: ({ error }) => { seen.push((error as Error).message); },
       },
     });
 
-    await expect(fetcher.get({ url: `${base}/user` })).rejects.toThrow('cannot sign');
+    const failure = await fetcher.get({ url: `${base}/user` }).catch((caught: unknown) => caught);
+
+    expect((failure as Error).message).toBe('cannot sign');
     expect(seen).toEqual(['cannot sign']);
   });
 });
@@ -394,7 +400,7 @@ describe('retry', () => {
 
     const response = await buildFetcher().get({
       url: `${base}/flaky`,
-      retry: { maxAttempts: 3, backoff: FAST, onRetry: ({ attempt }) => void retries.push(attempt) },
+      retry: { maxAttempts: 3, backoff: FAST, onRetry: ({ attempt }) => { retries.push(attempt); } },
     });
 
     expect(await response.text()).toBe('yes');
@@ -422,7 +428,7 @@ describe('retry', () => {
       .get({
         url: `${base}/slow`,
         timeout: 20,
-        retry: { maxAttempts: 3, backoff: FAST, onRetry: ({ attempt }) => void attempts.push(attempt) },
+        retry: { maxAttempts: 3, backoff: FAST, onRetry: ({ attempt }) => { attempts.push(attempt); } },
       })
       .catch((caught: unknown) => caught);
 
@@ -433,7 +439,7 @@ describe('retry', () => {
     await buildFetcher()
       .get({
         url: 'http://127.0.0.1:1/',
-        retry: { maxAttempts: 2, backoff: FAST, onRetry: ({ attempt }) => void network.push(attempt) },
+        retry: { maxAttempts: 2, backoff: FAST, onRetry: ({ attempt }) => { network.push(attempt); } },
       })
       .catch(() => undefined);
     expect(network).toEqual([1]);
@@ -449,7 +455,7 @@ describe('retry', () => {
       retry: {
         maxAttempts: 2,
         backoff: FAST,
-        onRetry: ({ nextDelayMs }) => void delays.push(nextDelayMs),
+        onRetry: ({ nextDelayMs }) => { delays.push(nextDelayMs); },
       },
     });
 
@@ -561,7 +567,7 @@ describe('the body cap', () => {
 
       expect((error as Error).message).toContain('Body exceeds the cap');
     } finally {
-      liar.stop(true);
+      await liar.stop(true);
     }
   });
 

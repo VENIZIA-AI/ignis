@@ -64,8 +64,7 @@ describe('RetryHelper.executeWithRetry - getDelayMs is a floor for the next wait
   test('a floor that does not fit the total budget ends the retries and rethrows the error', async () => {
     let calls = 0;
 
-    await expect(
-      RetryHelper.executeWithRetry({
+    const failure = await RetryHelper.executeWithRetry({
         operation: 'budget',
         maxAttempts: 5,
         maxTotalMs: 50,
@@ -76,8 +75,9 @@ describe('RetryHelper.executeWithRetry - getDelayMs is a floor for the next wait
 
           throw new Error('always');
         },
-      }),
-    ).rejects.toThrow('always');
+      }).catch((caught: unknown) => caught);
+
+    expect((failure as Error).message).toBe('always');
     expect(calls).toBe(1);
   });
 

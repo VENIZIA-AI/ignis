@@ -5,10 +5,12 @@ import type { AxiosInstance, AxiosResponse } from 'axios';
 import type { z } from 'zod';
 import type { TFetcherVariant } from '../../common';
 
+/** What a fetcher of this variant answers: a `Response` for `'native'`, an `AxiosResponse` for `'axios'`. */
 export type TFetcherResponse<T extends TFetcherVariant> = T extends 'native'
   ? Response
   : AxiosResponse<unknown>;
 
+/** The client a fetcher of this variant wraps (`getWorker()`): `fetch` or an axios instance. */
 export type TFetcherWorker<T extends TFetcherVariant> = T extends 'axios'
   ? AxiosInstance
   : typeof fetch;

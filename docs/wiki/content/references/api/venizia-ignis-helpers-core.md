@@ -7,9 +7,7 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-138 exports, 136 with TSDoc. 59 more are re-exported from other entries (listed at the end).
-
-Without TSDoc (2): `TFetcherResponse`, `TFetcherWorker`.
+138 exports, 138 with TSDoc. 59 more are re-exported from other entries (listed at the end).
 
 ## `AbstractCryptoAlgorithm`
 
@@ -2790,6 +2788,8 @@ Source: `packages/helpers/src/modules/network/http-request/fetcher/base-fetcher.
 
 *type*
 
+What a fetcher of this variant answers: a `Response` for `'native'`, an `AxiosResponse` for `'axios'`.
+
 ```ts
 export type TFetcherResponse<T extends TFetcherVariant> = T extends 'native' ? Response : AxiosResponse<unknown>;
 ```
@@ -2799,6 +2799,8 @@ Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.
 ## `TFetcherWorker`
 
 *type*
+
+The client a fetcher of this variant wraps (`getWorker()`): `fetch` or an axios instance.
 
 ```ts
 export type TFetcherWorker<T extends TFetcherVariant> = T extends 'axios' ? AxiosInstance : typeof fetch;

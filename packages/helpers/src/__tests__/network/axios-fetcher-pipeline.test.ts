@@ -50,8 +50,8 @@ const base = `http://127.0.0.1:${server.port}`;
 const User = z.object({ id: z.number(), name: z.string() });
 const FAST = { initialDelayMs: 1, maxDelayMs: 2 };
 
-afterAll(() => {
-  server.stop(true);
+afterAll(async () => {
+  await server.stop(true);
 });
 
 describe('AxiosFetcher - the pipeline', () => {
@@ -123,8 +123,8 @@ describe('AxiosFetcher - the pipeline', () => {
           events.push(`request ${attempt}`);
           headers.set('x-attempt', String(attempt));
         },
-        onResponse: ({ status }) => void events.push(`response ${status}`),
-        onError: () => void events.push('error'),
+        onResponse: ({ status }) => { events.push(`response ${status}`); },
+        onError: () => { events.push('error'); },
       },
     });
 
