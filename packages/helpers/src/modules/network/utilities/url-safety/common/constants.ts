@@ -1,12 +1,8 @@
-import { type TConstValue } from '@/common/types';
-
 /** The only schemes a guarded fetch will speak. `file:` and `gopher:` are the classic SSRF pivots. */
 export class UrlSchemes {
   static readonly HTTP = 'http:';
   static readonly HTTPS = 'https:';
 }
-/** A scheme a guarded fetch accepts: `http:` or `https:`. */
-export type TUrlScheme = TConstValue<typeof UrlSchemes>;
 
 /** The values `IUrlSafetyPolicy` uses for a field the caller leaves unset; each is the safe choice. */
 export class UrlSafetyDefaults {

@@ -1,5 +1,3 @@
-import { type TConstValue } from '@/common/types';
-
 /** The punctuation of a query string, named so a reader sees the role rather than the character. */
 export class QueryStringSeparators {
   /** Between the path and the first pair. */
@@ -10,38 +8,20 @@ export class QueryStringSeparators {
   static readonly ASSIGN = '=';
 }
 
-/** What a `null` or `undefined` value becomes. */
-export class QueryStringNullishModes {
-  /** An empty value (`a=`): what `node:querystring` does. */
-  static readonly EMPTY = 'empty';
-  /** The pair is left out. */
-  static readonly SKIP = 'skip';
-}
-/** What {@link QueryStringNullishModes} selects: `empty` or `skip`. */
-export type TQueryStringNullishMode = TConstValue<typeof QueryStringNullishModes>;
-
-/** What an object or an array value becomes. */
-export class QueryStringNestedModes {
-  /** An empty value (an array repeats its key instead): what `node:querystring` does. */
-  static readonly DROP = 'drop';
-  /** One JSON-encoded parameter (`ids=[1,2]`, `filter={"where":{}}`), the shape a JSON filter travels in. */
-  static readonly JSON = 'json';
-}
-/** What {@link QueryStringNestedModes} selects: `drop` or `json`. */
-export type TQueryStringNestedMode = TConstValue<typeof QueryStringNestedModes>;
-
 /** How {@link QueryStringUtility.toQueryString} treats the values `node:querystring` has no answer for. */
 export interface IQueryStringOptions {
   /**
    * What a `null` or `undefined` value becomes.
-   * @default QueryStringNullishModes.EMPTY
+   * `'empty'` is `a=` (what `node:querystring` does), `'skip'` leaves the pair out.
+   * @default 'empty'
    */
-  nullish?: TQueryStringNullishMode;
+  nullish?: 'empty' | 'skip';
   /**
    * What an object or an array value becomes.
-   * @default QueryStringNestedModes.DROP
+   * `'drop'` is an empty value (an array repeats its key: what `node:querystring` does), `'json'` is one JSON-encoded parameter (`filter={"where":{}}`).
+   * @default 'drop'
    */
-  nested?: TQueryStringNestedMode;
+  nested?: 'drop' | 'json';
 }
 
 /** Builds a query string without a node builtin, so the network layer stays browser-safe. */
@@ -63,15 +43,11 @@ export class QueryStringUtility {
    * the trip. Without them the behavior is the one above.
    */
   static toQueryString(opts: { params: Record<string, unknown> } & IQueryStringOptions): string {
-    const {
-      params,
-      nullish = QueryStringNullishModes.EMPTY,
-      nested = QueryStringNestedModes.DROP,
-    } = opts;
+    const { params, nullish = 'empty', nested = 'drop' } = opts;
     const parts: string[] = [];
     const isSkipped = (value: unknown) =>
-      nullish === QueryStringNullishModes.SKIP && (value === null || value === undefined);
-    const isJson = nested === QueryStringNestedModes.JSON;
+      nullish === 'skip' && (value === null || value === undefined);
+    const isJson = nested === 'json';
 
     // A primitive only. `querystring` drops an object or a nested array to an empty value rather than
     // stringifying it, and a caller that passed one meant something this format cannot carry anyway.

@@ -1,4 +1,4 @@
-import type { TFilter } from '@venizia/ignis-filter';
+import type { TNativeFetchSender } from '@venizia/ignis-helpers/core';
 
 /** A credential the HTTP datasource attaches to a request: `Authorization: <type> <value>`, and `provider`, when set, as the `x-auth-provider` header. */
 export interface IAuthToken {
@@ -22,12 +22,6 @@ export interface IHttpRequestContext {
   /** The call's own signal: a hook may stop waiting on it. A refresh shared by other calls should not be aborted by one. */
   signal?: AbortSignal;
 }
-
-/** `undefined` means no token for this request. A throw fails the request with that error. */
-export type TAuthTokenResolver = (context: IHttpRequestContext) => IAuthToken | undefined;
-
-/** Headers for this request. A throw fails the request with that error. */
-export type THttpHeadersResolver = (context: IHttpRequestContext) => THttpHeaders | undefined;
 
 /** Not `Record` alone: header names are case-insensitive, and an object merge appends two spellings. */
 export type THttpHeaders = Headers | Array<[string, string]> | Record<string, string>;
@@ -60,17 +54,16 @@ export interface IHttpDataSourceSettings {
   headers?: THttpHeaders;
 
   /**
-   * Run on every send, the 401 retry included. Wins over `headers`; a call's own headers win over
-   * it. `x-request-count` is refused here too; an `authorization` here stands only when no token is
-   * resolved.
+   * Headers for this request, run on every send (the 401 retry included); wins over `headers`, a call's own win over it. A throw
+   * fails the request; `x-request-count` is refused, and an `authorization` stands only when no token resolves.
    */
-  headersResolver?: THttpHeadersResolver;
+  headersResolver?: (context: IHttpRequestContext) => THttpHeaders | undefined;
 
   /** Wins over `authTokenResolver`, and is sent whatever the request. */
   authToken?: IAuthToken;
 
-  /** Run on every send, the 401 retry included. */
-  authTokenResolver?: TAuthTokenResolver;
+  /** Run on every send, the 401 retry included. `undefined` means no token for this request. A throw fails the request with that error. */
+  authTokenResolver?: (context: IHttpRequestContext) => IAuthToken | undefined;
 
   /** Runs on a 401: `true` retries once (re-resolving the token), `false` lets the 401 stand. */
   onUnauthorized?: (context: IHttpRequestContext) => Promise<boolean> | boolean;
@@ -79,8 +72,8 @@ export interface IHttpDataSourceSettings {
   fetch?: THttpFetch;
 }
 
-/** The part of `fetch` the data source uses: a URL and its init, a `Response` back. */
-export type THttpFetch = (url: string, init: RequestInit) => Promise<Response>;
+/** What sends a request: a URL and its init, a `Response` back. The public name of the sender type (ARDOR re-exports it). */
+export type THttpFetch = TNativeFetchSender;
 
 /** A list with no `Content-Range` has no total - `hasRange` says so rather than using the page size. */
 export interface IHttpReadResult<R> {
@@ -102,9 +95,6 @@ export interface IHttpWriteResult<R> {
   /** What the route answered beside the rows, when the server marked it with `x-response-extra`. */
   extra?: Record<string, unknown>;
 }
-
-/** The query a repository call sends: an optional `filter` typed against the entity `E`. */
-export type THttpQuery<E extends object> = { filter?: TFilter<E> };
 
 /** Query parameters a route takes beside `filter` or `where` - a keyword, a scope. The filter and `where` win over a key of the same name. */
 export type THttpExtraQuery = Record<string, unknown>;

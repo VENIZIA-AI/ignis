@@ -2,7 +2,6 @@ import type { ValueOrPromise } from '@/common';
 import type { IRetryBackoffOptions, IRetryContext } from '@/modules/retry/common/types';
 import type { IUrlSafetyPolicy } from '@/modules/network/utilities/url-safety/common/types';
 import type { AxiosInstance, AxiosResponse } from 'axios';
-import type { z } from 'zod';
 import type { TFetcherVariant } from '../../common';
 
 /** What a fetcher of this variant answers: a `Response` for `'native'`, an `AxiosResponse` for `'axios'`. */
@@ -25,9 +24,6 @@ export interface IFetchParsed<D, RS> {
   headers: Headers;
   response: RS;
 }
-
-/** The answer of a call: the raw response, or - with a `schema` - the parsed body beside it. */
-export type TFetchResult<RS, S> = S extends z.ZodType ? IFetchParsed<z.infer<S>, RS> : RS;
 
 /** Retry settings of a call; the presence of the object turns retrying on. They are `RetryHelper.executeWithRetry`'s. */
 export interface IFetchRetryOptions {

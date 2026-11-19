@@ -5,7 +5,6 @@ import https from 'node:https';
 import { isIP } from 'node:net';
 import { QueryStringUtility } from '../../utilities/query-string';
 import { getError } from '@/modules/error';
-import { UrlSafetyErrors } from '@/modules/network/utilities/url-safety/common/errors';
 import type { IUrlSafetyPolicy } from '@/modules/network/utilities/url-safety/common/types';
 import { BaseNetworkRequest } from '../base-network-request.helper';
 import type { ILogger } from '@/modules/logger/common/types';
@@ -17,6 +16,7 @@ import {
 } from './base-fetcher';
 import type { IFetchGuard } from './common/guard';
 import type { IFetcherDefaults, IFetcherHooks } from './common/types';
+import { BodyLimit } from './common/body-limit';
 import { FetchHeaders } from './common/utilities';
 
 /**
@@ -205,10 +205,7 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
     const { error, url } = opts;
 
     if (axios.isAxiosError(error) && /maxContentLength/.test(error.message)) {
-      return getError({
-        error: UrlSafetyErrors.URL_REFUSED,
-        message: `[fetch] Body exceeds the cap | ${error.message} | url: ${url}`,
-      });
+      return BodyLimit.refuse({ detail: `${error.message} | url: ${url}` });
     }
 
     return error;

@@ -23,7 +23,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-boot/generator`](/references/api/venizia-ignis-boot-generator) | 17 | 17 |
 | [`@venizia/ignis-boot/vite`](/references/api/venizia-ignis-boot-vite) | 2 | 2 |
 | [`@venizia/ignis-connectors`](/references/api/venizia-ignis-connectors) | 3 | 3 |
-| [`@venizia/ignis-connectors/http`](/references/api/venizia-ignis-connectors-http) | 21 | 21 |
+| [`@venizia/ignis-connectors/http`](/references/api/venizia-ignis-connectors-http) | 16 | 16 |
 | [`@venizia/ignis-connectors/meilisearch`](/references/api/venizia-ignis-connectors-meilisearch) | 17 | 17 |
 | [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres) | 54 | 54 |
 | [`@venizia/ignis-connectors/postgres/node-postgres`](/references/api/venizia-ignis-connectors-postgres-node-postgres) | 1 | 1 |
@@ -46,7 +46,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-helpers/bullmq`](/references/api/venizia-ignis-helpers-bullmq) | 2 | 2 |
 | [`@venizia/ignis-helpers/bun-s3`](/references/api/venizia-ignis-helpers-bun-s3) | 2 | 2 |
 | [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common) | 54 | 54 |
-| [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core) | 141 | 141 |
+| [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core) | 134 | 134 |
 | [`@venizia/ignis-helpers/cron`](/references/api/venizia-ignis-helpers-cron) | 2 | 2 |
 | [`@venizia/ignis-helpers/dotenv-vault`](/references/api/venizia-ignis-helpers-dotenv-vault) | 2 | 2 |
 | [`@venizia/ignis-helpers/hashicorp-vault`](/references/api/venizia-ignis-helpers-hashicorp-vault) | 4 | 4 |

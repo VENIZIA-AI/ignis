@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-108 exports, 108 with TSDoc. 1013 more are re-exported from other entries (listed at the end).
+108 exports, 108 with TSDoc. 1006 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3445,7 +3445,6 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `EventDispatchRetry` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `EventHandlerTypes` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `FC` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
-- `FetchErrors` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `FetchHeaders` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `FetchRedirects` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `FetchRequestContext` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -3842,8 +3841,6 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `provide` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `put` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `QueryOperators` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
-- `QueryStringNestedModes` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `QueryStringNullishModes` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `QueryStringSeparators` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `QueryStringUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `QueueStatuses` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -4046,7 +4043,6 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TFetcherResponse` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TFetcherWorker` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TFetchHeaders` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `TFetchResult` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TFieldMappingDataType` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TFieldMappingNames` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TFields` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
@@ -4132,8 +4128,6 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TPrimaryKey` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TPrincipalEnricherOptions` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TQueryOperatorHandlers` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
-- `TQueryStringNestedMode` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `TQueryStringNullishMode` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TQueueElement` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TQueueStatus` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `trackableHeaders` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -4225,7 +4219,6 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TUidTokenEncoding` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TUpdateData` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TUploadNaming` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
-- `TUrlScheme` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TUserAuditColumnOpts` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TUserAuditEnricherOptions` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TUserAuditEnricherResult` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)

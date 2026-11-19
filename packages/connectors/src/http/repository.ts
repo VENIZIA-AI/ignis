@@ -30,13 +30,13 @@ import type { HttpDataSource } from './datasource';
  * What a repository call takes. Only `headers` and `signal` cross HTTP; the shared repository
  * options (`transaction`, `log`, ...) are accepted for the common contract and have no effect.
  */
-export type THttpRepositoryOptions = NonNullable<
+type THttpRepositoryOptions = NonNullable<
   Parameters<IReadableRepository['existsWith']>[0]['options']
 > &
   IHttpCallOptions;
 
 /** A remote resource has a name but no local schema. */
-export class HttpResourceEntity extends AbstractEntity {
+class HttpResourceEntity extends AbstractEntity {
   getSchema<T = unknown>(_opts: { type: TSchemaType }): T {
     return {} as T;
   }

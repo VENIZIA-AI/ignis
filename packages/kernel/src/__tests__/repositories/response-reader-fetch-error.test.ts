@@ -46,4 +46,13 @@ describe('HttpResponseReader.fromFetchError', () => {
     expect(error.statusCode).toBe(503);
     expect(error.normalized.text).toBe('HTTP 503');
   });
+
+  test('a hand-built error with a status no Response takes (0) is a bad gateway, not a RangeError', async () => {
+    const error = await HttpResponseReader.fromFetchError({
+      error: new UrlFetchError({ message: 'x', status: 0, url: 'http://x' }),
+      context: '[Client][read] 0 | /tickets',
+    });
+
+    expect(error.statusCode).toBe(502);
+  });
 });

@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/http, from the built dec
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-21 exports, 21 with TSDoc. 3 more are re-exported from other entries (listed at the end).
+16 exports, 16 with TSDoc. 3 more are re-exported from other entries (listed at the end).
 
 ## `HttpDataSource`
 
@@ -410,22 +410,12 @@ export declare class HttpRepository<E extends object = object, P extends object 
         data: unknown;
     }>;
 }
-```
 
-Source: `packages/connectors/src/http/repository.ts`
-
-## `HttpResourceEntity`
-
-*class*
-
-A remote resource has a name but no local schema.
-
-```ts
-export declare class HttpResourceEntity extends AbstractEntity {
-    getSchema<T = unknown>(_opts: {
-        type: TSchemaType;
-    }): T;
-}
+/**
+ * What a repository call takes. Only `headers` and `signal` cross HTTP; the shared repository
+ * options (`transaction`, `log`, ...) are accepted for the common contract and have no effect.
+ */
+type THttpRepositoryOptions = NonNullable<Parameters<IReadableRepository['existsWith']>[0]['options']> & IHttpCallOptions;
 ```
 
 Source: `packages/connectors/src/http/repository.ts`
@@ -496,15 +486,14 @@ export interface IHttpDataSourceSettings {
     /** Sent on every request. `x-request-count` is refused - the connector owns it. */
     headers?: THttpHeaders;
     /**
-     * Run on every send, the 401 retry included. Wins over `headers`; a call's own headers win over
-     * it. `x-request-count` is refused here too; an `authorization` here stands only when no token is
-     * resolved.
+     * Headers for this request, run on every send (the 401 retry included); wins over `headers`, a call's own win over it. A throw
+     * fails the request; `x-request-count` is refused, and an `authorization` stands only when no token resolves.
      */
-    headersResolver?: THttpHeadersResolver;
+    headersResolver?: (context: IHttpRequestContext) => THttpHeaders | undefined;
     /** Wins over `authTokenResolver`, and is sent whatever the request. */
     authToken?: IAuthToken;
-    /** Run on every send, the 401 retry included. */
-    authTokenResolver?: TAuthTokenResolver;
+    /** Run on every send, the 401 retry included. `undefined` means no token for this request. A throw fails the request with that error. */
+    authTokenResolver?: (context: IHttpRequestContext) => IAuthToken | undefined;
     /** Runs on a 401: `true` retries once (re-resolving the token), `false` lets the 401 stand. */
     onUnauthorized?: (context: IHttpRequestContext) => Promise<boolean> | boolean;
     /** What sends a request: the platform `fetch` when unset. Name one to route through a test double, a proxy or an instrumented client. */
@@ -594,18 +583,6 @@ export interface IHttpWriteResult<R> {
 
 Source: `packages/connectors/src/http/common/types.ts`
 
-## `TAuthTokenResolver`
-
-*type*
-
-`undefined` means no token for this request. A throw fails the request with that error.
-
-```ts
-export type TAuthTokenResolver = (context: IHttpRequestContext) => IAuthToken | undefined;
-```
-
-Source: `packages/connectors/src/http/common/types.ts`
-
 ## `THttpBody`
 
 *type*
@@ -636,10 +613,10 @@ Source: `packages/connectors/src/http/common/types.ts`
 
 *type*
 
-The part of `fetch` the data source uses: a URL and its init, a `Response` back.
+What sends a request: a URL and its init, a `Response` back. The public name of the sender type (ARDOR re-exports it).
 
 ```ts
-export type THttpFetch = (url: string, init: RequestInit) => Promise<Response>;
+export type THttpFetch = TNativeFetchSender;
 ```
 
 Source: `packages/connectors/src/http/common/types.ts`
@@ -656,32 +633,6 @@ export type THttpHeaders = Headers | Array<[string, string]> | Record<string, st
 
 Source: `packages/connectors/src/http/common/types.ts`
 
-## `THttpHeadersResolver`
-
-*type*
-
-Headers for this request. A throw fails the request with that error.
-
-```ts
-export type THttpHeadersResolver = (context: IHttpRequestContext) => THttpHeaders | undefined;
-```
-
-Source: `packages/connectors/src/http/common/types.ts`
-
-## `THttpQuery`
-
-*type*
-
-The query a repository call sends: an optional `filter` typed against the entity `E`.
-
-```ts
-export type THttpQuery<E extends object> = {
-    filter?: TFilter<E>;
-};
-```
-
-Source: `packages/connectors/src/http/common/types.ts`
-
 ## `THttpReadShape`
 
 *type*
@@ -693,19 +644,6 @@ export type THttpReadShape = TConstValue<typeof HttpReadShapes>;
 ```
 
 Source: `packages/connectors/src/http/common/constants.ts`
-
-## `THttpRepositoryOptions`
-
-*type*
-
-What a repository call takes. Only `headers` and `signal` cross HTTP; the shared repository
-options (`transaction`, `log`, ...) are accepted for the common contract and have no effect.
-
-```ts
-export type THttpRepositoryOptions = NonNullable<Parameters<IReadableRepository['existsWith']>[0]['options']> & IHttpCallOptions;
-```
-
-Source: `packages/connectors/src/http/repository.ts`
 
 ## Re-exported
 

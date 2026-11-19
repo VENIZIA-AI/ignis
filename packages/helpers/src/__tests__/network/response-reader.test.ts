@@ -3,6 +3,7 @@ import { RejectionHelper } from '@venizia/dev-configs/testing';
 import { z } from 'zod';
 import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
+import { BodyLimit } from '@/modules/network/http-request/fetcher/common/body-limit';
 import { FetchSchemaError } from '@/modules/network/http-request/fetcher/common/errors';
 import { ResponseReader } from '@/modules/network/http-request/fetcher/common/response-reader';
 import { FetchHeaders } from '@/modules/network/http-request/fetcher/common/utilities';
@@ -89,6 +90,31 @@ describe('one refusal test', () => {
     for (const other of [new Error('x'), getError({ message: 'other' }), undefined, 'text']) {
       expect(UrlSafetyRefusals.is({ error: other })).toBe(false);
       expect(UrlPolicy.isRefusedError({ error: other })).toBe(false);
+    }
+  });
+});
+
+describe('one refusal for a body over the cap', () => {
+  test('a stream, a read and the guard error share one message form and the guard code', async () => {
+    const source = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(50));
+        controller.close();
+      },
+    });
+    const streamed = new Response(BodyLimit.capStream({ source, maxBytes: 10 }));
+    const streamError = await RejectionHelper.rejectionOf({ task: streamed.text() });
+    const readError = await RejectionHelper.rejectionOf({
+      task: BodyLimit.readBytes({ response: new Response('x'.repeat(50)), maxBytes: 10 }),
+    });
+
+    for (const error of [
+      streamError,
+      readError,
+      BodyLimit.refuse({ detail: 'declared: 50 | max: 10' }),
+    ]) {
+      expect((error as Error).message).toContain('[fetch] Body exceeds the cap |');
+      expect(UrlSafetyRefusals.is({ error })).toBe(true);
     }
   });
 });

@@ -565,10 +565,7 @@ export abstract class AbstractNetworkFetchableHelper<
 
       if (declaredLength > maxBytes) {
         await exchange.discard();
-        throw getError({
-          error: UrlSafetyErrors.URL_REFUSED,
-          message: `[fetch] Body exceeds the cap | declared: ${declaredLength} | max: ${maxBytes}`,
-        });
+        throw BodyLimit.refuse({ detail: `declared: ${declaredLength} | max: ${maxBytes}` });
       }
     }
 
