@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-inversion, from the built declarati
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-72 exports, 72 with TSDoc.
+74 exports, 74 with TSDoc.
 
 ## `AbstractContainer`
 
@@ -31,16 +31,10 @@ export declare abstract class AbstractContainer extends BaseHelper implements IC
         key: TBindingKey;
     }): boolean;
     abstract getBinding<T>(opts: {
-        key: TBindingKey<T> | {
-            namespace: string;
-            key: string;
-        };
+        key: TBindingKey<T>;
     }): TNullable<IBinding<T>>;
     abstract getBinding(opts: {
-        key: TBindingKey | {
-            namespace: string;
-            key: string;
-        };
+        key: TBindingKey;
     }): TNullable<IBinding>;
     abstract unbind(opts: {
         key: TBindingKey;
@@ -49,33 +43,21 @@ export declare abstract class AbstractContainer extends BaseHelper implements IC
         binding: IBinding<T>;
     }): void;
     abstract get<T>(opts: {
-        key: TBindingKey<T> | {
-            namespace: string;
-            key: string;
-        };
+        key: TBindingKey<T>;
         isOptional?: false;
     }): T;
     abstract get<T>(opts: {
-        key: TBindingKey<T> | {
-            namespace: string;
-            key: string;
-        };
+        key: TBindingKey<T>;
         isOptional?: boolean;
     }): T | undefined;
     abstract get(opts: {
-        key: TBindingKey | {
-            namespace: string;
-            key: string;
-        };
+        key: TBindingKey;
         isOptional?: boolean;
     }): unknown;
     abstract gets<T extends unknown[]>(opts: {
         bindings: {
             [K in keyof T]: {
-                key: TBindingKey<T[K]> | {
-                    namespace: string;
-                    key: string;
-                };
+                key: TBindingKey<T[K]>;
                 isOptional?: boolean;
             };
         };
@@ -178,10 +160,6 @@ export declare abstract class BaseContainer extends AbstractContainer {
     protected isCountingResolutions: boolean;
     /** Whether `startResolutionCounting` has ever run. A report read without it would name every binding, which is a wrong answer rather than an empty one. */
     protected hasStartedResolutionCounting: boolean;
-    /** The string each BOUND symbol is stored under: `Symbol('x')` twice is two keys, and both print as "Symbol(x)". */
-    protected symbolKeys: Map<symbol, string>;
-    /** How many symbols have been bound per description, so a new one gets its suffix in one step. */
-    protected symbolDescriptionCounts: Map<string, number>;
     /**
      * Nesting depth of the reads in progress. Past {@link CYCLE_CHECK_DEPTH} the keys are tracked, and
      * a key met again is a cycle: a real graph is far shallower, so the common read pays one counter.
@@ -193,20 +171,6 @@ export declare abstract class BaseContainer extends AbstractContainer {
         scope: string;
     });
     getMetadataRegistry(): import("../index.js").MetadataRegistry;
-    /**
-     * The string a key is stored under, or `undefined` for a symbol that was never bound - a lookup
-     * never records one, so reading with throwaway symbols leaves nothing behind.
-     */
-    protected toKeyString(opts: {
-        key: TBindingKey | {
-            namespace: string;
-            key: string;
-        };
-    }): string | undefined;
-    /** A bound symbol's own string: its description, suffixed (`Symbol(x)#2`) when another symbol holds it. */
-    protected bindSymbolKey(opts: {
-        key: symbol;
-    }): string;
     bind<T>(opts: {
         key: TBindingKey<T>;
     }): Binding<T>;
@@ -217,16 +181,10 @@ export declare abstract class BaseContainer extends AbstractContainer {
         key: TBindingKey;
     }): boolean;
     getBinding<T>(opts: {
-        key: TBindingKey<T> | {
-            namespace: string;
-            key: string;
-        };
+        key: TBindingKey<T>;
     }): TNullable<Binding<T>>;
     getBinding(opts: {
-        key: TBindingKey | {
-            namespace: string;
-            key: string;
-        };
+        key: TBindingKey;
     }): TNullable<Binding>;
     unbind(opts: {
         key: TBindingKey;
@@ -235,33 +193,21 @@ export declare abstract class BaseContainer extends AbstractContainer {
         binding: Binding<T>;
     }): void;
     get<T>(opts: {
-        key: TBindingKey<T> | {
-            namespace: string;
-            key: string;
-        };
+        key: TBindingKey<T>;
         isOptional?: false;
     }): T;
     get<T>(opts: {
-        key: TBindingKey<T> | {
-            namespace: string;
-            key: string;
-        };
+        key: TBindingKey<T>;
         isOptional?: boolean;
     }): T | undefined;
     get(opts: {
-        key: TBindingKey | {
-            namespace: string;
-            key: string;
-        };
+        key: TBindingKey;
         isOptional?: boolean;
     }): unknown;
     gets<T extends unknown[]>(opts: {
         bindings: {
             [K in keyof T]: {
-                key: TBindingKey<T[K]> | {
-                    namespace: string;
-                    key: string;
-                };
+                key: TBindingKey<T[K]>;
                 isOptional?: boolean;
             };
         };
@@ -314,17 +260,17 @@ One container entry under `key`, resolved to a class, a value or a provider (set
 
 ```ts
 export declare class Binding<T = unknown> extends BaseHelper implements IBinding<T> {
-    key: string;
+    key: TBindingKey<T>;
     private bindScope;
     private tags;
     /** Boxed: a singleton may legitimately be `null`, `false`, `0`, `''` or `undefined`. */
     private cached?;
     private resolver;
     constructor(opts: {
-        key: string;
+        key: TBindingKey<T>;
     });
     static bind<T = unknown>(opts: {
-        key: TBindingKey<T> & string;
+        key: TBindingKey<T>;
     }): Binding<T>;
     toClass(value: TClass<T>): this;
     toValue(value: T): this;
@@ -358,19 +304,19 @@ Helpers for building binding keys.
 export declare class BindingKeys {
     /**
      * Builds a binding key: `<namespace>.<key>`, or `key` alone without a namespace. The type argument names the value
-     * bound under it, so `get`, `bind` and `Binding.bind` read it from the key:
+     * bound under it and is required; `build<unknown>` is the explicit form for a key with no common value type.
      *
      * ```ts
      * const MAILER = BindingKeys.build<IMailer>({ namespace: 'services', key: 'Mailer' });
      * container.get({ key: MAILER }); // IMailer
      * ```
-     *
-     * Without a type argument the key is `TBindingKey<unknown>`. The result is the plain string at run time.
      */
-    static build<T = unknown>(opts: {
+    static build<T = TTypeArgumentRequired>(opts: {
         namespace?: string;
         key: string;
-    }): TBindingKey<T> & string;
+    } & ([T] extends [TTypeArgumentRequired] ? {
+        'build needs a type argument: build<T>': never;
+    } : unknown)): TBindingKey<T>;
 }
 ````
 
@@ -544,8 +490,8 @@ A container entry: one key bound to a class, a value or a provider, with a scope
 
 ```ts
 export interface IBinding<T = unknown> {
-    /** Normalized at construction - a symbol key arrives here as its string form. */
-    key: string;
+    /** The key the binding is stored under, with the type of its value. */
+    key: TBindingKey<T>;
     toClass(value: TClass<T>): this;
     toValue(value: T): this;
     toProvider(value: TBindingProvider<T>): this;
@@ -651,16 +597,10 @@ export interface IContainer {
         key: TBindingKey;
     }): boolean;
     getBinding<T>(opts: {
-        key: TBindingKey<T> | {
-            namespace: string;
-            key: string;
-        };
+        key: TBindingKey<T>;
     }): TNullable<IBinding<T>>;
     getBinding(opts: {
-        key: TBindingKey | {
-            namespace: string;
-            key: string;
-        };
+        key: TBindingKey;
     }): TNullable<IBinding>;
     unbind(opts: {
         key: TBindingKey;
@@ -669,33 +609,21 @@ export interface IContainer {
         binding: IBinding<T>;
     }): void;
     get<T>(opts: {
-        key: TBindingKey<T> | {
-            namespace: string;
-            key: string;
-        };
+        key: TBindingKey<T>;
         isOptional?: false;
     }): T;
     get<T>(opts: {
-        key: TBindingKey<T> | {
-            namespace: string;
-            key: string;
-        };
+        key: TBindingKey<T>;
         isOptional?: boolean;
     }): T | undefined;
     get(opts: {
-        key: TBindingKey | {
-            namespace: string;
-            key: string;
-        };
+        key: TBindingKey;
         isOptional?: boolean;
     }): unknown;
     gets<T extends unknown[]>(opts: {
         bindings: {
             [K in keyof T]: {
-                key: TBindingKey<T[K]> | {
-                    namespace: string;
-                    key: string;
-                };
+                key: TBindingKey<T[K]>;
                 isOptional?: boolean;
             };
         };
@@ -974,24 +902,24 @@ export declare class MetadataRegistry extends BaseHelper {
     constructor();
     define<Target extends object = object, Value = unknown>(opts: {
         target: Target;
-        key: TBindingKey;
+        key: TMetadataKey;
         value: Value;
     }): void;
     get<Target extends object = object, Value = unknown>(opts: {
         target: Target;
-        key: TBindingKey;
+        key: TMetadataKey;
     }): Value | undefined;
     has<Target extends object = object>(opts: {
         target: Target;
-        key: TBindingKey;
+        key: TMetadataKey;
     }): boolean;
     delete<Target extends object = object>(opts: {
         target: Target;
-        key: TBindingKey;
+        key: TMetadataKey;
     }): boolean;
     getKeys<Target extends object = object>(opts: {
         target: Target;
-    }): TBindingKey[];
+    }): TMetadataKey[];
     getMethodNames<T = unknown>(opts: {
         target: TClass<T>;
     }): string[];
@@ -1122,12 +1050,12 @@ Source: `packages/inversion/src/common/types.ts`
 
 *type*
 
-A binding key: a `string | symbol` branded with the type of the value bound under it (compile time only). Typed keys
-make `bind`, `get`, `getBinding` and `gets` infer `T`; a plain key is `TBindingKey<unknown>`. Bivariant.
+A binding key: a string made by `BindingKeys.build<T>`, branded with the type of the value bound under it (compile
+time only). `bind`, `get`, `getBinding` and `gets` infer `T` from it. Bivariant.
 
 ```ts
-export type TBindingKey<T = unknown> = (string | symbol) & {
-    readonly valueType?: {
+export type TBindingKey<T = unknown> = string & {
+    readonly valueType: {
         bivarianceHack(value: T): void;
     }['bivarianceHack'];
 };
@@ -1143,7 +1071,7 @@ The value type a key names (`unknown` for a plain key): annotates an `@inject` p
 
 ```ts
 export type TBindingKeyValue<K> = K extends {
-    readonly valueType?: (value: infer V) => void;
+    readonly valueType: (value: infer V) => void;
 } ? V : unknown;
 ```
 
@@ -1485,6 +1413,18 @@ export type TInjectTarget = TValueOrResolver<TClass<unknown>>;
 
 Source: `packages/inversion/src/common/types.ts`
 
+## `TMetadataKey`
+
+*type*
+
+A reflect-metadata key (`Symbol.for('ignis:model')`, a string constant): not a container key.
+
+```ts
+export type TMetadataKey = string | symbol;
+```
+
+Source: `packages/inversion/src/common/types.ts`
+
 ## `TNullable`
 
 *type*
@@ -1539,6 +1479,22 @@ export type TResponsedError = {
 ```
 
 Source: `packages/inversion/src/modules/error/common/types.ts`
+
+## `TTypeArgumentRequired`
+
+*type*
+
+The default type argument of `BindingKeys.build`: left unwritten, the call does not compile.
+
+```ts
+export type TTypeArgumentRequired = {
+    readonly [typeArgumentRequired]: never;
+};
+
+declare const typeArgumentRequired: unique symbol;
+```
+
+Source: `packages/inversion/src/common/types.ts`
 
 ## `TValueOrAsyncResolver`
 

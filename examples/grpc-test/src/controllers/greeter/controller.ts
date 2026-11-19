@@ -5,7 +5,8 @@ import {
   ControllerTransports,
   controller,
   inject,
-  unary, BindingKeys,
+  unary,
+  BindingKeys,
 } from '@venizia/ignis';
 import {
   GreeterService as GreeterServiceDef,

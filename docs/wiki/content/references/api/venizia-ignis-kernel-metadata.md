@@ -30,7 +30,7 @@ export declare class ArtifactBindingKeys {
             key: string;
         };
     }): {
-        key: string;
+        key: TBindingKey;
         isDerived: boolean;
     };
     /**
@@ -461,24 +461,24 @@ declare const BaseRegistry: {
         }): import("./common/index.js").IProvideMetadata[];
         define: <Target extends object = object, Value = unknown>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
             value: Value;
         }) => void;
         get: <Target extends object = object, Value = unknown>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => Value | undefined;
         has: <Target extends object = object>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => boolean;
         delete: <Target extends object = object>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => boolean;
         getKeys: <Target extends object = object>(opts: {
             target: Target;
-        }) => import("@venizia/ignis-inversion").TBindingKey[];
+        }) => import("@venizia/ignis-inversion").TMetadataKey[];
         getMethodNames: <T = unknown>(opts: {
             target: import("@venizia/ignis-inversion").TClass<T>;
         }) => string[];
@@ -535,24 +535,24 @@ declare const BaseRegistry: {
         }): boolean;
         define: <Target extends object = object, Value = unknown>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
             value: Value;
         }) => void;
         get: <Target extends object = object, Value = unknown>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => Value | undefined;
         has: <Target extends object = object>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => boolean;
         delete: <Target extends object = object>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => boolean;
         getKeys: <Target extends object = object>(opts: {
             target: Target;
-        }) => import("@venizia/ignis-inversion").TBindingKey[];
+        }) => import("@venizia/ignis-inversion").TMetadataKey[];
         getMethodNames: <T = unknown>(opts: {
             target: import("@venizia/ignis-inversion").TClass<T>;
         }) => string[];
@@ -609,24 +609,24 @@ declare const BaseRegistry: {
         }): void;
         define: <Target extends object = object, Value = unknown>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
             value: Value;
         }) => void;
         get: <Target extends object = object, Value = unknown>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => Value | undefined;
         has: <Target extends object = object>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => boolean;
         delete: <Target extends object = object>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => boolean;
         getKeys: <Target extends object = object>(opts: {
             target: Target;
-        }) => import("@venizia/ignis-inversion").TBindingKey[];
+        }) => import("@venizia/ignis-inversion").TMetadataKey[];
         getMethodNames: <T = unknown>(opts: {
             target: import("@venizia/ignis-inversion").TClass<T>;
         }) => string[];
@@ -681,24 +681,24 @@ declare const BaseRegistry: {
         }): import("./common/index.js").IGrpcControllerMetadata | undefined;
         define: <Target extends object = object, Value = unknown>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
             value: Value;
         }) => void;
         get: <Target extends object = object, Value = unknown>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => Value | undefined;
         has: <Target extends object = object>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => boolean;
         delete: <Target extends object = object>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => boolean;
         getKeys: <Target extends object = object>(opts: {
             target: Target;
-        }) => import("@venizia/ignis-inversion").TBindingKey[];
+        }) => import("@venizia/ignis-inversion").TMetadataKey[];
         getMethodNames: <T = unknown>(opts: {
             target: import("@venizia/ignis-inversion").TClass<T>;
         }) => string[];
@@ -786,24 +786,24 @@ declare const BaseRegistry: {
         }): boolean;
         define: <Target extends object = object, Value = unknown>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
             value: Value;
         }) => void;
         get: <Target extends object = object, Value = unknown>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => Value | undefined;
         has: <Target extends object = object>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => boolean;
         delete: <Target extends object = object>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => boolean;
         getKeys: <Target extends object = object>(opts: {
             target: Target;
-        }) => import("@venizia/ignis-inversion").TBindingKey[];
+        }) => import("@venizia/ignis-inversion").TMetadataKey[];
         getMethodNames: <T = unknown>(opts: {
             target: import("@venizia/ignis-inversion").TClass<T>;
         }) => string[];
@@ -891,24 +891,24 @@ declare const BaseRegistry: {
         }>;
         define: <Target extends object = object, Value = unknown>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
             value: Value;
         }) => void;
         get: <Target extends object = object, Value = unknown>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => Value | undefined;
         has: <Target extends object = object>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => boolean;
         delete: <Target extends object = object>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => boolean;
         getKeys: <Target extends object = object>(opts: {
             target: Target;
-        }) => import("@venizia/ignis-inversion").TBindingKey[];
+        }) => import("@venizia/ignis-inversion").TMetadataKey[];
         getMethodNames: <T = unknown>(opts: {
             target: import("@venizia/ignis-inversion").TClass<T>;
         }) => string[];
@@ -957,24 +957,24 @@ declare const BaseRegistry: {
         }): import("./common/index.js").IDataSourceMetadata | undefined;
         define: <Target extends object = object, Value = unknown>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
             value: Value;
         }) => void;
         get: <Target extends object = object, Value = unknown>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => Value | undefined;
         has: <Target extends object = object>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => boolean;
         delete: <Target extends object = object>(opts: {
             target: Target;
-            key: import("@venizia/ignis-inversion").TBindingKey;
+            key: import("@venizia/ignis-inversion").TMetadataKey;
         }) => boolean;
         getKeys: <Target extends object = object>(opts: {
             target: Target;
-        }) => import("@venizia/ignis-inversion").TBindingKey[];
+        }) => import("@venizia/ignis-inversion").TMetadataKey[];
         getMethodNames: <T = unknown>(opts: {
             target: import("@venizia/ignis-inversion").TClass<T>;
         }) => string[];
@@ -1049,7 +1049,7 @@ Marks a component method as the provider of `key`. `registerArtifacts` binds the
 
 ```ts
 export declare const provide: (opts: {
-    key: string;
+    key: TBindingKey;
     scope?: TBindingScope;
 }) => MethodDecorator;
 ```

@@ -17,9 +17,7 @@ Container keys of the gRPC component.
 
 ```ts
 export declare class GrpcBindingKeys {
-    static readonly GRPC_COMPONENT_OPTIONS: string & {
-        readonly valueType?: ((value: IGrpcComponentConfig) => void) | undefined;
-    };
+    static readonly GRPC_COMPONENT_OPTIONS: import("@venizia/ignis-inversion").TBindingKey<IGrpcComponentConfig>;
 }
 ```
 

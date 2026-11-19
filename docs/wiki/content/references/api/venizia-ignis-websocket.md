@@ -17,36 +17,16 @@ Container keys of the WebSocket component: the server instance, its options, the
 
 ```ts
 export declare class WebSocketBindingKeys {
-    static readonly WEBSOCKET_INSTANCE: string & {
-        readonly valueType?: ((value: WebSocketServerHelper<Record<string, unknown>, Record<string, unknown>>) => void) | undefined;
-    };
-    static readonly SERVER_OPTIONS: string & {
-        readonly valueType?: ((value: Partial<IServerOptions>) => void) | undefined;
-    };
-    static readonly REDIS_CONNECTION: string & {
-        readonly valueType?: ((value: AbstractRedisHelper<import("@venizia/ignis-helpers").TRedisClient> | null) => void) | undefined;
-    };
-    static readonly AUTHENTICATE_HANDLER: string & {
-        readonly valueType?: ((value: TWebSocketAuthenticateFn | null) => void) | undefined;
-    };
-    static readonly VALIDATE_ROOM_HANDLER: string & {
-        readonly valueType?: ((value: TWebSocketValidateRoomFn | null) => void) | undefined;
-    };
-    static readonly CLIENT_CONNECTED_HANDLER: string & {
-        readonly valueType?: ((value: TWebSocketClientConnectedFn | null) => void) | undefined;
-    };
-    static readonly CLIENT_DISCONNECTED_HANDLER: string & {
-        readonly valueType?: ((value: TWebSocketClientDisconnectedFn | null) => void) | undefined;
-    };
-    static readonly MESSAGE_HANDLER: string & {
-        readonly valueType?: ((value: TWebSocketMessageHandler | null) => void) | undefined;
-    };
-    static readonly OUTBOUND_TRANSFORMER: string & {
-        readonly valueType?: ((value: TWebSocketOutboundTransformer | null) => void) | undefined;
-    };
-    static readonly HANDSHAKE_HANDLER: string & {
-        readonly valueType?: ((value: TWebSocketHandshakeFn | null) => void) | undefined;
-    };
+    static readonly WEBSOCKET_INSTANCE: import("@venizia/ignis-inversion").TBindingKey<WebSocketServerHelper<Record<string, unknown>, Record<string, unknown>>>;
+    static readonly SERVER_OPTIONS: import("@venizia/ignis-inversion").TBindingKey<Partial<IServerOptions>>;
+    static readonly REDIS_CONNECTION: import("@venizia/ignis-inversion").TBindingKey<AbstractRedisHelper<import("@venizia/ignis-helpers").TRedisClient> | null>;
+    static readonly AUTHENTICATE_HANDLER: import("@venizia/ignis-inversion").TBindingKey<TWebSocketAuthenticateFn | null>;
+    static readonly VALIDATE_ROOM_HANDLER: import("@venizia/ignis-inversion").TBindingKey<TWebSocketValidateRoomFn | null>;
+    static readonly CLIENT_CONNECTED_HANDLER: import("@venizia/ignis-inversion").TBindingKey<TWebSocketClientConnectedFn | null>;
+    static readonly CLIENT_DISCONNECTED_HANDLER: import("@venizia/ignis-inversion").TBindingKey<TWebSocketClientDisconnectedFn | null>;
+    static readonly MESSAGE_HANDLER: import("@venizia/ignis-inversion").TBindingKey<TWebSocketMessageHandler | null>;
+    static readonly OUTBOUND_TRANSFORMER: import("@venizia/ignis-inversion").TBindingKey<TWebSocketOutboundTransformer | null>;
+    static readonly HANDSHAKE_HANDLER: import("@venizia/ignis-inversion").TBindingKey<TWebSocketHandshakeFn | null>;
 }
 ```
 

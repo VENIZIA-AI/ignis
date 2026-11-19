@@ -16,7 +16,9 @@ import { SupabaseRls } from '@venizia/ignis-connectors/postgres/supabase';
 @service()
 export class NoteService extends BaseService {
   constructor(
-    @inject({ key: BindingKeys.build<SupabaseDataSource>({ key: 'datasources.SupabaseDataSource' }) })
+    @inject({
+      key: BindingKeys.build<SupabaseDataSource>({ key: 'datasources.SupabaseDataSource' }),
+    })
     private dataSource: SupabaseDataSource,
 
     @inject({ key: BindingKeys.build<NoteRepository>({ key: 'repositories.NoteRepository' }) })

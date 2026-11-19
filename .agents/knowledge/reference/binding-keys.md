@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Namespaces: [binding key namespaces](/conventions/binding-key-namespaces.md).
 
-**16 keys across 2 binding classes.**
+**9 keys across 1 binding classes.**
 
 ## BindingNamespaces
 
@@ -25,15 +25,3 @@ generated:
 | `PROVIDER` | `providers` |
 | `CONTROLLER` | `controllers` |
 | `CONFIGURATION` | `configurations` |
-
-## CoreBindings
-
-| Constant | Key |
-|---|---|
-| `APPLICATION_INSTANCE` | `@app/instance` |
-| `APPLICATION_SERVER` | `@app/server` |
-| `APPLICATION_CONFIG` | `@app/config` |
-| `APPLICATION_PROJECT_ROOT` | `@app/project_root` |
-| `APPLICATION_ROOT_ROUTER` | `@app/router/root` |
-| `APPLICATION_ENVIRONMENTS` | `@app/environments` |
-| `APPLICATION_MIDDLEWARE_OPTIONS` | `@app/middleware_options` |

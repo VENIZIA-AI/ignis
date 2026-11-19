@@ -364,6 +364,30 @@ export class BindingKeysCodemod {
       return true;
     };
 
+    /** Whether `node` names a type parameter of a function, method or class that encloses it. */
+    const isTypeParameterInScope = (node: import('typescript').TypeNode): boolean => {
+      if (!ts.isTypeReferenceNode(node) || !ts.isIdentifier(node.typeName)) {
+        return false;
+      }
+
+      const name = node.typeName.text;
+
+      for (
+        let scope: import('typescript').Node | undefined = node.parent;
+        scope !== undefined;
+        scope = scope.parent
+      ) {
+        const parameters =
+          ts.isFunctionLike(scope) || ts.isClassLike(scope) ? scope.typeParameters : undefined;
+
+        if (parameters?.some((parameter) => parameter.name.text === name)) {
+          return true;
+        }
+      }
+
+      return false;
+    };
+
     const visit = (node: import('typescript').Node): void => {
       if (ts.isCallExpression(node)) {
         const callee = node.expression;
@@ -447,30 +471,6 @@ export class BindingKeysCodemod {
       }
 
       ts.forEachChild(node, visit);
-    };
-
-    /** Whether `node` names a type parameter of a function, method or class that encloses it. */
-    const isTypeParameterInScope = (node: import('typescript').TypeNode): boolean => {
-      if (!ts.isTypeReferenceNode(node) || !ts.isIdentifier(node.typeName)) {
-        return false;
-      }
-
-      const name = node.typeName.text;
-
-      for (
-        let scope: import('typescript').Node | undefined = node.parent;
-        scope !== undefined;
-        scope = scope.parent
-      ) {
-        const parameters =
-          ts.isFunctionLike(scope) || ts.isClassLike(scope) ? scope.typeParameters : undefined;
-
-        if (parameters?.some((parameter) => parameter.name.text === name)) {
-          return true;
-        }
-      }
-
-      return false;
     };
 
     const collect = (node: import('typescript').Node): void => {

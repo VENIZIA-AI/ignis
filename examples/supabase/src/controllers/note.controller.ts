@@ -10,7 +10,8 @@ import {
   inject,
   OpenApiResponses,
   post,
-  type TRouteContext, BindingKeys,
+  type TRouteContext,
+  BindingKeys,
 } from '@venizia/ignis';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';

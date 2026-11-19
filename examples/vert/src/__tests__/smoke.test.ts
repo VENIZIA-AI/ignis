@@ -102,7 +102,10 @@ describe('vert', async () => {
 
     const repository = <T>(opts: { name: string }) =>
       application.get<T>({
-        key: BindingKeys.build<unknown>({ namespace: BindingNamespaces.REPOSITORY, key: opts.name }),
+        key: BindingKeys.build<unknown>({
+          namespace: BindingNamespaces.REPOSITORY,
+          key: opts.name,
+        }),
       });
 
     const post = (opts: { path: string; body: object; headers?: Record<string, string> }) =>
