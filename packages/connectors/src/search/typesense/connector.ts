@@ -714,6 +714,55 @@ export class TypesenseConnector extends BaseSearchConnector {
     return { successCount, failCount };
   }
 
+  /** The camelCase import options as Typesense's snake_case parameters; a number must be a positive integer and a flag a boolean, so a typo is refused here and not by the engine. The connector's own `action`, `batchSize`, `dirtyValues` and `throwOnFail` are not in this list: they stay single-source. */
+  private toImportParams(opts: {
+    remoteEmbedding?: { batchSize?: number; timeoutMs?: number; numTries?: number };
+    returnId?: boolean;
+    returnDoc?: boolean;
+  }): Record<string, number | boolean> {
+    const method = this.importDocuments.name;
+    const params: Record<string, number | boolean> = {};
+    const numbers: Array<[string, string, number | undefined]> = [
+      ['remoteEmbedding.batchSize', 'remote_embedding_batch_size', opts.remoteEmbedding?.batchSize],
+      ['remoteEmbedding.timeoutMs', 'remote_embedding_timeout_ms', opts.remoteEmbedding?.timeoutMs],
+      ['remoteEmbedding.numTries', 'remote_embedding_num_tries', opts.remoteEmbedding?.numTries],
+    ];
+    const flags: Array<[string, string, boolean | undefined]> = [
+      ['returnId', 'return_id', opts.returnId],
+      ['returnDoc', 'return_doc', opts.returnDoc],
+    ];
+
+    for (const [name, wire, value] of numbers) {
+      if (value === undefined) {
+        continue;
+      }
+
+      if (!Number.isInteger(value) || value <= 0) {
+        throw getError({
+          message: `[${method}] Invalid ${name} | value: ${value} | it must be a positive integer`,
+        });
+      }
+
+      params[wire] = value;
+    }
+
+    for (const [name, wire, value] of flags) {
+      if (value === undefined) {
+        continue;
+      }
+
+      if (typeof value !== 'boolean') {
+        throw getError({
+          message: `[${method}] Invalid ${name} | value: ${value} | it must be a boolean`,
+        });
+      }
+
+      params[wire] = value;
+    }
+
+    return params;
+  }
+
   async importDocuments<T extends object>(
     opts: {
       collection: string;
@@ -729,6 +778,17 @@ export class TypesenseConnector extends BaseSearchConnector {
        * @default false
        */
       throwOnFail?: boolean;
+      /**
+       * Typesense-only (Meilisearch has no equivalent). For a collection whose fields are embedded by a remote provider: the batch
+       * Typesense sends the provider, how long it waits for it, and how often it tries. Sent as `remote_embedding_batch_size`,
+       * `remote_embedding_timeout_ms` and `remote_embedding_num_tries`; each is a positive integer, and a field left out is the
+       * engine's own default. `timeoutMs` is the engine's wait for the provider, not this client's request timeout (`timeoutMs` of the call).
+       */
+      remoteEmbedding?: { batchSize?: number; timeoutMs?: number; numTries?: number };
+      /** Typesense-only. Each row of `responses` carries the document `id` (`return_id`). Memory grows with the import. */
+      returnId?: boolean;
+      /** Typesense-only. Each row of `responses` carries the stored `document` (`return_doc`): the whole import stays in memory as `responses`. */
+      returnDoc?: boolean;
     } & ITypesenseCallOptions,
   ): Promise<IImportResult<TImportResponse>> {
     const { collection, documents, dirtyValues, throwOnFail = false } = opts;
@@ -753,6 +813,11 @@ export class TypesenseConnector extends BaseSearchConnector {
       });
     }
 
+    const extraParams = this.toImportParams({
+      remoteEmbedding: opts.remoteEmbedding,
+      returnId: opts.returnId,
+      returnDoc: opts.returnDoc,
+    });
     const logger = this.logger.for(this.importDocuments.name);
     const client = this.clientFor({ ...opts, method: this.importDocuments.name });
     const batchSize = opts.batchSize && opts.batchSize > 0 ? opts.batchSize : 100;
@@ -765,9 +830,12 @@ export class TypesenseConnector extends BaseSearchConnector {
         const batch = documents.slice(start, start + batchSize);
 
         // opt out of typesense's default throwOnFail:true so import() returns per-row responses to aggregate below.
-        const importParams: Record<string, unknown> = dirtyValues
-          ? { action, throwOnFail: false, ['dirty_values']: dirtyValues }
-          : { action, throwOnFail: false };
+        const importParams: Record<string, unknown> = {
+          ...extraParams,
+          action,
+          throwOnFail: false,
+          ...(dirtyValues ? { ['dirty_values']: dirtyValues } : {}),
+        };
 
         const result = await client.collections(collection).documents().import(batch, importParams);
         const batchResult = result as TImportResponse[];

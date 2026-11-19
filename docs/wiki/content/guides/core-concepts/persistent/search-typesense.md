@@ -909,6 +909,23 @@ A failure before the first line throws as `exportDocuments` does; one in the mid
 
 **Fail on a partial import.** `importDocuments` returns rejected rows in `count.fail` and `responses` and does not throw. Pass `throwOnFail: true` to get a `422` after the last batch instead, with the counts in `extra.details` and every per-row response on the error's `responses` (they hold the rejected documents, so they are not in `extra`, which goes on the wire).
 
+**Remote embedding and the ids of an import.** A collection whose fields are embedded by a remote provider often has to import with a smaller embedding batch than the engine's default, a longer wait and more tries. `importDocuments` takes them as camelCase options and sends the snake_case parameters Typesense documents:
+
+```typescript
+await connector.importDocuments({
+  collection: 'articles',
+  documents,
+  remoteEmbedding: { batchSize: 20, timeoutMs: 60_000, numTries: 3 }, // remote_embedding_batch_size, _timeout_ms, _num_tries
+  returnId: true, // each row of `responses` carries the document `id`
+});
+```
+
+- Each number must be a positive integer; a field you leave out is the engine's own default, and a bad one is a `400` before anything is sent.
+- `remoteEmbedding.timeoutMs` is how long Typesense waits for the provider. It is not this client's request timeout (`timeoutMs` of the call).
+- `returnId` and `returnDoc` add the `id` and the stored `document` to each row of `responses`. `returnDoc` keeps every imported document in memory until the import ends: use it for a small import.
+- `action`, `batchSize`, `dirtyValues` and `throwOnFail` stay the connector's own options: they are the same for every batch and cannot be passed twice.
+- These options are Typesense's: `importDocuments` is the Typesense connector's method. Meilisearch has no equivalent, and the neutral `documents.import` takes `batchSize` only.
+
 **A missing document as `null`.** `getDocument` throws `404 core.search_engine.not_found`. `findDocument({ collection, id })` (also `document.find`) returns `null` for a missing document, the way `getAlias` does, and throws for any other failure. A missing collection is a 404 too, so a mistyped collection name also answers `null`.
 
 **`updateByFilter` refuses an empty `document`** with a `400` before it calls the engine.

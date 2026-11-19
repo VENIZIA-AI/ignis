@@ -2511,6 +2511,8 @@ export declare class TypesenseConnector extends BaseSearchConnector {
     }): Promise<boolean>;
     /** Appends one batch's per-row responses to `responses` and returns that batch's success/fail split. */
     private tallyImportResponses;
+    /** The camelCase import options as Typesense's snake_case parameters; a number must be a positive integer and a flag a boolean, so a typo is refused here and not by the engine. The connector's own `action`, `batchSize`, `dirtyValues` and `throwOnFail` are not in this list: they stay single-source. */
+    private toImportParams;
     importDocuments<T extends object>(opts: {
         collection: string;
         documents: T[];
@@ -2525,6 +2527,21 @@ export declare class TypesenseConnector extends BaseSearchConnector {
          * @default false
          */
         throwOnFail?: boolean;
+        /**
+         * Typesense-only (Meilisearch has no equivalent). For a collection whose fields are embedded by a remote provider: the batch
+         * Typesense sends the provider, how long it waits for it, and how often it tries. Sent as `remote_embedding_batch_size`,
+         * `remote_embedding_timeout_ms` and `remote_embedding_num_tries`; each is a positive integer, and a field left out is the
+         * engine's own default. `timeoutMs` is the engine's wait for the provider, not this client's request timeout (`timeoutMs` of the call).
+         */
+        remoteEmbedding?: {
+            batchSize?: number;
+            timeoutMs?: number;
+            numTries?: number;
+        };
+        /** Typesense-only. Each row of `responses` carries the document `id` (`return_id`). Memory grows with the import. */
+        returnId?: boolean;
+        /** Typesense-only. Each row of `responses` carries the stored `document` (`return_doc`): the whole import stays in memory as `responses`. */
+        returnDoc?: boolean;
     } & ITypesenseCallOptions): Promise<IImportResult<TImportResponse>>;
     updateByFilter<T extends object>(opts: {
         collection: string;

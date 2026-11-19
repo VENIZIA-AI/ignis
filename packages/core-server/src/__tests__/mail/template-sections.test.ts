@@ -266,15 +266,12 @@ describe('what rendered empty is logged, keys only', () => {
   const capture = (run: (instance: TemplateEngineService) => void) => {
     const instance = new TemplateEngineService();
     const lines: string[] = [];
-    const logger = instance.logger;
+    const scoped = instance.logger.for('renderSimpleTemplate');
 
-    spyOn(logger, 'for').mockReturnValue({
-      warn: (format: string, ...args: unknown[]) => {
-        lines.push([format, ...args].join(' '));
-      },
-      debug: () => undefined,
-      info: () => undefined,
-    } as never);
+    spyOn(scoped, 'warn').mockImplementation((format: string, ...args: unknown[]) => {
+      lines.push([format, ...args].join(' '));
+    });
+    spyOn(instance.logger, 'for').mockReturnValue(scoped);
     run(instance);
 
     return lines;
