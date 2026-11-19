@@ -113,6 +113,24 @@ describe('the fetcher sender', () => {
   });
 });
 
+describe('the sender is called as a plain function', () => {
+  test('a sender that rejects any `this` (window.fetch in a browser) is called without one', async () => {
+    const sender = function (this: unknown): Promise<Response> {
+      if (this !== undefined) {
+        throw new TypeError('Illegal invocation');
+      }
+
+      return Promise.resolve(new Response('ok'));
+    };
+
+    const nativeFetcher = new NativeFetcher({ name: 'n', fetch: sender });
+    const response = await nativeFetcher.get({ url: `${base}/x` });
+
+    const result = await response.text();
+    expect(result).toBe('ok');
+  });
+});
+
 describe('shouldRetry may be async', () => {
   test('a promise that resolves false stops the retry, one that resolves true allows it', async () => {
     let calls = 0;

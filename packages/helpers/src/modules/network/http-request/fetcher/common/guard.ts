@@ -4,10 +4,14 @@ import type { IUrlSafetyPolicy } from '@/modules/network/utilities/url-safety/co
 export interface IFetchGuardHop {
   url: URL;
   addresses: string[];
+  /** The name an https connection to `addresses` verifies the certificate for; unset for a literal address or http. */
+  tlsServerName?: string;
 }
 
 /** A guarded call: vets the first url and every redirect target, one hop at a time. */
 export interface IFetchGuardRoute {
+  /** The policy's `timeout` in milliseconds, when it names one: the guard owns the duration units, so a browser bundle does not carry them. */
+  readonly timeoutMs?: number;
   vet(opts: { url: string; signal?: AbortSignal }): Promise<IFetchGuardHop>;
 }
 

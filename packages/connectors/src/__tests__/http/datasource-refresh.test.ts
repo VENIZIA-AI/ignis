@@ -171,3 +171,54 @@ describe('abort during the refresh', () => {
     expect(sent).toHaveLength(1);
   });
 });
+
+describe("an abort during the refresh rejects with the caller's reason, whatever the hook answers", () => {
+  test('the hook answers false after the abort: the call rejects with the abort reason, not the 401', async () => {
+    const sent = stub([401]);
+    const controller = new AbortController();
+    const reason = new Error('user left');
+
+    const dataSource = new HttpDataSource({
+      baseUrl: 'https://api.example.com',
+      onUnauthorized: () => {
+        controller.abort(reason);
+
+        return false;
+      },
+    });
+
+    const error = await RejectionHelper.rejectionOf({
+      task: dataSource.read({ paths: ['tickets'], signal: controller.signal }),
+    });
+
+    expect(error).toBe(reason);
+    expect(sent).toHaveLength(1);
+  });
+
+  test('the hook hears the second 401 after an abort: the call rejects with the abort reason', async () => {
+    const sent = stub([401]);
+    const controller = new AbortController();
+    const reason = new Error('user left');
+    let heard = 0;
+
+    const dataSource = new HttpDataSource({
+      baseUrl: 'https://api.example.com',
+      onUnauthorized: () => {
+        heard += 1;
+
+        if (heard === 2) {
+          controller.abort(reason);
+        }
+
+        return true;
+      },
+    });
+
+    const error = await RejectionHelper.rejectionOf({
+      task: dataSource.read({ paths: ['tickets'], signal: controller.signal }),
+    });
+
+    expect(error).toBe(reason);
+    expect(sent).toHaveLength(2);
+  });
+});

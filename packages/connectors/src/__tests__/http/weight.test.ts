@@ -7,8 +7,8 @@ import { join } from 'node:path';
  * nobody measures is not one.
  */
 const HTTP_ENTRY = join(process.cwd(), 'src/http/index.ts');
-/** The measured size is about 72 KB: the data source sends through `NativeFetcher`, whose pipeline (status check, retry, hooks, the error classes) is browser-pure and ships with it. The SQL stack was 140 KB more. */
-const CEILING_BYTES = 80 * 1024;
+/** The measured size is about 63 KB: the data source sends through `NativeFetcher`, whose pipeline (status check, retry, hooks, the error classes) is browser-pure and ships with it; the guard's `UrlPolicy` and duration units stay out. The SQL stack was 140 KB more. */
+const CEILING_BYTES = 66 * 1024;
 
 const bundle = async () => {
   const built = await Bun.build({ entrypoints: [HTTP_ENTRY], target: 'browser', minify: true });
@@ -36,6 +36,9 @@ describe('the http connector stays free of the SQL stack', () => {
     // The `reflect-metadata` polyfill, and the node logger provider.
     'getOwnMetadataKeys',
     'winston',
+    // The axios fetcher and anything of node's.
+    'axios',
+    'node:',
   ] as const;
 
   for (const forbidden of forbiddens) {

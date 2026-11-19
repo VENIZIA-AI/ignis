@@ -1,6 +1,8 @@
 import { HTTP } from '@/common/constants/http';
-import { UrlPolicy } from '@/modules/network/utilities/url-safety/policy';
-import { UrlFetchError } from '@/modules/network/utilities/url-safety/common/errors';
+import {
+  UrlFetchError,
+  UrlSafetyErrors,
+} from '@/modules/network/utilities/url-safety/common/errors';
 import { FetchSchemaError } from './errors';
 import type { TFetchHeaders } from './types';
 
@@ -133,12 +135,19 @@ export class FetchRetry {
       return error.status >= 500 || error.status === 429;
     }
 
-    if (FetchSchemaError.is(error) || UrlPolicy.isRefusedError({ error })) {
+    if (FetchSchemaError.is(error) || FetchRetry.isRefusal({ error })) {
       return false;
     }
 
     // The caller's own abort ends the call; a per-attempt timeout is not the caller's and is retried.
     return signal?.aborted !== true;
+  }
+
+  /** Whether `error` is a url-guard refusal (a refused url is refused forever). */
+  static isRefusal(opts: { error: unknown }): boolean {
+    const source = opts.error as { normalized?: { code?: string } };
+
+    return source?.normalized?.code === UrlSafetyErrors.URL_REFUSED.message.code;
   }
 
   /** The wait a 429 or 503 asks for in `Retry-After`, in milliseconds: seconds, or an HTTP date. `undefined` when there is none. */

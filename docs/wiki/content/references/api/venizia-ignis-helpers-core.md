@@ -755,6 +755,10 @@ export declare class FetchRetry {
         error: unknown;
         signal?: AbortSignal;
     }): boolean;
+    /** Whether `error` is a url-guard refusal (a refused url is refused forever). */
+    static isRefusal(opts: {
+        error: unknown;
+    }): boolean;
     /** The wait a 429 or 503 asks for in `Retry-After`, in milliseconds: seconds, or an HTTP date. `undefined` when there is none. */
     static readRetryAfterMs(opts: {
         error: unknown;
@@ -1087,6 +1091,8 @@ export interface IFetchExchangeRequest {
     signal?: AbortSignal;
     /** The addresses the guard vetted: connect to these and no other. Empty: connect as the client would. */
     addresses: string[];
+    /** The host name the certificate is verified for when the connection goes to an address; unset for a literal address or a plain http url. */
+    tlsServerName?: string;
     /** A proxy the guard policy chose. */
     proxy?: string;
     /** Do not follow a redirect: the pipeline reads the 3xx and walks it. */
@@ -1126,6 +1132,8 @@ One hop the guard vetted: the url to send to, and the addresses to connect to (e
 export interface IFetchGuardHop {
     url: URL;
     addresses: string[];
+    /** The name an https connection to `addresses` verifies the certificate for; unset for a literal address or http. */
+    tlsServerName?: string;
 }
 ```
 
@@ -1139,6 +1147,8 @@ A guarded call: vets the first url and every redirect target, one hop at a time.
 
 ```ts
 export interface IFetchGuardRoute {
+    /** The policy's `timeout` in milliseconds, when it names one: the guard owns the duration units, so a browser bundle does not carry them. */
+    readonly timeoutMs?: number;
     vet(opts: {
         url: string;
         signal?: AbortSignal;

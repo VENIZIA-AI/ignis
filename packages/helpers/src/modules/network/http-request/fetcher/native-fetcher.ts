@@ -1,7 +1,6 @@
 import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
 import type { IUrlSafetyPolicy } from '@/modules/network/utilities/url-safety/common/types';
-import { UrlPolicy } from '@/modules/network/utilities/url-safety/policy';
 import {
   type IQueryStringOptions,
   QueryStringSeparators,
@@ -180,11 +179,10 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
   private async fetchPinned(opts: {
     url: URL;
     addresses: string[];
+    tlsServerName?: string;
     init: IBunFetchInit;
   }): Promise<Response> {
-    const { url, addresses, init } = opts;
-    const isHttps = url.protocol === 'https:';
-    const hasNameToVerify = isHttps && !UrlPolicy.isLiteralHost({ hostname: url.hostname });
+    const { url, addresses, tlsServerName, init } = opts;
     const headers = new Headers(init.headers);
 
     headers.set(HTTP.Headers.HOST, url.host);
@@ -203,7 +201,7 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
             // `proxy: false` is Bun's way to ignore HTTP_PROXY / HTTPS_PROXY for this call (an empty string or undefined keeps the environment's proxy, which would resolve the name itself and undo the pin). A test pins it.
             proxy: false,
             headers,
-            ...(hasNameToVerify ? { tls: { serverName: url.hostname } } : {}),
+            ...(tlsServerName === undefined ? {} : { tls: { serverName: tlsServerName } }),
           },
         });
 
@@ -235,8 +233,11 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
   private async request(opts: { url: URL; init: IBunFetchInit }): Promise<Response> {
     const { url, init } = opts;
 
-    if (this.sender) {
-      const answer = await this.sender(url.toString(), init);
+    // Taken off `this` first: `window.fetch` throws "Illegal invocation" when it is called as a method of another object.
+    const { sender } = this;
+
+    if (sender) {
+      const answer = await sender(url.toString(), init);
 
       return answer;
     }
@@ -250,13 +251,14 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
   private async dispatch(opts: {
     url: URL;
     addresses: string[];
+    tlsServerName?: string;
     proxy: string | undefined;
     init: IBunFetchInit;
   }): Promise<Response> {
-    const { url, addresses, proxy, init } = opts;
+    const { url, addresses, tlsServerName, proxy, init } = opts;
 
     if (addresses.length > 0 && !proxy) {
-      const pinned = await this.fetchPinned({ url, addresses, init });
+      const pinned = await this.fetchPinned({ url, addresses, tlsServerName, init });
 
       return pinned;
     }
@@ -269,7 +271,18 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
   protected override async exchange(
     opts: IFetchExchangeRequest,
   ): Promise<IFetchExchange<Response>> {
-    const { method, url, headers, body, signal, addresses, proxy, isManualRedirect, extra } = opts;
+    const {
+      method,
+      url,
+      headers,
+      body,
+      signal,
+      addresses,
+      tlsServerName,
+      proxy,
+      isManualRedirect,
+      extra,
+    } = opts;
     const init: IBunFetchInit = {
       ...this.requestInit,
       ...extra,
@@ -280,7 +293,7 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
       redirect: isManualRedirect ? 'manual' : 'follow',
       ...(proxy ? { proxy } : {}),
     };
-    const response = await this.dispatch({ url, addresses, proxy, init });
+    const response = await this.dispatch({ url, addresses, tlsServerName, proxy, init });
 
     return {
       response,

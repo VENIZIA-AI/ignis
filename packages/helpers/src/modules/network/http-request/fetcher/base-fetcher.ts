@@ -1,5 +1,4 @@
 import { RedactUtility } from '@/common/redact';
-import { DurationMultipliers } from '@/common/constants/duration';
 import { HTTP, type THttpMethod } from '@/common/constants/http';
 import { getError } from '@/modules/error';
 // The leaf file, never the logger BARREL: that barrel reaches `node:module` and would drag this
@@ -16,7 +15,7 @@ import type { z } from 'zod';
 import { type TFetcherVariant } from '../common';
 import { BodyLimit } from './common/body-limit';
 import { FetchSchemaError, type IFetchSchemaIssue } from './common/errors';
-import type { IFetchGuard, IFetchGuardRoute } from './common/guard';
+import type { IFetchGuard, IFetchGuardHop, IFetchGuardRoute } from './common/guard';
 import { FetchRequestContext } from './common/request-context';
 import type {
   IFetchParsed,
@@ -86,6 +85,8 @@ export interface IFetchExchangeRequest {
   signal?: AbortSignal;
   /** The addresses the guard vetted: connect to these and no other. Empty: connect as the client would. */
   addresses: string[];
+  /** The host name the certificate is verified for when the connection goes to an address; unset for a literal address or a plain http url. */
+  tlsServerName?: string;
   /** A proxy the guard policy chose. */
   proxy?: string;
   /** Do not follow a redirect: the pipeline reads the 3xx and walks it. */
@@ -158,7 +159,9 @@ interface IResolvedCall {
   headers: Headers;
   body: unknown;
   signal?: AbortSignal;
+  /** The call's own `timeout`; the guard policy's, then the fetcher's `defaults.timeout`, decide when it is unset (see `readTimeout`). */
   timeout?: number;
+  defaultTimeout?: number;
   retry?: IFetchRetryOptions;
   guard?: IUrlSafetyPolicy;
   maxBytes?: number;
@@ -276,13 +279,6 @@ export abstract class AbstractNetworkFetchableHelper<
       });
     }
 
-    const policyTimeout = guard?.timeout ? DurationMultipliers.toMilliseconds(guard.timeout) : null;
-    const timeout =
-      request.timeout ??
-      policyTimeout ??
-      this.defaults.timeout ??
-      (guard === undefined ? undefined : UrlSafetyDefaults.TIMEOUT_MILLISECONDS);
-
     const retry = request.retry ?? this.defaults.retry;
 
     if (
@@ -301,7 +297,8 @@ export abstract class AbstractNetworkFetchableHelper<
       headers: FetchHeaders.merge({ layers: [this.defaults.headers, request.headers] }),
       body: request.body,
       signal: request.signal,
-      timeout,
+      timeout: request.timeout,
+      defaultTimeout: this.defaults.timeout,
       retry,
       guard,
       // A guarded call always caps what it reads: the fetcher reads the body itself on the schema path.
@@ -318,16 +315,19 @@ export abstract class AbstractNetworkFetchableHelper<
   }
 
   /** `AbortSignal` of one attempt: the caller's own, and the attempt's deadline. */
-  private attemptSignal(opts: { call: IResolvedCall }): AbortSignal | undefined {
-    const { call } = opts;
+  private attemptSignal(opts: {
+    call: IResolvedCall;
+    timeout: number | undefined;
+  }): AbortSignal | undefined {
+    const { call, timeout } = opts;
     const signals: AbortSignal[] = [];
 
     if (call.signal) {
       signals.push(call.signal);
     }
 
-    if (call.timeout !== undefined && call.timeout > 0) {
-      signals.push(AbortSignal.timeout(call.timeout));
+    if (timeout !== undefined && timeout > 0) {
+      signals.push(AbortSignal.timeout(timeout));
     }
 
     if (signals.length === 0) {
@@ -359,7 +359,7 @@ export abstract class AbstractNetworkFetchableHelper<
     route: IFetchGuardRoute | undefined;
     target: URL;
     signal: AbortSignal | undefined;
-  }): Promise<{ url: URL; addresses: string[] }> {
+  }): Promise<IFetchGuardHop> {
     const { route, target, signal } = opts;
 
     if (!route) {
@@ -390,9 +390,15 @@ export abstract class AbstractNetworkFetchableHelper<
     opts.onRequest(request);
     await this.hooks.onRequest?.(request);
 
-    const signal = this.attemptSignal({ call });
     const route: IFetchGuardRoute | undefined =
       call.guard === undefined ? undefined : this.guardEngine?.createRoute({ policy: call.guard });
+    // The call's own, else the guard policy's, else the fetcher's default; a guarded call always has one.
+    const timeout =
+      call.timeout ??
+      route?.timeoutMs ??
+      call.defaultTimeout ??
+      (route === undefined ? undefined : UrlSafetyDefaults.TIMEOUT_MILLISECONDS);
+    const signal = this.attemptSignal({ call, timeout });
     const isManual = route !== undefined || call.maxRedirects !== undefined;
     const maxRedirects = call.maxRedirects ?? UrlSafetyDefaults.MAX_REDIRECTS;
 
@@ -413,7 +419,7 @@ export abstract class AbstractNetworkFetchableHelper<
           body: this.describeBody({ body }),
         },
       }),
-      call.timeout,
+      timeout,
     );
 
     try {
@@ -428,6 +434,7 @@ export abstract class AbstractNetworkFetchableHelper<
             body,
             signal,
             addresses: vetted.addresses,
+            tlsServerName: vetted.tlsServerName,
             proxy: call.guard?.proxy,
             isManualRedirect: isManual,
             maxBytes: call.maxBytes,
