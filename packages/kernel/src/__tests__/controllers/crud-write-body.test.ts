@@ -332,7 +332,7 @@ const resolveVariantController = (opts: {
   const container = new Container();
   container
     .bind({
-      key: BindingKeys.build({ namespace: BindingNamespaces.REPOSITORY, key: repositoryName }),
+      key: BindingKeys.build<unknown>({ namespace: BindingNamespaces.REPOSITORY, key: repositoryName }),
     })
     .toValue(repositoryInstance);
 

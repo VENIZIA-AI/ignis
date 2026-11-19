@@ -5,6 +5,7 @@ import { BaseConfiguration } from '@/base/configurations';
 import { configuration, provide } from '@/base/metadata';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
+import { BindingKeys } from '@/helpers/inversion';
 
 class TestApplication extends RestApplication {
   readonly executionLog: string[] = [];
@@ -109,7 +110,7 @@ describe('configuration @provide and options pass-through to components', () => 
 
     @configuration()
     class FeatureConfig extends BaseConfiguration {
-      @provide({ key: 'configurations.apiKey' })
+      @provide({ key: BindingKeys.build<unknown>({ key: 'configurations.apiKey' }) })
       apiKey(): string {
         return 'secret-api-key-123';
       }
@@ -120,7 +121,7 @@ describe('configuration @provide and options pass-through to components', () => 
     });
 
     await app.initialize();
-    expect(app.get<string>({ key: 'configurations.apiKey' })).toBe('secret-api-key-123');
+    expect(app.get({ key: BindingKeys.build<string>({ key: 'configurations.apiKey' }) })).toBe('secret-api-key-123');
   });
 
   test('application.component receives strongly-typed options and passes them to configure()', async () => {

@@ -64,7 +64,7 @@ const open = async <Repository extends object>(opts: {
   const container = new Container();
   container
     .bind({
-      key: BindingKeys.build({
+      key: BindingKeys.build<unknown>({
         namespace: BindingNamespaces.REPOSITORY,
         key: opts.repositoryName,
       }),

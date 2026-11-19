@@ -30,7 +30,7 @@ class InjectionProbeItem extends AbstractEntity<typeof itemSchema> {
 class InjectionProbeItemRepository extends StubRepository {}
 
 const repositoryKey = (opts: { name: string }) => {
-  return BindingKeys.build({ namespace: BindingNamespaces.REPOSITORY, key: opts.name });
+  return BindingKeys.build<unknown>({ namespace: BindingNamespaces.REPOSITORY, key: opts.name });
 };
 
 const buildContainer = () => {

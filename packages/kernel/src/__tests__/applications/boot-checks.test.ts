@@ -4,6 +4,7 @@ import { inject, service } from '@/base/metadata';
 import { BindingNamespaces } from '@/common/bindings';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
+import { BindingKeys } from '@/helpers/inversion';
 
 /** Runs the real boot sequence; only the server-only hooks are stubbed. */
 class CheckedApplication extends RestApplication {
@@ -23,7 +24,7 @@ class HealthyService {}
 /** Depends on a key nothing binds - the shape of a made-up `@inject` key or a dependency a `when` excluded. */
 @service()
 class BrokenService {
-  constructor(@inject({ key: 'services.Missing' }) readonly missing: unknown) {}
+  constructor(@inject({ key: BindingKeys.build<unknown>({ key: 'services.Missing' }) }) readonly missing: unknown) {}
 }
 
 type TBindingChecks = NonNullable<NonNullable<IApplicationConfigs['bootChecks']>['binding']>;
@@ -123,7 +124,7 @@ describe('bootChecks.binding.doVerify', () => {
     });
 
     await application.initialize();
-    expect(application.get<HealthyService>({ key: 'services.HealthyService' })).toBeInstanceOf(
+    expect(application.get({ key: BindingKeys.build<HealthyService>({ key: 'services.HealthyService' }) })).toBeInstanceOf(
       HealthyService,
     );
   });
@@ -277,7 +278,7 @@ describe('bootChecks.binding.allowOverride', () => {
 
     await application.initialize();
     expect(
-      application.get<ClickHouseRunModeService>({ key: 'services.RunModeService' }),
+      application.get({ key: BindingKeys.build<ClickHouseRunModeService>({ key: 'services.RunModeService' }) }),
     ).toBeInstanceOf(ClickHouseRunModeService);
   });
 });

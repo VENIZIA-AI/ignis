@@ -83,7 +83,11 @@ describe('@injectable and its stereotypes', () => {
       }
     }
 
-    expect(MetadataRegistry.getInstance().getProvideMetadata({ target: Holder })).toEqual([
+    const provided = MetadataRegistry.getInstance()
+      .getProvideMetadata({ target: Holder })
+      .map((item) => ({ ...item, key: String(item.key) }));
+
+    expect(provided).toEqual([
       { methodName: 'alpha', key: 'options.alpha' },
       { methodName: 'beta', key: 'options.beta', scope: BindingScopes.TRANSIENT },
     ]);

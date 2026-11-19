@@ -3,6 +3,7 @@ import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications/
 import { service } from '@/base/metadata';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { beforeEach, describe, expect, test } from 'bun:test';
+import { BindingKeys } from '@/helpers/inversion';
 
 class ReportingApplication extends RestApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
@@ -36,7 +37,7 @@ describe('getUnresolvedBindings', () => {
   });
 
   test('it names the service nobody read, and only that one', () => {
-    application.get({ key: 'services.ReadService' });
+    application.get({ key: BindingKeys.build<unknown>({ key: 'services.ReadService' }) });
 
     expect(application.getUnresolvedBindings()).toEqual(['services.NeverReadService']);
   });
@@ -57,7 +58,7 @@ describe('getUnresolvedBindings', () => {
    * taken over boot's own resolutions is empty for the wrong reason.
    */
   test('reading a service fills a count that starting again clears', () => {
-    application.get({ key: 'services.ReadService' });
+    application.get({ key: BindingKeys.build<unknown>({ key: 'services.ReadService' }) });
     expect(application.getResolutionCounts().get('services.ReadService')).toBe(1);
 
     application.startResolutionCounting();

@@ -617,7 +617,7 @@ export class BindingKeysCommand {
       for (const file of files) {
         const source = readFileSync(file, 'utf8');
 
-        if (!/\b(?:get|gets|getBinding|bind|isBound|unbind|inject|build)\b/.test(source)) {
+        if (!/\b(?:get|gets|getBinding|bind|isBound|unbind|inject|provide|build)\b/.test(source)) {
           continue;
         }
 

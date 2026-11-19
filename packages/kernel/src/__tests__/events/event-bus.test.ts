@@ -4,6 +4,7 @@ import { Container } from '@/helpers/inversion/container';
 import { getError } from '@venizia/ignis-helpers/core';
 import { afterEach, beforeEach, describe, expect, jest, test } from 'bun:test';
 import { RecordingLogger } from '../support/recording-logger';
+import { BindingKeys } from '@/helpers/inversion';
 
 /** A stand-in handler: records every `handle` call, and throws `getError` for the first `failuresBeforeSuccess` calls. */
 class RecordingHandler implements IEventHandler {
@@ -56,7 +57,7 @@ interface TestEventPayloadMap {
   otherEvent: { flag: boolean };
 }
 
-const HANDLER_KEY = 'events.test-handler';
+const HANDLER_KEY = BindingKeys.build<unknown>({ key: 'events.test-handler' });
 
 // The retry backoffs sleep with the global setTimeout. The clock is faked for every test of this file and
 // `flush` moves it, so a case that waits out an 8 s backoff costs milliseconds, not 8 s.
@@ -212,8 +213,8 @@ describe('EventBus - handlers resolve through DI by binding key, not by referenc
 describe('EventBus - multiple handlers per event name', () => {
   test('register appends - a second registration does not drop the first', async () => {
     const { bus, container } = buildBus();
-    const firstKey = 'events.first-handler';
-    const secondKey = 'events.second-handler';
+    const firstKey = BindingKeys.build<unknown>({ key: 'events.first-handler' });
+    const secondKey = BindingKeys.build<unknown>({ key: 'events.second-handler' });
     const first = new RecordingHandler({ identifier: 'first' });
     const second = new RecordingHandler({ identifier: 'second' });
 
@@ -316,8 +317,8 @@ describe('EventBus - per-registration retry override', () => {
 
   test('two registrations on the same event name each honour their own retry settings', async () => {
     const { bus, container } = buildBus();
-    const defaultKey = 'events.default-retry-handler';
-    const customKey = 'events.custom-retry-handler';
+    const defaultKey = BindingKeys.build<unknown>({ key: 'events.default-retry-handler' });
+    const customKey = BindingKeys.build<unknown>({ key: 'events.custom-retry-handler' });
     // Fails one more time than the default 3-attempt budget allows - proves it is NOT
     // borrowing the other registration's 5-attempt budget.
     const defaultHandler = new RecordingHandler({
@@ -528,7 +529,7 @@ describe('EventBus - handler shapes: binding key vs function', () => {
     const { bus, container } = buildBus();
     const originalHandlerCalls: Array<{ event: IDomainEvent }> = [];
     const reboundHandler = new RecordingHandler({ identifier: 'rebound' });
-    const rebindKey = 'events.rebind-between-attempts';
+    const rebindKey = BindingKeys.build<unknown>({ key: 'events.rebind-between-attempts' });
 
     container.bind({ key: rebindKey }).toValue({
       async handle(handleOpts: { event: IDomainEvent }): Promise<void> {
@@ -620,7 +621,10 @@ describe('EventBus - invalid handler shapes throw at register()', () => {
     expect(() =>
       bus.register({
         name: 'testEvent',
-        handler: { type: EventHandlerTypes.BINDING_KEY, key: '' },
+        handler: {
+          type: EventHandlerTypes.BINDING_KEY,
+          key: BindingKeys.build<IEventHandler>({ key: '' }),
+        },
       }),
     ).toThrow(/Invalid handler\.key/);
   });

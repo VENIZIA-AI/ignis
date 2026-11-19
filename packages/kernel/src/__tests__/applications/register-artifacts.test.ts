@@ -10,6 +10,7 @@ import { BindingScopes } from '@/helpers/inversion';
 import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 import { ProbeDataSource, ProbeRepository } from '../support/artifact-fixtures';
+import { BindingKeys } from '@/helpers/inversion';
 
 class RecordingApplication extends RestApplication {
   readonly calls: string[] = [];
@@ -156,14 +157,14 @@ describe('RestApplication.registerArtifacts', () => {
         super({ scope: OptionsComponent.name });
       }
 
-      @provide({ key: 'options.greeting' })
+      @provide({ key: BindingKeys.build<unknown>({ key: 'options.greeting' }) })
       greeting(): { text: string } {
         OptionsComponent.built += 1;
 
         return { text: 'hello' };
       }
 
-      @provide({ key: 'options.stamp', scope: BindingScopes.TRANSIENT })
+      @provide({ key: BindingKeys.build<unknown>({ key: 'options.stamp' }), scope: BindingScopes.TRANSIENT })
       stamp(): { at: number } {
         return { at: performance.now() };
       }
@@ -175,15 +176,15 @@ describe('RestApplication.registerArtifacts', () => {
     await application.registerArtifacts({ components: [OptionsComponent] });
 
     expect(OptionsComponent.built).toBe(0);
-    expect(application.get<{ text: string }>({ key: 'options.greeting' })).toEqual({
+    expect(application.get({ key: BindingKeys.build<{ text: string }>({ key: 'options.greeting' }) })).toEqual({
       text: 'hello',
     });
-    expect(application.get<{ text: string }>({ key: 'options.greeting' })).toBe(
-      application.get<{ text: string }>({ key: 'options.greeting' }),
+    expect(application.get({ key: BindingKeys.build<{ text: string }>({ key: 'options.greeting' }) })).toBe(
+      application.get({ key: BindingKeys.build<{ text: string }>({ key: 'options.greeting' }) }),
     );
     expect(OptionsComponent.built).toBe(1);
-    expect(application.get<{ at: number }>({ key: 'options.stamp' })).not.toBe(
-      application.get<{ at: number }>({ key: 'options.stamp' }),
+    expect(application.get({ key: BindingKeys.build<{ at: number }>({ key: 'options.stamp' }) })).not.toBe(
+      application.get({ key: BindingKeys.build<{ at: number }>({ key: 'options.stamp' }) }),
     );
   });
 
@@ -196,7 +197,9 @@ describe('RestApplication.registerArtifacts', () => {
     await application.registerArtifacts({ controllers: [Second, First] });
 
     expect(
-      application.findByTag({ tag: BindingNamespaces.CONTROLLER }).map((binding) => binding.key),
+      application
+        .findByTag({ tag: BindingNamespaces.CONTROLLER })
+        .map((binding) => String(binding.key)),
     ).toEqual([`${BindingNamespaces.CONTROLLER}.First`, `${BindingNamespaces.CONTROLLER}.Second`]);
   });
 });

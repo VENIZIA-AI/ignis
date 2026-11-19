@@ -35,7 +35,7 @@ describe('the kernel binding keys keep their strings', () => {
     [AuthorizeBindingKeys.enforcerOptions('casbin'), '@app/authorize/enforcers/casbin/options'],
     [RestBindingKeys.REST_COMPONENT_OPTIONS, '@app/rest/options'],
   ])('%s', (key, expected) => {
-    expect(key).toBe(expected);
+    expect(String(key)).toBe(expected);
   });
 });
 
@@ -71,11 +71,11 @@ const wrapperOptions: TJWTTokenServiceOptions = {
 
 describe('the JWT keys each name one type', () => {
   test('the app-bound key is the wrapper; the internal keys are the inner options, under new strings', () => {
-    expect(AuthenticateBindingKeys.JWS_OPTIONS).toBe('@app/authenticate/jws-options');
-    expect(AuthenticateBindingKeys.JWKS_ISSUER_OPTIONS).toBe(
+    expect(String(AuthenticateBindingKeys.JWS_OPTIONS)).toBe('@app/authenticate/jws-options');
+    expect(String(AuthenticateBindingKeys.JWKS_ISSUER_OPTIONS)).toBe(
       '@app/authenticate/jwks-issuer-options',
     );
-    expect(AuthenticateBindingKeys.JWKS_VERIFIER_OPTIONS).toBe(
+    expect(String(AuthenticateBindingKeys.JWKS_VERIFIER_OPTIONS)).toBe(
       '@app/authenticate/jwks-verifier-options',
     );
     expect('JWKS_OPTIONS' in AuthenticateBindingKeys).toBe(false);

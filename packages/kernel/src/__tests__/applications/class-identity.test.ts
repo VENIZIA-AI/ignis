@@ -9,6 +9,7 @@ import { BindingNamespaces } from '@/common/bindings';
 import { MetadataRegistry } from '@/helpers/inversion';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
+import { BindingKeys } from '@/helpers/inversion';
 
 /* eslint-disable @typescript-eslint/naming-convention -- the classes are named the way a minified build names them */
 
@@ -93,8 +94,8 @@ describe('two classes that derive one binding key fail registration, naming the 
     const application = buildApplication();
     await application.registerArtifacts({ services: [first, second] });
 
-    expect(application.isBound({ key: 'services.zz' })).toBe(true);
-    expect(application.isBound({ key: 'services.Pinned' })).toBe(true);
+    expect(application.isBound({ key: BindingKeys.build<unknown>({ key: 'services.zz' }) })).toBe(true);
+    expect(application.isBound({ key: BindingKeys.build<unknown>({ key: 'services.Pinned' }) })).toBe(true);
   });
 
   test('one class listed twice is not a collision', async () => {
@@ -103,7 +104,7 @@ describe('two classes that derive one binding key fail registration, naming the 
 
     await application.registerArtifacts([{ services: [first] }, { services: [first] }]);
 
-    expect(application.isBound({ key: 'services.zz' })).toBe(true);
+    expect(application.isBound({ key: BindingKeys.build<unknown>({ key: 'services.zz' }) })).toBe(true);
   });
 
   test('the same class twice is not a collision, two classes are', () => {
@@ -139,7 +140,7 @@ describe('two classes that derive one binding key fail registration, naming the 
     const application = buildApplication();
     await application.registerArtifacts({ services: [parent, child] });
 
-    expect(application.get<{ from: string }>({ key: 'services.PolicyService' }).from).toBe('child');
+    expect(application.get({ key: BindingKeys.build<{ from: string }>({ key: 'services.PolicyService' }) }).from).toBe('child');
   });
 
   test('a parent registered after its subclass would replace it, and fails', () => {
@@ -165,22 +166,28 @@ describe('two classes that derive one binding key fail registration, naming the 
 
     await application.registerArtifacts({ services: [first, second] });
 
-    expect(application.get<{ from: string }>({ key: 'services.zz' }).from).toBe('second');
+    expect(application.get({ key: BindingKeys.build<{ from: string }>({ key: 'services.zz' }) }).from).toBe('second');
   });
 
   test('ArtifactBindingKeys tells a derived key from a pinned one', () => {
     class Plain {}
 
-    expect(
-      ArtifactBindingKeys.resolve({ target: Plain, namespace: BindingNamespaces.SERVICE }),
-    ).toEqual({ key: 'services.Plain', isDerived: true });
-    expect(
-      ArtifactBindingKeys.resolve({
-        target: Plain,
-        namespace: BindingNamespaces.SERVICE,
-        binding: { namespace: 'services', key: 'Named' },
-      }),
-    ).toEqual({ key: 'services.Named', isDerived: false });
+    const derived = ArtifactBindingKeys.resolve({ target: Plain, namespace: BindingNamespaces.SERVICE });
+
+    expect({ key: String(derived.key), isDerived: derived.isDerived }).toEqual({
+      key: 'services.Plain',
+      isDerived: true,
+    });
+    const pinned = ArtifactBindingKeys.resolve({
+      target: Plain,
+      namespace: BindingNamespaces.SERVICE,
+      binding: { namespace: 'services', key: 'Named' },
+    });
+
+    expect({ key: String(pinned.key), isDerived: pinned.isDerived }).toEqual({
+      key: 'services.Named',
+      isDerived: false,
+    });
   });
 });
 
@@ -216,9 +223,9 @@ describe('@repository injects its datasource by the class, so a pinned key survi
     application.dataSource(zz);
     application.repository(yy);
 
-    const resolved = application.get<yy>({ key: 'repositories.yy' });
+    const resolved = application.get({ key: BindingKeys.build<yy>({ key: 'repositories.yy' }) });
 
-    expect(application.isBound({ key: 'datasources.ApiDataSource' })).toBe(true);
+    expect(application.isBound({ key: BindingKeys.build<unknown>({ key: 'datasources.ApiDataSource' }) })).toBe(true);
     expect(resolved.dataSource).toBeInstanceOf(zz);
   });
 
@@ -248,7 +255,7 @@ describe('@repository injects its datasource by the class, so a pinned key survi
     });
     application.repository(ww);
 
-    expect(application.get<ww>({ key: 'repositories.ww' }).dataSource).toBeInstanceOf(zz);
+    expect(application.get({ key: BindingKeys.build<ww>({ key: 'repositories.ww' }) }).dataSource).toBeInstanceOf(zz);
   });
 
   test('an undecorated datasource bound raw under its derived key still resolves', () => {
@@ -272,11 +279,11 @@ describe('@repository injects its datasource by the class, so a pinned key survi
     }
 
     const application = buildApplication();
-    application.bind({ key: 'datasources.RawDataSource' }).toClass(RawDataSource);
+    application.bind({ key: BindingKeys.build<unknown>({ key: 'datasources.RawDataSource' }) }).toClass(RawDataSource);
     application.repository(RawRepository);
 
     expect(
-      application.get<RawRepository>({ key: 'repositories.RawRepository' }).dataSource,
+      application.get({ key: BindingKeys.build<RawRepository>({ key: 'repositories.RawRepository' }) }).dataSource,
     ).toBeInstanceOf(RawDataSource);
   });
 

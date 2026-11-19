@@ -9,6 +9,7 @@ import { describe, expect, test } from 'bun:test';
 import { BootSequence, BootSteps } from '@/base/applications/boot-sequence';
 import type { IBootSequenceStep } from '@/base/applications/boot-sequence';
 import { RecordingLogger } from '../support/recording-logger';
+import { BindingKeys } from '@/helpers/inversion';
 
 const buildConfigs = (): IApplicationConfigs => ({
   host: '127.0.0.1',
@@ -151,7 +152,7 @@ describe('RestApplication boot sequence', () => {
       sawServiceInPreConfigure = false;
 
       override preConfigure(): void {
-        this.sawServiceInPreConfigure = this.isBound({ key: `${BindingNamespaces.SERVICE}.Svc` });
+        this.sawServiceInPreConfigure = this.isBound({ key: BindingKeys.build<unknown>({ namespace: BindingNamespaces.SERVICE, key: 'Svc' }) });
         super.preConfigure();
       }
     }
@@ -242,7 +243,7 @@ describe('component nesting - arbitrary depth', () => {
 
     override binding(): ValueOrPromise<void> {
       currentApp
-        .bind({ key: `${BindingNamespaces.DATASOURCE}.LeafDataSource` })
+        .bind({ key: BindingKeys.build<unknown>({ namespace: BindingNamespaces.DATASOURCE, key: 'LeafDataSource' }) })
         .toValue({
           configure: async () => {
             LeafComponent.configured = true;
