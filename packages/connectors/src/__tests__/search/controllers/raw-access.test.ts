@@ -109,6 +109,23 @@ describe('an unscoped controller that did not opt in', () => {
     expect(schema.safeParse(KEYWORD).success).toBe(true);
   });
 
+  test.each([
+    ['no modes', undefined],
+    ['modes without raw', {}],
+    ['use: false', { raw: { use: false } }],
+  ])(
+    'a hand-built context with a raw body is refused with 400 when raw is off (%s), and the engine is not reached',
+    async (_name, modes) => {
+      const { controller, dataSource } = build({ modes });
+
+      const error = await refusal(controller['search']({ context: fakeContext(RAW) as never }));
+
+      expect(error.statusCode).toBe(400);
+      expect(error.message).toContain("mode 'raw' is not available on this search controller");
+      expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
+    },
+  );
+
   test('refuses multi-search with 400, and the engine is not reached', async () => {
     const { controller, dataSource } = build({});
 

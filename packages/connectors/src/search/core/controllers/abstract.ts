@@ -124,7 +124,8 @@ export abstract class AbstractSearchController<
     // The scope returns the body with its filter, the extra keys of `request.body.extend` still on it.
     let scoped: TSearchInput & TExtra = body;
 
-    // `mode: 'raw'` never reaches here unless `modes.raw` is on: the body schema does not list it otherwise.
+    // The body schema lists `raw` only when `modes.raw` is on; this holds when a subclass or a direct call skips the validator, since a caller's raw engine parameters can replace the controller's own filter.
+    SearchRawAccess.assertSearchInput({ input: body, isAllowed: this.isRawAllowed });
     SearchEngineParams.assertSearchInput({ input: body, allowed: this.allowedEngineParams });
 
     // The request's own filter cannot name a hidden field (where or order); server code is not held to it.

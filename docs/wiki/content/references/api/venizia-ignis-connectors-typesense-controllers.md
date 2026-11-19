@@ -1008,7 +1008,7 @@ Source: `packages/connectors/src/search/core/controllers/engine-params.ts`
 Whether a search controller serves the engine's own parameters over HTTP. `mode: 'raw'` and a multi-search entry hand
 the engine their parameters as they are: the model's default filter and its hidden fields are not applied to them.
 So every generated search controller refuses both (400) unless `modes.raw` is `{ use: true }`: `raw` is left out of the
-body schema (the validator refuses it, and the OpenAPI document does not show it), and multi-search answers 400. Server code is not
+body schema (the validator refuses it, and the OpenAPI document does not show it), the handler refuses it too, and multi-search answers 400. Server code is not
 affected: the repository's `search({ mode: 'raw' })` and `multiSearch()` work as before.
 
 ```ts
@@ -1019,6 +1019,11 @@ export declare class SearchRawAccess {
         raw?: unknown;
         isScoped: boolean;
     }): boolean;
+    /** Defence in depth: refuses (400) a `raw` search body when the controller did not opt in, even when the body schema was skipped (a subclass, a direct `search` call). */
+    static assertSearchInput(opts: {
+        input: TSearchInput;
+        isAllowed: boolean;
+    }): void;
     /** Refuses (400) a multi-search request when the controller did not opt in: its entries carry the engine's own parameters and name any collection. */
     static assertMultiSearch(opts: {
         isAllowed: boolean;
