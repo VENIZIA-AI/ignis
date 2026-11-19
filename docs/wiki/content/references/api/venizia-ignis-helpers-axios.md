@@ -13,7 +13,7 @@ description: "Every export of @venizia/ignis-helpers/axios, from the built decla
 
 *class*
 
-Fetcher over an axios instance (`getWorker()`). HTTPS calls share one keep-alive agent that verifies certificates unless `rejectUnauthorized` is `false`; an `httpsAgent` passed in the request wins.
+Fetcher over an axios instance (`getWorker()`): the pipeline of `AbstractNetworkFetchableHelper` with axios as the client. HTTPS calls share one keep-alive agent that verifies certificates unless `rejectUnauthorized` is `false`; an `httpsAgent` passed in the request wins - and is refused together with a `guard`, because an agent of the caller's could connect elsewhere than the vetted address.
 
 ```ts
 export declare class AxiosFetcher extends AbstractNetworkFetchableHelper<'axios', IAxiosRequestOptions, AxiosResponse<unknown>, AxiosInstance> {
@@ -21,12 +21,17 @@ export declare class AxiosFetcher extends AbstractNetworkFetchableHelper<'axios'
      * One agent for the instance, not one per request. Built here so TLS verification is decided
      * ONCE, at construction, rather than per call - and so connections are actually reused: a fresh
      * agent per request forces a new TCP and TLS handshake every time (measured: 10 handshakes for 10
-     * requests, versus 1).
+     * requests, versus 1). A guarded call never uses it: it gets an agent of its own that answers one vetted address and is dropped with the call, so no pin outlives it.
      */
     private readonly httpsAgent;
+    private readonly isRejectingUnauthorized;
     constructor(opts: {
         name: string;
-        defaultConfigs: AxiosRequestConfig;
+        defaultConfigs?: AxiosRequestConfig;
+        defaults?: IFetcherDefaults;
+        hooks?: IFetcherHooks;
+        /** The server half of the url guard (`UrlGuard`); a call that passes `guard` needs it. */
+        guardEngine?: IFetchGuard;
         logger?: ILogger;
         /**
          * Whether this instance rejects an HTTPS server whose certificate fails verification.
@@ -35,7 +40,18 @@ export declare class AxiosFetcher extends AbstractNetworkFetchableHelper<'axios'
          */
         rejectUnauthorized?: boolean;
     });
-    send<T = unknown>(opts: IAxiosRequestOptions, logger?: ILogger): Promise<AxiosResponse<T, any, {}, any>>;
+    protected assertCallSupported(opts: {
+        guard?: IUrlSafetyPolicy;
+        extra: Record<string | symbol, unknown>;
+    }): void;
+    protected buildUrl(opts: {
+        url: string;
+        params?: Record<string, unknown>;
+    }): string;
+    protected isReplayable(opts: {
+        body: unknown;
+    }): boolean;
+    protected exchange(opts: IFetchExchangeRequest): Promise<IFetchExchange<AxiosResponse<unknown>>>;
 }
 ```
 
@@ -45,7 +61,7 @@ Source: `packages/helpers/src/modules/network/http-request/fetcher/axios-fetcher
 
 *class*
 
-`BaseNetworkRequest` over an `AxiosFetcher`. Defaults: JSON content type, 60000 ms `timeout`, and no rejection for status below 500 (`validateStatus`).
+`BaseNetworkRequest` over an `AxiosFetcher`. Defaults: JSON content type and a 60000 ms `timeout`; a status outside 2xx throws a `UrlFetchError`.
 
 ```ts
 export declare class AxiosNetworkRequest extends BaseNetworkRequest<'axios'> {
@@ -64,9 +80,15 @@ Options of `AxiosNetworkRequest`: an axios config with `baseUrl` in place of `ba
 ```ts
 export interface IAxiosNetworkRequestOptions {
     name: string;
-    networkOptions: Omit<AxiosRequestConfig, 'baseURL'> & {
+    networkOptions: Omit<AxiosRequestConfig, 'baseURL' | 'headers' | 'timeout'> & {
         baseUrl?: string;
+        headers?: Record<string, string>;
+        /** Per attempt, in milliseconds. @default 60000 */
+        timeout?: number;
     };
+    defaults?: IFetcherDefaults;
+    hooks?: IFetcherHooks;
+    guardEngine?: IFetchGuard;
 }
 ```
 
@@ -79,15 +101,17 @@ Source: `packages/helpers/src/modules/network/http-request/fetcher/axios-fetcher
 Request accepted by `AxiosFetcher`: an axios config where `body` is sent as the axios `data`. `rejectUnauthorized` set here overrides the instance setting for this call.
 
 ```ts
-export interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOptions {
+export interface IAxiosRequestOptions extends Omit<AxiosRequestConfig, TOwnedAxiosFields>, IRequestOptions {
     url: string;
     method?: THttpMethod;
     params?: Record<string, unknown>;
     body?: Record<string, unknown>;
-    headers?: Record<string, string>;
     /** Whether this call rejects an HTTPS server whose certificate fails verification; `false` turns verification off for this call. */
     rejectUnauthorized?: boolean;
 }
+
+/** The fields of an axios config the pipeline owns. */
+type TOwnedAxiosFields = 'url' | 'method' | 'params' | 'data' | 'headers' | 'signal' | 'timeout' | 'maxRedirects' | 'validateStatus';
 ```
 
 Source: `packages/helpers/src/modules/network/http-request/fetcher/axios-fetcher.ts`

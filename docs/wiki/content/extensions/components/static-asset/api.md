@@ -790,7 +790,7 @@ interface IStaticAssetIngestFromUrlResult {
 | `normalizeLinkFn` | `(opts: { bucket: IBucketRef; object: IObjectRef }) => string` | - | **Required.** Where the object is served from. An empty return throws. |
 | `resolveKey` | `(opts: { url: URL; contentType: string }) => string` | The URL's last path segment | Decides the stored key. |
 | `folderPath` | `string` | `undefined` | Prefixed onto the derived key. Ignored when `resolveKey` is set. |
-| `policy` | `IUrlSafetyPolicy` | https only, no private address, 3 hops, 10s, 10 MB | Passed to `UrlIngest.fetchGuarded`. |
+| `policy` | `IUrlSafetyPolicy` | https only, no private address, 3 hops, 10s, 10 MB | Passed as the `guard` of a `NativeFetcher` call; `maxBytes` also caps the body. |
 | `maxFolderDepth` | `number` | `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH` (`2`) | The same depth rule the upload route applies. |
 
 ```typescript
@@ -802,8 +802,8 @@ const { upload, stat } = await StaticAssetIngestUtility.fromUrl({
 });
 ```
 
-- **The URL is guarded.** `UrlIngest.fetchGuarded` enforces the scheme allow-list, checks every resolved address, walks redirects by hand with a per-hop re-check, and applies a timeout.
-- **The body is capped twice.** A declared `content-length` over `policy.maxBytes` is refused before the write starts, with `UrlSafetyErrors.URL_REFUSED`. A body that lies or omits the header is cut off mid-flight by `UrlIngest.capStream`.
+- **The URL is guarded.** A `NativeFetcher` with a `guard` and `UrlGuard` as its engine enforces the scheme allow-list, checks every resolved address, walks redirects by hand with a per-hop re-check, and applies a timeout.
+- **The body is capped twice.** A declared `content-length` over `policy.maxBytes` is refused before the write starts, with `UrlSafetyErrors.URL_REFUSED`. A body that lies or omits the header is cut off mid-flight by the fetcher's `maxBytes`.
 - **The content type comes from the stored key**, never from what the remote host claimed - the same rule the asset routes apply, and for the same reason.
 - **It writes no meta link.** The columns an application attaches to an object come from its own domain, so the row stays yours. `stat` is returned because `getStat` already ran, so writing that row costs nothing extra.
 

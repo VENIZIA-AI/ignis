@@ -7,7 +7,9 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-113 exports, 113 with TSDoc. 59 more are re-exported from other entries (listed at the end).
+138 exports, 136 with TSDoc. 59 more are re-exported from other entries (listed at the end).
+
+Without TSDoc (2): `TFetcherResponse`, `TFetcherWorker`.
 
 ## `AbstractCryptoAlgorithm`
 
@@ -40,29 +42,113 @@ Source: `packages/helpers/src/modules/crypto/algorithms/abstract.algorithm.ts`
 
 *class*
 
-`W` defaults to `unknown` so this stays free of `axios` - a concrete fetcher binds it to its real worker type (`AxiosInstance`, `typeof fetch`), which is then inherited on `this.worker` with no override needed.
+The pipeline every fetcher shares: defaults, hooks, the url guard, redirects, the status check, the body cap, the
+schema, retries. A concrete fetcher supplies the exchange with one client (`exchange`) and the shape of its urls and
+bodies; `W` defaults to `unknown` so this stays free of `axios`.
 
 ```ts
 export declare abstract class AbstractNetworkFetchableHelper<V extends TFetcherVariant, RQ extends IRequestOptions, RS, W = unknown> implements IFetchable<V, RQ, RS, W> {
     protected name: string;
     protected variant: V;
     protected worker: W;
+    protected defaults: IFetcherDefaults;
+    protected hooks: IFetcherHooks;
+    protected guardEngine?: IFetchGuard;
     constructor(opts: {
         name: string;
         variant: V;
         worker?: W;
+        defaults?: IFetcherDefaults;
+        hooks?: IFetcherHooks;
+        /** The server half of the url guard (`UrlGuard`); a call that passes `guard` needs it. */
+        guardEngine?: IFetchGuard;
     });
-    abstract send(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
+    /** One exchange with the server: the request as the pipeline decided it, the answer in the pipeline's terms. */
+    protected abstract exchange(opts: IFetchExchangeRequest, logger?: TFetcherLogger): Promise<IFetchExchange<RS>>;
+    /** The url of a call with its `params` written into the query string. */
+    protected abstract buildUrl(opts: {
+        url: string;
+        params?: Record<string, unknown>;
+    }): string;
+    /** Whether `body` can be sent again to a redirect target. */
+    protected isReplayable(opts: {
+        body: unknown;
+    }): boolean;
+    /** What the request log says about a body: its size or its presence, never its content. */
+    protected describeBody(opts: {
+        body: unknown;
+    }): string | undefined;
+    /** Refuses a call the client cannot honour; `AxiosFetcher` refuses a guard it cannot pin. */
+    protected assertCallSupported(_opts: {
+        guard?: IUrlSafetyPolicy;
+        extra: Record<string | symbol, unknown>;
+    }): void;
+    /** What each attempt needs to know of the call. */
+    private resolveCall;
+    /** `AbortSignal` of one attempt: the caller's own, and the attempt's deadline. */
+    private attemptSignal;
+    /** The body of a refused status or a mismatch is gone; the typed error carries what is left of the answer. */
+    private refuseStatus;
+    /** One attempt: hook, guard, exchange (redirects walked by hand when asked), status, cap, schema. */
+    private runAttempt;
+    /** The cap and the schema, once the status is accepted. */
+    private finish;
+    private parseUrl;
+    /** The absolute target of a redirect; a `Location` that is not a url is a typed error, never a bare `TypeError`. */
+    private resolveLocation;
+    /** The whole call: retries around the attempts, and the one `onError` for the failure that ends it. */
+    protected perform(opts: RQ & {
+        schema?: z.ZodType;
+    }, logger?: TFetcherLogger): Promise<TFetchSettled<RS>>;
     getProtocol(url: string): "http" | "https";
     getVariant(): V;
     getWorker(): W;
-    get(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
-    post(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
-    put(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
-    patch(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
-    delete(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
-    query(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
+    send(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    send<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+    get(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    get<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+    post(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    post<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+    put(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    put<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+    patch(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    patch<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+    delete(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    delete<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+    query(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    query<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
 }
+
+/** What one call settled to, before the verb overloads give it their types. */
+type TFetchSettled<RS> = RS | IFetchParsed<unknown, RS>;
 ```
 
 Source: `packages/helpers/src/modules/network/http-request/fetcher/base-fetcher.ts`
@@ -239,6 +325,37 @@ export declare class BasePoolHelper<T> extends AbstractPoolHelper<T> {
 ```
 
 Source: `packages/helpers/src/modules/pool/base.ts`
+
+## `BodyLimit`
+
+*class*
+
+A cap on a body, for a stream piped onward or a body read into memory. Browser-pure: streams and typed arrays only.
+
+```ts
+export declare class BodyLimit {
+    static readonly DEFAULT_MAX_BYTES: number;
+    /** Enforces `maxBytes` on a stream nothing reads into this process: the cap fails the stream the moment the bytes cross it. */
+    static capStream(opts: {
+        source: ReadableStream<Uint8Array>;
+        maxBytes?: number;
+    }): ReadableStream<Uint8Array>;
+    /** The size a response declares, or `0` when it declares none or an unreadable one. */
+    static readDeclaredLength(opts: {
+        headers: Headers;
+    }): number;
+    /**
+     * Reads a body that must not exceed `maxBytes`, cancelling the moment it does. `content-length` is checked first
+     * because it is free, and counted anyway because it may be absent or lie.
+     */
+    static readBytes(opts: {
+        response: Response;
+        maxBytes?: number;
+    }): Promise<Uint8Array>;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/body-limit.ts`
 
 ## `BuildInfoRegistry`
 
@@ -509,6 +626,157 @@ export declare class EnvironmentNames {
 
 Source: `packages/helpers/src/modules/env/names.ts`
 
+## `FetchErrors`
+
+*const*
+
+Errors a fetcher raises that are not a refusal of the url guard.
+
+```ts
+export declare const FetchErrors: {
+    readonly SCHEMA_MISMATCH: {
+        readonly message: {
+            readonly text: "The upstream answered something else than the schema describes";
+            readonly code: "core.fetch.schema_mismatch";
+        };
+        readonly statusCode: 502;
+        readonly category: "integration";
+    };
+};
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/errors.ts`
+
+## `FetchHeaders`
+
+*class*
+
+Header maps: merged per header, the call winning, a `null` or `undefined` value removing a header.
+
+```ts
+export declare class FetchHeaders {
+    /** The headers of `layers` in order, later layers over earlier ones, as one `Headers`. */
+    static merge(opts: {
+        layers: ReadonlyArray<TFetchHeaders | undefined>;
+    }): Headers;
+    /** A copy of `headers` keeping only the names in `names`. */
+    static only(opts: {
+        headers: Headers;
+        names: ReadonlyArray<string>;
+    }): Headers;
+    /** A copy of `headers` without the names in `names`. */
+    static without(opts: {
+        headers: Headers;
+        names: ReadonlyArray<string>;
+    }): Headers;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/utilities.ts`
+
+## `FetchRedirects`
+
+*class*
+
+The redirect rules of a fetcher that walks redirects by hand.
+
+```ts
+export declare class FetchRedirects {
+    /** The statuses that name a new location; a 304 or a 300 is an answer, not a redirect. */
+    static readonly STATUSES: ReadonlyArray<number>;
+    /** Request headers that name the body; they go when a redirect turns the request into a GET. */
+    static readonly BODY_HEADERS: ReadonlyArray<string>;
+    /**
+     * The only caller headers a cross-origin redirect keeps. Every other one is dropped: a tenant's webhook secret
+     * (`x-api-key`, a signature) must not follow a redirect to a host that tenant did not name.
+     */
+    static readonly CROSS_ORIGIN_HEADERS: ReadonlyArray<string>;
+    static isRedirect(opts: {
+        status: number;
+    }): boolean;
+    /** 303, and a POST answered 301 or 302, continue as a GET without the body. */
+    static becomesGet(opts: {
+        status: number;
+        method: string;
+    }): boolean;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/utilities.ts`
+
+## `FetchRequestContext`
+
+*class*
+
+The request a hook sees, frozen so that its url, method and attempt cannot be assigned: only the headers are for the hook to change.
+
+```ts
+export declare class FetchRequestContext implements IFetchRequestContext {
+    readonly method: string;
+    readonly url: string;
+    readonly headers: Headers;
+    readonly attempt: number;
+    constructor(opts: {
+        method: string;
+        url: string;
+        headers: Headers;
+        attempt: number;
+    });
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/request-context.ts`
+
+## `FetchRetry`
+
+*class*
+
+What a retried call retries, and for how long a server asks it to wait.
+
+```ts
+export declare class FetchRetry {
+    /**
+     * The default decision: a network error, a timeout, a 5xx and a 429 are worth another attempt. Any other 4xx, a 3xx, a
+     * url the guard refused (refused forever), a schema mismatch and a caller's own abort are not.
+     */
+    static isRetryable(opts: {
+        error: unknown;
+        signal?: AbortSignal;
+    }): boolean;
+    /** The wait a 429 or 503 asks for in `Retry-After`, in milliseconds: seconds, or an HTTP date. `undefined` when there is none. */
+    static readRetryAfterMs(opts: {
+        error: unknown;
+        now?: number;
+    }): number | undefined;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/utilities.ts`
+
+## `FetchSchemaError`
+
+*class*
+
+The body parsed, but it is not what the schema says: the upstream answered something else (502). The message and the
+issues name paths and rules only, so no part of the body leaves with the error.
+
+```ts
+export declare class FetchSchemaError extends ApplicationError {
+    /** The status the upstream answered with. */
+    readonly status: number;
+    readonly url: string;
+    readonly issues: IFetchSchemaIssue[];
+    constructor(opts: {
+        status: number;
+        url: string;
+        issues: IFetchSchemaIssue[];
+    });
+    static is(error: unknown): error is FetchSchemaError;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/errors.ts`
+
 ## `FormBodyUtility`
 
 *class*
@@ -639,23 +907,283 @@ Source: `packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts`
 
 *interface*
 
-Contract of an HTTP fetcher: `send` takes the method from the options, the verb methods fix it, and `getWorker` returns the underlying client (`W`).
+Contract of an HTTP fetcher: `send` takes the method from the options, the verb methods fix it, and `getWorker` returns the underlying client (`W`). Without a `schema` a call answers the raw response `RS`; with one, `IFetchParsed`.
 
 ```ts
 export interface IFetchable<V extends TFetcherVariant, RQ extends IRequestOptions, RS, W = unknown> {
-    send(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
-    get(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
-    post(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
-    put(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
-    patch(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
-    delete(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
-    query(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
+    send(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    send<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+    get(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    get<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+    post(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    post<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+    put(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    put<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+    patch(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    patch<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+    delete(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    delete<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+    query(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    query<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
     getVariant(): V;
     getWorker(): W;
 }
 ```
 
 Source: `packages/helpers/src/modules/network/http-request/fetcher/base-fetcher.ts`
+
+## `IFetcherDefaults`
+
+*interface*
+
+What a fetcher applies to every call unless the call says otherwise.
+
+```ts
+export interface IFetcherDefaults {
+    /** Per attempt, in milliseconds. */
+    timeout?: number;
+    headers?: TFetchHeaders;
+    retry?: IFetchRetryOptions;
+    maxBytes?: number;
+    /** A call may replace this policy with its own; it cannot switch the guard off. */
+    guard?: IUrlSafetyPolicy;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`
+
+## `IFetcherHooks`
+
+*interface*
+
+One function per moment; none returns a value.
+
+```ts
+export interface IFetcherHooks {
+    /** Before EVERY send, each retry attempt included, so a signature is fresh. */
+    onRequest?: (context: IFetchRequestContext) => ValueOrPromise<void>;
+    /** An answer arrived, BEFORE the status check and the schema parse. Once per attempt. */
+    onResponse?: (context: {
+        request: IFetchRequestContext;
+        status: number;
+        headers: Headers;
+        durationMs: number;
+    }) => ValueOrPromise<void>;
+    /** The call failed (a timeout, the network, a refused status, a schema mismatch, a guard refusal); once, with the final error, which is then rethrown. */
+    onError?: (context: {
+        request: IFetchRequestContext;
+        error: unknown;
+        attempt: number;
+    }) => ValueOrPromise<void>;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`
+
+## `IFetchExchange`
+
+*interface*
+
+The answer one exchange with the server gave, in the terms the pipeline needs, whichever client made it.
+
+```ts
+export interface IFetchExchange<RS> {
+    response: RS;
+    status: number;
+    statusText: string;
+    headers: Headers;
+    /** Frees the socket of a body nobody will read (a redirect, a refused status). */
+    discard(): Promise<void>;
+    /** The body as JSON; throws a `SyntaxError` when it is not. */
+    readJson(opts: {
+        maxBytes?: number;
+    }): Promise<unknown>;
+    /** The same answer with its body cut off at `maxBytes`. */
+    capped(opts: {
+        maxBytes: number;
+    }): RS;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/base-fetcher.ts`
+
+## `IFetchExchangeRequest`
+
+*interface*
+
+One request to the network, after the hooks and the guard have had their say.
+
+```ts
+export interface IFetchExchangeRequest {
+    method: string;
+    url: URL;
+    headers: Headers;
+    body: unknown;
+    signal?: AbortSignal;
+    /** The addresses the guard vetted: connect to these and no other. Empty: connect as the client would. */
+    addresses: string[];
+    /** A proxy the guard policy chose. */
+    proxy?: string;
+    /** Do not follow a redirect: the pipeline reads the 3xx and walks it. */
+    isManualRedirect: boolean;
+    maxBytes?: number;
+    /** What the call carried that is the client's own (`credentials`, `httpsAgent`, ...). */
+    extra: Record<string | symbol, unknown>;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/base-fetcher.ts`
+
+## `IFetchGuard`
+
+*interface*
+
+The seam between a fetcher, which is browser-pure, and the url guard, which resolves names with `node:dns`. The server
+half is `UrlGuard`; a fetcher is handed it as `guardEngine`, so a browser bundle never reaches the resolver.
+
+```ts
+export interface IFetchGuard {
+    createRoute(opts: {
+        policy: IUrlSafetyPolicy;
+    }): IFetchGuardRoute;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/guard.ts`
+
+## `IFetchGuardHop`
+
+*interface*
+
+One hop the guard vetted: the url to send to, and the addresses to connect to (empty: connect as the client would).
+
+```ts
+export interface IFetchGuardHop {
+    url: URL;
+    addresses: string[];
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/guard.ts`
+
+## `IFetchGuardRoute`
+
+*interface*
+
+A guarded call: vets the first url and every redirect target, one hop at a time.
+
+```ts
+export interface IFetchGuardRoute {
+    vet(opts: {
+        url: string;
+        signal?: AbortSignal;
+    }): Promise<IFetchGuardHop>;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/guard.ts`
+
+## `IFetchParsed`
+
+*interface*
+
+What a fetcher answers when the call passes a `schema`: the parsed body beside the raw response.
+
+```ts
+export interface IFetchParsed<D, RS> {
+    data: D;
+    status: number;
+    headers: Headers;
+    response: RS;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`
+
+## `IFetchRequestContext`
+
+*interface*
+
+The request a hook sees. The url is read-only: a hook cannot send the call elsewhere, so the guard vets what is sent.
+
+```ts
+export interface IFetchRequestContext {
+    readonly method: string;
+    readonly url: string;
+    /** Mutable: `onRequest` signs or stamps the request here. */
+    readonly headers: Headers;
+    /** 1 for the first attempt, then one more per retry. */
+    readonly attempt: number;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`
+
+## `IFetchRetryOptions`
+
+*interface*
+
+Retry settings of a call; the presence of the object turns retrying on. They are `RetryHelper.executeWithRetry`'s.
+
+```ts
+export interface IFetchRetryOptions {
+    /** @default 3 */
+    maxAttempts?: number;
+    /** The budget across every attempt and wait, in milliseconds; a `Retry-After` that does not fit ends the retries. */
+    maxTotalMs?: number;
+    backoff?: IRetryBackoffOptions;
+    /** Replaces the default decision (network error, timeout, 5xx and 429 retry; any other 4xx, a 3xx, a guard refusal, a schema mismatch and a caller abort do not). */
+    shouldRetry?: (context: IRetryContext) => boolean;
+    onRetry?: (context: IRetryContext & {
+        nextDelayMs: number;
+    }) => ValueOrPromise<void>;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`
+
+## `IFetchSchemaIssue`
+
+*interface*
+
+One place a body failed its schema: where, and which rule. Never the value found there.
+
+```ts
+export interface IFetchSchemaIssue {
+    path: Array<string | number>;
+    code: string;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/errors.ts`
 
 ## `IHeightWhereOptions`
 
@@ -761,6 +1289,45 @@ export interface ILoggerProvider {
 
 Source: `packages/helpers/src/modules/logger/common/types.ts`
 
+## `INativeFetchNetworkRequestOptions`
+
+*interface*
+
+Options of `NativeFetchNetworkRequest`: `RequestInit` plus `baseUrl` and `queryString`, which sets how `params` are written into every url.
+
+```ts
+export interface INativeFetchNetworkRequestOptions {
+    name: string;
+    networkOptions: RequestInit & {
+        baseUrl?: string;
+        /** How `params` are written into every url this request sends; see {@link IQueryStringOptions}. */
+        queryString?: IQueryStringOptions;
+    };
+    defaults?: IFetcherDefaults;
+    hooks?: IFetcherHooks;
+    guardEngine?: IFetchGuard;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/native-fetcher.ts`
+
+## `INativeFetchRequestOptions`
+
+*interface*
+
+Request accepted by `NativeFetcher`: `RequestInit` plus `url`; `params` are written into the url query.
+
+```ts
+export interface INativeFetchRequestOptions extends TNativeRequestInit, IRequestOptions {
+    url: string;
+    method?: THttpMethod;
+    params?: Record<string, unknown>;
+    body?: RequestInit['body'] | Record<string, unknown> | unknown[];
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/native-fetcher.ts`
+
 ## `INextOpaqueUidOptions`
 
 *interface*
@@ -810,41 +1377,6 @@ export interface INextTokenUidOptions {
 ```
 
 Source: `packages/helpers/src/modules/uid/common/types.ts`
-
-## `INodeFetchNetworkRequestOptions`
-
-*interface*
-
-Options of `NodeFetchNetworkRequest`: `RequestInit` plus `baseUrl` and `queryString`, which sets how `params` are written into every url.
-
-```ts
-export interface INodeFetchNetworkRequestOptions {
-    name: string;
-    networkOptions: RequestInit & {
-        baseUrl?: string;
-        /** How `params` are written into every url this request sends; see {@link IQueryStringOptions}. */
-        queryString?: IQueryStringOptions;
-    };
-}
-```
-
-Source: `packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts`
-
-## `INodeFetchRequestOptions`
-
-*interface*
-
-Request accepted by `NodeFetcher`: `RequestInit` plus `url`; `params` are written into the url query.
-
-```ts
-export interface INodeFetchRequestOptions extends RequestInit, IRequestOptions {
-    url: string;
-    method?: THttpMethod;
-    params?: Record<string, unknown>;
-}
-```
-
-Source: `packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts`
 
 ## `INodeWithPath`
 
@@ -1087,14 +1619,30 @@ Source: `packages/helpers/src/modules/redis/common/interfaces.ts`
 
 *interface*
 
-Options every fetcher accepts. `timeout` is in milliseconds; other keys pass through to the underlying client.
+Options every fetcher accepts. `timeout` is in milliseconds and counts per attempt; other keys pass through to the underlying client.
 
 ```ts
 export interface IRequestOptions {
     url: string;
     method?: THttpMethod;
     params?: Record<string, unknown>;
+    /** Merged over the fetcher's default headers, header by header; a `null` or `undefined` value removes a default. */
+    headers?: TFetchHeaders;
+    body?: unknown;
+    signal?: AbortSignal;
     timeout?: number;
+    /** Presence turns retrying on; replaces the fetcher's default retry whole. `{ maxAttempts: 1 }` stops it. */
+    retry?: IFetchRetryOptions;
+    /** Presence turns the url guard on (`{}` is the default policy). A fetcher default guard can be replaced here, never removed. */
+    guard?: IUrlSafetyPolicy;
+    /** The body is cut off, and the call fails, once it crosses this many bytes. */
+    maxBytes?: number;
+    /** Redirects followed by hand; `0` hands back the 3xx as a `UrlFetchError`. Unset: the client follows (a guard follows 3). */
+    maxRedirects?: number;
+    /** Whether a status is an answer; the default is 2xx, so any other status throws a `UrlFetchError`. */
+    acceptStatus?: (status: number) => boolean;
+    /** The body is parsed with it, and the call answers `{ data, status, headers, response }`. */
+    schema?: z.ZodType;
     [extra: symbol | string]: unknown;
 }
 ```
@@ -1470,20 +2018,25 @@ export declare const MIN_UID_ALPHABET_SIZE = 16;
 
 Source: `packages/helpers/src/modules/uid/common/constants.ts`
 
-## `NodeFetcher`
+## `NativeFetcher`
 
 *class*
 
-Fetcher over the global `fetch` (`getWorker()`). `timeout` (milliseconds) aborts the request and is combined with a `signal` the caller passes.
+Fetcher over the global `fetch` (`getWorker()`): the pipeline of `AbstractNetworkFetchableHelper` with `fetch` as the client.
 
 ```ts
-export declare class NodeFetcher extends AbstractNetworkFetchableHelper<'node-fetch', INodeFetchRequestOptions, Awaited<ReturnType<typeof fetch>>, typeof fetch> {
-    private defaultConfigs;
+export declare class NativeFetcher extends AbstractNetworkFetchableHelper<'native', INativeFetchRequestOptions, Awaited<ReturnType<typeof fetch>>, typeof fetch> {
+    private requestInit;
     private queryString;
     constructor(opts: {
         name: string;
-        defaultConfigs: RequestInit;
-        /** How `params` are written into the url; unset fields behave as `node:querystring` does. */
+        /** `RequestInit` settings for every call (`credentials`, `mode`, `cache`, ...); headers and the signal belong to `defaults` and to the call. */
+        defaultConfigs?: TNativeRequestInit;
+        defaults?: IFetcherDefaults;
+        hooks?: IFetcherHooks;
+        /** The server half of the url guard (`UrlGuard`); a call that passes `guard` needs it. */
+        guardEngine?: IFetchGuard;
+        /** How `params` are written into the url query; unset fields behave as `node:querystring` does. */
         queryString?: IQueryStringOptions;
         logger?: TFetcherLogger;
     });
@@ -1491,25 +2044,34 @@ export declare class NodeFetcher extends AbstractNetworkFetchableHelper<'node-fe
     protected serializeBody(opts: {
         body: unknown;
     }): RequestInit['body'] | undefined;
-    send(opts: INodeFetchRequestOptions, logger?: TFetcherLogger): Promise<Response>;
+    protected buildUrl(opts: {
+        url: string;
+        params?: Record<string, unknown>;
+    }): string;
+    protected describeBody(opts: {
+        body: unknown;
+    }): string | undefined;
+    /** `fetch` over one connection to `addresses`, in order; the next one is tried only when the connection itself fails. */
+    private fetchPinned;
+    protected exchange(opts: IFetchExchangeRequest): Promise<IFetchExchange<Response>>;
 }
 ```
 
-Source: `packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts`
+Source: `packages/helpers/src/modules/network/http-request/fetcher/native-fetcher.ts`
 
-## `NodeFetchNetworkRequest`
+## `NativeFetchNetworkRequest`
 
 *class*
 
-`BaseNetworkRequest` over a `NodeFetcher`. Request headers default to a JSON content type, and the caller's headers win.
+`BaseNetworkRequest` over a `NativeFetcher`. Request headers default to a JSON content type, and the caller's headers win.
 
 ```ts
-export declare class NodeFetchNetworkRequest extends BaseNetworkRequest<'node-fetch'> {
-    constructor(opts: INodeFetchNetworkRequestOptions);
+export declare class NativeFetchNetworkRequest extends BaseNetworkRequest<'native'> {
+    constructor(opts: INativeFetchNetworkRequestOptions);
 }
 ```
 
-Source: `packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts`
+Source: `packages/helpers/src/modules/network/http-request/fetcher/native-fetcher.ts`
 
 ## `NumericUidHelper`
 
@@ -2069,6 +2631,8 @@ export declare class RetryHelper extends BaseHelper {
         }) => ValueOrPromise<T>;
         /** Return `false` to stop retrying and rethrow `context.error` immediately. */
         shouldRetry?: (context: IRetryContext) => boolean;
+        /** The least wait before the next attempt, in milliseconds (a server's `Retry-After`); the backoff delay applies when it is longer. `undefined` leaves the backoff alone. */
+        getDelayMs?: (context: IRetryContext) => number | undefined;
         /** Observability hook, awaited before the backoff sleep. */
         onRetry?: (context: IRetryContext & {
             nextDelayMs: number;
@@ -2222,6 +2786,50 @@ export type TFetcherLogger = Pick<ILogger, 'debug' | 'info'>;
 
 Source: `packages/helpers/src/modules/network/http-request/fetcher/base-fetcher.ts`
 
+## `TFetcherResponse`
+
+*type*
+
+```ts
+export type TFetcherResponse<T extends TFetcherVariant> = T extends 'native' ? Response : AxiosResponse<unknown>;
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`
+
+## `TFetcherWorker`
+
+*type*
+
+```ts
+export type TFetcherWorker<T extends TFetcherVariant> = T extends 'axios' ? AxiosInstance : typeof fetch;
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`
+
+## `TFetchHeaders`
+
+*type*
+
+A header map as a call or a default writes it: a `null` or `undefined` value removes that header (a default included).
+
+```ts
+export type TFetchHeaders = Headers | Record<string, string | null | undefined>;
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`
+
+## `TFetchResult`
+
+*type*
+
+The answer of a call: the raw response, or - with a `schema` - the parsed body beside it.
+
+```ts
+export type TFetchResult<RS, S> = S extends z.ZodType ? IFetchParsed<z.infer<S>, RS> : RS;
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`
+
 ## `TLogLevel`
 
 *type*
@@ -2233,6 +2841,21 @@ export type TLogLevel = TConstValue<typeof LogLevels>;
 ```
 
 Source: `packages/helpers/src/modules/logger/common/types.ts`
+
+## `TNativeRequestInit`
+
+*type*
+
+`RequestInit` as a fetcher takes it for the settings the pipeline does not own (`credentials`, `mode`, `cache`, ...).
+
+```ts
+export type TNativeRequestInit = Omit<RequestInit, TOwnedInitFields>;
+
+/** The fields of `RequestInit` a call or a fetcher cannot set because the pipeline owns them. */
+type TOwnedInitFields = 'body' | 'headers' | 'method' | 'signal' | 'redirect';
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/native-fetcher.ts`
 
 ## `TNodePredicate`
 
@@ -2567,6 +3190,42 @@ export declare class UidTokenEncodings {
 
 Source: `packages/helpers/src/modules/uid/common/constants.ts`
 
+## `UrlFetchError`
+
+*class*
+
+The upstream answered, and the answer is not one a fetcher returns: a status `acceptStatus` refuses (a 4xx or 5xx
+by default), or a redirect it was not allowed to follow (`maxRedirects: 0`, or a `Location` that is not a url).
+`status` is the upstream's; `statusCode` (inherited) is the one this server answers with, and stays 400. The body is
+already cancelled, so the socket is free: read `headers` and `status`, not the body.
+
+```ts
+export declare class UrlFetchError<R = Response> extends ApplicationError {
+    /** The status the upstream answered with. */
+    readonly status: number;
+    /** The url the caller asked for (the first hop, not a redirect's target). */
+    readonly url: string;
+    /** The upstream's headers. */
+    readonly headers: Headers;
+    /** The upstream's answer as the fetcher's client has it, body cancelled. */
+    readonly response?: R;
+    /** The raw `Location` header of a redirect, as sent; unset for a non-redirect or when the header was missing. */
+    readonly location?: string;
+    constructor(opts: {
+        message: string;
+        status: number;
+        url: string;
+        headers?: Headers;
+        response?: R;
+        location?: string;
+    });
+    /** Whether `error` is a `UrlFetchError`: the shape a caller narrows on before it reads `status`. */
+    static is(error: unknown): error is UrlFetchError<unknown>;
+}
+```
+
+Source: `packages/helpers/src/modules/network/utilities/url-safety/common/errors.ts`
+
 ## `UrlPolicy`
 
 *class*
@@ -2703,6 +3362,29 @@ export declare class UrlSafetyDefaults {
 ```
 
 Source: `packages/helpers/src/modules/network/utilities/url-safety/common/constants.ts`
+
+## `UrlSafetyErrors`
+
+*const*
+
+A url the policy refuses is refused forever - the same url will never be allowed. A caller that
+retries on failure has to tell that apart from a host that timed out, or it retries a rejection
+and turns the guard into a repeat scanner.
+
+```ts
+export declare const UrlSafetyErrors: {
+    readonly URL_REFUSED: {
+        readonly message: {
+            readonly text: "Url refused by the safety policy";
+            readonly code: "core.url_safety.url_refused";
+        };
+        readonly statusCode: 400;
+        readonly category: "business";
+    };
+};
+```
+
+Source: `packages/helpers/src/modules/network/utilities/url-safety/common/errors.ts`
 
 ## `UrlSchemes`
 

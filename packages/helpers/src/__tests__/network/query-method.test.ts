@@ -92,7 +92,7 @@ describe('AbstractNetworkFetchableHelper.query', () => {
 describe('getVariant()/getWorker() stay precise off the ./core path', () => {
   class NativeFetcherPrecisionProbe extends NativeFetcher {
     /** Compiles only if `getVariant()` returns the literal `'native'` passed to the constructor, not the widened `V`. */
-    assertVariantIsNodeFetch(): 'native' {
+    assertVariantIsNative(): 'native' {
       return this.getVariant();
     }
 
@@ -105,7 +105,7 @@ describe('getVariant()/getWorker() stay precise off the ./core path', () => {
   test('NativeFetcher keeps getVariant() and getWorker() precise', () => {
     const probe = new NativeFetcherPrecisionProbe({ name: 'precision-probe', defaultConfigs: {} });
 
-    expect(probe.assertVariantIsNodeFetch()).toBe('native');
+    expect(probe.assertVariantIsNative()).toBe('native');
     expect(typeof probe.assertWorkerTypeIsFetch).toBe('function');
   });
 

@@ -30,7 +30,7 @@ describe('HTTP method case - every method, both spellings, both clients', () => 
     const lower = method;
     const upper = method.toUpperCase() as THttpMethod;
 
-    test(`NodeFetch: '${lower}' and '${upper}' both reach the wire as ${upper}`, async () => {
+    test(`NativeFetch: '${lower}' and '${upper}' both reach the wire as ${upper}`, async () => {
       await withEchoServer(async ({ baseUrl }) => {
         const client = new NativeFetchNetworkRequest({
           name: 'node-case',

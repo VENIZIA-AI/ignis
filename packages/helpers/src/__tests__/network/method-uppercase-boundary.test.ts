@@ -13,7 +13,7 @@ afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
-const captureNodeFetchMethod = async (method?: THttpMethod): Promise<string | undefined> => {
+const captureNativeFetchMethod = async (method?: THttpMethod): Promise<string | undefined> => {
   let captured: string | undefined;
 
   Reflect.set(globalThis, 'fetch', (_input: unknown, init?: RequestInit) => {
@@ -48,9 +48,9 @@ describe('fetchers hand an UPPERCASE method to their transport', () => {
     const upper = method.toUpperCase();
 
     test(`NativeFetcher normalizes '${method}' and '${upper}' to ${upper} before fetch()`, async () => {
-      const result = await captureNodeFetchMethod(method);
+      const result = await captureNativeFetchMethod(method);
       expect(result).toBe(upper);
-      const result2 = await captureNodeFetchMethod(upper as THttpMethod);
+      const result2 = await captureNativeFetchMethod(upper as THttpMethod);
       expect(result2).toBe(upper);
     });
 
@@ -63,7 +63,7 @@ describe('fetchers hand an UPPERCASE method to their transport', () => {
   }
 
   test('an omitted method reaches the transport as GET, not as undefined', async () => {
-    const result = await captureNodeFetchMethod();
+    const result = await captureNativeFetchMethod();
     expect(result).toBe('GET');
     const result2 = await captureAxiosMethod();
     expect(result2).toBe('GET');
