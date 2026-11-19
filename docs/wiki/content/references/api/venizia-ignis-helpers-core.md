@@ -87,6 +87,8 @@ export declare abstract class AbstractNetworkFetchableHelper<V extends TFetcherV
     private attemptSignal;
     /** The body of a refused status or a mismatch is gone; the typed error carries what is left of the answer. */
     private refuseStatus;
+    /** The guard's verdict on one hop: the url to send and the addresses to pin; with no guard, the target as it is. */
+    private vetTarget;
     /** One attempt: hook, guard, exchange (redirects walked by hand when asked), status, cap, schema. */
     private runAttempt;
     /** The cap and the schema, once the status is accepted. */
@@ -342,6 +344,11 @@ export declare class BodyLimit {
     static readDeclaredLength(opts: {
         headers: Headers;
     }): number;
+    /** `readBytes`, decoded as UTF-8 text. */
+    static readText(opts: {
+        response: Response;
+        maxBytes?: number;
+    }): Promise<string>;
     /**
      * Reads a body that must not exceed `maxBytes`, cancelling the moment it does. `content-length` is checked first
      * because it is free, and counted anyway because it may be absent or lie.
@@ -2051,6 +2058,8 @@ export declare class NativeFetcher extends AbstractNetworkFetchableHelper<'nativ
     }): string | undefined;
     /** `fetch` over one connection to `addresses`, in order; the next one is tried only when the connection itself fails. */
     private fetchPinned;
+    /** One `fetch`: pinned to the vetted addresses when there are some and no proxy was asked for. */
+    private dispatch;
     protected exchange(opts: IFetchExchangeRequest): Promise<IFetchExchange<Response>>;
 }
 ```

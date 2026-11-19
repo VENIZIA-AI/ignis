@@ -3,6 +3,7 @@ import { exportPKCS8, exportSPKI, generateKeyPair } from 'jose';
 import { ServiceAssertion } from '@venizia/ignis-kernel';
 import type { IServiceAuthOptions } from '@venizia/ignis-kernel';
 import { NativeFetcher, UrlFetchError } from '@venizia/ignis-helpers/core';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 import { ServiceAssertionSignerService } from '@/components/auth/authenticate/services/service/signer.service';
 import { ServiceAssertionVerifierService } from '@/components/auth/authenticate/services/service/verifier.service';
 
@@ -42,7 +43,11 @@ beforeAll(async () => {
 
   jwksServer = Bun.serve({
     port: 0,
-    fetch: async () => Response.json(await signer.getPublicJWKS()),
+    fetch: async () => {
+      const jwks = await signer.getPublicJWKS();
+
+      return Response.json(jwks);
+    },
   });
 
   const options: IServiceAuthOptions = {
@@ -141,9 +146,9 @@ describe('signer.createRequestHook', () => {
   });
 
   test('a call signed for another audience is refused by the callee', async () => {
-    const error = await fetcherFor('someone-else')
-      .get({ url: `${calleeUrl}/v1/api/calc` })
-      .catch((caught: unknown) => caught);
+    const error = await RejectionHelper.rejectionOf({
+      task: fetcherFor('someone-else').get({ url: `${calleeUrl}/v1/api/calc` }),
+    });
 
     expect(UrlFetchError.is(error)).toBe(true);
     expect((error as UrlFetchError).status).toBe(401);
@@ -155,13 +160,13 @@ describe('signer.createRequestHook', () => {
       resolvePrincipal: async () => ({ userId: 1 }),
     });
     const before = seenTokens.length;
-    const nativeFetcher = new NativeFetcher({
+    const noKeysFetcher = new NativeFetcher({
       name: 'no-keys',
       hooks: { onRequest: verifyOnly.createRequestHook({ audience: CALLEE }) },
-    })
-      .get({ url: `${calleeUrl}/v1/api/calc` });
-    const error = await nativeFetcher
-      .catch((caught: unknown) => caught);
+    });
+    const error = await RejectionHelper.rejectionOf({
+      task: noKeysFetcher.get({ url: `${calleeUrl}/v1/api/calc` }),
+    });
 
     expect((error as Error).message).toMatch(/no signing keys/);
     expect(seenTokens.length).toBe(before);

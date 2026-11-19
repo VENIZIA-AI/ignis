@@ -83,7 +83,10 @@ export class StaticAssetIngestUtility {
     const { helper, url, bucket, folderPath, policy, resolveKey, normalizeLinkFn } = opts;
 
     const maxBytes = policy?.maxBytes ?? UrlSafetyDefaults.MAX_BYTES;
-    const fetcher = new NativeFetcher({ name: StaticAssetIngestUtility.name, guardEngine: UrlGuard });
+    const fetcher = new NativeFetcher({
+      name: StaticAssetIngestUtility.name,
+      guardEngine: UrlGuard,
+    });
     // The fetcher refuses a declared size over the cap before anything is read, and hands back a body that fails the moment the bytes cross it.
     const response = await fetcher.get({ url, guard: policy ?? {}, maxBytes });
     const remoteType = response.headers.get('content-type')?.split(';')[0]?.trim() ?? '';
