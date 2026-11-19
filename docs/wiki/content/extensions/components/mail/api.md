@@ -41,7 +41,7 @@ Every binding key, configuration variant, interface, and internal mechanism of `
 |-----------|---------|
 | `MailComponent` | Registers mail services, transporters, generators, and the queue executor |
 | `MailService` | `send()`, `sendBatch()`, `sendTemplate()`, `verify()` |
-| `TemplateEngineService` | <code v-pre>{{variable}}</code> substitution engine, in-memory template registry |
+| `TemplateEngineService` | <code v-pre>{{variable}}</code> and section (<code v-pre>{{#list}}</code>) renderer, in-memory template registry |
 | `NodemailerTransportHelper` | SMTP transport via `nodemailer` |
 | `MailgunTransportHelper` | Mailgun HTTP API transport via `mailgun.js` |
 | `AmazonSesTransportHelper` | Amazon SES HTTPS API transport via `@aws-sdk/client-sesv2` |
@@ -468,6 +468,7 @@ The codes of the 4xx errors a client can fix are the **literal** strings of the 
 | `INVALID_RECIPIENT` | `'core.mail.invalid_recipient'` | 400 | Missing or empty recipient address |
 | `INVALID_HEADER` | `'core.mail.invalid_header'` | 400 | A line break or control character in an address, the subject or a header, or a bad header name |
 | `TEMPLATE_NOT_FOUND` | `'core.mail.template_not_found'` | 404 | Template name not found in registry |
+| `TEMPLATE_INVALID` | `'core.mail.template_invalid'` | 400 | A malformed template, an unsupported tag, or a function or an object where text goes |
 | `ATTACHMENT_PATH_REFUSED` | `'core.mail.attachment_path_refused'` | 400 | An attachment `path` outside `attachmentRoot`, with no root set, or an `href`/`raw` source |
 | `BODY_SOURCE_REFUSED` | `'core.mail.body_source_refused'` | 400 | `text` or `html` is not a string |
 | `ATTACHMENT_TOO_LARGE` | `'core.mail.attachment_too_large'` | 413 | A message's attachments are over `maxAttachmentBytes` |
@@ -564,6 +565,7 @@ interface IMailMessage {
   attachments?: IMailAttachment[];
   headers?: Record<string, string>;
   requireValidate?: boolean;      // Passed through to sendTemplate()'s render() call
+  missing?: 'empty' | 'keep' | 'throw'; // What a missing placeholder renders (default 'empty')
   [key: string]: unknown;             // Open-ended -- provider-specific fields pass through
 }
 ```
@@ -577,9 +579,10 @@ interface IMailMessage {
 | `text`, `html` | At least one is required (`validateMessage()`); each must be a string |
 | `attachments` | See `IMailAttachment` below. |
 | `headers` | Nodemailer passes them directly; Mailgun prefixes every key with `h:`. |
-| `requireValidate` | `true` throws on a missing placeholder in a template; default `false` |
+| `requireValidate` | `true` checks every key outside the sections first and throws, naming all the missing ones; default `false` |
+| `missing` | What a missing placeholder renders: `'empty'` (default), `'keep'` or `'throw'` |
 
-Nodemailer joins `to`, `cc` and `bcc` arrays with `', '`. Mailgun coerces `to` to an array and passes `cc`/`bcc` through unmodified. A `text` or `html` that is an object such as `{ path }` is refused with `core.mail.body_source_refused`, because Nodemailer would read it as a file or URL. With `requireValidate` unset or `false`, a missing placeholder is preserved as literal text.
+Nodemailer joins `to`, `cc` and `bcc` arrays with `', '`. Mailgun coerces `to` to an array and passes `cc`/`bcc` through unmodified. A `text` or `html` that is an object such as `{ path }` is refused with `core.mail.body_source_refused`, because Nodemailer would read it as a file or URL. With `requireValidate` unset or `false`, a missing placeholder renders as `missing` says (empty by default).
 
 ```typescript
 interface IMailAttachment {

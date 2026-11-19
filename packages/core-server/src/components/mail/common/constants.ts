@@ -25,6 +25,16 @@ export class MailTemplateFormats {
 /** Union of the `MailTemplateFormats` values. */
 export type TMailTemplateFormat = TConstValue<typeof MailTemplateFormats>;
 
+/** What a template does with a placeholder the data does not have: `EMPTY` renders nothing, `KEEP` leaves the tag as written, `THROW` refuses the render. */
+export class MailTemplateMissingModes {
+  static readonly EMPTY = 'empty';
+  static readonly KEEP = 'keep';
+  static readonly THROW = 'throw';
+}
+
+/** Union of the `MailTemplateMissingModes` values. */
+export type TMailTemplateMissing = TConstValue<typeof MailTemplateMissingModes>;
+
 /** Names of the jobs the BullMQ mail executor adds. */
 export class MailQueueJobNames {
   static readonly SEND_VERIFICATION_EMAIL = 'send-verification-email';

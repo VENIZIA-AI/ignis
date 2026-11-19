@@ -1,4 +1,4 @@
-import type { TMailTemplateFormat } from '../constants';
+import type { TMailTemplateFormat, TMailTemplateMissing } from '../constants';
 
 /** A registered mail template: `content` is the body, `subject` and `description` are optional. */
 export interface ITemplate {
@@ -14,7 +14,10 @@ export interface IMailTemplateEngine {
     templateData?: string;
     templateName?: string;
     data: Record<string, unknown>;
+    /** Every key of the template is checked first and the render refuses when any is missing, naming them all; sections are not checked (an absent one is an optional block). */
     requireValidate?: boolean;
+    /** What a missing placeholder renders; `THROW` refuses at the first one. @default MailTemplateMissingModes.EMPTY */
+    missing?: TMailTemplateMissing;
     /** @default MailTemplateFormats.HTML */
     format?: TMailTemplateFormat;
   }): string;

@@ -1,11 +1,16 @@
 import { describe, expect, test } from 'bun:test';
-import { MailTemplateFormats, type TMailTemplateFormat } from '@/components/mail/common';
+import {
+  MailTemplateFormats,
+  type TMailTemplateFormat,
+  type TMailTemplateMissing,
+} from '@/components/mail/common';
 import { TemplateEngineService } from '@/components/mail/services';
 
 const render = (opts: {
   template: string;
   data: Record<string, unknown>;
   format?: TMailTemplateFormat;
+  missing?: TMailTemplateMissing;
 }) => new TemplateEngineService().renderSimpleTemplate(opts.template, opts.data, opts);
 
 describe('TemplateEngineService - escaping', () => {
@@ -25,8 +30,9 @@ describe('TemplateEngineService - escaping', () => {
     ).toBe('a & b');
   });
 
-  test('a missing key stays as written, in both forms', () => {
-    expect(render({ template: '{{a}} {{{b}}}', data: {} })).toBe('{{a}} {{{b}}}');
+  test("a missing key renders nothing by default, and stays as written with missing: 'keep'", () => {
+    expect(render({ template: '{{a}} {{{b}}}', data: {} })).toBe(' ');
+    expect(render({ template: '{{a}} {{{b}}}', data: {}, missing: 'keep' })).toBe('{{a}} {{{b}}}');
   });
 
   test('numbers and nested own properties render', () => {
@@ -38,7 +44,10 @@ describe('TemplateEngineService - own properties only', () => {
   test.each(['constructor', '__proto__', 'toString', 'a.constructor', 'a.__proto__.x'])(
     '{{%s}} does not reach the prototype chain',
     (key) => {
-      expect(render({ template: `{{${key}}}`, data: { a: {} } })).toBe(`{{${key}}}`);
+      expect(render({ template: `{{${key}}}`, data: { a: {} } })).toBe('');
+      expect(render({ template: `{{${key}}}`, data: { a: {} }, missing: 'keep' })).toBe(
+        `{{${key}}}`,
+      );
     },
   );
 });

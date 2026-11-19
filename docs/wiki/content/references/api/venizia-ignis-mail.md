@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis/mail, from the built declarations (
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-74 exports, 74 with TSDoc.
+77 exports, 77 with TSDoc.
 
 ## `AmazonSesTransportHelper`
 
@@ -378,6 +378,8 @@ export interface IMailMessage {
     attachments?: IMailAttachment[];
     headers?: Record<string, string>;
     requireValidate?: boolean;
+    /** What a template does with a placeholder the data does not have. @default MailTemplateMissingModes.EMPTY */
+    missing?: TMailTemplateMissing;
     [key: string]: unknown;
 }
 ```
@@ -508,7 +510,10 @@ export interface IMailTemplateEngine {
         templateData?: string;
         templateName?: string;
         data: Record<string, unknown>;
+        /** Every key of the template is checked first and the render refuses when any is missing, naming them all; sections are not checked (an absent one is an optional block). */
         requireValidate?: boolean;
+        /** What a missing placeholder renders; `THROW` refuses at the first one. @default MailTemplateMissingModes.EMPTY */
+        missing?: TMailTemplateMissing;
         /** @default MailTemplateFormats.HTML */
         format?: TMailTemplateFormat;
     }): string;
@@ -889,6 +894,15 @@ export declare const MailErrors: {
         readonly statusCode: 400;
         readonly category: "validation";
     };
+    /** A template that is malformed (a section left open, a closing tag that does not match), uses a tag this renderer does not have (a partial, a delimiter change), or reads a function or an object where text goes. */
+    readonly TEMPLATE_INVALID: {
+        readonly message: {
+            readonly text: "Invalid mail template";
+            readonly code: "core.mail.template_invalid";
+        };
+        readonly statusCode: 400;
+        readonly category: "validation";
+    };
     readonly BODY_SOURCE_REFUSED: {
         readonly message: {
             readonly text: "Mail body must be text";
@@ -1135,6 +1149,59 @@ export declare class MailTemplateFormats {
 
 Source: `packages/core-server/src/components/mail/common/constants.ts`
 
+## `MailTemplateMissingModes`
+
+*class*
+
+What a template does with a placeholder the data does not have: `EMPTY` renders nothing, `KEEP` leaves the tag as written, `THROW` refuses the render.
+
+```ts
+export declare class MailTemplateMissingModes {
+    static readonly EMPTY = "empty";
+    static readonly KEEP = "keep";
+    static readonly THROW = "throw";
+}
+```
+
+Source: `packages/core-server/src/components/mail/common/constants.ts`
+
+## `MailTemplateRenderer`
+
+*class*
+
+Renders placeholders (escaped, raw and dotted) and sections (a list, a flag, its inverse): no partial, no lambda, no delimiter change, no code.
+
+```ts
+export declare class MailTemplateRenderer {
+    private static invalid;
+    /** Splits a template into text, values and sections; a closing tag that does not match, a section left open and a tag this renderer does not have throw. */
+    private static parse;
+    /** The keys a template reads outside any section, and the keys of its sections (a section body reads the item first, so its keys are not the data's to check). */
+    static readKeys(opts: {
+        template: string;
+    }): {
+        valueKeys: string[];
+        sectionKeys: string[];
+    };
+    /** Own properties only, so a key such as `constructor` or `__proto__.x` never reaches the prototype chain. The first segment picks the innermost scope that has it. */
+    private static lookup;
+    /** The value of `key` in `data` (own properties only), or `undefined`. */
+    static read(opts: {
+        data: Record<string, unknown>;
+        key: string;
+    }): unknown;
+    static render(opts: {
+        template: string;
+        data: Record<string, unknown>;
+        format?: TMailTemplateFormat;
+        missing?: TMailTemplateMissing;
+    }): string;
+    private static renderNodes;
+}
+```
+
+Source: `packages/core-server/src/components/mail/utilities/template-renderer.utility.ts`
+
 ## `MailTransportProvider`
 
 *class*
@@ -1322,6 +1389,7 @@ export declare class TemplateEngineService extends BaseService implements IMailT
         templateName?: string;
         data: Record<string, unknown>;
         requireValidate?: boolean;
+        missing?: TMailTemplateMissing;
         format?: TMailTemplateFormat;
     }): string;
     getTemplate(name: string): ITemplate | undefined;
@@ -1339,10 +1407,9 @@ export declare class TemplateEngineService extends BaseService implements IMailT
     };
     renderSimpleTemplate(template: string, data: Record<string, unknown>, opts?: {
         requireValidate?: boolean;
+        missing?: TMailTemplateMissing;
         format?: TMailTemplateFormat;
     }): string;
-    /** Reads own properties only: `{{constructor}}` or `{{__proto__.x}}` must not reach the prototype chain. */
-    private getNestedValue;
 }
 ```
 
@@ -1471,6 +1538,18 @@ Union of the `MailTemplateFormats` values.
 
 ```ts
 export type TMailTemplateFormat = TConstValue<typeof MailTemplateFormats>;
+```
+
+Source: `packages/core-server/src/components/mail/common/constants.ts`
+
+## `TMailTemplateMissing`
+
+*type*
+
+Union of the `MailTemplateMissingModes` values.
+
+```ts
+export type TMailTemplateMissing = TConstValue<typeof MailTemplateMissingModes>;
 ```
 
 Source: `packages/core-server/src/components/mail/common/constants.ts`

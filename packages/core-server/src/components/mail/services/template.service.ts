@@ -1,10 +1,13 @@
 import { BaseService } from '@venizia/ignis-kernel';
-import type { IMailTemplateEngine, ITemplate, TMailTemplateFormat } from '../common';
-import { MailErrors, MailTemplateFormats } from '../common';
+import type {
+  IMailTemplateEngine,
+  ITemplate,
+  TMailTemplateFormat,
+  TMailTemplateMissing,
+} from '../common';
+import { MailErrors } from '../common';
+import { MailTemplateRenderer } from '../utilities';
 import { getError } from '@venizia/ignis-helpers/core';
-
-/** `{{{key}}}` (group 1, raw) or `{{key}}` (group 2). The raw form comes first: `{{key}}` also matches inside it. */
-const PLACEHOLDER = /\{\{\{\s*([\w.]+)\s*\}\}\}|\{\{\s*([\w.]+)\s*\}\}/g;
 
 /** In-memory template store and renderer. Templates registered here are lost on restart. */
 export class TemplateEngineService extends BaseService implements IMailTemplateEngine {
@@ -34,9 +37,10 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
     templateName?: string;
     data: Record<string, unknown>;
     requireValidate?: boolean;
+    missing?: TMailTemplateMissing;
     format?: TMailTemplateFormat;
   }): string {
-    const { templateData, templateName, data, requireValidate, format } = opts;
+    const { templateData, templateName, data, requireValidate, missing, format } = opts;
 
     if (!templateData && !templateName) {
       throw getError({ message: 'Either templateName or templateData must be provided' });
@@ -66,7 +70,7 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
       });
     }
 
-    return this.renderSimpleTemplate(content, data, { requireValidate, format });
+    return this.renderSimpleTemplate(content, data, { requireValidate, missing, format });
   }
 
   getTemplate(name: string): ITemplate | undefined {
@@ -98,24 +102,14 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
     allKeys: string[];
   } {
     const { template, data } = opts;
-    const allKeys: string[] = [];
-    const missingKeys: string[] = [];
+    const { valueKeys, sectionKeys } = MailTemplateRenderer.readKeys({ template });
+    // A section key is reported but never missing: an absent section is an optional block, not an error.
+    const allKeys = [...valueKeys, ...sectionKeys.filter((key) => !valueKeys.includes(key))];
+    const missingKeys = valueKeys.filter((key) => {
+      const value = MailTemplateRenderer.read({ data, key });
 
-    for (const match of template.matchAll(PLACEHOLDER)) {
-      const key = match[1] ?? match[2];
-
-      if (allKeys.includes(key)) {
-        continue;
-      }
-
-      allKeys.push(key);
-
-      const value = this.getNestedValue(data, key);
-
-      if (value === undefined || value === null) {
-        missingKeys.push(key);
-      }
-    }
+      return value === undefined || value === null;
+    });
 
     const isValid = missingKeys.length === 0;
 
@@ -131,7 +125,11 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
   renderSimpleTemplate(
     template: string,
     data: Record<string, unknown>,
-    opts?: { requireValidate?: boolean; format?: TMailTemplateFormat },
+    opts?: {
+      requireValidate?: boolean;
+      missing?: TMailTemplateMissing;
+      format?: TMailTemplateFormat;
+    },
   ): string {
     if (opts?.requireValidate) {
       const validation = this.validateTemplateData({ template, data });
@@ -144,29 +142,11 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
       }
     }
 
-    const isHtml = (opts?.format ?? MailTemplateFormats.HTML) === MailTemplateFormats.HTML;
-
-    return template.replace(PLACEHOLDER, (match, tripleKey?: string, doubleKey?: string) => {
-      const key = tripleKey ?? doubleKey ?? '';
-      const value = this.getNestedValue(data, key);
-
-      if (value === undefined || value === null) {
-        this.logger.for(this.renderSimpleTemplate.name).warn('Missing value for key: %s', key);
-
-        return match;
-      }
-
-      // `{{{key}}}` inserts as it is; `{{key}}` is escaped for HTML.
-      return isHtml && tripleKey === undefined ? Bun.escapeHTML(String(value)) : String(value);
+    return MailTemplateRenderer.render({
+      template,
+      data,
+      format: opts?.format,
+      missing: opts?.missing,
     });
-  }
-
-  /** Reads own properties only: `{{constructor}}` or `{{__proto__.x}}` must not reach the prototype chain. */
-  private getNestedValue(obj: unknown, path: string): unknown {
-    return path.split('.').reduce<unknown>((current, key) => {
-      return current !== null && typeof current === 'object' && Object.hasOwn(current, key)
-        ? Reflect.get(current, key)
-        : undefined;
-    }, obj);
   }
 }
