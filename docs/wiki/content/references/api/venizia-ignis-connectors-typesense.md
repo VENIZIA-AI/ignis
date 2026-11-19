@@ -2544,7 +2544,7 @@ export declare class TypesenseConnector extends BaseSearchConnector {
          * @default false
          */
         throwOnFail?: boolean;
-        /** For a collection embedded by a remote provider: the embedding batch, wait and tries of this import. See {@link ITypesenseRemoteEmbeddingOptions}. */
+        /** Typesense-only (Meilisearch has no equivalent). For a collection embedded by a remote provider: the embedding batch, wait and tries of this import. See {@link ITypesenseRemoteEmbeddingOptions}. */
         remoteEmbedding?: ITypesenseRemoteEmbeddingOptions;
         /** Typesense-only. Each row of `responses` carries the document `id` (`return_id`). Memory grows with the import. */
         returnId?: boolean;

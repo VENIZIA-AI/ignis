@@ -42,7 +42,7 @@ export declare class BullMQHelper<TQueueElement = unknown, TQueueResult = unknow
     static newInstance<T = unknown, R = unknown, M extends object = Record<string, unknown>>(opts: IBullMQOptions<T, R, M>): BullMQHelper<T, R, M>;
     /** `prefix` as the helper keeps it: a non-empty string with no whitespace and no brace (a brace would move the cluster hash tag), the same on the Queue and the Worker; unset stays unset (BullMQ's `bull`). */
     private static resolvePrefix;
-    /** The metadata a producer's helper stamped on `job`, or `undefined` for a job added without one (a raw `queue.add`, another producer). Not part of `job.data`. */
+    /** The metadata a producer's helper stamped on `job`, or `undefined` for a job added without one (a raw `queue.add`, another producer). Not part of `job.data`. Returned as stored: its fields are not validated against `TMetadata`. */
     static readMetadata<TMetadata extends object = Record<string, unknown>>(opts: {
         job: Pick<Job, 'opts'> | undefined;
     }): TMetadata | undefined;
