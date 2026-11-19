@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/http, from the built dec
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-15 exports, 15 with TSDoc. 3 more are re-exported from other entries (listed at the end).
+16 exports, 16 with TSDoc. 3 more are re-exported from other entries (listed at the end).
 
 ## `HttpDataSource`
 
@@ -486,11 +486,8 @@ export interface IHttpDataSourceSettings {
     /** Sent on every request. `x-request-count` is refused - the connector owns it. */
     headers?: THttpHeaders;
     /**
-     * Run on every send, the 401 retry included. Wins over `headers`; a call's own headers win over
-     * it. `x-request-count` is refused here too; an `authorization` here stands only when no token is
-     * resolved.
-     *
-     * Headers for this request. A throw fails the request with that error.
+     * Headers for this request, run on every send (the 401 retry included); wins over `headers`, a call's own win over it. A throw
+     * fails the request; `x-request-count` is refused, and an `authorization` stands only when no token resolves.
      */
     headersResolver?: (context: IHttpRequestContext) => THttpHeaders | undefined;
     /** Wins over `authTokenResolver`, and is sent whatever the request. */
@@ -500,7 +497,7 @@ export interface IHttpDataSourceSettings {
     /** Runs on a 401: `true` retries once (re-resolving the token), `false` lets the 401 stand. */
     onUnauthorized?: (context: IHttpRequestContext) => Promise<boolean> | boolean;
     /** What sends a request: the platform `fetch` when unset. Name one to route through a test double, a proxy or an instrumented client. */
-    fetch?: TNativeFetchSender;
+    fetch?: THttpFetch;
 }
 ```
 
@@ -608,6 +605,18 @@ Query parameters a route takes beside `filter` or `where` - a keyword, a scope. 
 
 ```ts
 export type THttpExtraQuery = Record<string, unknown>;
+```
+
+Source: `packages/connectors/src/http/common/types.ts`
+
+## `THttpFetch`
+
+*type*
+
+What sends a request: a URL and its init, a `Response` back. The public name of the sender type (ARDOR re-exports it).
+
+```ts
+export type THttpFetch = TNativeFetchSender;
 ```
 
 Source: `packages/connectors/src/http/common/types.ts`

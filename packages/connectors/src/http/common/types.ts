@@ -54,11 +54,8 @@ export interface IHttpDataSourceSettings {
   headers?: THttpHeaders;
 
   /**
-   * Run on every send, the 401 retry included. Wins over `headers`; a call's own headers win over
-   * it. `x-request-count` is refused here too; an `authorization` here stands only when no token is
-   * resolved.
-   *
-   * Headers for this request. A throw fails the request with that error.
+   * Headers for this request, run on every send (the 401 retry included); wins over `headers`, a call's own win over it. A throw
+   * fails the request; `x-request-count` is refused, and an `authorization` stands only when no token resolves.
    */
   headersResolver?: (context: IHttpRequestContext) => THttpHeaders | undefined;
 
@@ -72,8 +69,11 @@ export interface IHttpDataSourceSettings {
   onUnauthorized?: (context: IHttpRequestContext) => Promise<boolean> | boolean;
 
   /** What sends a request: the platform `fetch` when unset. Name one to route through a test double, a proxy or an instrumented client. */
-  fetch?: TNativeFetchSender;
+  fetch?: THttpFetch;
 }
+
+/** What sends a request: a URL and its init, a `Response` back. The public name of the sender type (ARDOR re-exports it). */
+export type THttpFetch = TNativeFetchSender;
 
 /** A list with no `Content-Range` has no total - `hasRange` says so rather than using the page size. */
 export interface IHttpReadResult<R> {
