@@ -133,8 +133,14 @@ export interface ISearchControllerOptions<Repository extends TCrudRepositoryClas
      * engine their parameters as they are, so the model's default filter and its hidden fields do not apply to them, and
      * opting in exposes the whole collection to every caller the route admits. A scoped controller cannot opt in. Server
      * code keeps `search({ mode: 'raw' })` and `multiSearch()` on the repository.
+     *
+     * `modes.allow` names the other modes `POST /search` takes: `{ allow: [SearchModes.KEYWORD] }` is keyword-only. Left out,
+     * every one of them is served. The list builds the body schema, so a request with any other `mode` is a 400 from the
+     * validator and the OpenAPI document lists only these (and `raw` when `modes.raw` is on). An empty list and a duplicate
+     * refuse the build.
      */
     modes?: {
+        allow?: ReadonlyArray<TSearchFriendlyMode>;
         raw?: TToggle;
     };
 }
@@ -216,6 +222,7 @@ export interface ISearchOptionsInput {
     };
     modes?: {
         raw?: TToggle;
+        allow?: unknown;
     };
     query?: {
         fixed?: unknown;
@@ -309,6 +316,8 @@ export interface ISearchResolvedOptions<RouteEnv extends Env = Env, TExtra exten
     /** `authenticate: { skip: true }` drops it, as for any route: with no caller, no authorization applies. */
     authorize?: IAuthorizationSpec | IAuthorizationSpec[];
     isRawAllowed: boolean;
+    /** The friendly modes the body schema takes (`modes.allow`; every one when left out). */
+    allowedModes: ReadonlyArray<TSearchFriendlyMode>;
     allowedEngineParams: ReadonlySet<string>;
     isSearchOn: boolean;
     isMultiSearchOn: boolean;
@@ -428,11 +437,12 @@ Factory for generating turnkey search controllers (single-collection + cross-col
 export declare class SearchControllerFactory extends BaseHelper {
     constructor();
     /**
-     * `SearchInputSchema` with `shape` added to each of its four modes (a discriminated union has no `extend` of its own), and
-     * with `engineParams` of the three friendly modes narrowed to the names of `query.allow.tuning`: a strict object, so an
-     * unknown name is a 400 and the OpenAPI document lists the names a client may send.
+     * The body schema of `POST /search`: the members of `SearchInputSchema` for the modes served (`allowedModes`, and `raw` only
+     * when `isRawAllowed`), each with `shape` added when `request.body.extend` is set (a discriminated union has no `extend` of
+     * its own), and with `engineParams` of the three friendly modes narrowed to the names of `query.allow.tuning`: a strict
+     * object, so an unknown name is a 400 and the OpenAPI document lists the names a client may send.
      */
-    private static extendSearchBody;
+    private static buildSearchBody;
     static defineRouteConfigs(opts: {
         selectSchema: z.ZodType;
         authenticate?: {
@@ -440,7 +450,11 @@ export declare class SearchControllerFactory extends BaseHelper {
             mode?: TAuthMode;
         };
         authorize?: IAuthorizationSpec | IAuthorizationSpec[];
-        /** The keys `request.body.extend` adds to every `mode` of the search body; none leaves `SearchInputSchema` as it is. */
+        /** The friendly modes the body takes (`modes.allow`); every one when left out. */
+        allowedModes?: ReadonlyArray<TSearchFriendlyMode>;
+        /** `modes.raw` is on: the body takes `mode: 'raw'` too. Left out, `raw` is not in the schema or the OpenAPI document. */
+        isRawAllowed?: boolean;
+        /** The keys `request.body.extend` adds to every `mode` of the search body. */
         bodyExtension?: z.ZodRawShape;
         /** The names of `query.allow.tuning`: what `engineParams` of the search body may carry. */
         allowedTuning?: string[];
@@ -457,7 +471,7 @@ export declare class SearchControllerFactory extends BaseHelper {
         readonly SEARCH: {
             readonly method: "post";
             readonly path: "/search";
-            readonly description: "Single-collection search (keyword, semantic, hybrid, or raw passthrough)";
+            readonly description: "Single-collection search, one body per mode";
             readonly authenticate: {
                 strategies?: TAuthStrategy[];
                 mode?: TAuthMode;
@@ -494,7 +508,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     offset: z.ZodOptional<z.ZodNumber>;
                                     skip: z.ZodOptional<z.ZodNumber>;
                                 }, z.core.$strip>>;
-                            }, z.core.$strip>, z.ZodObject<{
+                            }, z.core.$strip> | z.ZodObject<{
                                 distanceThreshold: z.ZodOptional<z.ZodNumber>;
                                 ef: z.ZodOptional<z.ZodNumber>;
                                 facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
@@ -523,7 +537,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     offset: z.ZodOptional<z.ZodNumber>;
                                     skip: z.ZodOptional<z.ZodNumber>;
                                 }, z.core.$strip>>;
-                            }, z.core.$strip>, z.ZodObject<{
+                            }, z.core.$strip> | z.ZodObject<{
                                 distanceThreshold: z.ZodOptional<z.ZodNumber>;
                                 ef: z.ZodOptional<z.ZodNumber>;
                                 facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
@@ -554,10 +568,10 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     offset: z.ZodOptional<z.ZodNumber>;
                                     skip: z.ZodOptional<z.ZodNumber>;
                                 }, z.core.$strip>>;
-                            }, z.core.$strip>, z.ZodObject<{
+                            }, z.core.$strip> | z.ZodObject<{
                                 mode: z.ZodLiteral<"raw">;
                                 params: z.ZodRecord<z.ZodString, z.ZodAny>;
-                            }, z.core.$strip>], "mode"> | z.ZodDiscriminatedUnion<[z.ZodObject<{
+                            }, z.core.$strip> | z.ZodObject<{
                                 facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                 facetQuery: z.ZodOptional<z.ZodString>;
                                 maxFacetValues: z.ZodOptional<z.ZodNumber>;
@@ -611,7 +625,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     skip: z.ZodOptional<z.ZodNumber>;
                                 }, z.core.$strip>>;
                                 engineParams?: undefined;
-                            }, z.core.$strip>, z.ZodObject<{
+                            }, z.core.$strip> | z.ZodObject<{
                                 distanceThreshold: z.ZodOptional<z.ZodNumber>;
                                 ef: z.ZodOptional<z.ZodNumber>;
                                 facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
@@ -671,7 +685,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     skip: z.ZodOptional<z.ZodNumber>;
                                 }, z.core.$strip>>;
                                 engineParams?: undefined;
-                            }, z.core.$strip>, z.ZodObject<{
+                            }, z.core.$strip> | z.ZodObject<{
                                 distanceThreshold: z.ZodOptional<z.ZodNumber>;
                                 ef: z.ZodOptional<z.ZodNumber>;
                                 facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
@@ -735,265 +749,169 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 }, z.core.$strip>>;
                                 queryBy?: z.ZodOptional<z.ZodArray<z.ZodString>> | undefined;
                                 engineParams?: undefined;
-                            }, z.core.$strip>, z.ZodObject<{
+                            }, z.core.$strip> | z.ZodObject<{
                                 [x: string]: z.core.$ZodType<unknown, unknown, z.core.$ZodTypeInternals<unknown, unknown>>;
-                            }, z.core.$strip>], "mode">;
-                        };
-                    };
-                    required: boolean | undefined;
-                };
-                readonly headers?: TAnyObjectSchema | undefined;
-            };
-            readonly responses: {
-                '4XX': {
-                    description: string;
-                    content: {
-                        "application/json": {
-                            schema: z.ZodObject<{
-                                statusCode: z.ZodOptional<z.ZodNumber>;
-                                message: z.ZodString;
-                                normalized: z.ZodOptional<z.ZodObject<{
-                                    text: z.ZodString;
-                                    code: z.ZodString;
-                                    args: z.ZodRecord<z.ZodString, z.ZodAny>;
-                                }, z.core.$strip>>;
-                                extra: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
-                                requestId: z.ZodOptional<z.ZodString>;
-                                details: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
-                            }, z.core.$strip>;
-                        };
-                    };
-                    required: boolean | undefined;
-                };
-                '5XX': {
-                    description: string;
-                    content: {
-                        "application/json": {
-                            schema: z.ZodObject<{
-                                statusCode: z.ZodOptional<z.ZodNumber>;
-                                message: z.ZodString;
-                                normalized: z.ZodOptional<z.ZodObject<{
-                                    text: z.ZodString;
-                                    code: z.ZodString;
-                                    args: z.ZodRecord<z.ZodString, z.ZodAny>;
-                                }, z.core.$strip>>;
-                                extra: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
-                                requestId: z.ZodOptional<z.ZodString>;
-                                details: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
-                            }, z.core.$strip>;
-                        };
-                    };
-                    required: boolean | undefined;
-                };
-                200: {
-                    description: string;
-                    content: {
-                        "application/json": {
-                            schema: z.ZodObject<{
-                                found: z.ZodNumber;
-                                isFoundExact: z.ZodBoolean;
-                                hits: z.ZodArray<z.ZodObject<{
-                                    document: z.ZodType<unknown, unknown, z.core.$ZodTypeInternals<unknown, unknown>>;
-                                }, z.core.$strip>>;
-                            }, z.core.$strip>;
-                        };
-                    };
-                    required: boolean | undefined;
-                } | {
-                    headers: never;
-                    description: string;
-                    content: {
-                        "application/json": {
-                            schema: z.ZodObject<{
-                                found: z.ZodNumber;
-                                isFoundExact: z.ZodBoolean;
-                                hits: z.ZodArray<z.ZodObject<{
-                                    document: z.ZodType<unknown, unknown, z.core.$ZodTypeInternals<unknown, unknown>>;
-                                }, z.core.$strip>>;
-                            }, z.core.$strip>;
-                        };
-                    };
-                    required: boolean | undefined;
-                };
-            };
-        };
-        readonly MULTI_SEARCH: {
-            readonly method: "post";
-            readonly path: "/multi-search";
-            readonly description: "Cross-collection search, forwarded verbatim to the search engine";
-            readonly authenticate: {
-                strategies?: TAuthStrategy[];
-                mode?: TAuthMode;
-            };
-            readonly authorize: IAuthorizationSpec<Env, string, string> | IAuthorizationSpec<Env, string, string>[] | undefined;
-            readonly request: {
-                readonly body: {
-                    description: string;
-                    content: {
-                        "application/json": {
-                            schema: z.ZodObject<{
-                                searches: z.ZodArray<z.ZodObject<{
-                                    facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
-                                    facetQuery: z.ZodOptional<z.ZodString>;
-                                    maxFacetValues: z.ZodOptional<z.ZodNumber>;
-                                    highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
-                                    highlightFullFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
-                                    highlightStartTag: z.ZodOptional<z.ZodString>;
-                                    highlightEndTag: z.ZodOptional<z.ZodString>;
-                                    snippetThreshold: z.ZodOptional<z.ZodNumber>;
-                                    groupBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
-                                    groupLimit: z.ZodOptional<z.ZodNumber>;
-                                    groupMissingValues: z.ZodOptional<z.ZodBoolean>;
-                                    queryByWeights: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
-                                    engineParams: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
-                                    collection: z.ZodString;
-                                    query: z.ZodOptional<z.ZodString>;
-                                    queryBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
-                                    filterBy: z.ZodOptional<z.ZodString>;
-                                    sortBy: z.ZodOptional<z.ZodString>;
-                                    page: z.ZodOptional<z.ZodNumber>;
-                                    perPage: z.ZodOptional<z.ZodNumber>;
+                            }, z.core.$strip>, ...(z.ZodObject<{
+                                facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                facetQuery: z.ZodOptional<z.ZodString>;
+                                maxFacetValues: z.ZodOptional<z.ZodNumber>;
+                                highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                highlightFullFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                highlightStartTag: z.ZodOptional<z.ZodString>;
+                                highlightEndTag: z.ZodOptional<z.ZodString>;
+                                snippetThreshold: z.ZodOptional<z.ZodNumber>;
+                                groupBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                groupLimit: z.ZodOptional<z.ZodNumber>;
+                                groupMissingValues: z.ZodOptional<z.ZodBoolean>;
+                                queryByWeights: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
+                                engineParams: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+                                mode: z.ZodLiteral<"keyword">;
+                                query: z.ZodOptional<z.ZodString>;
+                                queryBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                highlight: z.ZodOptional<z.ZodBoolean>;
+                                filter: z.ZodOptional<z.ZodObject<{
+                                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+                                    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+                                    order: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                    limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
-                                    includeFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
-                                    excludeFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
-                                    vectorQuery: z.ZodOptional<z.ZodString>;
+                                    skip: z.ZodOptional<z.ZodNumber>;
                                 }, z.core.$strip>>;
-                                union: z.ZodOptional<z.ZodBoolean>;
-                            }, z.core.$strip>;
-                        };
-                    };
-                    required: boolean | undefined;
-                };
-                readonly headers?: TAnyObjectSchema | undefined;
-            };
-            readonly responses: {
-                '4XX': {
-                    description: string;
-                    content: {
-                        "application/json": {
-                            schema: z.ZodObject<{
-                                statusCode: z.ZodOptional<z.ZodNumber>;
-                                message: z.ZodString;
-                                normalized: z.ZodOptional<z.ZodObject<{
-                                    text: z.ZodString;
-                                    code: z.ZodString;
-                                    args: z.ZodRecord<z.ZodString, z.ZodAny>;
+                            }, z.core.$strip> | z.ZodObject<{
+                                distanceThreshold: z.ZodOptional<z.ZodNumber>;
+                                ef: z.ZodOptional<z.ZodNumber>;
+                                facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                facetQuery: z.ZodOptional<z.ZodString>;
+                                maxFacetValues: z.ZodOptional<z.ZodNumber>;
+                                highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                highlightFullFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                highlightStartTag: z.ZodOptional<z.ZodString>;
+                                highlightEndTag: z.ZodOptional<z.ZodString>;
+                                snippetThreshold: z.ZodOptional<z.ZodNumber>;
+                                groupBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                groupLimit: z.ZodOptional<z.ZodNumber>;
+                                groupMissingValues: z.ZodOptional<z.ZodBoolean>;
+                                queryByWeights: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
+                                engineParams: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+                                mode: z.ZodLiteral<"semantic">;
+                                vectorField: z.ZodString;
+                                nearVector: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
+                                queryText: z.ZodOptional<z.ZodString>;
+                                k: z.ZodOptional<z.ZodNumber>;
+                                filter: z.ZodOptional<z.ZodObject<{
+                                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+                                    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+                                    order: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                    limit: z.ZodOptional<z.ZodNumber>;
+                                    offset: z.ZodOptional<z.ZodNumber>;
+                                    skip: z.ZodOptional<z.ZodNumber>;
                                 }, z.core.$strip>>;
-                                extra: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
-                                requestId: z.ZodOptional<z.ZodString>;
-                                details: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
-                            }, z.core.$strip>;
-                        };
-                    };
-                    required: boolean | undefined;
-                };
-                '5XX': {
-                    description: string;
-                    content: {
-                        "application/json": {
-                            schema: z.ZodObject<{
-                                statusCode: z.ZodOptional<z.ZodNumber>;
-                                message: z.ZodString;
-                                normalized: z.ZodOptional<z.ZodObject<{
-                                    text: z.ZodString;
-                                    code: z.ZodString;
-                                    args: z.ZodRecord<z.ZodString, z.ZodAny>;
+                            }, z.core.$strip> | z.ZodObject<{
+                                distanceThreshold: z.ZodOptional<z.ZodNumber>;
+                                ef: z.ZodOptional<z.ZodNumber>;
+                                facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                facetQuery: z.ZodOptional<z.ZodString>;
+                                maxFacetValues: z.ZodOptional<z.ZodNumber>;
+                                highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                highlightFullFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                highlightStartTag: z.ZodOptional<z.ZodString>;
+                                highlightEndTag: z.ZodOptional<z.ZodString>;
+                                snippetThreshold: z.ZodOptional<z.ZodNumber>;
+                                groupBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                groupLimit: z.ZodOptional<z.ZodNumber>;
+                                groupMissingValues: z.ZodOptional<z.ZodBoolean>;
+                                queryByWeights: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
+                                engineParams: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+                                mode: z.ZodLiteral<"hybrid">;
+                                query: z.ZodString;
+                                queryBy: z.ZodArray<z.ZodString>;
+                                vectorField: z.ZodString;
+                                nearVector: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
+                                alpha: z.ZodOptional<z.ZodNumber>;
+                                k: z.ZodOptional<z.ZodNumber>;
+                                filter: z.ZodOptional<z.ZodObject<{
+                                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+                                    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+                                    order: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                    limit: z.ZodOptional<z.ZodNumber>;
+                                    offset: z.ZodOptional<z.ZodNumber>;
+                                    skip: z.ZodOptional<z.ZodNumber>;
                                 }, z.core.$strip>>;
-                                extra: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
-                                requestId: z.ZodOptional<z.ZodString>;
-                                details: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
-                            }, z.core.$strip>;
-                        };
-                    };
-                    required: boolean | undefined;
-                };
-                200: {
-                    description: string;
-                    content: {
-                        "application/json": {
-                            schema: z.ZodRecord<z.ZodString, z.ZodUnknown>;
-                        };
-                    };
-                    required: boolean | undefined;
-                } | {
-                    headers: never;
-                    description: string;
-                    content: {
-                        "application/json": {
-                            schema: z.ZodRecord<z.ZodString, z.ZodUnknown>;
-                        };
-                    };
-                    required: boolean | undefined;
-                };
-            };
-        };
-    };
-    /** Creates a search controller with the routes you list: `POST /search` via `repository.search()`, and `POST /multi-search` via `repository.dataSource.multiSearch()`. The path is the `@controller({ path })` of the subclass. */
-    static build<Repository extends TCrudRepositoryClass, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TRepositoryDataObject<InstanceType<Repository>>, Shape extends z.ZodRawShape = {}, TOutDocument extends object = TDataObject, Inject extends TInjectMap = {}>(opts: ISearchControllerOptions<Repository, Shape, TOutDocument, Inject, RouteEnv>): {
-        new (repositoryInstance: ReadableSearchRepository<TDataObject>, ...instances: unknown[]): {
-            /** The routes of a generated controller come from `routes`; a subclass adds its own here. */
-            binding(): ValueOrPromise<void>;
-            /** Registers each route that is on, after the subclass's `binding()`. */
-            bindDefaultRoutes(): ValueOrPromise<void>;
-            repository: ReadableSearchRepository<TDataObject, import("../index.js").AbstractSearchDataSource<{}>>;
-            searchScope?: TSearchScopeResolver<RouteEnv, TSearchExtra<Shape>, Inject> | undefined;
-            allowedEngineParams: ReadonlySet<string>;
-            isRawAllowed: boolean;
-            isBodyExtended: boolean;
-            querySettings?: import("./settings.js").ISearchResolvedQuery<RouteEnv, TSearchExtra<Shape>, Inject> | undefined;
-            responseTransform?: import("./response.js").ISearchLooseResponse<RouteEnv, Inject> | undefined;
-            injected: import("@venizia/ignis-kernel").TInjected<Inject>;
-            search(opts: {
-                context: import("@venizia/ignis-kernel").TRouteContext<RouteEnv>;
-            }): Promise<import("@venizia/ignis-kernel").TJsonResponse<unknown, 200>>;
-            multiSearch(opts: {
-                context: import("@venizia/ignis-kernel").TRouteContext<RouteEnv>;
-            }): Promise<import("@venizia/ignis-kernel").TJsonResponse<unknown, 200>>;
-            measure<R>(opts: {
-                scope: string;
-                args: unknown;
-                task: () => Promise<R>;
-            }): Promise<R>;
-            normalizeCountData<ResponseSchema, RequestContext extends import("@venizia/ignis-kernel").TRouteContext<RouteEnv> = import("@venizia/ignis-kernel").TRouteContext<RouteEnv>, ResponseData extends {
-                count: number;
-                data?: import("@venizia/ignis-helpers").TNullable<ResponseSchema>;
-            } = {
-                count: number;
-                data?: import("@venizia/ignis-helpers").TNullable<ResponseSchema>;
-            }>(opts: {
-                context: RequestContext;
-                payload: ResponseData;
-            }): ResponseData | import("@venizia/ignis-helpers").TNullable<ResponseSchema>;
-            getRequestedExtras(opts: {
-                context: import("@venizia/ignis-kernel").TRouteContext<RouteEnv>;
-            }): Array<import("@venizia/ignis-kernel").IRequestedExtra>;
-            respond<R>(opts: {
-                context: import("@venizia/ignis-kernel").TRouteContext<RouteEnv>;
-                format: import("@venizia/ignis-kernel").TResponseFormat;
-                payload: {
-                    count: number;
-                    data?: import("@venizia/ignis-helpers").TNullable<R>;
-                };
-                range?: import("@venizia/ignis-kernel").TDataRange;
-                extra?: never;
-            }): R | {
-                count: number;
-                data?: import("@venizia/ignis-helpers").TNullable<R>;
-            } | null | undefined;
-            respond<R, Extra extends Record<string, import("@venizia/ignis-kernel").TResponseExtra>>(opts: {
-                context: import("@venizia/ignis-kernel").TRouteContext<RouteEnv>;
-                format: import("@venizia/ignis-kernel").TResponseFormat;
-                payload: {
-                    count: number;
-                    data?: import("@venizia/ignis-helpers").TNullable<R>;
-                };
-                range?: import("@venizia/ignis-kernel").TDataRange;
-                extra: Extra;
-            }): Promise<R | {
-                count: number;
-                data?: import("@venizia/ignis-helpers").TNullable<R>;
-            } | {
-                count?: number;
+                            }, z.core.$strip> | z.ZodObject<{
+                                mode: z.ZodLiteral<"raw">;
+                                params: z.ZodRecord<z.ZodString, z.ZodAny>;
+                            }, z.core.$strip> | z.ZodObject<{
+                                facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                facetQuery: z.ZodOptional<z.ZodString>;
+                                maxFacetValues: z.ZodOptional<z.ZodNumber>;
+                                highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                highlightFullFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                highlightStartTag: z.ZodOptional<z.ZodString>;
+                                highlightEndTag: z.ZodOptional<z.ZodString>;
+                                snippetThreshold: z.ZodOptional<z.ZodNumber>;
+                                groupBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                groupLimit: z.ZodOptional<z.ZodNumber>;
+                                groupMissingValues: z.ZodOptional<z.ZodBoolean>;
+                                queryByWeights: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
+                                mode: z.ZodLiteral<"keyword">;
+                                query: z.ZodOptional<z.ZodString>;
+                                queryBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                highlight: z.ZodOptional<z.ZodBoolean>;
+                                filter: z.ZodOptional<z.ZodObject<{
+                                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+                                    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+                                    order: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                    limit: z.ZodOptional<z.ZodNumber>;
+                                    offset: z.ZodOptional<z.ZodNumber>;
+                                    skip: z.ZodOptional<z.ZodNumber>;
+                                }, z.core.$strip>>;
+                                engineParams: z.ZodOptional<z.ZodObject<{
+                                    [x: string]: z.ZodOptional<z.ZodUnknown>;
+                                }, z.core.$strict>>;
+                            } | {
+                                facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                facetQuery: z.ZodOptional<z.ZodString>;
+                                maxFacetValues: z.ZodOptional<z.ZodNumber>;
+                                highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                highlightFullFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                highlightStartTag: z.ZodOptional<z.ZodString>;
+                                highlightEndTag: z.ZodOptional<z.ZodString>;
+                                snippetThreshold: z.ZodOptional<z.ZodNumber>;
+                                groupBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                groupLimit: z.ZodOptional<z.ZodNumber>;
+                                groupMissingValues: z.ZodOptional<z.ZodBoolean>;
+                                queryByWeights: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
+                                mode: z.ZodLiteral<"keyword">;
+                                query: z.ZodOptional<z.ZodString>;
+                                queryBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                highlight: z.ZodOptional<z.ZodBoolean>;
+                                filter: z.ZodOptional<z.ZodObject<{
+                                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+                                    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+                                    order: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                    limit: z.ZodOptional<z.ZodNumber>;
+                                    offset: z.ZodOptional<z.ZodNumber>;
+                                    skip: z.ZodOptional<z.ZodNumber>;
+                                }, z.core.$strip>>;
+                                engineParams?: undefined;
+                            }, z.core.$strip> | z.ZodObject<{
+                                distanceThreshold: z.ZodOptional<z.ZodNumber>;
+                                ef: z.ZodOptional<z.ZodNumber>;
+                                facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                facetQuery: z.ZodOptional<z.ZodString>;
+                                maxFacetValues: z.ZodOptional<z.ZodNumber>;
+                                highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                highlightFullFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                highlightStartTag: z.ZodOptional<z.ZodString>;
+                                highlightEndTag: z.ZodOptional<z.ZodString>;
+                                snippetThreshold: z.ZodOptional<z.ZodNumber>;
+                                groupBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
+                                groupLimit: z.ZodOptional<z.ZodNumber>;
+                                groupMissingValues: z.ZodOptional<z.ZodBoolean>;
+                                queryByWeights: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
+                                mode: z.ZodLiteral<"semantic">;
+                                vectorField: z.ZodString;
+                                nearVector: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
 // ... cut
 ```
 
@@ -1089,7 +1007,8 @@ Source: `packages/connectors/src/search/core/controllers/engine-params.ts`
 
 Whether a search controller serves the engine's own parameters over HTTP. `mode: 'raw'` and a multi-search entry hand
 the engine their parameters as they are: the model's default filter and its hidden fields are not applied to them.
-So every generated search controller refuses both (400) unless `modes.raw` is `{ use: true }`. Server code is not
+So every generated search controller refuses both (400) unless `modes.raw` is `{ use: true }`: `raw` is left out of the
+body schema (the validator refuses it, and the OpenAPI document does not show it), and multi-search answers 400. Server code is not
 affected: the repository's `search({ mode: 'raw' })` and `multiSearch()` work as before.
 
 ```ts
@@ -1100,11 +1019,6 @@ export declare class SearchRawAccess {
         raw?: unknown;
         isScoped: boolean;
     }): boolean;
-    /** Refuses (400) a `raw` search body when the controller did not opt in. */
-    static assertSearchInput(opts: {
-        input: TSearchInput;
-        isAllowed: boolean;
-    }): void;
     /** Refuses (400) a multi-search request when the controller did not opt in: its entries carry the engine's own parameters and name any collection. */
     static assertMultiSearch(opts: {
         isAllowed: boolean;

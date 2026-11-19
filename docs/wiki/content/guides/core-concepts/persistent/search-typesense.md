@@ -839,6 +839,25 @@ query: {
 - **A sort expression.** The guarantee is that a `tuning.sortBy` string names no hidden field anywhere in it: the string is split on everything that cannot be part of a field name, and a token that equals a hidden field (or reaches one) is refused, so quotes and brackets cannot hide a name. A value that happens to equal a hidden name (`title:=secret`) is refused too. Each top-level entry must also name a field of the model, or one of the engine's own sort names (`_text_match`, `_seq_id`, `_group_found`, `_vector_distance`, `_eval`, `_vector_query`, exact case). Only the engine knows the rest of the expression, so a `sortBy` it refuses answers `500` on the first request. A tuning name that selects rows or fields (`filter_by`, `include_fields`, `queryBy`, in either spelling) is refused in `fixed` and `default` like in `allow.tuning`.
 - **No rows for a caller.** A scope that returns `{ or: [] }` answers `200` with no hits and never calls the engine. `null` is the refusal (`403`).
 
+### Limit the modes a route takes
+
+`POST /search` takes `keyword`, `semantic` and `hybrid`. `modes.allow` names the ones a route serves:
+
+```typescript
+SearchControllerFactory.build({
+  repository: ProductSearchRepository,
+  routes: { search: { use: true } },
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+  modes: { allow: [SearchModes.KEYWORD] },
+});
+```
+
+- **One source.** The body schema is built from the list, so a request with another `mode` is a `400` from the validator, and the OpenAPI document shows only the listed modes.
+- **Left out, nothing changes.** Every friendly mode is served.
+- **Mistakes fail the build.** An empty list, a duplicate and a name that is not a mode throw when the controller is built; a typo does not compile.
+- **`raw` is not in the list.** It has its own toggle, below.
+- **The engine's own limits are not checked.** A `semantic` mode on a collection without vectors still reaches the engine.
+
 ### Raw mode and multi-search over HTTP
 
 `mode: 'raw'` and a multi-search entry hand the engine their parameters as they are. The model's default filter and its hidden fields are not applied to them, and a multi-search entry can name any collection. So every generated search controller answers `400` to both, scoped or not, until it opts in:

@@ -63,7 +63,6 @@ export class FetchHeaders {
 export class FetchStatus {
   /** Whether `status` is 2xx. */
   static isSuccess(opts: { status: number }): boolean {
-    // The hundreds digit: 2xx is the success class.
     return Math.floor(opts.status / 100) === 2;
   }
 

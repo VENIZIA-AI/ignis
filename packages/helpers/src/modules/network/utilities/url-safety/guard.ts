@@ -16,12 +16,8 @@ class UrlGuardRoute implements IFetchGuardRoute {
 
   constructor(
     private readonly policy: IUrlSafetyPolicy,
-    private readonly resolve: (opts: {
-      hostname: string;
-      trusted: boolean;
-      policy: IUrlSafetyPolicy;
-      signal?: AbortSignal;
-    }) => Promise<string[]>,
+    // Passed in because this class is defined before `UrlGuard`, which owns the resolver.
+    private readonly resolve: typeof UrlGuard.resolvePublicAddresses,
   ) {}
 
   async vet(opts: { url: string; signal?: AbortSignal }): Promise<IFetchGuardHop> {

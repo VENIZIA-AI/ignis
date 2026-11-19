@@ -105,10 +105,14 @@ describe('modes.allow left out', () => {
   test('serves keyword, semantic and hybrid, refuses raw, and the document lists those three', async () => {
     const { router } = await mount({});
 
-    expect(await post({ router, body: BODIES.keyword })).toBe(200);
-    expect(await post({ router, body: BODIES.semantic })).toBe(200);
-    expect(await post({ router, body: BODIES.hybrid })).toBe(200);
-    expect(await post({ router, body: BODIES.raw })).toBe(400);
+    const result = await post({ router, body: BODIES.keyword });
+    expect(result).toBe(200);
+    const result2 = await post({ router, body: BODIES.semantic });
+    expect(result2).toBe(200);
+    const result3 = await post({ router, body: BODIES.hybrid });
+    expect(result3).toBe(200);
+    const result4 = await post({ router, body: BODIES.raw });
+    expect(result4).toBe(400);
 
     const text = documentText(router);
 
@@ -123,13 +127,17 @@ describe('modes.allow: [keyword]', () => {
   test('the validator refuses every other mode and the engine is not reached', async () => {
     const { router, dataSource } = await mount({ modes: { allow: [SearchModes.KEYWORD] } });
 
-    expect(await post({ router, body: BODIES.keyword })).toBe(200);
+    const result = await post({ router, body: BODIES.keyword });
+    expect(result).toBe(200);
 
     const reached = dataSource.fakeConnector.searchCalls.length;
 
-    expect(await post({ router, body: BODIES.semantic })).toBe(400);
-    expect(await post({ router, body: BODIES.hybrid })).toBe(400);
-    expect(await post({ router, body: BODIES.raw })).toBe(400);
+    const result2 = await post({ router, body: BODIES.semantic });
+    expect(result2).toBe(400);
+    const result3 = await post({ router, body: BODIES.hybrid });
+    expect(result3).toBe(400);
+    const result4 = await post({ router, body: BODIES.raw });
+    expect(result4).toBe(400);
     expect(dataSource.fakeConnector.searchCalls).toHaveLength(reached);
   });
 
@@ -150,10 +158,14 @@ describe('modes.allow with modes.raw', () => {
       modes: { allow: [SearchModes.KEYWORD, SearchModes.HYBRID], raw: { use: true } },
     });
 
-    expect(await post({ router, body: BODIES.keyword })).toBe(200);
-    expect(await post({ router, body: BODIES.hybrid })).toBe(200);
-    expect(await post({ router, body: BODIES.raw })).toBe(200);
-    expect(await post({ router, body: BODIES.semantic })).toBe(400);
+    const result = await post({ router, body: BODIES.keyword });
+    expect(result).toBe(200);
+    const result2 = await post({ router, body: BODIES.hybrid });
+    expect(result2).toBe(200);
+    const result3 = await post({ router, body: BODIES.raw });
+    expect(result3).toBe(200);
+    const result4 = await post({ router, body: BODIES.semantic });
+    expect(result4).toBe(400);
 
     const text = documentText(router);
 
@@ -184,13 +196,17 @@ describe('modes.allow is checked when the controller is built', () => {
 });
 
 describe('modes.allow is typed from the mode names', () => {
-  test('a typo does not compile, a SearchModes name does', () => {
-    SearchControllerFactory.build({
-      repository: ModesAllowProductRepository,
-      routes: { search: { use: true } },
-      authenticate: { skip: true },
-      // @ts-expect-error 'keywords' is not a mode name
-      modes: { allow: ['keywords'] },
-    });
+  test('a typo does not compile', () => {
+    // Never called: the type error is the test.
+    const typo = () =>
+      SearchControllerFactory.build({
+        repository: ModesAllowProductRepository,
+        routes: { search: { use: true } },
+        authenticate: { skip: true },
+        // @ts-expect-error 'keywords' is not a mode name
+        modes: { allow: ['keywords'] },
+      });
+
+    expect(typeof typo).toBe('function');
   });
 });

@@ -1,6 +1,7 @@
 // Must precede the controllers/factory import below: avoids a circular-import TDZ error.
 import '@venizia/ignis-kernel';
 
+import { z } from 'zod';
 import { describe, expect, test } from 'bun:test';
 
 import { repository, controller as controllerDecorator } from '@venizia/ignis-kernel';
@@ -89,15 +90,23 @@ const MULTI = { searches: [{ collection: 'products', query: 'foo' }] };
 
 describe('an unscoped controller that did not opt in', () => {
   test.each([
-    ['no modes', undefined],
-    ['modes without raw', {}],
-    ['use: false', { raw: { use: false } }],
-  ])("the body schema does not list mode 'raw' (%s), so the validator refuses it", (_name, modes) => {
+    ['no modes', undefined, false],
+    ['modes without raw', {}, false],
+    ['use: false', { raw: { use: false } }, false],
+    ['use: true', { raw: { use: true } }, true],
+  ])("lists mode 'raw' in the body schema only when it is on (%s)", (_name, modes, isListed) => {
     const { controller } = build({ modes });
-    const body = controller.definitions.SEARCH.request.body.content['application/json'].schema;
+    const config = controller.definitions.SEARCH;
+    const body = config.request?.body;
+    const content = body && 'content' in body ? body.content['application/json'] : undefined;
+    const schema = content && 'schema' in content ? content.schema : undefined;
 
-    expect(body.safeParse(RAW).success).toBe(false);
-    expect(body.safeParse(KEYWORD).success).toBe(true);
+    if (!(schema instanceof z.ZodType)) {
+      throw new Error('the search body has no zod schema');
+    }
+
+    expect(schema.safeParse(RAW).success).toBe(isListed);
+    expect(schema.safeParse(KEYWORD).success).toBe(true);
   });
 
   test('refuses multi-search with 400, and the engine is not reached', async () => {
