@@ -174,6 +174,8 @@ const worker = BullMQHelper.newInstance<IMail, void, { requestId: string }>({
 - A throw from `metadata` fails the `add`: a job is never enqueued unstamped by accident. The answer must be a plain object (not an array, `null` or a string).
 - `data` may be any shape; it is forwarded as given and never read. A `metadata` key inside `data` is yours.
 - `opts.metadata` set by the caller is refused: the stamp is the one source, never overwritten.
+- The stamp goes through msgpack and Redis's Lua `cjson`: keep it to strings, numbers and non-empty values. An empty array comes back as `{}`, `null` fields vanish, and numbers keep about 14 significant digits.
+- `readMetadata` returns what is stored, unvalidated: check the fields before you trust them.
 - A job added by `queue.add` (or by another producer) has no stamp: the worker gets `metadata: undefined`.
 - The stamp lives in the job's `opts` hash field, so a dashboard that shows job options shows it, and it lives as long as the job (the helper's default `removeOnComplete` deletes the job).
 
@@ -184,7 +186,8 @@ const worker = BullMQHelper.newInstance<IMail, void, { requestId: string }>({
 A developer machine that sometimes runs against the shared DEV Redis must not take DEV jobs. Give it a prefix of its own and leave DEV, UAT and PROD on today's keys:
 
 ```typescript
-const prefix = process.env.NODE_ENV === 'development' ? `bull:local:${process.env.USER}` : undefined;
+const developer = process.env.USER ?? process.env.USERNAME ?? 'dev';
+const prefix = process.env.NODE_ENV === 'development' ? `bull:local:${developer}` : undefined;
 
 const worker = BullMQHelper.newInstance({ queueName: 'mail', identifier: 'mail-worker', role: 'worker', redisConnection: redis, prefix });
 ```

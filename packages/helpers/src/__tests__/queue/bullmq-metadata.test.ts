@@ -264,6 +264,21 @@ describe('BullMQ keeps the metadata key: the pin the design stands on', () => {
     expect(start).toBeGreaterThan(-1);
     expect(encoder).toMatch(/else\s*\{\s*options\[attributeName\]\s*=\s*value;\s*\}/);
   });
+
+  /** Reading: workers and `getJob` decode through the backend's private `optsFromJSON`, not the public `Job` static. */
+  test('reading: the installed backend decoder keeps an option key it does not know', () => {
+    const require = createRequire(import.meta.url);
+    const file = join(
+      dirname(require.resolve('bullmq/package.json')),
+      'dist/esm/classes/redis-queue-backend.js',
+    );
+    const source = readFileSync(file, 'utf8');
+    const start = source.indexOf('function optsFromJSON(');
+    const decoder = source.slice(start, source.indexOf('\n}\n', start));
+
+    expect(start).toBeGreaterThan(-1);
+    expect(decoder).toMatch(/else\s*\{\s*options\[attributeName\]\s*=\s*value;\s*\}/);
+  });
 });
 
 describe('the worker side', () => {

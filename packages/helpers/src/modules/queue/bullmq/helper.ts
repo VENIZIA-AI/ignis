@@ -224,7 +224,7 @@ export class BullMQHelper<
     return prefix;
   }
 
-  /** The metadata a producer's helper stamped on `job`, or `undefined` for a job added without one (a raw `queue.add`, another producer). Not part of `job.data`. */
+  /** The metadata a producer's helper stamped on `job`, or `undefined` for a job added without one (a raw `queue.add`, another producer). Not part of `job.data`. Returned as stored: its fields are not validated against `TMetadata`. */
   static readMetadata<TMetadata extends object = Record<string, unknown>>(opts: {
     job: Pick<Job, 'opts'> | undefined;
   }): TMetadata | undefined {
