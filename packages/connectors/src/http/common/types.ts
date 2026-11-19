@@ -17,6 +17,8 @@ export interface IHttpRequestContext {
   paths: Array<string>;
   method: string;
   url: string;
+  /** 1 for the first send, 2 for the one after a refreshed 401. */
+  attempt?: number;
   /** The call's own signal: a hook may stop waiting on it. A refresh shared by other calls should not be aborted by one. */
   signal?: AbortSignal;
 }

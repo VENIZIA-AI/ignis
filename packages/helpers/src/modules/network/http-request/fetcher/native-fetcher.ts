@@ -241,7 +241,7 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
       return answer;
     }
 
-    const answer = await fetch(url, init);
+    const answer = await fetch(url.toString(), init);
 
     return answer;
   }

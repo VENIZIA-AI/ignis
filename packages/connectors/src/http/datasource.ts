@@ -2,7 +2,7 @@ import { EchoUtility } from '@/common/internal';
 import { HttpReadShapes, HttpWireHeaders, type THttpReadShape } from './common/constants';
 import { DataSourceRoot } from '@venizia/ignis-kernel/repository';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, NativeFetcher, UrlFetchError } from '@venizia/ignis-helpers/core';
 import { HttpResponseReader } from './common/readers';
 import type {
   IAuthToken,
@@ -260,37 +260,73 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
     const method = opts.method ?? HTTP.Methods.GET;
     const context: IHttpRequestContext = { paths: opts.paths, method, url, signal };
     const { payload, isJson, isFormData } = HttpWire.toRequestBody({ body: opts.body });
+    const { onUnauthorized } = this.settings;
 
-    // Both hooks run inside `send`, so the retry sends what they answer after the refresh.
-    const send = () =>
-      // The platform `fetch` unless the settings name a sender; looked up per call, so a test that swaps the global is heard.
-      (this.settings.fetch ?? fetch)(url, {
-        method: method.toUpperCase(),
+    // One fetcher per call: its hooks close over this call's context. Both resolvers run in `onRequest`, so the retry sends what they answer after the refresh.
+    const fetcher = new NativeFetcher({
+      name: this.name,
+      fetch: this.settings.fetch,
+      hooks: {
+        onRequest: ({ headers }) => {
+          const built = this.buildHeaders({
+            token: this.resolveAuthToken({ context }),
+            // Resolved first, so the call's own headers win over them.
+            requestHeaders: [...this.resolveHeaders({ context }), ...requestHeaders],
+            isJsonBody: isJson,
+            isFormDataBody: isFormData,
+          });
+
+          for (const name of [...headers.keys()]) {
+            headers.delete(name);
+          }
+
+          built.forEach((value, name) => headers.set(name, value));
+        },
+      },
+    });
+
+    try {
+      const response = await fetcher.send({
+        url,
+        method,
         body: payload,
         signal,
-        headers: this.buildHeaders({
-          token: this.resolveAuthToken({ context }),
-          // Resolved first, so the call's own headers win over them.
-          requestHeaders: [...this.resolveHeaders({ context }), ...requestHeaders],
-          isJsonBody: isJson,
-          isFormDataBody: isFormData,
-        }),
+        // Every status is an answer the data source reads itself; a 401 with a refresh hook throws once so the retry can see it.
+        acceptStatus: (status) => !onUnauthorized || status !== HTTP.ResultCodes.RS_4.Unauthorized,
+        retry: onUnauthorized
+          ? {
+              maxAttempts: 2,
+              backoff: { initialDelayMs: 0, maxDelayMs: 0 },
+              shouldRetry: async ({ error, attempt }) => {
+                if (
+                  !UrlFetchError.is(error) ||
+                  error.status !== HTTP.ResultCodes.RS_4.Unauthorized
+                ) {
+                  return false;
+                }
+
+                const isRefreshed = await onUnauthorized({ ...context, attempt });
+
+                // The second 401 stands: the hook hears of it, its answer is ignored, and nothing is sent a third time.
+                return attempt === 1 && isRefreshed;
+              },
+            }
+          : undefined,
       });
 
-    let response = await send();
-
-    if (response.status === HTTP.ResultCodes.RS_4.Unauthorized && this.settings.onUnauthorized) {
-      const shouldRetry = await this.settings.onUnauthorized(context);
-
-      // A call aborted while the session refreshed is not sent again.
-      if (shouldRetry) {
-        signal?.throwIfAborted();
-        const result = await send();
-        response = result;
+      return response;
+    } catch (error) {
+      // The 401 that stands is the answer: the data source reads its body into its own error.
+      if (
+        error instanceof UrlFetchError &&
+        error.status === HTTP.ResultCodes.RS_4.Unauthorized &&
+        error.response instanceof Response
+      ) {
+        return error.response;
       }
-    }
 
-    return response;
+      throw error;
+    }
   }
 
   /**

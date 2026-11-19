@@ -391,8 +391,12 @@ describe('the hooks are told which request they serve', () => {
     expect(seen.map((entry) => entry.hook)).toEqual(['token', 'headers', 'unauthorized']);
 
     for (const entry of seen) {
-      expect(entry.context).toEqual(expected);
+      expect(entry.context).toMatchObject(expected);
     }
+
+    // Only the refresh hook is told which attempt it is.
+    expect(seen.find((entry) => entry.hook === 'unauthorized')?.context.attempt).toBe(1);
+    expect(seen.find((entry) => entry.hook === 'token')?.context.attempt).toBeUndefined();
   });
 
   test('a public route gets no token, and declines the refresh', async () => {

@@ -856,6 +856,7 @@ SearchControllerFactory.build({
 - **Left out, nothing changes.** Every friendly mode is served.
 - **Mistakes fail the build.** An empty list, a duplicate and a name that is not a mode throw when the controller is built; a typo does not compile.
 - **`raw` is not in the list.** It has its own toggle, below.
+- **Multi-search does not use it.** It needs `modes.raw`, which already allows any query.
 - **The engine's own limits are not checked.** A `semantic` mode on a collection without vectors still reaches the engine.
 
 ### Raw mode and multi-search over HTTP

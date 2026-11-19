@@ -268,7 +268,7 @@ For each attempt: `onRequest` → the guard vets the url and pins its addresses 
 
 #### Status check
 
-A status outside 2xx throws `UrlFetchError<RS>` with `status`, `url`, `headers`, `location` (a redirect) and the `response`, whose body is already cancelled. A 3xx the client followed is judged on its final answer.
+A status outside 2xx throws `UrlFetchError<RS>` with `status`, `url`, `headers`, `location` (a redirect) and the `response`, whose body (the first 64 KiB) is still readable: `await error.response.json()` reads the server's error envelope. A 3xx the client followed is judged on its final answer.
 
 `acceptStatus` is the only opt-out. A list adds to 2xx:
 
@@ -295,8 +295,8 @@ An empty list is 2xx only. An accepted status is an answer, so it is never retri
 - Never retried by default: any other 4xx, a 3xx, a guard refusal, a schema mismatch, a caller abort.
 - A `Retry-After` header (seconds or an HTTP date) on a 429 or 503 is the least wait before the next attempt. A wait above `backoff.maxDelayMs` (30 seconds by default) or above `maxTotalMs` ends the retries: the last error is thrown. A negative or garbled value is ignored.
 - A POST is retried only because the caller passed `retry`. Keep the call idempotent (an idempotency key).
-- A body that can be sent only once (a stream, a `FormData`) cannot be retried when `maxAttempts` is above 1: the call fails before anything is sent. A string, bytes, a `Blob`, `URLSearchParams`, an array and a plain object can.
-- `shouldRetry` replaces the default decision.
+- A body that can be sent only once (a stream) cannot be retried when `maxAttempts` is above 1: the call fails before anything is sent. A string, bytes, a `Blob`, `URLSearchParams`, a standard `FormData`, an array and a plain object can.
+- `shouldRetry` replaces the default decision; it may return a promise (`async`).
 
 #### Hooks
 
@@ -425,12 +425,13 @@ constructor(opts: {
   defaults?: IFetcherDefaults;
   hooks?: IFetcherHooks;
   guardEngine?: IFetchGuard;
+  fetch?: TNativeFetchSender;
   queryString?: IQueryStringOptions;
   logger?: TFetcherLogger;
 })
 ```
 
-`defaultConfigs` carries the `RequestInit` settings the pipeline does not own (`credentials`, `mode`, `cache`, ...); `headers` and `signal` are not part of it, they belong to `defaults` and to the call. `queryString` decides how `params` are written into the url (see [`QueryStringUtility.toQueryString`](#querystringutility-toquerystring)). `TFetcherLogger` is `Pick<ILogger, 'debug' | 'info'>`. `getWorker()` returns the global `fetch`.
+`fetch` is what sends a request, in place of the global `fetch` (read at call time): `(url: string, init: RequestInit) => Promise<Response>`, for a test double, a proxy or an instrumented client. `defaultConfigs` carries the `RequestInit` settings the pipeline does not own (`credentials`, `mode`, `cache`, ...); `headers` and `signal` are not part of it, they belong to `defaults` and to the call. `queryString` decides how `params` are written into the url (see [`QueryStringUtility.toQueryString`](#querystringutility-toquerystring)). `TFetcherLogger` is `Pick<ILogger, 'debug' | 'info'>`. `getWorker()` returns the global `fetch`.
 
 #### INativeFetchRequestOptions
 
@@ -1241,7 +1242,7 @@ Any status outside 2xx, and a redirect that was not followed, raise a `UrlFetchE
 | `status` | The status the upstream answered with |
 | `url` | The url you asked for |
 | `headers` | The response headers |
-| `response` | The upstream's answer. Its body is already cancelled, so read the status and headers only |
+| `response` | The upstream's answer, with the first 64 KiB (`UrlFetchError.MAX_BODY_BYTES`) of its body still readable |
 | `location` | The raw `Location` header of a redirect, when it had one |
 
 `statusCode` (the status this server answers with) stays 400. `UrlFetchError.is(error)` narrows an error.

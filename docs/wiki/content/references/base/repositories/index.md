@@ -244,7 +244,7 @@ new HttpDataSource({
 | `headers` | Sent on every request. |
 | `headersResolver` | Headers for this request. Wins over `headers`. |
 | `authToken` / `authTokenResolver` | The token. A fixed `authToken` wins and goes on every request; the resolver answering `undefined` sends none. |
-| `onUnauthorized` | Runs on a 401; `true` retries once, `false` lets it stand. A call whose `signal` aborted meanwhile is not retried. |
+| `onUnauthorized` | Runs on a 401; `true` retries once, `false` lets it stand. It is told the `attempt` (1, or 2 for the retry's own 401, when its answer is ignored and the 401 stands). A call whose `signal` aborted meanwhile is not retried. |
 | `fetch` | What sends a request: `(url, init) => Promise<Response>` |
 
 A path-relative `baseUrl` (`api`) is refused: it would follow the current route. So is one with a `?` or `#`: the request paths would end up inside the query.

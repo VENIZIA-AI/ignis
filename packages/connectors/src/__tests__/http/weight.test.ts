@@ -7,8 +7,8 @@ import { join } from 'node:path';
  * nobody measures is not one.
  */
 const HTTP_ENTRY = join(process.cwd(), 'src/http/index.ts');
-/** The measured size is about 28 KB; the 60 KB it was carried the `reflect-metadata` polyfill, the DI registry and the node transport. */
-const CEILING_BYTES = 45 * 1024;
+/** The measured size is about 72 KB: the data source sends through `NativeFetcher`, whose pipeline (status check, retry, hooks, the error classes) is browser-pure and ships with it. The SQL stack was 140 KB more. */
+const CEILING_BYTES = 80 * 1024;
 
 const bundle = async () => {
   const built = await Bun.build({ entrypoints: [HTTP_ENTRY], target: 'browser', minify: true });
@@ -33,9 +33,9 @@ describe('the http connector stays free of the SQL stack', () => {
   const forbiddens = [
     'drizzle',
     'ZodObject',
-    // The `reflect-metadata` polyfill, and the node transport's log line.
+    // The `reflect-metadata` polyfill, and the node logger provider.
     'getOwnMetadataKeys',
-    'Creating new network request worker instance',
+    'winston',
   ] as const;
 
   for (const forbidden of forbiddens) {
