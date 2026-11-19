@@ -630,7 +630,10 @@ export abstract class AbstractNetworkFetchableHelper<
         onRetry,
         execution: ({ attempt }) => run(attempt),
       });
-    } catch (error) {
+    } catch (caught) {
+      // The retry helper reports its own abort in its own words; the caller gets the reason it aborted with.
+      const error = call.signal?.aborted ? call.signal.reason : caught;
+
       await this.hooks.onError?.({
         request:
           lastRequest ??

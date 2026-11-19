@@ -12,6 +12,7 @@ await mock.module('node:dns/promises', () => ({ lookup: lookupMock }));
 const { UrlIngest } = await import('@/modules/network/utilities/url-safety/ingest');
 const { UrlGuard } = await import('@/modules/network/utilities/url-safety/guard');
 const { createFetchGuarded } = await import('./fixtures/guarded');
+const { NativeFetcher } = await import('@/modules/network/http-request/fetcher/native-fetcher');
 const fetchGuarded = createFetchGuarded({ engine: UrlGuard });
 const { UrlPolicy } = await import('@/modules/network/utilities/url-safety/policy');
 const { UrlSchemes } = await import('@/modules/network/utilities/url-safety/common/constants');
@@ -700,5 +701,86 @@ describe('NativeFetcher with a guard - a trusted host name is pinned, and never 
         error: result,
       }),
     ).toBe(true);
+  });
+});
+
+describe('the guard inside the pipeline: retries, defaults and hooks', () => {
+  const FAST = { initialDelayMs: 1, maxDelayMs: 2 };
+  const stubFetch = (statuses: number[]) => {
+    const calls: Array<{ url: string; headers: Headers }> = [];
+
+    globalThis.fetch = (async (input: URL | string, init: RequestInit) => {
+      calls.push({ url: String(input), headers: new Headers(init.headers) });
+
+      return new Response('body', { status: statuses[Math.min(calls.length - 1, statuses.length - 1)] });
+    }) as unknown as typeof fetch;
+
+    return calls;
+  };
+
+  test('every retry attempt re-runs the whole guard: a fresh lookup, a fresh pin', async () => {
+    lookupMock.mockResolvedValueOnce(answer('203.0.113.10')).mockResolvedValueOnce(answer('203.0.113.11'));
+    const calls = stubFetch([503, 200]);
+
+    const response = await new NativeFetcher({ name: 'retry-guard', guardEngine: UrlGuard }).get({
+      url: 'https://hook.example.test/in',
+      guard: policy,
+      retry: { maxAttempts: 2, backoff: FAST },
+    });
+
+    expect(response.status).toBe(200);
+    expect(lookupMock).toHaveBeenCalledTimes(2);
+    expect(calls.map((call) => call.url)).toEqual([
+      'https://203.0.113.10/in',
+      'https://203.0.113.11/in',
+    ]);
+  });
+
+  test('a host that turns private between attempts is refused on the second, and a refusal is not retried', async () => {
+    lookupMock.mockResolvedValueOnce(answer('203.0.113.10')).mockResolvedValue(answer('10.0.0.5'));
+    const calls = stubFetch([503, 200]);
+
+    const error = await new NativeFetcher({ name: 'rebind', guardEngine: UrlGuard })
+      .get({ url: 'https://hook.example.test/in', guard: policy, retry: { maxAttempts: 4, backoff: FAST } })
+      .catch((caught: unknown) => caught);
+
+    expect(UrlPolicy.isRefusedError({ error })).toBe(true);
+    expect(calls).toHaveLength(1);
+    expect(lookupMock).toHaveBeenCalledTimes(2);
+  });
+
+  test('a default guard cannot be switched off by a call: an absent guard keeps it, a policy replaces it', async () => {
+    lookupMock.mockResolvedValue(answer('10.0.0.5'));
+    stubFetch([200]);
+    const fetcher = new NativeFetcher({
+      name: 'default-guard',
+      guardEngine: UrlGuard,
+      defaults: { guard: policy },
+    });
+
+    const refused = await fetcher
+      .get({ url: 'https://hook.example.test/in', guard: undefined })
+      .catch((caught: unknown) => caught);
+    expect(UrlPolicy.isRefusedError({ error: refused })).toBe(true);
+
+    const trusted = await fetcher.get({
+      url: 'http://vault.corp.test:8200/x',
+      guard: { hosts: { trusted: ['http://vault.corp.test:8200'] } },
+    });
+    expect(trusted.status).toBe(200);
+  });
+
+  test('onRequest runs before the guard, so what it signs is what the pinned request carries', async () => {
+    lookupMock.mockResolvedValue(answer('203.0.113.10'));
+    const calls = stubFetch([200]);
+
+    await new NativeFetcher({
+      name: 'hook-guard',
+      guardEngine: UrlGuard,
+      hooks: { onRequest: ({ headers }) => headers.set('x-signed', 'yes') },
+    }).get({ url: 'https://hook.example.test/in', guard: policy });
+
+    expect(calls[0].headers.get('x-signed')).toBe('yes');
+    expect(calls[0].headers.get('host')).toBe('hook.example.test');
   });
 });
