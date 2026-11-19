@@ -1,4 +1,4 @@
-import { HTTP, type THttpMethod } from '@/common';
+import { HTTP } from '@/common';
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import http from 'node:http';
 import https from 'node:https';

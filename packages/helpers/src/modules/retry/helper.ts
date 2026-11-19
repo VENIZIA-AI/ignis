@@ -221,7 +221,10 @@ export class RetryHelper extends BaseHelper {
     } catch (error) {
       const elapsedMs = Date.now() - startedAt;
 
-      if (shouldRetry && !(await shouldRetry({ attempt, error, elapsedMs }))) {
+      const verdict = shouldRetry ? shouldRetry({ attempt, error, elapsedMs }) : true;
+      const isRetryAllowed = await verdict;
+
+      if (!isRetryAllowed) {
         throw error;
       }
 

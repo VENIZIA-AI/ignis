@@ -433,20 +433,21 @@ describe('replay', () => {
     expect(form.status).toBe(200);
   });
 
-  test('a Blob and URLSearchParams can be retried, a FormData cannot', async () => {
+  test('a Blob, URLSearchParams and a standard FormData can be retried', async () => {
     const fetcher = new NativeFetcher({ name: 'n' });
     const retry = { maxAttempts: 2, backoff: FAST };
 
-    const result2 = await fetcher.post({ url: `${base}/x`, body: new Blob(['x']), retry });
-    expect(result2.status).toBe(200);
-    const result3 = await fetcher.post({
+    const blob = await fetcher.post({ url: `${base}/x`, body: new Blob(['x']), retry });
+    const params = await fetcher.post({
       url: `${base}/x`,
       body: new URLSearchParams({ a: '1' }),
       retry,
     });
-    expect(result3.status).toBe(200);
-    const result4 = await refusal(fetcher.post({ url: `${base}/x`, body: new FormData(), retry }));
-    expect(result4).toContain('sent once');
+    const form = await fetcher.post({ url: `${base}/x`, body: new FormData(), retry });
+
+    expect(blob.status).toBe(200);
+    expect(params.status).toBe(200);
+    expect(form.status).toBe(200);
   });
 
   test('a body that can be sent only once cannot be retried: a clear error, nothing sent', async () => {

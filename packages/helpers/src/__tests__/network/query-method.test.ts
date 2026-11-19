@@ -42,6 +42,7 @@ class CapturingFetcher extends AbstractNetworkFetchableHelper<'native', IRequest
       statusText: response.statusText,
       headers: response.headers,
       discard: async () => undefined,
+      keepBody: async () => response,
       readJson: async () => ({}),
       capped: () => response,
     };

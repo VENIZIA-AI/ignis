@@ -1,4 +1,4 @@
-import { HTTP, type THttpMethod } from '@/common/constants/http';
+import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
 import type { IUrlSafetyPolicy } from '@/modules/network/utilities/url-safety/common/types';
 import { UrlPolicy } from '@/modules/network/utilities/url-safety/policy';
@@ -117,8 +117,7 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
   /** A standard `FormData` is encoded afresh on every send, so it can be sent again. */
   protected override isReplayable(opts: { body: unknown }): boolean {
     return (
-      (typeof FormData !== 'undefined' && opts.body instanceof FormData) ||
-      super.isReplayable(opts)
+      (typeof FormData !== 'undefined' && opts.body instanceof FormData) || super.isReplayable(opts)
     );
   }
 
@@ -200,11 +199,11 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
         const result = await this.request({
           url: pinned,
           init: {
-          ...init,
-          // `proxy: false` is Bun's way to ignore HTTP_PROXY / HTTPS_PROXY for this call (an empty string or undefined keeps the environment's proxy, which would resolve the name itself and undo the pin). A test pins it.
-          proxy: false,
-          headers,
-          ...(hasNameToVerify ? { tls: { serverName: url.hostname } } : {}),
+            ...init,
+            // `proxy: false` is Bun's way to ignore HTTP_PROXY / HTTPS_PROXY for this call (an empty string or undefined keeps the environment's proxy, which would resolve the name itself and undo the pin). A test pins it.
+            proxy: false,
+            headers,
+            ...(hasNameToVerify ? { tls: { serverName: url.hostname } } : {}),
           },
         });
 
