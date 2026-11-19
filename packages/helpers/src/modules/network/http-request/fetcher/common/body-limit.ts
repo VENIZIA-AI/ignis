@@ -1,5 +1,6 @@
 import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
+import type { ApplicationError } from '@venizia/ignis-inversion';
 import { UrlSafetyErrors } from '@/modules/network/utilities/url-safety/common/errors';
 import { UrlSafetyDefaults } from '@/modules/network/utilities/url-safety/common/constants';
 
@@ -8,7 +9,13 @@ const DEFAULT_MAX_BYTES = UrlSafetyDefaults.MAX_BYTES;
 
 /** A cap on a body, for a stream piped onward or a body read into memory. Browser-pure: streams and typed arrays only. */
 export class BodyLimit {
-  static readonly DEFAULT_MAX_BYTES = DEFAULT_MAX_BYTES;
+  /** The one refusal of a body over the cap; `detail` says how it was found (declared, received, a client's own words). */
+  static refuse(opts: { detail: string }): ApplicationError {
+    return getError({
+      error: UrlSafetyErrors.URL_REFUSED,
+      message: `[fetch] Body exceeds the cap | ${opts.detail}`,
+    });
+  }
 
   /** Enforces `maxBytes` on a stream nothing reads into this process: the cap fails the stream the moment the bytes cross it. */
   static capStream(opts: {
@@ -26,10 +33,7 @@ export class BodyLimit {
 
           if (received > maxBytes) {
             controller.error(
-              getError({
-                error: UrlSafetyErrors.URL_REFUSED,
-                message: `[capStream] Body exceeds the cap | received: ${received} | max: ${maxBytes}`,
-              }),
+              BodyLimit.refuse({ detail: `received: ${received} | max: ${maxBytes}` }),
             );
 
             return;
@@ -111,10 +115,7 @@ export class BodyLimit {
 
     if (declaredLength > maxBytes) {
       await response.body?.cancel();
-      throw getError({
-        error: UrlSafetyErrors.URL_REFUSED,
-        message: `[readBytes] Body exceeds the cap | declared: ${declaredLength} | max: ${maxBytes}`,
-      });
+      throw BodyLimit.refuse({ detail: `declared: ${declaredLength} | max: ${maxBytes}` });
     }
 
     const reader = response.body?.getReader();
@@ -137,10 +138,7 @@ export class BodyLimit {
 
       if (received > maxBytes) {
         await reader.cancel();
-        throw getError({
-          error: UrlSafetyErrors.URL_REFUSED,
-          message: `[readBytes] Body exceeds the cap | received: ${received} | max: ${maxBytes}`,
-        });
+        throw BodyLimit.refuse({ detail: `received: ${received} | max: ${maxBytes}` });
       }
 
       chunks.push(value);

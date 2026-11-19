@@ -165,8 +165,14 @@ export class HttpResponseReader {
     rootKey?: string;
   }): Promise<ApplicationError> {
     const { error, context, rootKey } = opts;
+    // A hand-built error may carry a status a `Response` refuses (below 200 or above 599, e.g. 0): that is a bad gateway.
+    const isResponseStatus = error.status >= 200 && error.status <= 599;
     const response =
-      error.response ?? new Response(null, { status: error.status, headers: error.headers });
+      error.response ??
+      new Response(null, {
+        status: isResponseStatus ? error.status : HTTP.ResultCodes.RS_5.BadGateway,
+        headers: error.headers,
+      });
 
     return HttpResponseReader.toApplicationError({ response, context, rootKey });
   }

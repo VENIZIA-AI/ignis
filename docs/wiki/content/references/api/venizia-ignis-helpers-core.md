@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-141 exports, 141 with TSDoc. 59 more are re-exported from other entries (listed at the end).
+134 exports, 134 with TSDoc. 59 more are re-exported from other entries (listed at the end).
 
 ## `AbstractCryptoAlgorithm`
 
@@ -334,7 +334,10 @@ A cap on a body, for a stream piped onward or a body read into memory. Browser-p
 
 ```ts
 export declare class BodyLimit {
-    static readonly DEFAULT_MAX_BYTES: number;
+    /** The one refusal of a body over the cap; `detail` says how it was found (declared, received, a client's own words). */
+    static refuse(opts: {
+        detail: string;
+    }): ApplicationError;
     /** Enforces `maxBytes` on a stream nothing reads into this process: the cap fails the stream the moment the bytes cross it. */
     static capStream(opts: {
         source: ReadableStream<Uint8Array>;
@@ -636,27 +639,6 @@ export declare class EnvironmentNames {
 
 Source: `packages/helpers/src/modules/env/names.ts`
 
-## `FetchErrors`
-
-*const*
-
-Errors a fetcher raises that are not a refusal of the url guard.
-
-```ts
-export declare const FetchErrors: {
-    readonly SCHEMA_MISMATCH: {
-        readonly message: {
-            readonly text: "The upstream answered something else than the schema describes";
-            readonly code: "core.fetch.schema_mismatch";
-        };
-        readonly statusCode: 502;
-        readonly category: "integration";
-    };
-};
-```
-
-Source: `packages/helpers/src/modules/network/http-request/fetcher/common/errors.ts`
-
 ## `FetchHeaders`
 
 *class*
@@ -696,8 +678,6 @@ The redirect rules of a fetcher that walks redirects by hand.
 
 ```ts
 export declare class FetchRedirects {
-    /** The statuses that name a new location; a 304 or a 300 is an answer, not a redirect. */
-    static readonly STATUSES: ReadonlyArray<number>;
     /** Request headers that name the body; they go when a redirect turns the request into a GET. */
     static readonly BODY_HEADERS: ReadonlyArray<string>;
     /**
@@ -802,9 +782,7 @@ Which statuses a fetcher takes as an answer.
 ```ts
 export declare class FetchStatus {
     /** Whether `status` is 2xx. */
-    static isSuccess(opts: {
-        status: number;
-    }): boolean;
+    private static isSuccess;
     /** The one place `acceptStatus` becomes a decision: a list adds to 2xx, a function replaces it, unset is 2xx. */
     static toPredicate(opts: {
         accept: ReadonlyArray<number> | ((status: number) => boolean) | undefined;
@@ -1634,14 +1612,16 @@ How {@link QueryStringUtility.toQueryString} treats the values `node:querystring
 export interface IQueryStringOptions {
     /**
      * What a `null` or `undefined` value becomes.
-     * @default QueryStringNullishModes.EMPTY
+     * `'empty'` is `a=` (what `node:querystring` does), `'skip'` leaves the pair out.
+     * @default 'empty'
      */
-    nullish?: TQueryStringNullishMode;
+    nullish?: 'empty' | 'skip';
     /**
      * What an object or an array value becomes.
-     * @default QueryStringNestedModes.DROP
+     * `'drop'` is an empty value (an array repeats its key: what `node:querystring` does), `'json'` is one JSON-encoded parameter (`filter={"where":{}}`).
+     * @default 'drop'
      */
-    nested?: TQueryStringNestedMode;
+    nested?: 'drop' | 'json';
 }
 ```
 
@@ -2451,40 +2431,6 @@ export declare class PromiseUtility {
 
 Source: `packages/helpers/src/utilities/promise.utility.ts`
 
-## `QueryStringNestedModes`
-
-*class*
-
-What an object or an array value becomes.
-
-```ts
-export declare class QueryStringNestedModes {
-    /** An empty value (an array repeats its key instead): what `node:querystring` does. */
-    static readonly DROP = "drop";
-    /** One JSON-encoded parameter (`ids=[1,2]`, `filter={"where":{}}`), the shape a JSON filter travels in. */
-    static readonly JSON = "json";
-}
-```
-
-Source: `packages/helpers/src/modules/network/utilities/query-string.ts`
-
-## `QueryStringNullishModes`
-
-*class*
-
-What a `null` or `undefined` value becomes.
-
-```ts
-export declare class QueryStringNullishModes {
-    /** An empty value (`a=`): what `node:querystring` does. */
-    static readonly EMPTY = "empty";
-    /** The pair is left out. */
-    static readonly SKIP = "skip";
-}
-```
-
-Source: `packages/helpers/src/modules/network/utilities/query-string.ts`
-
 ## `QueryStringSeparators`
 
 *class*
@@ -2905,18 +2851,6 @@ export type TFetchHeaders = Headers | Record<string, string | null | undefined>;
 
 Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`
 
-## `TFetchResult`
-
-*type*
-
-The answer of a call: the raw response, or - with a `schema` - the parsed body beside it.
-
-```ts
-export type TFetchResult<RS, S> = S extends z.ZodType ? IFetchParsed<z.infer<S>, RS> : RS;
-```
-
-Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`
-
 ## `TLogLevel`
 
 *type*
@@ -3054,30 +2988,6 @@ export type TOnVisitAsync<T> = (node: ITreeNode<T>, depth: number) => ValueOrPro
 
 Source: `packages/helpers/src/modules/tree/common/types.ts`
 
-## `TQueryStringNestedMode`
-
-*type*
-
-What {@link QueryStringNestedModes} selects: `drop` or `json`.
-
-```ts
-export type TQueryStringNestedMode = TConstValue<typeof QueryStringNestedModes>;
-```
-
-Source: `packages/helpers/src/modules/network/utilities/query-string.ts`
-
-## `TQueryStringNullishMode`
-
-*type*
-
-What {@link QueryStringNullishModes} selects: `empty` or `skip`.
-
-```ts
-export type TQueryStringNullishMode = TConstValue<typeof QueryStringNullishModes>;
-```
-
-Source: `packages/helpers/src/modules/network/utilities/query-string.ts`
-
 ## `TreeBuilder`
 
 *class*
@@ -3204,18 +3114,6 @@ export type TUidTokenEncoding = TConstValue<typeof UidTokenEncodings>;
 ```
 
 Source: `packages/helpers/src/modules/uid/common/constants.ts`
-
-## `TUrlScheme`
-
-*type*
-
-A scheme a guarded fetch accepts: `http:` or `https:`.
-
-```ts
-export type TUrlScheme = TConstValue<typeof UrlSchemes>;
-```
-
-Source: `packages/helpers/src/modules/network/utilities/url-safety/common/constants.ts`
 
 ## `UidAlphabets`
 
@@ -3405,13 +3303,7 @@ export declare class UrlPolicy {
      * Reads `policy.hosts`: its trusted origins, validated, and `strict`. A policy still carrying `allowedHosts` is refused:
      * ignoring it would widen "only these hosts" to "any public host".
      */
-    static readHosts(opts: {
-        policy?: IUrlSafetyPolicy;
-        scope?: string;
-    }): {
-        trusted: ReadonlySet<string>;
-        strict: boolean;
-    };
+    private static readHosts;
     /** Whether `origin` (as `new URL(...).origin` writes it) is one the policy trusts. */
     static isTrustedOrigin(opts: {
         origin: string;

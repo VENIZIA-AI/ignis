@@ -3,7 +3,7 @@ import type { TErrorDefinition, TRegisterErrors } from '@venizia/ignis-inversion
 import { ApplicationError, ErrorScopes } from '@venizia/ignis-inversion';
 
 /** Errors a fetcher raises that are not a refusal of the url guard. */
-export const FetchErrors = {
+const FetchErrors = {
   SCHEMA_MISMATCH: {
     message: {
       text: 'The upstream answered something else than the schema describes',

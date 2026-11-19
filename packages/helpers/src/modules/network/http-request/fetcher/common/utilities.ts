@@ -74,7 +74,7 @@ export class FetchHeaders {
 /** Which statuses a fetcher takes as an answer. */
 export class FetchStatus {
   /** Whether `status` is 2xx. */
-  static isSuccess(opts: { status: number }): boolean {
+  private static isSuccess(opts: { status: number }): boolean {
     return Math.floor(opts.status / 100) === 2;
   }
 
@@ -94,11 +94,11 @@ export class FetchStatus {
   }
 }
 
+/** The statuses that name a new location; a 304 or a 300 is an answer, not a redirect. */
+const REDIRECT_STATUSES: ReadonlyArray<number> = [301, 302, 303, 307, 308];
+
 /** The redirect rules of a fetcher that walks redirects by hand. */
 export class FetchRedirects {
-  /** The statuses that name a new location; a 304 or a 300 is an answer, not a redirect. */
-  static readonly STATUSES: ReadonlyArray<number> = [301, 302, 303, 307, 308];
-
   /** Request headers that name the body; they go when a redirect turns the request into a GET. */
   static readonly BODY_HEADERS: ReadonlyArray<string> = [
     HTTP.Headers.CONTENT_TYPE,
@@ -117,7 +117,7 @@ export class FetchRedirects {
   ];
 
   static isRedirect(opts: { status: number }): boolean {
-    return FetchRedirects.STATUSES.includes(opts.status);
+    return REDIRECT_STATUSES.includes(opts.status);
   }
 
   /** 303, and a POST answered 301 or 302, continue as a GET without the body. */

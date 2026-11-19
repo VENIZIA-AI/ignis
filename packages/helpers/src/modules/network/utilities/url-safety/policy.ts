@@ -331,7 +331,7 @@ export class UrlPolicy {
    * Reads `policy.hosts`: its trusted origins, validated, and `strict`. A policy still carrying `allowedHosts` is refused:
    * ignoring it would widen "only these hosts" to "any public host".
    */
-  static readHosts(opts: { policy?: IUrlSafetyPolicy; scope?: string }): {
+  private static readHosts(opts: { policy?: IUrlSafetyPolicy; scope?: string }): {
     trusted: ReadonlySet<string>;
     strict: boolean;
   } {

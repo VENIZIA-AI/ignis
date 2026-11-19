@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-225 exports, 225 with TSDoc. 259 more are re-exported from other entries (listed at the end).
+225 exports, 225 with TSDoc. 252 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -5653,7 +5653,6 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `EnvironmentNames` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `ErrorLogLevels` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `ErrorScopes` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
-- `FetchErrors` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `FetchHeaders` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `FetchRedirects` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `FetchRequestContext` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -5753,8 +5752,6 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `ParseUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `PerformanceUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `PromiseUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `QueryStringNestedModes` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `QueryStringNullishModes` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `QueryStringSeparators` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `QueryStringUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `RecordUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -5804,7 +5801,6 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `TFetcherResponse` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TFetcherWorker` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TFetchHeaders` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `TFetchResult` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TFieldMappingDataType` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TFieldMappingNames` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TFileExtension` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
@@ -5831,8 +5827,6 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `TOnVisitAsync` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TOptions` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TPrettify` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
-- `TQueryStringNestedMode` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `TQueryStringNullishMode` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TreeBuilder` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TreeWalker` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TRegisterErrors` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
@@ -5854,7 +5848,6 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `TTrustedOrigin` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TUidCaseForm` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TUidTokenEncoding` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `TUrlScheme` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TValueOrAsyncResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TValueOrResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `UidAlphabets` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
