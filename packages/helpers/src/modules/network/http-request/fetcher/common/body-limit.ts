@@ -1,8 +1,9 @@
 import { getError } from '@/modules/error';
 import { UrlSafetyErrors } from '@/modules/network/utilities/url-safety/common/errors';
+import { UrlSafetyDefaults } from '@/modules/network/utilities/url-safety/common/constants';
 
 /** The largest body a call accepts when it names no `maxBytes` of its own. */
-const DEFAULT_MAX_BYTES = 10 * 1024 * 1024;
+const DEFAULT_MAX_BYTES = UrlSafetyDefaults.MAX_BYTES;
 
 /** A cap on a body, for a stream piped onward or a body read into memory. Browser-pure: streams and typed arrays only. */
 export class BodyLimit {

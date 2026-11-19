@@ -3,8 +3,9 @@ import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse 
 import http from 'node:http';
 import https from 'node:https';
 import { isIP } from 'node:net';
-import { stringify } from 'node:querystring';
+import { QueryStringUtility } from '../../utilities/query-string';
 import { getError } from '@/modules/error';
+import { UrlSafetyErrors } from '@/modules/network/utilities/url-safety/common/errors';
 import type { IUrlSafetyPolicy } from '@/modules/network/utilities/url-safety/common/types';
 import { BaseNetworkRequest } from '../base-network-request.helper';
 import type { ILogger } from '@/modules/logger/common/types';
@@ -17,6 +18,17 @@ import {
 import type { IFetchGuard } from './common/guard';
 import type { IFetcherDefaults, IFetcherHooks } from './common/types';
 import { FetchHeaders } from './common/utilities';
+
+/** The axios options that choose where a request connects; a guard refuses every one. */
+const CONNECTION_OPTIONS = [
+  'socketPath',
+  'lookup',
+  'transport',
+  'proxy',
+  'httpAgent',
+  'httpsAgent',
+  'family',
+];
 
 /** The fields of an axios config the pipeline owns. */
 type TOwnedAxiosFields =
@@ -123,26 +135,58 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
     guard?: IUrlSafetyPolicy;
     extra: Record<string | symbol, unknown>;
   }): void {
-    if (opts.guard === undefined) {
+    const { guard, extra } = opts;
+
+    if (guard === undefined) {
       return;
     }
 
-    if (opts.extra.httpAgent !== undefined || opts.extra.httpsAgent !== undefined) {
+    if (guard.proxy !== undefined) {
       throw getError({
-        message: `[${this.name}] A guarded call cannot carry its own httpAgent or httpsAgent | an agent of the caller's could connect to an address the guard did not vet`,
+        message: `[${this.name}] A guarded call cannot use guard.proxy with axios | the request would go direct and unpinned; use a NativeFetcher for a proxied call`,
+      });
+    }
+
+    const source: Record<string | symbol, unknown> = { ...this.worker.defaults, ...extra };
+    const found = CONNECTION_OPTIONS.filter((name) => source[name] !== undefined);
+
+    // The default `adapter` is a list of names; only a function of the caller's own can choose the connection.
+    if (typeof source.adapter === 'function') {
+      found.push('adapter');
+    }
+
+    if (found.length > 0) {
+      throw getError({
+        message: `[${this.name}] A guarded call cannot set ${found.join(', ')} | an option that chooses the connection could reach an address the guard did not vet`,
+      });
+    }
+
+    if (source.responseType === 'stream') {
+      throw getError({
+        message: `[${this.name}] A guarded call cannot ask for a stream with axios | the pinned agent is gone when the call returns and a stream is not capped; use a NativeFetcher to stream`,
       });
     }
   }
 
   protected override buildUrl(opts: { url: string; params?: Record<string, unknown> }): string {
     const { url, params } = opts;
-    const query = params ? stringify(params as Record<string, string>) : '';
+    const query = params ? QueryStringUtility.toQueryString({ params }) : '';
 
     return query ? `${url}${url.includes('?') ? '&' : '?'}${query}` : url;
   }
 
-  protected override isReplayable(opts: { body: unknown }): boolean {
-    return typeof opts.body === 'object' || super.isReplayable(opts);
+  /** An axios body-size overflow is the cap's refusal (permanent), not a transport error the retry would repeat. */
+  private refineError(opts: { error: unknown; url: string }): unknown {
+    const { error, url } = opts;
+
+    if (axios.isAxiosError(error) && /maxContentLength/.test(error.message)) {
+      return getError({
+        error: UrlSafetyErrors.URL_REFUSED,
+        message: `[fetch] Body exceeds the cap | ${error.message} | url: ${url}`,
+      });
+    }
+
+    return error;
   }
 
   protected override async exchange(
@@ -204,7 +248,14 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
     }
 
     try {
-      const response = await this.worker.request(props);
+      let response: AxiosResponse<unknown>;
+
+      try {
+        const result = await this.worker.request(props);
+        response = result;
+      } catch (error) {
+        throw this.refineError({ error, url: url.toString() });
+      }
 
       return {
         response,

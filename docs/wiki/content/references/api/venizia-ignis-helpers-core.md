@@ -740,6 +740,8 @@ What a retried call retries, and for how long a server asks it to wait.
 
 ```ts
 export declare class FetchRetry {
+    /** The longest wait a call takes between two attempts unless `backoff.maxDelayMs` says otherwise; the retry helper's own default. */
+    static readonly DEFAULT_MAX_DELAY_MS = 30000;
     /**
      * The default decision: a network error, a timeout, a 5xx and a 429 are worth another attempt. Any other 4xx, a 3xx, a
      * url the guard refused (refused forever), a schema mismatch and a caller's own abort are not.
@@ -1838,7 +1840,7 @@ export interface IUrlSafetyPolicy {
      */
     timeout?: IDuration;
     /**
-     * A proxy for `UrlIngest.fetchGuarded` to send the request through, as `http://host:port`. Off by default, and the
+     * A proxy for a guarded fetcher call (`NativeFetcher` only) to send the request through, as `http://host:port`. Off by default, and the
      * environment's `HTTP_PROXY` / `HTTPS_PROXY` is ignored: a proxy resolves the host name itself, so the vetted address
      * the guard pins to would never be used. With this set the address check still runs, but the connection is NOT pinned:
      * the proxy decides where the request goes, so only point it at a proxy you trust to refuse internal addresses.
@@ -2045,6 +2047,11 @@ export declare class NativeFetcher extends AbstractNetworkFetchableHelper<'nativ
         queryString?: IQueryStringOptions;
         logger?: TFetcherLogger;
     });
+    /** With a guard the pipeline alone picks the connection: an option that picks one is refused, per call or in `defaultConfigs`. */
+    protected assertCallSupported(opts: {
+        guard?: IUrlSafetyPolicy;
+        extra: Record<string | symbol, unknown>;
+    }): void;
     /** A raw body passes through; a plain object or an array is JSON-encoded; no body stays no body. */
     protected serializeBody(opts: {
         body: unknown;
@@ -3338,7 +3345,7 @@ export declare class UrlPolicy {
     static assertSafeUrl(opts: {
         url: string;
         policy?: IUrlSafetyPolicy;
-        /** `false` judges a trusted origin like any other (`fetchGuarded` passes it once a hop of the chain was untrusted). @default true */
+        /** `false` judges a trusted origin like any other (a guarded fetcher call passes it once a hop of the chain was untrusted). @default true */
         isTrustedAllowed?: boolean;
     }): URL;
     /**

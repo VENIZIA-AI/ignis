@@ -95,6 +95,9 @@ export class FetchRedirects {
 
 /** What a retried call retries, and for how long a server asks it to wait. */
 export class FetchRetry {
+  /** The longest wait a call takes between two attempts unless `backoff.maxDelayMs` says otherwise; the retry helper's own default. */
+  static readonly DEFAULT_MAX_DELAY_MS = 30_000;
+
   /**
    * The default decision: a network error, a timeout, a 5xx and a 429 are worth another attempt. Any other 4xx, a 3xx, a
    * url the guard refused (refused forever), a schema mismatch and a caller's own abort are not.
@@ -129,7 +132,14 @@ export class FetchRetry {
     }
 
     if (/^\d+$/.test(header)) {
-      return Number(header) * 1000;
+      const seconds = Number(header);
+
+      return Number.isSafeInteger(seconds) ? seconds * 1000 : undefined;
+    }
+
+    // An HTTP date has letters (`Thu, 19 Nov ...`); a bare number that is not whole seconds is garbage, not a date.
+    if (!/[a-z]/i.test(header)) {
+      return undefined;
     }
 
     const date = Date.parse(header);

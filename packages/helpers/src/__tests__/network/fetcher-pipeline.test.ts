@@ -513,7 +513,7 @@ describe('retry', () => {
       url: `${base}/flaky-429`,
       retry: {
         maxAttempts: 2,
-        backoff: FAST,
+        backoff: { initialDelayMs: 1, maxDelayMs: 5000 },
         onRetry: ({ nextDelayMs }) => {
           delays.push(nextDelayMs);
         },

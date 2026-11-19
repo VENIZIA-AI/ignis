@@ -195,7 +195,7 @@ describe('AxiosFetcher - the pipeline', () => {
       task: fetcher.get({ url: `${base}/user`, guard: {}, httpAgent: {} }),
     });
 
-    expect((error as Error).message).toContain('cannot carry its own httpAgent');
+    expect((error as Error).message).toContain('cannot set httpAgent');
   });
 });
 

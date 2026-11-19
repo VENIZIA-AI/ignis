@@ -28,6 +28,9 @@ const SECRET_KEY_PATTERN = new RegExp(
     '|^(x-)?(api|auth|access|secret|session|csrf|xsrf|vault)-(key|token|secret|id)$',
     '|^(cookie|set-cookie|proxy-authorization|www-authenticate)$',
 
+    // Signed assertions travel in a header such as `x-service-assertion`; the signed value is a bearer credential for its lifetime.
+    '|(^|-)assertion$',
+
     // Named secrets that no suffix rule reaches. An explicit list, never a blanket `*Key` or `code`: those would mask
     // `primaryKey`, `cacheKey` and every status `code`. Cloud and signing keys, session and one-time values, signatures,
     // card and national-id numbers, and the kebab spellings of tokens and secrets (the suffix rules above need a letter or

@@ -216,7 +216,9 @@ export abstract class AbstractNetworkFetchableHelper<
       body === null ||
       typeof body === 'string' ||
       ArrayBuffer.isView(body) ||
-      body instanceof ArrayBuffer
+      body instanceof ArrayBuffer ||
+      Array.isArray(body) ||
+      (typeof body === 'object' && Object.getPrototypeOf(body) === Object.prototype)
     );
   }
 
@@ -271,6 +273,14 @@ export abstract class AbstractNetworkFetchableHelper<
       this.defaults.timeout ??
       (guard === undefined ? undefined : UrlSafetyDefaults.TIMEOUT_MILLISECONDS);
 
+    const retry = request.retry ?? this.defaults.retry;
+
+    if (retry !== undefined && !this.isReplayable({ body: request.body })) {
+      throw getError({
+        message: `[${this.name}] A call with retry cannot carry a body that is sent once (a stream, a FormData, a Blob) | url: ${request.url}`,
+      });
+    }
+
     return {
       method,
       url: this.buildUrl({ url: request.url, params: request.params }),
@@ -278,9 +288,14 @@ export abstract class AbstractNetworkFetchableHelper<
       body: request.body,
       signal: request.signal,
       timeout,
-      retry: request.retry ?? this.defaults.retry,
+      retry,
       guard,
-      maxBytes: request.maxBytes ?? guard?.maxBytes ?? this.defaults.maxBytes,
+      // A guarded call always caps what it reads: the fetcher reads the body itself on the schema path.
+      maxBytes:
+        request.maxBytes ??
+        guard?.maxBytes ??
+        this.defaults.maxBytes ??
+        (guard === undefined ? undefined : UrlSafetyDefaults.MAX_BYTES),
       maxRedirects: request.maxRedirects ?? guard?.maxRedirects,
       acceptStatus: request.acceptStatus ?? ((status: number) => status >= 200 && status < 300),
       schema: request.schema,
@@ -494,12 +509,18 @@ export abstract class AbstractNetworkFetchableHelper<
       throw getError({ message: `[fetch] No exchange was made | url: ${request.url}` });
     }
 
-    await this.hooks.onResponse?.({
-      request,
-      status: exchange.status,
-      headers: exchange.headers,
-      durationMs: Date.now() - startedAt,
-    });
+    try {
+      await this.hooks.onResponse?.({
+        request,
+        status: exchange.status,
+        headers: exchange.headers,
+        durationMs: Date.now() - startedAt,
+      });
+    } catch (hookError) {
+      // The hook failed the call; the body that was never read is released before the error goes on.
+      await exchange.discard();
+      throw hookError;
+    }
 
     if (!call.acceptStatus(exchange.status)) {
       const refusal = await this.refuseStatus({ exchange, url: request.url });
@@ -678,9 +699,21 @@ export abstract class AbstractNetworkFetchableHelper<
         maxAttempts,
         maxTotalMs,
         backoff,
-        shouldRetry:
-          shouldRetry ??
-          ((context) => FetchRetry.isRetryable({ error: context.error, signal: call.signal })),
+        shouldRetry: (context) => {
+          // A server that asks for a longer wait than the backoff allows ends the retries: the last error is the answer.
+          const asked = FetchRetry.readRetryAfterMs({ error: context.error });
+
+          if (
+            asked !== undefined &&
+            asked > (backoff?.maxDelayMs ?? FetchRetry.DEFAULT_MAX_DELAY_MS)
+          ) {
+            return false;
+          }
+
+          return shouldRetry
+            ? shouldRetry(context)
+            : FetchRetry.isRetryable({ error: context.error, signal: call.signal });
+        },
         getDelayMs: ({ error }) => FetchRetry.readRetryAfterMs({ error }),
         onRetry,
         execution: ({ attempt }) => run(attempt),

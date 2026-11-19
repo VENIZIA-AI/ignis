@@ -48,9 +48,8 @@ export declare class AxiosFetcher extends AbstractNetworkFetchableHelper<'axios'
         url: string;
         params?: Record<string, unknown>;
     }): string;
-    protected isReplayable(opts: {
-        body: unknown;
-    }): boolean;
+    /** An axios body-size overflow is the cap's refusal (permanent), not a transport error the retry would repeat. */
+    private refineError;
     protected exchange(opts: IFetchExchangeRequest): Promise<IFetchExchange<AxiosResponse<unknown>>>;
 }
 ```

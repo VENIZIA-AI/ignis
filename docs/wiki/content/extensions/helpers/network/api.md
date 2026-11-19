@@ -285,8 +285,9 @@ const response = await fetcher.get({
 
 - Retried by default: a network error, a timeout, a 5xx and a 429.
 - Never retried by default: any other 4xx, a 3xx, a guard refusal, a schema mismatch, a caller abort.
-- A `Retry-After` header on a 429 or 503 is the least wait before the next attempt; one that does not fit `maxTotalMs` ends the retries.
-- A POST is retried only because the caller passed `retry`.
+- A `Retry-After` header (seconds or an HTTP date) on a 429 or 503 is the least wait before the next attempt. A wait above `backoff.maxDelayMs` (30 seconds by default) or above `maxTotalMs` ends the retries: the last error is thrown. A negative or garbled value is ignored.
+- A POST is retried only because the caller passed `retry`. Keep the call idempotent (an idempotency key).
+- A body that can be sent only once (a stream, a `FormData`, a `Blob`) cannot be retried: the call fails before anything is sent. A string, bytes, an array and a plain object can.
 - `shouldRetry` replaces the default decision.
 
 #### Hooks
@@ -357,7 +358,8 @@ An axios config where `body` is sent as axios `data`, plus [`IRequestOptions`](#
 > [!NOTE]
 > - **`maxBytes` is `maxContentLength` in axios.** Axios stops the read when the body crosses it, with its own error, not the cap's message.
 > - **HTTPS gets a shared `https.Agent`** with certificate verification ON and keep-alive. Pass `rejectUnauthorized: false` only when you mean to accept an unverified certificate. A caller `httpsAgent` wins.
-> - **A guarded call never uses that agent, and refuses a caller `httpAgent` or `httpsAgent`.** It gets an agent of its own whose `lookup` answers only the vetted addresses, with keep-alive off, destroyed after the exchange: no pin outlives the call, and the certificate is still verified for the name you asked for. A test pins SNI, certificate verification and the environment proxy on a real TLS server.
+> - **A guarded call refuses every option that chooses the connection**: `httpAgent`, `httpsAgent`, `socketPath`, `lookup`, `transport`, `proxy`, `family` and a custom `adapter`, per call and in `defaultConfigs`. It also refuses `guard.proxy` (the request would go direct) and `responseType: 'stream'` (the pinned agent ends with the call and a stream is not capped): use a `NativeFetcher` for those.
+> - **A guarded call never uses the shared agent.** It gets an agent of its own whose `lookup` answers only the vetted addresses, with keep-alive off, destroyed after the exchange: no pin outlives the call, and the certificate is still verified for the name you asked for. A test pins SNI, certificate verification and the environment proxy on a real TLS server.
 
 ---
 
@@ -432,7 +434,7 @@ constructor(opts: {
 - `body` is sent as given when it is a string, `Blob`, `ArrayBuffer`, typed array, `FormData`, `URLSearchParams` or `ReadableStream`; a plain object or an array is JSON-encoded; `null` or `undefined` sends no body. A `GET` or `HEAD` with a body is refused.
 - Query `params` are appended to `url`; the separator is `?` when the url has no query yet, `&` when it has.
 - `timeout` is per attempt and composed with the caller's `signal`, never substituted.
-- With `guard`, the request goes to the address the guard vetted (`Host` and TLS server name stay the url's own), and `HTTP_PROXY` / `HTTPS_PROXY` is ignored on that connection.
+- With `guard`, the request goes to the address the guard vetted (`Host` and TLS server name stay the url's own), and `HTTP_PROXY` / `HTTPS_PROXY` is ignored on that connection. `unix`, `dispatcher`, `proxy` and `tls` are refused with a guard, per call and in `defaultConfigs`; `guard.proxy` is the one way through a proxy.
 
 ---
 
@@ -1189,7 +1191,7 @@ Redirects are walked by hand, so every hop is checked and pinned again. A 301 or
 
 `timeout` is per attempt; `retry.maxTotalMs` is the total budget. A guard in `defaults` can be replaced by a call's own policy, never removed. A call with `guard` and no `guardEngine` fails with an error that says what to pass, and sends nothing.
 
-Both fetchers can guard. The Axios fetcher connects through a per-exchange agent whose `lookup` answers only the vetted addresses; a caller `httpAgent` or `httpsAgent` is refused with a guard.
+Both fetchers can guard. The Axios fetcher connects through a per-exchange agent whose `lookup` answers only the vetted addresses; options that choose the connection are refused with a guard, and so is `guard.proxy` (use `NativeFetcher`). A guarded call always caps the body it reads: `maxBytes` defaults to the policy's 10 MB.
 
 To store what comes back without buffering it, `fetcher.get({ url, guard, maxBytes })` returns a response whose body fails the moment it crosses `maxBytes`; pipe `response.body` onward.
 

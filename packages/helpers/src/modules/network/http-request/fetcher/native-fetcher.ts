@@ -1,4 +1,6 @@
 import { type THttpMethod } from '@/common/constants/http';
+import { getError } from '@/modules/error';
+import type { IUrlSafetyPolicy } from '@/modules/network/utilities/url-safety/common/types';
 import { UrlPolicy } from '@/modules/network/utilities/url-safety/policy';
 import {
   type IQueryStringOptions,
@@ -52,6 +54,9 @@ const isRawBody = (body: unknown): body is NonNullable<RequestInit['body']> => {
   });
 };
 
+/** The `fetch` options (Bun's) that choose where a request connects; a guard refuses every one. */
+const CONNECTION_OPTIONS = ['unix', 'dispatcher', 'proxy', 'tls', 'agent'];
+
 /** Connect-phase errors: nothing was sent, so trying the next vetted address cannot deliver a request twice. */
 const CONNECT_ERROR_CODES = ['ECONNREFUSED', 'ENETUNREACH', 'EHOSTUNREACH', 'EADDRNOTAVAIL'];
 
@@ -89,6 +94,25 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
 
     this.requestInit = opts.defaultConfigs ?? {};
     this.queryString = opts.queryString ?? {};
+  }
+
+  /** With a guard the pipeline alone picks the connection: an option that picks one is refused, per call or in `defaultConfigs`. */
+  protected override assertCallSupported(opts: {
+    guard?: IUrlSafetyPolicy;
+    extra: Record<string | symbol, unknown>;
+  }): void {
+    if (opts.guard === undefined) {
+      return;
+    }
+
+    const source: Record<string | symbol, unknown> = { ...this.requestInit, ...opts.extra };
+    const found = CONNECTION_OPTIONS.filter((name) => source[name] !== undefined);
+
+    if (found.length > 0) {
+      throw getError({
+        message: `[${this.name}] A guarded call cannot set ${found.join(', ')} | an option that chooses the connection could reach an address the guard did not vet`,
+      });
+    }
   }
 
   /** A raw body passes through; a plain object or an array is JSON-encoded; no body stays no body. */

@@ -5257,7 +5257,7 @@ export declare class UrlIngest {
      * Rejects when ANY resolved address is non-public.
      *
      * A rebinding window remains when this is called on its own: the address can change between this check and a
-     * later connect. {@link UrlIngest.fetchGuarded} closes it by connecting to the address it vetted.
+     * later connect. a fetcher call with a `guard` closes it by connecting to the address it vetted.
      */
     static assertPublicHost(opts: {
         hostname: string;
