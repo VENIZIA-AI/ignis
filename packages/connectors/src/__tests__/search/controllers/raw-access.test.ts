@@ -1,6 +1,7 @@
 // Must precede the controllers/factory import below: avoids a circular-import TDZ error.
 import '@venizia/ignis-kernel';
 
+import { z } from 'zod';
 import { describe, expect, test } from 'bun:test';
 
 import { repository, controller as controllerDecorator } from '@venizia/ignis-kernel';
@@ -89,18 +90,41 @@ const MULTI = { searches: [{ collection: 'products', query: 'foo' }] };
 
 describe('an unscoped controller that did not opt in', () => {
   test.each([
+    ['no modes', undefined, false],
+    ['modes without raw', {}, false],
+    ['use: false', { raw: { use: false } }, false],
+    ['use: true', { raw: { use: true } }, true],
+  ])("lists mode 'raw' in the body schema only when it is on (%s)", (_name, modes, isListed) => {
+    const { controller } = build({ modes });
+    const config = controller.definitions.SEARCH;
+    const body = config.request?.body;
+    const content = body && 'content' in body ? body.content['application/json'] : undefined;
+    const schema = content && 'schema' in content ? content.schema : undefined;
+
+    if (!(schema instanceof z.ZodType)) {
+      throw new Error('the search body has no zod schema');
+    }
+
+    expect(schema.safeParse(RAW).success).toBe(isListed);
+    expect(schema.safeParse(KEYWORD).success).toBe(true);
+  });
+
+  test.each([
     ['no modes', undefined],
     ['modes without raw', {}],
     ['use: false', { raw: { use: false } }],
-  ])("refuses mode 'raw' with 400, and the engine is not reached (%s)", async (_name, modes) => {
-    const { controller, dataSource } = build({ modes });
+  ])(
+    'a hand-built context with a raw body is refused with 400 when raw is off (%s), and the engine is not reached',
+    async (_name, modes) => {
+      const { controller, dataSource } = build({ modes });
 
-    const error = await refusal(controller['search']({ context: fakeContext(RAW) as never }));
+      const error = await refusal(controller['search']({ context: fakeContext(RAW) as never }));
 
-    expect(error.statusCode).toBe(400);
-    expect(error.message).toContain("mode 'raw' is not available on this search controller");
-    expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
-  });
+      expect(error.statusCode).toBe(400);
+      expect(error.message).toContain("mode 'raw' is not available on this search controller");
+      expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
+    },
+  );
 
   test('refuses multi-search with 400, and the engine is not reached', async () => {
     const { controller, dataSource } = build({});

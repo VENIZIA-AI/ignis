@@ -1,5 +1,5 @@
 /**
- * A fetcher call with a `guard` connects to the address `UrlGuard` vetted (#945). The name never resolves in real DNS here: `lookup`
+ * A fetcher call with a `guard` connects to the address `UrlGuard` vetted. The name never resolves in real DNS here: `lookup`
  * is replaced, and the address it answers is the only way the request can reach the local server, which is the proof.
  */
 

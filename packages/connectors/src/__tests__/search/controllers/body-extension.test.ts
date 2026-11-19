@@ -151,10 +151,12 @@ describe('SearchControllerFactory - request.body.extend', () => {
       'Keyword full-text search',
       'Vector / semantic search',
       'Hybrid keyword + vector search',
-      'Raw engine passthrough',
     ]) {
       expect(text, description).toContain(description);
     }
+
+    // `raw` is not opted in here: it is not in the schema, so the document does not show it.
+    expect(text).not.toContain('Raw engine passthrough');
   });
 
   test('the extra keys stop at the scope: the repository never receives them', async () => {

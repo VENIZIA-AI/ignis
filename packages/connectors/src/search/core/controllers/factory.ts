@@ -23,9 +23,15 @@ import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { isClass } from '@venizia/ignis-inversion';
 import type { Env, Schema } from 'hono';
-import { MultiSearchInputSchema, SearchInputSchema } from '@/search/core/repositories/common';
+import {
+  MultiSearchInputSchema,
+  SearchInputSchema,
+  SearchModes,
+} from '@/search/core/repositories/common';
 import type { ReadableSearchRepository } from '../repositories/core/readable';
 import { AbstractSearchController } from './abstract';
+import { SearchModeAllowlist } from './modes';
+import type { TSearchFriendlyMode } from './modes';
 import { SearchControllerOptionsUtility } from './options';
 import type { TSearchScopeResolver } from './scope';
 import type {
@@ -134,8 +140,13 @@ export interface ISearchControllerOptions<
    * engine their parameters as they are, so the model's default filter and its hidden fields do not apply to them, and
    * opting in exposes the whole collection to every caller the route admits. A scoped controller cannot opt in. Server
    * code keeps `search({ mode: 'raw' })` and `multiSearch()` on the repository.
+   *
+   * `modes.allow` names the other modes `POST /search` takes: `{ allow: [SearchModes.KEYWORD] }` is keyword-only. Left out,
+   * every one of them is served. The list builds the body schema, so a request with any other `mode` is a 400 from the
+   * validator and the OpenAPI document lists only these (and `raw` when `modes.raw` is on). An empty list and a duplicate
+   * refuse the build.
    */
-  modes?: { raw?: TToggle };
+  modes?: { allow?: ReadonlyArray<TSearchFriendlyMode>; raw?: TToggle };
 }
 
 /** Factory for generating turnkey search controllers (single-collection + cross-collection) from entity definitions. */
@@ -145,16 +156,19 @@ export class SearchControllerFactory extends BaseHelper {
   }
 
   /**
-   * `SearchInputSchema` with `shape` added to each of its four modes (a discriminated union has no `extend` of its own), and
-   * with `engineParams` of the three friendly modes narrowed to the names of `query.allow.tuning`: a strict object, so an
-   * unknown name is a 400 and the OpenAPI document lists the names a client may send.
+   * The body schema of `POST /search`: the members of `SearchInputSchema` for the modes served (`allowedModes`, and `raw` only
+   * when `isRawAllowed`), each with `shape` added when `request.body.extend` is set (a discriminated union has no `extend` of
+   * its own), and with `engineParams` of the three friendly modes narrowed to the names of `query.allow.tuning`: a strict
+   * object, so an unknown name is a 400 and the OpenAPI document lists the names a client may send.
    */
-  private static extendSearchBody(opts: {
+  private static buildSearchBody(opts: {
+    allowedModes: ReadonlyArray<TSearchFriendlyMode>;
+    isRawAllowed: boolean;
     shape?: z.ZodRawShape;
     tuning: string[];
     isQueryBySettable: boolean;
   }) {
-    const { shape = {}, tuning, isQueryBySettable } = opts;
+    const { allowedModes, isRawAllowed, shape = {}, tuning, isQueryBySettable } = opts;
     const [keyword, semantic, hybrid, raw] = SearchInputSchema.options;
     const taken = Object.keys(shape).filter(
       (key) =>
@@ -178,28 +192,47 @@ export class SearchControllerFactory extends BaseHelper {
               .describe('Tuning knobs this route allows a client to set'),
           }
         : {};
+    const isExtended = Object.keys(shape).length > 0 || tuning.length > 0;
 
     // `extend` drops the `.describe()` of a member, and the OpenAPI document shows it as the name of the mode.
-    return z.discriminatedUnion('mode', [
-      keyword.extend({ ...shape, ...engineParams }).describe(keyword.description ?? ''),
-      semantic.extend({ ...shape, ...engineParams }).describe(semantic.description ?? ''),
-      hybrid
-        .extend({
-          ...shape,
-          ...engineParams,
-          // The server may choose the fields (`query.fixed` or `query.default`), so the client need not.
-          ...(isQueryBySettable ? { queryBy: z.array(z.string()).optional() } : {}),
-        })
-        .describe(hybrid.description ?? ''),
-      raw.extend(shape).describe(raw.description ?? ''),
-    ]);
+    const friendly = {
+      [SearchModes.KEYWORD]: isExtended
+        ? keyword.extend({ ...shape, ...engineParams }).describe(keyword.description ?? '')
+        : keyword,
+      [SearchModes.SEMANTIC]: isExtended
+        ? semantic.extend({ ...shape, ...engineParams }).describe(semantic.description ?? '')
+        : semantic,
+      [SearchModes.HYBRID]:
+        isExtended || isQueryBySettable
+          ? hybrid
+              .extend({
+                ...shape,
+                ...engineParams,
+                // The server may choose the fields (`query.fixed` or `query.default`), so the client need not.
+                ...(isQueryBySettable ? { queryBy: z.array(z.string()).optional() } : {}),
+              })
+              .describe(hybrid.description ?? '')
+          : hybrid,
+    };
+    const members = [
+      ...allowedModes.map((mode) => friendly[mode]),
+      ...(isRawAllowed
+        ? [Object.keys(shape).length > 0 ? raw.extend(shape).describe(raw.description ?? '') : raw]
+        : []),
+    ];
+
+    return z.discriminatedUnion('mode', members as [(typeof members)[number], ...typeof members]);
   }
 
   static defineRouteConfigs(opts: {
     selectSchema: z.ZodType;
     authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
     authorize?: IAuthorizationSpec | IAuthorizationSpec[];
-    /** The keys `request.body.extend` adds to every `mode` of the search body; none leaves `SearchInputSchema` as it is. */
+    /** The friendly modes the body takes (`modes.allow`); every one when left out. */
+    allowedModes?: ReadonlyArray<TSearchFriendlyMode>;
+    /** `modes.raw` is on: the body takes `mode: 'raw'` too. Left out, `raw` is not in the schema or the OpenAPI document. */
+    isRawAllowed?: boolean;
+    /** The keys `request.body.extend` adds to every `mode` of the search body. */
     bodyExtension?: z.ZodRawShape;
     /** The names of `query.allow.tuning`: what `engineParams` of the search body may carry. */
     allowedTuning?: string[];
@@ -212,14 +245,13 @@ export class SearchControllerFactory extends BaseHelper {
   }) {
     const { selectSchema, authenticate, authorize, bodyExtension, allowedTuning = [] } = opts;
     const isQueryBySettable = opts.isQueryBySettable ?? false;
-    const searchBodySchema =
-      bodyExtension || allowedTuning.length > 0 || isQueryBySettable
-        ? SearchControllerFactory.extendSearchBody({
-            shape: bodyExtension,
-            tuning: allowedTuning,
-            isQueryBySettable,
-          })
-        : SearchInputSchema;
+    const searchBodySchema = SearchControllerFactory.buildSearchBody({
+      allowedModes: opts.allowedModes ?? SearchModeAllowlist.DEFAULTS,
+      isRawAllowed: opts.isRawAllowed ?? false,
+      shape: bodyExtension,
+      tuning: allowedTuning,
+      isQueryBySettable,
+    });
 
     const searchResponseSchema = z.object({
       found: z.number(),
@@ -237,7 +269,7 @@ export class SearchControllerFactory extends BaseHelper {
       SEARCH: {
         method: HTTP.Methods.POST,
         path: '/search',
-        description: 'Single-collection search (keyword, semantic, hybrid, or raw passthrough)',
+        description: 'Single-collection search, one body per mode',
         authenticate: resolvedAuthenticate,
         authorize,
         request: {
@@ -321,6 +353,8 @@ export class SearchControllerFactory extends BaseHelper {
       selectSchema,
       authenticate: resolved.authenticate,
       authorize: resolved.authorize,
+      allowedModes: resolved.allowedModes,
+      isRawAllowed: resolved.isRawAllowed,
       bodyExtension: opts.request?.body?.extend,
       allowedTuning: opts.query?.allow?.tuning,
       isQueryBySettable:
