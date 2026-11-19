@@ -413,8 +413,15 @@ export class BindingKeysCodemod {
             }
           }
         } else if ((isInject || isMethod) && isKeyOptions(first)) {
+          // `@inject({ key }) service: Mailer`: the type the parameter or property already claims is the key's type.
+          const decorated =
+            isInject &&
+            ts.isDecorator(node.parent) &&
+            (ts.isParameter(node.parent.parent) || ts.isPropertyDeclaration(node.parent.parent))
+              ? node.parent.parent.type
+              : undefined;
           const claimed =
-            isMethod && node.typeArguments?.length === 1 ? node.typeArguments[0] : undefined;
+            isMethod && node.typeArguments?.length === 1 ? node.typeArguments[0] : decorated;
           // A type parameter of the enclosing function cannot go into `build<T>` (the type argument is checked while it
           // is still unresolved): the key is built for `unknown` and the call keeps its claim.
           const typeArgument =
@@ -429,7 +436,7 @@ export class BindingKeysCodemod {
             const done = rewriteKey(first, typeArgument?.getText(file));
 
             // The type argument moved into `build<T>`; the call no longer needs it.
-            if (done && typeArgument !== undefined) {
+            if (done && typeArgument !== undefined && typeArgument === node.typeArguments?.[0]) {
               const open = node.expression.getEnd();
               const close = source.indexOf('(', typeArgument.getEnd());
 

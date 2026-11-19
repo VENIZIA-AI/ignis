@@ -93,10 +93,10 @@ describe('devz codemod binding-keys: the rewrite', () => {
     );
 
     expect(result.output).toContain(
-      `@inject({ key: BindingKeys.build<unknown>({ key: 'services.Mailer' }) })`,
+      `@inject({ key: BindingKeys.build<Mailer>({ key: 'services.Mailer' }) })`,
     );
     expect(result.output).toContain(
-      `@inject({ key: BindingKeys.build<unknown>({ key: 'services.Clock' }), isOptional: true })`,
+      `@inject({ key: BindingKeys.build<Clock>({ key: 'services.Clock' }), isOptional: true })`,
     );
     expect(result.rewritten).toBe(2);
   });
@@ -240,6 +240,22 @@ describe('devz codemod binding-keys: the rewrite', () => {
     expect(result.output).toBe(
       `const read = <T>(name: string) => a.get<T>({ key: BindingKeys.build<unknown>({ namespace: 'repositories', key: name }) });\n`,
     );
+  });
+
+  test('@inject takes the type the decorated parameter or property already claims', () => {
+    const result = body(
+      [
+        `class A {`,
+        `  @inject({ key: 'services.Mailer' }) mailer: Mailer;`,
+        `  constructor(@inject({ key: 'services.Clock' }) private clock: Clock) {}`,
+        `}`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.output).toContain(`BindingKeys.build<Mailer>({ key: 'services.Mailer' })`);
+    expect(result.output).toContain(`BindingKeys.build<Clock>({ key: 'services.Clock' })`);
+    expect(result.unnamed).toEqual([]);
   });
 
   test('a key already built with its type is left alone, and a second run changes nothing', () => {
