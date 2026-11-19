@@ -1,4 +1,4 @@
-import { HTTP, type THttpMethod } from '@/common';
+import { HTTP } from '@/common';
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import http from 'node:http';
 import https from 'node:https';
@@ -58,7 +58,6 @@ type TOwnedAxiosFields =
 export interface IAxiosRequestOptions
   extends Omit<AxiosRequestConfig, TOwnedAxiosFields>, IRequestOptions {
   url: string;
-  method?: THttpMethod;
   params?: Record<string, unknown>;
   body?: Record<string, unknown>;
   /** Whether this call rejects an HTTPS server whose certificate fails verification; `false` turns verification off for this call. */
@@ -292,6 +291,8 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
         ),
         // axios has read the body already: nothing is left to free.
         discard: async () => undefined,
+        // axios has read the body already: the answer is as it came.
+        keepBody: async () => response,
         readJson: async () => response.data,
         // `maxContentLength` stopped an oversized body while it was read; the answer is as it came.
         capped: () => response,

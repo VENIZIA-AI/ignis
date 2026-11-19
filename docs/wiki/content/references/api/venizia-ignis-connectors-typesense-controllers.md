@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/typesense/controllers, f
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-31 exports, 31 with TSDoc.
+33 exports, 33 with TSDoc.
 
 ## `AbstractSearchController`
 
@@ -21,6 +21,8 @@ export declare abstract class AbstractSearchController<TEntity extends AbstractE
     searchScope?: TSearchScopeResolver<RouteEnv, TExtra, Inject>;
     /** The `engineParams` names a caller may send, normalised (see {@link SearchEngineParams}). Empty: any `engineParams` is refused. */
     allowedEngineParams: ReadonlySet<string>;
+    /** The friendly modes the controller serves (`modes.allow`). */
+    allowedModes: ReadonlyArray<TSearchFriendlyMode>;
     /** Whether the controller serves `mode: 'raw'` and multi-search over HTTP (`modes.raw`). Closed by default: see {@link SearchRawAccess}. */
     isRawAllowed: boolean;
     /** `request.body.extend` was given: its keys are the scope's to read, and they do not go on to the repository. */
@@ -40,6 +42,8 @@ export declare abstract class AbstractSearchController<TEntity extends AbstractE
         searchScope?: TSearchScopeResolver<RouteEnv, TExtra, Inject>;
         /** Names from `query.allow.tuning`, as `SearchEngineParams.resolveAllowlist` answers them. */
         allowedEngineParams?: ReadonlySet<string>;
+        /** `modes.allow`, as `SearchModeAllowlist.resolve` answers it. */
+        allowedModes?: ReadonlyArray<TSearchFriendlyMode>;
         /** `modes.raw`, as `SearchRawAccess.resolve` answers it. */
         isRawAllowed?: boolean;
         /** `request.body.extend` was given. */
@@ -129,15 +133,11 @@ export interface ISearchControllerOptions<Repository extends TCrudRepositoryClas
     /** Reshapes the hits of `POST /search` before they leave the route: `{ use: true, document, transform }`. */
     response?: TToggle<ISearchResponseTransform<TRepositoryDataObject<InstanceType<Repository>>, TOutDocument, Inject, RouteEnv>>;
     /**
-     * `modes.raw: { use: true }` serves `mode: 'raw'` and multi-search over HTTP. Left out, both answer 400: they hand the
-     * engine their parameters as they are, so the model's default filter and its hidden fields do not apply to them, and
-     * opting in exposes the whole collection to every caller the route admits. A scoped controller cannot opt in. Server
-     * code keeps `search({ mode: 'raw' })` and `multiSearch()` on the repository.
+     * `modes.raw: { use: true }` serves `mode: 'raw'` and multi-search over HTTP; left out, both answer 400, because they
+     * bypass the model's default filter and hidden fields. A scoped controller cannot opt in.
      *
-     * `modes.allow` names the other modes `POST /search` takes: `{ allow: [SearchModes.KEYWORD] }` is keyword-only. Left out,
-     * every one of them is served. The list builds the body schema, so a request with any other `mode` is a 400 from the
-     * validator and the OpenAPI document lists only these (and `raw` when `modes.raw` is on). An empty list and a duplicate
-     * refuse the build.
+     * `modes.allow` names the other modes `POST /search` takes (left out: all three). The body schema and the OpenAPI
+     * document are built from it; an empty list or a duplicate refuses the build.
      */
     modes?: {
         allow?: ReadonlyArray<TSearchFriendlyMode>;
@@ -436,12 +436,7 @@ Factory for generating turnkey search controllers (single-collection + cross-col
 ```ts
 export declare class SearchControllerFactory extends BaseHelper {
     constructor();
-    /**
-     * The body schema of `POST /search`: the members of `SearchInputSchema` for the modes served (`allowedModes`, and `raw` only
-     * when `isRawAllowed`), each with `shape` added when `request.body.extend` is set (a discriminated union has no `extend` of
-     * its own), and with `engineParams` of the three friendly modes narrowed to the names of `query.allow.tuning`: a strict
-     * object, so an unknown name is a 400 and the OpenAPI document lists the names a client may send.
-     */
+    /** The body schema of `POST /search`: one member per allowed mode (and `raw` when on), extended with `request.body.extend` and the `query.allow.tuning` names. */
     private static buildSearchBody;
     static defineRouteConfigs(opts: {
         selectSchema: z.ZodType;
@@ -912,6 +907,9 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 mode: z.ZodLiteral<"semantic">;
                                 vectorField: z.ZodString;
                                 nearVector: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
+                                queryText: z.ZodOptional<z.ZodString>;
+                                k: z.ZodOptional<z.ZodNumber>;
+                                filter: z.ZodOptional<z.ZodObject<{
 // ... cut
 ```
 
@@ -1001,15 +999,36 @@ export declare class SearchEngineParams {
 
 Source: `packages/connectors/src/search/core/controllers/engine-params.ts`
 
+## `SearchModeAllowlist`
+
+*class*
+
+The modes `POST /search` accepts besides `raw`, from `modes.allow`.
+
+```ts
+export declare class SearchModeAllowlist {
+    /** Left out, every friendly mode is served. */
+    static readonly DEFAULTS: ReadonlyArray<TSearchFriendlyMode>;
+    /** `allow` as the body schema takes it; an empty list, a duplicate or a name that is not a friendly mode throws. */
+    static resolve(opts: {
+        scope: string;
+        allow: unknown;
+    }): ReadonlyArray<TSearchFriendlyMode>;
+    /** Refuses (400) a body whose mode is not allowed: the check the body schema makes, repeated for a caller that skips the validator. `raw` is `SearchRawAccess`'s. */
+    static assertInput(opts: {
+        input: TSearchInput;
+        allowed: ReadonlyArray<TSearchFriendlyMode>;
+    }): void;
+}
+```
+
+Source: `packages/connectors/src/search/core/controllers/modes.ts`
+
 ## `SearchRawAccess`
 
 *class*
 
-Whether a search controller serves the engine's own parameters over HTTP. `mode: 'raw'` and a multi-search entry hand
-the engine their parameters as they are: the model's default filter and its hidden fields are not applied to them.
-So every generated search controller refuses both (400) unless `modes.raw` is `{ use: true }`: `raw` is left out of the
-body schema (the validator refuses it, and the OpenAPI document does not show it), the handler refuses it too, and multi-search answers 400. Server code is not
-affected: the repository's `search({ mode: 'raw' })` and `multiSearch()` work as before.
+`mode: 'raw'` and multi-search bypass the model's filter and hidden fields, so a search controller refuses both (400) unless `modes.raw` is `{ use: true }`.
 
 ```ts
 export declare class SearchRawAccess {
@@ -1210,6 +1229,18 @@ export type TSearchField<Document> = keyof Document & string;
 ```
 
 Source: `packages/connectors/src/search/core/controllers/types.ts`
+
+## `TSearchFriendlyMode`
+
+*type*
+
+A mode `modes.allow` can name: every mode but `raw`, which is its own toggle (`modes.raw`).
+
+```ts
+export type TSearchFriendlyMode = Exclude<TSearchMode, typeof SearchModes.RAW>;
+```
+
+Source: `packages/connectors/src/search/core/controllers/modes.ts`
 
 ## `TSearchHit`
 

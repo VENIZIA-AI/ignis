@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-139 exports, 139 with TSDoc. 59 more are re-exported from other entries (listed at the end).
+140 exports, 140 with TSDoc. 59 more are re-exported from other entries (listed at the end).
 
 ## `AbstractCryptoAlgorithm`
 
@@ -344,6 +344,11 @@ export declare class BodyLimit {
     static readDeclaredLength(opts: {
         headers: Headers;
     }): number;
+    /** At most `maxBytes` of the body, then the rest released; a body that fails halfway answers what arrived. Never throws on size: a refused status must still say what it was. */
+    static readPrefix(opts: {
+        response: Response;
+        maxBytes: number;
+    }): Promise<Uint8Array>;
     /** `readBytes`, decoded as UTF-8 text. */
     static readText(opts: {
         response: Response;
@@ -750,6 +755,10 @@ export declare class FetchRetry {
         error: unknown;
         signal?: AbortSignal;
     }): boolean;
+    /** Whether `error` is a url-guard refusal (a refused url is refused forever). */
+    static isRefusal(opts: {
+        error: unknown;
+    }): boolean;
     /** The wait a 429 or 503 asks for in `Retry-After`, in milliseconds: seconds, or an HTTP date. `undefined` when there is none. */
     static readRetryAfterMs(opts: {
         error: unknown;
@@ -1048,8 +1057,12 @@ export interface IFetchExchange<RS> {
     status: number;
     statusText: string;
     headers: Headers;
-    /** Frees the socket of a body nobody will read (a redirect, a refused status). */
+    /** Frees the socket of a body nobody will read (a redirect). */
     discard(): Promise<void>;
+    /** The same answer with at most `maxBytes` of its body kept readable, the rest released: what a refused status hands back. */
+    keepBody(opts: {
+        maxBytes: number;
+    }): Promise<RS>;
     /** The body as JSON; throws a `SyntaxError` when it is not. */
     readJson(opts: {
         maxBytes?: number;
@@ -1078,6 +1091,8 @@ export interface IFetchExchangeRequest {
     signal?: AbortSignal;
     /** The addresses the guard vetted: connect to these and no other. Empty: connect as the client would. */
     addresses: string[];
+    /** The host name the certificate is verified for when the connection goes to an address; unset for a literal address or a plain http url. */
+    tlsServerName?: string;
     /** A proxy the guard policy chose. */
     proxy?: string;
     /** Do not follow a redirect: the pipeline reads the 3xx and walks it. */
@@ -1117,6 +1132,8 @@ One hop the guard vetted: the url to send to, and the addresses to connect to (e
 export interface IFetchGuardHop {
     url: URL;
     addresses: string[];
+    /** The name an https connection to `addresses` verifies the certificate for; unset for a literal address or http. */
+    tlsServerName?: string;
 }
 ```
 
@@ -1130,6 +1147,8 @@ A guarded call: vets the first url and every redirect target, one hop at a time.
 
 ```ts
 export interface IFetchGuardRoute {
+    /** The policy's `timeout` in milliseconds, when it names one: the guard owns the duration units, so a browser bundle does not carry them. */
+    readonly timeoutMs?: number;
     vet(opts: {
         url: string;
         signal?: AbortSignal;
@@ -1189,7 +1208,7 @@ export interface IFetchRetryOptions {
     maxTotalMs?: number;
     backoff?: IRetryBackoffOptions;
     /** Replaces the default decision (network error, timeout, 5xx and 429 retry; any other 4xx, a 3xx, a guard refusal, a schema mismatch and a caller abort do not). */
-    shouldRetry?: (context: IRetryContext) => boolean;
+    shouldRetry?: (context: IRetryContext) => ValueOrPromise<boolean>;
     onRetry?: (context: IRetryContext & {
         nextDelayMs: number;
     }) => ValueOrPromise<void>;
@@ -1348,7 +1367,6 @@ Request accepted by `NativeFetcher`: `RequestInit` plus `url`; `params` are writ
 ```ts
 export interface INativeFetchRequestOptions extends TNativeRequestInit, IRequestOptions {
     url: string;
-    method?: THttpMethod;
     params?: Record<string, unknown>;
     body?: RequestInit['body'] | Record<string, unknown> | unknown[];
 }
@@ -1652,7 +1670,7 @@ Options every fetcher accepts. `timeout` is in milliseconds and counts per attem
 ```ts
 export interface IRequestOptions {
     url: string;
-    method?: THttpMethod;
+    method?: THttpMethod | (string & Record<never, never>);
     params?: Record<string, unknown>;
     /** Merged over the fetcher's default headers, header by header; a `null` or `undefined` value removes a default. */
     headers?: TFetchHeaders;
@@ -2058,6 +2076,7 @@ Fetcher over the global `fetch` (`getWorker()`): the pipeline of `AbstractNetwor
 ```ts
 export declare class NativeFetcher extends AbstractNetworkFetchableHelper<'native', INativeFetchRequestOptions, Awaited<ReturnType<typeof fetch>>, typeof fetch> {
     private requestInit;
+    private sender;
     private queryString;
     constructor(opts: {
         name: string;
@@ -2067,10 +2086,16 @@ export declare class NativeFetcher extends AbstractNetworkFetchableHelper<'nativ
         hooks?: IFetcherHooks;
         /** The server half of the url guard (`UrlGuard`); a call that passes `guard` needs it. */
         guardEngine?: IFetchGuard;
+        /** What sends a request, in place of the global `fetch` (read at call time): a test double, a proxy, an instrumented client. */
+        fetch?: TNativeFetchSender;
         /** How `params` are written into the url query; unset fields behave as `node:querystring` does. */
         queryString?: IQueryStringOptions;
         logger?: TFetcherLogger;
     });
+    /** A standard `FormData` is encoded afresh on every send, so it can be sent again. */
+    protected isReplayable(opts: {
+        body: unknown;
+    }): boolean;
     /** With a guard the pipeline alone picks the connection: an option that picks one is refused, per call or in `defaultConfigs`. */
     protected assertCallSupported(opts: {
         guard?: IUrlSafetyPolicy;
@@ -2089,6 +2114,8 @@ export declare class NativeFetcher extends AbstractNetworkFetchableHelper<'nativ
     }): string | undefined;
     /** `fetch` over one connection to `addresses`, in order; the next one is tried only when the connection itself fails. */
     private fetchPinned;
+    /** The sender the fetcher was given, or the global `fetch` looked up now (a test that swaps it is heard). */
+    private request;
     /** One `fetch`: pinned to the vetted addresses when there are some and no proxy was asked for. */
     private dispatch;
     protected exchange(opts: IFetchExchangeRequest): Promise<IFetchExchange<Response>>;
@@ -2668,7 +2695,7 @@ export declare class RetryHelper extends BaseHelper {
             signal?: AbortSignal;
         }) => ValueOrPromise<T>;
         /** Return `false` to stop retrying and rethrow `context.error` immediately. */
-        shouldRetry?: (context: IRetryContext) => boolean;
+        shouldRetry?: (context: IRetryContext) => ValueOrPromise<boolean>;
         /** The least wait before the next attempt, in milliseconds (a server's `Retry-After`); the backoff delay applies when it is longer. `undefined` leaves the backoff alone. */
         getDelayMs?: (context: IRetryContext) => number | undefined;
         /** Observability hook, awaited before the backoff sleep. */
@@ -2883,6 +2910,18 @@ export type TLogLevel = TConstValue<typeof LogLevels>;
 ```
 
 Source: `packages/helpers/src/modules/logger/common/types.ts`
+
+## `TNativeFetchSender`
+
+*type*
+
+What sends a request when the fetcher is given one: the part of `fetch` it uses.
+
+```ts
+export type TNativeFetchSender = (url: string, init: RequestInit) => Promise<Response>;
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/native-fetcher.ts`
 
 ## `TNativeRequestInit`
 
@@ -3238,18 +3277,20 @@ Source: `packages/helpers/src/modules/uid/common/constants.ts`
 
 The upstream answered, and the answer is not one a fetcher returns: a status `acceptStatus` refuses (a 4xx or 5xx
 by default), or a redirect it was not allowed to follow (`maxRedirects: 0`, or a `Location` that is not a url).
-`status` is the upstream's; `statusCode` (inherited) is the one this server answers with, and stays 400. The body is
-already cancelled, so the socket is free: read `headers` and `status`, not the body.
+`status` is the upstream's; `statusCode` (inherited) is the one this server answers with, and stays 400. `response` carries the first 64 KiB
+of the body, still readable, and the socket is free.
 
 ```ts
 export declare class UrlFetchError<R = Response> extends ApplicationError {
+    /** How much of a refused answer's body stays readable on `response`. */
+    static readonly MAX_BODY_BYTES: number;
     /** The status the upstream answered with. */
     readonly status: number;
     /** The url the caller asked for (the first hop, not a redirect's target). */
     readonly url: string;
     /** The upstream's headers. */
     readonly headers: Headers;
-    /** The upstream's answer as the fetcher's client has it, body cancelled. */
+    /** The upstream's answer as the fetcher's client has it, with up to `MAX_BODY_BYTES` of its body readable. */
     readonly response?: R;
     /** The raw `Location` header of a redirect, as sent; unset for a non-redirect or when the header was missing. */
     readonly location?: string;

@@ -136,15 +136,11 @@ export interface ISearchControllerOptions<
   >;
 
   /**
-   * `modes.raw: { use: true }` serves `mode: 'raw'` and multi-search over HTTP. Left out, both answer 400: they hand the
-   * engine their parameters as they are, so the model's default filter and its hidden fields do not apply to them, and
-   * opting in exposes the whole collection to every caller the route admits. A scoped controller cannot opt in. Server
-   * code keeps `search({ mode: 'raw' })` and `multiSearch()` on the repository.
+   * `modes.raw: { use: true }` serves `mode: 'raw'` and multi-search over HTTP; left out, both answer 400, because they
+   * bypass the model's default filter and hidden fields. A scoped controller cannot opt in.
    *
-   * `modes.allow` names the other modes `POST /search` takes: `{ allow: [SearchModes.KEYWORD] }` is keyword-only. Left out,
-   * every one of them is served. The list builds the body schema, so a request with any other `mode` is a 400 from the
-   * validator and the OpenAPI document lists only these (and `raw` when `modes.raw` is on). An empty list and a duplicate
-   * refuse the build.
+   * `modes.allow` names the other modes `POST /search` takes (left out: all three). The body schema and the OpenAPI
+   * document are built from it; an empty list or a duplicate refuses the build.
    */
   modes?: { allow?: ReadonlyArray<TSearchFriendlyMode>; raw?: TToggle };
 }
@@ -155,12 +151,7 @@ export class SearchControllerFactory extends BaseHelper {
     super({ scope: SearchControllerFactory.name });
   }
 
-  /**
-   * The body schema of `POST /search`: the members of `SearchInputSchema` for the modes served (`allowedModes`, and `raw` only
-   * when `isRawAllowed`), each with `shape` added when `request.body.extend` is set (a discriminated union has no `extend` of
-   * its own), and with `engineParams` of the three friendly modes narrowed to the names of `query.allow.tuning`: a strict
-   * object, so an unknown name is a 400 and the OpenAPI document lists the names a client may send.
-   */
+  /** The body schema of `POST /search`: one member per allowed mode (and `raw` when on), extended with `request.body.extend` and the `query.allow.tuning` names. */
   private static buildSearchBody(opts: {
     allowedModes: ReadonlyArray<TSearchFriendlyMode>;
     isRawAllowed: boolean;
@@ -220,8 +211,16 @@ export class SearchControllerFactory extends BaseHelper {
         ? [Object.keys(shape).length > 0 ? raw.extend(shape).describe(raw.description ?? '') : raw]
         : []),
     ];
+    const [first, ...rest] = members;
 
-    return z.discriminatedUnion('mode', members as [(typeof members)[number], ...typeof members]);
+    if (!first) {
+      throw getError({
+        message:
+          '[SearchControllerFactory.build] The search body needs at least one mode | allowedModes is empty and raw is off',
+      });
+    }
+
+    return z.discriminatedUnion('mode', [first, ...rest]);
   }
 
   static defineRouteConfigs(opts: {
@@ -385,6 +384,7 @@ export class SearchControllerFactory extends BaseHelper {
           searchScope: scope,
           allowedEngineParams: resolved.allowedEngineParams,
           isRawAllowed: resolved.isRawAllowed,
+          allowedModes: resolved.allowedModes,
           isBodyExtended: opts.request?.body !== undefined,
           querySettings: resolved.query,
           responseTransform: resolved.response,

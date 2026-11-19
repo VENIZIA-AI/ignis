@@ -1,6 +1,7 @@
 export * from './abstract';
 export * from './engine-params';
 export * from './factory';
+export * from './modes';
 export * from './options';
 export * from './raw-access';
 export * from './response';

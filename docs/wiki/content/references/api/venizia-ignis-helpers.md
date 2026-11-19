@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-224 exports, 224 with TSDoc. 257 more are re-exported from other entries (listed at the end).
+224 exports, 224 with TSDoc. 258 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -5802,6 +5802,7 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `TMimeTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TMixinConstructor` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TMixinTarget` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `TNativeFetchSender` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TNativeRequestInit` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TNodePredicate` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TNullable` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)

@@ -18,17 +18,20 @@ export const UrlSafetyErrors = {
 /**
  * The upstream answered, and the answer is not one a fetcher returns: a status `acceptStatus` refuses (a 4xx or 5xx
  * by default), or a redirect it was not allowed to follow (`maxRedirects: 0`, or a `Location` that is not a url).
- * `status` is the upstream's; `statusCode` (inherited) is the one this server answers with, and stays 400. The body is
- * already cancelled, so the socket is free: read `headers` and `status`, not the body.
+ * `status` is the upstream's; `statusCode` (inherited) is the one this server answers with, and stays 400. `response` carries the first 64 KiB
+ * of the body, still readable, and the socket is free.
  */
 export class UrlFetchError<R = Response> extends ApplicationError {
+  /** How much of a refused answer's body stays readable on `response`. */
+  static readonly MAX_BODY_BYTES = 64 * 1024;
+
   /** The status the upstream answered with. */
   readonly status: number;
   /** The url the caller asked for (the first hop, not a redirect's target). */
   readonly url: string;
   /** The upstream's headers. */
   readonly headers: Headers;
-  /** The upstream's answer as the fetcher's client has it, body cancelled. */
+  /** The upstream's answer as the fetcher's client has it, with up to `MAX_BODY_BYTES` of its body readable. */
   readonly response?: R;
   /** The raw `Location` header of a redirect, as sent; unset for a non-redirect or when the header was missing. */
   readonly location?: string;

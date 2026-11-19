@@ -104,7 +104,6 @@ Request accepted by `AxiosFetcher`: an axios config where `body` is sent as the 
 ```ts
 export interface IAxiosRequestOptions extends Omit<AxiosRequestConfig, TOwnedAxiosFields>, IRequestOptions {
     url: string;
-    method?: THttpMethod;
     params?: Record<string, unknown>;
     body?: Record<string, unknown>;
     /** Whether this call rejects an HTTPS server whose certificate fails verification; `false` turns verification off for this call. */

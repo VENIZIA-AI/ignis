@@ -206,3 +206,32 @@ describe('modes.raw is read when the controller is defined', () => {
     expect(SearchRawAccess.resolve({ scope: 's', raw: undefined, isScoped: false })).toBe(false);
   });
 });
+
+describe('a controller that allows some modes refuses the others in the handler too', () => {
+  test('a hand-built context with a mode that is not allowed is refused with 400, and the engine is not reached', async () => {
+    const { controller, dataSource } = build({ modes: { allow: [SearchModes.KEYWORD] } });
+    const semantic = { mode: SearchModes.SEMANTIC, vectorField: 'embedding', nearVector: [0.1] };
+
+    const error = await refusal(controller['search']({ context: fakeContext(semantic) as never }));
+
+    expect(error.statusCode).toBe(400);
+    expect(error.message).toContain("mode 'semantic' is not available on this search controller");
+    expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
+  });
+
+  test('an allowed mode still reaches the engine', async () => {
+    const { controller, dataSource } = build({ modes: { allow: [SearchModes.KEYWORD] } });
+
+    await controller['search']({ context: fakeContext(KEYWORD) as never });
+
+    expect(dataSource.fakeConnector.searchCalls).toHaveLength(1);
+  });
+});
+
+describe('the search body needs at least one mode', () => {
+  test('defineRouteConfigs refuses an empty allowedModes with raw off', () => {
+    expect(() =>
+      SearchControllerFactory.defineRouteConfigs({ selectSchema: z.object({}), allowedModes: [] }),
+    ).toThrow('at least one mode');
+  });
+});

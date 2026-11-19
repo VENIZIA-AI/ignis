@@ -1,6 +1,7 @@
 // The server half of the url guard: resolving a hostname needs `node:dns`, so nothing here may be re-exported from the
 // `./core` subpath. A fetcher (browser-pure) is handed `UrlGuard` as its `guardEngine`.
 
+import { DurationMultipliers } from '@/common/constants/duration';
 import { getError } from '@/modules/error';
 import { lookup } from 'node:dns/promises';
 import type { IFetchGuardHop, IFetchGuardRoute } from '../../http-request/fetcher/common/guard';
@@ -11,6 +12,7 @@ import { UrlPolicy } from './policy';
 
 /** One guarded call: it carries the trust of the redirect chain so far, so a hop after an untrusted one never enters a trusted private origin. */
 class UrlGuardRoute implements IFetchGuardRoute {
+  readonly timeoutMs: number | undefined;
   private isChainTrusted = true;
   private isFirstHop = true;
 
@@ -18,7 +20,11 @@ class UrlGuardRoute implements IFetchGuardRoute {
     private readonly policy: IUrlSafetyPolicy,
     // Passed in because this class is defined before `UrlGuard`, which owns the resolver.
     private readonly resolve: typeof UrlGuard.resolvePublicAddresses,
-  ) {}
+  ) {
+    this.timeoutMs = policy.timeout
+      ? (DurationMultipliers.toMilliseconds(policy.timeout) ?? undefined)
+      : undefined;
+  }
 
   async vet(opts: { url: string; signal?: AbortSignal }): Promise<IFetchGuardHop> {
     const { url, signal } = opts;
@@ -48,7 +54,13 @@ class UrlGuardRoute implements IFetchGuardRoute {
     });
 
     // A proxy resolves the name itself, so there is nothing to pin: the caller chose it (`policy.proxy`).
-    return { url: target, addresses: policy.proxy ? [] : addresses };
+    // A pinned https connection names the host for the certificate; a literal address has no name to verify.
+    const tlsServerName =
+      target.protocol === 'https:' && !UrlPolicy.isLiteralHost({ hostname: target.hostname })
+        ? target.hostname
+        : undefined;
+
+    return { url: target, addresses: policy.proxy ? [] : addresses, tlsServerName };
   }
 }
 

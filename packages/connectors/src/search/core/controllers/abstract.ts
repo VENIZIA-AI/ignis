@@ -15,6 +15,8 @@ import type { TMultiSearchInput, TSearchInput } from '@/search/core/repositories
 import { SearchInputSchema, SearchModes } from '@/search/core/repositories/common';
 import type { ReadableSearchRepository } from '../repositories/core/readable';
 import { SearchEngineParams } from './engine-params';
+import { SearchModeAllowlist } from './modes';
+import type { TSearchFriendlyMode } from './modes';
 import { SearchRawAccess } from './raw-access';
 import { SearchResponseUtility } from './response';
 import type { ISearchLooseResponse, TSearchLooseHit } from './response';
@@ -68,6 +70,9 @@ export abstract class AbstractSearchController<
   /** The `engineParams` names a caller may send, normalised (see {@link SearchEngineParams}). Empty: any `engineParams` is refused. */
   allowedEngineParams: ReadonlySet<string>;
 
+  /** The friendly modes the controller serves (`modes.allow`). */
+  allowedModes: ReadonlyArray<TSearchFriendlyMode>;
+
   /** Whether the controller serves `mode: 'raw'` and multi-search over HTTP (`modes.raw`). Closed by default: see {@link SearchRawAccess}. */
   isRawAllowed: boolean;
 
@@ -92,6 +97,8 @@ export abstract class AbstractSearchController<
     searchScope?: TSearchScopeResolver<RouteEnv, TExtra, Inject>;
     /** Names from `query.allow.tuning`, as `SearchEngineParams.resolveAllowlist` answers them. */
     allowedEngineParams?: ReadonlySet<string>;
+    /** `modes.allow`, as `SearchModeAllowlist.resolve` answers it. */
+    allowedModes?: ReadonlyArray<TSearchFriendlyMode>;
     /** `modes.raw`, as `SearchRawAccess.resolve` answers it. */
     isRawAllowed?: boolean;
     /** `request.body.extend` was given. */
@@ -108,6 +115,7 @@ export abstract class AbstractSearchController<
     this.searchScope = opts.searchScope;
     this.allowedEngineParams = opts.allowedEngineParams ?? new Set();
     this.isRawAllowed = opts.isRawAllowed ?? false;
+    this.allowedModes = opts.allowedModes ?? SearchModeAllowlist.DEFAULTS;
     this.isBodyExtended = opts.isBodyExtended ?? false;
     this.querySettings = opts.querySettings;
     this.responseTransform = opts.responseTransform;
@@ -124,8 +132,9 @@ export abstract class AbstractSearchController<
     // The scope returns the body with its filter, the extra keys of `request.body.extend` still on it.
     let scoped: TSearchInput & TExtra = body;
 
-    // The body schema lists `raw` only when `modes.raw` is on; this holds when a subclass or a direct call skips the validator, since a caller's raw engine parameters can replace the controller's own filter.
+    // The body schema already refuses these; a subclass or a direct call can skip the validator.
     SearchRawAccess.assertSearchInput({ input: body, isAllowed: this.isRawAllowed });
+    SearchModeAllowlist.assertInput({ input: body, allowed: this.allowedModes });
     SearchEngineParams.assertSearchInput({ input: body, allowed: this.allowedEngineParams });
 
     // The request's own filter cannot name a hidden field (where or order); server code is not held to it.

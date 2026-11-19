@@ -1,11 +1,12 @@
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { SearchModes } from '@/search/core/repositories/common';
-import type { TSearchMode } from '@/search/core/repositories/common';
+import type { TSearchInput, TSearchMode } from '@/search/core/repositories/common';
 
-/** A mode `modes.allow` can name: every mode but `raw`, which is its own toggle (`modes.raw`) because it bypasses the model's filter and hidden fields. */
+/** A mode `modes.allow` can name: every mode but `raw`, which is its own toggle (`modes.raw`). */
 export type TSearchFriendlyMode = Exclude<TSearchMode, typeof SearchModes.RAW>;
 
-/** Which `mode` values `POST /search` accepts besides `raw`: `modes.allow`, read once when the controller is built. */
+/** The modes `POST /search` accepts besides `raw`, from `modes.allow`. */
 export class SearchModeAllowlist {
   /** Left out, every friendly mode is served. */
   static readonly DEFAULTS: ReadonlyArray<TSearchFriendlyMode> = [
@@ -14,7 +15,7 @@ export class SearchModeAllowlist {
     SearchModes.HYBRID,
   ];
 
-  /** The list as the body schema takes it, or the defaults when `allow` is left out. An empty list, a duplicate and a name that is not a friendly mode (`raw` included) are refused. */
+  /** `allow` as the body schema takes it; an empty list, a duplicate or a name that is not a friendly mode throws. */
   static resolve(opts: { scope: string; allow: unknown }): ReadonlyArray<TSearchFriendlyMode> {
     const { scope, allow } = opts;
 
@@ -47,5 +48,24 @@ export class SearchModeAllowlist {
     }
 
     return resolved;
+  }
+
+  /** Refuses (400) a body whose mode is not allowed: the check the body schema makes, repeated for a caller that skips the validator. `raw` is `SearchRawAccess`'s. */
+  static assertInput(opts: {
+    input: TSearchInput;
+    allowed: ReadonlyArray<TSearchFriendlyMode>;
+  }): void {
+    const { input, allowed } = opts;
+
+    if (input.mode === SearchModes.RAW) {
+      return;
+    }
+
+    if (!allowed.includes(input.mode)) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: `[search] mode '${input.mode}' is not available on this search controller`,
+      });
+    }
   }
 }
