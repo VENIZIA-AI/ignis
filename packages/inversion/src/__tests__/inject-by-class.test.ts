@@ -8,6 +8,7 @@ import {
   AuthorService as CycleAuthorService,
   NoteService as CycleNoteService,
 } from './cycle-barrel/index';
+import { BindingKeys } from '@/modules/binding/common/constants';
 
 /** `@inject({ target })` names the class; the key it resolves to is the one registration recorded on that class. */
 class NoteService {
@@ -31,11 +32,11 @@ describe('@inject({ target })', () => {
   beforeEach(() => {
     container = new Container({ scope: 'inject-by-class-test' });
 
-    metadataRegistry.setBindingKey({ target: NoteService, key: 'services.NoteService' });
-    metadataRegistry.setBindingKey({ target: AuditService, key: 'services.AuditService' });
+    metadataRegistry.setBindingKey({ target: NoteService, key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) });
+    metadataRegistry.setBindingKey({ target: AuditService, key: BindingKeys.build<unknown>({ key: 'services.AuditService' }) });
 
-    container.bind({ key: 'services.NoteService' }).toClass(NoteService);
-    container.bind({ key: 'services.AuditService' }).toClass(AuditService);
+    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) }).toClass(NoteService);
+    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.AuditService' }) }).toClass(AuditService);
   });
 
   test('resolves a constructor parameter through the key recorded on the class', () => {
@@ -63,7 +64,7 @@ describe('@inject({ target })', () => {
     class MixedController {
       constructor(
         @inject({ target: NoteService }) readonly noteService: NoteService,
-        @inject({ key: 'services.AuditService' }) readonly auditService: AuditService,
+        @inject({ key: BindingKeys.build<unknown>({ key: 'services.AuditService' }) }) readonly auditService: AuditService,
       ) {}
     }
 
@@ -102,13 +103,13 @@ describe('@inject({ target })', () => {
   test('a recorded key is not inherited by a subclass', () => {
     class DerivedNoteService extends NoteService {}
 
-    expect(metadataRegistry.getBindingKey({ target: NoteService })).toBe('services.NoteService');
+    expect(String(metadataRegistry.getBindingKey({ target: NoteService }))).toBe('services.NoteService');
     expect(metadataRegistry.getBindingKey({ target: DerivedNoteService })).toBeUndefined();
   });
 
   test('an optional class dependency resolves to undefined instead of throwing', () => {
     class UnboundService {}
-    metadataRegistry.setBindingKey({ target: UnboundService, key: 'services.UnboundService' });
+    metadataRegistry.setBindingKey({ target: UnboundService, key: BindingKeys.build<unknown>({ key: 'services.UnboundService' }) });
 
     class OptionalController {
       constructor(
@@ -126,8 +127,8 @@ describe('@inject({ target: () => Class })', () => {
 
   beforeEach(() => {
     container = new Container({ scope: 'inject-by-thunk-test' });
-    metadataRegistry.setBindingKey({ target: NoteService, key: 'services.NoteService' });
-    container.bind({ key: 'services.NoteService' }).toClass(NoteService);
+    metadataRegistry.setBindingKey({ target: NoteService, key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) });
+    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) }).toClass(NoteService);
   });
 
   test('a thunk resolves to the same binding as the class itself', () => {
@@ -181,8 +182,8 @@ describe('@inject({ target: () => Class })', () => {
 
   /** The shape the thunk exists for: a barrel re-exports two modules and one imports the other back. Importing this fixture at all is half the assertion - a bare class reference there throws at module load. */
   test('a barrel import cycle resolves, and the injected dependency is the real class', () => {
-    metadataRegistry.setBindingKey({ target: CycleNoteService, key: 'services.CycleNoteService' });
-    container.bind({ key: 'services.CycleNoteService' }).toClass(CycleNoteService);
+    metadataRegistry.setBindingKey({ target: CycleNoteService, key: BindingKeys.build<unknown>({ key: 'services.CycleNoteService' }) });
+    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.CycleNoteService' }) }).toClass(CycleNoteService);
 
     const author = container.instantiate(CycleAuthorService);
     expect(author.noteService.find()).toBe('note');
@@ -208,9 +209,9 @@ describe('@inject({ target }) and a same-name class', () => {
   test('a key bound to a different class of the same name is an error, not a silent wrong instance', () => {
     const container = new Container({ scope: 'same-name-test' });
     const { Registered, Library } = sameName();
-    metadataRegistry.setBindingKey({ target: Registered, key: 'repositories.MetaLinkRepository' });
-    metadataRegistry.setBindingKey({ target: Library, key: 'repositories.MetaLinkRepository' });
-    container.bind({ key: 'repositories.MetaLinkRepository' }).toClass(Registered);
+    metadataRegistry.setBindingKey({ target: Registered, key: BindingKeys.build<unknown>({ key: 'repositories.MetaLinkRepository' }) });
+    metadataRegistry.setBindingKey({ target: Library, key: BindingKeys.build<unknown>({ key: 'repositories.MetaLinkRepository' }) });
+    container.bind({ key: BindingKeys.build<unknown>({ key: 'repositories.MetaLinkRepository' }) }).toClass(Registered);
 
     class ImageQueue {
       constructor(@inject({ target: Library }) readonly links: { kind: string }) {}
@@ -225,8 +226,8 @@ describe('@inject({ target }) and a same-name class', () => {
     const container = new Container({ scope: 'subclass-test' });
     class BaseStore {}
     class OverrideStore extends BaseStore {}
-    metadataRegistry.setBindingKey({ target: BaseStore, key: 'services.BaseStore' });
-    container.bind({ key: 'services.BaseStore' }).toClass(OverrideStore);
+    metadataRegistry.setBindingKey({ target: BaseStore, key: BindingKeys.build<unknown>({ key: 'services.BaseStore' }) });
+    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.BaseStore' }) }).toClass(OverrideStore);
 
     class Reader {
       constructor(@inject({ target: BaseStore }) readonly store: BaseStore) {}

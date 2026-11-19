@@ -1,5 +1,6 @@
 import { AnyAliasesCommand } from './any-aliases';
 import { AsyncStyleCommand } from './async-style';
+import { BindingKeysCommand } from './binding-keys';
 import { ConnectorImportsCommand } from './connector-imports';
 import { ConstClassesCommand } from './const-classes';
 import { EnvGetCommand } from './env-get';
@@ -14,6 +15,7 @@ const USAGE = [
   ConnectorImportsCommand.USAGE,
   EnvGetCommand.USAGE,
   AnyAliasesCommand.USAGE,
+  BindingKeysCommand.USAGE,
 ].join('\n\n');
 
 /** The codemods `devz codemod <name>` runs. */
@@ -25,6 +27,7 @@ const NAME_LIST = [
   'connector-imports',
   'env-get',
   'any-aliases',
+  'binding-keys',
 ];
 const NAMES = NAME_LIST.join(', ');
 
@@ -38,6 +41,7 @@ const NOT_REVERSIBLE = new Set([
   'async-style',
   'env-get',
   'any-aliases',
+  'binding-keys',
 ]);
 
 /** `devz codemod <name> [args]`: hands the arguments to the codemod called `name`. */
@@ -84,6 +88,10 @@ export class CodemodCommand {
 
     if (name === 'any-aliases') {
       return AnyAliasesCommand.run({ root: opts.root, args: rest });
+    }
+
+    if (name === 'binding-keys') {
+      return BindingKeysCommand.run({ root: opts.root, args: rest });
     }
 
     if (args.includes('--help') || args.includes('-h')) {

@@ -3,6 +3,7 @@ import 'reflect-metadata';
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { Container } from '../modules/container/container';
 import { inject } from '../modules/metadata/injectors';
+import { BindingKeys } from '@/modules/binding/common/constants';
 
 /** Every constructor parameter of a container-instantiated class must carry `@inject` - a sparse metadata array is refused in `instantiate` with class name + index, since decorators run right-to-left and the decorator itself cannot check. */
 class NoteService {
@@ -22,15 +23,15 @@ describe('every constructor parameter of a container-instantiated class must be 
 
   beforeEach(() => {
     container = new Container({ scope: 'ctor-shape-test' });
-    container.bind({ key: 'services.NoteService' }).toClass(NoteService);
-    container.bind({ key: 'services.AuditService' }).toClass(AuditService);
+    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) }).toClass(NoteService);
+    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.AuditService' }) }).toClass(AuditService);
   });
 
   test('an UNDECORATED parameter before a decorated one is refused, by name and by index', () => {
     class LeadingHoleController {
       constructor(
         public options: object,
-        @inject({ key: 'services.NoteService' }) public noteService: NoteService,
+        @inject({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) }) public noteService: NoteService,
       ) {}
     }
 
@@ -52,9 +53,9 @@ describe('every constructor parameter of a container-instantiated class must be 
   test('an undecorated parameter BETWEEN two decorated ones is refused too', () => {
     class MiddleHoleController {
       constructor(
-        @inject({ key: 'services.NoteService' }) public noteService: NoteService,
+        @inject({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) }) public noteService: NoteService,
         public options: object,
-        @inject({ key: 'services.AuditService' }) public auditService: AuditService,
+        @inject({ key: BindingKeys.build<unknown>({ key: 'services.AuditService' }) }) public auditService: AuditService,
       ) {}
     }
 
@@ -74,8 +75,8 @@ describe('every constructor parameter of a container-instantiated class must be 
   test('a fully decorated constructor still resolves every dependency, in the right position', () => {
     class WellFormedController {
       constructor(
-        @inject({ key: 'services.NoteService' }) public noteService: NoteService,
-        @inject({ key: 'services.AuditService' }) public auditService: AuditService,
+        @inject({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) }) public noteService: NoteService,
+        @inject({ key: BindingKeys.build<unknown>({ key: 'services.AuditService' }) }) public auditService: AuditService,
       ) {}
     }
 
@@ -97,8 +98,8 @@ describe('every constructor parameter of a container-instantiated class must be 
     // Parameter decorators run right-to-left; the container assigns `args[meta.index]`, so evaluation order must not matter.
     class OrderSensitiveController {
       constructor(
-        @inject({ key: 'services.AuditService' }) public first: AuditService,
-        @inject({ key: 'services.NoteService' }) public second: NoteService,
+        @inject({ key: BindingKeys.build<unknown>({ key: 'services.AuditService' }) }) public first: AuditService,
+        @inject({ key: BindingKeys.build<unknown>({ key: 'services.NoteService' }) }) public second: NoteService,
       ) {}
     }
 

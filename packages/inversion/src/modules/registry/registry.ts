@@ -2,7 +2,7 @@ import 'reflect-metadata';
 
 import { BaseHelper } from '@/common/base-helper';
 import { Logger } from '@/common/logger';
-import { type TBindingKey, type TClass } from '@/common/types';
+import { type TBindingKey, type TClass, type TMetadataKey } from '@/common/types';
 import { MetadataKeys } from '../metadata/common/constants';
 import {
   type IBindingKeyRecord,
@@ -18,7 +18,7 @@ export class MetadataRegistry extends BaseHelper {
 
   define<Target extends object = object, Value = unknown>(opts: {
     target: Target;
-    key: TBindingKey;
+    key: TMetadataKey;
     value: Value;
   }): void {
     const { target, key, value } = opts;
@@ -35,26 +35,26 @@ export class MetadataRegistry extends BaseHelper {
 
   get<Target extends object = object, Value = unknown>(opts: {
     target: Target;
-    key: TBindingKey;
+    key: TMetadataKey;
   }): Value | undefined {
     const { target, key } = opts;
 
     return Reflect.getMetadata(key, target);
   }
 
-  has<Target extends object = object>(opts: { target: Target; key: TBindingKey }): boolean {
+  has<Target extends object = object>(opts: { target: Target; key: TMetadataKey }): boolean {
     const { target, key } = opts;
 
     return Reflect.hasMetadata(key, target);
   }
 
-  delete<Target extends object = object>(opts: { target: Target; key: TBindingKey }): boolean {
+  delete<Target extends object = object>(opts: { target: Target; key: TMetadataKey }): boolean {
     const { target, key } = opts;
 
     return Reflect.deleteMetadata(key, target);
   }
 
-  getKeys<Target extends object = object>(opts: { target: Target }): TBindingKey[] {
+  getKeys<Target extends object = object>(opts: { target: Target }): TMetadataKey[] {
     const { target } = opts;
 
     return (

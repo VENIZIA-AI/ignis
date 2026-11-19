@@ -3,6 +3,7 @@ import 'reflect-metadata';
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { Container } from '../modules/container/container';
 import { inject } from '../modules/metadata/injectors';
+import { BindingKeys } from '@/modules/binding/common/constants';
 
 /** `@inject({ isOptional: true })` on a PROPERTY must yield `undefined` for a missing binding, the same as on a constructor parameter - the index signature on `IPropertyMetadata` keeps a key typo from being a compile error, so only this test catches it. */
 describe('optional property injection', () => {
@@ -14,7 +15,7 @@ describe('optional property injection', () => {
 
   test('a missing OPTIONAL property binding yields undefined instead of throwing', () => {
     class Service {
-      @inject({ key: 'services.Absent', isOptional: true })
+      @inject({ key: BindingKeys.build<unknown>({ key: 'services.Absent' }), isOptional: true })
       absent?: { id: string };
     }
 
@@ -25,7 +26,7 @@ describe('optional property injection', () => {
 
   test('a missing REQUIRED property binding still throws', () => {
     class Service {
-      @inject({ key: 'services.Absent' })
+      @inject({ key: BindingKeys.build<unknown>({ key: 'services.Absent' }) })
       absent!: { id: string };
     }
 
@@ -34,10 +35,10 @@ describe('optional property injection', () => {
 
   test('an optional property that IS bound receives the real value', () => {
     const value = { id: 'present' };
-    container.bind({ key: 'services.Present' }).toValue(value);
+    container.bind({ key: BindingKeys.build<unknown>({ key: 'services.Present' }) }).toValue(value);
 
     class Service {
-      @inject({ key: 'services.Present', isOptional: true })
+      @inject({ key: BindingKeys.build<unknown>({ key: 'services.Present' }), isOptional: true })
       present?: { id: string };
     }
 
@@ -46,7 +47,7 @@ describe('optional property injection', () => {
 
   test('optional parameter injection keeps working (the path that was never broken)', () => {
     class Service {
-      constructor(@inject({ key: 'services.Absent', isOptional: true }) readonly absent?: object) {}
+      constructor(@inject({ key: BindingKeys.build<unknown>({ key: 'services.Absent' }), isOptional: true }) readonly absent?: object) {}
     }
 
     expect(container.instantiate(Service).absent).toBeUndefined();

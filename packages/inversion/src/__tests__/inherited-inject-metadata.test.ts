@@ -5,6 +5,7 @@ import { MetadataKeys } from '../modules/metadata/common/constants';
 import { Container } from '../modules/container/container';
 import { inject } from '../modules/metadata/injectors';
 import { metadataRegistry } from '../modules/registry';
+import { BindingKeys } from '@/modules/binding/common/constants';
 
 class Base {
   constructor(readonly dependency: string) {}
@@ -14,11 +15,11 @@ class Base {
 metadataRegistry.setInjectMetadata({
   target: Base,
   index: 0,
-  metadata: { key: 'values.base', index: 0, isOptional: false },
+  metadata: { key: BindingKeys.build<unknown>({ key: 'values.base' }), index: 0, isOptional: false },
 });
 
 class ExplicitChild extends Base {
-  constructor(@inject({ key: 'values.explicit' }) dependency: string) {
+  constructor(@inject({ key: BindingKeys.build<unknown>({ key: 'values.explicit' }) }) dependency: string) {
     super(dependency);
   }
 }
@@ -27,8 +28,8 @@ class PlainChild extends Base {}
 
 const buildContainer = () => {
   const container = new Container({ scope: 'inherited-inject-test' });
-  container.bind({ key: 'values.base' }).toValue('base');
-  container.bind({ key: 'values.explicit' }).toValue('explicit');
+  container.bind({ key: BindingKeys.build<unknown>({ key: 'values.base' }) }).toValue('base');
+  container.bind({ key: BindingKeys.build<unknown>({ key: 'values.explicit' }) }).toValue('explicit');
 
   return container;
 };
