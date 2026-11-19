@@ -1171,6 +1171,8 @@ An IPv6 literal is expanded to its eight 16-bit groups before it is classified, 
 
 `assertPublicHost` checks every resolved address, not the first. A host can publish one public A record beside an internal one. Called on their own, these only check: the address can change before your own connect, so send through a fetcher with `guard`.
 
+`ResponseReader.readText({ response, maxBytes? })` turns a `Response` into text, the one way every reader does it: `''` for a 204, an empty body or no body, and the read fails at `maxBytes`. The fetchers' schema path and the kernel's `HttpResponseReader` use it.
+
 `UrlGuard` is also what you hand a fetcher as `guardEngine` (`createRoute`). The name `UrlIngest` is gone, with `fetchGuarded`, `readCappedBody` and `capStream`: the fetchers do that work now, and `BodyLimit` holds the body cap.
 
 ### Guarded fetching

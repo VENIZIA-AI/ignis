@@ -1,7 +1,7 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { TJsonValue } from '@venizia/ignis-helpers/common';
-import { getError } from '@venizia/ignis-helpers/core';
-import type { ApplicationError, TResponsedError } from '@venizia/ignis-helpers/core';
+import { getError, ResponseReader } from '@venizia/ignis-helpers/core';
+import type { ApplicationError, TResponsedError, UrlFetchError } from '@venizia/ignis-helpers/core';
 
 /**
  * What an IGNIS server answers - `Content-Range`, the error envelope - read once, here, for every
@@ -156,13 +156,27 @@ export class HttpResponseReader {
   }
 
   /**
+   * `toApplicationError` for a fetcher's refused answer: it reads the body the `UrlFetchError` kept (the first 64 KiB),
+   * and an error that carries none is described by its status alone.
+   */
+  static async fromFetchError(opts: {
+    error: UrlFetchError<Response>;
+    context: string;
+    rootKey?: string;
+  }): Promise<ApplicationError> {
+    const { error, context, rootKey } = opts;
+    const response =
+      error.response ?? new Response(null, { status: error.status, headers: error.headers });
+
+    return HttpResponseReader.toApplicationError({ response, context, rootKey });
+  }
+
+  /**
    * The body as text: `''` for a 204 or an empty body. `response.json()` throws on those, and each client
    * that reads a response has copied the guard.
    */
   static async readText(opts: { response: Response }): Promise<string> {
-    const { response } = opts;
-
-    return response.status === HTTP.ResultCodes.RS_2.NoContent ? '' : response.text();
+    return ResponseReader.readText(opts);
   }
 
   /**

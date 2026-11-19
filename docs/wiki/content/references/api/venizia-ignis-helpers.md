@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-224 exports, 224 with TSDoc. 258 more are re-exported from other entries (listed at the end).
+225 exports, 225 with TSDoc. 259 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -5263,6 +5263,23 @@ export declare class UrlGuard {
 
 Source: `packages/helpers/src/modules/network/utilities/url-safety/guard.ts`
 
+## `UrlSafetyRefusals`
+
+*class*
+
+Telling a url-guard refusal from a failure worth another attempt.
+
+```ts
+export declare class UrlSafetyRefusals {
+    /** Whether `error` is the guard's `URL_REFUSED`: refused forever, so a caller that retries must drop it. */
+    static is(opts: {
+        error: unknown;
+    }): boolean;
+}
+```
+
+Source: `packages/helpers/src/modules/network/utilities/url-safety/common/errors.ts`
+
 ## `VaultAuthMethods`
 
 *class*
@@ -5745,6 +5762,7 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `RedactUtility` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `RequestIdGenerator` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `ResolverUtility` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `ResponseReader` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `RetryBackoffStrategies` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `RetryHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `RetryJitterModes` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)

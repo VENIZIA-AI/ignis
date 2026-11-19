@@ -592,6 +592,15 @@ export declare class HttpResponseReader {
         rootKey?: string;
     }): Promise<ApplicationError>;
     /**
+     * `toApplicationError` for a fetcher's refused answer: it reads the body the `UrlFetchError` kept (the first 64 KiB),
+     * and an error that carries none is described by its status alone.
+     */
+    static fromFetchError(opts: {
+        error: UrlFetchError<Response>;
+        context: string;
+        rootKey?: string;
+    }): Promise<ApplicationError>;
+    /**
      * The body as text: `''` for a 204 or an empty body. `response.json()` throws on those, and each client
      * that reads a response has copied the guard.
      */
