@@ -9,6 +9,7 @@ import {
 } from '@/base/metadata';
 import { ArtifactTypes, BindingScopes, MetadataRegistry } from '@/helpers/inversion';
 import { describe, expect, test } from 'bun:test';
+import { BindingKeys } from '@/helpers/inversion';
 
 const artifactOf = (target: object) =>
   MetadataRegistry.getInstance().getArtifactMetadata({ target });
@@ -72,12 +73,15 @@ describe('@injectable and its stereotypes', () => {
 
   test('@provide records one entry per method, on the class', () => {
     class Holder {
-      @provide({ key: 'options.alpha' })
+      @provide({ key: BindingKeys.build<unknown>({ key: 'options.alpha' }) })
       alpha(): number {
         return 1;
       }
 
-      @provide({ key: 'options.beta', scope: BindingScopes.TRANSIENT })
+      @provide({
+        key: BindingKeys.build<unknown>({ key: 'options.beta' }),
+        scope: BindingScopes.TRANSIENT,
+      })
       beta(): number {
         return 2;
       }

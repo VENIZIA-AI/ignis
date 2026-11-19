@@ -121,7 +121,9 @@ describe('configuration @provide and options pass-through to components', () => 
     });
 
     await app.initialize();
-    expect(app.get({ key: BindingKeys.build<string>({ key: 'configurations.apiKey' }) })).toBe('secret-api-key-123');
+    expect(app.get({ key: BindingKeys.build<string>({ key: 'configurations.apiKey' }) })).toBe(
+      'secret-api-key-123',
+    );
   });
 
   test('application.component receives strongly-typed options and passes them to configure()', async () => {

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { sql } from 'drizzle-orm';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
-import { RepositoryTypes, RestApplication, repository } from '@venizia/ignis-kernel';
+import { RepositoryTypes, RestApplication, repository, BindingKeys } from '@venizia/ignis-kernel';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseRawSqlRepository } from '@/raw-sql';
 import { type FakeConnector, FakeDataSource } from './fake-engine';
@@ -48,8 +48,8 @@ describe('BaseRawSqlRepository', () => {
     application.dataSource(FakeDataSource);
     application.repository(SalesReportRepository);
 
-    const resolved = application.get<SalesReportRepository>({
-      key: 'repositories.SalesReportRepository',
+    const resolved = application.get({
+      key: BindingKeys.build<SalesReportRepository>({ key: 'repositories.SalesReportRepository' }),
     });
 
     expect(resolved.dataSource).toBeInstanceOf(FakeDataSource);
@@ -60,10 +60,12 @@ describe('BaseRawSqlRepository', () => {
     const application = buildApplication();
     application.dataSource(FakeDataSource);
     application.repository(SalesReportRepository);
-    const resolved = application.get<SalesReportRepository>({
-      key: 'repositories.SalesReportRepository',
+    const resolved = application.get({
+      key: BindingKeys.build<SalesReportRepository>({ key: 'repositories.SalesReportRepository' }),
     });
-    const dataSource = application.get<FakeDataSource>({ key: 'datasources.FakeDataSource' });
+    const dataSource = application.get({
+      key: BindingKeys.build<FakeDataSource>({ key: 'datasources.FakeDataSource' }),
+    });
     dataSource.configure();
 
     const totals = await resolved.totalsByHost();
@@ -77,10 +79,12 @@ describe('BaseRawSqlRepository', () => {
     const application = buildApplication();
     application.dataSource(FakeDataSource);
     application.repository(SalesReportRepository);
-    const resolved = application.get<SalesReportRepository>({
-      key: 'repositories.SalesReportRepository',
+    const resolved = application.get({
+      key: BindingKeys.build<SalesReportRepository>({ key: 'repositories.SalesReportRepository' }),
     });
-    application.get<FakeDataSource>({ key: 'datasources.FakeDataSource' }).configure();
+    application
+      .get({ key: BindingKeys.build<FakeDataSource>({ key: 'datasources.FakeDataSource' }) })
+      .configure();
 
     const result = await resolved.recent();
 
@@ -93,7 +97,9 @@ describe('BaseRawSqlRepository', () => {
     const application = buildApplication();
     application.dataSource(FakeDataSource);
     application.repository(SalesReportRepository);
-    const dataSource = application.get<FakeDataSource>({ key: 'datasources.FakeDataSource' });
+    const dataSource = application.get({
+      key: BindingKeys.build<FakeDataSource>({ key: 'datasources.FakeDataSource' }),
+    });
     dataSource.configure();
 
     const result = await dataSource.execute(sql`select ${1} as one`);

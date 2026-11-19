@@ -179,7 +179,9 @@ const boot = async (...classes: Array<new () => DataSourceRoot>) => {
 };
 
 const lazyOf = (application: TestApplication) =>
-  application.get({ key: BindingKeys.build<LazyDataSource>({ key: 'datasources.LazyDataSource' }) });
+  application.get({
+    key: BindingKeys.build<LazyDataSource>({ key: 'datasources.LazyDataSource' }),
+  });
 
 beforeEach(() => {
   Journal.reset();
@@ -204,7 +206,9 @@ describe('the application starts without opening a datasource that opens on firs
 
   test('ensureOpen() of a datasource that opens at start resolves at once and opens nothing more', async () => {
     const application = await boot(EagerDataSource);
-    const eager = application.get({ key: BindingKeys.build<EagerDataSource>({ key: 'datasources.EagerDataSource' }) });
+    const eager = application.get({
+      key: BindingKeys.build<EagerDataSource>({ key: 'datasources.EagerDataSource' }),
+    });
 
     await eager.ensureOpen();
     await eager.ensureOpen();
@@ -354,7 +358,9 @@ describe('a failed open', () => {
     OpenControl.failures = 1;
 
     const dataSource = application.get({
-      key: BindingKeys.build<BrokenCleanupDataSource>({ key: 'datasources.BrokenCleanupDataSource' }),
+      key: BindingKeys.build<BrokenCleanupDataSource>({
+        key: 'datasources.BrokenCleanupDataSource',
+      }),
     });
 
     await RejectionHelper.expectRejection({
@@ -554,7 +560,9 @@ describe('the handles exist only as the argument of configure()', () => {
 describe('isOpen() and the order of the checks', () => {
   test('a datasource that opens at start is open until it is closed', async () => {
     const application = await boot(EagerDataSource);
-    const eager = application.get({ key: BindingKeys.build<EagerDataSource>({ key: 'datasources.EagerDataSource' }) });
+    const eager = application.get({
+      key: BindingKeys.build<EagerDataSource>({ key: 'datasources.EagerDataSource' }),
+    });
 
     expect(eager.isOpen()).toBe(true);
 

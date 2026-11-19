@@ -86,8 +86,10 @@ describe('Authorization Constants', () => {
 
   describe('AuthorizeBindingKeys', () => {
     test('should define all binding keys', () => {
-      expect(AuthorizeBindingKeys.OPTIONS).toBe('@app/authorize/options');
-      expect(AuthorizeBindingKeys.ALWAYS_ALLOW_ROLES).toBe('@app/authorize/always-allow-roles');
+      expect(String(AuthorizeBindingKeys.OPTIONS)).toBe('@app/authorize/options');
+      expect(String(AuthorizeBindingKeys.ALWAYS_ALLOW_ROLES)).toBe(
+        '@app/authorize/always-allow-roles',
+      );
     });
   });
 });

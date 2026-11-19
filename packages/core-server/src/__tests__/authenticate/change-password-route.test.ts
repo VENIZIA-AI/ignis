@@ -28,7 +28,7 @@ const CONFIGS: IApplicationConfigs = {
   transports: [ControllerTransports.REST],
 };
 
-const SERVICE_KEY = BindingKeys.build({
+const SERVICE_KEY = BindingKeys.build<unknown>({
   namespace: BindingNamespaces.SERVICE,
   key: 'RecordingAuthService',
 });

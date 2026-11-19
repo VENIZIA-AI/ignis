@@ -94,7 +94,7 @@ describe('End-to-end search wiring - dual-schema, @repository, controller factor
       const injectAtIndex0 = injects?.find((entry) => entry.index === 0);
 
       expect(injectAtIndex0).toBeDefined();
-      expect(injectAtIndex0?.key).toBe('datasources.AppSearchDataSource');
+      expect(String(injectAtIndex0?.key)).toBe('datasources.AppSearchDataSource');
       expect(injectAtIndex0?.isOptional).toBe(false);
     });
 

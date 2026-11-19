@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { ApplicationError, getError, isApplicationError } from '@venizia/ignis-helpers/core';
-import { Container, getError as inversionGetError } from '@venizia/ignis-inversion';
+import { Container, getError as inversionGetError, BindingKeys } from '@venizia/ignis-inversion';
 
 /** `instanceof ApplicationError` cannot work across packages: inversion ships dual CJS+ESM builds, so one source class yields two runtime constructors and CJS and ESM importers hold different classes - `isApplicationError()` is the only safe check. */
 describe('isApplicationError recognizes errors across package boundaries', () => {
@@ -34,7 +34,7 @@ describe('isApplicationError recognizes errors across package boundaries', () =>
     let caught: unknown;
 
     try {
-      container.get({ key: 'no-such-binding' });
+      container.get({ key: BindingKeys.build<unknown>({ key: 'no-such-binding' }) });
     } catch (error) {
       caught = error;
     }

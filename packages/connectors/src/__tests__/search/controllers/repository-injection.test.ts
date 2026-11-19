@@ -34,7 +34,7 @@ class TaggedSearchRepository {
 }
 
 const repositoryKey = (opts: { name: string }) => {
-  return BindingKeys.build({ namespace: BindingNamespaces.REPOSITORY, key: opts.name });
+  return BindingKeys.build<unknown>({ namespace: BindingNamespaces.REPOSITORY, key: opts.name });
 };
 
 const namedRepository = new TaggedSearchRepository('named');

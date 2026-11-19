@@ -19,6 +19,7 @@ import {
   type IApplicationInfo,
   model,
   type TAnyDataSourceSchema,
+  BindingKeys,
 } from '@venizia/ignis-kernel';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
@@ -102,11 +103,11 @@ describe('PGliteCRUDRepository through dependency injection, on a real PGlite', 
   });
 
   test('the container resolves both repositories and injects the same datasource into each', () => {
-    const viaPGlite = application.get<PGliteMemoRepository>({
-      key: 'repositories.PGliteMemoRepository',
+    const viaPGlite = application.get({
+      key: BindingKeys.build<PGliteMemoRepository>({ key: 'repositories.PGliteMemoRepository' }),
     });
-    const viaDefault = application.get<DefaultMemoRepository>({
-      key: 'repositories.DefaultMemoRepository',
+    const viaDefault = application.get({
+      key: BindingKeys.build<DefaultMemoRepository>({ key: 'repositories.DefaultMemoRepository' }),
     });
 
     expect(viaPGlite).toBeInstanceOf(PGliteMemoRepository);
@@ -118,11 +119,11 @@ describe('PGliteCRUDRepository through dependency injection, on a real PGlite', 
   });
 
   test('a write and a read work through the PGlite form, and the default form sees the row', async () => {
-    const viaPGlite = application.get<PGliteMemoRepository>({
-      key: 'repositories.PGliteMemoRepository',
+    const viaPGlite = application.get({
+      key: BindingKeys.build<PGliteMemoRepository>({ key: 'repositories.PGliteMemoRepository' }),
     });
-    const viaDefault = application.get<DefaultMemoRepository>({
-      key: 'repositories.DefaultMemoRepository',
+    const viaDefault = application.get({
+      key: BindingKeys.build<DefaultMemoRepository>({ key: 'repositories.DefaultMemoRepository' }),
     });
 
     const created = await viaPGlite.create({ data: { title: 'written through the PGlite form' } });

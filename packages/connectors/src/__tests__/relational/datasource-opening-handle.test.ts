@@ -1,7 +1,7 @@
 import { PGlite } from '@electric-sql/pglite';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
-import { datasource, model, RestApplication } from '@venizia/ignis-kernel';
+import { datasource, model, RestApplication, BindingKeys } from '@venizia/ignis-kernel';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { sql } from 'drizzle-orm';
@@ -245,8 +245,8 @@ describe('the same configure() body at start and on first use', () => {
 
   test('at start: the real boot passes the same handles, and the body works unchanged', async () => {
     const application = await bootApplication(StartOpeningDataSource);
-    const dataSource = application.get<StartOpeningDataSource>({
-      key: 'datasources.StartOpeningDataSource',
+    const dataSource = application.get({
+      key: BindingKeys.build<StartOpeningDataSource>({ key: 'datasources.StartOpeningDataSource' }),
     });
     const repository = repositoryOf(dataSource);
 

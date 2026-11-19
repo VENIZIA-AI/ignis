@@ -164,7 +164,10 @@ describe('RestApplication.registerArtifacts', () => {
         return { text: 'hello' };
       }
 
-      @provide({ key: BindingKeys.build<unknown>({ key: 'options.stamp' }), scope: BindingScopes.TRANSIENT })
+      @provide({
+        key: BindingKeys.build<unknown>({ key: 'options.stamp' }),
+        scope: BindingScopes.TRANSIENT,
+      })
       stamp(): { at: number } {
         return { at: performance.now() };
       }
@@ -176,14 +179,20 @@ describe('RestApplication.registerArtifacts', () => {
     await application.registerArtifacts({ components: [OptionsComponent] });
 
     expect(OptionsComponent.built).toBe(0);
-    expect(application.get({ key: BindingKeys.build<{ text: string }>({ key: 'options.greeting' }) })).toEqual({
+    expect(
+      application.get({ key: BindingKeys.build<{ text: string }>({ key: 'options.greeting' }) }),
+    ).toEqual({
       text: 'hello',
     });
-    expect(application.get({ key: BindingKeys.build<{ text: string }>({ key: 'options.greeting' }) })).toBe(
+    expect(
+      application.get({ key: BindingKeys.build<{ text: string }>({ key: 'options.greeting' }) }),
+    ).toBe(
       application.get({ key: BindingKeys.build<{ text: string }>({ key: 'options.greeting' }) }),
     );
     expect(OptionsComponent.built).toBe(1);
-    expect(application.get({ key: BindingKeys.build<{ at: number }>({ key: 'options.stamp' }) })).not.toBe(
+    expect(
+      application.get({ key: BindingKeys.build<{ at: number }>({ key: 'options.stamp' }) }),
+    ).not.toBe(
       application.get({ key: BindingKeys.build<{ at: number }>({ key: 'options.stamp' }) }),
     );
   });

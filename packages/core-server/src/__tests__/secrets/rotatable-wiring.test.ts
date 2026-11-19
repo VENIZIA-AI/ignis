@@ -1,5 +1,5 @@
 import { BaseApplication } from '@/base/applications/base';
-import { BaseComponent } from '@venizia/ignis-kernel';
+import { BaseComponent, BindingKeys } from '@venizia/ignis-kernel';
 import { BindingNamespaces } from '@venizia/ignis-kernel';
 import { BindingScopes } from '@venizia/ignis-kernel';
 import {
@@ -9,7 +9,10 @@ import {
 } from '@venizia/ignis-helpers';
 import { describe, expect, test } from 'bun:test';
 
-const COMPONENT_DATASOURCE_KEY = `${BindingNamespaces.DATASOURCE}.ComponentDataSource`;
+const COMPONENT_DATASOURCE_KEY = BindingKeys.build<unknown>({
+  namespace: BindingNamespaces.DATASOURCE,
+  key: 'ComponentDataSource',
+});
 
 /** Records the rotatables wired so the ordering fix can be asserted end to end. */
 class RecordingProvider {
@@ -56,7 +59,12 @@ class ComponentDataSourceApp extends BaseApplication {
   override async registerControllers() {}
 
   override preConfigure() {
-    this.bind({ key: `${BindingNamespaces.COMPONENT}.DataSourceContributingComponent` })
+    this.bind({
+      key: BindingKeys.build<unknown>({
+        namespace: BindingNamespaces.COMPONENT,
+        key: 'DataSourceContributingComponent',
+      }),
+    })
       .toValue(new DataSourceContributingComponent(this))
       .setScope(BindingScopes.SINGLETON);
   }

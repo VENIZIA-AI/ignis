@@ -155,10 +155,10 @@ const failureOf = async (
 
 describe('the policy and commit service bindings', () => {
   test('the keys are `@app/static-asset/{policy,commit}-service/<entry key>`', () => {
-    expect(StaticAssetBindingKeys.policyService({ name: 'photos' })).toBe(
+    expect(String(StaticAssetBindingKeys.policyService({ name: 'photos' }))).toBe(
       '@app/static-asset/policy-service/photos',
     );
-    expect(StaticAssetBindingKeys.commitService({ name: 'photos' })).toBe(
+    expect(String(StaticAssetBindingKeys.commitService({ name: 'photos' }))).toBe(
       '@app/static-asset/commit-service/photos',
     );
   });

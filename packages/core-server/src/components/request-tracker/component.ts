@@ -2,7 +2,7 @@ import { type BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@venizia/ignis-kernel';
 import { inject } from '@/base/metadata';
 import { RequestSpyMiddleware } from '@/base/middlewares';
-import { BindingNamespaces, CoreBindings } from '@venizia/ignis-kernel';
+import { BindingKeys, BindingNamespaces, CoreBindings } from '@venizia/ignis-kernel';
 import { Binding, BindingScopes } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
 import { type ValueOrPromise } from '@venizia/ignis-helpers/common';
@@ -10,10 +10,10 @@ import { type MiddlewareHandler } from 'hono/types';
 
 /** Installs the request spy middleware on the application server, which tracks each request. */
 export class RequestTrackerComponent extends BaseComponent {
-  static readonly REQUEST_TRACKER_MW_BINDING_KEY = [
-    BindingNamespaces.MIDDLEWARE,
-    RequestSpyMiddleware.name,
-  ].join('.');
+  static readonly REQUEST_TRACKER_MW_BINDING_KEY = BindingKeys.build<MiddlewareHandler>({
+    namespace: BindingNamespaces.MIDDLEWARE,
+    key: RequestSpyMiddleware.name,
+  });
 
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,

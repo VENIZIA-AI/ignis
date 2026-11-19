@@ -3,39 +3,43 @@ import { WebSocketBindingKeys } from '@/components/websocket/common/keys';
 
 describe('WebSocketBindingKeys', () => {
   test('should have correct binding key for WEBSOCKET_INSTANCE', () => {
-    expect(WebSocketBindingKeys.WEBSOCKET_INSTANCE).toBe('@app/websocket/instance');
+    expect(String(WebSocketBindingKeys.WEBSOCKET_INSTANCE)).toBe('@app/websocket/instance');
   });
 
   test('should have correct binding key for SERVER_OPTIONS', () => {
-    expect(WebSocketBindingKeys.SERVER_OPTIONS).toBe('@app/websocket/server-options');
+    expect(String(WebSocketBindingKeys.SERVER_OPTIONS)).toBe('@app/websocket/server-options');
   });
 
   test('should have correct binding key for REDIS_CONNECTION', () => {
-    expect(WebSocketBindingKeys.REDIS_CONNECTION).toBe('@app/websocket/redis-connection');
+    expect(String(WebSocketBindingKeys.REDIS_CONNECTION)).toBe('@app/websocket/redis-connection');
   });
 
   test('should have correct binding key for AUTHENTICATE_HANDLER', () => {
-    expect(WebSocketBindingKeys.AUTHENTICATE_HANDLER).toBe('@app/websocket/authenticate-handler');
+    expect(String(WebSocketBindingKeys.AUTHENTICATE_HANDLER)).toBe(
+      '@app/websocket/authenticate-handler',
+    );
   });
 
   test('should have correct binding key for VALIDATE_ROOM_HANDLER', () => {
-    expect(WebSocketBindingKeys.VALIDATE_ROOM_HANDLER).toBe('@app/websocket/validate-room-handler');
+    expect(String(WebSocketBindingKeys.VALIDATE_ROOM_HANDLER)).toBe(
+      '@app/websocket/validate-room-handler',
+    );
   });
 
   test('should have correct binding key for CLIENT_CONNECTED_HANDLER', () => {
-    expect(WebSocketBindingKeys.CLIENT_CONNECTED_HANDLER).toBe(
+    expect(String(WebSocketBindingKeys.CLIENT_CONNECTED_HANDLER)).toBe(
       '@app/websocket/client-connected-handler',
     );
   });
 
   test('should have correct binding key for CLIENT_DISCONNECTED_HANDLER', () => {
-    expect(WebSocketBindingKeys.CLIENT_DISCONNECTED_HANDLER).toBe(
+    expect(String(WebSocketBindingKeys.CLIENT_DISCONNECTED_HANDLER)).toBe(
       '@app/websocket/client-disconnected-handler',
     );
   });
 
   test('should have correct binding key for MESSAGE_HANDLER', () => {
-    expect(WebSocketBindingKeys.MESSAGE_HANDLER).toBe('@app/websocket/message-handler');
+    expect(String(WebSocketBindingKeys.MESSAGE_HANDLER)).toBe('@app/websocket/message-handler');
   });
 
   test('all keys should start with @app/websocket/', () => {

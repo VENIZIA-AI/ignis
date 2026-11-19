@@ -89,12 +89,15 @@ export class CoreBindings extends BindingKeys {
   static readonly APPLICATION_INSTANCE = BindingKeys.build<unknown>({
     key: '@app/instance',
   });
+
   static readonly APPLICATION_SERVER = BindingKeys.build<unknown>({
     key: '@app/server',
   });
+
   static readonly APPLICATION_CONFIG = BindingKeys.build<unknown>({
     key: '@app/config',
   });
+
   static readonly APPLICATION_PROJECT_ROOT = BindingKeys.build<string>({
     key: '@app/project_root',
   });
@@ -106,6 +109,7 @@ export class CoreBindings extends BindingKeys {
   static readonly APPLICATION_ENVIRONMENTS = BindingKeys.build<unknown>({
     key: '@app/environments',
   });
+
   static readonly APPLICATION_MIDDLEWARE_OPTIONS = BindingKeys.build<unknown>({
     key: '@app/middleware_options',
   });

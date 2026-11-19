@@ -152,7 +152,9 @@ describe('RestApplication boot sequence', () => {
       sawServiceInPreConfigure = false;
 
       override preConfigure(): void {
-        this.sawServiceInPreConfigure = this.isBound({ key: BindingKeys.build<unknown>({ namespace: BindingNamespaces.SERVICE, key: 'Svc' }) });
+        this.sawServiceInPreConfigure = this.isBound({
+          key: BindingKeys.build<unknown>({ namespace: BindingNamespaces.SERVICE, key: 'Svc' }),
+        });
         super.preConfigure();
       }
     }
@@ -243,7 +245,12 @@ describe('component nesting - arbitrary depth', () => {
 
     override binding(): ValueOrPromise<void> {
       currentApp
-        .bind({ key: BindingKeys.build<unknown>({ namespace: BindingNamespaces.DATASOURCE, key: 'LeafDataSource' }) })
+        .bind({
+          key: BindingKeys.build<unknown>({
+            namespace: BindingNamespaces.DATASOURCE,
+            key: 'LeafDataSource',
+          }),
+        })
         .toValue({
           configure: async () => {
             LeafComponent.configured = true;

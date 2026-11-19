@@ -22,6 +22,7 @@ import {
   CoreBindings,
   type IApplicationInfo,
   OpenApiResponses,
+  BindingKeys,
 } from '@venizia/ignis-kernel';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 import type { Context } from 'hono';
@@ -93,14 +94,17 @@ class AccountRepository extends DefaultCRUDRepository<typeof Account.schema> {}
 @service()
 class AccountService {
   constructor(
-    @inject({ key: 'repositories.AccountRepository' })
+    @inject({ key: BindingKeys.build<unknown>({ key: 'repositories.AccountRepository' }) })
     readonly accountRepository: AccountRepository,
   ) {}
 }
 
 @controller({ path: '/accounts' })
 class AccountController extends BaseRestController {
-  constructor(@inject({ key: 'services.AccountService' }) readonly accounts: AccountService) {
+  constructor(
+    @inject({ key: BindingKeys.build<unknown>({ key: 'services.AccountService' }) })
+    readonly accounts: AccountService,
+  ) {
     super({ scope: AccountController.name });
   }
 
@@ -117,7 +121,10 @@ class DetachedService {}
 
 @controller({ path: '/broken' })
 class BrokenController extends BaseRestController {
-  constructor(@inject({ key: 'services.DetachedService' }) readonly detached: DetachedService) {
+  constructor(
+    @inject({ key: BindingKeys.build<unknown>({ key: 'services.DetachedService' }) })
+    readonly detached: DetachedService,
+  ) {
     super({ scope: BrokenController.name });
   }
 
@@ -127,7 +134,10 @@ class BrokenController extends BaseRestController {
 /** Registered, but its dependency never was; no controller references it. */
 @service()
 class OrphanService {
-  constructor(@inject({ key: 'services.NeverRegistered' }) readonly missing: unknown) {}
+  constructor(
+    @inject({ key: BindingKeys.build<unknown>({ key: 'services.NeverRegistered' }) })
+    readonly missing: unknown,
+  ) {}
 }
 
 @controller({ path: '/dup' })
@@ -576,10 +586,16 @@ describe('ApplicationBootAssertion.assert - datasources and components', () => {
     });
 
     expect(calls.failing).toBe(0);
-    expect(application.isBound({ key: 'repositories.AccountRepository' })).toBe(true);
-    expect(application.get({ key: 'controllers.AccountController' })).toBeInstanceOf(
-      AccountController,
-    );
+    expect(
+      application.isBound({
+        key: BindingKeys.build<unknown>({ key: 'repositories.AccountRepository' }),
+      }),
+    ).toBe(true);
+    expect(
+      application.get({
+        key: BindingKeys.build<unknown>({ key: 'controllers.AccountController' }),
+      }),
+    ).toBeInstanceOf(AccountController);
   });
 
   test.each([
@@ -899,7 +915,9 @@ describe('ApplicationBootAssertion.assert - guards', () => {
     }
 
     expect(FailingDataSource.prototype.configure).toBe(configureBefore);
-    const dataSource = passed.get<FailingDataSource>({ key: 'datasources.FailingDataSource' });
+    const dataSource = passed.get({
+      key: BindingKeys.build<FailingDataSource>({ key: 'datasources.FailingDataSource' }),
+    });
     expect(Object.hasOwn(dataSource, 'configure')).toBe(false);
   });
 

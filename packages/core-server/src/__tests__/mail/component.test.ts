@@ -1,3 +1,4 @@
+import { BindingKeys } from '@venizia/ignis-kernel';
 import { describe, expect, test } from 'bun:test';
 import { MailComponent } from '@/components/mail/component';
 import {
@@ -33,8 +34,11 @@ const buildComponent = (opts: {
   }
 
   if (opts.queueConfig !== null) {
+    // The same key, untyped: some tests bind a config the type refuses on purpose.
     container
-      .bind({ key: MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG })
+      .bind({
+        key: BindingKeys.build<unknown>({ key: String(MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG) }),
+      })
       .toValue(opts.queueConfig ?? { type: 'direct' });
   }
 

@@ -72,28 +72,50 @@ describe('an application that declares no artifacts', () => {
   test('the decorated classes are discovered without listing one of them', async () => {
     await application.registerDiscoveredArtifacts();
 
-    expect(application.isBound({ key: BindingKeys.build<unknown>({ key: 'services.DiscoveredService' }) })).toBe(true);
-    expect(application.isBound({ key: BindingKeys.build<unknown>({ key: 'components.DiscoveredComponent' }) })).toBe(true);
-    expect(application.isBound({ key: BindingKeys.build<unknown>({ key: 'configurations.DiscoveredConfiguration' }) })).toBe(true);
+    expect(
+      application.isBound({
+        key: BindingKeys.build<unknown>({ key: 'services.DiscoveredService' }),
+      }),
+    ).toBe(true);
+    expect(
+      application.isBound({
+        key: BindingKeys.build<unknown>({ key: 'components.DiscoveredComponent' }),
+      }),
+    ).toBe(true);
+    expect(
+      application.isBound({
+        key: BindingKeys.build<unknown>({ key: 'configurations.DiscoveredConfiguration' }),
+      }),
+    ).toBe(true);
   });
 
   test('a discovered @model is not registered as an artifact', async () => {
     await application.registerDiscoveredArtifacts();
 
-    expect(application.isBound({ key: BindingKeys.build<unknown>({ key: 'models.DiscoveredModel' }) })).toBe(false);
+    expect(
+      application.isBound({ key: BindingKeys.build<unknown>({ key: 'models.DiscoveredModel' }) }),
+    ).toBe(false);
   });
 
   test('a when naming another application class keeps the class out of this one', async () => {
     await application.registerDiscoveredArtifacts();
 
-    expect(application.isBound({ key: BindingKeys.build<unknown>({ key: 'services.OtherApplicationOnlyService' }) })).toBe(false);
+    expect(
+      application.isBound({
+        key: BindingKeys.build<unknown>({ key: 'services.OtherApplicationOnlyService' }),
+      }),
+    ).toBe(false);
   });
 
   test('and the same class registers in the application its when names', async () => {
     const other = buildApplication({ ApplicationClass: OtherApplication });
     await other.registerDiscoveredArtifacts();
 
-    expect(other.isBound({ key: BindingKeys.build<unknown>({ key: 'services.OtherApplicationOnlyService' }) })).toBe(true);
+    expect(
+      other.isBound({
+        key: BindingKeys.build<unknown>({ key: 'services.OtherApplicationOnlyService' }),
+      }),
+    ).toBe(true);
   });
 });
 
@@ -106,8 +128,16 @@ describe('discoverArtifacts is opt-in, and composes with a declared index', () =
 
     await application.initialize();
 
-    expect(application.isBound({ key: BindingKeys.build<unknown>({ key: 'services.DeclaredOnlyService' }) })).toBe(true);
-    expect(application.isBound({ key: BindingKeys.build<unknown>({ key: 'services.DiscoveredService' }) })).toBe(false);
+    expect(
+      application.isBound({
+        key: BindingKeys.build<unknown>({ key: 'services.DeclaredOnlyService' }),
+      }),
+    ).toBe(true);
+    expect(
+      application.isBound({
+        key: BindingKeys.build<unknown>({ key: 'services.DiscoveredService' }),
+      }),
+    ).toBe(false);
   });
 
   /**
@@ -120,7 +150,11 @@ describe('discoverArtifacts is opt-in, and composes with a declared index', () =
 
     await application.initialize();
 
-    expect(application.isBound({ key: BindingKeys.build<unknown>({ key: 'services.DiscoveredService' }) })).toBe(false);
+    expect(
+      application.isBound({
+        key: BindingKeys.build<unknown>({ key: 'services.DiscoveredService' }),
+      }),
+    ).toBe(false);
   });
 
   test('the flag alone registers every discovered class', async () => {
@@ -131,7 +165,11 @@ describe('discoverArtifacts is opt-in, and composes with a declared index', () =
 
     await application.initialize();
 
-    expect(application.isBound({ key: BindingKeys.build<unknown>({ key: 'services.DiscoveredService' }) })).toBe(true);
+    expect(
+      application.isBound({
+        key: BindingKeys.build<unknown>({ key: 'services.DiscoveredService' }),
+      }),
+    ).toBe(true);
   });
 
   /** A library still exports an index, and an application discovers its own classes beside it. */
@@ -147,8 +185,16 @@ describe('discoverArtifacts is opt-in, and composes with a declared index', () =
 
     await application.initialize();
 
-    expect(application.isBound({ key: BindingKeys.build<unknown>({ key: 'services.DeclaredOnlyService' }) })).toBe(true);
-    expect(application.isBound({ key: BindingKeys.build<unknown>({ key: 'services.DiscoveredService' }) })).toBe(true);
+    expect(
+      application.isBound({
+        key: BindingKeys.build<unknown>({ key: 'services.DeclaredOnlyService' }),
+      }),
+    ).toBe(true);
+    expect(
+      application.isBound({
+        key: BindingKeys.build<unknown>({ key: 'services.DiscoveredService' }),
+      }),
+    ).toBe(true);
   });
 });
 

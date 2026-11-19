@@ -47,23 +47,25 @@ const getAvailablePort = (): Promise<number> => {
 
 describe('SocketIOBindingKeys', () => {
   test('should have correct binding key for SOCKET_IO_INSTANCE', () => {
-    expect(SocketIOBindingKeys.SOCKET_IO_INSTANCE).toBe('@app/socket-io/instance');
+    expect(String(SocketIOBindingKeys.SOCKET_IO_INSTANCE)).toBe('@app/socket-io/instance');
   });
 
   test('should have correct binding key for SERVER_OPTIONS', () => {
-    expect(SocketIOBindingKeys.SERVER_OPTIONS).toBe('@app/socket-io/server-options');
+    expect(String(SocketIOBindingKeys.SERVER_OPTIONS)).toBe('@app/socket-io/server-options');
   });
 
   test('should have correct binding key for REDIS_CONNECTION', () => {
-    expect(SocketIOBindingKeys.REDIS_CONNECTION).toBe('@app/socket-io/redis-connection');
+    expect(String(SocketIOBindingKeys.REDIS_CONNECTION)).toBe('@app/socket-io/redis-connection');
   });
 
   test('should have correct binding key for AUTHENTICATE_HANDLER', () => {
-    expect(SocketIOBindingKeys.AUTHENTICATE_HANDLER).toBe('@app/socket-io/authenticate-handler');
+    expect(String(SocketIOBindingKeys.AUTHENTICATE_HANDLER)).toBe(
+      '@app/socket-io/authenticate-handler',
+    );
   });
 
   test('should have correct binding key for CLIENT_CONNECTED_HANDLER', () => {
-    expect(SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER).toBe(
+    expect(String(SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER)).toBe(
       '@app/socket-io/client-connected-handler',
     );
   });

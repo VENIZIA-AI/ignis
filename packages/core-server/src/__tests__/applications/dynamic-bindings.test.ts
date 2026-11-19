@@ -2,7 +2,7 @@ import 'reflect-metadata';
 
 import { BaseApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications';
-import { BindingNamespaces } from '@venizia/ignis-kernel';
+import { BindingNamespaces, BindingKeys } from '@venizia/ignis-kernel';
 import type { Binding } from '@venizia/ignis-kernel';
 import type { IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
@@ -66,10 +66,14 @@ describe('BaseApplication - registerDynamicBindings', () => {
     const order: string[] = [];
 
     application
-      .bind({ key: `${BindingNamespaces.COMPONENT}.Alpha` })
+      .bind({
+        key: BindingKeys.build<unknown>({ namespace: BindingNamespaces.COMPONENT, key: 'Alpha' }),
+      })
       .toValue(buildConfigurable({ name: 'Alpha', order }));
     application
-      .bind({ key: `${BindingNamespaces.COMPONENT}.Beta` })
+      .bind({
+        key: BindingKeys.build<unknown>({ namespace: BindingNamespaces.COMPONENT, key: 'Beta' }),
+      })
       .toValue(buildConfigurable({ name: 'Beta', order }));
 
     await application.runDynamicBindings({ namespace: BindingNamespaces.COMPONENT });
@@ -80,17 +84,26 @@ describe('BaseApplication - registerDynamicBindings', () => {
   test('a binding registered DURING configure() is picked up by the same pass', async () => {
     const order: string[] = [];
 
-    application.bind({ key: `${BindingNamespaces.COMPONENT}.Parent` }).toValue(
-      buildConfigurable({
-        name: 'Parent',
-        order,
-        onConfigure: () => {
-          application
-            .bind({ key: `${BindingNamespaces.COMPONENT}.LateChild` })
-            .toValue(buildConfigurable({ name: 'LateChild', order }));
-        },
-      }),
-    );
+    application
+      .bind({
+        key: BindingKeys.build<unknown>({ namespace: BindingNamespaces.COMPONENT, key: 'Parent' }),
+      })
+      .toValue(
+        buildConfigurable({
+          name: 'Parent',
+          order,
+          onConfigure: () => {
+            application
+              .bind({
+                key: BindingKeys.build<unknown>({
+                  namespace: BindingNamespaces.COMPONENT,
+                  key: 'LateChild',
+                }),
+              })
+              .toValue(buildConfigurable({ name: 'LateChild', order }));
+          },
+        }),
+      );
 
     await application.runDynamicBindings({ namespace: BindingNamespaces.COMPONENT });
 
@@ -105,20 +118,28 @@ describe('BaseApplication - registerDynamicBindings', () => {
     const sibling = buildConfigurable({ name: 'Sibling', order });
 
     // Driver bound FIRST so the loop reaches it while `Sibling` is still ahead of it in the batch.
-    application.bind({ key: `${BindingNamespaces.COMPONENT}.Driver` }).toValue(
-      buildConfigurable({
-        name: 'Driver',
-        order,
-        onConfigure: async () => {
-          await sibling.configure();
-          application['registeredBindings'][BindingNamespaces.COMPONENT]?.add(
-            `${BindingNamespaces.COMPONENT}.Sibling`,
-          );
-        },
-      }),
-    );
+    application
+      .bind({
+        key: BindingKeys.build<unknown>({ namespace: BindingNamespaces.COMPONENT, key: 'Driver' }),
+      })
+      .toValue(
+        buildConfigurable({
+          name: 'Driver',
+          order,
+          onConfigure: async () => {
+            await sibling.configure();
+            application['registeredBindings'][BindingNamespaces.COMPONENT]?.add(
+              `${BindingNamespaces.COMPONENT}.Sibling`,
+            );
+          },
+        }),
+      );
 
-    application.bind({ key: `${BindingNamespaces.COMPONENT}.Sibling` }).toValue(sibling);
+    application
+      .bind({
+        key: BindingKeys.build<unknown>({ namespace: BindingNamespaces.COMPONENT, key: 'Sibling' }),
+      })
+      .toValue(sibling);
 
     await application.runDynamicBindings({ namespace: BindingNamespaces.COMPONENT });
 
@@ -129,7 +150,9 @@ describe('BaseApplication - registerDynamicBindings', () => {
     const order: string[] = [];
 
     application
-      .bind({ key: `${BindingNamespaces.COMPONENT}.Alpha` })
+      .bind({
+        key: BindingKeys.build<unknown>({ namespace: BindingNamespaces.COMPONENT, key: 'Alpha' }),
+      })
       .toValue(buildConfigurable({ name: 'Alpha', order }));
 
     await application.runDynamicBindings({ namespace: BindingNamespaces.COMPONENT });
@@ -138,7 +161,9 @@ describe('BaseApplication - registerDynamicBindings', () => {
     expect(order).toEqual(['Alpha']);
 
     application
-      .bind({ key: `${BindingNamespaces.COMPONENT}.Gamma` })
+      .bind({
+        key: BindingKeys.build<unknown>({ namespace: BindingNamespaces.COMPONENT, key: 'Gamma' }),
+      })
       .toValue(buildConfigurable({ name: 'Gamma', order }));
 
     await application.runDynamicBindings({ namespace: BindingNamespaces.COMPONENT });
@@ -150,7 +175,7 @@ describe('BaseApplication - registerDynamicBindings', () => {
   test('onBeforeConfigure / onAfterConfigure fire around each binding, and the after-hook sees it configured', async () => {
     const order: string[] = [];
     const namespace = BindingNamespaces.COMPONENT;
-    const key = `${namespace}.Alpha`;
+    const key = BindingKeys.build<unknown>({ namespace, key: 'Alpha' });
     const mark = (): string =>
       application.isConfigured({ namespace, key }) ? 'configured' : 'pending';
 
@@ -174,19 +199,23 @@ describe('BaseApplication - registerDynamicBindings', () => {
     const order: string[] = [];
     let shouldFail = true;
 
-    application.bind({ key: `${BindingNamespaces.COMPONENT}.Flaky` }).toValue(
-      buildConfigurable({
-        name: 'Flaky',
-        order,
-        onConfigure: () => {
-          if (!shouldFail) {
-            return;
-          }
+    application
+      .bind({
+        key: BindingKeys.build<unknown>({ namespace: BindingNamespaces.COMPONENT, key: 'Flaky' }),
+      })
+      .toValue(
+        buildConfigurable({
+          name: 'Flaky',
+          order,
+          onConfigure: () => {
+            if (!shouldFail) {
+              return;
+            }
 
-          throw getError({ message: 'configure exploded' });
-        },
-      }),
-    );
+            throw getError({ message: 'configure exploded' });
+          },
+        }),
+      );
 
     let failure: unknown;
 
