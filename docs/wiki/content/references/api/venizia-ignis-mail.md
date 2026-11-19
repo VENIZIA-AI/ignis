@@ -62,6 +62,7 @@ Mail queue executor backed by BullMQ. The `mode` option decides whether this pro
 export declare class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {
     private queueIdentifier;
     private queueName;
+    private prefix?;
     private mode;
     private queueHelper?;
     private workerHelpers;
@@ -73,6 +74,7 @@ export declare class BullMQMailExecutorHelper extends BaseHelper implements IMai
     initQueue(queue: {
         identifier: string;
         name: string;
+        prefix?: string;
     }): void;
     setProcessor(processor: (email: string) => Promise<IMailProcessorResult>, opts?: {
         numberOfWorkers?: number;
@@ -233,9 +235,11 @@ export interface IBullMQMailExecutorOpts {
      * the queue name is wrapped in a `{hash tag}` so its keys share one slot.
      */
     redis: IRedisHelper;
+    /** `prefix` is the Redis key prefix of the queue and of every worker the executor builds; unset is BullMQ's own `bull`. Switching it strands the jobs under the old one: see the queue helper's migration notes. */
     queue: {
         identifier: string;
         name: string;
+        prefix?: string;
     };
     mode: TConstValue<typeof BullMQExecutorModes>;
     /** `bullmq` itself, for a `bun build --compile` binary that has no `node_modules` to load it from. */
