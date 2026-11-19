@@ -43,6 +43,12 @@ export const MailErrors = {
     statusCode: HTTP.ResultCodes.RS_4.BadRequest,
     category: ErrorScopes.VALIDATION,
   },
+  /** A template that is malformed (a section left open, a closing tag that does not match), uses a tag this renderer does not have (a partial, a delimiter change), or reads a function or an object where text goes. */
+  TEMPLATE_INVALID: {
+    message: { text: 'Invalid mail template', code: 'core.mail.template_invalid' },
+    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.VALIDATION,
+  },
   BODY_SOURCE_REFUSED: {
     message: { text: 'Mail body must be text', code: 'core.mail.body_source_refused' },
     statusCode: HTTP.ResultCodes.RS_4.BadRequest,

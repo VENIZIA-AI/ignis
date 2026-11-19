@@ -217,15 +217,42 @@ export class NotificationService extends BaseService {
 
 ### How rendering works
 
-`TemplateEngineService` keeps templates in an in-memory `Map<string, ITemplate>`. It substitutes <code v-pre>{{variable}}</code> and <code v-pre>{{{variable}}}</code> placeholders; one regex serves both rendering and `validateTemplateData()`.
+`TemplateEngineService` keeps templates in an in-memory `Map<string, ITemplate>`. Its renderer is written for IGNIS (no Mustache): <code v-pre>{{key}}</code>, <code v-pre>{{{key}}}</code>, <code v-pre>{{a.b}}</code> and the sections below. There are no partials, no lambdas, no delimiter change and no code execution.
 
-- **Escaping.** <code v-pre>{{variable}}</code> is HTML-escaped with `Bun.escapeHTML`, so a user name such as `<a href=...>` cannot become live markup in a mail. <code v-pre>{{{variable}}}</code> inserts the value as it is: use it only for markup you wrote. `render()` takes `format: MailTemplateFormats.HTML` (the default) or `MailTemplateFormats.TEXT`, which escapes nothing; `sendTemplate()` renders the subject as `TEXT`.
-- **Nested lookup.** A key is trimmed, then resolved by splitting on `.` and walking the data object (`user.profile.name`). Only own properties are read: <code v-pre>{{constructor}}</code> stays unresolved.
-- **Missing values are preserved, not blanked.** If a resolved value is `undefined` or `null`, the original <code v-pre>{{placeholder}}</code> text stays in the output, and a warning is logged. The engine never replaces it with an empty string.
-- **String coercion.** The engine converts a resolved value with `String(value)`.
+- **Escaping.** <code v-pre>{{variable}}</code> is HTML-escaped with `Bun.escapeHTML`, so a user name such as `<a href=...>` cannot become live markup in a mail. <code v-pre>{{{variable}}}</code> inserts the value as it is: use it only for markup you wrote. `render()` takes `format: MailTemplateFormats.HTML` (the default) or `MailTemplateFormats.TEXT` (no escaping).
+- **Nested lookup.** A key is resolved by splitting on `.` and walking the data (`user.profile.name`). Only own properties are read: <code v-pre>{{constructor}}</code> and <code v-pre>{{__proto__.x}}</code> never reach the prototype chain.
+- **Text only.** A value is a string, a number or a boolean. An object, a list or a date in a <code v-pre>{{key}}</code> slot throws `core.mail.template_invalid`, never `[object Object]`: resolve a locale (`{ en, vi }`) or format a date before rendering. A function value is refused too.
 
-> [!IMPORTANT]
-> Missing template variables are **not** replaced with empty strings. This makes debugging easier: the rendered output shows you exactly which variables did not resolve.
+### Sections
+
+| Tag | Renders the block |
+|---|---|
+| <code v-pre>{{#items}}...{{/items}}</code> | once per item of a list; <code v-pre>{{.}}</code> is the item, and its keys resolve against the item first, then the outer data |
+| <code v-pre>{{#flag}}...{{/flag}}</code> | once, when the value is truthy (`true`, a non-empty string, a non-zero number, an object) |
+| <code v-pre>{{^flag}}...{{/flag}}</code> | when the value is absent, `null`, `false`, `''`, `0` or an empty list |
+
+```typescript
+const html = this.templateEngine.render({
+  templateData: '<ul>{{#lines}}<li>{{name}} x{{qty}} ({{currency}})</li>{{/lines}}</ul>{{^lines}}<p>No lines</p>{{/lines}}',
+  data: { currency: 'EUR', lines: [{ name: 'Pen', qty: 2 }] },
+});
+```
+
+Sections nest to 64. A section left open, a closing tag that does not match, and a Mustache tag this renderer does not have (a partial <code v-pre>{{> x}}</code>, a comment, a delimiter change, <code v-pre>{{& x}}</code>) throw `core.mail.template_invalid` when the template is rendered or validated.
+
+### Missing values
+
+`missing` on `render()` and `sendTemplate()` options chooses what a <code v-pre>{{key}}</code> the data does not have (`undefined` or `null`) becomes:
+
+| `missing` | Output |
+|---|---|
+| `'empty'` (default) | nothing: a mail never shows `{{reason}}` to a customer |
+| `'keep'` | the tag as written (the behaviour before this option, useful while debugging) |
+| `'throw'` | the render fails at the first one, `core.mail.invalid_configuration` |
+
+A render that leaves values empty logs one warning with the keys (never the values). To print text such as <code v-pre>{{x}}</code> literally, pass it as data and insert it with <code v-pre>{{{key}}}</code>: a value is never parsed as a template.
+
+`requireValidate: true` checks every key outside the sections first and names all the missing ones in one error, whatever `missing` says. A section key is never "missing" for it: an absent section is an optional block.
 
 ### Validate template data before sending
 
@@ -244,7 +271,7 @@ try {
   const html = this.templateEngine.render({
     templateData: template,
     data,
-    requireValidate: true, // Throws INVALID_CONFIGURATION if any placeholder is missing
+    requireValidate: true, // Throws INVALID_CONFIGURATION naming every missing key
   });
 } catch (error) {
   console.error('Template rendering failed:', error.message);

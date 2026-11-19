@@ -1,4 +1,5 @@
 import type { Readable } from 'node:stream';
+import type { TMailTemplateMissing } from '../constants';
 
 /** One attachment on an `IMailMessage`. Give `content` or `path`; `cid` makes the part inline, referenced as `cid:<value>` from the HTML body. */
 export interface IMailAttachment {
@@ -30,6 +31,8 @@ export interface IMailMessage {
   attachments?: IMailAttachment[];
   headers?: Record<string, string>;
   requireValidate?: boolean;
+  /** What a template does with a placeholder the data does not have. @default MailTemplateMissingModes.EMPTY */
+  missing?: TMailTemplateMissing;
   [key: string]: unknown;
 }
 

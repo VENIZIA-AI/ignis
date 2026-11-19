@@ -150,10 +150,10 @@ export class MailService extends BaseService implements IMailService {
       }
 
       // `rest` goes first below: the recipients, the subject and the body this call rendered are not the options' to replace, and `requireValidate` is a render switch, not a message field.
-      const { requireValidate, subject, ...rest } = options ?? {};
+      const { requireValidate, missing, subject, ...rest } = options ?? {};
 
       this.logger.for(this.sendTemplate.name).debug('Rendering template: %s', templateName);
-      const html = this.templateEngine.render({ templateName, data, requireValidate });
+      const html = this.templateEngine.render({ templateName, data, requireValidate, missing });
 
       const templateData = this.templateEngine.getTemplate(templateName);
       const renderedSubject =
@@ -163,6 +163,7 @@ export class MailService extends BaseService implements IMailService {
               templateData: templateData.subject,
               data,
               requireValidate,
+              missing,
               format: MailTemplateFormats.TEXT,
             });
 

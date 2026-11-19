@@ -140,7 +140,7 @@ and - through the wholesale kernel re-export, not from `src/components/` - `Rest
 `GrpcComponent`, `MailComponent`, `SocketIOComponent`, `StaticAssetComponent`, and
 `WebSocketComponent` are excluded from the barrel and must be imported from their sub-path
 (`@venizia/ignis/grpc`, `/mail`, `/socket-io`, `/static-asset`, `/websocket`).
-`/mail` needs `bullmq` only when its BullMQ queue executor is used: `BullMQHelper` loads the peer
+The mail template engine is a SELF-WRITTEN renderer (`MailTemplateRenderer`, `components/mail/utilities/template-renderer.utility.ts`), not Mustache: Mustache resolves keys with `in` (it reaches the prototype), and its partials, lambdas and delimiter changes are attack surface. It reads own properties only, refuses a function value, an object or a list in a text slot (`core.mail.template_invalid`, never `[object Object]`), a malformed template and any partial/comment/delimiter/`&` tag; it has the sections `{{#list}}`, `{{#flag}}`, `{{^flag}}` (item keys resolve against the item, then the outer data) and `missing: 'empty' | 'keep' | 'throw'` (default `'empty'`). `requireValidate` checks the keys outside the sections and names them all; a section key is reported by `validateTemplateData` but never missing. `/mail` needs `bullmq` only when its BullMQ queue executor is used: `BullMQHelper` loads the peer
 when it builds a queue or worker, not at import. A compiled binary using that executor passes both
 peers - `module` (bullmq) in `IBullMQMailExecutorOpts` and `module` (ioredis) in the Redis helper's own
 options - or registers them with `ModuleUtility.register({ modules: { ioredis, bullmq } })`. The

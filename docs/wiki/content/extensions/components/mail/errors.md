@@ -78,7 +78,8 @@ Both helper checks run on `configure()`, one layer deeper than `MailTransportPro
 |-----------|--------|-----------|---------|
 | Neither `templateName` nor `templateData` provided | -- | -- | `Either templateName or templateData must be provided` |
 | Template name not found in registry | 404 | `core.mail.template_not_found` | `Template not found: <name>` |
-| Missing template data keys (with `requireValidate: true`) | 400 | `core.mail.invalid_configuration` | `Missing template data for keys: <keys>` |
+| Missing template data keys (with `requireValidate: true` or `missing: 'throw'`) | 400 | `core.mail.invalid_configuration` | `Missing template data for keys: <keys>` |
+| A section left open, a closing tag that does not match, an unsupported tag (a partial, a comment, a delimiter change), a function or an object where text goes | 400 | `core.mail.template_invalid` | A message that names the section, the tag or the key |
 
 ### Queue executor errors
 
@@ -192,10 +193,10 @@ if (!isConnected) {
 }
 ```
 
-### Template placeholders show up literally in the output
+### A template renders an empty value where I expected text
 
-- **Cause.** The `data` object passed to `render()`/`sendTemplate()` is missing a <code v-pre>{{key}}</code> the template uses. Without `requireValidate: true`, the engine preserves the original placeholder text. It does **not** replace a missing value with an empty string.
-- **Fix.** Check what is missing before rendering, or fail loudly instead:
+- **Cause.** The `data` passed to `render()`/`sendTemplate()` has no value for a <code v-pre>{{key}}</code> the template uses. By default a missing value renders as an empty string (`missing: 'empty'`).
+- **Fix.** Find what is missing, or fail loudly:
 
 ```typescript
 const validation = this.templateEngine.validateTemplateData({ template, data });
@@ -208,21 +209,14 @@ if (!validation.isValid) {
 const html = this.templateEngine.render({
   templateName: 'welcome-email',
   data,
-  requireValidate: true, // throws instead of leaving placeholders in the output
+  missing: 'throw', // or requireValidate: true to list every missing key at once
 });
 ```
 
-### "Processor not set. Call setProcessor() first."
+### `core.mail.template_invalid`
 
-- **Cause.** `enqueueVerificationEmail()` was called before `setProcessor()`. Direct and Internal Queue always require a processor first. BullMQ requires one too, except in `'queue-only'` mode, where enqueueing does not need a processor.
-- **Fix.** Register a processor before enqueuing:
-
-```typescript
-executor.setProcessor(async (email: string) => {
-  // Your email-sending logic, typically wrapping mailService.send()
-  return { success: true, message: 'Verification email sent', expiresInMinutes: 10 };
-});
-```
+- **Cause.** The template is malformed (a <code v-pre>{{#list}}</code> with no <code v-pre>{{/list}}</code>), uses a tag the renderer does not have, or a <code v-pre>{{key}}</code> holds an object, a list, a date or a function.
+- **Fix.** Close every section; drop partials and delimiter changes; resolve a locale object (`{ en, vi }`) to a string, and format a date, before rendering.
 
 ### "Cannot enqueue jobs in worker-only mode"
 
