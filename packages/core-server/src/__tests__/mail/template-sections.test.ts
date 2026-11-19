@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import { MailTemplateFormats } from '@/components/mail/common';
 import { TemplateEngineService } from '@/components/mail/services';
 
@@ -234,5 +234,66 @@ describe('validateTemplateData reports section keys', () => {
     expect(
       failure(() => engine.validateTemplateData({ template: '{{#a}}', data: {} })).messageCode,
     ).toBe('core.mail.template_invalid');
+  });
+});
+
+describe('a template cannot make the renderer slow or deep', () => {
+  test('a long run of spaces after an opening tag is linear: no catastrophic backtracking', () => {
+    const template = `{{${' '.repeat(64_000)}x`;
+    const startedAt = performance.now();
+
+    expect(render(template, {})).toBe(template);
+    expect(performance.now() - startedAt).toBeLessThan(500);
+  });
+
+  test('a refused tag is found at its start: a bracket inside it does not hide it', () => {
+    expect(failure(() => render('{{!a } b}}', {})).messageCode).toBe('core.mail.template_invalid');
+    expect(failure(() => render('{{! }}', {})).messageCode).toBe('core.mail.template_invalid');
+  });
+
+  test('sections nest to 64 and no further: the 65th is a typed error', () => {
+    const nested = (depth: number) => `${'{{#a}}'.repeat(depth)}x${'{{/a}}'.repeat(depth)}`;
+
+    expect(render(nested(64), { a: true })).toBe('x');
+    const error = failure(() => render(nested(65), { a: true }));
+
+    expect(error.messageCode).toBe('core.mail.template_invalid');
+    expect(error.message).toContain('deeper than 64');
+  });
+});
+
+describe('what rendered empty is logged, keys only', () => {
+  const capture = (run: (instance: TemplateEngineService) => void) => {
+    const instance = new TemplateEngineService();
+    const lines: string[] = [];
+    const logger = instance.logger;
+
+    spyOn(logger, 'for').mockReturnValue({
+      warn: (format: string, ...args: unknown[]) => {
+        lines.push([format, ...args].join(' '));
+      },
+      debug: () => undefined,
+      info: () => undefined,
+    } as never);
+    run(instance);
+
+    return lines;
+  };
+
+  test('one warn per render lists each empty key once, and never a value', () => {
+    const lines = capture((instance) =>
+      instance.renderSimpleTemplate('{{a}} {{a}} {{{b}}} {{c}}', { c: 'secret-value' }),
+    );
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain('Keys: %s a, b');
+    expect(lines[0]).not.toContain('secret-value');
+  });
+
+  test("no warn when nothing is empty, or with missing: 'keep'", () => {
+    expect(capture((instance) => instance.renderSimpleTemplate('{{a}}', { a: 1 }))).toHaveLength(0);
+    expect(
+      capture((instance) => instance.renderSimpleTemplate('{{a}}', {}, { missing: 'keep' })),
+    ).toHaveLength(0);
   });
 });

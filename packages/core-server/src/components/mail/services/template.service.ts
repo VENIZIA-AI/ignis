@@ -142,11 +142,26 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
       }
     }
 
-    return MailTemplateRenderer.render({
+    const emptyKeys: string[] = [];
+    const rendered = MailTemplateRenderer.render({
       template,
       data,
       format: opts?.format,
       missing: opts?.missing,
+      onEmpty: (key) => {
+        if (!emptyKeys.includes(key)) {
+          emptyKeys.push(key);
+        }
+      },
     });
+
+    if (emptyKeys.length > 0) {
+      // Keys only, never values: a value is the recipient's data.
+      this.logger
+        .for(this.renderSimpleTemplate.name)
+        .warn('Template rendered with empty values | Keys: %s', emptyKeys.join(', '));
+    }
+
+    return rendered;
   }
 }

@@ -238,7 +238,7 @@ const html = this.templateEngine.render({
 });
 ```
 
-A section left open, a closing tag that does not match, and a Mustache tag this renderer does not have (a partial <code v-pre>{{> x}}</code>, a comment, a delimiter change, <code v-pre>{{& x}}</code>) throw `core.mail.template_invalid` when the template is rendered or validated.
+Sections nest to 64. A section left open, a closing tag that does not match, and a Mustache tag this renderer does not have (a partial <code v-pre>{{> x}}</code>, a comment, a delimiter change, <code v-pre>{{& x}}</code>) throw `core.mail.template_invalid` when the template is rendered or validated.
 
 ### Missing values
 
@@ -249,6 +249,8 @@ A section left open, a closing tag that does not match, and a Mustache tag this 
 | `'empty'` (default) | nothing: a mail never shows `{{reason}}` to a customer |
 | `'keep'` | the tag as written (the behaviour before this option, useful while debugging) |
 | `'throw'` | the render fails at the first one, `core.mail.invalid_configuration` |
+
+A render that leaves values empty logs one warning with the keys (never the values). To print text such as <code v-pre>{{x}}</code> literally, pass it as data and insert it with <code v-pre>{{{key}}}</code>: a value is never parsed as a template.
 
 `requireValidate: true` checks every key outside the sections first and names all the missing ones in one error, whatever `missing` says. A section key is never "missing" for it: an absent section is an optional block.
 

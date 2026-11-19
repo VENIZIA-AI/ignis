@@ -1195,6 +1195,8 @@ export declare class MailTemplateRenderer {
         data: Record<string, unknown>;
         format?: TMailTemplateFormat;
         missing?: TMailTemplateMissing;
+        /** Called with the key of every placeholder that rendered empty because the data had no value (never the value). */
+        onEmpty?: (key: string) => void;
     }): string;
     private static renderNodes;
 }

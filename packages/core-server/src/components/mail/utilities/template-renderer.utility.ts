@@ -3,15 +3,18 @@ import { MailErrors, MailTemplateFormats, MailTemplateMissingModes } from '../co
 import type { TMailTemplateFormat, TMailTemplateMissing } from '../common';
 
 /**
- * One tag: `{{{key}}}` (group 1), or `{{key}}`, `{{#key}}`, `{{^key}}`, `{{/key}}` (group 2 the sigil, group 3 the key; a lone `.` is the
- * current item). The last form is Mustache's partial, comment, delimiter change and `&`: refused. Any other `{{` stays as written.
+ * One tag: `{{{key}}}` (group 1), or a placeholder or a section tag (group 2 the sigil `#`, `^` or `/`, group 3 the key; a lone `.` is the current
+ * item). The last form only finds the start of a Mustache partial, comment, delimiter change or `&` tag: those are refused. Any other `{{` stays as written.
  */
-const TAG = /\{\{\{\s*([\w.]+)\s*\}\}\}|\{\{\s*([#^/]?)\s*([\w.]+)\s*\}\}|\{\{\s*[>=!&<][^}]*\}\}/g;
+const TAG = /\{\{\{\s*([\w.]+)\s*\}\}\}|\{\{\s*(?:([#^/])\s*)?([\w.]+)\s*\}\}|\{\{\s*[>=!&<]/g;
+
+/** How many sections may be open at once: deeper than any real template, and a bound on the scope stack. */
+const MAX_DEPTH = 64;
 
 type TNode =
-  | { kind: 'text'; text: string }
-  | { kind: 'value'; key: string; isRaw: boolean; source: string }
-  | { kind: 'section'; key: string; isInverted: boolean; children: TNode[] };
+  | { type: 'text'; text: string }
+  | { type: 'value'; key: string; isRaw: boolean; source: string }
+  | { type: 'section'; key: string; isInverted: boolean; children: TNode[] };
 
 /** Renders placeholders (escaped, raw and dotted) and sections (a list, a flag, its inverse): no partial, no lambda, no delimiter change, no code. */
 export class MailTemplateRenderer {
@@ -30,17 +33,23 @@ export class MailTemplateRenderer {
     for (const match of template.matchAll(TAG)) {
       const [source, rawKey, sigil, key] = match;
 
-      current.push({ kind: 'text', text: template.slice(cursor, match.index) });
+      current.push({ type: 'text', text: template.slice(cursor, match.index) });
       cursor = match.index + source.length;
 
-      if (rawKey === undefined && sigil === undefined) {
+      if (rawKey === undefined && key === undefined) {
         throw MailTemplateRenderer.invalid({ message: `Unsupported template tag: ${source}` });
       }
 
       if (sigil === '#' || sigil === '^') {
+        if (open.length >= MAX_DEPTH) {
+          throw MailTemplateRenderer.invalid({
+            message: `Template nests sections deeper than ${MAX_DEPTH}`,
+          });
+        }
+
         const children: TNode[] = [];
 
-        current.push({ kind: 'section', key, isInverted: sigil === '^', children });
+        current.push({ type: 'section', key, isInverted: sigil === '^', children });
         open.push({ key, parent: current });
         current = children;
       } else if (sigil === '/') {
@@ -54,7 +63,7 @@ export class MailTemplateRenderer {
 
         current = closing.parent;
       } else {
-        current.push({ kind: 'value', key: rawKey ?? key, isRaw: rawKey !== undefined, source });
+        current.push({ type: 'value', key: rawKey ?? key, isRaw: rawKey !== undefined, source });
       }
     }
 
@@ -64,7 +73,7 @@ export class MailTemplateRenderer {
       });
     }
 
-    current.push({ kind: 'text', text: template.slice(cursor) });
+    current.push({ type: 'text', text: template.slice(cursor) });
 
     return root;
   }
@@ -77,7 +86,7 @@ export class MailTemplateRenderer {
     const visit = (nodes: TNode[], isTopLevel: boolean) => {
       for (const node of nodes) {
         if (
-          node.kind === 'value' &&
+          node.type === 'value' &&
           isTopLevel &&
           node.key !== '.' &&
           !valueKeys.includes(node.key)
@@ -85,7 +94,7 @@ export class MailTemplateRenderer {
           valueKeys.push(node.key);
         }
 
-        if (node.kind === 'section') {
+        if (node.type === 'section') {
           if (!sectionKeys.includes(node.key)) {
             sectionKeys.push(node.key);
           }
@@ -139,12 +148,15 @@ export class MailTemplateRenderer {
     data: Record<string, unknown>;
     format?: TMailTemplateFormat;
     missing?: TMailTemplateMissing;
+    /** Called with the key of every placeholder that rendered empty because the data had no value (never the value). */
+    onEmpty?: (key: string) => void;
   }): string {
     const {
       template,
       data,
       format = MailTemplateFormats.HTML,
       missing = MailTemplateMissingModes.EMPTY,
+      onEmpty,
     } = opts;
 
     return MailTemplateRenderer.renderNodes({
@@ -152,6 +164,7 @@ export class MailTemplateRenderer {
       scopes: [data],
       isHtml: format === MailTemplateFormats.HTML,
       missing,
+      onEmpty,
     });
   }
 
@@ -160,12 +173,13 @@ export class MailTemplateRenderer {
     scopes: unknown[];
     isHtml: boolean;
     missing: TMailTemplateMissing;
+    onEmpty?: (key: string) => void;
   }): string {
-    const { nodes, scopes, isHtml, missing } = opts;
+    const { nodes, scopes, isHtml, missing, onEmpty } = opts;
     let out = '';
 
     for (const node of nodes) {
-      if (node.kind === 'text') {
+      if (node.type === 'text') {
         out += node.text;
         continue;
       }
@@ -178,12 +192,18 @@ export class MailTemplateRenderer {
         });
       }
 
-      if (node.kind === 'section') {
+      if (node.type === 'section') {
         const isEmpty = !value || (Array.isArray(value) && value.length === 0);
 
         if (node.isInverted) {
           out += isEmpty
-            ? MailTemplateRenderer.renderNodes({ nodes: node.children, scopes, isHtml, missing })
+            ? MailTemplateRenderer.renderNodes({
+                nodes: node.children,
+                scopes,
+                isHtml,
+                missing,
+                onEmpty,
+              })
             : '';
         } else if (!isEmpty) {
           // A list repeats per item, anything else truthy renders once; `{{.}}` is the item, and its keys come before the outer ones.
@@ -193,6 +213,7 @@ export class MailTemplateRenderer {
               scopes: [...scopes, item],
               isHtml,
               missing,
+              onEmpty,
             });
           }
         }
@@ -208,7 +229,12 @@ export class MailTemplateRenderer {
           });
         }
 
-        out += missing === MailTemplateMissingModes.KEEP ? node.source : '';
+        if (missing === MailTemplateMissingModes.KEEP) {
+          out += node.source;
+        } else {
+          onEmpty?.(node.key);
+        }
+
         continue;
       }
 
