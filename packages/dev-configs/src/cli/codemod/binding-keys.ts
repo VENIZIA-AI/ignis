@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
-import { relative, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { CodemodFiles } from './files';
 
 const USAGE = `Usage: devz codemod binding-keys [paths...] [--write [--all] | --check] [--import-from <module>]
@@ -72,9 +72,12 @@ const CONTAINER_TYPES = new Set([
   'Binding',
 ]);
 
-/** Where the framework's declarations live: an installed package, or this repository's own packages. */
-const FRAMEWORK_PATH =
-  /[\\/]node_modules[\\/]@venizia[\\/]ignis|[\\/]packages[\\/](?:inversion|kernel)[\\/]/;
+/** The packages that declare the container: the framework is identified by name, wherever it is installed or checked out. */
+const FRAMEWORK_PACKAGES = new Set([
+  '@venizia/ignis',
+  '@venizia/ignis-inversion',
+  '@venizia/ignis-kernel',
+]);
 
 /** A module of the framework: a file's own barrel is not a place to take `BindingKeys` from. */
 const VENIZIA_MODULE = /^@venizia\//;
@@ -196,8 +199,16 @@ export class BindingKeysCodemod {
       sourceFile: import('typescript').SourceFile;
       checker: import('typescript').TypeChecker;
     };
+    /** Reads a file for the package.json lookup; defaults to the file system. */
+    readFile?: (path: string) => string | undefined;
   }): IBindingKeysResult {
-    const { typescript: ts, fileName, importFrom, program } = opts;
+    const {
+      typescript: ts,
+      fileName,
+      importFrom,
+      program,
+      readFile = (path: string) => ts.sys.readFile(path),
+    } = opts;
     const language = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
     const file =
       program?.sourceFile ??
@@ -436,8 +447,43 @@ export class BindingKeysCodemod {
     ): import('typescript').Declaration | undefined =>
       checker?.getResolvedSignature(node)?.declaration;
 
-    const isFrameworkFile = (declaration: import('typescript').Node): boolean =>
-      FRAMEWORK_PATH.test(declaration.getSourceFile().fileName);
+    const packageNames = new Map<string, string | undefined>();
+
+    /** The name in the nearest package.json above `directory`, or `undefined` when there is none. */
+    const packageNameAbove = (directory: string): string | undefined => {
+      if (packageNames.has(directory)) {
+        return packageNames.get(directory);
+      }
+
+      const text = readFile(join(directory, 'package.json'));
+      const parent = dirname(directory);
+      let name: string | undefined;
+
+      if (text !== undefined) {
+        const parsed: unknown = JSON.parse(text);
+
+        name =
+          typeof parsed === 'object' &&
+          parsed !== null &&
+          'name' in parsed &&
+          typeof parsed.name === 'string'
+            ? parsed.name
+            : '';
+      } else if (parent !== directory) {
+        name = packageNameAbove(parent);
+      }
+
+      packageNames.set(directory, name);
+
+      return name;
+    };
+
+    /** A declaration of the framework: the nearest package.json above its file names one of the framework's packages. */
+    const isFrameworkFile = (declaration: import('typescript').Node): boolean => {
+      const name = packageNameAbove(dirname(declaration.getSourceFile().fileName));
+
+      return name !== undefined && FRAMEWORK_PACKAGES.has(name);
+    };
 
     /** `container.get(...)`: the checker resolves the method to the container's (or `Binding`'s), declared by the framework. */
     const isContainerMethod = (
@@ -865,7 +911,7 @@ export class BindingKeysCommand {
           fileName: file,
           source,
           importFrom,
-          ...(sourceFile === undefined ? {} : { program: { sourceFile, checker } }),
+          program: sourceFile === undefined ? undefined : { sourceFile, checker },
         });
         const shown = relative(root, file).split('\\').join('/') || file;
 

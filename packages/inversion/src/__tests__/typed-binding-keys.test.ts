@@ -125,6 +125,8 @@ describe('a JavaScript caller that passes a removed key form', () => {
     ['bind', [{ key: Symbol('mailer') }]],
     ['get', [{ key: { namespace: 'services', key: 'Mailer' } }]],
     ['getBinding', [{ key: Symbol.for('mailer') }]],
+    ['isBound', [{ key: Symbol('mailer') }]],
+    ['unbind', [{ key: { namespace: 'services', key: 'Mailer' } }]],
   ])('%s says what replaced a symbol or the object form', (method, args) => {
     expect(() => Reflect.apply(Reflect.get(container, method), container, args)).toThrow(
       /A binding key is a string made by BindingKeys\.build/,

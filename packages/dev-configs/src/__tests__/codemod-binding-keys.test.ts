@@ -32,7 +32,7 @@ const VIRTUAL_FILES = new Map<string, string>([
 ]);
 
 /** A program over `source` and the stub framework: the checker answers what `a` is, as it does in a project. */
-const programOf = (source: string) => {
+const programOf = (source: string, fileName: string) => {
   const options: ts.CompilerOptions = {
     target: ts.ScriptTarget.ESNext,
     module: ts.ModuleKind.ESNext,
@@ -42,7 +42,7 @@ const programOf = (source: string) => {
     types: [],
   };
   const host = ts.createCompilerHost(options);
-  const files = new Map(VIRTUAL_FILES).set('/virtual/src/file.ts', source);
+  const files = new Map(VIRTUAL_FILES).set(fileName, source);
   const originalGetSourceFile = host.getSourceFile.bind(host);
 
   host.fileExists = (name) => files.has(name);
@@ -70,8 +70,8 @@ const programOf = (source: string) => {
         : undefined;
     });
 
-  const program = ts.createProgram({ rootNames: ['/virtual/src/file.ts'], options, host });
-  const sourceFile = program.getSourceFile('/virtual/src/file.ts');
+  const program = ts.createProgram({ rootNames: [fileName], options, host });
+  const sourceFile = program.getSourceFile(fileName);
 
   if (sourceFile === undefined) {
     throw new Error('the virtual file is missing from the program');
@@ -80,13 +80,20 @@ const programOf = (source: string) => {
   return { sourceFile, checker: program.getTypeChecker() };
 };
 
-const rewrite = (source: string, importFrom?: string) =>
+const PACKAGES = new Map<string, string>([
+  ['/virtual/node_modules/@venizia/ignis/package.json', '{"name":"@venizia/ignis"}'],
+  ['/virtual/package.json', '{"name":"app"}'],
+  ['/virtual/fx/packages/kernel/package.json', '{"name":"fx-kernel"}'],
+]);
+
+const rewrite = (source: string, importFrom?: string, fileName = '/virtual/src/file.ts') =>
   BindingKeysCodemod.rewrite({
     typescript: ts,
-    fileName: '/virtual/src/file.ts',
+    fileName,
     source,
     importFrom,
-    program: programOf(source),
+    program: programOf(source, fileName),
+    readFile: (path) => PACKAGES.get(path),
   });
 
 /** What a snippet needs to be about the container: the framework's names and a few receivers, on one line so line numbers stay the snippet's. */
@@ -383,6 +390,22 @@ describe('devz codemod binding-keys: only the container is rewritten', () => {
         `mine.get<Session>({ key: 'a.A' });`,
         '',
       ].join('\n'),
+    );
+
+    expect(result.changed).toBe(false);
+    expect(result.manual).toEqual([]);
+  });
+
+  test("a container of another monorepo's packages/kernel is not the framework's: the package name decides", () => {
+    const result = rewrite(
+      [
+        `class Container { get<T>(opts: { key: string }): T { return opts.key as T; } }`,
+        `declare const own: Container;`,
+        `own.get<Row>({ key: 'rows.A' });`,
+        '',
+      ].join('\n'),
+      undefined,
+      '/virtual/fx/packages/kernel/src/own.ts',
     );
 
     expect(result.changed).toBe(false);

@@ -67,6 +67,8 @@ export abstract class BaseContainer extends AbstractContainer {
   }
 
   override isBound(opts: { key: TBindingKey }): boolean {
+    BaseContainer.assertKey({ key: opts.key, caller: 'isBound' });
+
     return this.bindings.has(opts.key);
   }
 
@@ -79,6 +81,8 @@ export abstract class BaseContainer extends AbstractContainer {
   }
 
   override unbind(opts: { key: TBindingKey }): boolean {
+    BaseContainer.assertKey({ key: opts.key, caller: 'unbind' });
+
     return this.bindings.delete(opts.key);
   }
 
