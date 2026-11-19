@@ -14,6 +14,7 @@ import { NativeFetcher } from '@/modules/network/http-request/fetcher/native-fet
 import { FetchRetry } from '@/modules/network/http-request/fetcher/common/utilities';
 import type { IFetchGuard } from '@/modules/network/http-request/fetcher/common/guard';
 import { UrlFetchError } from '@/modules/network/utilities/url-safety/common/errors';
+import { HTTP } from '@/common/constants/http';
 import { UrlPolicy } from '@/modules/network/utilities/url-safety/policy';
 
 const FAST = { initialDelayMs: 1, maxDelayMs: 2 };
@@ -35,6 +36,12 @@ const server = Bun.serve({
       }
       case '/redirect-307': {
         return new Response(null, { status: 307, headers: { location: '/echo' } });
+      }
+      case '/missing': {
+        return new Response('nope', { status: 404 });
+      }
+      case '/down': {
+        return new Response('down', { status: 503 });
       }
       case '/echo': {
         return new Response(hits[hits.length - 1].body || 'empty');
@@ -454,5 +461,62 @@ describe('replay', () => {
 
     expect(message).toContain('cannot carry a body that is sent once');
     expect(hits.length).toBe(before);
+  });
+});
+
+describe('acceptStatus as a list', () => {
+  const NOT_FOUND = HTTP.ResultCodes.RS_4.NotFound;
+  const UNAVAILABLE = HTTP.ResultCodes.RS_5.ServiceUnavailable;
+
+  test('a list adds to 2xx: the listed status is an answer, 2xx still is, any other throws', async () => {
+    const fetcher = new NativeFetcher({ name: 'n' });
+    const missing = await fetcher.get({ url: `${base}/missing`, acceptStatus: [NOT_FOUND] });
+    const plain = await fetcher.get({ url: `${base}/x`, acceptStatus: [NOT_FOUND] });
+    const error = await RejectionHelper.rejectionOf({
+      task: fetcher.get({ url: `${base}/down`, acceptStatus: [NOT_FOUND] }),
+    });
+
+    expect(missing.status).toBe(NOT_FOUND);
+    expect(plain.status).toBe(HTTP.ResultCodes.RS_2.Ok);
+    expect((error as UrlFetchError).status).toBe(UNAVAILABLE);
+  });
+
+  test('a function decides alone: it can refuse a 2xx', async () => {
+    const error = await RejectionHelper.rejectionOf({
+      task: new NativeFetcher({ name: 'n' }).get({ url: `${base}/x`, acceptStatus: () => false }),
+    });
+
+    expect(UrlFetchError.is(error)).toBe(true);
+  });
+
+  test('an empty list is 2xx only', async () => {
+    const error = await RejectionHelper.rejectionOf({
+      task: new NativeFetcher({ name: 'n' }).get({ url: `${base}/missing`, acceptStatus: [] }),
+    });
+
+    expect((error as UrlFetchError).status).toBe(NOT_FOUND);
+  });
+
+  test('an accepted status is never retried', async () => {
+    const before = hits.length;
+    const nativeFetcher = new NativeFetcher({ name: 'n' });
+    const response = await nativeFetcher.get({
+      url: `${base}/down`,
+      acceptStatus: [UNAVAILABLE],
+      retry: { maxAttempts: 3, backoff: FAST },
+    });
+
+    expect(response.status).toBe(UNAVAILABLE);
+    expect(hits.length - before).toBe(1);
+  });
+
+  test('axios takes the same list', async () => {
+    const axiosFetcher = new AxiosFetcher({ name: 'a' });
+    const response = await axiosFetcher.get({
+      url: `${base}/missing`,
+      acceptStatus: [NOT_FOUND],
+    });
+
+    expect(response.status).toBe(NOT_FOUND);
   });
 });

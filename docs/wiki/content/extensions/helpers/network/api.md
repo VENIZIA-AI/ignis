@@ -204,7 +204,7 @@ Every field is per call, and wins over the fetcher's `defaults`.
 | `timeout` | `number` | Milliseconds, **per attempt** |
 | `signal` | `AbortSignal` | The caller's own abort. It rejects with the caller's reason, apart from a timeout (`TimeoutError`) |
 | `schema` | `z.ZodType` | Parse the JSON body; a mismatch is a [`FetchSchemaError`](#fetchschemaerror) |
-| `acceptStatus` | `(status: number) => boolean` | The one opt-out of "a status outside 2xx throws". See [Status check](#status-check) |
+| `acceptStatus` | `number[] \| (status: number) => boolean` | The one opt-out of "a status outside 2xx throws": a list adds to 2xx, a function decides alone. See [Status check](#status-check) |
 | `retry` | `IFetchRetryOptions` | Present turns retrying on. See [Retry](#retry) |
 | `guard` | `IUrlSafetyPolicy` | Present turns the [url guard](#url-safety) on for this call |
 | `maxBytes` | `number` | Cap on the response body |
@@ -270,14 +270,22 @@ For each attempt: `onRequest` → the guard vets the url and pins its addresses 
 
 A status outside 2xx throws `UrlFetchError<RS>` with `status`, `url`, `headers`, `location` (a redirect) and the `response`, whose body is already cancelled. A 3xx the client followed is judged on its final answer.
 
-`acceptStatus` is the only opt-out:
+`acceptStatus` is the only opt-out. A list adds to 2xx:
 
 ```typescript
 const response = await fetcher.get({
   url,
-  acceptStatus: (status) => status === 404 || status < 300,
+  acceptStatus: [HTTP.ResultCodes.RS_4.NotFound],
 });
 ```
+
+A function decides alone, for the cases a list cannot say (it can refuse a 2xx too):
+
+```typescript
+await fetcher.get({ url, acceptStatus: (status) => status < 500 });
+```
+
+An empty list is 2xx only. An accepted status is an answer, so it is never retried.
 
 #### Retry
 

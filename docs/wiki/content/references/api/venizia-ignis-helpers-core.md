@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-138 exports, 138 with TSDoc. 59 more are re-exported from other entries (listed at the end).
+139 exports, 139 with TSDoc. 59 more are re-exported from other entries (listed at the end).
 
 ## `AbstractCryptoAlgorithm`
 
@@ -783,6 +783,27 @@ export declare class FetchSchemaError extends ApplicationError {
 ```
 
 Source: `packages/helpers/src/modules/network/http-request/fetcher/common/errors.ts`
+
+## `FetchStatus`
+
+*class*
+
+Which statuses a fetcher takes as an answer.
+
+```ts
+export declare class FetchStatus {
+    /** Whether `status` is 2xx. */
+    static isSuccess(opts: {
+        status: number;
+    }): boolean;
+    /** The one place `acceptStatus` becomes a decision: a list adds to 2xx, a function replaces it, unset is 2xx. */
+    static toPredicate(opts: {
+        accept: ReadonlyArray<number> | ((status: number) => boolean) | undefined;
+    }): (status: number) => boolean;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/utilities.ts`
 
 ## `FormBodyUtility`
 
@@ -1646,8 +1667,11 @@ export interface IRequestOptions {
     maxBytes?: number;
     /** Redirects followed by hand; `0` hands back the 3xx as a `UrlFetchError`. Unset: the client follows (a guard follows 3). */
     maxRedirects?: number;
-    /** Whether a status is an answer; the default is 2xx, so any other status throws a `UrlFetchError`. */
-    acceptStatus?: (status: number) => boolean;
+    /**
+     * Which statuses are an answer; any other throws a `UrlFetchError`. A list ADDS to 2xx (`[HTTP.ResultCodes.RS_4.NotFound]`
+     * is 2xx or 404); a function decides alone. Unset, only 2xx.
+     */
+    acceptStatus?: ReadonlyArray<number> | ((status: number) => boolean);
     /** The body is parsed with it, and the call answers `{ data, status, headers, response }`. */
     schema?: z.ZodType;
     [extra: symbol | string]: unknown;

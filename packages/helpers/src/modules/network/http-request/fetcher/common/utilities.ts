@@ -59,6 +59,30 @@ export class FetchHeaders {
   }
 }
 
+/** Which statuses a fetcher takes as an answer. */
+export class FetchStatus {
+  /** Whether `status` is 2xx. */
+  static isSuccess(opts: { status: number }): boolean {
+    // The hundreds digit: 2xx is the success class.
+    return Math.floor(opts.status / 100) === 2;
+  }
+
+  /** The one place `acceptStatus` becomes a decision: a list adds to 2xx, a function replaces it, unset is 2xx. */
+  static toPredicate(opts: {
+    accept: ReadonlyArray<number> | ((status: number) => boolean) | undefined;
+  }): (status: number) => boolean {
+    const { accept } = opts;
+
+    if (typeof accept === 'function') {
+      return accept;
+    }
+
+    const extra = new Set(accept);
+
+    return (status) => FetchStatus.isSuccess({ status }) || extra.has(status);
+  }
+}
+
 /** The redirect rules of a fetcher that walks redirects by hand. */
 export class FetchRedirects {
   /** The statuses that name a new location; a 304 or a 300 is an answer, not a redirect. */
