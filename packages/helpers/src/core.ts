@@ -28,7 +28,10 @@ export type {
   IUrlTrustedHosts,
   TTrustedOrigin,
 } from './modules/network/utilities/url-safety/common/types';
-export { UrlFetchError, UrlSafetyErrors } from './modules/network/utilities/url-safety/common/errors';
+export {
+  UrlFetchError,
+  UrlSafetyErrors,
+} from './modules/network/utilities/url-safety/common/errors';
 export * from './modules/network/utilities/url-safety/policy';
 export * from './modules/network/utilities/query-string';
 export { RetryBackoffStrategies, RetryJitterModes } from './modules/retry/common/constants';

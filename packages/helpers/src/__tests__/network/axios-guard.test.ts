@@ -5,8 +5,10 @@
  */
 
 import { afterAll, afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 
-const realDns = { ...(await import('node:dns/promises')) };
+const realDnsModule = await import('node:dns/promises');
+const realDns = { ...realDnsModule };
 const lookupMock = mock(async (_hostname: string, _options?: unknown): Promise<unknown[]> => []);
 
 await mock.module('node:dns/promises', () => ({ lookup: lookupMock }));
@@ -28,7 +30,10 @@ const startServer = (opts: { hostname: string; port?: number; label: string }) =
       seen.push({ path: url.pathname, host: request.headers.get('host') });
 
       return url.pathname === '/to-internal'
-        ? new Response(null, { status: 302, headers: { location: `http://internal.test:${server.port}/secret` } })
+        ? new Response(null, {
+            status: 302,
+            headers: { location: `http://internal.test:${server.port}/secret` },
+          })
         : new Response(opts.label);
     },
   });
@@ -69,7 +74,8 @@ describe('AxiosFetcher with a guard connects to the vetted address', () => {
     servers.push(server);
     lookupMock.mockResolvedValue(answer('127.0.0.1'));
 
-    const response = await new AxiosFetcher({ name: 'pin', guardEngine: UrlGuard }).get({
+    const fetcher = new AxiosFetcher({ name: 'pin', guardEngine: UrlGuard });
+    const response = await fetcher.get({
       url: `http://pinned.invalid:${server.port}/x`,
       guard: policy,
     });
@@ -106,9 +112,10 @@ describe('AxiosFetcher with a guard connects to the vetted address', () => {
     servers.push(server);
     lookupMock.mockResolvedValue(answer('10.0.0.5'));
 
-    const error = await new AxiosFetcher({ name: 'private', guardEngine: UrlGuard })
-      .get({ url: `http://internal.invalid:${server.port}/x`, guard: policy })
-      .catch((caught: unknown) => caught);
+    const fetcher = new AxiosFetcher({ name: 'private', guardEngine: UrlGuard });
+    const error = await RejectionHelper.rejectionOf({
+      task: fetcher.get({ url: `http://internal.invalid:${server.port}/x`, guard: policy }),
+    });
 
     expect(UrlPolicy.isRefusedError({ error })).toBe(true);
     expect(seen).toHaveLength(0);
@@ -121,9 +128,10 @@ describe('AxiosFetcher with a guard connects to the vetted address', () => {
       hostname === 'internal.test' ? answer('10.0.0.5') : answer('127.0.0.1'),
     );
 
-    const error = await new AxiosFetcher({ name: 'hop', guardEngine: UrlGuard })
-      .get({ url: `http://public.invalid:${server.port}/to-internal`, guard: policy })
-      .catch((caught: unknown) => caught);
+    const fetcher = new AxiosFetcher({ name: 'hop', guardEngine: UrlGuard });
+    const error = await RejectionHelper.rejectionOf({
+      task: fetcher.get({ url: `http://public.invalid:${server.port}/to-internal`, guard: policy }),
+    });
 
     expect(UrlPolicy.isRefusedError({ error })).toBe(true);
     expect(seen.map((hit) => hit.path)).toEqual(['/to-internal']);
@@ -145,7 +153,8 @@ describe('AxiosFetcher with a guard connects to the vetted address', () => {
     });
     servers.push(flaky);
 
-    const response = await new AxiosFetcher({ name: 'retry', guardEngine: UrlGuard }).get({
+    const fetcher = new AxiosFetcher({ name: 'retry', guardEngine: UrlGuard });
+    const response = await fetcher.get({
       url: `http://flaky.invalid:${flaky.port}/x`,
       guard: policy,
       retry: { maxAttempts: 2, backoff: { initialDelayMs: 1, maxDelayMs: 2 } },
@@ -162,9 +171,14 @@ describe('AxiosFetcher with a guard connects to the vetted address', () => {
       hostname === 'internal.test' ? answer('10.0.0.5') : answer('127.0.0.1'),
     );
 
-    const error = await new AxiosFetcher({ name: 'replay', guardEngine: UrlGuard })
-      .post({ url: `http://public.invalid:${server.port}/to-internal`, body: { a: 1 }, guard: policy })
-      .catch((caught: unknown) => caught);
+    const fetcher = new AxiosFetcher({ name: 'replay', guardEngine: UrlGuard });
+    const error = await RejectionHelper.rejectionOf({
+      task: fetcher.post({
+        url: `http://public.invalid:${server.port}/to-internal`,
+        body: { a: 1 },
+        guard: policy,
+      }),
+    });
 
     // A POST answered 302 becomes a GET without the body, and the hop to the private host is refused by the guard.
     expect(UrlPolicy.isRefusedError({ error })).toBe(true);

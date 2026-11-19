@@ -21,13 +21,18 @@ class CapturingFetcher extends AbstractNetworkFetchableHelper<'native', IRequest
 
   protected override buildUrl(opts: { url: string; params?: Record<string, unknown> }): string {
     const query = new URLSearchParams(
-      Object.entries(opts.params ?? {}).map(([name, value]): [string, string] => [name, String(value)]),
+      Object.entries(opts.params ?? {}).map(([name, value]): [string, string] => [
+        name,
+        String(value),
+      ]),
     ).toString();
 
     return query ? `${opts.url}?${query}` : opts.url;
   }
 
-  protected override async exchange(opts: IFetchExchangeRequest): Promise<IFetchExchange<Response>> {
+  protected override async exchange(
+    opts: IFetchExchangeRequest,
+  ): Promise<IFetchExchange<Response>> {
     this.lastExchange = opts;
     const response = new Response('{}', { status: 200 });
 

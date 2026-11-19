@@ -29,7 +29,10 @@ describe('pinned axios in a child process', () => {
   test.skipIf(process.env.PIN_MODE !== 'tls')(
     'https: connects to the vetted address, sends the host as SNI, verifies the certificate for it',
     async () => {
-      const response = await fetcher.get({ url: `https://${process.env.PIN_NAME}:${port}/hello`, guard });
+      const response = await fetcher.get({
+        url: `https://${process.env.PIN_NAME}:${port}/hello`,
+        guard,
+      });
 
       expect(response.data).toBe('ok');
     },

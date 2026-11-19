@@ -177,6 +177,26 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
     throw lastError;
   }
 
+  /** One `fetch`: pinned to the vetted addresses when there are some and no proxy was asked for. */
+  private async dispatch(opts: {
+    url: URL;
+    addresses: string[];
+    proxy: string | undefined;
+    init: IBunFetchInit;
+  }): Promise<Response> {
+    const { url, addresses, proxy, init } = opts;
+
+    if (addresses.length > 0 && !proxy) {
+      const pinned = await this.fetchPinned({ url, addresses, init });
+
+      return pinned;
+    }
+
+    const plain = await fetch(url, init);
+
+    return plain;
+  }
+
   protected override async exchange(
     opts: IFetchExchangeRequest,
   ): Promise<IFetchExchange<Response>> {
@@ -191,10 +211,7 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
       redirect: isManualRedirect ? 'manual' : 'follow',
       ...(proxy ? { proxy } : {}),
     };
-    const response =
-      addresses.length > 0 && !proxy
-        ? await this.fetchPinned({ url, addresses, init })
-        : await fetch(url, init);
+    const response = await this.dispatch({ url, addresses, proxy, init });
 
     return {
       response,
@@ -205,10 +222,13 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
         await response.body?.cancel();
       },
       readJson: async ({ maxBytes }) => {
-        const text =
-          maxBytes === undefined
-            ? await response.text()
-            : new TextDecoder().decode(await BodyLimit.readBytes({ response, maxBytes }));
+        if (maxBytes === undefined) {
+          const whole = await response.text();
+
+          return JSON.parse(whole);
+        }
+
+        const text = await BodyLimit.readText({ response, maxBytes });
 
         return JSON.parse(text);
       },
@@ -241,7 +261,16 @@ export interface INativeFetchNetworkRequestOptions {
 export class NativeFetchNetworkRequest extends BaseNetworkRequest<'native'> {
   constructor(opts: INativeFetchNetworkRequestOptions) {
     const { name, networkOptions } = opts;
-    const { headers, baseUrl, queryString, signal: _signal, body: _body, method: _method, redirect: _redirect, ...requestInit } = networkOptions;
+    const {
+      headers,
+      baseUrl,
+      queryString,
+      signal: _signal,
+      body: _body,
+      method: _method,
+      redirect: _redirect,
+      ...requestInit
+    } = networkOptions;
 
     // Case-insensitive, like the wire: a caller's `Content-Type` replaces the default one.
     const mergedHeaders = FetchHeaders.merge({

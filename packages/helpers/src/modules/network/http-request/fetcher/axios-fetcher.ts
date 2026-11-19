@@ -54,7 +54,8 @@ const pinnedLookup = (addresses: string[]) => {
       family?: number,
     ) => void,
   ) => {
-    const wantsAll = typeof options === 'object' && options !== null && Reflect.get(options, 'all') === true;
+    const wantsAll =
+      typeof options === 'object' && options !== null && Reflect.get(options, 'all') === true;
 
     if (wantsAll) {
       callback(null, answers);
@@ -147,8 +148,18 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
   protected override async exchange(
     opts: IFetchExchangeRequest,
   ): Promise<IFetchExchange<AxiosResponse<unknown>>> {
-    const { method, url, headers, body, signal, addresses, proxy, isManualRedirect, maxBytes, extra } =
-      opts;
+    const {
+      method,
+      url,
+      headers,
+      body,
+      signal,
+      addresses,
+      proxy,
+      isManualRedirect,
+      maxBytes,
+      extra,
+    } = opts;
     const { rejectUnauthorized, httpAgent, httpsAgent, ...axiosExtra } = extra;
     const props: AxiosRequestConfig = {
       ...axiosExtra,
@@ -184,7 +195,10 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
           ? httpsAgent
           : rejectUnauthorized === undefined
             ? this.httpsAgent
-            : new https.Agent({ keepAlive: true, rejectUnauthorized: rejectUnauthorized !== false });
+            : new https.Agent({
+                keepAlive: true,
+                rejectUnauthorized: rejectUnauthorized !== false,
+              });
     } else if (httpAgent instanceof http.Agent) {
       props.httpAgent = httpAgent;
     }
@@ -196,7 +210,9 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
         response,
         status: response.status,
         statusText: response.statusText,
-        headers: new Headers(Object.entries(response.headers).map(([name, value]) => [name, String(value)])),
+        headers: new Headers(
+          Object.entries(response.headers).map(([name, value]) => [name, String(value)]),
+        ),
         // axios has read the body already: nothing is left to free.
         discard: async () => undefined,
         readJson: async () => response.data,
@@ -248,7 +264,11 @@ export class AxiosNetworkRequest extends BaseNetworkRequest<'axios'> {
           timeout: timeout ?? 60 * 1000,
           ...opts.defaults,
           headers: FetchHeaders.merge({
-            layers: [{ 'content-type': 'application/json; charset=utf-8' }, headers, opts.defaults?.headers],
+            layers: [
+              { 'content-type': 'application/json; charset=utf-8' },
+              headers,
+              opts.defaults?.headers,
+            ],
           }),
         },
         hooks: opts.hooks,

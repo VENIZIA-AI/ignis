@@ -4,6 +4,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 import { z } from 'zod';
 import { FetchSchemaError } from '@/modules/network/http-request/fetcher/common/errors';
 import { UrlFetchError } from '@/modules/network/utilities/url-safety/common/errors';
@@ -33,11 +34,12 @@ const server = Bun.serve({
   fetch: async (request) => {
     const url = new URL(request.url);
     const path = url.pathname;
+    const body = await request.text();
     hits.push({
       method: request.method,
       path,
       headers: request.headers,
-      body: await request.text(),
+      body,
     });
 
     switch (path) {
@@ -109,13 +111,13 @@ describe('the status check', () => {
     const response = await buildFetcher().get({ url: `${base}/user` });
 
     expect(response).toBeInstanceOf(Response);
-    expect(await response.json()).toEqual({ id: 7, name: 'Ada' });
+    const json: unknown = await response.json();
+    expect(json).toEqual({ id: 7, name: 'Ada' });
   });
 
   test('any other status throws a UrlFetchError with the status, the url, the headers and the response', async () => {
-    const error = await buildFetcher()
-      .get({ url: `${base}/404` })
-      .catch((caught: unknown) => caught);
+    const fetcher = buildFetcher();
+    const error = await RejectionHelper.rejectionOf({ task: fetcher.get({ url: `${base}/404` }) });
 
     expect(UrlFetchError.is(error)).toBe(true);
     const typed = error as UrlFetchError;
@@ -133,13 +135,15 @@ describe('the status check', () => {
     });
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({ error: 'missing' });
+    const json: unknown = await response.json();
+    expect(json).toEqual({ error: 'missing' });
   });
 
   test('a 3xx the client followed is judged on its final answer', async () => {
     const response = await buildFetcher().get({ url: `${base}/redirect` });
 
-    expect(await response.json()).toEqual({ id: 7, name: 'Ada' });
+    const json: unknown = await response.json();
+    expect(json).toEqual({ id: 7, name: 'Ada' });
   });
 });
 
@@ -157,23 +161,22 @@ describe('the schema', () => {
 
   test('every verb and send take a schema', async () => {
     const fetcher = buildFetcher();
+    const sent = await fetcher.send({ url: `${base}/user`, schema: User });
+    const posted = await fetcher.post({ url: `${base}/user`, schema: User });
+    const put = await fetcher.put({ url: `${base}/user`, schema: User });
+    const patched = await fetcher.patch({ url: `${base}/user`, schema: User });
+    const deleted = await fetcher.delete({ url: `${base}/user`, schema: User });
+    const queried = await fetcher.query({ url: `${base}/user`, schema: User });
 
-    for (const parsed of [
-      await fetcher.send({ url: `${base}/user`, schema: User }),
-      await fetcher.post({ url: `${base}/user`, schema: User }),
-      await fetcher.put({ url: `${base}/user`, schema: User }),
-      await fetcher.patch({ url: `${base}/user`, schema: User }),
-      await fetcher.delete({ url: `${base}/user`, schema: User }),
-      await fetcher.query({ url: `${base}/user`, schema: User }),
-    ]) {
+    for (const parsed of [sent, posted, put, patched, deleted, queried]) {
       expect(parsed.data.id).toBe(7);
     }
   });
 
   test('a mismatch is a FetchSchemaError (502) naming paths and rules, never the body', async () => {
-    const error = await buildFetcher()
-      .get({ url: `${base}/wrong`, schema: User })
-      .catch((caught: unknown) => caught);
+    const error = await RejectionHelper.rejectionOf({
+      task: buildFetcher().get({ url: `${base}/wrong`, schema: User }),
+    });
 
     expect(FetchSchemaError.is(error)).toBe(true);
     const typed = error as FetchSchemaError;
@@ -186,8 +189,12 @@ describe('the schema', () => {
 
   test('a body that is not JSON, and an empty one, are mismatches too', async () => {
     const fetcher = buildFetcher();
-    const notJson = await fetcher.get({ url: `${base}/html`, schema: User }).catch((c: unknown) => c);
-    const empty = await fetcher.get({ url: `${base}/empty`, schema: User }).catch((c: unknown) => c);
+    const notJson = await RejectionHelper.rejectionOf({
+      task: fetcher.get({ url: `${base}/html`, schema: User }),
+    });
+    const empty = await RejectionHelper.rejectionOf({
+      task: fetcher.get({ url: `${base}/empty`, schema: User }),
+    });
 
     expect(FetchSchemaError.is(notJson)).toBe(true);
     expect((notJson as FetchSchemaError).issues[0].code).toBe('invalid_json');
@@ -208,7 +215,10 @@ describe('defaults', () => {
       defaults: { headers: { 'x-app': 'one', 'x-gone': 'here' } },
     });
 
-    await fetcher.get({ url: `${base}/user`, headers: { 'x-call': 'two', 'x-gone': null, 'X-App': 'three' } });
+    await fetcher.get({
+      url: `${base}/user`,
+      headers: { 'x-call': 'two', 'x-gone': null, 'X-App': 'three' },
+    });
 
     expect(lastHit().headers.get('x-app')).toBe('three');
     expect(lastHit().headers.get('x-call')).toBe('two');
@@ -218,12 +228,15 @@ describe('defaults', () => {
   test('a default timeout applies, and a call timeout replaces it', async () => {
     const fetcher = buildFetcher({ name: 'timeout', defaults: { timeout: 50 } });
 
-    const timedOut = await fetcher.get({ url: `${base}/slow` }).catch((c: unknown) => c);
+    const timedOut = await RejectionHelper.rejectionOf({
+      task: fetcher.get({ url: `${base}/slow` }),
+    });
     expect(timedOut).toBeInstanceOf(DOMException);
     expect((timedOut as DOMException).name).toBe('TimeoutError');
 
     const response = await fetcher.get({ url: `${base}/slow`, timeout: 2000 });
-    expect(await response.text()).toBe('late');
+    const body = await response.text();
+    expect(body).toBe('late');
   });
 
   test('a default retry applies, and a call can stop it with maxAttempts: 1', async () => {
@@ -234,19 +247,20 @@ describe('defaults', () => {
     });
 
     const response = await fetcher.get({ url: `${base}/flaky` });
-    expect(await response.text()).toBe('yes');
+    const body = await response.text();
+    expect(body).toBe('yes');
 
     counters.delete('/flaky');
-    const stopped = await fetcher
-      .get({ url: `${base}/flaky`, retry: { maxAttempts: 1 } })
-      .catch((c: unknown) => c);
+    const stopped = await RejectionHelper.rejectionOf({
+      task: fetcher.get({ url: `${base}/flaky`, retry: { maxAttempts: 1 } }),
+    });
     expect(UrlFetchError.is(stopped)).toBe(true);
   });
 
   test('a default maxBytes applies to the body', async () => {
     const fetcher = buildFetcher({ name: 'cap', defaults: { maxBytes: 100 } });
 
-    const error = await fetcher.get({ url: `${base}/big` }).catch((c: unknown) => c);
+    const error = await RejectionHelper.rejectionOf({ task: fetcher.get({ url: `${base}/big` }) });
 
     expect((error as Error).message).toContain('Body exceeds the cap');
   });
@@ -284,7 +298,10 @@ describe('hooks', () => {
       },
     });
 
-    await fetcher.get({ url: `${base}/flaky`, retry: { maxAttempts: 3, backoff: { initialDelayMs: 1, maxDelayMs: 2 } } });
+    await fetcher.get({
+      url: `${base}/flaky`,
+      retry: { maxAttempts: 3, backoff: { initialDelayMs: 1, maxDelayMs: 2 } },
+    });
 
     expect(signed).toEqual(['attempt 1', 'attempt 2', 'attempt 3']);
     expect(lastHit().headers.get('x-attempt')).toBe('3');
@@ -325,8 +342,10 @@ describe('hooks', () => {
       },
     });
 
-    await fetcher.get({ url: `${base}/404` }).catch(() => undefined);
-    await fetcher.get({ url: `${base}/wrong`, schema: User }).catch(() => undefined);
+    await RejectionHelper.rejectionOf({ task: fetcher.get({ url: `${base}/404` }) });
+    await RejectionHelper.rejectionOf({
+      task: fetcher.get({ url: `${base}/wrong`, schema: User }),
+    });
 
     expect(seen).toEqual([404, 200]);
   });
@@ -343,9 +362,12 @@ describe('hooks', () => {
       },
     });
 
-    const failure = await fetcher
-      .get({ url: `${base}/503`, retry: { maxAttempts: 2, backoff: { initialDelayMs: 1, maxDelayMs: 2 } } })
-      .catch((caught: unknown) => caught);
+    const failure = await RejectionHelper.rejectionOf({
+      task: fetcher.get({
+        url: `${base}/503`,
+        retry: { maxAttempts: 2, backoff: { initialDelayMs: 1, maxDelayMs: 2 } },
+      }),
+    });
 
     expect(UrlFetchError.is(failure)).toBe(true);
     expect(errors).toHaveLength(1);
@@ -358,14 +380,18 @@ describe('hooks', () => {
       name: 'hooks-kinds',
       hooks: {
         onError: ({ error }) => {
-          kinds.push(error instanceof Error || error instanceof DOMException ? error.name : 'other');
+          kinds.push(
+            error instanceof Error || error instanceof DOMException ? error.name : 'other',
+          );
         },
       },
     });
 
-    await fetcher.get({ url: `${base}/slow`, timeout: 20 }).catch(() => undefined);
-    await fetcher.get({ url: 'http://127.0.0.1:1/' }).catch(() => undefined);
-    await fetcher.get({ url: `${base}/wrong`, schema: User }).catch(() => undefined);
+    await RejectionHelper.rejectionOf({ task: fetcher.get({ url: `${base}/slow`, timeout: 20 }) });
+    await RejectionHelper.rejectionOf({ task: fetcher.get({ url: 'http://127.0.0.1:1/' }) });
+    await RejectionHelper.rejectionOf({
+      task: fetcher.get({ url: `${base}/wrong`, schema: User }),
+    });
 
     expect(kinds[0]).toBe('TimeoutError');
     expect(kinds).toHaveLength(3);
@@ -380,11 +406,15 @@ describe('hooks', () => {
         onRequest: () => {
           throw new Error('cannot sign');
         },
-        onError: ({ error }) => { seen.push((error as Error).message); },
+        onError: ({ error }) => {
+          seen.push((error as Error).message);
+        },
       },
     });
 
-    const failure = await fetcher.get({ url: `${base}/user` }).catch((caught: unknown) => caught);
+    const failure = await RejectionHelper.rejectionOf({
+      task: fetcher.get({ url: `${base}/user` }),
+    });
 
     expect((failure as Error).message).toBe('cannot sign');
     expect(seen).toEqual(['cannot sign']);
@@ -400,10 +430,17 @@ describe('retry', () => {
 
     const response = await buildFetcher().get({
       url: `${base}/flaky`,
-      retry: { maxAttempts: 3, backoff: FAST, onRetry: ({ attempt }) => { retries.push(attempt); } },
+      retry: {
+        maxAttempts: 3,
+        backoff: FAST,
+        onRetry: ({ attempt }) => {
+          retries.push(attempt);
+        },
+      },
     });
 
-    expect(await response.text()).toBe('yes');
+    const body = await response.text();
+    expect(body).toBe('yes');
     expect(retries).toEqual([1, 2]);
   });
 
@@ -411,37 +448,59 @@ describe('retry', () => {
     const fetcher = buildFetcher();
     const before = hits.length;
 
-    await fetcher.get({ url: `${base}/404`, retry: { maxAttempts: 3, backoff: FAST } }).catch(() => undefined);
-    await fetcher
-      .get({ url: `${base}/redirect`, maxRedirects: 0, retry: { maxAttempts: 3, backoff: FAST } })
-      .catch(() => undefined);
-    await fetcher
-      .get({ url: `${base}/wrong`, schema: User, retry: { maxAttempts: 3, backoff: FAST } })
-      .catch(() => undefined);
+    await RejectionHelper.rejectionOf({
+      task: fetcher.get({ url: `${base}/404`, retry: { maxAttempts: 3, backoff: FAST } }),
+    });
+    await RejectionHelper.rejectionOf({
+      task: fetcher.get({
+        url: `${base}/redirect`,
+        maxRedirects: 0,
+        retry: { maxAttempts: 3, backoff: FAST },
+      }),
+    });
+    await RejectionHelper.rejectionOf({
+      task: fetcher.get({
+        url: `${base}/wrong`,
+        schema: User,
+        retry: { maxAttempts: 3, backoff: FAST },
+      }),
+    });
 
     expect(hits.length - before).toBe(3);
   });
 
   test('a timeout and a network error are retried', async () => {
     const attempts: number[] = [];
-    const error = await buildFetcher()
-      .get({
+    const error = await RejectionHelper.rejectionOf({
+      task: buildFetcher().get({
         url: `${base}/slow`,
         timeout: 20,
-        retry: { maxAttempts: 3, backoff: FAST, onRetry: ({ attempt }) => { attempts.push(attempt); } },
-      })
-      .catch((caught: unknown) => caught);
+        retry: {
+          maxAttempts: 3,
+          backoff: FAST,
+          onRetry: ({ attempt }) => {
+            attempts.push(attempt);
+          },
+        },
+      }),
+    });
 
     expect((error as DOMException).name).toBe('TimeoutError');
     expect(attempts).toEqual([1, 2]);
 
     const network: number[] = [];
-    await buildFetcher()
-      .get({
+    await RejectionHelper.rejectionOf({
+      task: buildFetcher().get({
         url: 'http://127.0.0.1:1/',
-        retry: { maxAttempts: 2, backoff: FAST, onRetry: ({ attempt }) => { network.push(attempt); } },
-      })
-      .catch(() => undefined);
+        retry: {
+          maxAttempts: 2,
+          backoff: FAST,
+          onRetry: ({ attempt }) => {
+            network.push(attempt);
+          },
+        },
+      }),
+    });
     expect(network).toEqual([1]);
   });
 
@@ -455,11 +514,14 @@ describe('retry', () => {
       retry: {
         maxAttempts: 2,
         backoff: FAST,
-        onRetry: ({ nextDelayMs }) => { delays.push(nextDelayMs); },
+        onRetry: ({ nextDelayMs }) => {
+          delays.push(nextDelayMs);
+        },
       },
     });
 
-    expect(await response.text()).toBe('ok');
+    const body = await response.text();
+    expect(body).toBe('ok');
     expect(delays).toEqual([1000]);
     expect(Date.now() - startedAt).toBeGreaterThanOrEqual(950);
   });
@@ -467,9 +529,12 @@ describe('retry', () => {
   test('a Retry-After that does not fit maxTotalMs ends the retries and rethrows the 429', async () => {
     counters.delete('/flaky-429');
 
-    const error = await buildFetcher()
-      .get({ url: `${base}/flaky-429`, retry: { maxAttempts: 3, maxTotalMs: 200, backoff: FAST } })
-      .catch((caught: unknown) => caught);
+    const error = await RejectionHelper.rejectionOf({
+      task: buildFetcher().get({
+        url: `${base}/flaky-429`,
+        retry: { maxAttempts: 3, maxTotalMs: 200, backoff: FAST },
+      }),
+    });
 
     expect(UrlFetchError.is(error)).toBe(true);
     expect((error as UrlFetchError).status).toBe(429);
@@ -478,12 +543,16 @@ describe('retry', () => {
   test("the caller's shouldRetry replaces the default decision", async () => {
     const before = hits.length;
 
-    await buildFetcher()
-      .get({
+    await RejectionHelper.rejectionOf({
+      task: buildFetcher().get({
         url: `${base}/404`,
-        retry: { maxAttempts: 3, backoff: FAST, shouldRetry: ({ error }) => UrlFetchError.is(error) },
-      })
-      .catch(() => undefined);
+        retry: {
+          maxAttempts: 3,
+          backoff: FAST,
+          shouldRetry: ({ error }) => UrlFetchError.is(error),
+        },
+      }),
+    });
 
     expect(hits.length - before).toBe(3);
   });
@@ -492,7 +561,9 @@ describe('retry', () => {
     counters.delete('/post-flaky');
     const fetcher = buildFetcher();
 
-    const first = await fetcher.post({ url: `${base}/post-flaky`, body: { a: 1 } }).catch((c: unknown) => c);
+    const first = await RejectionHelper.rejectionOf({
+      task: fetcher.post({ url: `${base}/post-flaky`, body: { a: 1 } }),
+    });
     expect(UrlFetchError.is(first)).toBe(true);
 
     counters.delete('/post-flaky');
@@ -501,7 +572,8 @@ describe('retry', () => {
       body: { a: 1 },
       retry: { maxAttempts: 2, backoff: FAST },
     });
-    expect(await retried.text()).toBe('created');
+    const body = await retried.text();
+    expect(body).toBe('created');
     expect(lastHit().body).toBe('{"a":1}');
   });
 
@@ -510,8 +582,8 @@ describe('retry', () => {
     const reason = new Error('user cancelled');
     let attempts = 0;
 
-    const pending = buildFetcher()
-      .get({
+    const pending = await RejectionHelper.rejectionOf({
+      task: buildFetcher().get({
         url: `${base}/503`,
         signal: controller.signal,
         retry: {
@@ -522,19 +594,19 @@ describe('retry', () => {
             controller.abort(reason);
           },
         },
-      })
-      .catch((caught: unknown) => caught);
+      }),
+    });
 
-    expect(await pending).toBe(reason);
+    expect(pending).toBe(reason);
     expect(attempts).toBe(1);
   });
 });
 
 describe('the body cap', () => {
   test('a declared length over maxBytes is refused before the body is read', async () => {
-    const error = await buildFetcher()
-      .get({ url: `${base}/big`, maxBytes: 100 })
-      .catch((caught: unknown) => caught);
+    const error = await RejectionHelper.rejectionOf({
+      task: buildFetcher().get({ url: `${base}/big`, maxBytes: 100 }),
+    });
 
     expect((error as Error).message).toContain('Body exceeds the cap | declared: 5000');
   });
@@ -542,7 +614,8 @@ describe('the body cap', () => {
   test('a body inside the cap is returned whole', async () => {
     const response = await buildFetcher().get({ url: `${base}/big`, maxBytes: 10_000 });
 
-    expect((await response.text()).length).toBe(5000);
+    const body = await response.text();
+    expect(body.length).toBe(5000);
   });
 
   test('a body that lies about its length is cut off while it streams', async () => {
@@ -562,8 +635,11 @@ describe('the body cap', () => {
     });
 
     try {
-      const response = await buildFetcher().get({ url: `http://127.0.0.1:${liar.port}/`, maxBytes: 5000 });
-      const error = await response.text().catch((caught: unknown) => caught);
+      const response = await buildFetcher().get({
+        url: `http://127.0.0.1:${liar.port}/`,
+        maxBytes: 5000,
+      });
+      const error = await RejectionHelper.rejectionOf({ task: response.text() });
 
       expect((error as Error).message).toContain('Body exceeds the cap');
     } finally {
@@ -572,9 +648,9 @@ describe('the body cap', () => {
   });
 
   test('with a schema the body is read inside the cap too', async () => {
-    const error = await buildFetcher()
-      .get({ url: `${base}/user`, schema: User, maxBytes: 5 })
-      .catch((caught: unknown) => caught);
+    const error = await RejectionHelper.rejectionOf({
+      task: buildFetcher().get({ url: `${base}/user`, schema: User, maxBytes: 5 }),
+    });
 
     expect((error as Error).message).toContain('Body exceeds the cap');
   });
@@ -582,7 +658,9 @@ describe('the body cap', () => {
 
 describe('the deadline and the signal', () => {
   test('the timeout is per attempt and is a TimeoutError', async () => {
-    const error = await buildFetcher().get({ url: `${base}/slow`, timeout: 30 }).catch((c: unknown) => c);
+    const error = await RejectionHelper.rejectionOf({
+      task: buildFetcher().get({ url: `${base}/slow`, timeout: 30 }),
+    });
 
     expect((error as DOMException).name).toBe('TimeoutError');
   });
@@ -590,13 +668,14 @@ describe('the deadline and the signal', () => {
   test("a caller's abort rejects with the caller's own reason, apart from a timeout", async () => {
     const controller = new AbortController();
     const reason = new Error('stop');
-    const pending = buildFetcher()
-      .get({ url: `${base}/slow`, timeout: 5000, signal: controller.signal })
-      .catch((caught: unknown) => caught);
+    const pending = RejectionHelper.rejectionOf({
+      task: buildFetcher().get({ url: `${base}/slow`, timeout: 5000, signal: controller.signal }),
+    });
 
     setTimeout(() => controller.abort(reason), 20);
 
-    expect(await pending).toBe(reason);
+    const rejected = await pending;
+    expect(rejected).toBe(reason);
   });
 
   test('an already aborted signal never reaches the server', async () => {
@@ -604,9 +683,9 @@ describe('the deadline and the signal', () => {
     controller.abort(new Error('before'));
     const before = hits.length;
 
-    const error = await buildFetcher()
-      .get({ url: `${base}/user`, signal: controller.signal })
-      .catch((caught: unknown) => caught);
+    const error = await RejectionHelper.rejectionOf({
+      task: buildFetcher().get({ url: `${base}/user`, signal: controller.signal }),
+    });
 
     expect((error as Error).message).toBe('before');
     expect(hits.length).toBe(before);
@@ -615,9 +694,9 @@ describe('the deadline and the signal', () => {
 
 describe('redirects', () => {
   test('maxRedirects: 0 hands back the 3xx as a UrlFetchError with its location', async () => {
-    const error = await buildFetcher()
-      .get({ url: `${base}/redirect`, maxRedirects: 0 })
-      .catch((caught: unknown) => caught);
+    const error = await RejectionHelper.rejectionOf({
+      task: buildFetcher().get({ url: `${base}/redirect`, maxRedirects: 0 }),
+    });
 
     expect(UrlFetchError.is(error)).toBe(true);
     expect((error as UrlFetchError).status).toBe(302);
@@ -637,16 +716,17 @@ describe('redirects', () => {
   test('a positive maxRedirects walks the redirect by hand', async () => {
     const response = await buildFetcher().get({ url: `${base}/redirect`, maxRedirects: 2 });
 
-    expect(await response.json()).toEqual({ id: 7, name: 'Ada' });
+    const json: unknown = await response.json();
+    expect(json).toEqual({ id: 7, name: 'Ada' });
   });
 });
 
 describe('a call with a guard and no engine', () => {
   test('says what to pass, and sends nothing', async () => {
     const before = hits.length;
-    const error = await buildFetcher()
-      .get({ url: `${base}/user`, guard: {} })
-      .catch((caught: unknown) => caught);
+    const error = await RejectionHelper.rejectionOf({
+      task: buildFetcher().get({ url: `${base}/user`, guard: {} }),
+    });
 
     expect((error as Error).message).toContain('guardEngine: UrlGuard');
     expect(hits.length).toBe(before);

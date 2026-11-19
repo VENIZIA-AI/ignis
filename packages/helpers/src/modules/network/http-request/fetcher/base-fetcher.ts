@@ -6,7 +6,10 @@ import { getError } from '@/modules/error';
 // browser-pure fetcher contract with it.
 import type { ILogger } from '@/modules/logger/common/types';
 import { UrlSafetyDefaults } from '@/modules/network/utilities/url-safety/common/constants';
-import { UrlFetchError, UrlSafetyErrors } from '@/modules/network/utilities/url-safety/common/errors';
+import {
+  UrlFetchError,
+  UrlSafetyErrors,
+} from '@/modules/network/utilities/url-safety/common/errors';
 import type { IUrlSafetyPolicy } from '@/modules/network/utilities/url-safety/common/types';
 import { RetryHelper } from '@/modules/retry/helper';
 import type { z } from 'zod';
@@ -323,6 +326,23 @@ export abstract class AbstractNetworkFetchableHelper<
     });
   }
 
+  /** The guard's verdict on one hop: the url to send and the addresses to pin; with no guard, the target as it is. */
+  private async vetTarget(opts: {
+    route: IFetchGuardRoute | undefined;
+    target: URL;
+    signal: AbortSignal | undefined;
+  }): Promise<{ url: URL; addresses: string[] }> {
+    const { route, target, signal } = opts;
+
+    if (!route) {
+      return { url: target, addresses: [] };
+    }
+
+    const vetted = await route.vet({ url: target.toString(), signal });
+
+    return vetted;
+  }
+
   /** One attempt: hook, guard, exchange (redirects walked by hand when asked), status, cap, schema. */
   private async runAttempt(opts: {
     call: IResolvedCall;
@@ -344,9 +364,7 @@ export abstract class AbstractNetworkFetchableHelper<
 
     const signal = this.attemptSignal({ call });
     const route: IFetchGuardRoute | undefined =
-      call.guard === undefined
-        ? undefined
-        : this.guardEngine?.createRoute({ policy: call.guard });
+      call.guard === undefined ? undefined : this.guardEngine?.createRoute({ policy: call.guard });
     const isManual = route !== undefined || call.maxRedirects !== undefined;
     const maxRedirects = call.maxRedirects ?? UrlSafetyDefaults.MAX_REDIRECTS;
 
@@ -372,11 +390,9 @@ export abstract class AbstractNetworkFetchableHelper<
 
     try {
       for (let hop = 0; hop <= (isManual ? maxRedirects : 0); hop += 1) {
-        const vetted = route
-          ? await route.vet({ url: target.toString(), signal })
-          : { url: target, addresses: [] as string[] };
+        const vetted = await this.vetTarget({ route, target, signal });
 
-        exchange = await this.exchange(
+        const sent = await this.exchange(
           {
             method,
             url: vetted.url,
@@ -391,6 +407,8 @@ export abstract class AbstractNetworkFetchableHelper<
           },
           logger,
         );
+
+        exchange = sent;
 
         if (!isManual || !FetchRedirects.isRedirect({ status: exchange.status })) {
           break;
@@ -484,7 +502,9 @@ export abstract class AbstractNetworkFetchableHelper<
     });
 
     if (!call.acceptStatus(exchange.status)) {
-      throw await this.refuseStatus({ exchange, url: request.url });
+      const refusal = await this.refuseStatus({ exchange, url: request.url });
+
+      throw refusal;
     }
 
     return this.finish({ call, exchange, url: request.url });
@@ -518,7 +538,9 @@ export abstract class AbstractNetworkFetchableHelper<
     let value: unknown;
 
     try {
-      value = await exchange.readJson({ maxBytes });
+      const parsed = await exchange.readJson({ maxBytes });
+
+      value = parsed;
     } catch (error) {
       if (!(error instanceof SyntaxError)) {
         throw error;
@@ -591,9 +613,38 @@ export abstract class AbstractNetworkFetchableHelper<
     opts: RQ & { schema?: z.ZodType },
     logger?: TFetcherLogger,
   ): Promise<TFetchSettled<RS>> {
-    const { url, method, params, headers, body, signal, timeout, retry, guard, maxBytes, maxRedirects, acceptStatus, schema, ...extra } = opts;
+    const {
+      url,
+      method,
+      params,
+      headers,
+      body,
+      signal,
+      timeout,
+      retry,
+      guard,
+      maxBytes,
+      maxRedirects,
+      acceptStatus,
+      schema,
+      ...extra
+    } = opts;
     const call = this.resolveCall({
-      request: { url, method, params, headers, body, signal, timeout, retry, guard, maxBytes, maxRedirects, acceptStatus, schema },
+      request: {
+        url,
+        method,
+        params,
+        headers,
+        body,
+        signal,
+        timeout,
+        retry,
+        guard,
+        maxBytes,
+        maxRedirects,
+        acceptStatus,
+        schema,
+      },
       extra,
     });
     let lastRequest: FetchRequestContext | undefined;
@@ -614,22 +665,28 @@ export abstract class AbstractNetworkFetchableHelper<
 
     try {
       if (call.retry === undefined) {
-        return await run(1);
+        const single = await run(1);
+
+        return single;
       }
 
       const { maxAttempts, maxTotalMs, backoff, shouldRetry, onRetry } = call.retry;
 
-      return await RetryHelper.executeWithRetry({
+      const retried = await RetryHelper.executeWithRetry({
         operation: `${this.name}.${call.method}`,
         signal: call.signal,
         maxAttempts,
         maxTotalMs,
         backoff,
-        shouldRetry: shouldRetry ?? ((context) => FetchRetry.isRetryable({ error: context.error, signal: call.signal })),
+        shouldRetry:
+          shouldRetry ??
+          ((context) => FetchRetry.isRetryable({ error: context.error, signal: call.signal })),
         getDelayMs: ({ error }) => FetchRetry.readRetryAfterMs({ error }),
         onRetry,
         execution: ({ attempt }) => run(attempt),
       });
+
+      return retried;
     } catch (caught) {
       // The retry helper reports its own abort in its own words; the caller gets the reason it aborted with.
       const error = call.signal?.aborted ? call.signal.reason : caught;

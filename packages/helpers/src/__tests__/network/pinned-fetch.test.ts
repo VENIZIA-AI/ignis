@@ -4,6 +4,7 @@
  */
 
 import { afterAll, afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 
 const lookupMock = mock(async (_hostname: string, _options?: unknown): Promise<unknown[]> => []);
 
@@ -117,9 +118,7 @@ describe('NativeFetcher with a guard - the connect goes to the vetted address', 
       return new Response('ok');
     }) as unknown as typeof fetch;
 
-    const error = await rejectionOf(
-      fetchGuarded({ url: 'https://hook.example.test/in', policy }),
-    );
+    const error = await rejectionOf(fetchGuarded({ url: 'https://hook.example.test/in', policy }));
 
     expect(UrlPolicy.isRefusedError({ error })).toBe(true);
     expect(fetched).toBe(false);
@@ -205,9 +204,7 @@ describe('NativeFetcher with a guard - the connect goes to the vetted address', 
       throw Object.assign(new Error('The operation timed out'), { name: 'TimeoutError' });
     }) as unknown as typeof fetch;
 
-    const error = await rejectionOf(
-      fetchGuarded({ url: 'https://hook.example.test/', policy }),
-    );
+    const error = await rejectionOf(fetchGuarded({ url: 'https://hook.example.test/', policy }));
 
     expect(error.name).toBe('TimeoutError');
     expect(urls).toHaveLength(1);
@@ -594,9 +591,7 @@ describe('NativeFetcher with a guard - replay, deadline and non-redirect 3xx', (
     lookupMock.mockResolvedValue(answer('203.0.113.10'));
     globalThis.fetch = (async () => new Response(null, { status: 304 })) as unknown as typeof fetch;
 
-    const error = await rejectionOf(
-      fetchGuarded({ url: 'https://hook.example.test/', policy }),
-    );
+    const error = await rejectionOf(fetchGuarded({ url: 'https://hook.example.test/', policy }));
 
     expect(error.message).toContain('Request failed | status: 304');
     expect(UrlPolicy.isRefusedError({ error })).toBe(false);
@@ -706,23 +701,29 @@ describe('NativeFetcher with a guard - a trusted host name is pinned, and never 
 
 describe('the guard inside the pipeline: retries, defaults and hooks', () => {
   const FAST = { initialDelayMs: 1, maxDelayMs: 2 };
+
   const stubFetch = (statuses: number[]) => {
     const calls: Array<{ url: string; headers: Headers }> = [];
 
     globalThis.fetch = (async (input: URL | string, init: RequestInit) => {
       calls.push({ url: String(input), headers: new Headers(init.headers) });
 
-      return new Response('body', { status: statuses[Math.min(calls.length - 1, statuses.length - 1)] });
+      return new Response('body', {
+        status: statuses[Math.min(calls.length - 1, statuses.length - 1)],
+      });
     }) as unknown as typeof fetch;
 
     return calls;
   };
 
   test('every retry attempt re-runs the whole guard: a fresh lookup, a fresh pin', async () => {
-    lookupMock.mockResolvedValueOnce(answer('203.0.113.10')).mockResolvedValueOnce(answer('203.0.113.11'));
+    lookupMock
+      .mockResolvedValueOnce(answer('203.0.113.10'))
+      .mockResolvedValueOnce(answer('203.0.113.11'));
     const calls = stubFetch([503, 200]);
 
-    const response = await new NativeFetcher({ name: 'retry-guard', guardEngine: UrlGuard }).get({
+    const fetcher = new NativeFetcher({ name: 'retry-guard', guardEngine: UrlGuard });
+    const response = await fetcher.get({
       url: 'https://hook.example.test/in',
       guard: policy,
       retry: { maxAttempts: 2, backoff: FAST },
@@ -740,9 +741,14 @@ describe('the guard inside the pipeline: retries, defaults and hooks', () => {
     lookupMock.mockResolvedValueOnce(answer('203.0.113.10')).mockResolvedValue(answer('10.0.0.5'));
     const calls = stubFetch([503, 200]);
 
-    const error = await new NativeFetcher({ name: 'rebind', guardEngine: UrlGuard })
-      .get({ url: 'https://hook.example.test/in', guard: policy, retry: { maxAttempts: 4, backoff: FAST } })
-      .catch((caught: unknown) => caught);
+    const fetcher = new NativeFetcher({ name: 'rebind', guardEngine: UrlGuard });
+    const error = await RejectionHelper.rejectionOf({
+      task: fetcher.get({
+        url: 'https://hook.example.test/in',
+        guard: policy,
+        retry: { maxAttempts: 4, backoff: FAST },
+      }),
+    });
 
     expect(UrlPolicy.isRefusedError({ error })).toBe(true);
     expect(calls).toHaveLength(1);
@@ -758,9 +764,9 @@ describe('the guard inside the pipeline: retries, defaults and hooks', () => {
       defaults: { guard: policy },
     });
 
-    const refused = await fetcher
-      .get({ url: 'https://hook.example.test/in', guard: undefined })
-      .catch((caught: unknown) => caught);
+    const refused = await RejectionHelper.rejectionOf({
+      task: fetcher.get({ url: 'https://hook.example.test/in', guard: undefined }),
+    });
     expect(UrlPolicy.isRefusedError({ error: refused })).toBe(true);
 
     const trusted = await fetcher.get({
@@ -774,11 +780,12 @@ describe('the guard inside the pipeline: retries, defaults and hooks', () => {
     lookupMock.mockResolvedValue(answer('203.0.113.10'));
     const calls = stubFetch([200]);
 
-    await new NativeFetcher({
+    const fetcher = new NativeFetcher({
       name: 'hook-guard',
       guardEngine: UrlGuard,
       hooks: { onRequest: ({ headers }) => headers.set('x-signed', 'yes') },
-    }).get({ url: 'https://hook.example.test/in', guard: policy });
+    });
+    await fetcher.get({ url: 'https://hook.example.test/in', guard: policy });
 
     expect(calls[0].headers.get('x-signed')).toBe('yes');
     expect(calls[0].headers.get('host')).toBe('hook.example.test');

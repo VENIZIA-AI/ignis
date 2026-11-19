@@ -46,6 +46,13 @@ export class BodyLimit {
     return Number.isFinite(declared) ? declared : 0;
   }
 
+  /** `readBytes`, decoded as UTF-8 text. */
+  static async readText(opts: { response: Response; maxBytes?: number }): Promise<string> {
+    const bytes = await BodyLimit.readBytes(opts);
+
+    return new TextDecoder().decode(bytes);
+  }
+
   /**
    * Reads a body that must not exceed `maxBytes`, cancelling the moment it does. `content-length` is checked first
    * because it is free, and counted anyway because it may be absent or lie.

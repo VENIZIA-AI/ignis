@@ -111,8 +111,16 @@ describe('pinned axios https keeps SNI and certificate verification', () => {
 
 describe('the environment proxy cannot undo the axios pin', () => {
   test('HTTP_PROXY is ignored on a pinned connection', async () => {
-    const proxy = Bun.serve({ port: 0, hostname: '127.0.0.1', fetch: () => new Response('via-proxy') });
-    const target = Bun.serve({ port: 0, hostname: '127.0.0.1', fetch: () => new Response('direct') });
+    const proxy = Bun.serve({
+      port: 0,
+      hostname: '127.0.0.1',
+      fetch: () => new Response('via-proxy'),
+    });
+    const target = Bun.serve({
+      port: 0,
+      hostname: '127.0.0.1',
+      fetch: () => new Response('direct'),
+    });
 
     try {
       const { output, exitCode } = await runChild({

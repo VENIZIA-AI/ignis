@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 import { RetryBackoffStrategies, RetryHelper, RetryJitterModes } from '@/modules/retry';
 
 const FIXED = {
@@ -64,7 +65,8 @@ describe('RetryHelper.executeWithRetry - getDelayMs is a floor for the next wait
   test('a floor that does not fit the total budget ends the retries and rethrows the error', async () => {
     let calls = 0;
 
-    const failure = await RetryHelper.executeWithRetry({
+    const failure = await RejectionHelper.rejectionOf({
+      task: RetryHelper.executeWithRetry({
         operation: 'budget',
         maxAttempts: 5,
         maxTotalMs: 50,
@@ -75,7 +77,8 @@ describe('RetryHelper.executeWithRetry - getDelayMs is a floor for the next wait
 
           throw new Error('always');
         },
-      }).catch((caught: unknown) => caught);
+      }),
+    });
 
     expect((failure as Error).message).toBe('always');
     expect(calls).toBe(1);

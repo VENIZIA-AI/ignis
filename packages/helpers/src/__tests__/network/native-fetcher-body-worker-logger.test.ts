@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { LoggerFactory } from '@/modules/logger/factory';
-import { type IQueryStringOptions, NativeFetcher, NativeFetchNetworkRequest } from '@/modules/network';
+import {
+  type IQueryStringOptions,
+  NativeFetcher,
+  NativeFetchNetworkRequest,
+} from '@/modules/network';
 
 const originalFetch = globalThis.fetch;
 
@@ -28,7 +32,11 @@ const captureRequest = (): ICaptured => {
 };
 
 const buildFetcher = (opts?: { queryString?: IQueryStringOptions }) => {
-  return new NativeFetcher({ name: 'body-test', defaultConfigs: {}, queryString: opts?.queryString });
+  return new NativeFetcher({
+    name: 'body-test',
+    defaultConfigs: {},
+    queryString: opts?.queryString,
+  });
 };
 
 // The body type is `BodyInit`; a plain object is JSON-encoded at runtime, so these cases feed one through `JSON.parse` (typed `any`).
