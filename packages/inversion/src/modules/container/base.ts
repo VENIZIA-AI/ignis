@@ -44,10 +44,22 @@ export abstract class BaseContainer extends AbstractContainer {
     return metadataRegistry;
   }
 
+  /** A JavaScript caller can still pass a removed form (a symbol, `{ namespace, key }`): say what replaced it. */
+  private static assertKey(opts: { key: unknown; caller: string }): void {
+    if (typeof opts.key === 'string') {
+      return;
+    }
+
+    throw getError({
+      message: `[${opts.caller}] A binding key is a string made by BindingKeys.build<T>({ namespace?, key }) | got: ${typeof opts.key} | a symbol and the { namespace, key } object are no longer keys`,
+    });
+  }
+
   override bind<T>(opts: { key: TBindingKey<T> }): Binding<T>;
   override bind(opts: { key: TBindingKey }): Binding;
   override bind<T>(opts: { key: TBindingKey<T> }): Binding<T> {
     const { key } = opts;
+    BaseContainer.assertKey({ key, caller: 'bind' });
     const binding = new Binding<T>({ key });
     this.bindings.set(key, binding);
 
@@ -61,6 +73,8 @@ export abstract class BaseContainer extends AbstractContainer {
   override getBinding<T>(opts: { key: TBindingKey<T> }): TNullable<Binding<T>>;
   override getBinding(opts: { key: TBindingKey }): TNullable<Binding>;
   override getBinding<T>(opts: { key: TBindingKey<T> }): TNullable<Binding<T>> {
+    BaseContainer.assertKey({ key: opts.key, caller: 'getBinding' });
+
     return this.bindings.get(opts.key);
   }
 
@@ -78,6 +92,7 @@ export abstract class BaseContainer extends AbstractContainer {
   override get(opts: { key: TBindingKey; isOptional?: boolean }): unknown;
   override get<T>(opts: { key: TBindingKey<T>; isOptional?: boolean }): T | undefined {
     const { key, isOptional = false } = opts;
+    BaseContainer.assertKey({ key, caller: 'get' });
 
     const binding = this.getBinding<T>({ key });
 

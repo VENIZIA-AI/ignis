@@ -152,6 +152,8 @@ const resolved = container.get({ key: MAILER }); // IMailer, no generic
 
 `build` needs its type argument: `build<unknown>` is the explicit form for a key with no common value type (one built from a runtime name). A generic you pass to `get` or `bind` is checked against the key: a type that is a subtype or a supertype of the key's type is accepted, an unrelated one (`get<number>({ key: MAILER })`) does not compile. The type exists at compile time only; a key is the plain string at run time.
 
+In generic code, where `T` is not known yet, build the key for `unknown` and return it as `TBindingKey<T>`: `BindingKeys.build<T>` with a type parameter does not compile, and the brand is bivariant so the return is accepted.
+
 A key that is not one typed key - a union such as `cond ? MAILER : LABEL`, or a variable typed `TBindingKey` - resolves to `unknown`. It takes no generic: `get<IMailer>({ key })` on it does not compile. Narrow the key first, or cast the result.
 
 `TBindingKeyValue<typeof MAILER>` names the type, for an annotation that should follow the key. Use it on an `@inject` parameter, because nothing else checks that one:

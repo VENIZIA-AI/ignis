@@ -46,7 +46,7 @@ pool.register({ key: 'image-resizer', worker });
 `get()` and `has()` read the pool by key. `size()` reports how many workers are registered.
 
 ```typescript
-const worker = pool.get({ key: BindingKeys.build<string>({ key: 'image-resizer' }) });
+const worker = pool.get<string>({ key: 'image-resizer' });
 if (worker && pool.has({ key: 'image-resizer' })) {
   worker.worker.postMessage('start');
 }

@@ -23,6 +23,7 @@ export class BindingKeys {
   /**
    * Builds a binding key: `<namespace>.<key>`, or `key` alone without a namespace. The type argument names the value
    * bound under it and is required; `build<unknown>` is the explicit form for a key with no common value type.
+   * In generic code, where `T` is not yet known, build `unknown` and return it as `TBindingKey<T>` (the brand is bivariant).
    *
    * ```ts
    * const MAILER = BindingKeys.build<IMailer>({ namespace: 'services', key: 'Mailer' });

@@ -118,6 +118,20 @@ describe('only a key made by build is a key', () => {
   });
 });
 
+describe('a JavaScript caller that passes a removed key form', () => {
+  const container = new Container();
+
+  test.each([
+    ['bind', [{ key: Symbol('mailer') }]],
+    ['get', [{ key: { namespace: 'services', key: 'Mailer' } }]],
+    ['getBinding', [{ key: Symbol.for('mailer') }]],
+  ])('%s says what replaced a symbol or the object form', (method, args) => {
+    expect(() => Reflect.apply(Reflect.get(container, method), container, args)).toThrow(
+      /A binding key is a string made by BindingKeys\.build/,
+    );
+  });
+});
+
 describe('a typed key reads its type into bind, get, getBinding and gets', () => {
   test('get returns the key type with no generic', () => {
     const container = new Container();

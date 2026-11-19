@@ -60,7 +60,10 @@ export class CrudControllerFactory extends BaseHelper {
       target,
       index: 0,
       metadata: {
-        key: BindingKeys.build({ namespace: BindingNamespaces.REPOSITORY, key: repositoryName }),
+        key: BindingKeys.build<unknown>({
+          namespace: BindingNamespaces.REPOSITORY,
+          key: repositoryName,
+        }),
         index: 0,
         isOptional: false,
       },
