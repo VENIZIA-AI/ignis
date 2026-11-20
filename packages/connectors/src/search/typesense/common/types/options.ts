@@ -41,3 +41,11 @@ export interface ITypesenseDataSourceSettings {
   connectionTimeoutSeconds?: number;
   numRetries?: number;
 }
+
+/** The remote-embedding parameters of an import, each a positive integer; a field left out is the engine's default. Sent as `remote_embedding_batch_size`, `remote_embedding_timeout_ms` and `remote_embedding_num_tries`. */
+export interface ITypesenseRemoteEmbeddingOptions {
+  batchSize?: number;
+  /** How long Typesense waits for the provider; not this client's request timeout. */
+  timeoutMs?: number;
+  numTries?: number;
+}

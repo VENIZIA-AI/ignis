@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/typesense, from the buil
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-82 exports, 82 with TSDoc.
+83 exports, 83 with TSDoc.
 
 ## `AbstractSearchDataSource`
 
@@ -1050,6 +1050,23 @@ export interface ITypesenseNode {
 ```
 
 Source: `packages/connectors/src/search/typesense/common/types/client.ts`
+
+## `ITypesenseRemoteEmbeddingOptions`
+
+*interface*
+
+The remote-embedding parameters of an import, each a positive integer; a field left out is the engine's default. Sent as `remote_embedding_batch_size`, `remote_embedding_timeout_ms` and `remote_embedding_num_tries`.
+
+```ts
+export interface ITypesenseRemoteEmbeddingOptions {
+    batchSize?: number;
+    /** How long Typesense waits for the provider; not this client's request timeout. */
+    timeoutMs?: number;
+    numTries?: number;
+}
+```
+
+Source: `packages/connectors/src/search/typesense/common/types/options.ts`
 
 ## `ITypesenseSearchQuery`
 
@@ -2527,17 +2544,8 @@ export declare class TypesenseConnector extends BaseSearchConnector {
          * @default false
          */
         throwOnFail?: boolean;
-        /**
-         * Typesense-only (Meilisearch has no equivalent). For a collection whose fields are embedded by a remote provider: the batch
-         * Typesense sends the provider, how long it waits for it, and how often it tries. Sent as `remote_embedding_batch_size`,
-         * `remote_embedding_timeout_ms` and `remote_embedding_num_tries`; each is a positive integer, and a field left out is the
-         * engine's own default. `timeoutMs` is the engine's wait for the provider, not this client's request timeout (`timeoutMs` of the call).
-         */
-        remoteEmbedding?: {
-            batchSize?: number;
-            timeoutMs?: number;
-            numTries?: number;
-        };
+        /** Typesense-only (Meilisearch has no equivalent). For a collection embedded by a remote provider: the embedding batch, wait and tries of this import. See {@link ITypesenseRemoteEmbeddingOptions}. */
+        remoteEmbedding?: ITypesenseRemoteEmbeddingOptions;
         /** Typesense-only. Each row of `responses` carries the document `id` (`return_id`). Memory grows with the import. */
         returnId?: boolean;
         /** Typesense-only. Each row of `responses` carries the stored `document` (`return_doc`): the whole import stays in memory as `responses`. */

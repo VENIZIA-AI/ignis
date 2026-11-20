@@ -24,6 +24,7 @@ import type { Job } from 'bullmq';
 export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {
   private queueIdentifier: string;
   private queueName: string;
+  private prefix?: string;
   private mode: TConstValue<typeof BullMQExecutorModes>;
 
   private queueHelper?: BullMQHelper<IQueueJobPayload, IMailQueueResult>;
@@ -44,11 +45,12 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
     this.bullmqModule = opts.module;
     this.queueIdentifier = opts.queue.identifier;
     this.queueName = opts.queue.name;
+    this.prefix = opts.queue.prefix;
 
     this.initQueue(opts.queue);
   }
 
-  initQueue(queue: { identifier: string; name: string }) {
+  initQueue(queue: { identifier: string; name: string; prefix?: string }) {
     switch (this.mode) {
       case BullMQExecutorModes.QUEUE_ONLY:
       case BullMQExecutorModes.BOTH: {
@@ -58,6 +60,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
           redisConnection: this.redisConnection,
           role: 'queue',
           module: this.bullmqModule,
+          prefix: queue.prefix,
         });
 
         this.logger
@@ -140,6 +143,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
       redisConnection: this.redisConnection,
       role: 'worker',
       module: this.bullmqModule,
+      prefix: this.prefix,
       numberOfWorker: concurrency,
       lockDuration,
       onWorkerData: async (job: Job<IQueueJobPayload, IMailProcessorResult>) => {
@@ -347,10 +351,10 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
       .for(this.enqueueVerificationEmail.name)
       .debug('Queuing email to BullMQ/Redis | jobId: %s | mode: %s', jobId, this.mode);
 
-    const bullJob = await this.queueHelper.queue.add(
-      MailQueueJobNames.SEND_VERIFICATION_EMAIL,
-      job,
-      {
+    const bullJob = await this.queueHelper.add({
+      name: MailQueueJobNames.SEND_VERIFICATION_EMAIL,
+      data: job,
+      opts: {
         priority: options?.priority,
         delay: options?.delay,
         attempts: options?.attempts ?? MailDefaults.ATTEMPTS,
@@ -362,7 +366,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
         // Bounded: a failed job holds the recipient's address, and `false` kept every one forever.
         removeOnFail: MailDefaults.FAILED_JOB_RETENTION,
       },
-    );
+    });
 
     return {
       jobId: bullJob.id ?? jobId,

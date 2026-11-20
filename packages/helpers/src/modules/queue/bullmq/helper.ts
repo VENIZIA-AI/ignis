@@ -1,13 +1,37 @@
+import type { ValueOrPromise } from '@/common';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { type IRedisHelper, RedisDefaults, type TRedisClient } from '@/modules/redis';
 import { ErrorUtility } from '@/utilities/error.utility';
 import { ModuleUtility } from '@/utilities/module.utility';
-import type { Job, Processor, Queue, QueueOptions, Worker, WorkerOptions } from 'bullmq';
+import type {
+  Job,
+  JobsOptions,
+  Processor,
+  Queue,
+  QueueOptions,
+  Worker,
+  WorkerOptions,
+} from 'bullmq';
 import { BullMQDefaults, BullQueueRoles, HookUtility, type TBullQueueRole } from '../common';
 
+/** The key BullMQ stores in a job's `opts` for the metadata block: not the payload, so `job.data` is what the producer added. */
+const METADATA_OPTION = 'metadata';
+
+/** `Queue.add` for this helper's element and result types: BullMQ resolves its name and data types through conditional types, so they are read off the method. */
+type TQueueAdd<TElement, TResult> = Queue<TElement, TResult>['add'];
+
+/** What `onWorkerData` is told beside the job: the metadata the producer's helper stamped, `undefined` for a job added without one. */
+export interface IBullMQJobContext<TMetadata extends object = Record<string, unknown>> {
+  metadata: TMetadata | undefined;
+}
+
 /** Options for {@link BullMQHelper}. `role` decides whether a `Queue` or a `Worker` is built. */
-export interface IBullMQOptions<TQueueElement = unknown, TQueueResult = unknown> {
+export interface IBullMQOptions<
+  TQueueElement = unknown,
+  TQueueResult = unknown,
+  TMetadata extends object = Record<string, unknown>,
+> {
   queueName: string;
   identifier: string;
   role: TBullQueueRole;
@@ -27,12 +51,28 @@ export interface IBullMQOptions<TQueueElement = unknown, TQueueResult = unknown>
    */
   lockDuration?: number;
 
+  /**
+   * The prefix of every Redis key of the queue, on the Queue AND the Worker so they cannot disagree. Opt-in: unset is BullMQ's own
+   * `bull`, so no key moves. A `queueOptions.prefix` or `workerOptions.prefix` that differs is refused. Switching it strands the
+   * waiting, failed and repeatable jobs and the job schedulers under the old prefix: see the queue helper's migration notes.
+   */
+  prefix?: string;
+
+  /**
+   * A block stamped on every job added through `add`, run on each add and stored in the job's `opts.metadata`, outside `job.data`.
+   * A throw fails the add; the answer must be a plain object. The worker reads it as `context.metadata`.
+   */
+  metadata?: () => ValueOrPromise<TMetadata>;
+
   /** Merged over the framework defaults, under the fields the helper owns (`connection`) - see `queueOptionsFor`. */
   queueOptions?: Omit<QueueOptions, 'connection'>;
   /** Merged under the fields the helper owns (`connection`, `concurrency`, `lockDuration`) - see `workerOptionsFor`. */
   workerOptions?: Omit<WorkerOptions, 'connection' | 'concurrency' | 'lockDuration'>;
 
-  onWorkerData?: (job: Job<TQueueElement, TQueueResult>) => Promise<TQueueResult>;
+  onWorkerData?: (
+    job: Job<TQueueElement, TQueueResult>,
+    context: IBullMQJobContext<TMetadata>,
+  ) => Promise<TQueueResult>;
   onWorkerDataCompleted?: (
     job: Job<TQueueElement, TQueueResult>,
     result: TQueueResult,
@@ -47,7 +87,11 @@ export interface IBullMQOptions<TQueueElement = unknown, TQueueResult = unknown>
  * Wraps a BullMQ `Queue` or `Worker` (per `role`) on one Redis connection.
  * Worker concurrency is `numberOfWorker`; `lockDuration` is in milliseconds.
  */
-export class BullMQHelper<TQueueElement = unknown, TQueueResult = unknown> extends BaseHelper {
+export class BullMQHelper<
+  TQueueElement = unknown,
+  TQueueResult = unknown,
+  TMetadata extends object = Record<string, unknown>,
+> extends BaseHelper {
   protected queueName: string;
   protected role: TBullQueueRole;
   protected redisConnection: IRedisHelper;
@@ -61,7 +105,14 @@ export class BullMQHelper<TQueueElement = unknown, TQueueResult = unknown> exten
   protected queueOptions?: Omit<QueueOptions, 'connection'>;
   protected workerOptions?: Omit<WorkerOptions, 'connection' | 'concurrency' | 'lockDuration'>;
 
-  protected onWorkerData?: (job: Job<TQueueElement, TQueueResult>) => Promise<TQueueResult>;
+  protected prefix?: string;
+  protected metadata?: () => ValueOrPromise<TMetadata>;
+
+  protected onWorkerData?: (
+    job: Job<TQueueElement, TQueueResult>,
+    context: IBullMQJobContext<TMetadata>,
+  ) => Promise<TQueueResult>;
+
   protected onWorkerDataCompleted?: (
     job: Job<TQueueElement, TQueueResult>,
     result: TQueueResult,
@@ -77,7 +128,7 @@ export class BullMQHelper<TQueueElement = unknown, TQueueResult = unknown> exten
   /** Every duplicate this helper handed to BullMQ: BullMQ never quits a client it is given, so `close()` does. */
   private readonly duplicates: TRedisClient[] = [];
 
-  constructor(options: IBullMQOptions<TQueueElement, TQueueResult>) {
+  constructor(options: IBullMQOptions<TQueueElement, TQueueResult, TMetadata>) {
     super({ scope: BullMQHelper.name, identifier: options.identifier });
     const {
       queueName,
@@ -85,6 +136,8 @@ export class BullMQHelper<TQueueElement = unknown, TQueueResult = unknown> exten
       role,
       numberOfWorker = BullMQDefaults.NUMBER_OF_WORKER,
       lockDuration = BullMQDefaults.LOCK_DURATION_MS,
+      prefix,
+      metadata,
       queueOptions,
       workerOptions,
       onWorkerData,
@@ -101,6 +154,14 @@ export class BullMQHelper<TQueueElement = unknown, TQueueResult = unknown> exten
 
     this.numberOfWorker = numberOfWorker;
     this.lockDuration = lockDuration;
+
+    this.prefix = BullMQHelper.resolvePrefix({
+      identifier: this.identifier,
+      prefix,
+      queueOptions,
+      workerOptions,
+    });
+    this.metadata = metadata;
 
     this.queueOptions = queueOptions;
     this.workerOptions = workerOptions;
@@ -124,8 +185,93 @@ export class BullMQHelper<TQueueElement = unknown, TQueueResult = unknown> exten
       );
   }
 
-  static newInstance<T = unknown, R = unknown>(opts: IBullMQOptions<T, R>) {
-    return new BullMQHelper<T, R>(opts);
+  static newInstance<T = unknown, R = unknown, M extends object = Record<string, unknown>>(
+    opts: IBullMQOptions<T, R, M>,
+  ) {
+    return new BullMQHelper<T, R, M>(opts);
+  }
+
+  /** `prefix` as the helper keeps it: a non-empty string with no whitespace and no brace (a brace would move the cluster hash tag), the same on the Queue and the Worker; unset stays unset (BullMQ's `bull`). */
+  private static resolvePrefix(opts: {
+    identifier: string;
+    prefix?: string;
+    queueOptions?: Omit<QueueOptions, 'connection'>;
+    workerOptions?: Omit<WorkerOptions, 'connection' | 'concurrency' | 'lockDuration'>;
+  }): string | undefined {
+    const { identifier, prefix, queueOptions, workerOptions } = opts;
+
+    if (prefix === undefined) {
+      return undefined;
+    }
+
+    if (typeof prefix !== 'string' || prefix.length === 0 || /[\s{}]/.test(prefix)) {
+      throw getError({
+        message: `[BullMQHelper][${identifier}] Invalid prefix | value: ${JSON.stringify(prefix)} | it must be a non-empty string without whitespace or braces`,
+      });
+    }
+
+    for (const [name, other] of [
+      ['queueOptions.prefix', queueOptions?.prefix],
+      ['workerOptions.prefix', workerOptions?.prefix],
+    ]) {
+      if (other !== undefined && other !== prefix) {
+        throw getError({
+          message: `[BullMQHelper][${identifier}] ${name} (${other}) differs from prefix (${prefix}) | the helper owns the prefix of its Queue and Worker: set it once`,
+        });
+      }
+    }
+
+    return prefix;
+  }
+
+  /** The metadata a producer's helper stamped on `job`, or `undefined` for a job added without one (a raw `queue.add`, another producer). Not part of `job.data`. Returned as stored: its fields are not validated against `TMetadata`. */
+  static readMetadata<TMetadata extends object = Record<string, unknown>>(opts: {
+    job: Pick<Job, 'opts'> | undefined;
+  }): TMetadata | undefined {
+    const value = Reflect.get(Object(opts.job?.opts), METADATA_OPTION);
+
+    return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : undefined;
+  }
+
+  /**
+   * Adds a job, stamped by the `metadata` option: the stamp goes to `opts.metadata`, and `data` is exactly what you pass (any shape). A direct
+   * `queue.add` is available and unstamped. Refuses `opts.metadata` from the caller (the stamp is the one source) and a stamp that is not an object.
+   */
+  async add(opts: {
+    name: Parameters<TQueueAdd<TQueueElement, TQueueResult>>[0];
+    data: Parameters<TQueueAdd<TQueueElement, TQueueResult>>[1];
+    opts?: JobsOptions;
+  }): ReturnType<TQueueAdd<TQueueElement, TQueueResult>> {
+    if (!this.queue) {
+      throw getError({
+        message: `[BullMQHelper][${this.identifier}] add needs a helper with role 'queue' | role: ${this.role}`,
+      });
+    }
+
+    if (opts.opts !== undefined && Reflect.has(opts.opts, METADATA_OPTION)) {
+      throw getError({
+        message: `[BullMQHelper][${this.identifier}] opts.metadata is stamped by the helper's metadata option | it is not set per call`,
+      });
+    }
+
+    const stamp = await this.metadata?.();
+
+    if (stamp === undefined) {
+      return this.queue.add(opts.name, opts.data, opts.opts);
+    }
+
+    if (stamp === null || typeof stamp !== 'object' || Array.isArray(stamp)) {
+      throw getError({
+        message: `[BullMQHelper][${this.identifier}] The metadata option must answer a plain object | got: ${Array.isArray(stamp) ? 'an array' : typeof stamp}`,
+      });
+    }
+
+    // BullMQ keeps an option key it does not know, and hands it back on `job.opts`; its type is closed, so the key is added by assignment.
+    return this.queue.add(
+      opts.name,
+      opts.data,
+      Object.assign({}, opts.opts, { [METADATA_OPTION]: stamp }),
+    );
   }
 
   /** Structural, never `instanceof`: ioredis is an optional peer, and a second copy fails `instanceof` anyway. */
@@ -184,6 +330,7 @@ export class BullMQHelper<TQueueElement = unknown, TQueueResult = unknown> exten
         removeOnFail: true,
       },
       ...this.queueOptions,
+      ...(this.prefix === undefined ? {} : { prefix: this.prefix }),
       connection: this.createConnection(),
     };
   }
@@ -216,6 +363,7 @@ export class BullMQHelper<TQueueElement = unknown, TQueueResult = unknown> exten
 
     return {
       ...this.workerOptions,
+      ...(this.prefix === undefined ? {} : { prefix: this.prefix }),
       connection: this.createConnection(),
       concurrency: this.numberOfWorker,
       lockDuration: this.lockDuration,
@@ -267,7 +415,9 @@ export class BullMQHelper<TQueueElement = unknown, TQueueResult = unknown> exten
       queueName,
       processor: async (job) => {
         if (this.onWorkerData) {
-          return this.onWorkerData(job);
+          return this.onWorkerData(job, {
+            metadata: BullMQHelper.readMetadata<TMetadata>({ job }),
+          });
         }
 
         const { id, name, data } = job;

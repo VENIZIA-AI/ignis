@@ -213,12 +213,14 @@ class FakeQueueHelper {
   isClosed = false;
   addedJobs: Array<{ name: string; payload: IQueueJobPayload; options: JobsOptions }> = [];
 
-  queue = {
-    add: async (name: string, payload: IQueueJobPayload, options: JobsOptions) => {
-      this.addedJobs.push({ name, payload, options });
+  /** What the executor calls: the helper's own `add`. */
+  async add(opts: { name: string; data: IQueueJobPayload; opts: JobsOptions }) {
+    this.addedJobs.push({ name: opts.name, payload: opts.data, options: opts.opts });
 
-      return { id: 'bull-1' };
-    },
+    return { id: 'bull-1' };
+  }
+
+  queue = {
     close: async () => {
       this.isClosed = true;
     },
@@ -418,12 +420,12 @@ const buildRedisHelper = (opts: { client: Record<string, unknown> }) => {
 
 /** `bullmq` itself, replaced: no Redis, but the real `BullMQHelper` runs and names the queue. */
 const buildFakeBullMQ = () => {
-  const queues: Array<{ name: string; connection: unknown }> = [];
-  const workers: Array<{ name: string; connection: unknown }> = [];
+  const queues: Array<{ name: string; connection: unknown; prefix?: string }> = [];
+  const workers: Array<{ name: string; connection: unknown; prefix?: string }> = [];
 
   class FakeQueue {
-    constructor(name: string, options: { connection: unknown }) {
-      queues.push({ name, connection: options.connection });
+    constructor(name: string, options: { connection: unknown; prefix?: string }) {
+      queues.push({ name, connection: options.connection, prefix: options.prefix });
     }
 
     on() {
@@ -434,8 +436,12 @@ const buildFakeBullMQ = () => {
   }
 
   class FakeWorker {
-    constructor(name: string, _processor: unknown, options: { connection: unknown }) {
-      workers.push({ name, connection: options.connection });
+    constructor(
+      name: string,
+      _processor: unknown,
+      options: { connection: unknown; prefix?: string },
+    ) {
+      workers.push({ name, connection: options.connection, prefix: options.prefix });
     }
 
     on() {
@@ -465,7 +471,9 @@ describe("BullMQMailExecutorHelper - the Redis helper is the application's", () 
       module,
     });
 
-    expect(queues).toEqual([{ name: 'mail', connection: sentinel.state.duplicates[0] }]);
+    expect(queues).toEqual([
+      { name: 'mail', connection: sentinel.state.duplicates[0], prefix: undefined },
+    ]);
     expect(sentinel.state.duplicates.length).toBe(1);
 
     await executor.close();
@@ -565,5 +573,45 @@ describe('BullMQMailExecutorHelper - enqueue', () => {
 
     await executor.enqueueVerificationEmail('a@b.com');
     expect(queueHelper.addedJobs[0].options.attempts).toBe(MailDefaults.ATTEMPTS);
+  });
+});
+
+describe('BullMQMailExecutorHelper - the key prefix', () => {
+  test('queue.prefix reaches the queue and every worker, so they cannot disagree', async () => {
+    const { helper } = buildRedisHelper({ client: {} });
+    const { module, queues, workers } = buildFakeBullMQ();
+    const executor = new BullMQMailExecutorHelper({
+      redis: helper,
+      queue: { identifier: 'mail-queue', name: 'mail', prefix: 'bull:local:ada' },
+      mode: BullMQExecutorModes.BOTH,
+      module,
+    });
+
+    await executor.setProcessor(async () => ({
+      success: true,
+      message: 'sent',
+      expiresInMinutes: 5,
+    }));
+
+    expect(queues.map((queue) => queue.prefix)).toEqual(['bull:local:ada']);
+    expect(workers.length).toBeGreaterThan(0);
+    expect(new Set(workers.map((worker) => worker.prefix))).toEqual(new Set(['bull:local:ada']));
+
+    await executor.close();
+  });
+
+  test('left out, no prefix is sent: BullMQ keeps its own', async () => {
+    const { helper } = buildRedisHelper({ client: {} });
+    const { module, queues } = buildFakeBullMQ();
+    const executor = new BullMQMailExecutorHelper({
+      redis: helper,
+      queue: { identifier: 'mail-queue', name: 'mail' },
+      mode: BullMQExecutorModes.QUEUE_ONLY,
+      module,
+    });
+
+    expect(queues[0].prefix).toBeUndefined();
+
+    await executor.close();
   });
 });

@@ -60,7 +60,8 @@ export interface IBullMQMailExecutorOpts {
    * the queue name is wrapped in a `{hash tag}` so its keys share one slot.
    */
   redis: IRedisHelper;
-  queue: { identifier: string; name: string };
+  /** `prefix` is the Redis key prefix of the queue and of every worker the executor builds; unset is BullMQ's own `bull`. Switching it strands the jobs under the old one: see the queue helper's migration notes. */
+  queue: { identifier: string; name: string; prefix?: string };
   mode: TConstValue<typeof BullMQExecutorModes>;
   /** `bullmq` itself, for a `bun build --compile` binary that has no `node_modules` to load it from. */
   module?: typeof import('bullmq');
