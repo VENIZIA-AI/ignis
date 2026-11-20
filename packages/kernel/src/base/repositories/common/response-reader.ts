@@ -114,8 +114,9 @@ export class HttpResponseReader {
 
   /**
    * A failed response as the error the server threw: its status, code, args and text, and its
-   * `extra` with the `requestId` added. `message` is `context` plus the server's text, for logs;
-   * `normalized.text` stays the server's, for display - `HTTP <status>` when the server sent none.
+   * `extra` with the `requestId` added. `message` is `context` plus the server's text, for logs; without
+   * `context` it is the server's text alone (`HTTP <status>` when it sent none), for a client that shows
+   * `message` to users. `normalized.text` is the server's either way - `HTTP <status>` when none.
    * `cause` is the server's `details.cause` - a 422's per-field issues, `{ path, message, code }`.
    *
    * `requestId` names the request this client made. A relaying server's `extra` carries the id of
@@ -123,8 +124,8 @@ export class HttpResponseReader {
    */
   static async toApplicationError(opts: {
     response: Response;
-    /** Where it failed, for logs - e.g. `[HttpDataSource][read] 404 | /tickets`. */
-    context: string;
+    /** Where it failed, for logs - e.g. `[HttpDataSource][read] 404 | /tickets`. Left out, `message` is the server's text. */
+    context?: string;
     rootKey?: string;
   }): Promise<ApplicationError> {
     const { response, context, rootKey } = opts;
@@ -146,7 +147,8 @@ export class HttpResponseReader {
 
     return getError({
       statusCode: response.status,
-      message: serverText ? `${context} | ${serverText}` : context,
+      message:
+        context === undefined ? displayText : serverText ? `${context} | ${serverText}` : context,
       messageCode: server.normalized?.code,
       messageArgs: server.normalized?.args,
       extra: Object.keys(extra).length > 0 ? extra : undefined,
@@ -161,7 +163,7 @@ export class HttpResponseReader {
    */
   static async fromFetchError(opts: {
     error: UrlFetchError<Response>;
-    context: string;
+    context?: string;
     rootKey?: string;
   }): Promise<ApplicationError> {
     const { error, context, rootKey } = opts;

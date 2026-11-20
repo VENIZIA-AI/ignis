@@ -37,6 +37,22 @@ describe('HttpResponseReader.fromFetchError', () => {
     expect(error.normalized.code).toBe('validation.required');
   });
 
+  test("without context, the error from a fetcher's refused answer has the server's text as message", async () => {
+    const failure = await RejectionHelper.rejectionOf({
+      task: new NativeFetcher({ name: 'n' }).get({ url: `http://127.0.0.1:${server.port}/` }),
+    });
+
+    if (!(failure instanceof UrlFetchError)) {
+      throw new Error('expected a UrlFetchError');
+    }
+
+    const error = await HttpResponseReader.fromFetchError({
+      error: failure,
+    });
+
+    expect(error.message).toBe('Name is required');
+  });
+
   test('an error that kept no body is described by its status alone', async () => {
     const error = await HttpResponseReader.fromFetchError({
       error: new UrlFetchError({ message: 'x', status: 503, url: 'http://x' }),

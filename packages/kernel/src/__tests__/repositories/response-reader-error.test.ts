@@ -35,6 +35,28 @@ describe('HttpResponseReader.toApplicationError', () => {
     expect(error.cause).toEqual([{ path: 'name', message: 'Required', code: 'invalid_type' }]);
   });
 
+  test("without context, message is the server's own text, and HTTP <status> when it sent none", async () => {
+    const withText = await HttpResponseReader.toApplicationError({
+      response: respond({ status: 422, body: { normalized: { text: 'Name is required' } } }),
+    });
+    const withoutText = await HttpResponseReader.toApplicationError({
+      response: respond({ status: 503, raw: 'not json' }),
+    });
+
+    expect(withText.message).toBe('Name is required');
+    expect(withText.normalized.text).toBe('Name is required');
+    expect(withoutText.message).toBe('HTTP 503');
+  });
+
+  test('with context, message leads with it', async () => {
+    const error = await HttpResponseReader.toApplicationError({
+      response: respond({ status: 404, body: { message: 'Not here' } }),
+      context: '[Client][read] 404 | /tickets',
+    });
+
+    expect(error.message).toBe('[Client][read] 404 | /tickets | Not here');
+  });
+
   test('adds requestId to extra and chains a relayed upstream id, nearest first', async () => {
     const error = await HttpResponseReader.toApplicationError({
       response: respond({
