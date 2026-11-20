@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/http, from the built dec
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-16 exports, 16 with TSDoc. 3 more are re-exported from other entries (listed at the end).
+17 exports, 17 with TSDoc. 3 more are re-exported from other entries (listed at the end).
 
 ## `HttpDataSource`
 
@@ -477,8 +477,8 @@ export interface IHttpDataSourceSettings {
     authToken?: IAuthToken;
     /** Run on every send, the 401 retry included. `undefined` means no token for this request. A throw fails the request with that error. */
     authTokenResolver?: (context: IHttpRequestContext) => IAuthToken | undefined;
-    /** Runs on a 401: `true` retries once (re-resolving the token), `false` lets the 401 stand. */
-    onUnauthorized?: (context: IHttpRequestContext) => Promise<boolean> | boolean;
+    /** Runs on a 401: `true` retries once (re-resolving the token), `false` lets the 401 stand. `context` is the object the resolvers got for this call; `info.attempt` says which send failed. */
+    onUnauthorized?: (context: IHttpRequestContext, info: IHttpUnauthorizedInfo) => Promise<boolean> | boolean;
     /** What sends a request: the platform `fetch` when unset. Name one to route through a test double, a proxy or an instrumented client. */
     fetch?: THttpFetch;
 }
@@ -512,15 +512,13 @@ Source: `packages/connectors/src/http/common/types.ts`
 
 *interface*
 
-The request a hook is asked about: the repository `paths`, the method, and the final URL with its query.
+The request a hook is asked about, the SAME object for every hook and every send of one call (a session map may key on it): the repository `paths`, the method, and the final URL with its query.
 
 ```ts
 export interface IHttpRequestContext {
     paths: Array<string>;
     method: string;
     url: string;
-    /** 1 for the first send, 2 for the one after a refreshed 401. */
-    attempt?: number;
     /** The call's own signal: a hook may stop waiting on it. A refresh shared by other calls should not be aborted by one. */
     signal?: AbortSignal;
 }
@@ -544,6 +542,20 @@ export interface IHttpSearchResult<R> {
         highlight?: unknown;
         highlights?: Array<unknown>;
     }>;
+}
+```
+
+Source: `packages/connectors/src/http/common/types.ts`
+
+## `IHttpUnauthorizedInfo`
+
+*interface*
+
+What `onUnauthorized` is told besides the request: `attempt` is 1 for the first 401, 2 for the retry's own.
+
+```ts
+export interface IHttpUnauthorizedInfo {
+    attempt: number;
 }
 ```
 

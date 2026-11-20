@@ -39,8 +39,8 @@ describe('#1256: the refresh hook hears of the second 401', () => {
 
     const dataSource = new HttpDataSource({
       baseUrl: 'https://api.example.com',
-      onUnauthorized: (context: IHttpRequestContext) => {
-        heard.push(context.attempt);
+      onUnauthorized: (_context: IHttpRequestContext, { attempt }) => {
+        heard.push(attempt);
 
         // `true` on the second call must not buy a third send.
         return true;
@@ -62,8 +62,8 @@ describe('#1256: the refresh hook hears of the second 401', () => {
 
     const dataSource = new HttpDataSource({
       baseUrl: 'https://api.example.com',
-      onUnauthorized: (context) => {
-        heard.push(context.attempt);
+      onUnauthorized: (_context, { attempt }) => {
+        heard.push(attempt);
 
         return false;
       },

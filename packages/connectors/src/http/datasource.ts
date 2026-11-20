@@ -201,7 +201,7 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
                   return false;
                 }
 
-                const isRefreshed = await onUnauthorized({ ...context, attempt });
+                const isRefreshed = await onUnauthorized(context, { attempt });
 
                 // The second 401 stands: the hook hears of it, its answer is ignored, and nothing is sent a third time.
                 return attempt === 1 && isRefreshed;

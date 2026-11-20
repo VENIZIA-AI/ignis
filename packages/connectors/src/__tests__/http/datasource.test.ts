@@ -394,9 +394,70 @@ describe('the hooks are told which request they serve', () => {
       expect(entry.context).toMatchObject(expected);
     }
 
-    // Only the refresh hook is told which attempt it is.
-    expect(seen.find((entry) => entry.hook === 'unauthorized')?.context.attempt).toBe(1);
-    expect(seen.find((entry) => entry.hook === 'token')?.context.attempt).toBeUndefined();
+    // The context carries no attempt: the refresh hook is told it in a second argument.
+    for (const entry of seen) {
+      expect(Reflect.has(entry.context, 'attempt')).toBe(false);
+    }
+  });
+
+  test('one call: the SAME context object reaches the token resolver, the headers resolver and the refresh hook, on every send', async () => {
+    stubFetch([{ status: 401 }, { status: 401 }]);
+    const seen: Array<{ hook: string; context: IHttpRequestContext }> = [];
+    const attempts: number[] = [];
+
+    const dataSource = new HttpDataSource({
+      baseUrl: 'https://api.example.com',
+      headersResolver: (context) => {
+        seen.push({ hook: 'headers', context });
+
+        return undefined;
+      },
+      authTokenResolver: (context) => {
+        seen.push({ hook: 'token', context });
+
+        return undefined;
+      },
+      onUnauthorized: (context, { attempt }) => {
+        seen.push({ hook: 'unauthorized', context });
+        attempts.push(attempt);
+
+        return true;
+      },
+    });
+
+    await dataSource.request({ paths: ['tickets'] });
+
+    // Two sends: token, headers, refresh each time.
+    expect(seen.map((entry) => entry.hook)).toEqual([
+      'token',
+      'headers',
+      'unauthorized',
+      'token',
+      'headers',
+      'unauthorized',
+    ]);
+    expect(attempts).toEqual([1, 2]);
+    expect(new Set(seen.map((entry) => entry.context)).size).toBe(1);
+  });
+
+  test('a different call gets a different context object', async () => {
+    stubFetch([{ status: 200 }, { status: 200 }]);
+    const contexts: IHttpRequestContext[] = [];
+
+    const dataSource = new HttpDataSource({
+      baseUrl: 'https://api.example.com',
+      authTokenResolver: (context) => {
+        contexts.push(context);
+
+        return undefined;
+      },
+    });
+
+    await dataSource.request({ paths: ['tickets'] });
+    await dataSource.request({ paths: ['tickets'] });
+
+    expect(contexts).toHaveLength(2);
+    expect(contexts[0]).not.toBe(contexts[1]);
   });
 
   test('a public route gets no token, and declines the refresh', async () => {
