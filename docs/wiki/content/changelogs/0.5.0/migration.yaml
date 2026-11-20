@@ -1,0 +1,366 @@
+url-safety-hosts:
+  symbols: [IUrlSafetyPolicy.allowedHosts, IUrlSafetyPolicy.hosts, IUrlTrustedHosts, TTrustedOrigin]
+  upgrade:
+    before: |-
+      await UrlIngest.fetchGuarded({
+        url,
+        policy: { allowedHosts: ['cdn.example.com'] },
+      });
+    after: |-
+      await UrlIngest.fetchGuarded({
+        url,
+        policy: { hosts: { trusted: ['https://cdn.example.com'], strict: true } },
+      });
+    steps:
+      - "Replace each allowedHosts name with an origin in policy.hosts.trusted: the scheme, the host and a non-default port, written as new URL(entry).origin writes it (https://cdn.example.com, http://vault.corp.local:8200)."
+      - "Add strict: true to keep nothing but the listed origins passing; leave it out to trust those origins in addition to the public internet."
+      - "Check what a trusted origin now allows: it passes even when it resolves to a private address, which allowedHosts never did, so list only origins you mean to reach."
+      - "Remove allowedHosts everywhere: a policy that still carries it throws a configuration error."
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-helpers to 0.4.8, which reads allowedHosts and ignores hosts.
+      - Replace each trusted origin with its host name in allowedHosts. The scheme and the port are lost, and a private address is refused again.
+  data: Nothing stored changes. allowedHosts compared the host name only; a trusted origin is exact, so another port or scheme of the same host is not covered.
+
+jwks-trusted-origins:
+  symbols: [IJWKSHosts, jwks.hosts, jwks.trusted, IJWKSVerifierOptions.jwks, IServiceAuthOptions.jwks]
+  upgrade:
+    before: |-
+      options: {
+        mode: JWKSModes.VERIFIER,
+        jwksUrl: 'http://identity-service:3000/certs',
+        jwks: { hosts: { http: ['identity-service', '10.0.0.5:8080', '[fd00::1]:8443'] } },
+      }
+      { name: 'inventory', callers: { commerce: 'http://commerce:3000/svc-certs' }, jwks: { hosts: { http: ['commerce'] } } }
+    after: |-
+      options: {
+        mode: JWKSModes.VERIFIER,
+        jwksUrl: 'http://identity-service:3000/certs',
+        jwks: { trusted: ['http://identity-service:3000', 'http://10.0.0.5:8080', 'http://[fd00::1]:8443'] },
+      }
+      { name: 'inventory', callers: { commerce: 'http://commerce:3000/svc-certs' }, jwks: { trusted: ['http://commerce:3000'] } }
+    steps:
+      - "Turn each jwks.hosts.http entry into an origin in jwks.trusted: http:// then the entry (identity-service becomes http://identity-service)."
+      - "List each port in use. An entry without a port covered every port of the host before; an origin is exact, so http://identity-service is port 80 only."
+      - "Write the origin as the URL parser does: lower case, no trailing slash, no :80, an IPv6 address in brackets. An entry that is not exactly an origin refuses the boot, naming it."
+      - "Remove jwks.hosts: the key is gone from IJWKSVerifierOptions.jwks and IServiceAuthOptions.jwks."
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-kernel and @venizia/ignis to 0.4.8, which reads jwks.hosts.http and ignores jwks.trusted.
+      - Turn each origin back into a host entry (http://10.0.0.5:8080 becomes 10.0.0.5:8080); an entry without a port covers every port again.
+  data: Nothing stored changes. A jwks.hosts.http entry without a port covered every port of the host; an origin covers one port, so list each port in use.
+jwt-inner-option-keys:
+  symbols: [AuthenticateBindingKeys.JWT_OPTIONS, AuthenticateBindingKeys.JWKS_OPTIONS, AuthenticateBindingKeys.JWS_OPTIONS, AuthenticateBindingKeys.JWKS_ISSUER_OPTIONS, AuthenticateBindingKeys.JWKS_VERIFIER_OPTIONS]
+  upgrade:
+    before: |-
+      class MyJwtReader {
+        constructor(
+          @inject({ key: AuthenticateBindingKeys.JWT_OPTIONS })
+          private options: IJWSTokenServiceOptions,
+        ) {}
+      }
+
+      class MyKeySetReader {
+        constructor(
+          @inject({ key: AuthenticateBindingKeys.JWKS_OPTIONS })
+          private options: IJWKSVerifierOptions,
+        ) {}
+      }
+    after: |-
+      class MyJwtReader {
+        constructor(
+          @inject({ key: AuthenticateBindingKeys.JWS_OPTIONS })
+          private options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWS_OPTIONS>,
+        ) {}
+      }
+
+      class MyKeySetReader {
+        constructor(
+          @inject({ key: AuthenticateBindingKeys.JWKS_VERIFIER_OPTIONS })
+          private options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWKS_VERIFIER_OPTIONS>,
+        ) {}
+      }
+    steps:
+      - "Search your code for AuthenticateBindingKeys.JWT_OPTIONS and AuthenticateBindingKeys.JWKS_OPTIONS in an @inject or a container.get that expects the inner options. Binding JWT_OPTIONS with the TJWTTokenServiceOptions wrapper stays as it is."
+      - "Inject AuthenticateBindingKeys.JWS_OPTIONS where you read IJWSTokenServiceOptions, JWKS_ISSUER_OPTIONS where you read IJWKSIssuerOptions, and JWKS_VERIFIER_OPTIONS where you read IJWKSVerifierOptions."
+      - "Replace every use of AuthenticateBindingKeys.JWKS_OPTIONS: the key is removed, and so is the string '@app/authenticate/jwks-options'."
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-kernel and @venizia/ignis to 0.4.8, where the component binds the inner JWS options at JWT_OPTIONS and the JWKS options at JWKS_OPTIONS.
+      - Inject JWT_OPTIONS and JWKS_OPTIONS again where you now inject JWS_OPTIONS, JWKS_ISSUER_OPTIONS or JWKS_VERIFIER_OPTIONS.
+  data: Nothing stored changes. The key strings @app/authenticate/jws-options, @app/authenticate/jwks-issuer-options and @app/authenticate/jwks-verifier-options are new; @app/authenticate/jwks-options no longer exists.
+binding-keys-required-brand:
+  symbols: [TBindingKey, BindingKeys.build, IContainer.get, IContainer.getBinding, IContainer.isBound, TMetadataKey]
+  upgrade:
+    before: |-
+      class Notifier {
+        constructor(
+          @inject({ key: 'services.Mailer' })
+          private mailer: Mailer,
+        ) {}
+      }
+
+      const mailer = container.get<Mailer>({ key: 'services.Mailer' });
+      const repository = container.get({ key: { namespace: 'repositories', key: name } });
+      container.bind({ key: Symbol.for('app.clock') }).toValue(clock);
+    after: |-
+      import { BindingKeys } from '@venizia/ignis';
+
+      class Notifier {
+        constructor(
+          @inject({ key: BindingKeys.build<Mailer>({ key: 'services.Mailer' }) })
+          private mailer: Mailer,
+        ) {}
+      }
+
+      const mailer = container.get({ key: BindingKeys.build<Mailer>({ key: 'services.Mailer' }) });
+      const repository = container.get({
+        key: BindingKeys.build<unknown>({ namespace: 'repositories', key: name }),
+      });
+      container.bind({ key: BindingKeys.build<Clock>({ key: 'app.clock' }) }).toValue(clock);
+    steps:
+      - "Install the dependencies and run `bun node_modules/.bin/devz codemod binding-keys [paths...] --write` (or `--write --all`) from the project root, with the files committed. It reads your project through its tsconfig and rewrites only calls the TypeScript checker resolves to the framework's container, `inject` or `provide` (a redis.get or a worker pool is left alone). It rewrites a string key, a substitution-free template, a { namespace, key } object and a ${namespace}.Name template to BindingKeys.build<T>, and moves the type argument of your call (or the type of the decorated parameter, without undefined) into build<T>."
+      - "Name the real type at every site the codemod lists as `type` (it wrote BindingKeys.build<unknown>), and fix each `manual` site: a key made at run time, a Symbol key, a string constant of another module (a key of a library you use, such as ARDOR before its typed keys), a receiver the checker could not resolve, and a key whose type names a type parameter."
+      - "Replace a Symbol key by a string key made with BindingKeys.build<T>({ key: 'name' }); symbols are no longer container keys. In generic code, where T is not known yet, build `unknown` and return it typed as TBindingKey<T> (the brand is bivariant); BindingKeys.build<T> with a type parameter does not compile."
+      - "Build the keys of `@provide`, of an event handler `{ type: BINDING_KEY, key }` and of the auth controller `serviceKey` with BindingKeys.build<T>."
+      - "Where a metadata key was a binding key, use TMetadataKey (a string or a symbol) with MetadataRegistry.define, get, has and delete."
+      - "Run your typecheck: every raw key it still finds is a site the codemod did not read (a .js file, a key held in a variable that is not a const of the file)."
+  downgrade:
+    steps:
+      - Restore the files the codemod changed from git, and pin @venizia/ignis-inversion, @venizia/ignis-kernel and @venizia/ignis to 0.4.8, where a raw string key and the { namespace, key } form still compile.
+      - A key built with BindingKeys.build<T> keeps working there, so a partial downgrade of the call sites is optional.
+  codemod: binding-keys
+  data: Nothing stored changes. Key strings are unchanged; the symbol keys the container used to store as `Symbol(description)` no longer exist.
+fetch-guarded-removed:
+  symbols: [UrlIngest.fetchGuarded, UrlIngest.capStream, UrlIngest.readCappedBody, UrlGuard, BodyLimit, IFetcherDefaults.guard]
+  upgrade:
+    before: |-
+      const response = await UrlIngest.fetchGuarded({ url, policy, method: 'POST', headers, body: JSON.stringify(event), signal });
+      const bytes = await UrlIngest.readCappedBody({ response, policy });
+      const stream = UrlIngest.capStream({ source: response.body, policy });
+    after: |-
+      import { BodyLimit, NativeFetcher, UrlGuard } from '@venizia/ignis-helpers';
+
+      const fetcher = new NativeFetcher({ name: 'webhooks', guardEngine: UrlGuard });
+      const response = await fetcher.post({ url, guard: policy, headers, body: event, signal, maxBytes: policy.maxBytes });
+      const bytes = await BodyLimit.readBytes({ response, maxBytes });
+      const stream = response.body;
+    steps:
+      - "Build a NativeFetcher (or an AxiosFetcher) once with guardEngine: UrlGuard."
+      - "Replace each UrlIngest.fetchGuarded call with fetcher.<verb>({ url, guard: policy, ... }); body is the object itself, not JSON.stringify of it."
+      - "Move policy.maxBytes to the call's maxBytes; the body that crosses it fails while it is read. policy.timeout is now the call's timeout in milliseconds, per attempt."
+      - "Replace UrlIngest.readCappedBody with BodyLimit.readBytes (it returns a Uint8Array, where readCappedBody returned a Buffer: use Buffer.from(bytes) if you need one) and UrlIngest.capStream with BodyLimit.capStream."
+      - "A guarded call that names no maxBytes is now capped at 10 MiB (policy.maxBytes default), where fetchGuarded had no cap on a raw body; set maxBytes for a larger one."
+      - "With a guard, AxiosFetcher accepts only plain-data request options (withCredentials, responseType except stream, responseEncoding, the xsrf options, maxContentLength, maxBodyLength, maxRate, decompress, transitional, rejectUnauthorized never false). Agents, socketPath, lookup, transport, proxy, httpVersion, http2Options, adapter, every function option (transformRequest, transformResponse, paramsSerializer, formSerializer, progress callbacks), auth, baseURL and allowAbsoluteUrls are refused: send Authorization in headers, pass one absolute url, transform the body and answer yourself. NativeFetcher accepts credentials, mode, cache, referrer, referrerPolicy, integrity, keepalive and priority. Use a NativeFetcher for a proxy or a stream."
+      - "A status outside 2xx now throws UrlFetchError on its own; drop any manual status check or pass acceptStatus."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-helpers and @venizia/ignis to 0.4.8, where UrlIngest.fetchGuarded, readCappedBody and capStream exist."
+      - "Call UrlIngest.fetchGuarded({ url, policy, method, headers, body, signal }) again, with the body as text or bytes."
+  data: Nothing stored changes.
+
+native-fetcher-rename:
+  symbols: [NativeFetcher, NativeFetchNetworkRequest, INativeFetchRequestOptions, INativeFetchNetworkRequestOptions, FetcherVariants.NATIVE]
+  upgrade:
+    before: |-
+      import { NodeFetcher, NodeFetchNetworkRequest, FetcherVariants, type INodeFetchRequestOptions } from '@venizia/ignis-helpers';
+
+      class Client extends NodeFetchNetworkRequest {}
+      const variant = FetcherVariants.NODE_FETCH; // 'node-fetch'
+    after: |-
+      import { NativeFetcher, NativeFetchNetworkRequest, FetcherVariants, type INativeFetchRequestOptions } from '@venizia/ignis-helpers';
+
+      class Client extends NativeFetchNetworkRequest {}
+      const variant = FetcherVariants.NATIVE; // 'native'
+    steps:
+      - "Rename by hand, in this order: NodeFetchNetworkRequest to NativeFetchNetworkRequest, INodeFetchNetworkRequestOptions to INativeFetchNetworkRequestOptions, INodeFetchRequestOptions to INativeFetchRequestOptions, NodeFetcher to NativeFetcher, FetcherVariants.NODE_FETCH to FetcherVariants.NATIVE."
+      - "Replace the string 'node-fetch' with 'native' wherever you compare a fetcher variant or type a BaseNetworkRequest<'node-fetch'>."
+      - "Import path ./node-fetcher no longer exists; import from the package root or @venizia/ignis-helpers/core."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-helpers and @venizia/ignis to 0.4.8 and reverse the table above."
+  data: Nothing stored changes. A log line or a metric that carried the variant string now reads native.
+
+fetch-send-type-argument-removed:
+  symbols: [IFetchable.send, IFetchParsed, FetchSchemaError]
+  upgrade:
+    before: |-
+      const response = await fetcher.send<User>({ url, method: 'get' });
+      const user = response.data;
+    after: |-
+      import { z } from 'zod';
+
+      const User = z.object({ id: z.number(), name: z.string() });
+      const { data: user } = await fetcher.get({ url, schema: User });
+    steps:
+      - "Describe the body with a zod schema and pass it as schema; read the typed body from data."
+      - "A call without a schema keeps its raw answer (Response, or AxiosResponse with its data typed unknown)."
+      - "Catch FetchSchemaError (502) where a body can be wrong; it carries paths and rule codes, never the body."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-helpers to 0.4.8, where send<T> exists and nothing checks the body."
+  data: Nothing stored changes.
+
+fetch-non-2xx-throws:
+  symbols: [UrlFetchError, IRequestOptions.acceptStatus]
+  upgrade:
+    before: |-
+      const response = await fetcher.get({ url });
+
+      if (response.status === 404) {
+        return null;
+      }
+    after: |-
+      try {
+        return await fetcher.get({ url });
+      } catch (error) {
+        if (UrlFetchError.is(error) && error.status === 404) {
+          return null;
+        }
+
+        throw error;
+      }
+    steps:
+      - "Wrap a call whose non-2xx answer you handle in try/catch and read error.status, error.headers and error.response from the UrlFetchError."
+      - "Or pass acceptStatus: (status) => status === 404 || status < 300 to keep the answer as data."
+      - "AxiosNetworkRequest no longer sets validateStatus; a 4xx answers a UrlFetchError too."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-helpers and @venizia/ignis to 0.4.8, where a 404 or 500 came back as a response."
+  data: Nothing stored changes.
+
+fetch-headers-merge:
+  symbols: [IFetcherDefaults.headers, TFetchHeaders, NativeFetcher, IRequestOptions.timeout]
+  upgrade:
+    before: |-
+      const fetcher = new NodeFetcher({ name: 'uploads', defaultConfigs: { headers: { 'content-type': 'application/json' } } });
+      // a call that sends its own headers replaced every default
+      await fetcher.post({ url, body: form, headers: { authorization: token } });
+    after: |-
+      const fetcher = new NativeFetcher({ name: 'uploads', defaults: { headers: { 'content-type': 'application/json' } } });
+      // headers merge; null removes a default
+      await fetcher.post({ url, body: form, headers: { authorization: token, 'content-type': null } });
+    steps:
+      - "Move defaultConfigs.headers to defaults.headers; defaultConfigs keeps only RequestInit settings such as credentials and mode, and has no headers or signal."
+      - "A call that sent its own headers to REPLACE the defaults now merges with them; set a default you do not want to null."
+      - "timeout is per attempt now; set retry.maxTotalMs when you need a total budget."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-helpers to 0.4.8 and put the headers back in defaultConfigs."
+  data: Nothing stored changes.
+
+url-ingest-merged-into-guard:
+  symbols: [UrlGuard.assertPublicHost, UrlGuard.assertReachableUrl, UrlGuard.resolvePublicAddresses, UrlGuard.createRoute]
+  upgrade:
+    before: |-
+      import { UrlIngest } from '@venizia/ignis-helpers';
+
+      await UrlIngest.assertPublicHost({ hostname });
+      const url = await UrlIngest.assertReachableUrl({ url: input, policy });
+      const addresses = await UrlIngest.resolvePublicAddresses({ hostname, policy });
+    after: |-
+      import { UrlGuard } from '@venizia/ignis-helpers';
+
+      await UrlGuard.assertPublicHost({ hostname });
+      const url = await UrlGuard.assertReachableUrl({ url: input, policy });
+      const addresses = await UrlGuard.resolvePublicAddresses({ hostname, policy });
+    steps:
+      - "Rename by hand: UrlIngest.assertPublicHost to UrlGuard.assertPublicHost, UrlIngest.assertReachableUrl to UrlGuard.assertReachableUrl, UrlIngest.resolvePublicAddresses to UrlGuard.resolvePublicAddresses. The arguments and the answers are unchanged."
+      - "Change the import of UrlIngest to UrlGuard; both come from the package root, never from @venizia/ignis-helpers/core (UrlGuard reaches node:dns)."
+      - "Change any type or doc reference to UrlIngest, and any import of the url-safety/ingest file path, to UrlGuard and url-safety/guard."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-helpers and @venizia/ignis to 0.4.8, where UrlIngest exists, and reverse the rename."
+  data: Nothing stored changes.
+
+remove-unused-network-exports:
+  symbols: [QueryStringNullishModes, QueryStringNestedModes, TQueryStringNullishMode, TQueryStringNestedMode, TFetchResult, TUrlScheme, BodyLimit.DEFAULT_MAX_BYTES, FetchErrors, THttpQuery, TAuthTokenResolver, THttpHeadersResolver, HttpResourceEntity, THttpRepositoryOptions, FetchRedirects.STATUSES, FetchStatus.isSuccess, UrlPolicy.readHosts]
+  upgrade:
+    before: |-
+      import { QueryStringNullishModes, QueryStringNestedModes } from '@venizia/ignis-helpers';
+      import type { THttpQuery } from '@venizia/ignis-connectors/http';
+
+      const options = { nullish: QueryStringNullishModes.SKIP, nested: QueryStringNestedModes.JSON };
+      const query: THttpQuery<Product> = { filter: { where: { isActive: true } } };
+    after: |-
+      import type { TFilter } from '@venizia/ignis-filter';
+
+      const options = { nullish: 'skip', nested: 'json' } as const;
+      const query: { filter?: TFilter<Product> } = { filter: { where: { isActive: true } } };
+    steps:
+      - "QueryStringNullishModes.EMPTY / .SKIP are the strings 'empty' / 'skip'; QueryStringNestedModes.DROP / .JSON are 'drop' / 'json'. Write the string; the option types are the literal unions."
+      - "TQueryStringNullishMode and TQueryStringNestedMode: use NonNullable<IQueryStringOptions['nullish']> and NonNullable<IQueryStringOptions['nested']>."
+      - "THttpFetch stays exported from @venizia/ignis-connectors/http, now an alias of TNativeFetchSender (same shape); nothing to change."
+      - "THttpHeadersResolver and TAuthTokenResolver: use NonNullable<IHttpDataSourceSettings['headersResolver']> and NonNullable<IHttpDataSourceSettings['authTokenResolver']>, both from @venizia/ignis-connectors/http. THttpQuery<E>: write { filter?: TFilter<E> }."
+      - "TFetchResult<RS, S>: write S extends z.ZodType ? IFetchParsed<z.infer<S>, RS> : RS, or type the call's answer from the fetcher method."
+      - "TUrlScheme: use string; UrlSchemes.HTTP and UrlSchemes.HTTPS are still exported."
+      - "BodyLimit.DEFAULT_MAX_BYTES: use UrlSafetyDefaults.MAX_BYTES."
+      - "FetchErrors: nothing to change for the error; FetchSchemaError and its code core.fetch.schema_mismatch are unchanged."
+      - "HttpResourceEntity: not public; HttpRepository is the public name. THttpRepositoryOptions: use NonNullable<Parameters<HttpRepository<E>['existsWith']>[0]['options']>."
+      - "FetchRedirects.STATUSES, FetchStatus.isSuccess, UrlPolicy.readHosts: not public; the statuses are 301, 302, 303, 307 and 308, and 2xx is status >= 200 && status < 300."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-helpers, @venizia/ignis-connectors and @venizia/ignis to the release before this one, where every name above is exported, and reverse the table."
+  data: Nothing stored changes.
+get-request-url-strict-join:
+  symbols: [BaseNetworkRequest.getRequestUrl, BaseNetworkRequest.getRequestPath, UrlBuilder.join]
+  upgrade:
+    before: |-
+      // accepted, and sent as written
+      client.getRequestUrl({ paths: ['users', '..', 'admin'] });  // http://api.example.com/users/../admin
+      client.getRequestUrl({ paths: ['files', 'a%5Cb'] });         // http://api.example.com/files/a%5Cb
+      client.getRequestUrl({ paths: ['users', 'a b'] });           // http://api.example.com/users/a b
+    after: |-
+      // the first two answer a 400; a name that is not '.' or '..' is a segment like any other
+      client.getRequestUrl({ paths: ['users', name] });
+      client.getRequestUrl({ paths: ['files', 'a', 'b'] });
+      client.getRequestUrl({ paths: ['users', 'a b'] });           // http://api.example.com/users/a%20b
+    steps:
+      - "A path that is a dot segment now answers a 400 ('..', '.', '%2e%2e', '.%2e', '%2e.', any of them with a trailing space, or followed by '?' or '#', or after an encoded slash '%2f'). encodeURIComponent does not help ('..' stays '..'): reject a value that is '.' or '..' before the call, or send it as a query parameter."
+      - "A path with a backslash, an encoded backslash (%5c) or a control character (tab, newline, NUL) answers a 400. Remove it, or percent-encode the whole value."
+      - "A '?' inside a path segment is passed through, as it always was: it starts the query ('users?page=2' is /users?page=2). Use the request's params for a query."
+      - "A double slash ('a//b', 'v1/' then 'users') is NOT refused: it cannot leave the base, and it joins as written."
+      - "A baseUrl with a '?' or a '#' answers a 500; pass the base without them and put query parameters in the request's params. A path-relative base ('api', 'localhost:3000') answers a 500: pass '/api' or an absolute url."
+      - "A relative base ('/api') now answers the absolute url (the page's origin + '/api/...'); on a server with no page location it answers a 500, so pass an absolute base there."
+      - "getRequestUrl answers URL.toString(): the host is lower case, a space is %20, and an empty path after an origin is '/'. A test that compares the exact string checks it against that form."
+      - "getRequestPath is unchanged: it only prefixes each path with a slash and does not check."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-helpers and @venizia/ignis to 0.4.8, where getRequestUrl joined the strings as written (base without its trailing slash, then each path with one leading slash); the refused paths are accepted again."
+      - "Or keep the new version and join by hand: drop the base's trailing slash, then add each path with one leading slash, as plain string concatenation."
+  data: Nothing stored changes.
+mail-template-missing-empty:
+  symbols: [TemplateEngineService.render, TemplateEngineService.renderSimpleTemplate, IMailTemplateEngine.render, IMailMessage.missing, MailTemplateMissingModes]
+  upgrade:
+    before: |-
+      // a missing key stayed in the mail, an object printed as text
+      const html = templateEngine.render({
+        templateData: 'Hi {{name}}, {{reason}} {{title}}',
+        data: { name: 'Ada', title: { en: 'Dr', vi: 'Bs' } },
+      });
+      // 'Hi Ada, {{reason}} [object Object]'
+    after: |-
+      import { MailTemplateMissingModes } from '@venizia/ignis/mail';
+
+      // resolve the locale first; a missing key renders empty
+      const html = templateEngine.render({
+        templateData: 'Hi {{name}}, {{reason}} {{title}}',
+        data: { name: 'Ada', title: title[locale] },
+      });
+      // 'Hi Ada,  Dr'
+
+      // the old output, while you migrate
+      templateEngine.render({ templateData, data, missing: MailTemplateMissingModes.KEEP });
+    steps:
+      - "A template that relied on a missing key staying as {{key}} (to spot it in a test mail) passes missing: 'keep', or fails loudly with missing: 'throw' (or requireValidate: true to list every missing key)."
+      - "A value that is an object, an array or a Date in a {{key}} slot now throws core.mail.template_invalid. Resolve the locale ({ en, vi } to the string of the recipient's locale) and format dates in your code before render() or sendTemplate()."
+      - "A value that is a function throws core.mail.template_invalid; call it and pass the result."
+      - "Text that was literal before has a meaning now. {{#x}} and {{^x}} open a section (a template with one and no {{/x}} throws); {{/x}}, {{! x}}, {{> x}}, {{= x =}} and {{& x}} throw core.mail.template_invalid, where they used to be printed as text. To keep one as literal text, pass it as data and insert it with triple braces: data { note: '{{! kept }}' } and the template {{{note}}} (a value is never parsed as a template)."
+      - "A {{ that is no tag ('{{ not a tag }}', a lone '{{') is still left as written."
+      - "Sections nest to 64; a deeper template throws core.mail.template_invalid."
+      - "A render that leaves a value empty now logs one warning with the keys (never the values): a template that renders empty on purpose can pass missing: 'keep' or give the key a value."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis to 0.4.8, where a missing key stays as written and an object prints as text; sections are not available there."
+      - "Or stay on the new version and pass missing: 'keep' on every render and sendTemplate call; the object and function refusals have no switch."
+  data: Nothing stored changes. A template registered in memory is unchanged text.
