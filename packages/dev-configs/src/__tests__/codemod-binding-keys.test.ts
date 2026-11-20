@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import ts from 'typescript';
 import { CodemodCommand } from '../cli/codemod';
@@ -587,6 +587,81 @@ describe('devz codemod binding-keys: the command', () => {
     writeFileSync(join(root, name), text);
     commit();
   };
+
+  /**
+   * The framework the way Bun installs it: the package sits in the isolated store, `node_modules/@venizia/<name>` is a symlink to
+   * it, the declarations live in `dist/esm`, and `dist/esm/package.json` carries no name (`{ "type": "module" }`).
+   */
+  const installFrameworkLikeBun = () => {
+    const store = join(
+      root,
+      'node_modules/.bun/@venizia+ignis-inversion@0.5.0-0/node_modules/@venizia/ignis-inversion',
+    );
+
+    mkdirSync(join(store, 'dist/esm'), { recursive: true });
+    writeFileSync(join(store, 'dist/esm/index.d.ts'), FRAMEWORK_STUB);
+    writeFileSync(
+      join(store, 'dist/esm/package.json'),
+      JSON.stringify({ type: 'module', sideEffects: ['./index.js'] }),
+    );
+    writeFileSync(
+      join(store, 'package.json'),
+      JSON.stringify({
+        name: '@venizia/ignis-inversion',
+        version: '0.5.0-0',
+        types: './dist/esm/index.d.ts',
+      }),
+    );
+    mkdirSync(join(root, 'node_modules/@venizia'), { recursive: true });
+    symlinkSync(store, join(root, 'node_modules/@venizia/ignis-inversion'), 'dir');
+    writeFileSync(
+      join(root, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          experimentalDecorators: true,
+          moduleResolution: 'bundler',
+          module: 'esnext',
+          noLib: true,
+        },
+      }),
+    );
+    writeFileSync(join(root, '.gitignore'), 'node_modules\n');
+  };
+
+  test('a framework installed the way Bun installs it (store, symlink, nameless dist/esm/package.json) is found', async () => {
+    installFrameworkLikeBun();
+    write(
+      'src/a.ts',
+      `import { Container } from '@venizia/ignis-inversion';\ndeclare const a: Container;\na.bind({ key: 'a.A' });\n`,
+    );
+
+    const code = await CodemodCommand.run({ root, args: ['binding-keys', 'src', '--write'] });
+
+    expect(code).toBe(0);
+    expect(readFileSync(join(root, 'src/a.ts'), 'utf8')).toContain(
+      "BindingKeys.build<unknown>({ key: 'a.A' })",
+    );
+  });
+
+  test('a package that re-exports the framework (ARDOR re-exports IGNIS) is found too', async () => {
+    installFrameworkLikeBun();
+    const kit = join(root, 'node_modules/@acme/kit');
+
+    mkdirSync(kit, { recursive: true });
+    writeFileSync(join(kit, 'index.d.ts'), `export * from '@venizia/ignis-inversion';\n`);
+    writeFileSync(
+      join(kit, 'package.json'),
+      JSON.stringify({ name: '@acme/kit', version: '1.0.0', types: 'index.d.ts' }),
+    );
+    write(
+      'src/a.ts',
+      `import { Container } from '@acme/kit';\ndeclare const a: Container;\na.get<string>({ key: 'a.A' });\n`,
+    );
+
+    const code = await CodemodCommand.run({ root, args: ['binding-keys', 'src', '--check'] });
+
+    expect(code).toBe(1);
+  });
 
   test('the name is listed, and --reverse is refused: a downgrade restores from git', async () => {
     const code = await CodemodCommand.run({ root, args: ['binding-keys', '--reverse'] });

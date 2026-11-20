@@ -449,7 +449,11 @@ export class BindingKeysCodemod {
 
     const packageNames = new Map<string, string | undefined>();
 
-    /** The name in the nearest package.json above `directory`, or `undefined` when there is none. */
+    /**
+     * The name in the nearest package.json above `directory` that has one, or `undefined` when there is none. A package.json
+     * without a name does not end the walk: an installed package ships `dist/esm/package.json` (`{ "type": "module" }`) beside
+     * the declarations, and the package's own file is further up.
+     */
     const packageNameAbove = (directory: string): string | undefined => {
       if (packageNames.has(directory)) {
         return packageNames.get(directory);
@@ -462,14 +466,17 @@ export class BindingKeysCodemod {
       if (text !== undefined) {
         const parsed: unknown = JSON.parse(text);
 
-        name =
+        if (
           typeof parsed === 'object' &&
           parsed !== null &&
           'name' in parsed &&
           typeof parsed.name === 'string'
-            ? parsed.name
-            : '';
-      } else if (parent !== directory) {
+        ) {
+          name = parsed.name;
+        }
+      }
+
+      if (name === undefined && parent !== directory) {
         name = packageNameAbove(parent);
       }
 
