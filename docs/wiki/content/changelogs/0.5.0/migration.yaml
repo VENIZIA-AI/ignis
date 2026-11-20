@@ -7,15 +7,19 @@ url-safety-hosts:
         policy: { allowedHosts: ['cdn.example.com'] },
       });
     after: |-
-      await UrlIngest.fetchGuarded({
+      import { NativeFetcher, UrlGuard } from '@venizia/ignis-helpers';
+
+      const fetcher = new NativeFetcher({ name: 'cdn', guardEngine: UrlGuard });
+      await fetcher.get({
         url,
-        policy: { hosts: { trusted: ['https://cdn.example.com'], strict: true } },
+        guard: { hosts: { trusted: ['https://cdn.example.com'], strict: true } },
       });
     steps:
       - "Replace each allowedHosts name with an origin in policy.hosts.trusted: the scheme, the host and a non-default port, written as new URL(entry).origin writes it (https://cdn.example.com, http://vault.corp.local:8200)."
       - "Add strict: true to keep nothing but the listed origins passing; leave it out to trust those origins in addition to the public internet."
       - "Check what a trusted origin now allows: it passes even when it resolves to a private address, which allowedHosts never did, so list only origins you mean to reach."
       - "Remove allowedHosts everywhere: a policy that still carries it throws a configuration error."
+      - "UrlIngest.fetchGuarded no longer exists: make the call with a NativeFetcher or AxiosFetcher built with guardEngine: UrlGuard, and pass the policy as guard (see fetch-guarded-removed)."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.8, which reads allowedHosts and ignores hosts.
