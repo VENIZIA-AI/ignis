@@ -385,9 +385,13 @@ export class BindingKeysCodemod {
       ts.isIdentifier(node.parent.type.typeName) &&
       node.parent.type.typeName.text === 'const';
 
-    /** `Foo.name`, `this.constructor.name`: a string property that TypeScript's own lib declares, so there is no constant of yours to build. */
+    /** `Foo.name`, `this.constructor.name`: the `name` that TypeScript's own lib declares, so there is no constant of yours to build. Another lib string (`err.message`, `location.href`) is not a key. */
     const isLibString = (value: import('typescript').Expression): boolean => {
-      if (checker === undefined || !ts.isPropertyAccessExpression(value)) {
+      if (
+        checker === undefined ||
+        !ts.isPropertyAccessExpression(value) ||
+        value.name.text !== 'name'
+      ) {
         return false;
       }
 
