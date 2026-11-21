@@ -1,6 +1,6 @@
 import { PGlite } from '@electric-sql/pglite';
 import { createClient } from '@libsql/client';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { afterEach, describe, expect, test } from 'bun:test';
 import type { IRelationalDriver } from '@/relational/core/drivers';
 import { RelationalMigrationRunner } from '@/relational/core/migrations';
@@ -125,7 +125,7 @@ describe('the ledger on Postgres (PGlite)', () => {
 
     const runner = new RelationalMigrationRunner({ driver, ledger: { schema: 'audit' } });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: runner.run({
         migrations: [MIGRATIONS[0]!, { name: '0002_bad', sql: 'CREATE TABLE notes (id integer)' }],
       }),
@@ -154,7 +154,7 @@ describe('the ledger on Postgres for a role that cannot create schemas (PGlite)'
     const { client } = openPglite();
     await restrictedRole(client);
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: client.exec('CREATE SCHEMA IF NOT EXISTS public'),
       message: /permission denied for database/,
     });
@@ -180,7 +180,7 @@ describe('the ledger on Postgres for a role that cannot create schemas (PGlite)'
 
     const runner = new RelationalMigrationRunner({ driver, ledger: { schema: 'audit' } });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: runner.run({ migrations: MIGRATIONS }),
       message: /permission denied for database/,
     });

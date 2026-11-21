@@ -4,7 +4,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { z } from 'zod';
 import { FetchSchemaError } from '@/modules/network/http-request/fetcher/common/errors';
 import { UrlFetchError } from '@/modules/network/utilities/url-safety/common/errors';
@@ -117,7 +117,7 @@ describe('the status check', () => {
 
   test('any other status throws a UrlFetchError with the status, the url, the headers and the response', async () => {
     const fetcher = buildFetcher();
-    const error = await RejectionHelper.rejectionOf({ task: fetcher.get({ url: `${base}/404` }) });
+    const error = await RejectionUtility.rejectionOf({ task: fetcher.get({ url: `${base}/404` }) });
 
     expect(UrlFetchError.is(error)).toBe(true);
     const typed = error as UrlFetchError;
@@ -174,7 +174,7 @@ describe('the schema', () => {
   });
 
   test('a mismatch is a FetchSchemaError (502) naming paths and rules, never the body', async () => {
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: buildFetcher().get({ url: `${base}/wrong`, schema: User }),
     });
 
@@ -189,10 +189,10 @@ describe('the schema', () => {
 
   test('a body that is not JSON, and an empty one, are mismatches too', async () => {
     const fetcher = buildFetcher();
-    const notJson = await RejectionHelper.rejectionOf({
+    const notJson = await RejectionUtility.rejectionOf({
       task: fetcher.get({ url: `${base}/html`, schema: User }),
     });
-    const empty = await RejectionHelper.rejectionOf({
+    const empty = await RejectionUtility.rejectionOf({
       task: fetcher.get({ url: `${base}/empty`, schema: User }),
     });
 
@@ -228,7 +228,7 @@ describe('defaults', () => {
   test('a default timeout applies, and a call timeout replaces it', async () => {
     const fetcher = buildFetcher({ name: 'timeout', defaults: { timeout: 50 } });
 
-    const timedOut = await RejectionHelper.rejectionOf({
+    const timedOut = await RejectionUtility.rejectionOf({
       task: fetcher.get({ url: `${base}/slow` }),
     });
     expect(timedOut).toBeInstanceOf(DOMException);
@@ -251,7 +251,7 @@ describe('defaults', () => {
     expect(body).toBe('yes');
 
     counters.delete('/flaky');
-    const stopped = await RejectionHelper.rejectionOf({
+    const stopped = await RejectionUtility.rejectionOf({
       task: fetcher.get({ url: `${base}/flaky`, retry: { maxAttempts: 1 } }),
     });
     expect(UrlFetchError.is(stopped)).toBe(true);
@@ -260,7 +260,7 @@ describe('defaults', () => {
   test('a default maxBytes applies to the body', async () => {
     const fetcher = buildFetcher({ name: 'cap', defaults: { maxBytes: 100 } });
 
-    const error = await RejectionHelper.rejectionOf({ task: fetcher.get({ url: `${base}/big` }) });
+    const error = await RejectionUtility.rejectionOf({ task: fetcher.get({ url: `${base}/big` }) });
 
     expect((error as Error).message).toContain('Body exceeds the cap');
   });
@@ -342,8 +342,8 @@ describe('hooks', () => {
       },
     });
 
-    await RejectionHelper.rejectionOf({ task: fetcher.get({ url: `${base}/404` }) });
-    await RejectionHelper.rejectionOf({
+    await RejectionUtility.rejectionOf({ task: fetcher.get({ url: `${base}/404` }) });
+    await RejectionUtility.rejectionOf({
       task: fetcher.get({ url: `${base}/wrong`, schema: User }),
     });
 
@@ -362,7 +362,7 @@ describe('hooks', () => {
       },
     });
 
-    const failure = await RejectionHelper.rejectionOf({
+    const failure = await RejectionUtility.rejectionOf({
       task: fetcher.get({
         url: `${base}/503`,
         retry: { maxAttempts: 2, backoff: { initialDelayMs: 1, maxDelayMs: 2 } },
@@ -387,9 +387,9 @@ describe('hooks', () => {
       },
     });
 
-    await RejectionHelper.rejectionOf({ task: fetcher.get({ url: `${base}/slow`, timeout: 20 }) });
-    await RejectionHelper.rejectionOf({ task: fetcher.get({ url: 'http://127.0.0.1:1/' }) });
-    await RejectionHelper.rejectionOf({
+    await RejectionUtility.rejectionOf({ task: fetcher.get({ url: `${base}/slow`, timeout: 20 }) });
+    await RejectionUtility.rejectionOf({ task: fetcher.get({ url: 'http://127.0.0.1:1/' }) });
+    await RejectionUtility.rejectionOf({
       task: fetcher.get({ url: `${base}/wrong`, schema: User }),
     });
 
@@ -412,7 +412,7 @@ describe('hooks', () => {
       },
     });
 
-    const failure = await RejectionHelper.rejectionOf({
+    const failure = await RejectionUtility.rejectionOf({
       task: fetcher.get({ url: `${base}/user` }),
     });
 
@@ -448,17 +448,17 @@ describe('retry', () => {
     const fetcher = buildFetcher();
     const before = hits.length;
 
-    await RejectionHelper.rejectionOf({
+    await RejectionUtility.rejectionOf({
       task: fetcher.get({ url: `${base}/404`, retry: { maxAttempts: 3, backoff: FAST } }),
     });
-    await RejectionHelper.rejectionOf({
+    await RejectionUtility.rejectionOf({
       task: fetcher.get({
         url: `${base}/redirect`,
         maxRedirects: 0,
         retry: { maxAttempts: 3, backoff: FAST },
       }),
     });
-    await RejectionHelper.rejectionOf({
+    await RejectionUtility.rejectionOf({
       task: fetcher.get({
         url: `${base}/wrong`,
         schema: User,
@@ -471,7 +471,7 @@ describe('retry', () => {
 
   test('a timeout and a network error are retried', async () => {
     const attempts: number[] = [];
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: buildFetcher().get({
         url: `${base}/slow`,
         timeout: 20,
@@ -489,7 +489,7 @@ describe('retry', () => {
     expect(attempts).toEqual([1, 2]);
 
     const network: number[] = [];
-    await RejectionHelper.rejectionOf({
+    await RejectionUtility.rejectionOf({
       task: buildFetcher().get({
         url: 'http://127.0.0.1:1/',
         retry: {
@@ -529,7 +529,7 @@ describe('retry', () => {
   test('a Retry-After that does not fit maxTotalMs ends the retries and rethrows the 429', async () => {
     counters.delete('/flaky-429');
 
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: buildFetcher().get({
         url: `${base}/flaky-429`,
         retry: { maxAttempts: 3, maxTotalMs: 200, backoff: FAST },
@@ -543,7 +543,7 @@ describe('retry', () => {
   test("the caller's shouldRetry replaces the default decision", async () => {
     const before = hits.length;
 
-    await RejectionHelper.rejectionOf({
+    await RejectionUtility.rejectionOf({
       task: buildFetcher().get({
         url: `${base}/404`,
         retry: {
@@ -561,7 +561,7 @@ describe('retry', () => {
     counters.delete('/post-flaky');
     const fetcher = buildFetcher();
 
-    const first = await RejectionHelper.rejectionOf({
+    const first = await RejectionUtility.rejectionOf({
       task: fetcher.post({ url: `${base}/post-flaky`, body: { a: 1 } }),
     });
     expect(UrlFetchError.is(first)).toBe(true);
@@ -582,7 +582,7 @@ describe('retry', () => {
     const reason = new Error('user cancelled');
     let attempts = 0;
 
-    const pending = await RejectionHelper.rejectionOf({
+    const pending = await RejectionUtility.rejectionOf({
       task: buildFetcher().get({
         url: `${base}/503`,
         signal: controller.signal,
@@ -604,7 +604,7 @@ describe('retry', () => {
 
 describe('the body cap', () => {
   test('a declared length over maxBytes is refused before the body is read', async () => {
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: buildFetcher().get({ url: `${base}/big`, maxBytes: 100 }),
     });
 
@@ -639,7 +639,7 @@ describe('the body cap', () => {
         url: `http://127.0.0.1:${liar.port}/`,
         maxBytes: 5000,
       });
-      const error = await RejectionHelper.rejectionOf({ task: response.text() });
+      const error = await RejectionUtility.rejectionOf({ task: response.text() });
 
       expect((error as Error).message).toContain('Body exceeds the cap');
     } finally {
@@ -648,7 +648,7 @@ describe('the body cap', () => {
   });
 
   test('with a schema the body is read inside the cap too', async () => {
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: buildFetcher().get({ url: `${base}/user`, schema: User, maxBytes: 5 }),
     });
 
@@ -658,7 +658,7 @@ describe('the body cap', () => {
 
 describe('the deadline and the signal', () => {
   test('the timeout is per attempt and is a TimeoutError', async () => {
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: buildFetcher().get({ url: `${base}/slow`, timeout: 30 }),
     });
 
@@ -668,7 +668,7 @@ describe('the deadline and the signal', () => {
   test("a caller's abort rejects with the caller's own reason, apart from a timeout", async () => {
     const controller = new AbortController();
     const reason = new Error('stop');
-    const pending = RejectionHelper.rejectionOf({
+    const pending = RejectionUtility.rejectionOf({
       task: buildFetcher().get({ url: `${base}/slow`, timeout: 5000, signal: controller.signal }),
     });
 
@@ -683,7 +683,7 @@ describe('the deadline and the signal', () => {
     controller.abort(new Error('before'));
     const before = hits.length;
 
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: buildFetcher().get({ url: `${base}/user`, signal: controller.signal }),
     });
 
@@ -694,7 +694,7 @@ describe('the deadline and the signal', () => {
 
 describe('redirects', () => {
   test('maxRedirects: 0 hands back the 3xx as a UrlFetchError with its location', async () => {
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: buildFetcher().get({ url: `${base}/redirect`, maxRedirects: 0 }),
     });
 
@@ -724,7 +724,7 @@ describe('redirects', () => {
 describe('a call with a guard and no engine', () => {
   test('says what to pass, and sends nothing', async () => {
     const before = hits.length;
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: buildFetcher().get({ url: `${base}/user`, guard: {} }),
     });
 

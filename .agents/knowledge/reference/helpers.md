@@ -10,14 +10,14 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Package: [helpers](/packages/helpers.md).
 
-**48 helper classes across 18 modules, 12 utilities.**
+**45 helper classes across 18 modules, 14 utilities.**
 
 ## Modules
 
 | Module | Classes |
 |---|---|
 | `cron/` | `CronHelper` |
-| `crypto/` | `CredentialHelper` |
+| `crypto/` | _(see source)_ |
 | `env/` | _(see source)_ |
 | `error/` | _(see source)_ |
 | `logger/` | _(see source)_ |
@@ -25,9 +25,9 @@ generated:
 | `pool/` | `AbstractPoolHelper` · `BasePoolHelper` |
 | `queue/` | `BaseKafkaHelper` · `BullMQHelper` · `HfQueueHelper` · `KafkaAdminHelper` · `KafkaConsumerHelper` · `KafkaProducerHelper` · `KafkaSchemaRegistryHelper` · `MQTTClientHelper` · `SequentialQueueHelper` |
 | `redis/` | `AbstractRedisHelper` · `RedisClusterHelper` · `RedisSentinelHelper` · `RedisSingleHelper` |
-| `retry/` | `RetryHelper` |
+| `retry/` | _(see source)_ |
 | `secrets/` | `AbstractSecretsHelper` · `DotenvVaultHelper` · `HashiCorpVaultHelper` · `SystemEnvsHelper` |
-| `slug/` | `SlugHelper` |
+| `slug/` | _(see source)_ |
 | `socket/` | `SocketIOClientHelper` · `SocketIOServerHelper` · `WebSocketDeliveryHelper` · `WebSocketServerHelper` |
 | `storage/` | `BaseStorageHelper` · `BunS3Helper` · `DiskHelper` · `MemoryStorageHelper` |
 | `temporal/` | `AbstractTemporalHelper` · `TemporalHelper` |
@@ -37,4 +37,4 @@ generated:
 
 ## Utilities
 
-`build-info` · `echo` · `error` · `form-body` · `hr-time` · `module` · `parse` · `performance` · `project-root` · `promise` · `record` · `request`
+`build-info` · `echo` · `error` · `form-body` · `hr-time` · `module` · `parse` · `performance` · `project-root` · `promise` · `record` · `request` · `retry` · `slug`

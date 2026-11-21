@@ -3,7 +3,7 @@ import path from 'node:path';
 import { LoggerDebugGate } from '@/modules/logger/common/debug-gate';
 import { ParseUtility } from '@/utilities/parse.utility';
 import { PACKAGE_ROOT } from '../package-root';
-import { SpawnHelper } from '@venizia/dev-configs/testing';
+import { SpawnUtility } from '@venizia/dev-configs/testing';
 
 type TEnvironment = Record<string, string | undefined>;
 
@@ -135,7 +135,7 @@ const runGateProbe = (opts: {
     write('RESULT:' + JSON.stringify(result) + '\\n');
   `;
 
-  const run = SpawnHelper.spawnSyncBounded({
+  const run = SpawnUtility.spawnSyncBounded({
     cmd: [process.execPath, '-e', script],
     cwd: PACKAGE_ROOT,
     stdout: 'pipe',

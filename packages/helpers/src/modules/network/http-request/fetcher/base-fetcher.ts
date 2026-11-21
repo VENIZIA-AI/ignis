@@ -10,7 +10,7 @@ import {
   UrlSafetyErrors,
 } from '@/modules/network/utilities/url-safety/common/errors';
 import type { IUrlSafetyPolicy } from '@/modules/network/utilities/url-safety/common/types';
-import { RetryHelper } from '@/modules/retry/helper';
+import { RetryUtility } from '@/utilities/retry.utility';
 import type { z } from 'zod';
 import { type TFetcherVariant } from '../common';
 import { BodyLimit } from './common/body-limit';
@@ -710,7 +710,7 @@ export abstract class AbstractNetworkFetchableHelper<
 
       const { maxAttempts, maxTotalMs, backoff, shouldRetry, onRetry } = call.retry;
 
-      const retried = await RetryHelper.executeWithRetry({
+      const retried = await RetryUtility.executeWithRetry({
         operation: `${this.name}.${call.method}`,
         signal: call.signal,
         maxAttempts,

@@ -175,7 +175,7 @@ when the server fails to, and that error still rejects `stop()`.
 same one. It closes the datasources the boot configured (`registeredBindings['datasources']`), logs
 each result and never lets one failure stop the rest. A datasource configured by hand in
 `postConfigure()` is not in that set. Each `close()` races `configs.dataSourceCloseTimeoutMs`
-(default 10 000 ms, `0` waits without limit) through `RetryHelper.runWithTimeout`, then logs
+(default 10 000 ms, `0` waits without limit) through `RetryUtility.runWithTimeout`, then logs
 `Close timed out` and moves on - pg-pool's `end()` never settles while a client stays checked out.
 
 `RestApplication`'s constructor refuses a config carrying `strictPath`: the index signature on

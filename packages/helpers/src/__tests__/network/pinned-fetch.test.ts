@@ -4,7 +4,7 @@
  */
 
 import { afterAll, afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 
 const lookupMock = mock(async (_hostname: string, _options?: unknown): Promise<unknown[]> => []);
 
@@ -741,7 +741,7 @@ describe('the guard inside the pipeline: retries, defaults and hooks', () => {
     const calls = stubFetch([503, 200]);
 
     const fetcher = new NativeFetcher({ name: 'rebind', guardEngine: UrlGuard });
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: fetcher.get({
         url: 'https://hook.example.test/in',
         guard: policy,
@@ -763,7 +763,7 @@ describe('the guard inside the pipeline: retries, defaults and hooks', () => {
       defaults: { guard: policy },
     });
 
-    const refused = await RejectionHelper.rejectionOf({
+    const refused = await RejectionUtility.rejectionOf({
       task: fetcher.get({ url: 'https://hook.example.test/in', guard: undefined }),
     });
     expect(UrlPolicy.isRefusedError({ error: refused })).toBe(true);

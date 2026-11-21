@@ -1,7 +1,7 @@
 /** A refused status keeps its body readable (up to 64 KiB), a fetcher can be given the sender, and an async `shouldRetry` decides a retry. */
 
 import { afterAll, describe, expect, test } from 'bun:test';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { HTTP } from '@/common/constants/http';
 import { NativeFetcher } from '@/modules/network/http-request/fetcher/native-fetcher';
 import { UrlFetchError } from '@/modules/network/utilities/url-safety/common/errors';
@@ -37,7 +37,7 @@ afterAll(async () => {
 });
 
 const failure = async (task: Promise<unknown>): Promise<UrlFetchError<Response>> => {
-  const error = await RejectionHelper.rejectionOf({ task });
+  const error = await RejectionUtility.rejectionOf({ task });
 
   if (!(error instanceof UrlFetchError)) {
     throw new Error('expected a UrlFetchError');

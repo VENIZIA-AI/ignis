@@ -21,7 +21,7 @@ import { HELPERS_MAPPINGS } from '../cli/codemod/namespace-functions/mappings/he
 import { INVERSION_MAPPINGS } from '../cli/codemod/namespace-functions/mappings/inversion';
 import { KERNEL_MAPPINGS } from '../cli/codemod/namespace-functions/mappings/kernel';
 import { REPO_TMP_DIRECTORY, RepoTmp } from '../testing/repo-tmp';
-import { SpawnHelper } from '../testing/spawn.helper';
+import { SpawnUtility } from '../testing/spawn.utility';
 
 /**
  * The example entry, a fixture: `float(input, digit = 2)` of `@venizia/ignis-helpers` as
@@ -727,7 +727,7 @@ describe('devz codemod namespace-functions - the CLI end to end', () => {
   });
 
   const devz = (args: string[]) => {
-    const result = SpawnHelper.spawnSyncBounded({ cmd: ['bun', CLI, ...args], cwd: root });
+    const result = SpawnUtility.spawnSyncBounded({ cmd: ['bun', CLI, ...args], cwd: root });
 
     return {
       exitCode: result.exitCode,

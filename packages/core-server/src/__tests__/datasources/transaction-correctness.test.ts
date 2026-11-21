@@ -8,7 +8,7 @@ import type { IRelationalDriver } from '@venizia/ignis-connectors/relational';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { FakePool } from './fake-pg-client';
 import { runTransactionContract } from './transaction-contract';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { wrongShape } from '../helpers/json-shape';
 
@@ -407,7 +407,7 @@ describe('beginTransaction - driver wiring', () => {
     const dataSource = new UndecoratedDataSource({ name: 'undecorated', config: {} });
     dataSource.configure();
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: dataSource.beginTransaction(),
       message: /must name a driver CLASS/,
     });
@@ -430,7 +430,7 @@ describe('beginTransaction - driver wiring', () => {
     const dataSource = new StringDriverDataSource({ name: 'string-driver', config: {} });
     dataSource.configure();
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: dataSource.beginTransaction(),
       message: /must name a driver CLASS/,
     });

@@ -1,4 +1,4 @@
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import type { IHttpRequestContext } from '@/http/common/types';
 import { HttpHeaders } from '@venizia/ignis-helpers/core';
 import type { THttpHeaders } from '@venizia/ignis-helpers/core';
@@ -88,7 +88,7 @@ describe('the 401 retry re-resolves the token and rebuilds every header', () => 
     const attempts = stubFetch([{ status: 401 }]);
     const dataSource = new HttpDataSource({ baseUrl: 'https://api.example.com' });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: dataSource.read({ paths: ['tickets'] }),
       message: /401/,
     });
@@ -141,7 +141,7 @@ describe('the recovery hook decides, not the transport', () => {
       },
     });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: dataSource.read({ paths: ['tickets'] }),
       message: /401/,
     });
@@ -158,7 +158,7 @@ describe('the recovery hook decides, not the transport', () => {
       onUnauthorized: () => true,
     });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: dataSource.read({ paths: ['tickets'] }),
       message: /401/,
     });
@@ -351,7 +351,7 @@ describe('headersResolver runs on every send', () => {
       headersResolver: () => ({ 'X-Request-Count': 'true' }),
     });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: dataSource.request({ paths: ['tickets'] }),
       message: /x-request-count is owned by HttpDataSource/,
     });
@@ -523,7 +523,7 @@ describe('a throwing hook fails the request with its own error', () => {
         [hook]: resolver,
       });
 
-      await RejectionHelper.expectRejection({
+      await RejectionUtility.expectRejection({
         task: dataSource.read({ paths: ['tickets'] }),
         message: 'session headers unavailable',
       });
@@ -580,7 +580,7 @@ describe('a failed read names the path, never the host or the query', () => {
       query: { filter: { where: { id: { inq: ids } } } },
     });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task,
       message: /431 \| \/tickets \(\d+ chars\) \| The URL is too long for a GET/,
     });
@@ -600,7 +600,7 @@ describe('a failed read names the path, never the host or the query', () => {
     stubFetch([{ status: 500 }]);
     const dataSource = new HttpDataSource({ baseUrl: 'https://internal.example.com/v1' });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: dataSource.read({
         paths: ['tickets'],
         query: { filter: { where: { email: 'a@b.c' } } },

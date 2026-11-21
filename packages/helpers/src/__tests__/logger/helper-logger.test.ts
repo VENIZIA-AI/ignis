@@ -7,7 +7,7 @@ import type { TLogLevel } from '@/modules/logger/common';
 import type { ILogger, ILoggerProvider } from '@/modules/logger/common/types';
 import { LoggerFactory } from '@/modules/logger/factory';
 import { PACKAGE_ROOT } from '../package-root';
-import { SpawnHelper } from '@venizia/dev-configs/testing';
+import { SpawnUtility } from '@venizia/dev-configs/testing';
 
 class ProbeHelper extends BaseHelper {
   constructor() {
@@ -188,7 +188,7 @@ describe('BaseHelper.logger with no provider chosen in the whole import graph', 
       }
       write(JSON.stringify({ warnings: warnings.length, lines }));
     `;
-    const run = SpawnHelper.spawnSyncBounded({
+    const run = SpawnUtility.spawnSyncBounded({
       cmd: [process.execPath, '-e', script],
       stderr: 'pipe',
     });

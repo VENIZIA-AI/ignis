@@ -296,6 +296,7 @@ describe('devz codemod --list and --reverse', () => {
         'env-get',
         'any-aliases',
         'binding-keys',
+        'class-renames',
       ].join('\n'),
     ]);
     expect(errors).toEqual([]);

@@ -11,7 +11,7 @@ import {
 import { ServiceAssertionSignerService } from '@/components/auth/authenticate/services/service/signer.service';
 import { ServiceAssertionVerifierService } from '@/components/auth/authenticate/services/service/verifier.service';
 import { ServiceAuthenticationStrategy } from '@/components/auth/authenticate/strategies/service.strategy';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 
 /**
  * The seam an application owns: `resolvePrincipal` returning `null`, a principal with no `userId`,
@@ -131,7 +131,7 @@ describe('the strategy validates what the application hands back', () => {
       buildContext({ url: 'http://pricing/v1/api/x', method: 'GET', token }),
     );
 
-    await RejectionHelper.expectRejection({ task, message: /no principal/ });
+    await RejectionUtility.expectRejection({ task, message: /no principal/ });
     await server.stop(true);
   });
 
@@ -150,7 +150,7 @@ describe('the strategy validates what the application hands back', () => {
       buildContext({ url: 'http://pricing/v1/api/x', method: 'GET', token }),
     );
 
-    await RejectionHelper.expectRejection({ task, message: /no principal/ });
+    await RejectionUtility.expectRejection({ task, message: /no principal/ });
     await server.stop(true);
   });
 
@@ -163,7 +163,7 @@ describe('the strategy validates what the application hands back', () => {
       buildContext({ url: 'http://pricing/v1/api/x', method: 'GET' }),
     );
 
-    await RejectionHelper.expectRejection({ task, message: /Missing service assertion/ });
+    await RejectionUtility.expectRejection({ task, message: /Missing service assertion/ });
     await server.stop(true);
   });
 });

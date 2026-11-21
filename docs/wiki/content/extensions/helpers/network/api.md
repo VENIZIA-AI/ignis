@@ -291,7 +291,7 @@ An empty list is 2xx only. An accepted status is an answer, so it is never retri
 
 #### Retry
 
-`retry` is `IHttpRetryOptions`: `maxAttempts` (default 3), `maxTotalMs` (the budget across every attempt and wait), `backoff`, `shouldRetry`, `onRetry`. It runs on `RetryHelper.executeWithRetry`.
+`retry` is `IHttpRetryOptions`: `maxAttempts` (default 3), `maxTotalMs` (the budget across every attempt and wait), `backoff`, `shouldRetry`, `onRetry`. It runs on `RetryUtility.executeWithRetry`.
 
 - Retried by default: a network error, a timeout, a 5xx and a 429.
 - Never retried by default: any other 4xx, a 3xx, a guard refusal, a schema mismatch, a caller abort.

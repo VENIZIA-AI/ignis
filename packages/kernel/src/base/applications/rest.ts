@@ -8,7 +8,7 @@ import {
   PerformanceUtility,
   getError,
   RequestIdGenerator,
-  RetryHelper,
+  RetryUtility,
 } from '@venizia/ignis-helpers/core';
 import type { Env, Hono, MiddlewareHandler, Schema } from 'hono';
 import { showRoutes as showApplicationRoutes } from 'hono/dev';
@@ -903,9 +903,9 @@ export abstract class RestApplication<
         }
 
         const closing = dataSource.close();
-        await RetryHelper.runWithTimeout({ operation: key, timeoutMs, execution: () => closing });
+        await RetryUtility.runWithTimeout({ operation: key, timeoutMs, execution: () => closing });
       } catch (error) {
-        if (RetryHelper.isRetryTimeoutError(error)) {
+        if (RetryUtility.isRetryTimeoutError(error)) {
           logger.error('Close timed out | key: %s | timeoutMs: %d', key, timeoutMs);
           continue;
         }

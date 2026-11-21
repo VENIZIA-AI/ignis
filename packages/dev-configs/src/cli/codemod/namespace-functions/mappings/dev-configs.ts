@@ -137,14 +137,14 @@ export const DEV_CONFIGS_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
   {
     modules: TESTING,
     oldName: 'rejectionOf',
-    className: 'RejectionHelper',
+    className: 'RejectionUtility',
     method: 'rejectionOf',
     params: [{ key: 'task' }],
   },
   {
     modules: TESTING,
     oldName: 'expectRejection',
-    className: 'RejectionHelper',
+    className: 'RejectionUtility',
     method: 'expectRejection',
     params: [],
     keepsOptions: true,
@@ -167,7 +167,7 @@ export const DEV_CONFIGS_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
   {
     modules: TESTING,
     oldName: 'spawnSyncBounded',
-    className: 'SpawnHelper',
+    className: 'SpawnUtility',
     method: 'spawnSyncBounded',
     params: [],
     keepsOptions: true,

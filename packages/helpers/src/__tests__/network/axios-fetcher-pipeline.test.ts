@@ -1,7 +1,7 @@
 /** The shared pipeline with axios as the client: the same status check, schema, defaults, hooks and retries. */
 
 import { afterAll, describe, expect, test } from 'bun:test';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { z } from 'zod';
 import {
   AxiosFetcher,
@@ -70,7 +70,7 @@ describe('AxiosFetcher - the pipeline', () => {
 
   test('any other status throws a UrlFetchError<AxiosResponse>; acceptStatus is the opt-out', async () => {
     const fetcher = new AxiosFetcher({ name: 'a' });
-    const error = await RejectionHelper.rejectionOf({ task: fetcher.get({ url: `${base}/404` }) });
+    const error = await RejectionUtility.rejectionOf({ task: fetcher.get({ url: `${base}/404` }) });
 
     expect(UrlFetchError.is(error)).toBe(true);
     expect((error as UrlFetchError<unknown>).status).toBe(404);
@@ -90,7 +90,7 @@ describe('AxiosFetcher - the pipeline', () => {
     expect(parsed.data.name).toBe('Ada');
     expect(parsed.response.status).toBe(200);
 
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: fetcher.get({ url: `${base}/wrong`, schema: User }),
     });
 
@@ -112,7 +112,9 @@ describe('AxiosFetcher - the pipeline', () => {
       defaults: { headers: { 'x-app': 'one', 'x-gone': 'here' }, timeout: 50 },
     });
 
-    const error = await RejectionHelper.rejectionOf({ task: fetcher.get({ url: `${base}/slow` }) });
+    const error = await RejectionUtility.rejectionOf({
+      task: fetcher.get({ url: `${base}/slow` }),
+    });
     expect((error as DOMException).name).toBe('TimeoutError');
 
     await fetcher.get({ url: `${base}/user`, headers: { 'x-gone': null, 'x-call': '2' } });
@@ -158,13 +160,13 @@ describe('AxiosFetcher - the pipeline', () => {
     ]);
     expect(hits[hits.length - 1].headers.get('x-attempt')).toBe('3');
 
-    await RejectionHelper.rejectionOf({ task: fetcher.get({ url: `${base}/404` }) });
+    await RejectionUtility.rejectionOf({ task: fetcher.get({ url: `${base}/404` }) });
     expect(events.filter((event) => event === 'error')).toHaveLength(1);
   });
 
   test('maxRedirects: 0 hands back the 3xx as a UrlFetchError, a positive one walks by hand', async () => {
     const fetcher = new AxiosFetcher({ name: 'a' });
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: fetcher.get({ url: `${base}/redirect`, maxRedirects: 0 }),
     });
 
@@ -177,7 +179,7 @@ describe('AxiosFetcher - the pipeline', () => {
 
   test('a guarded call without the engine says what to pass', async () => {
     const fetcher = new AxiosFetcher({ name: 'a' });
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: fetcher.get({ url: `${base}/user`, guard: {} }),
     });
 
@@ -191,7 +193,7 @@ describe('AxiosFetcher - the pipeline', () => {
       }),
     };
     const fetcher = new AxiosFetcher({ name: 'a', guardEngine: engine });
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: fetcher.get({ url: `${base}/user`, guard: {}, httpAgent: {} }),
     });
 
@@ -210,7 +212,7 @@ describe('AxiosNetworkRequest', () => {
     await fetcher.get({ url: request.getRequestUrl({ paths: ['user'] }) });
     expect(hits[hits.length - 1].headers.get('content-type')).toContain('application/json');
 
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: fetcher.get({ url: request.getRequestUrl({ paths: ['404'] }) }),
     });
     expect(UrlFetchError.is(error)).toBe(true);

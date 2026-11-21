@@ -1,5 +1,5 @@
 import { HttpResponseReader } from '@/modules/network/http-request/fetcher/common/response-reader';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { describe, expect, test } from 'bun:test';
 
 describe('HttpResponseReader.readFile', () => {
@@ -34,7 +34,7 @@ describe('HttpResponseReader.readFile', () => {
       headers: { 'content-type': 'application/json' },
     });
 
-    const failure = await RejectionHelper.rejectionOf({
+    const failure = await RejectionUtility.rejectionOf({
       task: HttpResponseReader.readFile({ response }),
     });
 

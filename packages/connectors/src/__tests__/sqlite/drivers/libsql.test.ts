@@ -3,7 +3,7 @@ import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { sql } from 'drizzle-orm';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -219,7 +219,7 @@ describe('LibSqlDriver - remote client', () => {
     const remoteClient = createClient({ url: 'http://127.0.0.1:1' });
     const driver = new LibSqlDriver({ client: remoteClient });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: driver.acquire({ schema: {} }),
       message: /Explicit transactions over a 'http' libsql client/,
     });

@@ -1,4 +1,4 @@
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { describe, expect, test } from 'bun:test';
 import { decodeJwt, SignJWT } from 'jose';
 import { JWSTokenService } from '@/components/auth/authenticate/services/bearer/jws.service';
@@ -119,7 +119,7 @@ describe('a token signed with the same key for another purpose does not authenti
   test('a token with no iss and no aud is refused (the reset or invite token)', async () => {
     const token = await signedElsewhere({});
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildService().verify({ type: 'Bearer', token }),
       message: REFUSED,
     });
@@ -128,7 +128,7 @@ describe('a token signed with the same key for another purpose does not authenti
   test('a token with the right audience and no issuer is refused', async () => {
     const token = await signedElsewhere({ audience: 'inventory' });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildService().verify({ type: 'Bearer', token }),
       message: REFUSED,
     });
@@ -137,7 +137,7 @@ describe('a token signed with the same key for another purpose does not authenti
   test('a token with the right issuer and no audience is refused', async () => {
     const token = await signedElsewhere({ issuer: 'identity' });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildService().verify({ type: 'Bearer', token }),
       message: REFUSED,
     });
@@ -146,7 +146,7 @@ describe('a token signed with the same key for another purpose does not authenti
   test('a token with another issuer is refused', async () => {
     const token = await signedElsewhere({ issuer: 'somebody-else', audience: 'inventory' });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildService().verify({ type: 'Bearer', token }),
       message: REFUSED,
     });
@@ -155,7 +155,7 @@ describe('a token signed with the same key for another purpose does not authenti
   test('a token with another audience is refused', async () => {
     const token = await signedElsewhere({ issuer: 'identity', audience: 'commerce' });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildService().verify({ type: 'Bearer', token }),
       message: REFUSED,
     });
@@ -201,7 +201,7 @@ describe('a token signed with the same key for another purpose does not authenti
     const commerce = buildService({ claims: { issuer: 'identity', audience: 'commerce' } });
     const token = await commerce.generate({ payload: basePayload() });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildService().verify({ type: 'Bearer', token }),
       message: REFUSED,
     });
@@ -216,7 +216,7 @@ describe('the accepted algorithm is pinned', () => {
       alg: 'HS512',
     });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildService().verify({ type: 'Bearer', token }),
       message: REFUSED,
     });
@@ -229,7 +229,7 @@ describe('the accepted algorithm is pinned', () => {
 
     const result = await service.verify({ type: 'Bearer', token: own });
     expect(result.userId).toBe(1);
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: service.verify({ type: 'Bearer', token: other }),
       message: REFUSED,
     });
@@ -377,7 +377,7 @@ describe('the other verify knobs reach jose', () => {
       .setExpirationTime(now + 3600);
     const token = await jwt.sign(KEY);
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildService({ verify: { maxTokenAge: '60 seconds' } }).verify({
         type: 'Bearer',
         token,
@@ -397,7 +397,7 @@ describe('the other verify knobs reach jose', () => {
   test('an algorithms allowlist refuses an alg it does not list', async () => {
     const token = await buildService().generate({ payload: basePayload() });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildService({ verify: { algorithms: ['RS256'] } }).verify({ type: 'Bearer', token }),
       message: REFUSED,
     });
@@ -406,7 +406,7 @@ describe('the other verify knobs reach jose', () => {
   test('requiredClaims refuses a token missing one', async () => {
     const token = await buildService().generate({ payload: basePayload() });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildService({ verify: { requiredClaims: ['sub'] } }).verify({ type: 'Bearer', token }),
       message: REFUSED,
     });
@@ -437,7 +437,7 @@ describe('hardening: tokens and options that must not pass', () => {
   };
 
   test('a token with alg none is refused', async () => {
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildService().verify({ type: 'Bearer', token: unsigned() }),
       message: REFUSED,
     });
@@ -476,7 +476,7 @@ describe('hardening: tokens and options that must not pass', () => {
     const result2 = await service.verify({ type: 'Bearer', token: own });
     expect(result2.userId).toBe(1);
     const result3 = await signedElsewhere({});
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: service.verify({ type: 'Bearer', token: result3 }),
       message: REFUSED,
     });
@@ -497,7 +497,7 @@ describe('hardening: tokens and options that must not pass', () => {
       async (typ) => {
         const token = await withTyp(typ);
 
-        await RejectionHelper.expectRejection({
+        await RejectionUtility.expectRejection({
           task: buildService().verify({ type: 'Bearer', token }),
           message: REFUSED,
         });
@@ -564,11 +564,11 @@ describe('claims without an audience: nothing is stamped and no aud is checked',
     const noIssuer = await signedElsewhere({});
     const other = await signedElsewhere({ issuer: 'somebody-else' });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: service.verify({ type: 'Bearer', token: noIssuer }),
       message: REFUSED,
     });
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: service.verify({ type: 'Bearer', token: other }),
       message: REFUSED,
     });
@@ -593,7 +593,7 @@ describe('claims without an audience: nothing is stamped and no aud is checked',
 
     const result6 = await service.verify({ type: 'Bearer', token });
     expect(result6.userId).toBe(1);
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: service.verify({ type: 'Bearer', token: bare }),
       message: REFUSED,
     });
@@ -607,11 +607,11 @@ describe('claims with an audience: still refused when wrong or missing', () => {
     const wrong = await signedElsewhere({ issuer: 'identity', audience: 'commerce' });
     const right = await signedElsewhere({ issuer: 'identity', audience: 'inventory' });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: service.verify({ type: 'Bearer', token: none }),
       message: REFUSED,
     });
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: service.verify({ type: 'Bearer', token: wrong }),
       message: REFUSED,
     });

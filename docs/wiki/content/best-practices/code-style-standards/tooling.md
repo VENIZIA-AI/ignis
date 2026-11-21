@@ -347,6 +347,13 @@ Every codemod below is a dry run unless you pass `--write`, and `--check` exits 
 - `--write` refuses a file with local changes. `--check` exits 1 while a file would change.
 - `--reverse` moves the specifiers back to `@venizia/ignis/<sub-path>` for a downgrade.
 
+**`devz codemod class-renames [paths...] [--write [--all] \| --check] [--reverse]`**
+
+- Renames the classes IGNIS renamed: `RetryHelper`, `SlugHelper` and `CredentialHelper` (`@venizia/ignis-helpers`) to `RetryUtility`, `SlugUtility` and `CredentialUtility`; `RejectionHelper` and `SpawnHelper` (`@venizia/dev-configs/testing`) to `RejectionUtility` and `SpawnUtility`.
+- It renames the name in the import (or re-export) from the owning package and every use of it in the file. An aliased import (`Old as Alias`) keeps its alias; a namespace import's member (`ns.Old`) is renamed too. It does not read `import('pkg').Old` or a `.js` file.
+- `--write` refuses a file with local changes and needs a path or `--all`. `--check` exits 1 while a file would change. `--reverse` renames back for a downgrade.
+- One table, `ClassRenameTable` in `cli/codemod/class-renames.ts`: a later rename adds a row.
+
 **`devz codemod env-get [paths...] [--write [--all] \| --check]`**
 
 - Rewrites the type arguments of `applicationEnvironment.get()` and `AppEnvs.get()` for the release where `get()` reads strings: `get<string>(key)` becomes `get(key)`, and `get<R, B>(key, { transform })` becomes `get<R>(key, { transform })`.

@@ -30,7 +30,7 @@ export const isOperatorObject = (value: unknown): value is Record<string, unknow
   return keys.every((key) => QueryOperators.isValid(key));
 };
 
-export class SearchDialectHelper {
+export class SearchDialectUtility {
   /** skip/offset -> 1-based page number. Requires a page size, and the skip must land on a page boundary. */
   static toSearchPage(opts: { skip: number; limit?: number }): number {
     const { skip, limit } = opts;
@@ -73,7 +73,7 @@ export class SearchDialectHelper {
 
   /** `fields` -> comma-joined include list. */
   static toFieldsCsv(opts: { fields: TFields }): string {
-    return SearchDialectHelper.toFieldNames(opts).join(',');
+    return SearchDialectUtility.toFieldNames(opts).join(',');
   }
 
   /**
@@ -146,8 +146,8 @@ export class SearchDialectHelper {
   }): TCompiledWhere {
     const { clauses, isDisjunction, joiner } = opts;
     const combine = isDisjunction
-      ? SearchDialectHelper.orCompiled
-      : SearchDialectHelper.andCompiled;
+      ? SearchDialectUtility.orCompiled
+      : SearchDialectUtility.andCompiled;
     const identity: TCompiledWhere = isDisjunction
       ? { outcome: SearchFilterOutcomes.MATCH_NONE }
       : { outcome: SearchFilterOutcomes.MATCH_ALL };
@@ -208,7 +208,7 @@ export class SearchDialectHelper {
       return;
     }
 
-    throw SearchDialectHelper.fieldNotFoundError({ field, engine, method });
+    throw SearchDialectUtility.fieldNotFoundError({ field, engine, method });
   }
 
   /** The error for a field the collection declares no such field of. One builder, so every refusal of an unknown field reads alike. */

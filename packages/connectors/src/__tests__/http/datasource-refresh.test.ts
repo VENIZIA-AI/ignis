@@ -1,4 +1,4 @@
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import type { IHttpRequestContext } from '@/http/common/types';
 import { HttpDataSource } from '@/http/datasource';
 import { afterEach, describe, expect, test } from 'bun:test';
@@ -47,7 +47,7 @@ describe('#1256: the refresh hook hears of the second 401', () => {
       },
     });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: dataSource.read({ paths: ['tickets'] }),
       message: /401/,
     });
@@ -69,7 +69,7 @@ describe('#1256: the refresh hook hears of the second 401', () => {
       },
     });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: dataSource.read({ paths: ['tickets'] }),
       message: /401/,
     });
@@ -108,7 +108,7 @@ describe('the 401 that stands is read like any other error', () => {
       onUnauthorized: () => true,
     });
 
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: dataSource.read({ paths: ['tickets'] }),
     });
 
@@ -119,7 +119,7 @@ describe('the 401 that stands is read like any other error', () => {
   test('a 401 with no hook is a response the data source reads, one send', async () => {
     const sent = stub([401]);
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: new HttpDataSource({ baseUrl: 'https://api.example.com' }).read({ paths: ['t'] }),
       message: /401/,
     });
@@ -163,7 +163,7 @@ describe('abort during the refresh', () => {
       },
     });
 
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: dataSource.read({ paths: ['tickets'], signal: controller.signal }),
     });
 
@@ -187,7 +187,7 @@ describe("an abort during the refresh rejects with the caller's reason, whatever
       },
     });
 
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: dataSource.read({ paths: ['tickets'], signal: controller.signal }),
     });
 
@@ -214,7 +214,7 @@ describe("an abort during the refresh rejects with the caller's reason, whatever
       },
     });
 
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: dataSource.read({ paths: ['tickets'], signal: controller.signal }),
     });
 

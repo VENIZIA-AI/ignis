@@ -24,7 +24,7 @@ import {
   UserStatuses,
   UserTypes,
 } from '@venizia/ignis';
-import { getError, HTTP, CredentialHelper } from '@venizia/ignis-helpers';
+import { getError, HTTP, CredentialUtility } from '@venizia/ignis-helpers';
 import { and, eq } from 'drizzle-orm';
 import { type Env } from 'hono';
 
@@ -73,7 +73,7 @@ export class AuthenticationService
       });
     }
 
-    const password = await CredentialHelper.hash({ password: opts.credential });
+    const password = await CredentialUtility.hash({ password: opts.credential });
     await this.userRepository.create({
       data: {
         username: opts.username,
@@ -107,7 +107,7 @@ export class AuthenticationService
     let isValid = false;
 
     if (user?.password) {
-      const isCredentialMatched = await CredentialHelper.verify({
+      const isCredentialMatched = await CredentialUtility.verify({
         password: opts.credential.value,
         hash: user.password,
       });
@@ -168,7 +168,7 @@ export class AuthenticationService
       throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'User not found' });
     }
 
-    const isOldCredentialValid = await CredentialHelper.verify({
+    const isOldCredentialValid = await CredentialUtility.verify({
       password: opts.oldCredential,
       hash: user.password,
     });
@@ -180,7 +180,7 @@ export class AuthenticationService
       });
     }
 
-    const password = await CredentialHelper.hash({ password: opts.newCredential });
+    const password = await CredentialUtility.hash({ password: opts.newCredential });
     await this.userRepository.updateById({ id: opts.userId, data: { password } });
 
     return { message: 'Password changed successfully' };

@@ -9,22 +9,22 @@ description: "Every export of @venizia/dev-configs/testing, from the built decla
 
 5 exports, 5 with TSDoc.
 
-## `RejectionHelper`
+## `RejectionUtility`
 
 *class*
 
 Test helpers for asserting that a promise rejects, without the typing and un-awaited-assertion pitfalls of `expect(task).rejects`.
 
 ```ts
-export declare class RejectionHelper {
+export declare class RejectionUtility {
     /**
      * Awaits a task that must reject and returns what it rejected with; throws when the task resolves.
      *
      * bun types the async matchers (`expect(task).rejects` / `.resolves`) as `void`, so
      * `await expect(task).rejects.toThrow()` is refused by `await-thenable` - and left un-awaited the
      * assertion never runs. Awaiting the task itself needs no matcher and no cast:
-     * `RejectionHelper.expectRejection({ task, message })` or
-     * `expect(await RejectionHelper.rejectionOf({ task })).toBeInstanceOf(Error)`,
+     * `RejectionUtility.expectRejection({ task, message })` or
+     * `expect(await RejectionUtility.rejectionOf({ task })).toBeInstanceOf(Error)`,
      * and for a resolution `expect(await task).toMatchObject(...)`.
      */
     static rejectionOf(opts: {
@@ -43,7 +43,7 @@ export declare class RejectionHelper {
 }
 ```
 
-Source: `packages/dev-configs/src/testing/rejection.helper.ts`
+Source: `packages/dev-configs/src/testing/rejection.utility.ts`
 
 ## `REPO_TMP_DIRECTORY`
 
@@ -97,16 +97,16 @@ Long enough for a cold `bun build` under a loaded parallel run; it bounds a stal
 export declare const SPAWN_TIMEOUT_MS = 120000;
 ```
 
-Source: `packages/dev-configs/src/testing/spawn.helper.ts`
+Source: `packages/dev-configs/src/testing/spawn.utility.ts`
 
-## `SpawnHelper`
+## `SpawnUtility`
 
 *class*
 
 Bounded wrappers around `Bun.spawn*` for tests, so a stuck child cannot stall a suite.
 
 ```ts
-export declare class SpawnHelper {
+export declare class SpawnUtility {
     /**
      * `Bun.spawnSync`, bounded. A sync spawn blocks the worker thread, so bun's own test timeout cannot
      * fire while it waits: the `timeout` option is the only bound. Its default signal, SIGTERM, can be
@@ -120,4 +120,4 @@ export declare class SpawnHelper {
 }
 ```
 
-Source: `packages/dev-configs/src/testing/spawn.helper.ts`
+Source: `packages/dev-configs/src/testing/spawn.utility.ts`

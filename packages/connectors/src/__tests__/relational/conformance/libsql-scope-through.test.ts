@@ -8,7 +8,7 @@ import {
   ScopeThrough,
   type TAnyDataSourceSchema,
 } from '@venizia/ignis-kernel';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
@@ -325,7 +325,7 @@ describe('upsert on a through model', () => {
 
   const expectDenied = async (task: () => Promise<unknown>) => {
     const before = await variantRows();
-    const error = await RejectionHelper.rejectionOf({ task: task() });
+    const error = await RejectionUtility.rejectionOf({ task: task() });
     const after = await variantRows();
 
     expect(isApplicationError(error) ? error.statusCode : undefined).toBe(403);

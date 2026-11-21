@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { PACKAGE_ROOT } from '../package-root';
-import { SpawnHelper } from '@venizia/dev-configs/testing';
+import { SpawnUtility } from '@venizia/dev-configs/testing';
 
 /**
  * Two bundler behaviors this package must survive, both proved with the `bun build` CLI in a
@@ -28,7 +28,7 @@ const runBundled = async (opts: {
   await writeFile(entryPath, opts.entrySource);
 
   // cwd is the package: the barrel's `@/` imports resolve through this package's tsconfig.
-  const build = SpawnHelper.spawnSyncBounded({
+  const build = SpawnUtility.spawnSyncBounded({
     cmd: ['bun', 'build', '--target=bun', entryPath, '--outfile', outfile],
     cwd: PACKAGE_ROOT,
     stdout: 'pipe',
@@ -42,7 +42,7 @@ const runBundled = async (opts: {
   const inherited = Object.fromEntries(
     Object.entries(process.env).filter(([key]) => key !== 'NODE_ENV'),
   );
-  const run = SpawnHelper.spawnSyncBounded({
+  const run = SpawnUtility.spawnSyncBounded({
     cmd: ['bun', outfile],
     cwd: probeDirectory,
     env: { ...inherited, ...opts.env },

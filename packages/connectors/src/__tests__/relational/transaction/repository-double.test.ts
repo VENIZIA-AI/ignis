@@ -2,7 +2,7 @@ import type { ITransaction } from '@venizia/ignis-kernel';
 import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
 import { PostgresTransactionDouble, RepositoryDouble, TransactionStates } from '@/testing';
 import { getError } from '@venizia/ignis-helpers/core';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { describe, expect, mock, test } from 'bun:test';
 
 /**
@@ -111,7 +111,7 @@ describe('RepositoryDouble.withTransactions', () => {
       const original = getError({ message: '[RepositoryDoubleTest] create failed' });
       create.mockRejectedValueOnce(original);
 
-      const result2 = await RejectionHelper.rejectionOf({
+      const result2 = await RejectionUtility.rejectionOf({
         task: createInTransaction({ repository, name: 'a' }),
       });
       expect(result2).toBe(original);
@@ -157,7 +157,7 @@ describe('RepositoryDouble.withTransactions', () => {
 
       await transaction.commit();
       const before = transaction.events;
-      await RejectionHelper.expectRejection({ task: transaction.commit(), message: /.+/ });
+      await RejectionUtility.expectRejection({ task: transaction.commit(), message: /.+/ });
 
       expect(before).toEqual(['commit']);
       expect(transaction.events).toEqual(['commit']);
@@ -167,7 +167,7 @@ describe('RepositoryDouble.withTransactions', () => {
     test('a failed commit is recorded as a commit; the hooks and counters are unchanged', async () => {
       const failing = new PostgresTransactionDouble({ commitError: new Error('boom') });
 
-      await RejectionHelper.expectRejection({ task: failing.commit(), message: 'boom' });
+      await RejectionUtility.expectRejection({ task: failing.commit(), message: 'boom' });
 
       expect(failing.events).toEqual(['commit']);
       expect(failing.commitCount).toBe(1);

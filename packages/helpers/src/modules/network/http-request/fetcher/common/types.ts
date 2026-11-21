@@ -28,7 +28,7 @@ export interface IFetchParsed<D, RS> {
   response: RS;
 }
 
-/** Retry settings of a call; the presence of the object turns retrying on. They are `RetryHelper.executeWithRetry`'s. */
+/** Retry settings of a call; the presence of the object turns retrying on. They are `RetryUtility.executeWithRetry`'s. */
 export interface IHttpRetryOptions {
   /** @default 3 */
   maxAttempts?: number;

@@ -1,15 +1,15 @@
 import { expect } from 'bun:test';
 
 /** Test helpers for asserting that a promise rejects, without the typing and un-awaited-assertion pitfalls of `expect(task).rejects`. */
-export class RejectionHelper {
+export class RejectionUtility {
   /**
    * Awaits a task that must reject and returns what it rejected with; throws when the task resolves.
    *
    * bun types the async matchers (`expect(task).rejects` / `.resolves`) as `void`, so
    * `await expect(task).rejects.toThrow()` is refused by `await-thenable` - and left un-awaited the
    * assertion never runs. Awaiting the task itself needs no matcher and no cast:
-   * `RejectionHelper.expectRejection({ task, message })` or
-   * `expect(await RejectionHelper.rejectionOf({ task })).toBeInstanceOf(Error)`,
+   * `RejectionUtility.expectRejection({ task, message })` or
+   * `expect(await RejectionUtility.rejectionOf({ task })).toBeInstanceOf(Error)`,
    * and for a resolution `expect(await task).toMatchObject(...)`.
    */
   static async rejectionOf(opts: { task: Promise<unknown> }): Promise<unknown> {
@@ -33,7 +33,7 @@ export class RejectionHelper {
     message: string | RegExp;
   }): Promise<void> {
     const { task, message } = opts;
-    const reason = await RejectionHelper.rejectionOf({ task });
+    const reason = await RejectionUtility.rejectionOf({ task });
 
     expect(reason).toBeInstanceOf(Error);
     expect(reason instanceof Error ? reason.message : String(reason)).toMatch(message);

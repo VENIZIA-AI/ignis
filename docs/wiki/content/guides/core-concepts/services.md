@@ -197,7 +197,7 @@ The following is representative of `examples/vert/src/services/authentication.se
 
 ```typescript
 import { BaseService, IAuthService, inject, JWKSIssuerTokenService, service, TContext, BindingKeys } from '@venizia/ignis';
-import { getError, HTTP, CredentialHelper } from '@venizia/ignis-helpers';
+import { getError, HTTP, CredentialUtility } from '@venizia/ignis-helpers';
 import { Env } from 'hono';
 
 @service()
@@ -229,7 +229,7 @@ export class AuthenticationService
       });
     }
 
-    const isValid = await CredentialHelper.verify({
+    const isValid = await CredentialUtility.verify({
       password: opts.credential.value,
       hash: user.password,
     });
@@ -259,7 +259,7 @@ export class AuthenticationService
       });
     }
 
-    const hashedPassword = await CredentialHelper.hash({ password: opts.credential });
+    const hashedPassword = await CredentialUtility.hash({ password: opts.credential });
 
     await this.userRepository.create({ data: { username: opts.username, password: hashedPassword } });
 

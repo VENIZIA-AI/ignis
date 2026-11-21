@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { z } from 'zod';
 import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
@@ -40,7 +40,7 @@ describe('HttpResponseReader.readText', () => {
   });
 
   test('a body over the cap fails, as BodyLimit does', async () => {
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: HttpResponseReader.readText({ response: new Response('x'.repeat(50)), maxBytes: 10 }),
     });
 
@@ -55,10 +55,10 @@ describe('an empty body with a schema is still a FetchSchemaError, capped or not
     const fetcher = new NativeFetcher({ name: 'n' });
 
     try {
-      const uncapped = await RejectionHelper.rejectionOf({
+      const uncapped = await RejectionUtility.rejectionOf({
         task: fetcher.get({ url, schema: z.object({}) }),
       });
-      const capped = await RejectionHelper.rejectionOf({
+      const capped = await RejectionUtility.rejectionOf({
         task: fetcher.get({ url, schema: z.object({}), maxBytes: 1000 }),
       });
 
@@ -109,8 +109,8 @@ describe('one refusal for a body over the cap', () => {
       },
     });
     const streamed = new Response(BodyLimit.capStream({ source, maxBytes: 10 }));
-    const streamError = await RejectionHelper.rejectionOf({ task: streamed.text() });
-    const readError = await RejectionHelper.rejectionOf({
+    const streamError = await RejectionUtility.rejectionOf({ task: streamed.text() });
+    const readError = await RejectionUtility.rejectionOf({
       task: BodyLimit.readBytes({ response: new Response('x'.repeat(50)), maxBytes: 10 }),
     });
 

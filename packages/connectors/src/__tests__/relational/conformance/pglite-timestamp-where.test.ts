@@ -1,6 +1,6 @@
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { PGlite } from '@electric-sql/pglite';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   BaseAppErrorMiddleware,
@@ -117,7 +117,10 @@ describe('Postgres - a date column', () => {
   });
 
   test('refuses a bad value with a 400 that names the column', async () => {
-    await RejectionHelper.expectRejection({ task: find({ onDay: 'someday' }), message: /'onDay'/ });
+    await RejectionUtility.expectRejection({
+      task: find({ onDay: 'someday' }),
+      message: /'onDay'/,
+    });
   });
 });
 

@@ -440,3 +440,98 @@ http-datasource-headers-object:
     steps:
       - "Pin @venizia/ignis-connectors and @venizia/ignis to 0.4.8 and put the pair arrays back in the overrides."
   data: Nothing stored changes.
+
+retry-helper-is-utility:
+  symbols: [RetryHelper, RetryUtility]
+  upgrade:
+    before: |-
+      import { RetryHelper } from '@venizia/ignis-helpers';
+
+      await RetryHelper.executeWithRetry({ operation: 'send', execution: () => send(), maxAttempts: 3 });
+    after: |-
+      import { RetryUtility } from '@venizia/ignis-helpers';
+
+      await RetryUtility.executeWithRetry({ operation: 'send', execution: () => send(), maxAttempts: 3 });
+    steps:
+      - "Run bun node_modules/.bin/devz codemod class-renames [paths...] --write from the project root, with the files committed (or --write --all); it renames RetryHelper to RetryUtility at its import from @venizia/ignis-helpers and at every use in the file."
+      - "Rename by hand what the codemod does not read: a .js file, import('@venizia/ignis-helpers').RetryHelper and a relative import of your own copy."
+  downgrade:
+    steps:
+      - "Pin the packages to 0.4.8 and run devz codemod class-renames --reverse --write."
+  data: Nothing stored changes.
+
+slug-helper-is-utility:
+  symbols: [SlugHelper, SlugUtility]
+  upgrade:
+    before: |-
+      import { SlugHelper } from '@venizia/ignis-helpers';
+
+      const slug = SlugHelper.slugify({ value: title });
+    after: |-
+      import { SlugUtility } from '@venizia/ignis-helpers';
+
+      const slug = SlugUtility.slugify({ value: title });
+    steps:
+      - "Run bun node_modules/.bin/devz codemod class-renames [paths...] --write from the project root, with the files committed (or --write --all); it renames SlugHelper to SlugUtility at its import from @venizia/ignis-helpers and at every use in the file."
+      - "Rename by hand what the codemod does not read: a .js file, import('@venizia/ignis-helpers').SlugHelper and a relative import of your own copy."
+  downgrade:
+    steps:
+      - "Pin the packages to 0.4.8 and run devz codemod class-renames --reverse --write."
+  data: Nothing stored changes.
+
+credential-helper-is-utility:
+  symbols: [CredentialHelper, CredentialUtility]
+  upgrade:
+    before: |-
+      import { CredentialHelper } from '@venizia/ignis-helpers';
+
+      const hash = await CredentialHelper.hash({ password });
+    after: |-
+      import { CredentialUtility } from '@venizia/ignis-helpers';
+
+      const hash = await CredentialUtility.hash({ password });
+    steps:
+      - "Run bun node_modules/.bin/devz codemod class-renames [paths...] --write from the project root, with the files committed (or --write --all); it renames CredentialHelper to CredentialUtility at its import from @venizia/ignis-helpers and at every use in the file."
+      - "Rename by hand what the codemod does not read: a .js file, import('@venizia/ignis-helpers').CredentialHelper and a relative import of your own copy."
+  downgrade:
+    steps:
+      - "Pin the packages to 0.4.8 and run devz codemod class-renames --reverse --write."
+  data: Nothing stored changes.
+
+rejection-helper-is-utility:
+  symbols: [RejectionHelper, RejectionUtility]
+  upgrade:
+    before: |-
+      import { RejectionHelper } from '@venizia/dev-configs/testing';
+
+      const error = await RejectionHelper.rejectionOf({ task: run() });
+    after: |-
+      import { RejectionUtility } from '@venizia/dev-configs/testing';
+
+      const error = await RejectionUtility.rejectionOf({ task: run() });
+    steps:
+      - "Run bun node_modules/.bin/devz codemod class-renames [paths...] --write from the project root, with the files committed (or --write --all); it renames RejectionHelper to RejectionUtility at its import from @venizia/dev-configs/testing and at every use in the file."
+      - "Rename by hand what the codemod does not read: a .js file, import('@venizia/dev-configs/testing').RejectionHelper and a relative import of your own copy."
+  downgrade:
+    steps:
+      - "Pin the packages to 0.4.8 and run devz codemod class-renames --reverse --write."
+  data: Nothing stored changes.
+
+spawn-helper-is-utility:
+  symbols: [SpawnHelper, SpawnUtility]
+  upgrade:
+    before: |-
+      import { SpawnHelper } from '@venizia/dev-configs/testing';
+
+      const result = SpawnHelper.spawnSyncBounded({ cmd: ['bun', '--version'] });
+    after: |-
+      import { SpawnUtility } from '@venizia/dev-configs/testing';
+
+      const result = SpawnUtility.spawnSyncBounded({ cmd: ['bun', '--version'] });
+    steps:
+      - "Run bun node_modules/.bin/devz codemod class-renames [paths...] --write from the project root, with the files committed (or --write --all); it renames SpawnHelper to SpawnUtility at its import from @venizia/dev-configs/testing and at every use in the file."
+      - "Rename by hand what the codemod does not read: a .js file, import('@venizia/dev-configs/testing').SpawnHelper and a relative import of your own copy."
+  downgrade:
+    steps:
+      - "Pin the packages to 0.4.8 and run devz codemod class-renames --reverse --write."
+  data: Nothing stored changes.

@@ -2,7 +2,7 @@
 export const SPAWN_TIMEOUT_MS = 120_000;
 
 /** Bounded wrappers around `Bun.spawn*` for tests, so a stuck child cannot stall a suite. */
-export class SpawnHelper {
+export class SpawnUtility {
   /**
    * `Bun.spawnSync`, bounded. A sync spawn blocks the worker thread, so bun's own test timeout cannot
    * fire while it waits: the `timeout` option is the only bound. Its default signal, SIGTERM, can be
@@ -24,7 +24,7 @@ export class SpawnHelper {
     if (result.exitedDueToTimeout) {
       // eslint-disable-next-line venizia/no-new-error -- getError would be a dev-configs -> inversion cycle
       throw new Error(
-        `[SpawnHelper.spawnSyncBounded] did not exit within ${timeout} ms, killed | cmd: ${opts.cmd.join(' ').slice(0, 200)}`,
+        `[SpawnUtility.spawnSyncBounded] did not exit within ${timeout} ms, killed | cmd: ${opts.cmd.join(' ').slice(0, 200)}`,
       );
     }
 

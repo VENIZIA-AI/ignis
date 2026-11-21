@@ -35,7 +35,7 @@ const DEFAULT_COST = 10;
  *   the first attempt. The retry has one price: a hash of a password of exactly 72 bytes also accepts that
  *   password followed by anything, the way bcrypt itself always has.
  */
-export class CredentialHelper {
+export class CredentialUtility {
   /**
    * A hash of `password`: argon2id (Bun's default parameters), or bcrypt with `algorithm: 'bcrypt'`.
    * For bcrypt, `cost` (4 to 31) is the work factor, `2 ** cost` rounds. `cost` with argon2id
@@ -56,24 +56,24 @@ export class CredentialHelper {
   }): Promise<string> {
     const { password, algorithm = DEFAULT_CREDENTIAL_ALGORITHM, cost } = opts;
 
-    CredentialHelper.assertBun({ caller: 'hash' });
+    CredentialUtility.assertBun({ caller: 'hash' });
 
     if (typeof password !== 'string' || password.length === 0) {
       throw getError({
-        message: '[CredentialHelper.hash] Invalid password | Expected a non-empty string',
+        message: '[CredentialUtility.hash] Invalid password | Expected a non-empty string',
       });
     }
 
     if (typeof algorithm !== 'string' || !CredentialAlgorithms.isValid(algorithm)) {
       throw getError({
-        message: `[CredentialHelper.hash] Invalid algorithm | Expected one of ${[...CredentialAlgorithms.SCHEME_SET].join(', ')} | Got: ${String(algorithm)}`,
+        message: `[CredentialUtility.hash] Invalid algorithm | Expected one of ${[...CredentialAlgorithms.SCHEME_SET].join(', ')} | Got: ${String(algorithm)}`,
       });
     }
 
     if (algorithm === CredentialAlgorithms.ARGON2ID) {
       if (cost !== undefined && cost !== null) {
         throw getError({
-          message: `[CredentialHelper.hash] Invalid cost | cost applies to bcrypt only | Pass algorithm: 'bcrypt' to keep a bcrypt cost, or drop cost for argon2id`,
+          message: `[CredentialUtility.hash] Invalid cost | cost applies to bcrypt only | Pass algorithm: 'bcrypt' to keep a bcrypt cost, or drop cost for argon2id`,
         });
       }
 
@@ -84,7 +84,7 @@ export class CredentialHelper {
 
     if (!Number.isInteger(bcryptCost) || bcryptCost < MIN_COST || bcryptCost > MAX_COST) {
       throw getError({
-        message: `[CredentialHelper.hash] Invalid cost | Expected an integer from ${MIN_COST} to ${MAX_COST} | Got: ${bcryptCost}`,
+        message: `[CredentialUtility.hash] Invalid cost | Expected an integer from ${MIN_COST} to ${MAX_COST} | Got: ${bcryptCost}`,
       });
     }
 
@@ -99,7 +99,7 @@ export class CredentialHelper {
   static async verify(opts: { password: string; hash: string }): Promise<boolean> {
     const { password, hash } = opts;
 
-    CredentialHelper.assertBun({ caller: 'verify' });
+    CredentialUtility.assertBun({ caller: 'verify' });
 
     if (typeof password !== 'string' || password.length === 0) {
       return false;
@@ -109,7 +109,7 @@ export class CredentialHelper {
       return false;
     }
 
-    const matched = await CredentialHelper.verifyHash({ password, hash });
+    const matched = await CredentialUtility.verifyHash({ password, hash });
 
     if (matched || !BCRYPT_PREFIX.test(hash)) {
       return matched;
@@ -121,7 +121,7 @@ export class CredentialHelper {
       return false;
     }
 
-    return CredentialHelper.verifyHash({
+    return CredentialUtility.verifyHash({
       password: bytes.subarray(0, BCRYPT_MAX_PASSWORD_BYTES),
       hash,
     });
@@ -140,7 +140,8 @@ export class CredentialHelper {
     } catch (error) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: '[CredentialHelper.verify] Invalid hash | The stored value is not a password hash',
+        message:
+          '[CredentialUtility.verify] Invalid hash | The stored value is not a password hash',
         cause: error,
       });
     }
@@ -150,7 +151,7 @@ export class CredentialHelper {
     if (typeof Bun === 'undefined') {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: `[CredentialHelper.${opts.caller}] Unsupported runtime | CredentialHelper needs Bun.password`,
+        message: `[CredentialUtility.${opts.caller}] Unsupported runtime | CredentialUtility needs Bun.password`,
       });
     }
   }

@@ -1,2 +1,2 @@
 export * from './common';
-export * from './helper';
+export { SlugUtility } from '@/utilities/slug.utility';

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { Job, type JobsOptions, type Processor, type Queue, type Worker } from 'bullmq';
 import { readFileSync } from 'node:fs';
 import { EventEmitter } from 'node:events';
@@ -198,7 +198,7 @@ describe('the metadata stamp', () => {
         throw getError({ message: 'no request context' });
       },
     });
-    const error = await RejectionHelper.rejectionOf({ task: helper.add({ name: 'x', data: 1 }) });
+    const error = await RejectionUtility.rejectionOf({ task: helper.add({ name: 'x', data: 1 }) });
 
     expect((error as Error).message).toContain('no request context');
     expect(helper.fakeQueue.added).toHaveLength(0);
@@ -211,7 +211,7 @@ describe('the metadata stamp', () => {
   ])('a stamp that is %s is refused', async (_name, stamp) => {
     const untypedOptions: Record<string, unknown> = { metadata: stamp };
     const helper = build({ ...untypedOptions });
-    const error = await RejectionHelper.rejectionOf({ task: helper.add({ name: 'x', data: 1 }) });
+    const error = await RejectionUtility.rejectionOf({ task: helper.add({ name: 'x', data: 1 }) });
 
     expect((error as Error).message).toContain('must answer a plain object');
     expect(helper.fakeQueue.added).toHaveLength(0);
@@ -220,7 +220,7 @@ describe('the metadata stamp', () => {
   test('a caller opts.metadata is refused, never overwritten', async () => {
     const helper = build({ metadata: () => ({ a: 1 }) });
     const untyped: Record<string, unknown> = { metadata: { mine: 1 } };
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: helper.add({ name: 'x', data: 1, opts: untyped }),
     });
 
@@ -230,7 +230,7 @@ describe('the metadata stamp', () => {
 
   test('add needs a queue helper', async () => {
     const helper = build({ role: 'worker' });
-    const error = await RejectionHelper.rejectionOf({ task: helper.add({ name: 'x', data: 1 }) });
+    const error = await RejectionUtility.rejectionOf({ task: helper.add({ name: 'x', data: 1 }) });
 
     expect((error as Error).message).toContain("role 'queue'");
   });

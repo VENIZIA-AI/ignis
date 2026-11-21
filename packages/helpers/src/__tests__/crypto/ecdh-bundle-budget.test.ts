@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { PACKAGE_ROOT } from '../package-root';
-import { SpawnHelper } from '@venizia/dev-configs/testing';
+import { SpawnUtility } from '@venizia/dev-configs/testing';
 
 /**
  * `ECDH` rides `@venizia/ignis-helpers/core` so a browser can speak the server's wire format. Its size IS part of
@@ -22,7 +22,7 @@ const bundle = async (opts: { name: string; source: string }) => {
   const outfile = path.join(probeDirectory, `${opts.name}.bundle.js`);
   await writeFile(entryPath, opts.source);
 
-  const build = SpawnHelper.spawnSyncBounded({
+  const build = SpawnUtility.spawnSyncBounded({
     cmd: ['bun', 'build', '--target=browser', '--minify', entryPath, '--outfile', outfile],
     cwd: PACKAGE_ROOT,
     stdout: 'pipe',

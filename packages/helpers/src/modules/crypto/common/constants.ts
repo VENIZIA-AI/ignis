@@ -67,7 +67,7 @@ export type THashOutputEncoding = TConstValue<typeof HashOutputEncodings>;
 /** Encoding used when `outputEncoding` is omitted. */
 export const DEFAULT_HASH_OUTPUT_ENCODING: THashOutputEncoding = HashOutputEncodings.HEX;
 
-/** Password-hash schemes `CredentialHelper` accepts. `isValid` narrows a string to `TCredentialAlgorithm`. */
+/** Password-hash schemes `CredentialUtility` accepts. `isValid` narrows a string to `TCredentialAlgorithm`. */
 export class CredentialAlgorithms {
   /** What `Bun.password` writes with its default parameters; the scheme `hash` uses unless told otherwise. */
   static readonly ARGON2ID = 'argon2id';
@@ -83,5 +83,5 @@ export class CredentialAlgorithms {
 /** One of the `CredentialAlgorithms` values. */
 export type TCredentialAlgorithm = TConstValue<typeof CredentialAlgorithms>;
 
-/** Scheme `CredentialHelper.hash` uses when `algorithm` is omitted. */
+/** Scheme `CredentialUtility.hash` uses when `algorithm` is omitted. */
 export const DEFAULT_CREDENTIAL_ALGORITHM: TCredentialAlgorithm = CredentialAlgorithms.ARGON2ID;

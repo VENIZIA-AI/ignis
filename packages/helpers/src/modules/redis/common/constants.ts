@@ -12,7 +12,7 @@ export class RedisDefaults {
   static readonly MAX_RETRY = 5;
   static readonly RETRY_FOREVER = -1;
 
-  /** The wait before reconnect attempt N, computed by `RetryHelper.computeBackoffDelayMs`. */
+  /** The wait before reconnect attempt N, computed by `RetryUtility.computeBackoffDelayMs`. */
   static readonly RECONNECT_BACKOFF = {
     strategy: RetryBackoffStrategies.EXPONENTIAL,
     initialDelayMs: 1000,

@@ -2540,10 +2540,10 @@ export declare class EventBus<TPayloadMap extends object> extends BaseHelper {
      * once (`FUNCTION`) - see `buildHandlerInvoker` - so this method calls it uniformly. A handler that
      * throws synchronously is caught exactly like one that returns a rejected promise: `execution`
      * here is itself `async`, and JS converts a synchronous throw inside an async function body into a
-     * rejection of that function's own promise - `RetryHelper.executeWithRetry`'s attempt loop never
+     * rejection of that function's own promise - `RetryUtility.executeWithRetry`'s attempt loop never
      * sees the difference.
      *
-     * `RetryHelper.executeWithRetry` is used without its own `logger` - its internal per-attempt/exhaustion
+     * `RetryUtility.executeWithRetry` is used without its own `logger` - its internal per-attempt/exhaustion
      * logging knows nothing about the event name or `traceId`, so it cannot be the trace anyone
      * relies on. The one line below, logged only on final failure, is.
      */
@@ -2575,7 +2575,7 @@ export declare class EventDispatchRetry {
     /**
      * Ceiling, in ms, on the total backoff window `register`'s `retry` can produce (the sum of every
      * inter-attempt delay, computed without jitter since jitter only shrinks it). Matches
-     * `RetryHelper`'s own default cap on a SINGLE delay: a dispatch holds a handler's resources - e.g.
+     * `RetryUtility`'s own default cap on a SINGLE delay: a dispatch holds a handler's resources - e.g.
      * a database connection - for its entire retry window, so the sum across every attempt gets the
      * same "unreasonable beyond this" line the framework already draws for one attempt.
      */

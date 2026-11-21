@@ -1,6 +1,7 @@
 import { AnyAliasesCommand } from './any-aliases';
 import { AsyncStyleCommand } from './async-style';
 import { BindingKeysCommand } from './binding-keys';
+import { ClassRenamesCommand } from './class-renames';
 import { ConnectorImportsCommand } from './connector-imports';
 import { ConstClassesCommand } from './const-classes';
 import { EnvGetCommand } from './env-get';
@@ -16,6 +17,7 @@ const USAGE = [
   EnvGetCommand.USAGE,
   AnyAliasesCommand.USAGE,
   BindingKeysCommand.USAGE,
+  ClassRenamesCommand.USAGE,
 ].join('\n\n');
 
 /** The codemods `devz codemod <name>` runs. */
@@ -28,6 +30,7 @@ const NAME_LIST = [
   'env-get',
   'any-aliases',
   'binding-keys',
+  'class-renames',
 ];
 const NAMES = NAME_LIST.join(', ');
 
@@ -92,6 +95,10 @@ export class CodemodCommand {
 
     if (name === 'binding-keys') {
       return BindingKeysCommand.run({ root: opts.root, args: rest });
+    }
+
+    if (name === 'class-renames') {
+      return ClassRenamesCommand.run({ root: opts.root, args: rest });
     }
 
     if (args.includes('--help') || args.includes('-h')) {

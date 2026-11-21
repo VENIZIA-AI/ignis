@@ -3,11 +3,10 @@ import {
   D_STROKE_REPLACEMENTS,
   LEADING_OR_TRAILING_HYPHENS_PATTERN,
   NON_SLUG_CHARACTERS_PATTERN,
-} from './common/constants';
-import { BaseHelper } from '@/modules/base';
+} from '@/modules/slug/common/constants';
 
 /** Vietnamese-aware slugging. See `D_STROKE_REPLACEMENTS` for why `đ` maps to `d` and not `dj`. */
-export class SlugHelper extends BaseHelper {
+export class SlugUtility {
   static slugify(opts: { value: string }): string {
     const { value } = opts;
 

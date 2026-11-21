@@ -6,7 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:tes
 import { asc, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 
 const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -85,7 +85,7 @@ describe('SqliteQueryExecutor - against a real in-memory libsql database', () =>
   });
 
   test('select refuses a projection entry that is not a column or an SQL expression', async () => {
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: executor.select({ connector, table: users, columns: { id: users.id, bad: 'email' } }),
       message: /\[toSelectedFields\] Invalid column selection \| 'bad' must be a SQLite column/,
     });
@@ -139,7 +139,7 @@ describe('SqliteQueryExecutor - against a real in-memory libsql database', () =>
   });
 
   test('update refuses a returning entry that is not a column or an SQL expression', async () => {
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: executor.update({
         connector,
         table: users,
@@ -221,7 +221,7 @@ describe('SqliteQueryExecutor - against a real in-memory libsql database', () =>
   });
 
   test('findMany throws a schema key mismatch error naming the entity and available keys', async () => {
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: executor.findMany({ connector, entityName: 'articles', query: {} }),
       message:
         "[SqliteQueryExecutor] Schema key mismatch | Entity name 'articles' not found in connector.query | Available keys: [users] | Ensure the model's TABLE_NAME matches the schema registration key",
@@ -229,7 +229,7 @@ describe('SqliteQueryExecutor - against a real in-memory libsql database', () =>
   });
 
   test('a caller-supplied scope names the thrown error instead of the executor class', async () => {
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: executor.findFirst({
         connector,
         entityName: 'articles',
@@ -241,7 +241,7 @@ describe('SqliteQueryExecutor - against a real in-memory libsql database', () =>
   });
 
   test('select with a lock throws NotSupported - SQLite has no row locking', async () => {
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: executor.select({
         connector,
         table: users,
@@ -261,7 +261,7 @@ describe('SqliteQueryExecutor - missing query interface', () => {
     // Stripped of the `query` interface a schema registration gives it.
     Object.defineProperty(connectorWithoutQuery, 'query', { value: undefined });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: new SqliteQueryExecutor().findMany({
         connector: connectorWithoutQuery,
         entityName: 'users',

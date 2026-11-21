@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { PACKAGE_ROOT } from '../package-root';
-import { SpawnHelper } from '@venizia/dev-configs/testing';
+import { SpawnUtility } from '@venizia/dev-configs/testing';
 
 /** Guards against winston loading eagerly via a barrel `export * from './winston'` or a static import in `factory.ts` - the default provider is the console, so winston loads only when an application chooses it. */
 const winstonState = async (body: string): Promise<string> => {
@@ -10,7 +10,7 @@ const winstonState = async (body: string): Promise<string> => {
     console.log(loaded ? 'WINSTON_LOADED' : 'WINSTON_ABSENT');
   `;
 
-  const result = SpawnHelper.spawnSyncBounded({
+  const result = SpawnUtility.spawnSyncBounded({
     cmd: ['bun', '-e', probe],
     cwd: PACKAGE_ROOT,
     stdout: 'pipe',
