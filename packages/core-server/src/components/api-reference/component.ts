@@ -121,7 +121,7 @@ export class ApiReferenceComponent extends BaseComponent {
     if (!uiProviderFactory.isBound(uiType)) {
       if (!DocumentUITypes.isValid(uiType)) {
         throw getError({
-          message: `[binding] Invalid document UI Type | uiType: ${uiType} | valids: ${[...DocumentUITypes.SCHEME_SET]}`,
+          message: `[binding] Invalid document UI Type | uiType: ${uiType} | valids: ${DocumentUITypes.values()}`,
         });
       }
 

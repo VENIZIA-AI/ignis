@@ -66,7 +66,7 @@ describe('BootSequence', () => {
   });
 
   test('BootSteps knows its own names and rejects a server-only one', () => {
-    expect(BootSteps.SCHEME_SET.size).toBe(11);
+    expect(BootSteps.values()).toHaveLength(11);
     expect(BootSteps.isValid(BootSteps.REGISTER_CONFIGURATIONS)).toBe(true);
     expect(BootSteps.isValid(BootSteps.REGISTER_CONTRIBUTED_DATA_SOURCES)).toBe(true);
     expect(BootSteps.isValid('hydrateSecrets')).toBe(false);

@@ -1,4 +1,5 @@
 import { type TConstValue } from '../types';
+import { ConstClass } from '@/common/const-class';
 
 /** The top-level part of a MIME type (`image`, `video`, `text`), plus `unknown`. For the full content type see `ContentTypes`. */
 export class MimeTypes {
@@ -11,7 +12,7 @@ export class MimeTypes {
 export type TMimeTypes = TConstValue<typeof MimeTypes>;
 
 /** The leading dot is part of the value: `path.extname` returns one. */
-export class FileExtensions {
+export class FileExtensions extends ConstClass {
   static readonly PNG = '.png';
   static readonly JPG = '.jpg';
   static readonly JPEG = '.jpeg';
@@ -39,46 +40,12 @@ export class FileExtensions {
   static readonly PPT = '.ppt';
   static readonly ODT = '.odt';
   static readonly ODS = '.ods';
-
-  static readonly SCHEME_SET = new Set<string>([
-    this.PNG,
-    this.JPG,
-    this.JPEG,
-    this.GIF,
-    this.WEBP,
-    this.SVG,
-    this.PDF,
-    this.JSON,
-    this.TXT,
-    this.HTML,
-    this.CSS,
-    this.JS,
-    this.MP4,
-    this.WEBM,
-    this.MP3,
-    this.WAV,
-    this.ZIP,
-    this.CSV,
-    this.XML,
-    this.XLSX,
-    this.XLS,
-    this.DOCX,
-    this.DOC,
-    this.PPTX,
-    this.PPT,
-    this.ODT,
-    this.ODS,
-  ]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 /** One of the `FileExtensions` values, with its leading dot. */
 export type TFileExtension = TConstValue<typeof FileExtensions>;
 
 /** Full content types, as they go on the wire. `MimeTypes` holds only the top-level part. */
-export class ContentTypes {
+export class ContentTypes extends ConstClass {
   static readonly OCTET_STREAM = 'application/octet-stream';
   static readonly PNG = 'image/png';
   static readonly JPEG = 'image/jpeg';
@@ -108,40 +75,6 @@ export class ContentTypes {
   static readonly PPT = 'application/vnd.ms-powerpoint';
   static readonly ODT = 'application/vnd.oasis.opendocument.text';
   static readonly ODS = 'application/vnd.oasis.opendocument.spreadsheet';
-
-  static readonly SCHEME_SET = new Set<string>([
-    this.OCTET_STREAM,
-    this.PNG,
-    this.JPEG,
-    this.GIF,
-    this.WEBP,
-    this.SVG,
-    this.PDF,
-    this.JSON,
-    this.PLAIN_TEXT,
-    this.HTML,
-    this.CSS,
-    this.JAVASCRIPT,
-    this.MP4,
-    this.WEBM,
-    this.MPEG_AUDIO,
-    this.WAV,
-    this.ZIP,
-    this.CSV,
-    this.XML,
-    this.XLSX,
-    this.XLS,
-    this.DOCX,
-    this.DOC,
-    this.PPTX,
-    this.PPT,
-    this.ODT,
-    this.ODS,
-  ]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 /** One of the `ContentTypes` values. */
 export type TContentType = TConstValue<typeof ContentTypes>;

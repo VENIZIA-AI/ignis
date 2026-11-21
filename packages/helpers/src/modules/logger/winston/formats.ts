@@ -81,7 +81,7 @@ export class WinstonFormatFactory {
       }
       default: {
         throw getError({
-          message: `[defineLogger] Invalid logger format | format: ${format} | valids: ${[...LoggerFormats.SCHEME_SET]}`,
+          message: `[defineLogger] Invalid logger format | format: ${format} | valids: ${LoggerFormats.values()}`,
         });
       }
     }
@@ -103,7 +103,7 @@ export class WinstonFormatFactory {
       }
       default: {
         throw getError({
-          message: `[defineCustomLogger] Invalid logger format | format: ${opts.format} | valids: ${[...LoggerFormats.SCHEME_SET]}`,
+          message: `[defineCustomLogger] Invalid logger format | format: ${opts.format} | valids: ${LoggerFormats.values()}`,
         });
       }
     }

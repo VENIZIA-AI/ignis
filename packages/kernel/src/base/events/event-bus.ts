@@ -160,7 +160,7 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
 
       default: {
         throw getError({
-          message: `[EventBus][register] Unknown handler.type | name: ${name} | Expected one of: ${[...EventHandlerTypes.SCHEME_SET].join(', ')} | Got: ${(handler as { type?: unknown }).type}`,
+          message: `[EventBus][register] Unknown handler.type | name: ${name} | Expected one of: ${EventHandlerTypes.values().join(', ')} | Got: ${(handler as { type?: unknown }).type}`,
         });
       }
     }

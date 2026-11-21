@@ -26,23 +26,16 @@ export class HealthCheckRestPaths {
 For constants that need type extraction and runtime validation, use this pattern:
 
 ```typescript
-import { TConstValue } from '@venizia/ignis-helpers';
+import { ConstClass, TConstValue } from '@venizia/ignis-helpers';
 
-export class DocumentUITypes {
-  // 1. Define static readonly values
+// 1. Extend ConstClass: it adds values() and isValid(value)
+export class DocumentUITypes extends ConstClass {
+  // 2. Define static readonly values
   static readonly SWAGGER = 'swagger';
   static readonly SCALAR = 'scalar';
-
-  // 2. Create a Set for O(1) validation lookup
-  static readonly SCHEME_SET = new Set([this.SWAGGER, this.SCALAR]);
-
-  // 3. Validation helper method
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
-// 4. Extract union type from class values
+// 3. Extract union type from class values
 export type TDocumentUIType = TConstValue<typeof DocumentUITypes>;
 // Result: 'swagger' | 'scalar'
 ```
@@ -50,30 +43,17 @@ export type TDocumentUIType = TConstValue<typeof DocumentUITypes>;
 ### Full Example with Usage
 
 ```typescript
-import { TConstValue } from '@venizia/ignis-helpers';
+import { ConstClass, TConstValue } from '@venizia/ignis-helpers';
 
-export class UserStatuses {
+export class UserStatuses extends ConstClass {
   static readonly ACTIVE = 'active';
   static readonly INACTIVE = 'inactive';
   static readonly PENDING = 'pending';
   static readonly BANNED = 'banned';
-
-  static readonly SCHEME_SET = new Set([
-    this.ACTIVE,
-    this.INACTIVE,
-    this.PENDING,
-    this.BANNED,
-  ]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
-
-  // Optional: get all values as array
-  static values(): string[] {
-    return [...this.SCHEME_SET];
-  }
 }
+
+UserStatuses.values(); // ['active', 'inactive', 'pending', 'banned']
+UserStatuses.isValid('active'); // true, and narrows the argument to TUserStatus
 
 // Type-safe union type
 export type TUserStatus = TConstValue<typeof UserStatuses>;
@@ -105,7 +85,7 @@ const updateUserStatus = (opts: { userId: string; status: string }) => {
 |--------|--------------|-----------------|
 | Tree-shaking | Full support | Partial (IIFE blocks it) |
 | Bundle size | Minimal | Larger (IIFE wrapper) |
-| Runtime validation | O(1) with `Set` | O(n) with `Object.values()` |
+| Runtime validation | `isValid()` and `values()` from `ConstClass` | O(n) with `Object.values()` |
 | Type extraction | `TConstValue<typeof X>` → values | `keyof typeof X` → keys (not values!) |
 | Add methods | Yes | Not possible |
 | Compiled output | Clean class | IIFE wrapper |

@@ -195,7 +195,7 @@ export interface IModelProperties {
   /**
    * Properties the server fills on every write, which a generated create or update body leaves out.
    *
-   * @default AuditFields.SCHEME_SET
+   * @default AuditFields.values()
    */
   stamped?: ReadonlyArray<string> | ReadonlySet<string>;
 }

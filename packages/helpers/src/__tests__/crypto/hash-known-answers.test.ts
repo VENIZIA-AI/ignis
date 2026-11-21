@@ -245,9 +245,11 @@ const ROWS: ReadonlyArray<IRow> = [
 
 describe('Hash gives the same text as the node:crypto implementation did', () => {
   test('the table covers every accepted algorithm and encoding', () => {
-    expect(new Set<string>(ROWS.map((row) => row.algorithm))).toEqual(HashAlgorithms.SCHEME_SET);
+    expect(new Set<string>(ROWS.map((row) => row.algorithm))).toEqual(
+      new Set(HashAlgorithms.values()),
+    );
     expect(new Set<string>(ROWS.map((row) => row.encoding))).toEqual(
-      HashOutputEncodings.SCHEME_SET,
+      new Set(HashOutputEncodings.values()),
     );
   });
 

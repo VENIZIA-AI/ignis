@@ -115,7 +115,7 @@ export class CrudControllerFactory extends BaseHelper {
         create: entityInstance.getSchema<TAnyObjectSchema>({ type: SchemaTypes.CREATE }),
         update: entityInstance.getSchema<TAnyObjectSchema>({ type: SchemaTypes.UPDATE }),
       },
-      serverStampedKeys: [...(settings?.properties?.stamped ?? AuditFields.SCHEME_SET)],
+      serverStampedKeys: [...(settings?.properties?.stamped ?? AuditFields.values())],
     });
 
     const controllerClass = class extends PersistableCrudController<

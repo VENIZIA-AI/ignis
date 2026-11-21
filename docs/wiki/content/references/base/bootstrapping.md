@@ -36,7 +36,7 @@ Decorators mark a class as an artifact and carry its registration defaults. A ge
 The artifact kinds a stereotype may declare.
 
 ```typescript
-class ArtifactTypes {
+class ArtifactTypes extends ConstClass {
   static readonly CONFIGURATION = 'configuration';
   static readonly COMPONENT = 'component';
   static readonly CONTROLLER = 'controller';
@@ -44,8 +44,6 @@ class ArtifactTypes {
   static readonly REPOSITORY = 'repository';
   static readonly DATASOURCE = 'datasource';
   static readonly MODEL = 'model';
-  static readonly SCHEME_SET: Set<string>;
-  static isValid(value: string): boolean;
 }
 
 type TArtifactType = TConstValue<typeof ArtifactTypes>;
@@ -102,7 +100,7 @@ interface IArtifactMetadata<ApplicationType = unknown> extends IArtifactRegistra
 | `type` | `TArtifactType` | required | The artifact kind |
 | ...`IArtifactRegistrationOptions` | | | See above |
 
-Throws at decoration time when `type` is not in `ArtifactTypes.SCHEME_SET`: `[injectable][<Class>] Invalid artifact type: '<type>' | Expected one of: configuration, component, controller, service, repository, datasource, model`.
+Throws at decoration time when `type` is not in `ArtifactTypes.values()`: `[injectable][<Class>] Invalid artifact type: '<type>' | Expected one of: configuration, component, controller, service, repository, datasource, model`.
 
 ```typescript
 @injectable({ type: ArtifactTypes.SERVICE, scope: BindingScopes.SINGLETON })

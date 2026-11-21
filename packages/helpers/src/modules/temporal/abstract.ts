@@ -238,7 +238,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
     if (!TemporalUnits.isValid(unit)) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-        message: `[TemporalHelper] unknown unit '${unit}' | Supported: ${[...TemporalUnits.SCHEME_SET].join(', ')}`,
+        message: `[TemporalHelper] unknown unit '${unit}' | Supported: ${TemporalUnits.values().join(', ')}`,
       });
     }
 

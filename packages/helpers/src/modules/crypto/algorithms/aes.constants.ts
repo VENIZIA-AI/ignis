@@ -1,15 +1,10 @@
 import type { TConstValue } from '@/common/types';
+import { ConstClass } from '@/common/const-class';
 
 /** The ciphers `AES` supports. */
-export class AESAlgorithms {
+export class AESAlgorithms extends ConstClass {
   static readonly AES_256_CBC = 'aes-256-cbc';
   static readonly AES_256_GCM = 'aes-256-gcm';
-
-  static readonly SCHEME_SET = new Set<string>([this.AES_256_CBC, this.AES_256_GCM]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** Valid AES algorithm values. */

@@ -1,7 +1,8 @@
 import { type TConstValue } from '../types';
+import { ConstClass } from '@/common/const-class';
 
 /** The time units a duration can be expressed in, smallest first. */
-export class DurationUnits {
+export class DurationUnits extends ConstClass {
   static readonly MILLISECOND = 'millisecond';
   static readonly SECOND = 'second';
   static readonly MINUTE = 'minute';
@@ -10,21 +11,6 @@ export class DurationUnits {
   static readonly WEEK = 'week';
   static readonly MONTH = 'month';
   static readonly YEAR = 'year';
-
-  static readonly SCHEME_SET = new Set([
-    this.MILLISECOND,
-    this.SECOND,
-    this.MINUTE,
-    this.HOUR,
-    this.DAY,
-    this.WEEK,
-    this.MONTH,
-    this.YEAR,
-  ]);
-
-  static isValid(input: string): input is TDurationUnit {
-    return this.SCHEME_SET.has(input);
-  }
 }
 
 /** One of the `DurationUnits` values, e.g. `'second'`. */
@@ -153,7 +139,7 @@ export class DurationMultipliers {
    * `null` rather than a throw, so a caller that wants an error raises its own with its own context.
    * Every method here answers the same way.
    *
-   * The unit is checked against {@link DurationUnits.SCHEME_SET} first: a plain-object read alone
+   * The unit is checked against {@link DurationUnits.isValid} first: a plain-object read alone
    * would answer `'constructor'` or `'toString'` with a member of `Object.prototype`, not `undefined`.
    */
   static toMilliseconds(opts: IDuration | null): number | null {

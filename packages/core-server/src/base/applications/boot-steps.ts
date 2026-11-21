@@ -8,16 +8,6 @@ export class ServerBootSteps extends BootSteps {
   static readonly HYDRATE_SECRETS = 'hydrateSecrets';
   static readonly WIRE_SECRET_ROTATABLES = 'wireSecretRotatables';
   static readonly VALIDATE_SCOPE_FILTER_SUPPORT = 'validateScopeFilterSupport';
-
-  // The kernel's names plus these; `isValid` is inherited and reads this set through `this`.
-  static override readonly SCHEME_SET = new Set<string>([
-    ...BootSteps.SCHEME_SET,
-    this.PRINT_START_UP_INFO,
-    this.VALIDATE_ENVS,
-    this.HYDRATE_SECRETS,
-    this.WIRE_SECRET_ROTATABLES,
-    this.VALIDATE_SCOPE_FILTER_SUPPORT,
-  ]);
 }
 
 /** Union of the step names in `ServerBootSteps`, accepted by `BootSequence.insertAfter` and `skipSteps`. */

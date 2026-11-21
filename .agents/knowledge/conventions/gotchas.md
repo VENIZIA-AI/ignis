@@ -604,7 +604,7 @@ silently replaced by a `$ref` to the first.
 ## The model says what the server stamps
 
 The CRUD factory reads `settings.properties.stamped` from the model metadata and falls back to
-`AuditFields.SCHEME_SET`. A search document is stamped by nothing, so its model declares `stamped: []`
+`AuditFields.values()`. A search document is stamped by nothing, so its model declares `stamped: []`
 to keep a writable `createdAt`.
 
 ## Only tsconfig.json stays at a project root

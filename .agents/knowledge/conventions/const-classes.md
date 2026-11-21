@@ -2,7 +2,7 @@
 type: Convention
 title: Const classes over string unions
 description: Enumerable string values are a const class plus TConstValue, not a raw string-literal union.
-resource: packages/helpers/src/common/types/
+resource: packages/helpers/src/common/
 tags: [conventions, type-safety]
 ---
 
@@ -15,6 +15,30 @@ export type TConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string 
 ```
 
 The `& {}` stops the union widening back to `string` - see [gotchas](/conventions/gotchas.md#a-const-value-alias-without-the-empty-intersection-widens-to-string).
+
+A class that holds only string values extends `ConstClass` (`packages/helpers/src/common/const-class.ts`,
+exported from `@venizia/ignis-helpers/common`). It adds two statics, so no class writes its own `SCHEME_SET` or
+`isValid`:
+
+```typescript
+export class ArtifactTypes extends ConstClass {
+  static readonly SERVICE = 'service';
+  static readonly COMPONENT = 'component';
+}
+
+ArtifactTypes.isValid(input);          // narrows input to TConstValue<typeof ArtifactTypes>
+z.enum(ArtifactTypes.values());        // a non-empty tuple of the literal union
+```
+
+- `values()` returns the string statics in declaration order, the values of a base class first when the class
+  extends another const class (`ServerBootSteps extends BootSteps`). It is cached per class and throws when the
+  class holds no string.
+- `values` and `isValid` are reserved names; a value cannot be named either.
+- `isValid(value: unknown)` is `typeof value === 'string'` plus a membership check, as a type guard.
+- A class stays hand-written (own `SCHEME_SET`, own `isValid`) when it is not a plain list of strings: other string
+  statics that are not values (`SOURCE_GLOB`), derived or grouped sets (`RELATIONAL_SCHEME_SET`), number values,
+  object values, or a set built from other data. `devz codemod const-classes` converts the plain ones.
+- `@venizia/ignis-dev-configs` does not depend on helpers, so its own const classes stay hand-written.
 
 ## Why
 

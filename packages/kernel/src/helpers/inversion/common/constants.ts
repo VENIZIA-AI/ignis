@@ -1,7 +1,8 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
+import { ConstClass } from '@venizia/ignis-helpers/common';
 
 /** What a decorated class is to the application - the one fact the artifact generator and the registration methods both read. */
-export class ArtifactTypes {
+export class ArtifactTypes extends ConstClass {
   static readonly CONFIGURATION = 'configuration';
   static readonly COMPONENT = 'component';
   static readonly CONTROLLER = 'controller';
@@ -9,32 +10,12 @@ export class ArtifactTypes {
   static readonly REPOSITORY = 'repository';
   static readonly DATASOURCE = 'datasource';
   static readonly MODEL = 'model';
-
-  static readonly SCHEME_SET = new Set<string>([
-    this.CONFIGURATION,
-    this.COMPONENT,
-    this.CONTROLLER,
-    this.SERVICE,
-    this.REPOSITORY,
-    this.DATASOURCE,
-    this.MODEL,
-  ]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** The `format` of `getAuthorizeModelPrincipals` and `getAuthorizeModelSettings`: ARRAY or RECORD. */
-export class AuthorizeModelFormats {
+export class AuthorizeModelFormats extends ConstClass {
   static readonly ARRAY = 'array';
   static readonly RECORD = 'record';
-
-  static readonly SCHEME_SET = new Set<string>([this.ARRAY, this.RECORD]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** Valid authorize model format values. */

@@ -225,11 +225,9 @@ Source: `packages/helpers/src/modules/pool/abstract.ts`
 The ciphers `AES` supports.
 
 ```ts
-export declare class AESAlgorithms {
+export declare class AESAlgorithms extends ConstClass {
     static readonly AES_256_CBC = "aes-256-cbc";
     static readonly AES_256_GCM = "aes-256-gcm";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -2726,14 +2724,12 @@ Source: `packages/helpers/src/modules/uid/request-id.ts`
 How the retry delay grows between attempts.
 
 ```ts
-export declare class RetryBackoffStrategies {
+export declare class RetryBackoffStrategies extends ConstClass {
     static readonly FIXED = "fixed";
     static readonly LINEAR = "linear";
     static readonly EXPONENTIAL = "exponential";
     /** An explicit per-attempt cap schedule, e.g. [250, 1000, 4000]; the last entry repeats. */
     static readonly SCHEDULE = "schedule";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): value is TRetryBackoffStrategy;
 }
 ```
 
@@ -2746,15 +2742,13 @@ Source: `packages/helpers/src/modules/retry/common/constants.ts`
 How randomness is applied to a computed retry delay.
 
 ```ts
-export declare class RetryJitterModes {
+export declare class RetryJitterModes extends ConstClass {
     /** The computed delay is used as-is. */
     static readonly NONE = "none";
     /** Uniform random in [0, delay) - decorrelates a thundering herd hardest. */
     static readonly FULL = "full";
     /** delay/2 + uniform random in [0, delay/2) - jittered but never less than half the delay. */
     static readonly EQUAL = "equal";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): value is TRetryJitterMode;
 }
 ```
 
@@ -3274,12 +3268,10 @@ would fold an excluded character back in - uppercasing a lowercase alphabet rein
 `O` that {@link UidAlphabets} took out.
 
 ```ts
-export declare class UidCaseForms {
+export declare class UidCaseForms extends ConstClass {
     static readonly UPPER = "upper";
     static readonly LOWER = "lower";
     static readonly MIXED = "mixed";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): input is TUidCaseForm;
 }
 ```
 
@@ -3292,7 +3284,7 @@ Source: `packages/helpers/src/modules/uid/common/constants.ts`
 How a token is written as text.
 
 ```ts
-export declare class UidTokenEncodings {
+export declare class UidTokenEncodings extends ConstClass {
     /**
      * `0-9 A-Z a-z`, each character equally likely ({@link UidAlphabets.BASE62}). 32 bytes of entropy is
      * 43 characters. The default: its alphabet holds no `_` or `-`, so a prefix delimiter and a URL both take it cleanly.
@@ -3306,8 +3298,6 @@ export declare class UidTokenEncodings {
      * characters a delimiter is made of, so a prefix delimiter is refused unless it avoids both.
      */
     static readonly BASE64URL = "base64url";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): input is TUidTokenEncoding;
 }
 ```
 

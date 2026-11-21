@@ -1,4 +1,4 @@
-import { type TConstValue } from '@/common/types';
+import { ConstClass } from '@/common/const-class';
 
 /** Event names and default room names used by the Socket.IO server and client helpers. */
 export class SocketIOConstants {
@@ -18,18 +18,8 @@ export class SocketIOConstants {
 }
 
 /** Authentication states of a Socket.IO client. `isValid` narrows a string to one of them. */
-export class SocketIOClientStates {
+export class SocketIOClientStates extends ConstClass {
   static readonly UNAUTHORIZED = 'unauthorized';
   static readonly AUTHENTICATING = 'authenticating';
   static readonly AUTHENTICATED = 'authenticated';
-
-  static readonly SCHEME_SET = new Set([
-    this.UNAUTHORIZED,
-    this.AUTHENTICATING,
-    this.AUTHENTICATED,
-  ]);
-
-  static isValid(input: string): input is TConstValue<typeof SocketIOClientStates> {
-    return this.SCHEME_SET.has(input);
-  }
 }

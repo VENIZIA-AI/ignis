@@ -1,6 +1,7 @@
 import type { TFilter, TWhere } from '@venizia/ignis-kernel';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import type { SearchModes, TSearchInput } from './constants';
+import { ConstClass } from '@venizia/ignis-helpers/common';
 
 /**
  * What a `where` tree compiled down to. A filter STRING cannot express the two absorbing
@@ -9,19 +10,13 @@ import type { SearchModes, TSearchInput } from './constants';
  * narrow it. The relational branch has always had this vocabulary (`sql\`false\`` vs `undefined`,
  * relational/repositories/dialect/filter.ts:637-641); this is that vocabulary for the search branch.
  */
-export class SearchFilterOutcomes {
+export class SearchFilterOutcomes extends ConstClass {
   /** A real filter expression the engine should run. */
   static readonly FILTER = 'filter';
   /** Vacuously true - impose no constraint. */
   static readonly MATCH_ALL = 'matchAll';
   /** Absorbing false - can never match, so the engine must not be asked. */
   static readonly MATCH_NONE = 'matchNone';
-
-  static readonly SCHEME_SET = new Set([this.FILTER, this.MATCH_ALL, this.MATCH_NONE]);
-
-  static isValid(input: string): input is TSearchFilterOutcome {
-    return this.SCHEME_SET.has(input);
-  }
 }
 /** Union of the `SearchFilterOutcomes` values. */
 export type TSearchFilterOutcome = TConstValue<typeof SearchFilterOutcomes>;

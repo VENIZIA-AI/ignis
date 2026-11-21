@@ -65,15 +65,13 @@ Source: `packages/boot/src/generator/emitter.ts`
 Mirrors the kernel's `ArtifactIndexFields` - the keys of the object the emitter writes and `registerArtifacts` reads.
 
 ```ts
-export declare class ArtifactIndexFields {
+export declare class ArtifactIndexFields extends ConstClass {
     static readonly CONFIGURATIONS = "configurations";
     static readonly DATA_SOURCES = "dataSources";
     static readonly COMPONENTS = "components";
     static readonly REPOSITORIES = "repositories";
     static readonly SERVICES = "services";
     static readonly CONTROLLERS = "controllers";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -181,7 +179,7 @@ Source: `packages/boot/src/generator/common/constants.ts`
 Mirrors the kernel's `ArtifactTypes` values; boot must not depend on kernel (`{boot, kernel} -> core` in the build chain).
 
 ```ts
-export declare class ArtifactTypes {
+export declare class ArtifactTypes extends ConstClass {
     static readonly CONFIGURATION = "configuration";
     static readonly COMPONENT = "component";
     static readonly CONTROLLER = "controller";
@@ -189,8 +187,6 @@ export declare class ArtifactTypes {
     static readonly REPOSITORY = "repository";
     static readonly DATASOURCE = "datasource";
     static readonly MODEL = "model";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -302,12 +298,10 @@ Source: `packages/boot/src/generator/common/types.ts`
 Why a decorated class was left out of the index - reported, never silent.
 
 ```ts
-export declare class ScanSkipReasons {
+export declare class ScanSkipReasons extends ConstClass {
     static readonly ABSTRACT = "abstract";
     static readonly NOT_EXPORTED = "not-exported";
     static readonly IGNORED = "ignored";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 

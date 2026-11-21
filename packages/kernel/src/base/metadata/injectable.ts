@@ -15,7 +15,7 @@ export const injectable = <ApplicationType = unknown>(
   return (target) => {
     if (!ArtifactTypes.isValid(opts.type)) {
       throw getError({
-        message: `[injectable][${target.name}] Invalid artifact type: '${opts.type}' | Expected one of: ${[...ArtifactTypes.SCHEME_SET].join(', ')}`,
+        message: `[injectable][${target.name}] Invalid artifact type: '${opts.type}' | Expected one of: ${ArtifactTypes.values().join(', ')}`,
       });
     }
 

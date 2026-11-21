@@ -72,7 +72,7 @@ export class TokenUidHelper extends BaseHelper {
     if (!UidTokenEncodings.isValid(this.encoding)) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: `[${TokenUidHelper.name}] Unknown encoding | value: ${this.encoding} | valid: ${[...UidTokenEncodings.SCHEME_SET].join(', ')}`,
+        message: `[${TokenUidHelper.name}] Unknown encoding | value: ${this.encoding} | valid: ${UidTokenEncodings.values().join(', ')}`,
       });
     }
 

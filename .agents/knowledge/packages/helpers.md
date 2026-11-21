@@ -142,7 +142,7 @@ Three constraints on `PlatformaticKafkaPlugins.buildRequirePlugin` that the code
 `LABELS` (English/Vietnamese display strings, and they pull its `INameI18n`) and `NearExpiryThreshold`
 (business logic).
 
-- **`DurationUnits`** - eight canonical names, `SCHEME_SET`, `isValid`. `TDurationUnit` is the union;
+- **`DurationUnits`** - eight canonical names; a `ConstClass`, so `values()` and `isValid`. `TDurationUnit` is the union;
   `IDuration` is `{ unit, value }`.
 - **`DurationAliases`** - a const class whose UPPER_CASE member names ARE the accepted spellings
   (`MS`, `WK`, `DAYS`, `MO`). `resolve()` reads a written unit into its canonical name. `M` is MINUTE

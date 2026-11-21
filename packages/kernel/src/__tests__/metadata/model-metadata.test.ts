@@ -33,7 +33,7 @@ const normalize = (metadata: IModelMetadata) =>
 describe('ModelTypes', () => {
   test('is shaped like RepositoryTypes: a value, a set and isValid', () => {
     expect(ModelTypes.ENTITY).toBe('entity');
-    expect(ModelTypes.SCHEME_SET.has('entity')).toBe(true);
+    expect(ModelTypes.isValid('entity')).toBe(true);
     expect(ModelTypes.isValid('entity')).toBe(true);
     expect(ModelTypes.isValid('view')).toBe(false);
     expect(ModelTypes.isValid('')).toBe(false);

@@ -115,7 +115,7 @@ describe('AuthorizationDecisions.isValid + SCHEME_SET', () => {
     expect(AuthorizationDecisions.isValid('abstain')).toBe(true);
     expect(AuthorizationDecisions.isValid('ALLOW')).toBe(false);
     expect(AuthorizationDecisions.isValid('reject')).toBe(false);
-    expect(AuthorizationDecisions.SCHEME_SET.has('abstain')).toBe(true);
+    expect(AuthorizationDecisions.isValid('abstain')).toBe(true);
   });
 });
 
@@ -124,8 +124,8 @@ describe('AuthorizationEnforcerTypes.isValid + SCHEME_SET', () => {
     expect(AuthorizationEnforcerTypes.isValid('casbin')).toBe(true);
     expect(AuthorizationEnforcerTypes.isValid('custom')).toBe(true);
     expect(AuthorizationEnforcerTypes.isValid('rbac')).toBe(false);
-    expect(AuthorizationEnforcerTypes.SCHEME_SET.has('casbin')).toBe(true);
-    expect(AuthorizationEnforcerTypes.SCHEME_SET.size).toBe(2);
+    expect(AuthorizationEnforcerTypes.isValid('casbin')).toBe(true);
+    expect(AuthorizationEnforcerTypes.values()).toHaveLength(2);
   });
 });
 
@@ -133,7 +133,7 @@ describe('CasbinEnforcerCachedDrivers.isValid + SCHEME_SET', () => {
   test('valid + invalid', () => {
     expect(CasbinEnforcerCachedDrivers.isValid('redis')).toBe(true);
     expect(CasbinEnforcerCachedDrivers.isValid('memcached')).toBe(false);
-    expect(CasbinEnforcerCachedDrivers.SCHEME_SET.has('redis')).toBe(true);
+    expect(CasbinEnforcerCachedDrivers.isValid('redis')).toBe(true);
   });
 });
 
@@ -142,7 +142,7 @@ describe('CasbinEnforcerModelDrivers.isValid + SCHEME_SET', () => {
     expect(CasbinEnforcerModelDrivers.isValid('file')).toBe(true);
     expect(CasbinEnforcerModelDrivers.isValid('text')).toBe(true);
     expect(CasbinEnforcerModelDrivers.isValid('json')).toBe(false);
-    expect(CasbinEnforcerModelDrivers.SCHEME_SET.size).toBe(2);
+    expect(CasbinEnforcerModelDrivers.values()).toHaveLength(2);
   });
 });
 
@@ -166,7 +166,7 @@ describe('CasbinDomainMatchingFunctions.isValid + SCHEME_SET', () => {
     }
 
     expect(CasbinDomainMatchingFunctions.isValid('globMatch')).toBe(false);
-    expect(CasbinDomainMatchingFunctions.SCHEME_SET.size).toBe(5);
+    expect(CasbinDomainMatchingFunctions.values()).toHaveLength(5);
   });
 });
 
@@ -175,7 +175,7 @@ describe('AuthorizationDomainScopes.isValid + SCHEME_SET', () => {
     expect(AuthorizationDomainScopes.isValid('ANY_MEMBER')).toBe(true);
     expect(AuthorizationDomainScopes.isValid('SYSTEM_WIDE')).toBe(true);
     expect(AuthorizationDomainScopes.isValid('any_member')).toBe(false);
-    expect(AuthorizationDomainScopes.SCHEME_SET.size).toBe(2);
+    expect(AuthorizationDomainScopes.values()).toHaveLength(2);
   });
 });
 

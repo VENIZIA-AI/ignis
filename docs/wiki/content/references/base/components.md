@@ -247,17 +247,9 @@ export class Authentication {
 
 ```typescript
 // src/components/api-reference/common/constants.ts
-export class DocumentUITypes {
+export class DocumentUITypes extends ConstClass {
   static readonly SWAGGER = 'swagger';
   static readonly SCALAR = 'scalar';
-
-  // Set for O(1) validation
-  static readonly SCHEME_SET = new Set([this.SWAGGER, this.SCALAR]);
-
-  // Validation helper
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 // src/components/api-reference/common/types.ts
@@ -817,7 +809,7 @@ override binding(): ValueOrPromise<void> {
 | **Directory** | Use `common/` for shared keys, types, constants |
 | **Keys** | Use `@app/[component]/[feature]` format |
 | **Types** | `I` prefix for interfaces, `T` prefix for type aliases |
-| **Constants** | Use static classes with `SCHEME_SET` for validation |
+| **Constants** | Use static classes that extend `ConstClass` (`values()`, `isValid()`) |
 | **Defaults** | Define `DEFAULT_OPTIONS` constant at file top |
 | **Exports** | Use barrel exports (`index.ts`) at every level |
 | **Validation** | Validate required options in `binding()` |

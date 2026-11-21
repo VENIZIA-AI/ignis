@@ -502,7 +502,7 @@ export class TemporalHelper extends AbstractTemporalHelper {
     if (!TemporalInclusivities.isValid(inclusivity)) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-        message: `[TemporalHelper] unknown inclusivity '${inclusivity}' | Supported: ${[...TemporalInclusivities.SCHEME_SET].join(', ')}`,
+        message: `[TemporalHelper] unknown inclusivity '${inclusivity}' | Supported: ${TemporalInclusivities.values().join(', ')}`,
       });
     }
 

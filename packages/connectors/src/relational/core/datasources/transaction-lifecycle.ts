@@ -1,24 +1,14 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { ITransaction } from '@venizia/ignis-kernel';
+import { ConstClass } from '@venizia/ignis-helpers/common';
 
 /** Lifecycle states of a transaction handle: `ACTIVE` until it ends as `COMMITTED`, `ROLLED_BACK` or `FAILED`. */
-export class TransactionStates {
+export class TransactionStates extends ConstClass {
   static readonly ACTIVE = 'ACTIVE';
   static readonly COMMITTED = 'COMMITTED';
   static readonly ROLLED_BACK = 'ROLLED_BACK';
   static readonly FAILED = 'FAILED';
-
-  static readonly SCHEME_SET = new Set([
-    this.ACTIVE,
-    this.COMMITTED,
-    this.ROLLED_BACK,
-    this.FAILED,
-  ]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** One of the {@link TransactionStates} values. */

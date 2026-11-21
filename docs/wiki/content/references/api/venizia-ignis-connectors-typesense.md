@@ -1759,7 +1759,7 @@ Source: `packages/connectors/src/search/core/common/errors.ts`
 Engine-neutral field type vocabulary for the search-collection DSL.
 
 ```ts
-export declare class SearchFieldTypes {
+export declare class SearchFieldTypes extends ConstClass {
     static readonly STRING = "string";
     static readonly NUMBER = "number";
     static readonly BOOLEAN = "boolean";
@@ -1768,8 +1768,6 @@ export declare class SearchFieldTypes {
     static readonly NUMBER_ARRAY = "number[]";
     static readonly BOOLEAN_ARRAY = "boolean[]";
     static readonly VECTOR = "vector";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): value is TSearchFieldType;
     /** Full-text search matches text fields only (`string`, `string[]`): the rule `defaultQueryBy` and a route's `query.queryBy` share. */
     static isText(type: string): boolean;
 }
@@ -1788,15 +1786,13 @@ narrow it. The relational branch has always had this vocabulary (`sql\`false\`` 
 relational/repositories/dialect/filter.ts:637-641); this is that vocabulary for the search branch.
 
 ```ts
-export declare class SearchFilterOutcomes {
+export declare class SearchFilterOutcomes extends ConstClass {
     /** A real filter expression the engine should run. */
     static readonly FILTER = "filter";
     /** Vacuously true - impose no constraint. */
     static readonly MATCH_ALL = "matchAll";
     /** Absorbing false - can never match, so the engine must not be asked. */
     static readonly MATCH_NONE = "matchNone";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): input is TSearchFilterOutcome;
 }
 ```
 
@@ -1910,13 +1906,11 @@ Source: `packages/connectors/src/search/core/repositories/common/constants.ts`
 Discriminant values for `TSearchInput.mode` - which search strategy `ReadableSearchRepository.search()` runs.
 
 ```ts
-export declare class SearchModes {
+export declare class SearchModes extends ConstClass {
     static readonly KEYWORD = "keyword";
     static readonly SEMANTIC = "semantic";
     static readonly HYBRID = "hybrid";
     static readonly RAW = "raw";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): input is TSearchMode;
 }
 ```
 
@@ -1998,15 +1992,13 @@ export type TCompiledWhere = {
  * narrow it. The relational branch has always had this vocabulary (`sql\`false\`` vs `undefined`,
  * relational/repositories/dialect/filter.ts:637-641); this is that vocabulary for the search branch.
  */
-export declare class SearchFilterOutcomes {
+export declare class SearchFilterOutcomes extends ConstClass {
     /** A real filter expression the engine should run. */
     static readonly FILTER = "filter";
     /** Vacuously true - impose no constraint. */
     static readonly MATCH_ALL = "matchAll";
     /** Absorbing false - can never match, so the engine must not be asked. */
     static readonly MATCH_NONE = "matchNone";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): input is TSearchFilterOutcome;
 }
 ```
 
@@ -2692,13 +2684,11 @@ Source: `packages/connectors/src/search/typesense/datasources/datasource.ts`
 Values of the import `dirtyValues` option, which selects how the engine treats a field value that does not match its declared type.
 
 ```ts
-export declare class TypesenseDirtyValues {
+export declare class TypesenseDirtyValues extends ConstClass {
     static readonly COERCE_OR_REJECT = "coerce_or_reject";
     static readonly COERCE_OR_DROP = "coerce_or_drop";
     static readonly DROP = "drop";
     static readonly REJECT = "reject";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): value is TTypesenseDirtyValue;
 }
 ```
 
@@ -2711,13 +2701,11 @@ Source: `packages/connectors/src/search/typesense/common/constants.ts`
 Values of the import `action` option; `create` is used when none is given.
 
 ```ts
-export declare class TypesenseImportActions {
+export declare class TypesenseImportActions extends ConstClass {
     static readonly CREATE = "create";
     static readonly UPSERT = "upsert";
     static readonly UPDATE = "update";
     static readonly EMPLACE = "emplace";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): value is TTypesenseImportAction;
 }
 ```
 
@@ -2802,12 +2790,10 @@ Source: `packages/connectors/src/search/typesense/repositories/dialect/query-dia
 Distance metrics a `vector` field may declare. An engine that supports fewer rejects the rest in its compiler.
 
 ```ts
-export declare class VectorDistances {
+export declare class VectorDistances extends ConstClass {
     static readonly COSINE = "cosine";
     static readonly INNER_PRODUCT = "ip";
     static readonly L2 = "l2";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): value is TVectorDistance;
 }
 ```
 

@@ -1,15 +1,10 @@
-import { type TConstValue } from '@/common';
+import { ConstClass } from '@/common/const-class';
+import type { TConstValue } from '@/common';
 
 /** Consumer group protocol: `classic` or `consumer`. */
-export class KafkaGroupProtocol {
+export class KafkaGroupProtocol extends ConstClass {
   static readonly CLASSIC = 'classic';
   static readonly CONSUMER = 'consumer';
-
-  static readonly SCHEME_SET = new Set([this.CLASSIC, this.CONSUMER]);
-
-  static isValid(mode: string): boolean {
-    return this.SCHEME_SET.has(mode);
-  }
 }
 
 /** A {@link KafkaGroupProtocol} value. */

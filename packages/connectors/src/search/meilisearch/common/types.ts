@@ -1,24 +1,13 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
+import { ConstClass } from '@venizia/ignis-helpers/common';
 
 /** Meilisearch task lifecycle. Every write returns a task uid and is invisible to search until SUCCEEDED. */
-export class MeilisearchTaskStatuses {
+export class MeilisearchTaskStatuses extends ConstClass {
   static readonly ENQUEUED = 'enqueued';
   static readonly PROCESSING = 'processing';
   static readonly SUCCEEDED = 'succeeded';
   static readonly FAILED = 'failed';
   static readonly CANCELED = 'canceled';
-
-  static readonly SCHEME_SET = new Set<string>([
-    this.ENQUEUED,
-    this.PROCESSING,
-    this.SUCCEEDED,
-    this.FAILED,
-    this.CANCELED,
-  ]);
-
-  static isValid(value: string): value is TMeilisearchTaskStatus {
-    return this.SCHEME_SET.has(value);
-  }
 
   static isTerminal(value: string): boolean {
     return value === this.SUCCEEDED || value === this.FAILED || value === this.CANCELED;

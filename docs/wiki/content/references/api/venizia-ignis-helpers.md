@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-223 exports, 223 with TSDoc. 255 more are re-exported from other entries (listed at the end).
+223 exports, 223 with TSDoc. 256 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -1099,12 +1099,10 @@ Source: `packages/helpers/src/modules/slug/common/constants.ts`
 Password-hash schemes `CredentialUtility` accepts. `isValid` narrows a string to `TCredentialAlgorithm`.
 
 ```ts
-export declare class CredentialAlgorithms {
+export declare class CredentialAlgorithms extends ConstClass {
     /** What `Bun.password` writes with its default parameters; the scheme `hash` uses unless told otherwise. */
     static readonly ARGON2ID = "argon2id";
     static readonly BCRYPT = "bcrypt";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): value is TCredentialAlgorithm;
 }
 ```
 
@@ -1523,7 +1521,7 @@ Source: `packages/helpers/src/modules/crypto/algorithms/hash.algorithm.ts`
 Digest names the hash algorithm accepts. `isValid` narrows a string to `THashAlgorithm`.
 
 ```ts
-export declare class HashAlgorithms {
+export declare class HashAlgorithms extends ConstClass {
     /** Cryptographically broken - kept only for wire-protocol compatibility (VNPay checksums); never use for security decisions. */
     static readonly MD5 = "md5";
     /** Cryptographically weak - kept for wire-protocol compatibility with legacy integrations; never use for security decisions. */
@@ -1531,8 +1529,6 @@ export declare class HashAlgorithms {
     static readonly SHA256 = "sha256";
     static readonly SHA384 = "sha384";
     static readonly SHA512 = "sha512";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): value is THashAlgorithm;
 }
 ```
 
@@ -1545,12 +1541,10 @@ Source: `packages/helpers/src/modules/crypto/common/constants.ts`
 Text encodings a digest can be written in. `isValid` narrows a string to `THashOutputEncoding`.
 
 ```ts
-export declare class HashOutputEncodings {
+export declare class HashOutputEncodings extends ConstClass {
     static readonly HEX = "hex";
     static readonly BASE64 = "base64";
     static readonly BASE64URL = "base64url";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): value is THashOutputEncoding;
 }
 ```
 
@@ -3744,11 +3738,9 @@ Source: `packages/helpers/src/modules/logger/common/debug-gate.ts`
 Output shapes of a log line. `isValid` narrows a string to `TLoggerFormat`.
 
 ```ts
-export declare class LoggerFormats {
+export declare class LoggerFormats extends ConstClass {
     static readonly JSON = "json";
     static readonly TEXT = "text";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): input is TLoggerFormat;
 }
 ```
 
@@ -3900,11 +3892,9 @@ Source: `packages/helpers/src/utilities/module.utility.ts`
 Where `RequestUtility.parseMultipartBody` keeps an uploaded file: MEMORY (a buffer) or DISK (spooled to `uploadDir`).
 
 ```ts
-export declare class MultipartStorages {
+export declare class MultipartStorages extends ConstClass {
     static readonly MEMORY = "memory";
     static readonly DISK = "disk";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -4442,12 +4432,10 @@ Source: `packages/helpers/src/modules/storage/common/constants.ts`
 Secret backends a secrets registration can select.
 
 ```ts
-export declare class SecretProviders {
+export declare class SecretProviders extends ConstClass {
     static readonly SYSTEM_ENVS = "system-envs";
     static readonly HASHICORP_VAULT = "hashicorp-vault";
     static readonly DOTENV_VAULT = "dotenv-vault";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): value is TSecretProvider;
 }
 ```
 
@@ -5242,12 +5230,10 @@ Source: `packages/helpers/src/modules/network/utilities/url-safety/common/errors
 Ways a Vault provider can authenticate.
 
 ```ts
-export declare class VaultAuthMethods {
+export declare class VaultAuthMethods extends ConstClass {
     static readonly TOKEN = "token";
     static readonly APP_ROLE = "app-role";
     static readonly KUBERNETES = "kubernetes";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): value is TVaultAuthMethod;
 }
 ```
 
@@ -5289,13 +5275,11 @@ Source: `packages/helpers/src/modules/socket/websocket/common/constants.ts`
 Connection states of a WebSocket client. `isValid` narrows a string to one of them.
 
 ```ts
-export declare class WebSocketClientStates {
+export declare class WebSocketClientStates extends ConstClass {
     static readonly UNAUTHORIZED = "unauthorized";
     static readonly AUTHENTICATING = "authenticating";
     static readonly AUTHENTICATED = "authenticated";
     static readonly DISCONNECTED = "disconnected";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): input is TConstValue<typeof WebSocketClientStates>;
 }
 ```
 
@@ -5373,7 +5357,7 @@ Source: `packages/helpers/src/modules/socket/websocket/emitter/helper.ts`
 Event names of the WebSocket protocol. `isValid` narrows a string to one of them.
 
 ```ts
-export declare class WebSocketEvents {
+export declare class WebSocketEvents extends ConstClass {
     static readonly AUTHENTICATE = "authenticate";
     static readonly CONNECTED = "connected";
     static readonly DISCONNECT = "disconnect";
@@ -5382,8 +5366,6 @@ export declare class WebSocketEvents {
     static readonly ERROR = "error";
     static readonly HEARTBEAT = "heartbeat";
     static readonly ENCRYPTED = "encrypted";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): input is TWebSocketEvent;
 }
 ```
 
@@ -5396,13 +5378,11 @@ Source: `packages/helpers/src/modules/socket/websocket/common/constants.ts`
 Delivery target types of a WebSocket message. `isValid` narrows a string to one of them.
 
 ```ts
-export declare class WebSocketMessageTypes {
+export declare class WebSocketMessageTypes extends ConstClass {
     static readonly CLIENT = "client";
     static readonly USER = "user";
     static readonly ROOM = "room";
     static readonly BROADCAST = "broadcast";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): input is TWebSocketMessageType;
 }
 ```
 
@@ -5585,6 +5565,7 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `BuildInfoRegistry` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `ClassResolver` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `ConsoleLogger` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `ConstClass` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `CONTENT_TYPE_BY_EXTENSION` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `ContentDispositionTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `ContentTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)

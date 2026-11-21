@@ -8,7 +8,7 @@ describe('DurationUnits - the unit vocabulary', () => {
     expect(declared.length).toBe(8);
 
     for (const unit of declared) {
-      expect(DurationUnits.SCHEME_SET.has(unit as string)).toBe(true);
+      expect(DurationUnits.isValid(unit as string)).toBe(true);
       expect(DurationUnits.isValid(unit as string)).toBe(true);
     }
   });
@@ -35,7 +35,7 @@ describe('DurationMultipliers - converting a window to milliseconds', () => {
   });
 
   test('BY_UNIT covers every unit in the vocabulary', () => {
-    for (const unit of DurationUnits.SCHEME_SET) {
+    for (const unit of DurationUnits.values()) {
       expect(typeof DurationMultipliers.BY_UNIT[unit]).toBe('number');
     }
   });
@@ -86,7 +86,7 @@ describe('DurationAliases.resolve - written units', () => {
   });
 
   test('every canonical unit name parses back to itself, so no alias table entry can go missing', () => {
-    for (const unit of DurationUnits.SCHEME_SET) {
+    for (const unit of DurationUnits.values()) {
       expect<string | null>(DurationAliases.resolve(unit)).toBe(unit);
     }
   });

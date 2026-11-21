@@ -556,3 +556,34 @@ spawn-helper-is-utility:
       - "Pin the packages to 0.4.8 and run devz codemod class-renames --reverse --write."
   data: "Nothing stored changes. After the codemod, rename by hand: a .js/.cjs/.mjs file, an `import('...').Old` type, a `require()` or a dynamic import."
   codemod: class-renames
+
+const-class-base:
+  symbols: [ConstClass, SCHEME_SET, isValid, values]
+  upgrade:
+    before: |-
+      import { AuthenticationModes } from '@venizia/ignis';
+
+      if (AuthenticationModes.SCHEME_SET.has(mode)) {
+        use(mode);
+      }
+
+      const modes = [...AuthenticationModes.SCHEME_SET];
+    after: |-
+      import { AuthenticationModes } from '@venizia/ignis';
+
+      if (AuthenticationModes.isValid(mode)) {
+        use(mode);
+      }
+
+      const modes = AuthenticationModes.values();
+    steps:
+      - "Upgrade the packages, commit your files, then run bun node_modules/.bin/devz codemod const-classes [paths...] --write from the project root (or --write --all). It rewrites X.SCHEME_SET.has(value) to X.isValid(value) and [...X.SCHEME_SET] to X.values() for a class from IGNIS, and moves a class of your own with the same old shape (string members, a SCHEME_SET listing them, an isValid that checks it) onto ConstClass. Use --import-from to say where ConstClass is imported from if it is not @venizia/ignis-helpers/common."
+      - "Change by hand every other use the codemod lists as manual: .size becomes values().length, for...of over the set loops over values(), and a function that took the set takes values() or calls isValid."
+      - "values() is a readonly tuple. Copy it with [...X.values()] where a mutable array is needed, for example before .sort()."
+      - "Delete a SCHEME_SET or isValid that a subclass of one of these classes declares on its own; the subclass inherits both, and values() of a subclass lists the values of its base class first."
+      - "Run your typecheck: a TConstValue import that only the removed isValid used is now unused."
+  downgrade:
+    steps:
+      - "Pin the @venizia packages to 0.4.8 and restore the files the codemod changed from git."
+  data: "Nothing stored changes; the values of every class are the same strings. SCHEME_SET stays on the classes that hold more than a list of strings, so only a class that extends ConstClass loses it."
+  codemod: const-classes

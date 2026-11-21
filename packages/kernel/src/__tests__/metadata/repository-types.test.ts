@@ -73,10 +73,7 @@ class ExplicitDefaultProbeRepository {
 
 describe('RepositoryTypes', () => {
   test('holds exactly the two repository types and validates against them', () => {
-    expect([...RepositoryTypes.SCHEME_SET]).toEqual([
-      RepositoryTypes.MODEL,
-      RepositoryTypes.REMOTE,
-    ]);
+    expect(RepositoryTypes.values()).toEqual([RepositoryTypes.MODEL, RepositoryTypes.REMOTE]);
     expect(RepositoryTypes.isValid(RepositoryTypes.MODEL)).toBe(true);
     expect(RepositoryTypes.isValid(RepositoryTypes.REMOTE)).toBe(true);
     expect(RepositoryTypes.isValid('relational')).toBe(false);

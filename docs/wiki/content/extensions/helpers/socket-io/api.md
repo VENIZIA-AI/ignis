@@ -603,7 +603,7 @@ interface ISocketIOServerBunOptions extends ISocketIOServerBaseOptions {
 | `AUTHENTICATING` | `'authenticating'` | Authentication in progress |
 | `AUTHENTICATED` | `'authenticated'` | Successfully authenticated |
 
-`SocketIOClientStates.isValid(input: string): input is TConstValue<typeof SocketIOClientStates>` - checks membership against the backing `SCHEME_SET`.
+`SocketIOClientStates.isValid(input: string): input is TConstValue<typeof SocketIOClientStates>` - checks membership against `values()`.
 
 ```typescript
 SocketIOClientStates.isValid('authenticated'); // true

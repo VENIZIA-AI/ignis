@@ -118,12 +118,10 @@ Source: `packages/helpers/src/modules/socket/socket-io/client/browser-helper.ts`
 Authentication states of a Socket.IO client. `isValid` narrows a string to one of them.
 
 ```ts
-export declare class SocketIOClientStates {
+export declare class SocketIOClientStates extends ConstClass {
     static readonly UNAUTHORIZED = "unauthorized";
     static readonly AUTHENTICATING = "authenticating";
     static readonly AUTHENTICATED = "authenticated";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): input is TConstValue<typeof SocketIOClientStates>;
 }
 ```
 

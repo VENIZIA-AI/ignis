@@ -287,12 +287,10 @@ SQLite's BEGIN axis is a locking mode, not an isolation level - every SQLite tra
 serializable, so there is no level left to choose.
 
 ```ts
-export declare class SqliteBeginModes {
+export declare class SqliteBeginModes extends ConstClass {
     static readonly DEFERRED = "DEFERRED";
     static readonly IMMEDIATE = "IMMEDIATE";
     static readonly EXCLUSIVE = "EXCLUSIVE";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 

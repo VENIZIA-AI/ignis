@@ -1,5 +1,5 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
-import { HTTP } from '@venizia/ignis-helpers/common';
+import { HTTP, ConstClass } from '@venizia/ignis-helpers/common';
 import type { TCrudRoutes, TResponseHeaders } from './types';
 
 /**
@@ -18,15 +18,9 @@ export class ControllerTransports {
 export type TControllerTransport = TConstValue<typeof ControllerTransports>;
 
 /** Shape of `data` in a `{ count, data }` response, echoed in the `X-Response-Format` header. */
-export class ResponseFormats {
+export class ResponseFormats extends ConstClass {
   static readonly OBJECT = 'object';
   static readonly ARRAY = 'array';
-
-  static readonly SCHEME_SET = new Set<string>([this.OBJECT, this.ARRAY]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** Union of the `ResponseFormats` values. */
@@ -77,16 +71,10 @@ export const findResponseHeaders: TResponseHeaders = {
 };
 
 /** Which decorator-defined routes `registerRoutesFromRegistry` registers: STATIC (no path parameter), PARAM (a path parameter) or ALL. */
-export class RoutePathScopes {
+export class RoutePathScopes extends ConstClass {
   static readonly STATIC = 'static';
   static readonly PARAM = 'param';
   static readonly ALL = 'all';
-
-  static readonly SCHEME_SET = new Set<string>([this.STATIC, this.PARAM, this.ALL]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** Valid route path scope values. */

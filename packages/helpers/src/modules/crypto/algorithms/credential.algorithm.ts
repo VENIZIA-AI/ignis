@@ -66,7 +66,7 @@ export class CredentialUtility {
 
     if (typeof algorithm !== 'string' || !CredentialAlgorithms.isValid(algorithm)) {
       throw getError({
-        message: `[CredentialUtility.hash] Invalid algorithm | Expected one of ${[...CredentialAlgorithms.SCHEME_SET].join(', ')} | Got: ${String(algorithm)}`,
+        message: `[CredentialUtility.hash] Invalid algorithm | Expected one of ${CredentialAlgorithms.values().join(', ')} | Got: ${String(algorithm)}`,
       });
     }
 

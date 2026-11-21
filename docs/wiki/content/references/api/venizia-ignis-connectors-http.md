@@ -122,11 +122,9 @@ Source: `packages/connectors/src/http/datasource.ts`
 What a read expects back: LIST (a bare array or the `{ count, data }` envelope) or ONE (a single record, never unwrapped).
 
 ```ts
-export declare class HttpReadShapes {
+export declare class HttpReadShapes extends ConstClass {
     static readonly LIST = "list";
     static readonly ONE = "one";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 

@@ -1,51 +1,34 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
+import { ConstClass } from '@venizia/ignis-helpers/common';
 
 /** Kinds of enforcer a registration can declare; `casbin` takes `ICasbinEnforcerOptions`, `custom` takes untyped options. */
-export class AuthorizationEnforcerTypes {
+export class AuthorizationEnforcerTypes extends ConstClass {
   static readonly CASBIN = 'casbin';
   static readonly CUSTOM = 'custom';
-
-  static readonly SCHEME_SET = new Set([this.CASBIN, this.CUSTOM]);
-
-  static isValid(input: string): boolean {
-    return this.SCHEME_SET.has(input);
-  }
 }
 
 /** Union of the `AuthorizationEnforcerTypes` values. */
 export type TAuthorizationEnforcerType = TConstValue<typeof AuthorizationEnforcerTypes>;
 
 /** Cache backends for a Casbin enforcer's per-user policy lines. */
-export class CasbinEnforcerCachedDrivers {
+export class CasbinEnforcerCachedDrivers extends ConstClass {
   static readonly REDIS = 'redis';
-
-  static readonly SCHEME_SET = new Set([this.REDIS]);
-
-  static isValid(input: string): boolean {
-    return this.SCHEME_SET.has(input);
-  }
 }
 
 /** Union of the `CasbinEnforcerCachedDrivers` values. */
 export type TCasbinEnforcerCachedDriver = TConstValue<typeof CasbinEnforcerCachedDrivers>;
 
 /** Where a Casbin enforcer reads its model from: a `file` path or inline `text`. */
-export class CasbinEnforcerModelDrivers {
+export class CasbinEnforcerModelDrivers extends ConstClass {
   static readonly FILE = 'file';
   static readonly TEXT = 'text';
-
-  static readonly SCHEME_SET = new Set([this.FILE, this.TEXT]);
-
-  static isValid(input: string): boolean {
-    return this.SCHEME_SET.has(input);
-  }
 }
 
 /** Union of the `CasbinEnforcerModelDrivers` values. */
 export type TCasbinEnforcerModelDriver = TConstValue<typeof CasbinEnforcerModelDrivers>;
 
 /** Casbin matching functions selectable for the domain match in `ICasbinEnforcerOptions.domainMatching`. */
-export class CasbinDomainMatchingFunctions {
+export class CasbinDomainMatchingFunctions extends ConstClass {
   /** `*` is the only wildcard; exact compare otherwise. Safest for `Merchant_<uuid>` domains. */
   static readonly KEY_MATCH = 'keyMatch';
 
@@ -60,18 +43,6 @@ export class CasbinDomainMatchingFunctions {
 
   /** Treats the stored/policy value as a full regular expression. */
   static readonly REGEX_MATCH = 'regexMatch';
-
-  static readonly SCHEME_SET = new Set([
-    this.KEY_MATCH,
-    this.KEY_MATCH_2,
-    this.KEY_MATCH_3,
-    this.KEY_MATCH_4,
-    this.REGEX_MATCH,
-  ]);
-
-  static isValid(input: string): boolean {
-    return this.SCHEME_SET.has(input);
-  }
 }
 
 /** Union of the `CasbinDomainMatchingFunctions` values. */

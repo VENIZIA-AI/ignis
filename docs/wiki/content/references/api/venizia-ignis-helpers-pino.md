@@ -103,11 +103,9 @@ Source: `packages/helpers/src/modules/logger/pino/destination.ts`
 How often the file destination rolls (pino-roll's `frequency`).
 
 ```ts
-export declare class PinoFrequencies {
+export declare class PinoFrequencies extends ConstClass {
     static readonly HOURLY = "hourly";
     static readonly DAILY = "daily";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 

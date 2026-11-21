@@ -42,7 +42,7 @@ Everything here is browser-pure, so it works unchanged in a Worker. Import from 
 
 | Function | Signature | What it does |
 |---|---|---|
-| `DurationUnits.isValid` | `isValid(input: string): input is TDurationUnit` | `true` when `input` is one of the eight canonical names. |
+| `DurationUnits.isValid` | `isValid(value: unknown): value is TDurationUnit` | `true` when `value` is one of the eight canonical names. `DurationUnits.values()` lists them. |
 | `DurationAliases.resolve` | `resolve(input: string): TDurationUnit \| null` | Reads a written unit - `'d'`, `'days'`, `'DAY'` - into its canonical name. |
 | `DurationMultipliers.toMilliseconds` | `toMilliseconds(opts: IDuration \| null): number \| null` | Converts a duration to milliseconds, rounded. |
 | `DurationMultipliers.fromMilliseconds` | `fromMilliseconds(opts: { milliseconds: number; unit: TDurationUnit }): number \| null` | The inverse. Fractional, not rounded. |

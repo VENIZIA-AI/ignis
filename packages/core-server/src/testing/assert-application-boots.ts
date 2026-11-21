@@ -290,7 +290,7 @@ export class ApplicationBootAssertion {
     for (const step of skipSteps) {
       if (!ServerBootSteps.isValid(step)) {
         fail(
-          `Unknown boot step in skipSteps: '${String(step)}' | Expected one of: ${[...ServerBootSteps.SCHEME_SET].join(', ')}`,
+          `Unknown boot step in skipSteps: '${String(step)}' | Expected one of: ${ServerBootSteps.values().join(', ')}`,
         );
       }
     }

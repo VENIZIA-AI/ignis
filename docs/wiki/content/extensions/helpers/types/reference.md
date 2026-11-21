@@ -479,12 +479,10 @@ class DataTypes {
   static readonly JSON = 'JSON';
   static readonly BOOLEAN = 'BOOLEAN';
 
-  static readonly SCHEME_SET: Set<string>;
-  static isValid(orgType: string): boolean;
 }
 ```
 
-Schema data type constants with validation. `SCHEME_SET` contains all five valid type strings, and `isValid()` checks membership.
+The five value kinds a stored field can hold.
 
 ### HTTP
 
@@ -878,7 +876,7 @@ ContentTypes.isValid('image/png'); // true
 `Source ->` [`constants/duration.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/duration.ts)
 
 ```typescript
-class DurationUnits {
+class DurationUnits extends ConstClass {
   static readonly MILLISECOND = 'millisecond';
   static readonly SECOND = 'second';
   static readonly MINUTE = 'minute';

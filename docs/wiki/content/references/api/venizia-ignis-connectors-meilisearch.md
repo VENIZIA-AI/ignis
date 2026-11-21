@@ -500,14 +500,12 @@ Source: `packages/connectors/src/search/meilisearch/repositories/dialect/query-d
 Meilisearch task lifecycle. Every write returns a task uid and is invisible to search until SUCCEEDED.
 
 ```ts
-export declare class MeilisearchTaskStatuses {
+export declare class MeilisearchTaskStatuses extends ConstClass {
     static readonly ENQUEUED = "enqueued";
     static readonly PROCESSING = "processing";
     static readonly SUCCEEDED = "succeeded";
     static readonly FAILED = "failed";
     static readonly CANCELED = "canceled";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): value is TMeilisearchTaskStatus;
     static isTerminal(value: string): boolean;
 }
 ```

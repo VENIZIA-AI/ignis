@@ -203,11 +203,9 @@ Extends `MemoryStorageHelper<{ [key: string | symbol]: IUIProvider }>`, using `i
 ```typescript
 type TDocumentUIType = TConstValue<typeof DocumentUITypes>;
 
-class DocumentUITypes {
+class DocumentUITypes extends ConstClass {
   static readonly SWAGGER = 'swagger';
   static readonly SCALAR = 'scalar';
-  static readonly SCHEME_SET: Set<string>;
-  static isValid(input: string): boolean;
 }
 ```
 

@@ -1,6 +1,7 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { AuthorizationRole } from '../../models/authorization-role.model';
 import { CasbinRuleVariants } from './enforcer';
+import { ConstClass } from '@venizia/ignis-helpers/common';
 
 /** Keys of the authorization state on the Hono context (`RULES`, `SKIP_AUTHORIZATION`, `DOMAIN`) and the binding prefix for registered enforcers (`ENFORCER`). */
 export class Authorization {
@@ -57,16 +58,10 @@ export class AuthorizationActions {
 export type TAuthorizationAction = TConstValue<typeof AuthorizationActions>;
 
 /** Outcome of a voter or enforcer. The `isAllow`/`isDeny`/`isAbstain` helpers also accept a number: positive allows, negative denies, zero abstains. */
-export class AuthorizationDecisions {
+export class AuthorizationDecisions extends ConstClass {
   static readonly ALLOW = 'allow';
   static readonly DENY = 'deny';
   static readonly ABSTAIN = 'abstain';
-
-  static readonly SCHEME_SET = new Set([this.ALLOW, this.DENY, this.ABSTAIN]);
-
-  static isValid(input: string): boolean {
-    return this.SCHEME_SET.has(input);
-  }
 
   static isAllow(input: string | number): boolean {
     if (typeof input === 'number') {
@@ -136,18 +131,12 @@ export class AuthorizationRoles {
 }
 
 /** Scope literals a grant can carry instead of a concrete domain. */
-export class AuthorizationDomainScopes {
+export class AuthorizationDomainScopes extends ConstClass {
   /** Grant applies in EVERY domain the subject is a member of (checked via join_domain / g2). */
   static readonly ANY_MEMBER = 'ANY_MEMBER';
 
   /** Grant applies system-wide, bypassing membership - super-admin only. */
   static readonly SYSTEM_WIDE = 'SYSTEM_WIDE';
-
-  static readonly SCHEME_SET = new Set([this.ANY_MEMBER, this.SYSTEM_WIDE]);
-
-  static isValid(input: string): boolean {
-    return this.SCHEME_SET.has(input);
-  }
 }
 /** Union of the `AuthorizationDomainScopes` values. */
 export type TAuthorizationDomainScope = TConstValue<typeof AuthorizationDomainScopes>;
@@ -213,17 +202,11 @@ export type TAuthorizationPolicyVariant =
   (typeof AuthorizationPolicyVariants.ALL)[number]['action'];
 
 /** Where an `IAuthorizationDomainSource` reads the request domain from. */
-export class AuthorizationDomainSources {
+export class AuthorizationDomainSources extends ConstClass {
   static readonly PARAM = 'param';
   static readonly HEADER = 'header';
   static readonly QUERY = 'query';
   static readonly CONTEXT = 'context';
-
-  static readonly SCHEME_SET = new Set<string>([this.PARAM, this.HEADER, this.QUERY, this.CONTEXT]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** Valid authorization domain source values. */

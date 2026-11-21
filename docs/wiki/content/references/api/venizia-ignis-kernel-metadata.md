@@ -165,7 +165,7 @@ Source: `packages/kernel/src/common/bindings.ts`
 What a decorated class is to the application - the one fact the artifact generator and the registration methods both read.
 
 ```ts
-export declare class ArtifactTypes {
+export declare class ArtifactTypes extends ConstClass {
     static readonly CONFIGURATION = "configuration";
     static readonly COMPONENT = "component";
     static readonly CONTROLLER = "controller";
@@ -173,8 +173,6 @@ export declare class ArtifactTypes {
     static readonly REPOSITORY = "repository";
     static readonly DATASOURCE = "datasource";
     static readonly MODEL = "model";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 

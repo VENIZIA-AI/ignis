@@ -1767,11 +1767,9 @@ Source: `packages/connectors/src/relational/core/repositories/core/readable.ts`
 Walk direction relative to `rootId`: DOWN follows `parentColumn -> idColumn` (descendants), UP follows the reverse (ancestors).
 
 ```ts
-export declare class RecursiveTreeDirections {
+export declare class RecursiveTreeDirections extends ConstClass {
     static readonly UP = "UP";
     static readonly DOWN = "DOWN";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(direction: string): boolean;
 }
 ```
 
@@ -2100,11 +2098,9 @@ Source: `packages/connectors/src/relational/core/repositories/core/base.ts`
 The SQL engines a relational driver can speak. Only the migration ledger reads it today: Postgres has schemas to create, SQLite has only `main`.
 
 ```ts
-export declare class RelationalDialects {
+export declare class RelationalDialects extends ConstClass {
     static readonly POSTGRES = "postgres";
     static readonly SQLITE = "sqlite";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): input is TRelationalDialect;
 }
 ```
 

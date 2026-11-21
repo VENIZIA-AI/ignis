@@ -18,7 +18,7 @@ export const validateRepositoryMetadata = <
 
   if (!RepositoryTypes.isValid(type)) {
     throw getError({
-      message: `[validateRepositoryMetadata][@repository][${target.name}] Invalid metadata | Unknown 'type': ${type} | Expected one of: ${[...RepositoryTypes.SCHEME_SET].join(', ')}`,
+      message: `[validateRepositoryMetadata][@repository][${target.name}] Invalid metadata | Unknown 'type': ${type} | Expected one of: ${RepositoryTypes.values().join(', ')}`,
     });
   }
 

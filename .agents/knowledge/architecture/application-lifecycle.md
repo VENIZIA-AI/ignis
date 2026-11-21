@@ -61,8 +61,7 @@ instead of silently running the short kernel sequence.
 Step names are published constants, not loose strings: `BootSteps` in kernel
 (`packages/kernel/src/base/applications/boot-sequence.ts`) for the eleven steps the kernel defines
 methods for, `ServerBootSteps extends BootSteps` in core-server
-(`packages/core-server/src/base/applications/boot-steps.ts`) adding the five server-only ones. Both carry `SCHEME_SET` and `isValid()` like every const class
-here, and the server set contains the kernel set. They are what a subclass passes as `target` to
+(`packages/core-server/src/base/applications/boot-steps.ts`) adding the five server-only ones. Both are `ConstClass`es (`values()`, `isValid()`), and the server one inherits the kernel's values, so its `values()` contains them. They are what a subclass passes as `target` to
 `BootSequence.insertAfter`, which refuses an unknown name and a duplicated one alike - the first
 match is never taken silently. The effective sequence for a
 server application is:

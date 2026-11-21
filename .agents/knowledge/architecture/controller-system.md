@@ -94,7 +94,7 @@ the factory sit `AbstractCrudController`, `ReadableCrudController` and `Persista
 mirroring the read/write split on the repository side.
 
 The default create and update bodies leave out the keys of the model's `properties.stamped` (default
-`AuditFields.SCHEME_SET`: the audit keys and `deletedAt`) and an update body never carries `id`; see
+`AuditFields.values()`: the audit keys and `deletedAt`) and an update body never carries `id`; see
 [kernel](/packages/kernel.md). A factory of your own injects its
 repository through `CrudControllerFactory.registerRepositoryInjection`.
 

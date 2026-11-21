@@ -183,7 +183,7 @@ export class AuthenticateComponent extends BaseComponent {
 
         if (!issuerOpts.keys?.format || !JWKSKeyFormats.isValid(issuerOpts.keys.format)) {
           throw getError({
-            message: `[defineJWKSAuth] keys.format is required and must be one of: ${[...JWKSKeyFormats.SCHEME_SET].join(', ')}`,
+            message: `[defineJWKSAuth] keys.format is required and must be one of: ${JWKSKeyFormats.values().join(', ')}`,
           });
         }
 

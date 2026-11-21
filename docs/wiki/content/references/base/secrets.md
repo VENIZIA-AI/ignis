@@ -22,8 +22,8 @@ Technical reference for the `Secrets` provider family. It covers how IGNIS loads
 | **SystemEnvsHelper** | Default, static, zero-dependency | Reads `process.env`; `lease()` throws NotSupported |
 | **HashiCorpVaultHelper** | KV v2 + dynamic leases + rotation | Token / AppRole / Kubernetes auth; token self-renewal; `node-vault` optional peer |
 | **DotenvVaultHelper** | Static, encrypted `.env.vault` | Decrypts via `@dotenvx/dotenvx`; `lease()` throws NotSupported |
-| **SecretProviders** | Provider const-class | `SYSTEM_ENVS`, `HASHICORP_VAULT`, `DOTENV_VAULT`, `SCHEME_SET`, `isValid()` |
-| **VaultAuthMethods** | Auth const-class | `TOKEN`, `APP_ROLE`, `KUBERNETES`, `SCHEME_SET`, `isValid()` |
+| **SecretProviders** | Provider const-class | `SYSTEM_ENVS`, `HASHICORP_VAULT`, `DOTENV_VAULT`, `values()`, `isValid()` |
+| **VaultAuthMethods** | Auth const-class | `TOKEN`, `APP_ROLE`, `KUBERNETES`, `values()`, `isValid()` |
 | **ISecretsRegistration** | What `registerSecrets()` returns | `provider`, `config`, `hydrate[]`, `lease[]`, `renewBeforeRatio`, `cacheTtlSeconds` |
 | **ISecretRotatable** | Opt-in consumer hook | `onSecretRotated({ key, secret })` |
 
@@ -139,26 +139,16 @@ Because the default names `system-envs`, an app that never overrides it hydrates
 **File:** `packages/helpers/src/modules/secrets/common/constants.ts`
 
 ```typescript
-export class SecretProviders {
+export class SecretProviders extends ConstClass {
   static readonly SYSTEM_ENVS = 'system-envs';
   static readonly HASHICORP_VAULT = 'hashicorp-vault';
   static readonly DOTENV_VAULT = 'dotenv-vault';
-
-  static readonly SCHEME_SET = new Set([this.SYSTEM_ENVS, this.HASHICORP_VAULT, this.DOTENV_VAULT]);
-  static isValid(value: string): value is TSecretProvider {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
-export class VaultAuthMethods {
+export class VaultAuthMethods extends ConstClass {
   static readonly TOKEN = 'token';
   static readonly APP_ROLE = 'app-role';
   static readonly KUBERNETES = 'kubernetes';
-
-  static readonly SCHEME_SET = new Set([this.TOKEN, this.APP_ROLE, this.KUBERNETES]);
-  static isValid(value: string): value is TVaultAuthMethod {
-    return this.SCHEME_SET.has(value);
-  }
 }
 ```
 

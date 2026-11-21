@@ -167,13 +167,11 @@ Source: `packages/connectors/src/testing/transaction-double.ts`
 Lifecycle states of a transaction handle: `ACTIVE` until it ends as `COMMITTED`, `ROLLED_BACK` or `FAILED`.
 
 ```ts
-export declare class TransactionStates {
+export declare class TransactionStates extends ConstClass {
     static readonly ACTIVE = "ACTIVE";
     static readonly COMMITTED = "COMMITTED";
     static readonly ROLLED_BACK = "ROLLED_BACK";
     static readonly FAILED = "FAILED";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 

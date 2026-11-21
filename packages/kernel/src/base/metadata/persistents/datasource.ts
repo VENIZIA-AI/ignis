@@ -40,7 +40,7 @@ export const datasource = (metadata?: IDataSourceMetadata): ClassDecorator => {
     // Untyped JS callers: a misspelt mode would silently mean "start", so it is refused where it is written.
     if (openMode !== undefined && !DataSourceOpenModes.isValid(openMode)) {
       throw getError({
-        message: `[datasource][@datasource][${target.name}] Invalid metadata | Unknown 'open.on': ${String(openMode)} | Expected one of: ${[...DataSourceOpenModes.SCHEME_SET].join(', ')}`,
+        message: `[datasource][@datasource][${target.name}] Invalid metadata | Unknown 'open.on': ${String(openMode)} | Expected one of: ${DataSourceOpenModes.values().join(', ')}`,
       });
     }
 

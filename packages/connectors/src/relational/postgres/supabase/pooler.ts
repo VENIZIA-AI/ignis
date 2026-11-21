@@ -1,17 +1,12 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
+import { ConstClass } from '@venizia/ignis-helpers/common';
 
 /** How the app reaches Supabase. Direct and session pooler are 5432; transaction pooler is 6543. */
-export class PoolerModes {
+export class PoolerModes extends ConstClass {
   static readonly DIRECT = 'direct';
   static readonly SESSION = 'session';
   static readonly TRANSACTION = 'transaction';
-
-  static readonly SCHEME_SET = new Set<string>([this.DIRECT, this.SESSION, this.TRANSACTION]);
-
-  static isValid(value: string): value is TPoolerMode {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** One of the {@link PoolerModes} values. */
@@ -31,7 +26,7 @@ export class SupabasePooler {
 
     if (!PoolerModes.isValid(mode)) {
       throw getError({
-        message: `[buildPostgresJsOptions] Unknown pooler mode '${mode}' | Expected one of: ${[...PoolerModes.SCHEME_SET].join(', ')}`,
+        message: `[buildPostgresJsOptions] Unknown pooler mode '${mode}' | Expected one of: ${PoolerModes.values().join(', ')}`,
       });
     }
 

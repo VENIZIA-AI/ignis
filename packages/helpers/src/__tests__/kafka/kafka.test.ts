@@ -23,9 +23,9 @@ describe('KafkaGroupProtocol', () => {
   });
 
   test('TC-002: SCHEME_SET should contain all valid protocols', () => {
-    expect(KafkaGroupProtocol.SCHEME_SET.size).toBe(2);
-    expect(KafkaGroupProtocol.SCHEME_SET.has('classic')).toBe(true);
-    expect(KafkaGroupProtocol.SCHEME_SET.has('consumer')).toBe(true);
+    expect(KafkaGroupProtocol.values()).toHaveLength(2);
+    expect(KafkaGroupProtocol.isValid('classic')).toBe(true);
+    expect(KafkaGroupProtocol.isValid('consumer')).toBe(true);
   });
 
   test('TC-003: isValid should return true for valid protocols', () => {
