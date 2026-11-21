@@ -148,7 +148,7 @@ export class RetryUtility {
       }
       default: {
         throw getError({
-          message: `[computeBackoffDelayMs] Unknown backoff strategy '${strategy}' | Expected one of: ${[...RetryBackoffStrategies.SCHEME_SET].join(', ')}`,
+          message: `[computeBackoffDelayMs] Unknown backoff strategy '${strategy}' | Expected one of: ${RetryBackoffStrategies.values().join(', ')}`,
         });
       }
     }
@@ -173,7 +173,7 @@ export class RetryUtility {
       }
       default: {
         throw getError({
-          message: `[computeBackoffDelayMs] Unknown jitter mode '${jitter}' | Expected one of: ${[...RetryJitterModes.SCHEME_SET].join(', ')}`,
+          message: `[computeBackoffDelayMs] Unknown jitter mode '${jitter}' | Expected one of: ${RetryJitterModes.values().join(', ')}`,
         });
       }
     }

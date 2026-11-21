@@ -8,6 +8,7 @@ import type {
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import type { Pool } from 'pg';
+import { ConstClass } from '@venizia/ignis-helpers/common';
 
 /**
  * Drizzle connector for any Postgres driver: `NodePgDatabase` and `PostgresJsDatabase` both extend
@@ -22,20 +23,10 @@ export type TAnyConnector<DataSourceSchema extends TAnyDataSourceSchema = TAnyDa
   TRelationalConnector<DataSourceSchema>;
 
 /** Postgres transaction isolation levels accepted by `isolationLevel`. */
-export class IsolationLevels {
+export class IsolationLevels extends ConstClass {
   static readonly READ_COMMITTED = 'READ COMMITTED';
   static readonly REPEATABLE_READ = 'REPEATABLE READ';
   static readonly SERIALIZABLE = 'SERIALIZABLE';
-
-  static readonly SCHEME_SET = new Set([
-    this.READ_COMMITTED,
-    this.REPEATABLE_READ,
-    this.SERIALIZABLE,
-  ]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** One of the {@link IsolationLevels} values. */

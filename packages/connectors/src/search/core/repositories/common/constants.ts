@@ -1,6 +1,7 @@
 import { QuerySchemaFactory } from '@venizia/ignis-filter/schemas';
 import { z } from 'zod';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
+import { ConstClass } from '@venizia/ignis-helpers/common';
 
 const { FieldsSchema, LimitSchema, OffsetSchema, OrderBySchema, SkipSchema, WhereSchema } =
   QuerySchemaFactory.build({
@@ -9,17 +10,11 @@ const { FieldsSchema, LimitSchema, OffsetSchema, OrderBySchema, SkipSchema, Wher
   });
 
 /** Discriminant values for `TSearchInput.mode` - which search strategy `ReadableSearchRepository.search()` runs. */
-export class SearchModes {
+export class SearchModes extends ConstClass {
   static readonly KEYWORD = 'keyword';
   static readonly SEMANTIC = 'semantic';
   static readonly HYBRID = 'hybrid';
   static readonly RAW = 'raw';
-
-  static readonly SCHEME_SET = new Set([this.KEYWORD, this.SEMANTIC, this.HYBRID, this.RAW]);
-
-  static isValid(input: string): input is TSearchMode {
-    return this.SCHEME_SET.has(input);
-  }
 }
 /** Union of the `SearchModes` values. */
 export type TSearchMode = TConstValue<typeof SearchModes>;

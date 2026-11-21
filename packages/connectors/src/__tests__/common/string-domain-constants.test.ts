@@ -15,7 +15,7 @@ describe('string domains as const classes', () => {
 
   for (const { name, domain, values } of domains) {
     test(`${name} holds exactly its old literals and validates them`, () => {
-      expect([...domain.SCHEME_SET]).toEqual(values);
+      expect<string[]>([...domain.values()]).toEqual(values);
 
       for (const value of values) {
         expect(domain.isValid(value)).toBe(true);

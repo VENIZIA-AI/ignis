@@ -54,7 +54,7 @@ export class UIProviderFactory extends MemoryStorageHelper<{
       }
       default: {
         throw getError({
-          message: `[register] Invalid document UI Type | uiType: ${opts.type} | valids: ${[...DocumentUITypes.SCHEME_SET]}`,
+          message: `[register] Invalid document UI Type | uiType: ${opts.type} | valids: ${DocumentUITypes.values()}`,
         });
       }
     }

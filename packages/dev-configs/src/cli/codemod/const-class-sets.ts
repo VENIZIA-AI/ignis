@@ -22,9 +22,9 @@ export interface IConstClassSetsResult {
 
 /**
  * Moves a standard-shape value class onto `ConstClass`, and the two ways callers read its `SCHEME_SET`.
- * Standard shape: no base class, string `static readonly` members only, a `SCHEME_SET` that lists exactly those
- * members, and either no `isValid` or one that is `return this.SCHEME_SET.has(x)`. Any other member keeps the
- * class as it is. Callers are found through the checker, so only a receiver that is such a class (or one that
+ * Standard shape: no base class, string `static readonly` members, a `SCHEME_SET` that lists exactly those members,
+ * either no `isValid` or one that is `return this.SCHEME_SET.has(x)`, and no other static member but methods that do
+ * not read the set. Any other member keeps the class as it is. Callers are found through the checker, so only a receiver that is such a class (or one that
  * already extends `ConstClass`, a library class that has moved) is rewritten.
  */
 export class ConstClassSets {
@@ -71,6 +71,15 @@ export class ConstClassSets {
         const body = member.body?.getText().replace(/\s+/g, ' ') ?? '';
 
         if (!/^\{ return this\.SCHEME_SET\.has\(\w+\); \}$/.test(body)) {
+          return false;
+        }
+
+        continue;
+      }
+
+      // Another static method is fine while it does not read the set.
+      if (typescript.isMethodDeclaration(member) && name !== 'SCHEME_SET') {
+        if (member.getText().includes('SCHEME_SET')) {
           return false;
         }
 
@@ -189,12 +198,32 @@ export class ConstClassSets {
       }
     }
 
-    const isConverted = (expression: ts.Expression): boolean => {
-      let symbol = checker.getSymbolAtLocation(expression);
+    const resolve = (expression: ts.Node): ts.Symbol | undefined => {
+      const symbol = checker.getSymbolAtLocation(expression);
 
-      if (symbol !== undefined && symbol.flags & typescript.SymbolFlags.Alias) {
-        symbol = checker.getAliasedSymbol(symbol);
-      }
+      return symbol !== undefined && symbol.flags & typescript.SymbolFlags.Alias
+        ? checker.getAliasedSymbol(symbol)
+        : symbol;
+    };
+
+    /** The class extends `ConstClass`, directly or through the classes it extends. */
+    const extendsConstClass = (declaration: ts.ClassDeclaration, depth = 0): boolean =>
+      depth < 8 &&
+      (declaration.heritageClauses?.some((clause) =>
+        clause.types.some((type) => {
+          if (type.expression.getText() === 'ConstClass') {
+            return true;
+          }
+
+          const base = resolve(type.expression)?.declarations?.find(typescript.isClassDeclaration);
+
+          return base !== undefined && extendsConstClass(base, depth + 1);
+        }),
+      ) ??
+        false);
+
+    const isConverted = (expression: ts.Expression): boolean => {
+      const symbol = resolve(expression);
 
       const declaration = symbol?.declarations?.find(typescript.isClassDeclaration);
 
@@ -209,10 +238,7 @@ export class ConstClassSets {
             fileName: declaration.getSourceFile().fileName,
             name: declaration.name.text,
           }),
-        ) ||
-        declaration.heritageClauses?.some((clause) =>
-          clause.types.some((type) => type.expression.getText() === 'ConstClass'),
-        ) === true
+        ) || extendsConstClass(declaration)
       );
     };
 

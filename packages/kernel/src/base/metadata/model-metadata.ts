@@ -17,7 +17,7 @@ export class ModelMetadataUtility {
 
     if (type !== undefined && !ModelTypes.isValid(type)) {
       throw getError({
-        message: `[model][${model}] Invalid 'type' | Expected one of: ${[...ModelTypes.SCHEME_SET].join(', ')} (or leave it out) | Got: ${String(type)}`,
+        message: `[model][${model}] Invalid 'type' | Expected one of: ${ModelTypes.values().join(', ')} (or leave it out) | Got: ${String(type)}`,
       });
     }
 

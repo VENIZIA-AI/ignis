@@ -172,16 +172,15 @@ describe('WebSocketEvents', () => {
   });
 
   test('should have a SCHEME_SET with all 8 events', () => {
-    expect(WebSocketEvents.SCHEME_SET).toBeInstanceOf(Set);
-    expect(WebSocketEvents.SCHEME_SET.size).toBe(8);
-    expect(WebSocketEvents.SCHEME_SET.has('authenticate')).toBe(true);
-    expect(WebSocketEvents.SCHEME_SET.has('connected')).toBe(true);
-    expect(WebSocketEvents.SCHEME_SET.has('disconnect')).toBe(true);
-    expect(WebSocketEvents.SCHEME_SET.has('join')).toBe(true);
-    expect(WebSocketEvents.SCHEME_SET.has('leave')).toBe(true);
-    expect(WebSocketEvents.SCHEME_SET.has('error')).toBe(true);
-    expect(WebSocketEvents.SCHEME_SET.has('heartbeat')).toBe(true);
-    expect(WebSocketEvents.SCHEME_SET.has('encrypted')).toBe(true);
+    expect(WebSocketEvents.values()).toHaveLength(8);
+    expect(WebSocketEvents.isValid('authenticate')).toBe(true);
+    expect(WebSocketEvents.isValid('connected')).toBe(true);
+    expect(WebSocketEvents.isValid('disconnect')).toBe(true);
+    expect(WebSocketEvents.isValid('join')).toBe(true);
+    expect(WebSocketEvents.isValid('leave')).toBe(true);
+    expect(WebSocketEvents.isValid('error')).toBe(true);
+    expect(WebSocketEvents.isValid('heartbeat')).toBe(true);
+    expect(WebSocketEvents.isValid('encrypted')).toBe(true);
   });
 
   describe('isValid()', () => {
@@ -307,12 +306,11 @@ describe('WebSocketMessageTypes', () => {
   });
 
   test('should have a SCHEME_SET with all 4 types', () => {
-    expect(WebSocketMessageTypes.SCHEME_SET).toBeInstanceOf(Set);
-    expect(WebSocketMessageTypes.SCHEME_SET.size).toBe(4);
-    expect(WebSocketMessageTypes.SCHEME_SET.has('client')).toBe(true);
-    expect(WebSocketMessageTypes.SCHEME_SET.has('user')).toBe(true);
-    expect(WebSocketMessageTypes.SCHEME_SET.has('room')).toBe(true);
-    expect(WebSocketMessageTypes.SCHEME_SET.has('broadcast')).toBe(true);
+    expect(WebSocketMessageTypes.values()).toHaveLength(4);
+    expect(WebSocketMessageTypes.isValid('client')).toBe(true);
+    expect(WebSocketMessageTypes.isValid('user')).toBe(true);
+    expect(WebSocketMessageTypes.isValid('room')).toBe(true);
+    expect(WebSocketMessageTypes.isValid('broadcast')).toBe(true);
   });
 
   describe('isValid()', () => {
@@ -341,12 +339,11 @@ describe('WebSocketClientStates', () => {
   });
 
   test('should have a SCHEME_SET with all 4 states', () => {
-    expect(WebSocketClientStates.SCHEME_SET).toBeInstanceOf(Set);
-    expect(WebSocketClientStates.SCHEME_SET.size).toBe(4);
-    expect(WebSocketClientStates.SCHEME_SET.has('unauthorized')).toBe(true);
-    expect(WebSocketClientStates.SCHEME_SET.has('authenticating')).toBe(true);
-    expect(WebSocketClientStates.SCHEME_SET.has('authenticated')).toBe(true);
-    expect(WebSocketClientStates.SCHEME_SET.has('disconnected')).toBe(true);
+    expect(WebSocketClientStates.values()).toHaveLength(4);
+    expect(WebSocketClientStates.isValid('unauthorized')).toBe(true);
+    expect(WebSocketClientStates.isValid('authenticating')).toBe(true);
+    expect(WebSocketClientStates.isValid('authenticated')).toBe(true);
+    expect(WebSocketClientStates.isValid('disconnected')).toBe(true);
   });
 
   describe('isValid()', () => {

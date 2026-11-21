@@ -139,7 +139,7 @@ describe('BaseApplication - getBootSequence()', () => {
 
     const stepNames = application['getBootSequence']().map((step) => step.name);
 
-    expect(ServerBootSteps.SCHEME_SET.size).toBe(16);
+    expect(ServerBootSteps.values()).toHaveLength(16);
     expect(stepNames.every((name) => ServerBootSteps.isValid(name))).toBe(true);
     expect(ServerBootSteps.isValid('not-a-step')).toBe(false);
   });

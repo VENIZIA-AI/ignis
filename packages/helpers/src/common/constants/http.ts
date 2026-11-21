@@ -1,4 +1,5 @@
 import { type TConstValue, type ValueOf } from '../types';
+import { ConstClass } from '@/common/const-class';
 
 /** HTTP constants: header names, CORS headers, header values, methods, protocols and status codes. Header names, methods and protocols are lowercase. */
 export class HTTP {
@@ -253,15 +254,9 @@ export type THttpProtocol =
 export type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>;
 
 /** How a client treats a download: ATTACHMENT saves it, INLINE shows it. */
-export class ContentDispositionTypes {
+export class ContentDispositionTypes extends ConstClass {
   static readonly ATTACHMENT = 'attachment';
   static readonly INLINE = 'inline';
-
-  static readonly SCHEME_SET = new Set<string>([this.ATTACHMENT, this.INLINE]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** Valid Content-Disposition type values. */

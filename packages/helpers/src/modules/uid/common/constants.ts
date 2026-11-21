@@ -1,4 +1,5 @@
 import { type TConstValue } from '@/common/types';
+import { ConstClass } from '@/common/const-class';
 
 // -------------------------------------------------------------
 /**
@@ -27,16 +28,10 @@ export class UidAlphabets {
  * would fold an excluded character back in - uppercasing a lowercase alphabet reintroduces `I` and
  * `O` that {@link UidAlphabets} took out.
  */
-export class UidCaseForms {
+export class UidCaseForms extends ConstClass {
   static readonly UPPER = 'upper';
   static readonly LOWER = 'lower';
   static readonly MIXED = 'mixed';
-
-  static readonly SCHEME_SET = new Set([this.UPPER, this.LOWER, this.MIXED]);
-
-  static isValid(input: string): input is TUidCaseForm {
-    return this.SCHEME_SET.has(input);
-  }
 }
 
 /** A value of {@link UidCaseForms}. */
@@ -73,7 +68,7 @@ export const DEFAULT_UID_DELIMITER = '_';
 
 // -------------------------------------------------------------
 /** How a token is written as text. */
-export class UidTokenEncodings {
+export class UidTokenEncodings extends ConstClass {
   /**
    * `0-9 A-Z a-z`, each character equally likely ({@link UidAlphabets.BASE62}). 32 bytes of entropy is
    * 43 characters. The default: its alphabet holds no `_` or `-`, so a prefix delimiter and a URL both take it cleanly.
@@ -89,12 +84,6 @@ export class UidTokenEncodings {
    * characters a delimiter is made of, so a prefix delimiter is refused unless it avoids both.
    */
   static readonly BASE64URL = 'base64url';
-
-  static readonly SCHEME_SET = new Set([this.BASE62, this.HEX, this.BASE64URL]);
-
-  static isValid(input: string): input is TUidTokenEncoding {
-    return this.SCHEME_SET.has(input);
-  }
 }
 
 /** A value of {@link UidTokenEncodings}. */

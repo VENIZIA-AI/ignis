@@ -1,17 +1,11 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
+import { ConstClass } from '@venizia/ignis-helpers/common';
 
 /** Names of the strategies the framework ships: `basic`, `jwt` and `service`. */
-export class AuthenticateStrategy {
+export class AuthenticateStrategy extends ConstClass {
   static readonly BASIC = 'basic';
   static readonly JWT = 'jwt';
   static readonly SERVICE = 'service';
-
-  /** The strategies the FRAMEWORK ships. An application registers its own beyond these. */
-  static readonly SCHEME_SET = new Set([this.BASIC, this.JWT, this.SERVICE]);
-
-  static isValid(input: string): boolean {
-    return this.SCHEME_SET.has(input);
-  }
 }
 
 // `(string & {})` keeps autocomplete for the built-in values while still accepting any name an
@@ -45,15 +39,9 @@ export class AuthenticationTokenTypes {
 }
 
 /** How the `authenticate` middleware combines several strategies: `any` passes when one succeeds, `all` requires every one to succeed. */
-export class AuthenticationModes {
+export class AuthenticationModes extends ConstClass {
   static readonly ANY = 'any';
   static readonly ALL = 'all';
-
-  static readonly SCHEME_SET = new Set([this.ANY, this.ALL]);
-
-  static isValid(input: string): boolean {
-    return this.SCHEME_SET.has(input);
-  }
 }
 
 /** A valid value of `AuthenticationModes`. */

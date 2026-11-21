@@ -40,11 +40,11 @@ describe('TransactionStates', () => {
     ];
 
     expect(new Set(states).size).toBe(4);
-    expect([...TransactionStates.SCHEME_SET].sort()).toEqual([...states].sort());
+    expect<string[]>([...TransactionStates.values()].sort()).toEqual([...states].sort());
   });
 
   test('isValid() accepts every state and refuses anything else', () => {
-    for (const state of TransactionStates.SCHEME_SET) {
+    for (const state of TransactionStates.values()) {
       expect(TransactionStates.isValid(state)).toBe(true);
     }
 

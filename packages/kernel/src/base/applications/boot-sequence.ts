@@ -1,8 +1,9 @@
 import type { TConstValue, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
+import { ConstClass } from '@venizia/ignis-helpers/common';
 
 /** The step names the kernel defines - the vocabulary a subclass targets with `BootSequence.insertAfter`. A server application adds its own on top (`ServerBootSteps` in `@venizia/ignis`). */
-export class BootSteps {
+export class BootSteps extends ConstClass {
   static readonly STATIC_CONFIGURE = 'staticConfigure';
   static readonly REGISTER_ARTIFACTS = 'registerArtifacts';
   static readonly PRE_CONFIGURE = 'preConfigure';
@@ -14,23 +15,6 @@ export class BootSteps {
   static readonly REGISTER_CONTROLLERS = 'registerControllers';
   static readonly POST_CONFIGURE = 'postConfigure';
   static readonly VERIFY_BINDINGS = 'verifyBindings';
-  static readonly SCHEME_SET = new Set<string>([
-    this.STATIC_CONFIGURE,
-    this.REGISTER_ARTIFACTS,
-    this.PRE_CONFIGURE,
-    this.REGISTER_DEFAULT_MIDDLEWARES,
-    this.REGISTER_CONFIGURATIONS,
-    this.REGISTER_DATA_SOURCES,
-    this.REGISTER_COMPONENTS,
-    this.REGISTER_CONTRIBUTED_DATA_SOURCES,
-    this.REGISTER_CONTROLLERS,
-    this.POST_CONFIGURE,
-    this.VERIFY_BINDINGS,
-  ]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** Union of the step names in `BootSteps`. */

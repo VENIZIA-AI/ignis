@@ -82,7 +82,7 @@ export class TemporalDuration {
     if (!TemporalDurationStyles.isValid(style)) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-        message: `[TemporalDuration] unknown style '${style}' | Supported: ${[...TemporalDurationStyles.SCHEME_SET].join(', ')}`,
+        message: `[TemporalDuration] unknown style '${style}' | Supported: ${TemporalDurationStyles.values().join(', ')}`,
       });
     }
 

@@ -256,6 +256,16 @@ describe('ConstClasses.convert - the mapping file and the import', () => {
     expect(has.output).toContain("import { ConstClass } from '@venizia/ignis-helpers/common';");
   });
 
+  test('a type-only import from the same module is left alone and ConstClass gets its own line', () => {
+    const result = convert(
+      "import type { TConstValue } from '@venizia/ignis-helpers/common';\nexport type TMode = 'a' | 'b';\n",
+    );
+
+    expect(result.output).toContain(
+      "import type { TConstValue } from '@venizia/ignis-helpers/common';\nimport { ConstClass } from '@venizia/ignis-helpers/common';\n",
+    );
+  });
+
   test('a new import goes after the last import', () => {
     const result = convert(
       "import { a } from './a';\nimport { b } from './b';\n\nexport type TMode = 'a' | 'b';\n",
@@ -475,14 +485,47 @@ describe('devz codemod const-classes - the command', () => {
     expect(warnings.join('\n')).toContain('src/use.ts:7  Modes.SCHEME_SET is gone');
   });
 
+  test('another static method stays on the class unless it reads the set', async () => {
+    write(
+      'src/phases.ts',
+      [
+        'export class Phases {',
+        "  static readonly OPEN = 'open';",
+        "  static readonly SHUT = 'shut';",
+        '  static readonly SCHEME_SET = new Set<string>([this.OPEN, this.SHUT]);',
+        '  static isOpen(value: string): boolean {',
+        '    return value === this.OPEN;',
+        '  }',
+        '}',
+        '',
+        'export class Reads {',
+        "  static readonly A = 'a';",
+        '  static readonly SCHEME_SET = new Set<string>([this.A]);',
+        '  static count(): number {',
+        '    return this.SCHEME_SET.size;',
+        '  }',
+        '}',
+        '',
+      ].join('\n'),
+    );
+    execFileSync('git', ['add', '-A'], { cwd: root });
+    execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'i'], { cwd: root });
+
+    const result = await code(['--write', '--all', '--import-from', './helpers']);
+    expect(result).toBe(0);
+    expect(read('src/phases.ts')).toContain('export class Phases extends ConstClass {');
+    expect(read('src/phases.ts')).toContain('static isOpen(value: string): boolean {');
+    expect(read('src/phases.ts')).toContain('export class Reads {');
+  });
+
   test('a caller of a class that already extends ConstClass is rewritten, with the class outside the run', async () => {
     write(
       'src/lib.ts',
-      "export class ConstClass {}\nexport class Modes extends ConstClass {\n  static readonly READ = 'read';\n}\n",
+      "export class ConstClass {}\nexport class Modes extends ConstClass {\n  static readonly READ = 'read';\n}\nexport class Wider extends Modes {\n  static readonly WRITE = 'write';\n}\n",
     );
     write(
       'src/use.ts',
-      "import { Modes } from './lib';\ndeclare const input: string;\nexport const ok = Modes.SCHEME_SET.has(input);\n",
+      "import { Modes, Wider } from './lib';\ndeclare const input: string;\nexport const ok = Modes.SCHEME_SET.has(input);\nexport const wide = Wider.SCHEME_SET.has(input);\n",
     );
 
     execFileSync('git', ['add', '-A'], { cwd: root });
@@ -493,6 +536,7 @@ describe('devz codemod const-classes - the command', () => {
     const result = await code(['--write', 'src/use.ts']);
     expect(result).toBe(0);
     expect(read('src/use.ts')).toContain('Modes.isValid(input)');
+    expect(read('src/use.ts')).toContain('Wider.isValid(input)');
   });
 
   test('--emit-map writes the proposals, and --map applies the edited names', async () => {

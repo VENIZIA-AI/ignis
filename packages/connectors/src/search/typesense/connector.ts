@@ -811,13 +811,13 @@ export class TypesenseConnector extends BaseSearchConnector {
 
     if (!TypesenseImportActions.isValid(action)) {
       throw getError({
-        message: `[importDocuments] Invalid action | action: ${action} | valids: ${[...TypesenseImportActions.SCHEME_SET]}`,
+        message: `[importDocuments] Invalid action | action: ${action} | valids: ${TypesenseImportActions.values()}`,
       });
     }
 
     if (dirtyValues && !TypesenseDirtyValues.isValid(dirtyValues)) {
       throw getError({
-        message: `[importDocuments] Invalid dirtyValues | value: ${dirtyValues} | valids: ${[...TypesenseDirtyValues.SCHEME_SET]}`,
+        message: `[importDocuments] Invalid dirtyValues | value: ${dirtyValues} | valids: ${TypesenseDirtyValues.values()}`,
       });
     }
 

@@ -1,5 +1,6 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { MessageCode } from '@venizia/ignis-helpers/core';
+import { ConstClass } from '@venizia/ignis-helpers/common';
 
 /** Default pagination limit for repository queries. */
 export const DEFAULT_LIMIT = 10;
@@ -18,45 +19,30 @@ export const DEFAULT_LIMIT = 10;
 export const DEFAULT_MAX_LIMIT = 1000;
 
 /** Defines the operation scope for repository instances (READ_ONLY, WRITE_ONLY, READ_WRITE). */
-export class RepositoryOperationScopes {
+export class RepositoryOperationScopes extends ConstClass {
   static readonly READ_ONLY = 'READ_ONLY';
   static readonly WRITE_ONLY = 'WRITE_ONLY';
   static readonly READ_WRITE = 'READ_WRITE';
-  static readonly SCHEME_SET = new Set([this.READ_ONLY, this.WRITE_ONLY, this.READ_WRITE]);
-
-  static isValid(orgType: string): boolean {
-    return this.SCHEME_SET.has(orgType);
-  }
 }
 
 /** Valid repository operation scope values. */
 export type TRepositoryOperationScope = TConstValue<typeof RepositoryOperationScopes>;
 
 /** What `@repository` binds: MODEL, a model this application declares; REMOTE, data behind another service's API, with no model. */
-export class RepositoryTypes {
+export class RepositoryTypes extends ConstClass {
   static readonly MODEL = 'model';
   static readonly REMOTE = 'remote';
-  static readonly SCHEME_SET = new Set([this.MODEL, this.REMOTE]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** Valid repository type values. */
 export type TRepositoryType = TConstValue<typeof RepositoryTypes>;
 
 /** What a row-scope filter (`@model` settings.access) does when `resolve()` returns null/undefined. */
-export class ScopeFilterMissingBehaviors {
+export class ScopeFilterMissingBehaviors extends ConstClass {
   /** An unresolved scope matches ZERO rows - the safe reading of "caller's scope is unknown". */
   static readonly DENY = 'deny';
   /** Explicit opt-out: no scope is applied. For migrations and background jobs, never inferred from a request. */
   static readonly ALLOW = 'allow';
-  static readonly SCHEME_SET = new Set([this.DENY, this.ALLOW]);
-
-  static isValid(behavior: string): boolean {
-    return this.SCHEME_SET.has(behavior);
-  }
 }
 
 /** Valid scope-filter missing-behavior values. */
@@ -67,16 +53,11 @@ export type TScopeFilterMissingBehavior = TConstValue<typeof ScopeFilterMissingB
  * (`@model` settings.access.write.mode). A scope that returns `ScopeFilters.UNRESTRICTED`
  * passes either way.
  */
-export class ScopeWriteGuards {
+export class ScopeWriteGuards extends ConstClass {
   /** A row whose scope column disagrees, or is absent on create, is refused and nothing is written. */
   static readonly REJECT = 'reject';
   /** An ABSENT scope column is filled from an equality scope; a value that disagrees is still refused. */
   static readonly ASSIGN = 'assign';
-  static readonly SCHEME_SET = new Set([this.REJECT, this.ASSIGN]);
-
-  static isValid(guard: string): boolean {
-    return this.SCHEME_SET.has(guard);
-  }
 }
 
 /** Valid scope write-guard values. */
@@ -115,35 +96,20 @@ export class RepositoryErrorCodes {
 export type TRepositoryErrorCode = TConstValue<typeof RepositoryErrorCodes>;
 
 /** Entity relation types (one-to-one/many-to-one, one-to-many). */
-export class RelationTypes {
+export class RelationTypes extends ConstClass {
   static readonly ONE = 'one';
   static readonly MANY = 'many';
-  static readonly SCHEME_SET = new Set([this.ONE, this.MANY]);
-
-  static isValid(orgType: string): boolean {
-    return this.SCHEME_SET.has(orgType);
-  }
 }
 
 /** Valid relation type values. */
 export type TRelationType = TConstValue<typeof RelationTypes>;
 
 /** PostgreSQL row-level lock strengths for SELECT ... FOR <strength>. */
-export class LockStrengths {
+export class LockStrengths extends ConstClass {
   static readonly UPDATE = 'update';
   static readonly NO_KEY_UPDATE = 'no key update';
   static readonly SHARE = 'share';
   static readonly KEY_SHARE = 'key share';
-  static readonly SCHEME_SET = new Set([
-    this.UPDATE,
-    this.NO_KEY_UPDATE,
-    this.SHARE,
-    this.KEY_SHARE,
-  ]);
-
-  static isValid(strength: string): boolean {
-    return this.SCHEME_SET.has(strength);
-  }
 }
 
 /** Valid lock strength values. */

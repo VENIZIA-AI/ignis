@@ -1,15 +1,10 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
+import { ConstClass } from '@venizia/ignis-helpers/common';
 
 /** How a `big-number` id column is read back: as a JavaScript NUMBER or as a BIGINT (drizzle's `bigint` column `mode`). */
-export class BigIntModes {
+export class BigIntModes extends ConstClass {
   static readonly NUMBER = 'number';
   static readonly BIGINT = 'bigint';
-
-  static readonly SCHEME_SET = new Set<string>([this.NUMBER, this.BIGINT]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** Valid big-number id mode values. */

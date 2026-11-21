@@ -1,7 +1,8 @@
 import { type TConstValue } from '@/common/types';
+import { ConstClass } from '@/common/const-class';
 
 /** Event names of the WebSocket protocol. `isValid` narrows a string to one of them. */
-export class WebSocketEvents {
+export class WebSocketEvents extends ConstClass {
   static readonly AUTHENTICATE = 'authenticate';
   static readonly CONNECTED = 'connected';
   static readonly DISCONNECT = 'disconnect';
@@ -10,21 +11,6 @@ export class WebSocketEvents {
   static readonly ERROR = 'error';
   static readonly HEARTBEAT = 'heartbeat';
   static readonly ENCRYPTED = 'encrypted';
-
-  static readonly SCHEME_SET = new Set([
-    this.AUTHENTICATE,
-    this.CONNECTED,
-    this.DISCONNECT,
-    this.JOIN,
-    this.LEAVE,
-    this.ERROR,
-    this.HEARTBEAT,
-    this.ENCRYPTED,
-  ]);
-
-  static isValid(input: string): input is TWebSocketEvent {
-    return this.SCHEME_SET.has(input);
-  }
 }
 /** One of the `WebSocketEvents` values. */
 export type TWebSocketEvent = TConstValue<typeof WebSocketEvents>;
@@ -81,36 +67,19 @@ export class WebSocketDefaults {
 }
 
 /** Delivery target types of a WebSocket message. `isValid` narrows a string to one of them. */
-export class WebSocketMessageTypes {
+export class WebSocketMessageTypes extends ConstClass {
   static readonly CLIENT = 'client';
   static readonly USER = 'user';
   static readonly ROOM = 'room';
   static readonly BROADCAST = 'broadcast';
-
-  static readonly SCHEME_SET = new Set([this.CLIENT, this.USER, this.ROOM, this.BROADCAST]);
-
-  static isValid(input: string): input is TWebSocketMessageType {
-    return this.SCHEME_SET.has(input);
-  }
 }
 /** One of the `WebSocketMessageTypes` values. */
 export type TWebSocketMessageType = TConstValue<typeof WebSocketMessageTypes>;
 
 /** Connection states of a WebSocket client. `isValid` narrows a string to one of them. */
-export class WebSocketClientStates {
+export class WebSocketClientStates extends ConstClass {
   static readonly UNAUTHORIZED = 'unauthorized';
   static readonly AUTHENTICATING = 'authenticating';
   static readonly AUTHENTICATED = 'authenticated';
   static readonly DISCONNECTED = 'disconnected';
-
-  static readonly SCHEME_SET = new Set([
-    this.UNAUTHORIZED,
-    this.AUTHENTICATING,
-    this.AUTHENTICATED,
-    this.DISCONNECTED,
-  ]);
-
-  static isValid(input: string): input is TConstValue<typeof WebSocketClientStates> {
-    return this.SCHEME_SET.has(input);
-  }
 }

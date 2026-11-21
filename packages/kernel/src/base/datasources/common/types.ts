@@ -4,6 +4,7 @@ import type {
   TConstValue,
   ValueOrPromise,
 } from '@venizia/ignis-helpers/common';
+import { ConstClass } from '@venizia/ignis-helpers/common';
 
 /** Names of the supported datasource drivers, split into relational and search sets. `isValid` checks a value against all of them. */
 export class DataSourceDrivers {
@@ -44,15 +45,9 @@ export class DataSourceDrivers {
 }
 
 /** When a datasource opens: with the application (`start`, the default) or at the first call that needs it (`first-use`). */
-export class DataSourceOpenModes {
+export class DataSourceOpenModes extends ConstClass {
   static readonly START = 'start';
   static readonly FIRST_USE = 'first-use';
-
-  static readonly SCHEME_SET = new Set([this.START, this.FIRST_USE]);
-
-  static isValid(value: string): value is TDataSourceOpenMode {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** Defaults of the `open` option. */

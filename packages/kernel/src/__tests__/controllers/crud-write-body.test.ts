@@ -360,7 +360,7 @@ const toRouteBodySchemas = async (opts: {
 
 describe('CrudControllerFactory.build reads which keys the model stamps', () => {
   test('the default stamped list is the audit keys and deletedAt', () => {
-    expect([...AuditFields.SCHEME_SET]).toEqual([
+    expect(AuditFields.values()).toEqual([
       'createdBy',
       'modifiedBy',
       'createdAt',

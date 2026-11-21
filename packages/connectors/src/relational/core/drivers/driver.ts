@@ -1,17 +1,12 @@
 import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import type { IConnectorDriver } from '@/common/driver';
+import { ConstClass } from '@venizia/ignis-helpers/common';
 
 /** The SQL engines a relational driver can speak. Only the migration ledger reads it today: Postgres has schemas to create, SQLite has only `main`. */
-export class RelationalDialects {
+export class RelationalDialects extends ConstClass {
   static readonly POSTGRES = 'postgres';
   static readonly SQLITE = 'sqlite';
-
-  static readonly SCHEME_SET = new Set([this.POSTGRES, this.SQLITE]);
-
-  static isValid(input: string): input is TRelationalDialect {
-    return this.SCHEME_SET.has(input);
-  }
 }
 /** Union of the `RelationalDialects` values. */
 export type TRelationalDialect = TConstValue<typeof RelationalDialects>;

@@ -18,14 +18,31 @@ import type { TConstValue } from './types';
 export class ConstClass {
   private static readonly CACHE = new WeakMap<object, readonly string[]>();
 
-  /** The string values of this class, in declaration order. Throws when the class holds none. */
+  /** The string values of this class and of the classes it extends, base class first. Throws when there are none. */
   static values<T extends typeof ConstClass>(
     this: T,
   ): readonly [TConstValue<T>, ...TConstValue<T>[]] {
     let values = ConstClass.CACHE.get(this);
 
     if (!values) {
-      values = Object.values(this).filter((value): value is string => typeof value === 'string');
+      // A subclass lists the values it inherits too, the base class's first.
+      const chain: object[] = [];
+
+      for (
+        let base: object = this;
+        base !== ConstClass && base !== Function.prototype;
+        base = Object.getPrototypeOf(base)
+      ) {
+        chain.unshift(base);
+      }
+
+      values = [
+        ...new Set(
+          chain.flatMap((base) =>
+            Object.values(base).filter((value): value is string => typeof value === 'string'),
+          ),
+        ),
+      ];
 
       if (values.length === 0) {
         throw getError({ message: `${this.name} has no values` });

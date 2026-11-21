@@ -392,7 +392,7 @@ export class CasbinAuthorizationEnforcer<
       }
       default: {
         throw getError({
-          message: `[resolveDomainMatchingFn] Unsupported func: ${opts.name} | Valids: [${[...CasbinDomainMatchingFunctions.SCHEME_SET].join(', ')}]`,
+          message: `[resolveDomainMatchingFn] Unsupported func: ${opts.name} | Valids: [${CasbinDomainMatchingFunctions.values().join(', ')}]`,
         });
       }
     }

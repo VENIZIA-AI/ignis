@@ -1,4 +1,5 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
+import { ConstClass } from '@venizia/ignis-helpers/common';
 
 /** Defaults and ceilings of event dispatch retry: the `*_CEILING` and `*_WINDOW_MS` values cap what `register` may ask for. */
 export class EventDispatchRetry {
@@ -33,18 +34,12 @@ export class EventDispatchRetry {
  * error there rather than a runtime surprise later, inside a `queueMicrotask` where nobody is
  * watching.
  */
-export class EventHandlerTypes {
+export class EventHandlerTypes extends ConstClass {
   /** `handler.key` is resolved from the container on every retry attempt - a rebind reaches an attempt already in flight. */
   static readonly BINDING_KEY = 'binding-key';
 
   /** `handler.fn` is invoked directly as a captured closure - there is nothing to rebind, so every attempt in a retry window calls the exact function registered here. */
   static readonly FUNCTION = 'function';
-
-  static readonly SCHEME_SET = new Set<string>([this.BINDING_KEY, this.FUNCTION]);
-
-  static isValid(value: string): value is TEventHandlerType {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** Union of the `EventHandlerTypes` values. */

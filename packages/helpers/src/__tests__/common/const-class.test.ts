@@ -7,6 +7,10 @@ class Colors extends ConstClass {
   static readonly BLUE = 'blue';
 }
 
+class Shades extends Colors {
+  static readonly GREEN = 'green';
+}
+
 class Empty extends ConstClass {}
 
 class Mixed extends ConstClass {
@@ -21,6 +25,12 @@ describe('ConstClass', () => {
 
   test('values skips non-string members and the inherited statics', () => {
     expect([...Mixed.values()]).toEqual(['name']);
+  });
+
+  test('a subclass lists the values it inherits, base first, and validates them', () => {
+    expect([...Shades.values()]).toEqual(['red', 'blue', 'green']);
+    expect(Shades.isValid('red')).toBe(true);
+    expect(Colors.isValid('green')).toBe(false);
   });
 
   test('values is cached per class', () => {

@@ -2,18 +2,13 @@ import { type TConstValue } from '@/common/types';
 import { Environment } from '@/modules/env';
 import { ParseUtility } from '@/utilities/parse.utility';
 import { LogLevels, type TLogLevel } from './types';
+import { ConstClass } from '@/common/const-class';
 
 // -------------------------------------------------------------
 /** Output shapes of a log line. `isValid` narrows a string to `TLoggerFormat`. */
-export class LoggerFormats {
+export class LoggerFormats extends ConstClass {
   static readonly JSON = 'json';
   static readonly TEXT = 'text';
-
-  static readonly SCHEME_SET = new Set([this.JSON, this.TEXT]);
-
-  static isValid(input: string): input is TLoggerFormat {
-    return this.SCHEME_SET.has(input);
-  }
 }
 
 /** One of the `LoggerFormats` values. */

@@ -7,21 +7,16 @@ import type {
 import type { IRelationalQueryDialect } from '@/relational/core/repositories/common';
 import type { TSqliteConnector } from '@/relational/sqlite/drivers';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
+import { ConstClass } from '@venizia/ignis-helpers/common';
 
 /**
  * SQLite's BEGIN axis is a locking mode, not an isolation level - every SQLite transaction is
  * serializable, so there is no level left to choose.
  */
-export class SqliteBeginModes {
+export class SqliteBeginModes extends ConstClass {
   static readonly DEFERRED = 'DEFERRED';
   static readonly IMMEDIATE = 'IMMEDIATE';
   static readonly EXCLUSIVE = 'EXCLUSIVE';
-
-  static readonly SCHEME_SET = new Set([this.DEFERRED, this.IMMEDIATE, this.EXCLUSIVE]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** One of the `SqliteBeginModes` values: `DEFERRED`, `IMMEDIATE` or `EXCLUSIVE`. */

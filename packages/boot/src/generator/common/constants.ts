@@ -1,7 +1,8 @@
 import type { TConstValue } from '@venizia/ignis-helpers';
+import { ConstClass } from '@venizia/ignis-helpers/common';
 
 /** Mirrors the kernel's `ArtifactTypes` values; boot must not depend on kernel (`{boot, kernel} -> core` in the build chain). */
-export class ArtifactTypes {
+export class ArtifactTypes extends ConstClass {
   static readonly CONFIGURATION = 'configuration';
   static readonly COMPONENT = 'component';
   static readonly CONTROLLER = 'controller';
@@ -9,46 +10,19 @@ export class ArtifactTypes {
   static readonly REPOSITORY = 'repository';
   static readonly DATASOURCE = 'datasource';
   static readonly MODEL = 'model';
-
-  static readonly SCHEME_SET = new Set<string>([
-    this.CONFIGURATION,
-    this.COMPONENT,
-    this.CONTROLLER,
-    this.SERVICE,
-    this.REPOSITORY,
-    this.DATASOURCE,
-    this.MODEL,
-  ]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** One of the `ArtifactTypes` values. */
 export type TArtifactType = TConstValue<typeof ArtifactTypes>;
 
 /** Mirrors the kernel's `ArtifactIndexFields` - the keys of the object the emitter writes and `registerArtifacts` reads. */
-export class ArtifactIndexFields {
+export class ArtifactIndexFields extends ConstClass {
   static readonly CONFIGURATIONS = 'configurations';
   static readonly DATA_SOURCES = 'dataSources';
   static readonly COMPONENTS = 'components';
   static readonly REPOSITORIES = 'repositories';
   static readonly SERVICES = 'services';
   static readonly CONTROLLERS = 'controllers';
-
-  static readonly SCHEME_SET = new Set<string>([
-    this.CONFIGURATIONS,
-    this.DATA_SOURCES,
-    this.COMPONENTS,
-    this.REPOSITORIES,
-    this.SERVICES,
-    this.CONTROLLERS,
-  ]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** One of the `ArtifactIndexFields` values. */
@@ -105,16 +79,10 @@ export class ArtifactStereotypes {
 }
 
 /** Why a decorated class was left out of the index - reported, never silent. */
-export class ScanSkipReasons {
+export class ScanSkipReasons extends ConstClass {
   static readonly ABSTRACT = 'abstract';
   static readonly NOT_EXPORTED = 'not-exported';
   static readonly IGNORED = 'ignored';
-
-  static readonly SCHEME_SET = new Set<string>([this.ABSTRACT, this.NOT_EXPORTED, this.IGNORED]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** One of the `ScanSkipReasons` values. */

@@ -48,7 +48,7 @@ export abstract class BasePostgresDataSource<
     // sibling seam (`SqliteBeginModes.isValid`, `PoolerModes.isValid`) validates here.
     if (!IsolationLevels.isValid(level)) {
       throw getError({
-        message: `[${this.constructor.name}][resolveIsolationLevel] Invalid isolation level | Got: '${level}' | Expected one of: ${[...IsolationLevels.SCHEME_SET].join(', ')}`,
+        message: `[${this.constructor.name}][resolveIsolationLevel] Invalid isolation level | Got: '${level}' | Expected one of: ${IsolationLevels.values().join(', ')}`,
       });
     }
 

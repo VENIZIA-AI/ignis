@@ -5,6 +5,7 @@ import { MIN_TOKEN_BYTES, TokenUidHelper, UidTokenEncodings } from '@/modules/ui
 import { FormBodyUtility, RequestBodyErrors } from './form-body.utility';
 import fs from 'node:fs';
 import path from 'node:path';
+import { ConstClass } from '@/common/const-class';
 
 /** A request remark: `id`, `url` and `method`, plus any extra keys. */
 export interface IRequestedRemark {
@@ -15,15 +16,9 @@ export interface IRequestedRemark {
 }
 
 /** Where `RequestUtility.parseMultipartBody` keeps an uploaded file: MEMORY (a buffer) or DISK (spooled to `uploadDir`). */
-export class MultipartStorages {
+export class MultipartStorages extends ConstClass {
   static readonly MEMORY = 'memory';
   static readonly DISK = 'disk';
-
-  static readonly SCHEME_SET = new Set<string>([this.MEMORY, this.DISK]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** Valid multipart storage values. */

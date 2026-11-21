@@ -626,15 +626,17 @@ export class ConstClasses {
     }
 
     const bindings = sameModule?.importClause?.namedBindings;
+    const typeOnly = sameModule?.importClause?.isTypeOnly === true;
 
+    // A type-only import cannot carry a value: that one gets an import line of its own.
     if (
       sameModule &&
       bindings &&
       typescript.isNamedImports(bindings) &&
-      bindings.elements.length > 0
+      bindings.elements.length > 0 &&
+      !(typeOnly && missing.some(({ isType }) => !isType))
     ) {
       const last = bindings.elements[bindings.elements.length - 1];
-      const typeOnly = sameModule.importClause?.isTypeOnly === true;
       const specifiers = missing.map(({ name, isType }) =>
         isType && !typeOnly ? `type ${name}` : name,
       );

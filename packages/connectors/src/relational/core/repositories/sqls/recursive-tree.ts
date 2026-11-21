@@ -4,26 +4,21 @@ import type { Name, SQL } from 'drizzle-orm';
 import { getTableName, is, sql, Table } from 'drizzle-orm';
 import { getTableConfig, PgTable } from 'drizzle-orm/pg-core';
 import { SQLiteTable } from 'drizzle-orm/sqlite-core';
+import { ConstClass } from '@venizia/ignis-helpers/common';
 
 /** Walk direction relative to `rootId`: DOWN follows `parentColumn -> idColumn` (descendants), UP follows the reverse (ancestors). */
-export class RecursiveTreeDirections {
+export class RecursiveTreeDirections extends ConstClass {
   static readonly UP = 'UP';
   static readonly DOWN = 'DOWN';
-  static readonly SCHEME_SET = new Set([this.UP, this.DOWN]);
-
-  static isValid(direction: string): boolean {
-    return this.SCHEME_SET.has(direction);
-  }
 }
 
 /** `UP` or `DOWN`; see {@link RecursiveTreeDirections}. */
 export type TRecursiveTreeDirection = TConstValue<typeof RecursiveTreeDirections>;
 
 /** Internal only - not part of {@link IRecursiveTreeOptions}. Derived from `table`, never accepted as an option. */
-class RecursiveTreeEngines {
+class RecursiveTreeEngines extends ConstClass {
   static readonly POSTGRES = 'POSTGRES';
   static readonly SQLITE = 'SQLITE';
-  static readonly SCHEME_SET = new Set([this.POSTGRES, this.SQLITE]);
 }
 
 type TRecursiveTreeEngine = TConstValue<typeof RecursiveTreeEngines>;

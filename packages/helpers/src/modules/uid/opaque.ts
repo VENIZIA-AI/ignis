@@ -215,7 +215,7 @@ export class OpaqueUidHelper extends BaseHelper {
 
     throw getError({
       statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-      message: `[${OpaqueUidHelper.name}] Unknown caseForm | value: ${opts.caseForm} | valid: ${[...UidCaseForms.SCHEME_SET].join(', ')}`,
+      message: `[${OpaqueUidHelper.name}] Unknown caseForm | value: ${opts.caseForm} | valid: ${UidCaseForms.values().join(', ')}`,
     });
   }
 

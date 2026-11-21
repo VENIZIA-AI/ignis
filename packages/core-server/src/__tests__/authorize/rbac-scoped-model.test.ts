@@ -5,8 +5,8 @@ describe('AuthorizationDomainScopes', () => {
   test('exposes ANY_MEMBER and SYSTEM_WIDE sentinels', () => {
     expect(AuthorizationDomainScopes.ANY_MEMBER).toBe('ANY_MEMBER');
     expect(AuthorizationDomainScopes.SYSTEM_WIDE).toBe('SYSTEM_WIDE');
-    expect(AuthorizationDomainScopes.SCHEME_SET.has('ANY_MEMBER')).toBe(true);
-    expect(AuthorizationDomainScopes.SCHEME_SET.has('SYSTEM_WIDE')).toBe(true);
+    expect(AuthorizationDomainScopes.isValid('ANY_MEMBER')).toBe(true);
+    expect(AuthorizationDomainScopes.isValid('SYSTEM_WIDE')).toBe(true);
     expect(AuthorizationDomainScopes.isValid('Merchant_7')).toBe(false);
   });
 });

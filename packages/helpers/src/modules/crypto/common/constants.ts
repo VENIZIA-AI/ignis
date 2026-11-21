@@ -1,3 +1,4 @@
+import { ConstClass } from '@/common/const-class';
 import type { TConstValue } from '@/common';
 
 /** Key size in bits assumed when an algorithm name carries no size suffix (see `getAlgorithmKeySize`). */
@@ -21,7 +22,7 @@ export const MINIMUM_KDF_SALT_BYTES = 16;
 export const MINIMUM_RSA_MODULUS_BITS = 2048;
 
 /** Digest names the hash algorithm accepts. `isValid` narrows a string to `THashAlgorithm`. */
-export class HashAlgorithms {
+export class HashAlgorithms extends ConstClass {
   /** Cryptographically broken - kept only for wire-protocol compatibility (VNPay checksums); never use for security decisions. */
   static readonly MD5 = 'md5';
 
@@ -31,34 +32,16 @@ export class HashAlgorithms {
   static readonly SHA256 = 'sha256';
   static readonly SHA384 = 'sha384';
   static readonly SHA512 = 'sha512';
-
-  static readonly SCHEME_SET = new Set<string>([
-    this.MD5,
-    this.SHA1,
-    this.SHA256,
-    this.SHA384,
-    this.SHA512,
-  ]);
-
-  static isValid(value: string): value is THashAlgorithm {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** One of the `HashAlgorithms` values. */
 export type THashAlgorithm = TConstValue<typeof HashAlgorithms>;
 
 /** Text encodings a digest can be written in. `isValid` narrows a string to `THashOutputEncoding`. */
-export class HashOutputEncodings {
+export class HashOutputEncodings extends ConstClass {
   static readonly HEX = 'hex';
   static readonly BASE64 = 'base64';
   static readonly BASE64URL = 'base64url';
-
-  static readonly SCHEME_SET = new Set<string>([this.HEX, this.BASE64, this.BASE64URL]);
-
-  static isValid(value: string): value is THashOutputEncoding {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** One of the `HashOutputEncodings` values. */
@@ -68,16 +51,10 @@ export type THashOutputEncoding = TConstValue<typeof HashOutputEncodings>;
 export const DEFAULT_HASH_OUTPUT_ENCODING: THashOutputEncoding = HashOutputEncodings.HEX;
 
 /** Password-hash schemes `CredentialUtility` accepts. `isValid` narrows a string to `TCredentialAlgorithm`. */
-export class CredentialAlgorithms {
+export class CredentialAlgorithms extends ConstClass {
   /** What `Bun.password` writes with its default parameters; the scheme `hash` uses unless told otherwise. */
   static readonly ARGON2ID = 'argon2id';
   static readonly BCRYPT = 'bcrypt';
-
-  static readonly SCHEME_SET = new Set<string>([this.ARGON2ID, this.BCRYPT]);
-
-  static isValid(value: string): value is TCredentialAlgorithm {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** One of the `CredentialAlgorithms` values. */
