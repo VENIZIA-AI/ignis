@@ -44,7 +44,7 @@ z.enum(ArtifactTypes.values());
 
 ```ts
 export declare class ConstClass {
-    private static readonly CACHE;
+    #private;
     /** The string values of this class and of the classes it extends, base class first. Throws when there are none. */
     static values<T extends typeof ConstClass>(this: T): readonly [TConstValue<T>, ...TConstValue<T>[]];
     /** `true` when `value` is one of this class's values; narrows it to their union. */
