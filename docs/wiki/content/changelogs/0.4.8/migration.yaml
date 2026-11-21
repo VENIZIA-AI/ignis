@@ -1307,7 +1307,7 @@ class-types-never-arguments:
       // T is inferred from the classes; give one common instance type when the classes differ
       const sorted = helper.sortConfigurationsTopologically<BaseConfiguration>({ classes: [ConfigA, ConfigB] });
     steps:
-      - "The plan counts every mention of TClass, TConstructor and the other symbols, not every break: only a use that reads a static property of a TClass, calls a TConstructor with arguments or assigns per-entity classes to one TClass of a union entity fails the typecheck. Run bun check and fix what it names."
+      - "The plan counts every mention of TClass, TConstructor and the other symbols, not every break: most mentions compile unchanged. Run bun check and fix what it names; the steps below are the cases it names (a static property read on a TClass, a TConstructor called with arguments, per-entity classes assigned to one TClass of a union entity, a TClass passed to a parameter typed new (...args: any[]) => T)."
       - "Replace static property access on `TClass` with `typeof Service` or intersect `TClass` with the required static properties."
       - "Construct instances from `TConstructor` using `Reflect.construct` or type the parameter with an explicit `new (...) => T` constructor signature."
       - "Type per-entity collections explicitly per entity instead of using a single `TClass` over a union entity type."
@@ -1386,7 +1386,7 @@ mixin-base-takes-tmixinconstructor:
         override async find(): Promise<string[]> { return ['x']; }
       }
     steps:
-      - "The plan counts every mention of TClass; only a generic mixin whose base parameter is constrained by TClass or TAbstractClass fails (TS2545). Run bun check and fix what it names."
+      - "The plan counts every mention of TClass; only a generic mixin whose base parameter is constrained by TClass, TAbstractClass, TConstructor or TAbstractConstructor fails (TS2545). Run bun check and fix what it names."
       - "Fix a mixin that reports TS2545 first, before addressing TS2510 errors on the classes that extend it."
       - "Constrain a generic mixin base that uses `TClass` with `TMixinConstructor`."
       - "Constrain a generic mixin base that uses `TAbstractClass` with `TAbstractMixinConstructor`."
