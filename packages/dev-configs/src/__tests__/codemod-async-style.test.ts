@@ -294,7 +294,7 @@ describe('devz codemod async-style', () => {
     expect(read('src/b.ts')).toBe(RETURN_IN_TRY_FIXED);
   });
 
-  test('--write refuses a file with local changes, an untracked file and a staged one, and exits 1', async () => {
+  test('--write refuses a file with unstaged changes and an untracked file, accepts a staged one, and exits 1', async () => {
     write('src/a.ts', RETURN_AWAIT);
     write('src/b.ts', RETURN_AWAIT);
     write('src/c.ts', 'export const value = 1;\n');
@@ -307,15 +307,28 @@ describe('devz codemod async-style', () => {
     const result = await code(['--write', '--all']);
     expect(result).toBe(1);
     expect(read('src/a.ts')).toBe(`${RETURN_AWAIT}// edited\n`);
-    expect(read('src/c.ts')).toBe(RETURN_AWAIT);
+    expect(read('src/c.ts')).toBe(RETURN_AWAIT_FIXED);
     expect(read('src/d.ts')).toBe(RETURN_AWAIT);
     expect(read('src/b.ts')).toBe(RETURN_AWAIT_FIXED);
     expect(warnings.join('\n')).toContain('refused  src/a.ts  has local changes');
-    expect(warnings.join('\n')).toContain('refused  src/c.ts');
+    expect(warnings.join('\n')).not.toContain('refused  src/c.ts');
     expect(warnings.join('\n')).toContain('refused  src/d.ts');
     expect(logs.join('\n')).toContain(
-      '1 file(s) changed, 1 fix(es) applied, 0 left unfixed, 3 refused',
+      '2 file(s) changed, 2 fix(es) applied, 0 left unfixed, 2 refused',
     );
+  });
+
+  test('an unstaged edit on a staged file is refused', async () => {
+    write('src/a.ts', 'export const value = 1;\n');
+    commit();
+    write('src/a.ts', RETURN_AWAIT);
+    execFileSync('git', ['add', 'src/a.ts'], { cwd: root });
+    write('src/a.ts', `${RETURN_AWAIT}// edited\n`);
+
+    const result = await code(['--write', '--all']);
+    expect(result).toBe(1);
+    expect(read('src/a.ts')).toBe(`${RETURN_AWAIT}// edited\n`);
+    expect(warnings.join('\n')).toContain('refused  src/a.ts  has local changes');
   });
 
   test('a path argument narrows the files', async () => {

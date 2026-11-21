@@ -46,7 +46,7 @@ It reads TypeScript files (.ts, .tsx, .mts, .cts). A .js, .cjs or .mjs file is n
   --help         print this text and exit
 
 With no flag it lists what would change and writes nothing. Inside a git repository it reads the files git knows, and
---write refuses a file with local changes: commit or stash it first, so git can undo it.
+--write refuses a file with local changes: commit, stash or "git add" it first, so git can undo it.
 There is no --reverse: a downgrade restores the files from git.`;
 
 /** A usage error: nothing was read or written. */
@@ -1195,7 +1195,7 @@ export class BindingKeysCommand {
         if (dirty?.has(file)) {
           refusedCount += 1;
           console.warn(
-            `refused  ${shown}  has local changes (commit or stash them, then run again)`,
+            `refused  ${shown}  has local changes (commit, stash or "git add" them, then run again)`,
           );
           continue;
         }

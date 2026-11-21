@@ -1011,7 +1011,7 @@ export class ConstClassesCommand {
         if (dirty.has(resolve(file))) {
           result.refused += 1;
           console.warn(
-            `refused  ${relative(root, file).split('\\').join('/')}  has local changes (commit or stash them, then run again)`,
+            `refused  ${relative(root, file).split('\\').join('/')}  has local changes (commit, stash or "git add" them, then run again)`,
           );
           break;
         }
@@ -1051,7 +1051,9 @@ export class ConstClassesCommand {
 
       if (dirty.has(resolve(file))) {
         result.refused += 1;
-        console.warn(`refused  ${shown}  has local changes (commit or stash them, then run again)`);
+        console.warn(
+          `refused  ${shown}  has local changes (commit, stash or "git add" them, then run again)`,
+        );
         continue;
       }
 
