@@ -929,7 +929,6 @@ Signs and reads the token the commit route trusts instead of a key a caller name
 export declare class StaticAssetCommitTokenUtility {
     private static encode;
     private static sign;
-    private static isRecord;
     private static isStringRecord;
     /** A signed body that is not the current payload shape is refused as invalid: a token minted before the shape changed still carries a good signature. */
     private static parse;

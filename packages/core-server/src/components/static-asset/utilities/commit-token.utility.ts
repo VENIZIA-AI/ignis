@@ -1,5 +1,5 @@
 import { Hash, HashAlgorithms, HashOutputEncodings } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { StaticAssetTokenStages } from '../common/constants';
 import { StaticAssetErrors } from '../common/errors';
 import type {
@@ -23,14 +23,9 @@ export class StaticAssetCommitTokenUtility {
     });
   }
 
-  private static isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null;
-  }
-
   private static isStringRecord(value: unknown): value is TStaticAssetTokenMetadata {
     return (
-      StaticAssetCommitTokenUtility.isRecord(value) &&
-      !Array.isArray(value) &&
+      RecordUtility.isPlainRecord(value) &&
       Object.values(value).every((entry) => typeof entry === 'string')
     );
   }
@@ -45,16 +40,16 @@ export class StaticAssetCommitTokenUtility {
       throw getError(StaticAssetErrors.INVALID_COMMIT_TOKEN);
     }
 
-    if (!StaticAssetCommitTokenUtility.isRecord(parsed)) {
+    if (!RecordUtility.isRecord(parsed)) {
       throw getError(StaticAssetErrors.INVALID_COMMIT_TOKEN);
     }
 
     const { bucket, object, expiresAt, owner, metadata, stage, pin } = parsed;
 
     if (
-      !StaticAssetCommitTokenUtility.isRecord(bucket) ||
+      !RecordUtility.isRecord(bucket) ||
       typeof bucket.name !== 'string' ||
-      !StaticAssetCommitTokenUtility.isRecord(object) ||
+      !RecordUtility.isRecord(object) ||
       typeof object.key !== 'string' ||
       typeof expiresAt !== 'number' ||
       typeof owner !== 'string' ||
@@ -94,7 +89,7 @@ export class StaticAssetCommitTokenUtility {
     const { pin } = opts;
 
     if (
-      !StaticAssetCommitTokenUtility.isRecord(pin) ||
+      !RecordUtility.isRecord(pin) ||
       typeof pin.etag !== 'string' ||
       (pin.versionId !== undefined && typeof pin.versionId !== 'string')
     ) {

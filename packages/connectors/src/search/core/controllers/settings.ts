@@ -1,6 +1,6 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { Sorts } from '@venizia/ignis-filter';
 import { RequestFilterGuard } from '@venizia/ignis-kernel';
 import type { TInjected, TInjectMap, TRouteContext } from '@venizia/ignis-kernel';
@@ -79,9 +79,6 @@ export interface ISearchResolvedQuery<
 
 const SETTING_KEYS = new Set(['queryBy', 'queryByWeights', 'order', 'tuning']);
 
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
 /** Reads, checks and merges the `query` settings of a search controller. */
 export class SearchSettingsUtility {
   /**
@@ -133,7 +130,9 @@ export class SearchSettingsUtility {
   private static toKnob(opts: { value: unknown; names?: readonly string[] }): unknown {
     const { value, names } = opts;
 
-    return isPlainObject(value) ? SearchSettingsUtility.toList({ record: value, names }) : value;
+    return RecordUtility.isPlainRecord(value)
+      ? SearchSettingsUtility.toList({ record: value, names })
+      : value;
   }
 
   /**
@@ -152,7 +151,7 @@ export class SearchSettingsUtility {
     const { settings, scope, catalog, allowedTuning, isFixed, statusCode } = opts;
     const fail = (message: string) => SearchSettingsUtility.fail({ scope, message, statusCode });
 
-    if (!isPlainObject(settings)) {
+    if (!RecordUtility.isPlainRecord(settings)) {
       throw fail(`the settings must be an object | got: ${typeof settings}`);
     }
 
@@ -196,7 +195,7 @@ export class SearchSettingsUtility {
     const checkKeyed = (keyed: { record: unknown; where: string }) => {
       const { record, where } = keyed;
 
-      if (!isPlainObject(record)) {
+      if (!RecordUtility.isPlainRecord(record)) {
         throw fail(`${where} must be an object keyed by field name`);
       }
 
@@ -250,7 +249,7 @@ export class SearchSettingsUtility {
     if (queryByWeights !== undefined) {
       checkKeyed({ record: queryByWeights, where: 'queryByWeights' });
 
-      for (const [name, weight] of isPlainObject(queryByWeights)
+      for (const [name, weight] of RecordUtility.isPlainRecord(queryByWeights)
         ? Object.entries(queryByWeights)
         : []) {
         if (typeof weight !== 'number' || !Number.isFinite(weight) || weight < 0) {
@@ -283,7 +282,7 @@ export class SearchSettingsUtility {
     }
 
     if (tuning !== undefined) {
-      if (!isPlainObject(tuning)) {
+      if (!RecordUtility.isPlainRecord(tuning)) {
         throw fail('tuning must be an object');
       }
 
@@ -314,7 +313,7 @@ export class SearchSettingsUtility {
 
         if (name === 'sortBy') {
           checkSortBy(value);
-        } else if (isPlainObject(value)) {
+        } else if (RecordUtility.isPlainRecord(value)) {
           checkKeyed({ record: value, where: `tuning.${name}` });
         }
       }
@@ -557,7 +556,10 @@ export class SearchSettingsUtility {
         }
 
         // A semantic search has no `queryBy`, so a keyed knob has nothing to align to: it is left out, as a fixed `queryBy` is.
-        if (input.mode === SearchModes.SEMANTIC && isPlainObject(fixed.tuning[name])) {
+        if (
+          input.mode === SearchModes.SEMANTIC &&
+          RecordUtility.isPlainRecord(fixed.tuning[name])
+        ) {
           continue;
         }
 
@@ -572,7 +574,10 @@ export class SearchSettingsUtility {
       } else if (name in clientTuning) {
         tuning[name] = clientTuning[name];
       } else {
-        if (input.mode === SearchModes.SEMANTIC && isPlainObject(defaults.tuning?.[name])) {
+        if (
+          input.mode === SearchModes.SEMANTIC &&
+          RecordUtility.isPlainRecord(defaults.tuning?.[name])
+        ) {
           continue;
         }
 
