@@ -1,4 +1,4 @@
-import { HttpReadShapes, HttpWireHeaders, type THttpReadShape } from './common/constants';
+import { HttpReadShapes, type THttpReadShape } from './common/constants';
 import { DataSourceRoot } from '@venizia/ignis-kernel/repository';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { NativeFetcher, UrlBuilder, UrlFetchError } from '@venizia/ignis-helpers/core';
@@ -97,7 +97,7 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
 
     // Unconditionally it would send the string "undefined".
     if (token.provider) {
-      headers.set(HttpWireHeaders.AUTH_PROVIDER, token.provider);
+      headers.set(HTTP.Headers.AUTH_PROVIDER, token.provider);
     }
 
     return headers;
