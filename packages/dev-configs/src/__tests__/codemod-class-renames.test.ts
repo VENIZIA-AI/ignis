@@ -138,6 +138,16 @@ describe('devz codemod class-renames: the rewrite', () => {
     );
   });
 
+  test('a destructuring shorthand keeps its key: the local follows the rename, the property does not', () => {
+    const result = rewrite(
+      `import { RetryHelper } from '@venizia/ignis-helpers';\nconst { RetryHelper } = registry;\nRetryHelper.x();\n`,
+    );
+
+    expect(result.output).toBe(
+      `import { RetryUtility } from '@venizia/ignis-helpers';\nconst { RetryHelper: RetryUtility } = registry;\nRetryUtility.x();\n`,
+    );
+  });
+
   test('a type-only import is renamed, a string literal is not', () => {
     const result = rewrite(
       `import type { SlugHelper } from '@venizia/ignis-helpers';\nconst name = 'SlugHelper';\ntype T = SlugHelper;\n`,

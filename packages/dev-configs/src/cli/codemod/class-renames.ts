@@ -204,14 +204,14 @@ export class ClassRenames {
         const row = locals.get(node.text);
 
         if (row && !isMemberName(node)) {
-          // `{ Old }` keeps its key: `{ Old: New }`.
-          rename(
-            node,
-            row,
-            ts.isShorthandPropertyAssignment(node.parent) && node.parent.name === node
-              ? `${node.text}: ${row.newName}`
-              : row.newName,
-          );
+          // `{ Old }` in an object literal or a destructuring keeps its key: `{ Old: New }`.
+          const isShorthand =
+            (ts.isShorthandPropertyAssignment(node.parent) && node.parent.name === node) ||
+            (ts.isBindingElement(node.parent) &&
+              !node.parent.propertyName &&
+              node.parent.name === node);
+
+          rename(node, row, isShorthand ? `${node.text}: ${row.newName}` : row.newName);
         }
       }
 
