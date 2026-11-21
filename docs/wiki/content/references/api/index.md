@@ -61,7 +61,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion) | 74 | 74 |
 | [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel) | 362 | 362 |
 | [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata) | 21 | 21 |
-| [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository) | 37 | 37 |
+| [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository) | 36 | 36 |
 | [`@venizia/ignis-kernel/statuses`](/references/api/venizia-ignis-kernel-statuses) | 2 | 2 |
 | [`@venizia/ignis-worker`](/references/api/venizia-ignis-worker) | 18 | 18 |
 | [`@venizia/ignis/grpc`](/references/api/venizia-ignis-grpc) | 4 | 4 |

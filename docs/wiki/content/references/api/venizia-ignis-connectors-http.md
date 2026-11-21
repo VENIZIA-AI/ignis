@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/http, from the built dec
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-16 exports, 16 with TSDoc. 3 more are re-exported from other entries (listed at the end).
+16 exports, 16 with TSDoc. 2 more are re-exported from other entries (listed at the end).
 
 ## `HttpDataSource`
 
@@ -627,6 +627,5 @@ Source: `packages/connectors/src/http/common/constants.ts`
 
 ## Re-exported
 
-- `HttpResponseReader` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TExtraRequest` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TExtraResult` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)

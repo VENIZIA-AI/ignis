@@ -5,7 +5,7 @@ import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
 import { BodyLimit } from '@/modules/network/http-request/fetcher/common/body-limit';
 import { FetchSchemaError } from '@/modules/network/http-request/fetcher/common/errors';
-import { ResponseReader } from '@/modules/network/http-request/fetcher/common/response-reader';
+import { HttpResponseReader } from '@/modules/network/http-request/fetcher/common/response-reader';
 import { HttpHeaders } from '@/modules/network/http-request/fetcher/common/utilities';
 import { NativeFetcher } from '@/modules/network/http-request/fetcher/native-fetcher';
 import {
@@ -14,28 +14,34 @@ import {
 } from '@/modules/network/utilities/url-safety/common/errors';
 import { UrlPolicy } from '@/modules/network/utilities/url-safety/policy';
 
-describe('ResponseReader.readText', () => {
+describe('HttpResponseReader.readText', () => {
   test('a 204, an empty body and no body are the empty string, capped or not', async () => {
     const noContent = new Response(null, { status: HTTP.ResultCodes.RS_2.NoContent });
 
-    const result = await ResponseReader.readText({ response: noContent });
+    const result = await HttpResponseReader.readText({ response: noContent });
     expect(result).toBe('');
-    const result2 = await ResponseReader.readText({ response: new Response(''), maxBytes: 10 });
+    const result2 = await HttpResponseReader.readText({ response: new Response(''), maxBytes: 10 });
     expect(result2).toBe('');
-    const result3 = await ResponseReader.readText({ response: new Response(null), maxBytes: 10 });
+    const result3 = await HttpResponseReader.readText({
+      response: new Response(null),
+      maxBytes: 10,
+    });
     expect(result3).toBe('');
   });
 
   test('the text is read whole, or up to the cap', async () => {
-    const result4 = await ResponseReader.readText({ response: new Response('héllo') });
+    const result4 = await HttpResponseReader.readText({ response: new Response('héllo') });
     expect(result4).toBe('héllo');
-    const result5 = await ResponseReader.readText({ response: new Response('hello'), maxBytes: 5 });
+    const result5 = await HttpResponseReader.readText({
+      response: new Response('hello'),
+      maxBytes: 5,
+    });
     expect(result5).toBe('hello');
   });
 
   test('a body over the cap fails, as BodyLimit does', async () => {
     const error = await RejectionHelper.rejectionOf({
-      task: ResponseReader.readText({ response: new Response('x'.repeat(50)), maxBytes: 10 }),
+      task: HttpResponseReader.readText({ response: new Response('x'.repeat(50)), maxBytes: 10 }),
     });
 
     expect((error as Error).message).toContain('Body exceeds the cap');
