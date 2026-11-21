@@ -93,7 +93,7 @@ export const HELPERS_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
   {
     modules: [ROOT],
     oldName: 'parseContentDisposition',
-    className: 'RequestUtility',
+    className: 'HttpResponseReader',
     method: 'parseContentDisposition',
     params: [],
     keepsOptions: true,

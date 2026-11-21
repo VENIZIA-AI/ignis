@@ -389,3 +389,22 @@ http-response-reader-in-helpers:
     steps:
       - "Pin @venizia/ignis-kernel and @venizia/ignis-connectors to 0.4.8 and import HttpResponseReader from @venizia/ignis-kernel/repository again."
   data: Nothing stored changes.
+
+parse-content-disposition-in-reader:
+  symbols: [RequestUtility.parseContentDisposition, HttpResponseReader.parseContentDisposition]
+  upgrade:
+    before: |-
+      import { RequestUtility } from '@venizia/ignis-helpers';
+
+      const { type, filename } = RequestUtility.parseContentDisposition({ header });
+    after: |-
+      import { HttpResponseReader } from '@venizia/ignis-helpers';
+
+      const { type, filename } = HttpResponseReader.parseContentDisposition({ header });
+    steps:
+      - "Replace RequestUtility.parseContentDisposition with HttpResponseReader.parseContentDisposition; the options and the answer are the same."
+      - "RequestUtility.buildContentDispositionHeader stays where it is."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-helpers and @venizia/ignis to 0.4.8 and call RequestUtility.parseContentDisposition again."
+  data: Nothing stored changes.
