@@ -25,8 +25,7 @@ export class StaticAssetCommitTokenUtility {
 
   private static isStringRecord(value: unknown): value is TStaticAssetTokenMetadata {
     return (
-      RecordUtility.isRecord(value) &&
-      !Array.isArray(value) &&
+      RecordUtility.isPlainRecord(value) &&
       Object.values(value).every((entry) => typeof entry === 'string')
     );
   }
