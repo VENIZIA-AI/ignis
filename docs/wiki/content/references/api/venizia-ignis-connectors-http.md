@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/http, from the built dec
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-17 exports, 17 with TSDoc. 3 more are re-exported from other entries (listed at the end).
+16 exports, 16 with TSDoc. 2 more are re-exported from other entries (listed at the end).
 
 ## `HttpDataSource`
 
@@ -403,21 +403,6 @@ type THttpRepositoryOptions = NonNullable<Parameters<IReadableRepository['exists
 
 Source: `packages/connectors/src/http/repository.ts`
 
-## `HttpWireHeaders`
-
-*class*
-
-Headers the HTTP datasource owns on the wire, beside the shared ones in `HTTP.Headers`.
-
-```ts
-export declare class HttpWireHeaders {
-    /** The credential's `provider`, when it names one. */
-    static readonly AUTH_PROVIDER = "x-auth-provider";
-}
-```
-
-Source: `packages/connectors/src/http/common/constants.ts`
-
 ## `IAuthToken`
 
 *interface*
@@ -642,6 +627,5 @@ Source: `packages/connectors/src/http/common/constants.ts`
 
 ## Re-exported
 
-- `HttpResponseReader` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TExtraRequest` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TExtraResult` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)

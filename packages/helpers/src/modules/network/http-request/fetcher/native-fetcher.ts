@@ -16,10 +16,10 @@ import {
   type TFetcherLogger,
 } from './base-fetcher';
 import { BodyLimit } from './common/body-limit';
-import { ResponseReader } from './common/response-reader';
+import { HttpResponseReader } from './common/response-reader';
 import type { IFetchGuard } from './common/guard';
 import type { IFetcherDefaults, IFetcherHooks } from './common/types';
-import { FetchHeaders } from './common/utilities';
+import { HttpHeaders } from './common/utilities';
 
 /** The fields of `RequestInit` a call or a fetcher cannot set because the pipeline owns them. */
 type TOwnedInitFields = 'body' | 'headers' | 'method' | 'signal' | 'redirect';
@@ -42,19 +42,6 @@ interface IBunFetchInit extends RequestInit {
   proxy?: string | false;
   tls?: { serverName?: string };
 }
-
-/** What `fetch` takes as a body as it is: encoding any of these again would change the bytes sent. A constructor is looked up on `globalThis` so a runtime without one (no `FormData`) just never matches it. */
-const isRawBody = (body: unknown): body is NonNullable<RequestInit['body']> => {
-  if (typeof body === 'string' || ArrayBuffer.isView(body) || body instanceof ArrayBuffer) {
-    return true;
-  }
-
-  return ['Blob', 'FormData', 'URLSearchParams', 'ReadableStream'].some((name) => {
-    const ctor = Reflect.get(globalThis, name);
-
-    return typeof ctor === 'function' && body instanceof ctor;
-  });
-};
 
 /**
  * The `fetch` options a guarded call accepts, besides the ones the pipeline owns. An allowlist: Bun adds options that choose
@@ -81,6 +68,19 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
   Awaited<ReturnType<typeof fetch>>,
   typeof fetch
 > {
+  /** What `fetch` takes as a body as it is: encoding any of these again would change the bytes sent. A constructor is looked up on `globalThis` so a runtime without one (no `FormData`) just never matches it. */
+  static isRawBody(body: unknown): body is NonNullable<RequestInit['body']> {
+    if (typeof body === 'string' || ArrayBuffer.isView(body) || body instanceof ArrayBuffer) {
+      return true;
+    }
+
+    return ['Blob', 'FormData', 'URLSearchParams', 'ReadableStream'].some((name) => {
+      const ctor = Reflect.get(globalThis, name);
+
+      return typeof ctor === 'function' && body instanceof ctor;
+    });
+  }
+
   private requestInit: TNativeRequestInit;
   private sender: TNativeFetchSender | undefined;
   private queryString: IQueryStringOptions;
@@ -150,7 +150,7 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
       return undefined;
     }
 
-    return isRawBody(body) ? body : JSON.stringify(body);
+    return NativeFetcher.isRawBody(body) ? body : JSON.stringify(body);
   }
 
   protected override buildUrl(opts: { url: string; params?: Record<string, unknown> }): string {
@@ -315,7 +315,7 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
         });
       },
       readJson: async ({ maxBytes }) => {
-        const text = await ResponseReader.readText({ response, maxBytes });
+        const text = await HttpResponseReader.readText({ response, maxBytes });
 
         return JSON.parse(text);
       },
@@ -360,7 +360,7 @@ export class NativeFetchNetworkRequest extends BaseNetworkRequest<'native'> {
     } = networkOptions;
 
     // Case-insensitive, like the wire: a caller's `Content-Type` replaces the default one.
-    const mergedHeaders = FetchHeaders.withJsonDefault({
+    const mergedHeaders = HttpHeaders.withJsonDefault({
       layers: [headers === undefined ? undefined : new Headers(headers), opts.defaults?.headers],
     });
 

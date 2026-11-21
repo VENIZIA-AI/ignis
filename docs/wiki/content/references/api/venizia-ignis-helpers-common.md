@@ -467,6 +467,10 @@ export declare class HTTP {
         readonly RESPONSE_COUNT_DATA: "x-response-count";
         readonly RESPONSE_FORMAT: "x-response-format";
         readonly RESPONSE_EXTRA: "x-response-extra";
+        readonly AUTH_PROVIDER: "x-auth-provider";
+        readonly LOCALE: "x-locale";
+        readonly TIMEZONE: "timezone";
+        readonly TIMEZONE_OFFSET: "timezone-offset";
     };
     /**
      * The headers IGNIS adds to a request and to a response, for a CORS configuration that lists them
@@ -1096,6 +1100,10 @@ export declare class HTTP {
         readonly RESPONSE_COUNT_DATA: "x-response-count";
         readonly RESPONSE_FORMAT: "x-response-format";
         readonly RESPONSE_EXTRA: "x-response-extra";
+        readonly AUTH_PROVIDER: "x-auth-provider";
+        readonly LOCALE: "x-locale";
+        readonly TIMEZONE: "timezone";
+        readonly TIMEZONE_OFFSET: "timezone-offset";
     };
     /**
      * The headers IGNIS adds to a request and to a response, for a CORS configuration that lists them
@@ -1298,6 +1306,10 @@ export declare class HTTP {
         readonly RESPONSE_COUNT_DATA: "x-response-count";
         readonly RESPONSE_FORMAT: "x-response-format";
         readonly RESPONSE_EXTRA: "x-response-extra";
+        readonly AUTH_PROVIDER: "x-auth-provider";
+        readonly LOCALE: "x-locale";
+        readonly TIMEZONE: "timezone";
+        readonly TIMEZONE_OFFSET: "timezone-offset";
     };
     /**
      * The headers IGNIS adds to a request and to a response, for a CORS configuration that lists them
@@ -1500,6 +1512,10 @@ export declare class HTTP {
         readonly RESPONSE_COUNT_DATA: "x-response-count";
         readonly RESPONSE_FORMAT: "x-response-format";
         readonly RESPONSE_EXTRA: "x-response-extra";
+        readonly AUTH_PROVIDER: "x-auth-provider";
+        readonly LOCALE: "x-locale";
+        readonly TIMEZONE: "timezone";
+        readonly TIMEZONE_OFFSET: "timezone-offset";
     };
     /**
      * The headers IGNIS adds to a request and to a response, for a CORS configuration that lists them

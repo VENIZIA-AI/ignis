@@ -11,7 +11,7 @@ import {
   AxiosNetworkRequest,
 } from '@/modules/network/http-request/fetcher/axios-fetcher';
 import { NativeFetcher } from '@/modules/network/http-request/fetcher/native-fetcher';
-import { FetchRetry } from '@/modules/network/http-request/fetcher/common/utilities';
+import { HttpRetry } from '@/modules/network/http-request/fetcher/common/utilities';
 import type { IFetchGuard } from '@/modules/network/http-request/fetcher/common/guard';
 import { UrlFetchError } from '@/modules/network/utilities/url-safety/common/errors';
 import { HTTP } from '@/common/constants/http';
@@ -284,8 +284,8 @@ describe('Retry-After', () => {
       response: new Response(null),
     });
 
-    expect(FetchRetry.DEFAULT_MAX_DELAY_MS).toBe(30_000);
-    expect(FetchRetry.readRetryAfterMs({ error })).toBe(100_000_000);
+    expect(HttpRetry.DEFAULT_MAX_DELAY_MS).toBe(30_000);
+    expect(HttpRetry.readRetryAfterMs({ error })).toBe(100_000_000);
   });
 
   test('an HTTP date is read, and a negative, a fractional or a garbled value is ignored', () => {
@@ -299,12 +299,12 @@ describe('Retry-After', () => {
       });
     const now = Date.parse('2026-11-19T10:00:00Z');
 
-    expect(FetchRetry.readRetryAfterMs({ error: make('Thu, 19 Nov 2026 10:00:05 GMT'), now })).toBe(
+    expect(HttpRetry.readRetryAfterMs({ error: make('Thu, 19 Nov 2026 10:00:05 GMT'), now })).toBe(
       5000,
     );
-    expect(FetchRetry.readRetryAfterMs({ error: make('-5'), now })).toBeUndefined();
-    expect(FetchRetry.readRetryAfterMs({ error: make('1.5'), now })).toBeUndefined();
-    expect(FetchRetry.readRetryAfterMs({ error: make('soon'), now })).toBeUndefined();
+    expect(HttpRetry.readRetryAfterMs({ error: make('-5'), now })).toBeUndefined();
+    expect(HttpRetry.readRetryAfterMs({ error: make('1.5'), now })).toBeUndefined();
+    expect(HttpRetry.readRetryAfterMs({ error: make('soon'), now })).toBeUndefined();
   });
 });
 

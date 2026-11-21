@@ -207,7 +207,7 @@ Every field is per call, and wins over the fetcher's `defaults`.
 | `signal` | `AbortSignal` | The caller's own abort. It rejects with the caller's reason, apart from a timeout (`TimeoutError`) |
 | `schema` | `z.ZodType` | Parse the JSON body; a mismatch is a [`FetchSchemaError`](#fetchschemaerror) |
 | `acceptStatus` | `number[] \| (status: number) => boolean` | The one opt-out of "a status outside 2xx throws": a list adds to 2xx, a function decides alone. See [Status check](#status-check) |
-| `retry` | `IFetchRetryOptions` | Present turns retrying on. See [Retry](#retry) |
+| `retry` | `IHttpRetryOptions` | Present turns retrying on. See [Retry](#retry) |
 | `guard` | `IUrlSafetyPolicy` | Present turns the [url guard](#url-safety) on for this call |
 | `maxBytes` | `number` | Cap on the response body |
 | `maxRedirects` | `number` | `0` returns a 3xx as a `UrlFetchError`; a positive number walks the redirects by hand |
@@ -291,7 +291,7 @@ An empty list is 2xx only. An accepted status is an answer, so it is never retri
 
 #### Retry
 
-`retry` is `IFetchRetryOptions`: `maxAttempts` (default 3), `maxTotalMs` (the budget across every attempt and wait), `backoff`, `shouldRetry`, `onRetry`. It runs on `RetryHelper.executeWithRetry`.
+`retry` is `IHttpRetryOptions`: `maxAttempts` (default 3), `maxTotalMs` (the budget across every attempt and wait), `backoff`, `shouldRetry`, `onRetry`. It runs on `RetryHelper.executeWithRetry`.
 
 - Retried by default: a network error, a timeout, a 5xx and a 429.
 - Never retried by default: any other 4xx, a 3xx, a guard refusal, a schema mismatch, a caller abort.
@@ -1186,7 +1186,7 @@ An IPv6 literal is expanded to its eight 16-bit groups before it is classified, 
 
 A `?` inside a path segment is not escaped: it starts the query, as it always did (use `params` for a query). A double slash (`a//b`) is not refused: it cannot leave the base.
 
-`ResponseReader.readText({ response, maxBytes? })` turns a `Response` into text, the one way every reader does it: `''` for a 204, an empty body or no body, and the read fails at `maxBytes`. The fetchers' schema path and the kernel's `HttpResponseReader` use it.
+`HttpResponseReader.readText({ response, maxBytes? })` turns a `Response` into text, the one way every reader does it: `''` for a 204, an empty body or no body, and the read fails at `maxBytes`. The fetchers' schema path uses it too.
 
 `UrlGuard` is also what you hand a fetcher as `guardEngine` (`createRoute`). The name `UrlIngest` is gone, with `fetchGuarded`, `readCappedBody` and `capStream`: the fetchers do that work now, and `BodyLimit` holds the body cap.
 
