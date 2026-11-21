@@ -434,7 +434,7 @@ Set on the Hono `Context` during authentication, readable via `context.get()`:
 | `TYPE_ACCESS_TOKEN` | `'100_ACCESS_TOKEN'` |
 | `TYPE_REFRESH_TOKEN` | `'200_REFRESH_TOKEN'` |
 
-**JOSE / JWKS constants** - each class also exposes `SCHEME_SET: Set<string>` and `isValid(input): boolean`
+**JOSE / JWKS constants** - each class extends `ConstClass`, so `values()` lists its values and `isValid(input)` checks one
 
 | Class | Members |
 |-------|---------|

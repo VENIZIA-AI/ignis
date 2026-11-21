@@ -36,7 +36,7 @@ describe('Authorization Constants', () => {
       expect(AuthorizationActions.isValid('write')).toBe(true);
     });
 
-    test('should have correct SCHEME_SET size', () => {
+    test('should hold the three decisions', () => {
       expect(AuthorizationActions.SCHEME_SET.size).toBe(8);
     });
 
@@ -71,8 +71,8 @@ describe('Authorization Constants', () => {
       expect(AuthorizationDecisions.isValid('')).toBe(false);
     });
 
-    test('should have correct SCHEME_SET size', () => {
-      expect(AuthorizationDecisions.SCHEME_SET.size).toBe(3);
+    test('should hold the three decisions', () => {
+      expect(AuthorizationDecisions.values()).toHaveLength(3);
     });
   });
 

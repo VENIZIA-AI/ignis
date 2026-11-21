@@ -903,13 +903,11 @@ Source: `packages/helpers/src/modules/temporal/adapters/native.ts`
 How `formatDuration` writes: `compact` is `1d1h30m`; the others are the locale's own unit words.
 
 ```ts
-export declare class TemporalDurationStyles {
+export declare class TemporalDurationStyles extends ConstClass {
     static readonly COMPACT = "compact";
     static readonly NARROW = "narrow";
     static readonly SHORT = "short";
     static readonly LONG = "long";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): input is TTemporalDurationStyle;
 }
 ```
 
@@ -1161,13 +1159,11 @@ Source: `packages/helpers/src/modules/temporal/helper.ts`
 Which ends of the range `isBetween` counts: `[` includes an end, `(` leaves it out.
 
 ```ts
-export declare class TemporalInclusivities {
+export declare class TemporalInclusivities extends ConstClass {
     static readonly EXCLUSIVE = "()";
     static readonly INCLUSIVE = "[]";
     static readonly START_ONLY = "[)";
     static readonly END_ONLY = "(]";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): input is TTemporalInclusivity;
 }
 ```
 
@@ -1180,12 +1176,10 @@ Source: `packages/helpers/src/modules/temporal/common/constants.ts`
 How long a month or weekday name is written: NARROW (`M`), SHORT (`Mon`) or LONG (`Monday`).
 
 ```ts
-export declare class TemporalNameWidths {
+export declare class TemporalNameWidths extends ConstClass {
     static readonly NARROW = "narrow";
     static readonly SHORT = "short";
     static readonly LONG = "long";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -1198,7 +1192,7 @@ Source: `packages/helpers/src/modules/temporal/common/constants.ts`
 Units `add`, `subtract`, `startOf` and `endOf` accept. Weeks are ISO weeks - they start on Monday; a quarter is three calendar months from January, April, July or October.
 
 ```ts
-export declare class TemporalUnits {
+export declare class TemporalUnits extends ConstClass {
     static readonly MILLISECOND = "millisecond";
     static readonly SECOND = "second";
     static readonly MINUTE = "minute";
@@ -1208,8 +1202,6 @@ export declare class TemporalUnits {
     static readonly MONTH = "month";
     static readonly QUARTER = "quarter";
     static readonly YEAR = "year";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): input is TTemporalUnit;
 }
 ```
 
@@ -1222,11 +1214,9 @@ Source: `packages/helpers/src/modules/temporal/common/constants.ts`
 How `writtenDate` writes a date: NUMERIC is `10/14/2026`, LONG is `October 14, 2026`.
 
 ```ts
-export declare class TemporalWrittenDateStyles {
+export declare class TemporalWrittenDateStyles extends ConstClass {
     static readonly NUMERIC = "numeric";
     static readonly LONG = "long";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -1302,12 +1292,10 @@ A month name has no narrow form here: SHORT or LONG.
 export type TTemporalMonthNameWidth = Exclude<TTemporalNameWidth, typeof TemporalNameWidths.NARROW>;
 
 /** How long a month or weekday name is written: NARROW (`M`), SHORT (`Mon`) or LONG (`Monday`). */
-export declare class TemporalNameWidths {
+export declare class TemporalNameWidths extends ConstClass {
     static readonly NARROW = "narrow";
     static readonly SHORT = "short";
     static readonly LONG = "long";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 

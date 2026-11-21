@@ -323,7 +323,7 @@ Every codemod below is a dry run unless you pass `--write`, and `--check` exits 
 
 **`devz codemod const-classes [paths...] [--write [--all] \| --check]`**
 
-- Turns a string-literal union in an exported type alias, or in a property of an exported interface or object type, into a const class (`SCHEME_SET`, `isValid`) plus `TConstValue<typeof X>`, the shape the `venizia/const-class-values` rule asks for.
+- Turns a string-literal union in an exported type alias, or in a property of an exported interface or object type, into a const class (it extends `ConstClass`) plus `TConstValue<typeof X>`, the shape the `venizia/const-class-values` rule asks for. It also moves an existing class with a `SCHEME_SET` and a plain `isValid` onto `ConstClass` and rewrites `X.SCHEME_SET.has(v)` to `X.isValid(v)` and `[...X.SCHEME_SET]` to `X.values()`; any other use of `SCHEME_SET` on a moved class is listed for you to change.
 - It writes no comment of its own above the class.
 - It proposes the class and member names and prints them; `--emit-map` writes them to a file you edit, `--map` applies your names.
 - `--write` needs a path or `--all` (the whole tree). The values stay the same, so no call site changes.

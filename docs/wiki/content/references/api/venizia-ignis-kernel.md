@@ -247,15 +247,13 @@ Source: `packages/kernel/src/base/metadata/routes/rest.ts`
 The `IArtifactIndex` field names, in registration order. `@venizia/ignis-boot` mirrors these values in its own `ArtifactIndexFields` - boot cannot depend on kernel.
 
 ```ts
-export declare class ArtifactIndexFields {
+export declare class ArtifactIndexFields extends ConstClass {
     static readonly CONFIGURATIONS = "configurations";
     static readonly DATA_SOURCES = "dataSources";
     static readonly COMPONENTS = "components";
     static readonly REPOSITORIES = "repositories";
     static readonly SERVICES = "services";
     static readonly CONTROLLERS = "controllers";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -310,13 +308,10 @@ Source: `packages/kernel/src/base/auth/authenticate/common/keys.ts`
 Names of the strategies the framework ships: `basic`, `jwt` and `service`.
 
 ```ts
-export declare class AuthenticateStrategy {
+export declare class AuthenticateStrategy extends ConstClass {
     static readonly BASIC = "basic";
     static readonly JWT = "jwt";
     static readonly SERVICE = "service";
-    /** The strategies the FRAMEWORK ships. An application registers its own beyond these. */
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): boolean;
 }
 ```
 
@@ -505,11 +500,9 @@ Source: `packages/kernel/src/base/auth/authenticate/common/codecs.ts`
 How the `authenticate` middleware combines several strategies: `any` passes when one succeeds, `all` requires every one to succeed.
 
 ```ts
-export declare class AuthenticationModes {
+export declare class AuthenticationModes extends ConstClass {
     static readonly ANY = "any";
     static readonly ALL = "all";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): boolean;
 }
 ```
 
@@ -668,12 +661,10 @@ Source: `packages/kernel/src/base/auth/authorize/common/constants/authorization.
 Outcome of a voter or enforcer. The `isAllow`/`isDeny`/`isAbstain` helpers also accept a number: positive allows, negative denies, zero abstains.
 
 ```ts
-export declare class AuthorizationDecisions {
+export declare class AuthorizationDecisions extends ConstClass {
     static readonly ALLOW = "allow";
     static readonly DENY = "deny";
     static readonly ABSTAIN = "abstain";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): boolean;
     static isAllow(input: string | number): boolean;
     static isDeny(input: string | number): boolean;
     static isAbstain(input: string | number): boolean;
@@ -689,13 +680,11 @@ Source: `packages/kernel/src/base/auth/authorize/common/constants/authorization.
 Scope literals a grant can carry instead of a concrete domain.
 
 ```ts
-export declare class AuthorizationDomainScopes {
+export declare class AuthorizationDomainScopes extends ConstClass {
     /** Grant applies in EVERY domain the subject is a member of (checked via join_domain / g2). */
     static readonly ANY_MEMBER = "ANY_MEMBER";
     /** Grant applies system-wide, bypassing membership - super-admin only. */
     static readonly SYSTEM_WIDE = "SYSTEM_WIDE";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): boolean;
 }
 ```
 
@@ -708,13 +697,11 @@ Source: `packages/kernel/src/base/auth/authorize/common/constants/authorization.
 Where an `IAuthorizationDomainSource` reads the request domain from.
 
 ```ts
-export declare class AuthorizationDomainSources {
+export declare class AuthorizationDomainSources extends ConstClass {
     static readonly PARAM = "param";
     static readonly HEADER = "header";
     static readonly QUERY = "query";
     static readonly CONTEXT = "context";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -800,11 +787,9 @@ Source: `packages/kernel/src/base/auth/authorize/enforcers/enforcer-registry.ts`
 Kinds of enforcer a registration can declare; `casbin` takes `ICasbinEnforcerOptions`, `custom` takes untyped options.
 
 ```ts
-export declare class AuthorizationEnforcerTypes {
+export declare class AuthorizationEnforcerTypes extends ConstClass {
     static readonly CASBIN = "casbin";
     static readonly CUSTOM = "custom";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): boolean;
 }
 ```
 
@@ -1346,11 +1331,9 @@ Source: `packages/kernel/src/base/auth/authorize/common/constants/binding-keys.t
 The `format` of `getAuthorizeModelPrincipals` and `getAuthorizeModelSettings`: ARRAY or RECORD.
 
 ```ts
-export declare class AuthorizeModelFormats {
+export declare class AuthorizeModelFormats extends ConstClass {
     static readonly ARRAY = "array";
     static readonly RECORD = "record";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -1763,7 +1746,7 @@ Source: `packages/kernel/src/base/applications/boot-sequence.ts`
 The step names the kernel defines - the vocabulary a subclass targets with `BootSequence.insertAfter`. A server application adds its own on top (`ServerBootSteps` in `@venizia/ignis`).
 
 ```ts
-export declare class BootSteps {
+export declare class BootSteps extends ConstClass {
     static readonly STATIC_CONFIGURE = "staticConfigure";
     static readonly REGISTER_ARTIFACTS = "registerArtifacts";
     static readonly PRE_CONFIGURE = "preConfigure";
@@ -1775,8 +1758,6 @@ export declare class BootSteps {
     static readonly REGISTER_CONTROLLERS = "registerControllers";
     static readonly POST_CONFIGURE = "postConfigure";
     static readonly VERIFY_BINDINGS = "verifyBindings";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -1789,7 +1770,7 @@ Source: `packages/kernel/src/base/applications/boot-sequence.ts`
 Casbin matching functions selectable for the domain match in `ICasbinEnforcerOptions.domainMatching`.
 
 ```ts
-export declare class CasbinDomainMatchingFunctions {
+export declare class CasbinDomainMatchingFunctions extends ConstClass {
     /** `*` is the only wildcard; exact compare otherwise. Safest for `Merchant_<uuid>` domains. */
     static readonly KEY_MATCH = "keyMatch";
     /** Adds URL-path `:param` segment matching. */
@@ -1800,8 +1781,6 @@ export declare class CasbinDomainMatchingFunctions {
     static readonly KEY_MATCH_4 = "keyMatch4";
     /** Treats the stored/policy value as a full regular expression. */
     static readonly REGEX_MATCH = "regexMatch";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): boolean;
 }
 ```
 
@@ -1814,10 +1793,8 @@ Source: `packages/kernel/src/base/auth/authorize/common/constants/enforcer.ts`
 Cache backends for a Casbin enforcer's per-user policy lines.
 
 ```ts
-export declare class CasbinEnforcerCachedDrivers {
+export declare class CasbinEnforcerCachedDrivers extends ConstClass {
     static readonly REDIS = "redis";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): boolean;
 }
 ```
 
@@ -1830,11 +1807,9 @@ Source: `packages/kernel/src/base/auth/authorize/common/constants/enforcer.ts`
 Where a Casbin enforcer reads its model from: a `file` path or inline `text`.
 
 ```ts
-export declare class CasbinEnforcerModelDrivers {
+export declare class CasbinEnforcerModelDrivers extends ConstClass {
     static readonly FILE = "file";
     static readonly TEXT = "text";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): boolean;
 }
 ```
 
@@ -1916,11 +1891,9 @@ Source: `packages/kernel/src/base/controllers/common/constants.ts`
 The `encoding` of `ICompressOptions`.
 
 ```ts
-export declare class CompressEncodings {
+export declare class CompressEncodings extends ConstClass {
     static readonly GZIP = "gzip";
     static readonly DEFLATE = "deflate";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -2387,11 +2360,9 @@ Source: `packages/kernel/src/base/datasources/common/types.ts`
 When a datasource opens: with the application (`start`, the default) or at the first call that needs it (`first-use`).
 
 ```ts
-export declare class DataSourceOpenModes {
+export declare class DataSourceOpenModes extends ConstClass {
     static readonly START = "start";
     static readonly FIRST_USE = "first-use";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): value is TDataSourceOpenMode;
 }
 ```
 
@@ -2596,13 +2567,11 @@ error there rather than a runtime surprise later, inside a `queueMicrotask` wher
 watching.
 
 ```ts
-export declare class EventHandlerTypes {
+export declare class EventHandlerTypes extends ConstClass {
     /** `handler.key` is resolved from the container on every retry attempt - a rebind reaches an attempt already in flight. */
     static readonly BINDING_KEY = "binding-key";
     /** `handler.fn` is invoked directly as a captured closure - there is nothing to rebind, so every attempt in a retry window calls the exact function registered here. */
     static readonly FUNCTION = "function";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): value is TEventHandlerType;
 }
 ```
 
@@ -3677,11 +3646,9 @@ Source: `packages/kernel/src/base/events/common/types.ts`
 The path-param id shape an entity family resolves to (`AbstractEntity.getIdType()`).
 
 ```ts
-export declare class IdSchemaTypes {
+export declare class IdSchemaTypes extends ConstClass {
     static readonly NUMBER = "number";
     static readonly STRING = "string";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -4334,7 +4301,7 @@ export interface IModelProperties {
     /**
      * Properties the server fills on every write, which a generated create or update body leaves out.
      *
-     * @default AuditFields.SCHEME_SET
+     * @default AuditFields.values()
      */
     stamped?: ReadonlyArray<string> | ReadonlySet<string>;
 }
@@ -5096,11 +5063,9 @@ Source: `packages/kernel/src/base/repositories/common/types/options.ts`
 The token standards the JWT service can use: `JWS` (shared-secret signing) or `JWKS` (key-pair signing, published or fetched as a key set).
 
 ```ts
-export declare class JOSEStandards {
+export declare class JOSEStandards extends ConstClass {
     static readonly JWS = "JWS";
     static readonly JWKS = "JWKS";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): boolean;
 }
 ```
 
@@ -5113,12 +5078,10 @@ Source: `packages/kernel/src/base/auth/authenticate/common/constants/jose.ts`
 The signing algorithms a JWKS issuer supports.
 
 ```ts
-export declare class JWKSAlgorithms {
+export declare class JWKSAlgorithms extends ConstClass {
     static readonly ES256 = "ES256";
     static readonly RS256 = "RS256";
     static readonly EDDSA = "EdDSA";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -5131,11 +5094,9 @@ Source: `packages/kernel/src/base/auth/authenticate/common/constants/jose.ts`
 Where JWKS key material comes from: inline `text` content or a `file` path.
 
 ```ts
-export declare class JWKSKeyDrivers {
+export declare class JWKSKeyDrivers extends ConstClass {
     static readonly TEXT = "text";
     static readonly FILE = "file";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): boolean;
 }
 ```
 
@@ -5148,11 +5109,9 @@ Source: `packages/kernel/src/base/auth/authenticate/common/constants/jose.ts`
 Encoding of JWKS key material: `pem` or `jwk`.
 
 ```ts
-export declare class JWKSKeyFormats {
+export declare class JWKSKeyFormats extends ConstClass {
     static readonly PEM = "pem";
     static readonly JWK = "jwk";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): boolean;
 }
 ```
 
@@ -5165,11 +5124,9 @@ Source: `packages/kernel/src/base/auth/authenticate/common/constants/jose.ts`
 The role a JWKS setup plays: `issuer` signs tokens, `verifier` checks them against a remote key set.
 
 ```ts
-export declare class JWKSModes {
+export declare class JWKSModes extends ConstClass {
     static readonly ISSUER = "issuer";
     static readonly VERIFIER = "verifier";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): boolean;
 }
 ```
 
@@ -5194,13 +5151,11 @@ Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`
 PostgreSQL row-level lock strengths for SELECT ... FOR &lt;strength>.
 
 ```ts
-export declare class LockStrengths {
+export declare class LockStrengths extends ConstClass {
     static readonly UPDATE = "update";
     static readonly NO_KEY_UPDATE = "no key update";
     static readonly SHARE = "share";
     static readonly KEY_SHARE = "key share";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(strength: string): boolean;
 }
 ```
 
@@ -5256,10 +5211,8 @@ Source: `packages/kernel/src/common/statuses/migration.ts`
 What `@model` declares. Only ENTITY (a table-backed model) exists; `type` may be left out.
 
 ```ts
-export declare class ModelTypes {
+export declare class ModelTypes extends ConstClass {
     static readonly ENTITY = "entity";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -5800,11 +5753,9 @@ Source: `packages/kernel/src/helpers/inversion/common/relation-builder.ts`
 Entity relation types (one-to-one/many-to-one, one-to-many).
 
 ```ts
-export declare class RelationTypes {
+export declare class RelationTypes extends ConstClass {
     static readonly ONE = "one";
     static readonly MANY = "many";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(orgType: string): boolean;
 }
 ```
 
@@ -6037,11 +5988,9 @@ Source: `packages/kernel/src/base/controllers/rest/extras.ts`
 Shape of `data` in a `{ count, data }` response, echoed in the `X-Response-Format` header.
 
 ```ts
-export declare class ResponseFormats {
+export declare class ResponseFormats extends ConstClass {
     static readonly OBJECT = "object";
     static readonly ARRAY = "array";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -7027,12 +6976,10 @@ Source: `packages/kernel/src/base/controllers/factory/definition.ts`
 Which decorator-defined routes `registerRoutesFromRegistry` registers: STATIC (no path parameter), PARAM (a path parameter) or ALL.
 
 ```ts
-export declare class RoutePathScopes {
+export declare class RoutePathScopes extends ConstClass {
     static readonly STATIC = "static";
     static readonly PARAM = "param";
     static readonly ALL = "all";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -7059,13 +7006,11 @@ Source: `packages/kernel/src/base/metadata/routes/rpc.ts`
 What a row-scope filter (`@model` settings.access) does when `resolve()` returns null/undefined.
 
 ```ts
-export declare class ScopeFilterMissingBehaviors {
+export declare class ScopeFilterMissingBehaviors extends ConstClass {
     /** An unresolved scope matches ZERO rows - the safe reading of "caller's scope is unknown". */
     static readonly DENY = "deny";
     /** Explicit opt-out: no scope is applied. For migrations and background jobs, never inferred from a request. */
     static readonly ALLOW = "allow";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(behavior: string): boolean;
 }
 ```
 
@@ -7189,13 +7134,11 @@ What a scoped write does with a row whose scope column disagrees with the resolv
 passes either way.
 
 ```ts
-export declare class ScopeWriteGuards {
+export declare class ScopeWriteGuards extends ConstClass {
     /** A row whose scope column disagrees, or is absent on create, is refused and nothing is written. */
     static readonly REJECT = "reject";
     /** An ABSENT scope column is filled from an equality scope; a value that disagrees is still refused. */
     static readonly ASSIGN = "assign";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(guard: string): boolean;
 }
 ```
 
@@ -9207,11 +9150,9 @@ Source: `packages/kernel/src/common/statuses/user.ts`
 User types within the application.
 
 ```ts
-export declare class UserTypes {
+export declare class UserTypes extends ConstClass {
     static readonly SYSTEM = "SYSTEM";
     static readonly LINKED = "LINKED";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(orgType: string): boolean;
 }
 ```
 

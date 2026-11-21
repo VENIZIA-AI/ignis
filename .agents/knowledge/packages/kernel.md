@@ -264,7 +264,7 @@ parameter 0 in a subclass wins.
 The CRUD factory's DEFAULT write bodies leave out the keys of the model's `settings.properties.stamped`
 (`CrudControllerFactory` reads it from the model metadata, like repositories read `properties.hidden`), and the two
 update bodies also leave out `id` - `RouteConfigResolver.toWriteBodySchema` in
-`base/controllers/factory/definition.ts`. Without `stamped` the list is `AuditFields.SCHEME_SET` (`createdBy`,
+`base/controllers/factory/definition.ts`. Without `stamped` the list is `AuditFields.values()` (`createdBy`,
 `modifiedBy`, `createdAt`, `modifiedAt`, `deletedAt`), whatever the engine; a search collection that keeps a
 writable `createdAt` declares `stamped: []`. A key the schema does not hold is ignored.
 

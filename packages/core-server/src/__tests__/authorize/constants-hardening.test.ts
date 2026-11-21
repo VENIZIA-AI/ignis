@@ -115,7 +115,7 @@ describe('AuthorizationDecisions.isValid + SCHEME_SET', () => {
     expect(AuthorizationDecisions.isValid('abstain')).toBe(true);
     expect(AuthorizationDecisions.isValid('ALLOW')).toBe(false);
     expect(AuthorizationDecisions.isValid('reject')).toBe(false);
-    expect(AuthorizationDecisions.SCHEME_SET.has('abstain')).toBe(true);
+    expect(AuthorizationDecisions.isValid('abstain')).toBe(true);
   });
 });
 

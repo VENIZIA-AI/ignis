@@ -331,13 +331,12 @@ Source: `packages/kernel/src/base/repositories/core/abstract.ts`
 The keys a write stamps, which a generated create or update body leaves out by default (`@model` `settings.properties.stamped`).
 
 ```ts
-export declare class AuditFields {
+export declare class AuditFields extends ConstClass {
     static readonly CREATED_BY = "createdBy";
     static readonly MODIFIED_BY = "modifiedBy";
     static readonly CREATED_AT = "createdAt";
     static readonly MODIFIED_AT = "modifiedAt";
     static readonly DELETED_AT = "deletedAt";
-    static readonly SCHEME_SET: Set<string>;
 }
 ```
 
@@ -880,12 +879,10 @@ Source: `packages/kernel/src/utilities/not-supported.utility.ts`
 Defines the operation scope for repository instances (READ_ONLY, WRITE_ONLY, READ_WRITE).
 
 ```ts
-export declare class RepositoryOperationScopes {
+export declare class RepositoryOperationScopes extends ConstClass {
     static readonly READ_ONLY = "READ_ONLY";
     static readonly WRITE_ONLY = "WRITE_ONLY";
     static readonly READ_WRITE = "READ_WRITE";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(orgType: string): boolean;
 }
 ```
 
@@ -898,11 +895,9 @@ Source: `packages/kernel/src/base/repositories/common/constants.ts`
 What `@repository` binds: MODEL, a model this application declares; REMOTE, data behind another service's API, with no model.
 
 ```ts
-export declare class RepositoryTypes {
+export declare class RepositoryTypes extends ConstClass {
     static readonly MODEL = "model";
     static readonly REMOTE = "remote";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -931,13 +926,11 @@ Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
 The schema variants an entity can produce (`getSchema({ type })`): select, create, update and execute.
 
 ```ts
-export declare class SchemaTypes {
+export declare class SchemaTypes extends ConstClass {
     static readonly SELECT = "select";
     static readonly UPDATE = "update";
     static readonly CREATE = "create";
     static readonly EXECUTE = "execute";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): input is TSchemaType;
 }
 ```
 

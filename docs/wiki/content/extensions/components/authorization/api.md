@@ -472,7 +472,7 @@ Source -> [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/pack
 
 ## Constants
 
-All constant classes follow the same pattern: static readonly values + `SCHEME_SET: Set<string>` + `isValid(input): boolean`, plus a companion type alias via `TConstValue<typeof ClassName>`.
+Constant classes hold static readonly values and extend `ConstClass`, which adds `values()` and `isValid(input)`, plus a companion type alias via `TConstValue<typeof ClassName>`. `AuthorizationActions`, `AuthorizationRoles` and `AuthorizationPolicyVariants` build their values from other data, so they keep their own `SCHEME_SET` and validators.
 
 **`Authorization`** - context keys.
 

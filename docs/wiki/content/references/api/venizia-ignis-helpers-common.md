@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/common, from the built decl
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-56 exports, 56 with TSDoc. 7 more are re-exported from other entries (listed at the end).
+57 exports, 57 with TSDoc. 7 more are re-exported from other entries (listed at the end).
 
 ## `ClassResolver`
 
@@ -25,6 +25,34 @@ export declare class ClassResolver {
 ```
 
 Source: `packages/helpers/src/common/resolvers.ts`
+
+## `ConstClass`
+
+*class*
+
+Base of a const class: a class whose `static readonly` string members are its values. Extend it and the
+class reads its own values (`values`) and checks a candidate against them (`isValid`), so no class keeps a
+`SCHEME_SET` and an `isValid` of its own.
+
+**Example**
+class ArtifactTypes extends ConstClass {
+  static readonly SERVICE = 'service';
+  static readonly COMPONENT = 'component';
+}
+ArtifactTypes.isValid(input); // narrows `input` to 'service' | 'component'
+z.enum(ArtifactTypes.values());
+
+```ts
+export declare class ConstClass {
+    private static readonly CACHE;
+    /** The string values of this class and of the classes it extends, base class first. Throws when there are none. */
+    static values<T extends typeof ConstClass>(this: T): readonly [TConstValue<T>, ...TConstValue<T>[]];
+    /** `true` when `value` is one of this class's values; narrows it to their union. */
+    static isValid<T extends typeof ConstClass>(this: T, value: unknown): value is TConstValue<T>;
+}
+```
+
+Source: `packages/helpers/src/common/const-class.ts`
 
 ## `CONTENT_TYPE_BY_EXTENSION`
 
@@ -45,11 +73,9 @@ Source: `packages/helpers/src/common/constants/mime.ts`
 How a client treats a download: ATTACHMENT saves it, INLINE shows it.
 
 ```ts
-export declare class ContentDispositionTypes {
+export declare class ContentDispositionTypes extends ConstClass {
     static readonly ATTACHMENT = "attachment";
     static readonly INLINE = "inline";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -62,7 +88,7 @@ Source: `packages/helpers/src/common/constants/http.ts`
 Full content types, as they go on the wire. `MimeTypes` holds only the top-level part.
 
 ```ts
-export declare class ContentTypes {
+export declare class ContentTypes extends ConstClass {
     static readonly OCTET_STREAM = "application/octet-stream";
     static readonly PNG = "image/png";
     static readonly JPEG = "image/jpeg";
@@ -90,8 +116,6 @@ export declare class ContentTypes {
     static readonly PPT = "application/vnd.ms-powerpoint";
     static readonly ODT = "application/vnd.oasis.opendocument.text";
     static readonly ODS = "application/vnd.oasis.opendocument.spreadsheet";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -241,7 +265,7 @@ export declare class DurationMultipliers {
      * `null` rather than a throw, so a caller that wants an error raises its own with its own context.
      * Every method here answers the same way.
      *
-     * The unit is checked against {@link DurationUnits.SCHEME_SET} first: a plain-object read alone
+     * The unit is checked against {@link DurationUnits.isValid} first: a plain-object read alone
      * would answer `'constructor'` or `'toString'` with a member of `Object.prototype`, not `undefined`.
      */
     static toMilliseconds(opts: IDuration | null): number | null;
@@ -272,7 +296,7 @@ Source: `packages/helpers/src/common/constants/duration.ts`
 The time units a duration can be expressed in, smallest first.
 
 ```ts
-export declare class DurationUnits {
+export declare class DurationUnits extends ConstClass {
     static readonly MILLISECOND = "millisecond";
     static readonly SECOND = "second";
     static readonly MINUTE = "minute";
@@ -281,8 +305,6 @@ export declare class DurationUnits {
     static readonly WEEK = "week";
     static readonly MONTH = "month";
     static readonly YEAR = "year";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(input: string): input is TDurationUnit;
 }
 ```
 
@@ -313,7 +335,7 @@ Source: `packages/helpers/src/common/types/field-mapping.ts`
 The leading dot is part of the value: `path.extname` returns one.
 
 ```ts
-export declare class FileExtensions {
+export declare class FileExtensions extends ConstClass {
     static readonly PNG = ".png";
     static readonly JPG = ".jpg";
     static readonly JPEG = ".jpeg";
@@ -341,8 +363,6 @@ export declare class FileExtensions {
     static readonly PPT = ".ppt";
     static readonly ODT = ".odt";
     static readonly ODS = ".ods";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 

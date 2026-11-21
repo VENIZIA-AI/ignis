@@ -50,7 +50,7 @@ file emitter were removed, see [Build stamp](#build-stamp).
 - `src/generator/emitter.ts` - `ArtifactIndexEmitter.render({ artifacts, outFile, exportName })` -> text.
 - `src/generator/generator.ts` - `ArtifactIndexGenerator.generate`, `ArtifactIndexGenerator.check`, `IGenerateOptions`; the old free functions `generateArtifactIndex` and `checkArtifactIndex` are gone (`devz codemod namespace-functions` moves their callers).
 - `src/generator/common/` - `ArtifactStereotypes` (`BY_DECORATOR`, `ROOT_DECORATOR`, `SOURCE_MODULES`,
-  `DEFAULT_IGNORE`, `EMIT_ORDER`, with `SCHEME_SET`/`isValid`), `IScannedArtifact`, `IScanOptions`.
+  `DEFAULT_IGNORE`, `EMIT_ORDER`, with its own `SCHEME_SET`/`isValid`, as its values are the ones of `BY_DECORATOR`), `IScannedArtifact`, `IScanOptions`.
 
 ## Detection rules
 

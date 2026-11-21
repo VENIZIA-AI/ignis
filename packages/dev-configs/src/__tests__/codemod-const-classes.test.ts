@@ -509,7 +509,9 @@ describe('devz codemod const-classes - the command', () => {
       ].join('\n'),
     );
     execFileSync('git', ['add', '-A'], { cwd: root });
-    execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'i'], { cwd: root });
+    execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'i'], {
+      cwd: root,
+    });
 
     const result = await code(['--write', '--all', '--import-from', './helpers']);
     expect(result).toBe(0);

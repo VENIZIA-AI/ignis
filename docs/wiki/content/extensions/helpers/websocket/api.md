@@ -799,7 +799,7 @@ type TWebSocketMessageType = TConstValue<typeof WebSocketMessageTypes>;
 ```typescript
 WebSocketEvents.isValid('authenticate'); // true
 WebSocketEvents.isValid('invalid');      // false
-WebSocketEvents.SCHEME_SET;              // Set of all valid event strings
+WebSocketEvents.values();                // all valid event strings
 ```
 
 ### `WebSocketChannels`
@@ -846,7 +846,7 @@ WebSocketEvents.SCHEME_SET;              // Set of all valid event strings
 
 ```typescript
 WebSocketMessageTypes.isValid('room'); // true
-WebSocketMessageTypes.SCHEME_SET;      // Set { 'client', 'user', 'room', 'broadcast' }
+WebSocketMessageTypes.values();         // ['client', 'user', 'room', 'broadcast']
 ```
 
 ### `WebSocketClientStates`
@@ -860,7 +860,7 @@ WebSocketMessageTypes.SCHEME_SET;      // Set { 'client', 'user', 'room', 'broad
 
 ```typescript
 WebSocketClientStates.isValid('authenticated'); // true
-WebSocketClientStates.SCHEME_SET;               // Set of all valid state strings
+WebSocketClientStates.values();                 // all valid state strings
 ```
 
 ### Close codes

@@ -173,11 +173,9 @@ Source: `packages/connectors/src/relational/core/models/base.ts`
 How a `big-number` id column is read back: as a JavaScript NUMBER or as a BIGINT (drizzle's `bigint` column `mode`).
 
 ```ts
-export declare class BigIntModes {
+export declare class BigIntModes extends ConstClass {
     static readonly NUMBER = "number";
     static readonly BIGINT = "bigint";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -293,12 +291,10 @@ Source: `packages/connectors/src/relational/postgres/datasources/common/guards.t
 Postgres transaction isolation levels accepted by `isolationLevel`.
 
 ```ts
-export declare class IsolationLevels {
+export declare class IsolationLevels extends ConstClass {
     static readonly READ_COMMITTED = "READ COMMITTED";
     static readonly REPEATABLE_READ = "REPEATABLE READ";
     static readonly SERIALIZABLE = "SERIALIZABLE";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 

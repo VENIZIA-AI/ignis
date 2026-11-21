@@ -63,12 +63,10 @@ Source: `packages/connectors/src/relational/postgres/supabase/pooler.ts`
 How the app reaches Supabase. Direct and session pooler are 5432; transaction pooler is 6543.
 
 ```ts
-export declare class PoolerModes {
+export declare class PoolerModes extends ConstClass {
     static readonly DIRECT = "direct";
     static readonly SESSION = "session";
     static readonly TRANSACTION = "transaction";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): value is TPoolerMode;
 }
 ```
 

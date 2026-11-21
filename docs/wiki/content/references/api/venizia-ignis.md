@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-108 exports, 108 with TSDoc. 1007 more are re-exported from other entries (listed at the end).
+108 exports, 108 with TSDoc. 1008 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -948,11 +948,9 @@ Source: `packages/core-server/src/components/auth/authorize/adapters/custom-gran
 The document UI implementations the API reference can render. `isValid` checks a string against them.
 
 ```ts
-export declare class DocumentUITypes {
+export declare class DocumentUITypes extends ConstClass {
     static readonly SWAGGER = "swagger";
     static readonly SCALAR = "scalar";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -2489,7 +2487,6 @@ export declare class ServerBootSteps extends BootSteps {
     static readonly HYDRATE_SECRETS = "hydrateSecrets";
     static readonly WIRE_SECRET_ROTATABLES = "wireSecretRotatables";
     static readonly VALIDATE_SCOPE_FILTER_SUPPORT = "validateScopeFilterSupport";
-    static readonly SCHEME_SET: Set<string>;
 }
 ```
 
@@ -3380,6 +3377,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `CompressEncodings` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `configuration` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `ConsoleLogger` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `ConstClass` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `Container` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `CONTENT_TYPE_BY_EXTENSION` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `ContentDispositionTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)

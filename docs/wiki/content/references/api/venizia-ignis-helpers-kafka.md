@@ -502,11 +502,9 @@ Source: `packages/helpers/src/modules/queue/kafka/common/constants.ts`
 Consumer group protocol: `classic` or `consumer`.
 
 ```ts
-export declare class KafkaGroupProtocol {
+export declare class KafkaGroupProtocol extends ConstClass {
     static readonly CLASSIC = "classic";
     static readonly CONSUMER = "consumer";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(mode: string): boolean;
 }
 ```
 
