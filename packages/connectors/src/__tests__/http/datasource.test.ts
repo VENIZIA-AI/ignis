@@ -1,5 +1,7 @@
 import { RejectionHelper } from '@venizia/dev-configs/testing';
-import type { IHttpRequestContext, THttpHeaders } from '@/http/common/types';
+import type { IHttpRequestContext } from '@/http/common/types';
+import { HttpHeaders } from '@venizia/ignis-helpers/core';
+import type { THttpHeaders } from '@venizia/ignis-helpers/core';
 import { HttpDataSource } from '@/http/datasource';
 import { afterEach, describe, expect, test } from 'bun:test';
 
@@ -195,7 +197,7 @@ describe('x-request-count belongs to the connector', () => {
   ];
 
   for (const headers of refusedHeaders) {
-    const entries = [...new Headers(headers).entries()];
+    const entries = [...HttpHeaders.merge({ layers: [headers] }).entries()];
 
     test(`a caller value is refused: ${JSON.stringify(entries)}`, () => {
       expect(() => new HttpDataSource({ baseUrl: 'https://api.example.com', headers })).toThrow(

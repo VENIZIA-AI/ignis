@@ -23,7 +23,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-boot/generator`](/references/api/venizia-ignis-boot-generator) | 17 | 17 |
 | [`@venizia/ignis-boot/vite`](/references/api/venizia-ignis-boot-vite) | 2 | 2 |
 | [`@venizia/ignis-connectors`](/references/api/venizia-ignis-connectors) | 3 | 3 |
-| [`@venizia/ignis-connectors/http`](/references/api/venizia-ignis-connectors-http) | 16 | 16 |
+| [`@venizia/ignis-connectors/http`](/references/api/venizia-ignis-connectors-http) | 15 | 15 |
 | [`@venizia/ignis-connectors/meilisearch`](/references/api/venizia-ignis-connectors-meilisearch) | 17 | 17 |
 | [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres) | 54 | 54 |
 | [`@venizia/ignis-connectors/postgres/node-postgres`](/references/api/venizia-ignis-connectors-postgres-node-postgres) | 1 | 1 |
