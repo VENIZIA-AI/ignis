@@ -98,7 +98,7 @@ const rewrite = (source: string, importFrom?: string, fileName = '/virtual/src/f
 
 /** What a snippet needs to be about the container: the framework's names and a few receivers, on one line so line numbers stay the snippet's. */
 const PRELUDE =
-  "import { inject, provide, Binding, Container } from '@venizia/ignis'; declare const a: Container; declare const container: Container; declare const app: Container; declare const application: Container; declare const redis: { get<T>(opts: { key: string }): Promise<string | null> }; declare const workerPool: { get<T>(opts: { key: string }): T }; declare const loose: any; /*@*/ ";
+  "import { inject, provide, Binding, Container } from '@venizia/ignis'; declare const a: Container; declare const container: Container; declare const app: Container; declare const application: Container; declare const redis: { get<T>(opts: { key: string }): Promise<string | null> }; declare const workerPool: { get<T>(opts: { key: string }): T }; declare const loose: any; interface Mailer {} interface A {} interface B {} /*@*/ ";
 
 /** The rewrite of `snippet` after the prelude; the prelude (and the import it gained) is left out of the answer. */
 const body = (snippet: string) => {
@@ -305,18 +305,22 @@ describe('devz codemod binding-keys: the rewrite', () => {
     expect(result.unnamed).toEqual([]);
   });
 
-  test('a property of an object map is built, and `as const` stays inside the key', () => {
+  test('a property of an `as const` object map is built, a plain object literal is left manual', () => {
     const result = body(
       [
-        `const KEYS = { mailer: 'services.Mailer' as const, clock: 'app.Clock' };`,
+        `const KEYS = { mailer: 'services.Mailer', clock: 'app.Clock' } as const;`,
+        `const LOOSE = { mailer: 'services.Mailer' };`,
         `a.get<Mailer>({ key: KEYS.mailer });`,
+        `a.get<Mailer>({ key: LOOSE.mailer });`,
         '',
       ].join('\n'),
     );
 
     expect(result.output).toContain(
-      `{ mailer: BindingKeys.build<Mailer>({ key: 'services.Mailer' as const }), clock: 'app.Clock' }`,
+      `{ mailer: BindingKeys.build<Mailer>({ key: 'services.Mailer' }), clock: 'app.Clock' } as const`,
     );
+    expect(result.output).toContain(`const LOOSE = { mailer: 'services.Mailer' };`);
+    expect(result.manual.map((item) => item.line)).toEqual([4]);
     expect(result.rewritten).toBe(1);
   });
 
@@ -353,6 +357,21 @@ describe('devz codemod binding-keys: the rewrite', () => {
       `static readonly K = BindingKeys.build<unknown>({ key: 'a.A' });`,
     );
     expect(result.unnamed).toEqual([1]);
+  });
+
+  test('one type name that means two types at the use sites does not agree', () => {
+    const result = body(
+      [
+        `class Keys { static readonly K = 'a.A'; }`,
+        `{ interface Local { x: 1 } a.get<Local>({ key: Keys.K }); }`,
+        `{ interface Local { y: 1 } a.get<Local>({ key: Keys.K }); }`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.output).toContain(
+      `static readonly K = BindingKeys.build<unknown>({ key: 'a.A' });`,
+    );
   });
 
   test('use sites that agree, or that do not all claim a type, give the claimed one', () => {
@@ -832,9 +851,16 @@ describe('devz codemod binding-keys: the command', () => {
     );
   });
 
+  const MAILER_FILE = `export interface Mailer { send(): void }\n`;
   const KEYS_FILE = [
-    `import { Binding } from '@venizia/ignis';`,
-    `export const used = Binding;`,
+    `import type { Mailer } from './mailer';`,
+    `export type Unused = Mailer;`,
+    `export class Keys {`,
+    `  static readonly MAILER = 'services.Mailer';`,
+    `}`,
+    '',
+  ].join('\n');
+  const KEYS_WITHOUT_MAILER_FILE = [
     `export class Keys {`,
     `  static readonly MAILER = 'services.Mailer';`,
     `}`,
@@ -843,43 +869,109 @@ describe('devz codemod binding-keys: the command', () => {
   const USE_FILE = [
     `import { Container } from '@venizia/ignis';`,
     `import { Keys } from './keys';`,
+    `import type { Mailer } from './mailer';`,
     `declare const a: Container;`,
     `a.get<Mailer>({ key: Keys.MAILER });`,
-    `interface Mailer { send(): void }`,
     '',
   ].join('\n');
+  const FROM = ['--import-from', '@venizia/ignis'];
 
-  test('a key constant declared in another file is built there, the use file is not rewritten, a second run changes nothing', async () => {
+  const project = (keys: string) => {
     installFramework();
-    write('src/keys.ts', KEYS_FILE);
+    write('src/mailer.ts', MAILER_FILE);
+    write('src/keys.ts', keys);
     write('src/use.ts', USE_FILE);
+  };
 
-    const code = await CodemodCommand.run({ root, args: ['binding-keys', 'src', '--write'] });
+  test('a key constant declared in another file is built there with the type that file sees, the use file is not rewritten, a second run changes nothing', async () => {
+    project(KEYS_FILE);
+
+    const code = await CodemodCommand.run({
+      root,
+      args: ['binding-keys', 'src', '--write', ...FROM],
+    });
 
     expect(code).toBe(0);
     expect(readFileSync(join(root, 'src/keys.ts'), 'utf8')).toContain(
       "static readonly MAILER = BindingKeys.build<Mailer>({ key: 'services.Mailer' });",
     );
     expect(readFileSync(join(root, 'src/keys.ts'), 'utf8')).toContain(
-      'import { Binding, BindingKeys }',
+      "import { BindingKeys } from '@venizia/ignis';",
     );
     expect(readFileSync(join(root, 'src/use.ts'), 'utf8')).toBe(USE_FILE);
     expect(warns).not.toHaveBeenCalled();
 
     commit();
-    const again = await CodemodCommand.run({ root, args: ['binding-keys', 'src', '--check'] });
+    const again = await CodemodCommand.run({
+      root,
+      args: ['binding-keys', 'src', '--check', ...FROM],
+    });
 
     expect(again).toBe(0);
   });
 
-  test('a declaration outside the files of the run is listed, not edited', async () => {
+  test('a map declared as const in another file is built there, a plain object literal is not', async () => {
     installFramework();
-    write('src/keys.ts', KEYS_FILE);
-    write('src/use.ts', USE_FILE);
+    write(
+      'src/keys.ts',
+      [
+        `import { BindingKeys } from '@venizia/ignis';`,
+        `export const used = BindingKeys;`,
+        `export const MAP = { X: 'map.X' } as const;`,
+        `export const LOOSE = { Y: 'map.Y' };`,
+        '',
+      ].join('\n'),
+    );
+    write(
+      'src/use.ts',
+      [
+        `import { Container } from '@venizia/ignis';`,
+        `import { MAP, LOOSE } from './keys';`,
+        `declare const a: Container;`,
+        `a.get<number>({ key: MAP.X });`,
+        `a.get<number>({ key: LOOSE.Y });`,
+        '',
+      ].join('\n'),
+    );
+
+    await CodemodCommand.run({ root, args: ['binding-keys', 'src', '--write'] });
+    const keys = readFileSync(join(root, 'src/keys.ts'), 'utf8');
+
+    expect(keys).toContain("{ X: BindingKeys.build<number>({ key: 'map.X' }) } as const");
+    expect(keys).toContain("{ Y: 'map.Y' }");
+  });
+
+  test('a type the declaration file cannot see is not copied there: unknown, listed as a type to name, no import added', async () => {
+    project(KEYS_WITHOUT_MAILER_FILE);
 
     const code = await CodemodCommand.run({
       root,
-      args: ['binding-keys', 'src/use.ts', '--write'],
+      args: ['binding-keys', 'src', '--write', ...FROM],
+    });
+    const keys = readFileSync(join(root, 'src/keys.ts'), 'utf8');
+
+    expect(code).toBe(0);
+    expect(keys).toContain("BindingKeys.build<unknown>({ key: 'services.Mailer' })");
+    expect(keys).not.toContain("from './mailer'");
+    expect(warns.mock.calls.flat().join('\n')).toContain('src/keys.ts:2');
+  });
+
+  test('a keys file that imports nothing from the framework is listed to pass --import-from, and not built', async () => {
+    project(KEYS_WITHOUT_MAILER_FILE);
+
+    const code = await CodemodCommand.run({ root, args: ['binding-keys', 'src', '--write'] });
+
+    expect(code).toBe(0);
+    expect(readFileSync(join(root, 'src/keys.ts'), 'utf8')).toBe(KEYS_WITHOUT_MAILER_FILE);
+    expect(warns.mock.calls.flat().join('\n')).toContain('pass --import-from');
+  });
+
+  test('a declaration outside the files of the run is listed, not edited', async () => {
+    project(KEYS_FILE);
+
+    const code = await CodemodCommand.run({
+      root,
+      args: ['binding-keys', 'src/use.ts', '--write', ...FROM],
     });
 
     expect(code).toBe(0);
@@ -888,12 +980,13 @@ describe('devz codemod binding-keys: the command', () => {
   });
 
   test('a declaration file with local changes is refused and nothing is written', async () => {
-    installFramework();
-    write('src/keys.ts', KEYS_FILE);
-    write('src/use.ts', USE_FILE);
+    project(KEYS_FILE);
     writeFileSync(join(root, 'src/keys.ts'), `${KEYS_FILE}// edited\n`);
 
-    const code = await CodemodCommand.run({ root, args: ['binding-keys', 'src', '--write'] });
+    const code = await CodemodCommand.run({
+      root,
+      args: ['binding-keys', 'src', '--write', ...FROM],
+    });
 
     expect(code).toBe(1);
     expect(readFileSync(join(root, 'src/keys.ts'), 'utf8')).not.toContain('BindingKeys.build');
