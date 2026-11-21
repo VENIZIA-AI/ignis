@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-225 exports, 225 with TSDoc. 253 more are re-exported from other entries (listed at the end).
+223 exports, 223 with TSDoc. 255 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -1091,23 +1091,6 @@ export declare const COMBINING_MARKS_PATTERN: RegExp;
 ```
 
 Source: `packages/helpers/src/modules/slug/common/constants.ts`
-
-## `ContentDispositionTypes`
-
-*class*
-
-How a client treats a download: ATTACHMENT saves it, INLINE shows it.
-
-```ts
-export declare class ContentDispositionTypes {
-    static readonly ATTACHMENT = "attachment";
-    static readonly INLINE = "inline";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
-}
-```
-
-Source: `packages/helpers/src/utilities/request.utility.ts`
 
 ## `CredentialAlgorithms`
 
@@ -4305,22 +4288,6 @@ export declare class RequestUtility {
         filename: string;
         type: TContentDispositionType;
     }): string;
-    /**
-     * Reads a filename out of a `Content-Disposition` value.
-     *
-     * Three forms, in the order the RFC gives them precedence: `filename*=UTF-8''...` (percent-encoded,
-     * and the one hand-rolled parsers miss), a quoted `filename="..."`, and a bare `filename=...`.
-     * Splitting on `filename=` alone returns the percent-encoded bytes for any non-ASCII name, which in
-     * a product with non-English filenames is most of them.
-     *
-     * The pair of {@link RequestUtility.buildContentDispositionHeader}: one writes the header, this one reads it.
-     */
-    static parseContentDisposition(opts: {
-        header: string | null | undefined;
-    }): {
-        type?: string;
-        filename?: string;
-    };
 }
 
 /** The part of a request context a multipart body is read from: its `formData()`. A Hono context satisfies it. */
@@ -4759,18 +4726,6 @@ export type TBullQueueRole = TConstValue<typeof BullQueueRoles>;
 ```
 
 Source: `packages/helpers/src/modules/queue/common/constants.ts`
-
-## `TContentDispositionType`
-
-*type*
-
-Valid Content-Disposition type values.
-
-```ts
-export type TContentDispositionType = TConstValue<typeof ContentDispositionTypes>;
-```
-
-Source: `packages/helpers/src/utilities/request.utility.ts`
 
 ## `TcpClientStates`
 
@@ -5631,6 +5586,7 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `ClassResolver` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `ConsoleLogger` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `CONTENT_TYPE_BY_EXTENSION` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `ContentDispositionTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `ContentTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `ContentTypeTable` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `DataTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
@@ -5776,6 +5732,7 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `TClass` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TConstructor` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TConstValue` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `TContentDispositionType` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TContentType` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TDurationUnit` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TemporalDurationStyles` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)

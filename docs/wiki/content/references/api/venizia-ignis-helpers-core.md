@@ -913,6 +913,22 @@ export declare class HttpResponseReader {
         body: unknown;
         extra?: Record<string, unknown>;
     };
+    /**
+     * Reads a filename out of a `Content-Disposition` value.
+     *
+     * Three forms, in the order the RFC gives them precedence: `filename*=UTF-8''...` (percent-encoded,
+     * and the one hand-rolled parsers miss), a quoted `filename="..."`, and a bare `filename=...`.
+     * Splitting on `filename=` alone returns the percent-encoded bytes for any non-ASCII name, which in
+     * a product with non-English filenames is most of them.
+     *
+     * The pair of `RequestUtility.buildContentDispositionHeader`: one writes the header, this one reads it.
+     */
+    static parseContentDisposition(opts: {
+        header: string | null | undefined;
+    }): {
+        type?: string;
+        filename?: string;
+    };
 }
 ```
 
