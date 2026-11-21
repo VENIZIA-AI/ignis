@@ -78,16 +78,15 @@ export class CodemodFiles {
   }
 
   /**
-   * The files under `target` that a write could not be undone with git: changed in the working tree,
-   * staged, or untracked. `undefined` outside a repository or without git, where there is nothing to check.
+   * The files under `target` that a write could not be undone with git: changed in the working tree since
+   * the index (unstaged), or untracked and not ignored. A staged file counts as saved, so one codemod can
+   * run on what the one before it wrote once "git add" has staged it. `undefined` outside a repository or
+   * without git, where there is nothing to check.
    */
   static dirty(opts: { target: string }): Set<string> | undefined {
     const { target } = opts;
     const cwd = statSync(target).isFile() ? dirname(target) : target;
-    const queries = [
-      ['ls-files', '--modified', '--others', '--exclude-standard', '-z'],
-      ['diff', '--cached', '--name-only', '--relative', '-z'],
-    ];
+    const queries = [['ls-files', '--modified', '--others', '--exclude-standard', '-z']];
     const paths = new Set<string>();
 
     for (const query of queries) {

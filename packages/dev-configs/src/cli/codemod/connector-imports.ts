@@ -24,7 +24,7 @@ direct dependency: it reports each package.json that does not.
 
 With no flag it lists what would change and writes nothing. Inside a git repository it reads the
 files git knows (tracked, or untracked and not ignored), and --write refuses a file with local changes
-(changed, staged or untracked): commit or stash it first, so git can undo the codemod.`;
+(changed since staged, or untracked): commit, stash or "git add" it first, so git can undo the codemod.`;
 
 /** A usage error: nothing was read or written. */
 const USAGE_ERROR_CODE = 2;
@@ -339,7 +339,7 @@ export class ConnectorImportsCommand {
         if (dirty?.has(file)) {
           refusedCount += 1;
           console.warn(
-            `refused  ${shown}  has local changes (commit or stash them, then run again)`,
+            `refused  ${shown}  has local changes (commit, stash or "git add" them, then run again)`,
           );
           continue;
         }
