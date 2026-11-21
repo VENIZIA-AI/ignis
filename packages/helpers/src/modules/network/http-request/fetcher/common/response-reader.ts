@@ -231,10 +231,10 @@ export class HttpResponseReader {
       header: response.headers.get(HTTP.Headers.CONTENT_DISPOSITION),
     });
 
-    const result2 = await response.blob();
+    const blob = await response.blob();
 
     return {
-      blob: result2,
+      blob,
       filename,
       contentType: response.headers.get(HTTP.Headers.CONTENT_TYPE) ?? undefined,
     };
