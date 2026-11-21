@@ -137,7 +137,7 @@ binding-keys-required-brand:
       const viaConstant = container.get<Mailer>({ key: Keys.MAILER });
     steps:
       - "Install the dependencies and run `bun node_modules/.bin/devz codemod binding-keys [paths...] --write` (or `--write --all`) from the project root, with the files committed. It reads your project through its tsconfig and rewrites only calls the TypeScript checker resolves to the framework's container, `inject` or `provide` (a redis.get or a worker pool is left alone). It rewrites a string key, a substitution-free template, a { namespace, key } object and a ${namespace}.Name template to BindingKeys.build<T>, and moves the type argument of your call (or the type of the decorated parameter, without undefined) into build<T>."
-      - "A key your app keeps in a constant (a key class such as `static readonly MAILER = 'services.Mailer'`, a module `const`, a property of an `as const` object map) is built where it is declared, in any file of the run: `static readonly MAILER = BindingKeys.build<Mailer>({ key: 'services.Mailer' })`. The codemod does it for you. The places that use `Keys.MAILER` are not edited: the constant is still a string and now carries its value type. `T` is the one type your code already claims where the key is used (`container.get<Mailer>`, the type of the decorated parameter), kept only when every name in it means the same type in the declaring file (no import is added); with no claim, with sites that differ, or with a type that file cannot see, it writes `unknown` and lists the site as `type`: name the type there. A keys file that imports nothing from the framework is listed \"pass --import-from\" and is not built until you pass it. Where your code needs the literal type of the constant (`typeof Keys.MAILER` as a type, a literal union, a parameter typed `'services.Mailer'`) or assigns to it, the typecheck now names the site: use `string` or the key type there. A computed value is wrapped as it is (`` `${namespace}.Name` ``, `Mailer.name`), and `build` throws on an empty key, so a computed constant that comes out `''` now throws when its class loads."
+      - "A key your app keeps in a constant (a key class such as `static readonly MAILER = 'services.Mailer'`, a module `const`, a property of an `as const` object map) is built where it is declared, in any file of the run: `static readonly MAILER = BindingKeys.build<Mailer>({ key: 'services.Mailer' })`. The codemod does it for you. The places that use `Keys.MAILER` are not edited: the constant is still a string and now carries its value type. `T` is the one type your code already claims where the key is used (`container.get<Mailer>`, the type of the decorated parameter), kept only when every name in it means the same type in the declaring file (no import is added); with no claim, with sites that differ, or with a type that file cannot see, it writes `unknown` and lists the site as `type`: name the type there. A key written inline with no claimed type (`bind({ key: 'x' })`, an `@inject({ key })` on an untyped parameter) is `build<unknown>` too, so a `type` list can be long; name each from your typecheck. A key written as `SomeClass.name` is not a constant of yours (it is the built-in `name` of a class): the codemod builds it in place, `BindingKeys.build<SomeClass>({ key: SomeClass.name })`. Run it once over the whole project (from the root, or with every package path as arguments): a constant declared in a file outside the run is listed as `manual` and not edited, so a run per package leaves the constants shared between packages. The codemod uses the compiler options of the nearest `tsconfig.json` above the folder you run it in; the files you pass are its roots, not the tsconfig's `include`, and there is no flag to choose another tsconfig: a test file whose imports need its own package's tsconfig (path aliases, test types) can leave a receiver unresolved, and the site is listed \"the receiver's type is not resolved\" and left alone. Run the codemod again from that package's folder for those files, or change them by hand. A keys file that imports nothing from the framework is listed \"pass --import-from\" and is not built until you pass `--import-from @venizia/ignis`. Where your code needs the literal type of the constant (`typeof Keys.MAILER` as a type, a literal union, a parameter typed `'services.Mailer'`) or assigns to it, the typecheck now names the site: use `string` or the key type there. A computed value is wrapped as it is (`` `${namespace}.Name` ``, `Mailer.name`), and `build` throws on an empty key, so a computed constant that comes out `''` now throws when its class loads."
       - "By hand, build the keys the codemod lists as `manual` the same way: a `let`, a property that is not `readonly`, an object literal without `as const`, a declaration with a type annotation, a parameter, a call that returns a key, a declaration in a file you did not pass, and a constant of a library you use that is still a plain string."
       - "Name the real type at every site the codemod lists as `type` (it wrote BindingKeys.build<unknown>), and fix each `manual` site: a key made at run time, a Symbol key, a string constant of another module (a key of a library you use, such as ARDOR before its typed keys), a receiver the checker could not resolve, and a key whose type names a type parameter."
       - "Replace a Symbol key by a string key made with BindingKeys.build<T>({ key: 'name' }); symbols are no longer container keys. In generic code, where T is not known yet, build `unknown` and return it typed as TBindingKey<T> (the brand is bivariant); BindingKeys.build<T> with a type parameter does not compile."
@@ -397,6 +397,7 @@ http-response-reader-in-helpers:
 
       const isObject = RecordUtility.isPlainObject(body);
     steps:
+      - "There is no codemod for this move: connector-imports only moves the connector sub-paths of @venizia/ignis, and class-renames renames a class, it does not move it between packages. Change the import by hand."
       - "Import HttpResponseReader from @venizia/ignis-helpers (or @venizia/ignis-helpers/core) instead of @venizia/ignis-kernel/repository or @venizia/ignis-connectors/http, and add @venizia/ignis-helpers as a direct dependency if your project lacks it."
       - "Replace HttpResponseReader.isPlainObject(value) with RecordUtility.isPlainObject(value) from @venizia/ignis-helpers; it also accepts an object with a null prototype."
       - "HttpResponseReader.toText is private: an empty string as absent is yours to write where you used it."
@@ -473,7 +474,8 @@ retry-helper-is-utility:
   downgrade:
     steps:
       - "Pin the packages to 0.4.8 and run devz codemod class-renames --reverse --write."
-  data: Nothing stored changes.
+  data: "Nothing stored changes. After the codemod, rename by hand: a .js/.cjs/.mjs file, an `import('...').Old` type, a `require()` or a dynamic import."
+  codemod: class-renames
 
 slug-helper-is-utility:
   symbols: [SlugHelper, SlugUtility]
@@ -492,7 +494,8 @@ slug-helper-is-utility:
   downgrade:
     steps:
       - "Pin the packages to 0.4.8 and run devz codemod class-renames --reverse --write."
-  data: Nothing stored changes.
+  data: "Nothing stored changes. After the codemod, rename by hand: a .js/.cjs/.mjs file, an `import('...').Old` type, a `require()` or a dynamic import."
+  codemod: class-renames
 
 credential-helper-is-utility:
   symbols: [CredentialHelper, CredentialUtility]
@@ -511,7 +514,8 @@ credential-helper-is-utility:
   downgrade:
     steps:
       - "Pin the packages to 0.4.8 and run devz codemod class-renames --reverse --write."
-  data: Nothing stored changes.
+  data: "Nothing stored changes. After the codemod, rename by hand: a .js/.cjs/.mjs file, an `import('...').Old` type, a `require()` or a dynamic import."
+  codemod: class-renames
 
 rejection-helper-is-utility:
   symbols: [RejectionHelper, RejectionUtility]
@@ -530,7 +534,8 @@ rejection-helper-is-utility:
   downgrade:
     steps:
       - "Pin the packages to 0.4.8 and run devz codemod class-renames --reverse --write."
-  data: Nothing stored changes.
+  data: "Nothing stored changes. After the codemod, rename by hand: a .js/.cjs/.mjs file, an `import('...').Old` type, a `require()` or a dynamic import."
+  codemod: class-renames
 
 spawn-helper-is-utility:
   symbols: [SpawnHelper, SpawnUtility]
@@ -549,4 +554,5 @@ spawn-helper-is-utility:
   downgrade:
     steps:
       - "Pin the packages to 0.4.8 and run devz codemod class-renames --reverse --write."
-  data: Nothing stored changes.
+  data: "Nothing stored changes. After the codemod, rename by hand: a .js/.cjs/.mjs file, an `import('...').Old` type, a `require()` or a dynamic import."
+  codemod: class-renames
