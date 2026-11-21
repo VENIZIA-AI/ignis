@@ -2060,6 +2060,8 @@ Fetcher over the global `fetch` (`getWorker()`): the pipeline of `AbstractNetwor
 
 ```ts
 export declare class NativeFetcher extends AbstractNetworkFetchableHelper<'native', INativeFetchRequestOptions, Awaited<ReturnType<typeof fetch>>, typeof fetch> {
+    /** What `fetch` takes as a body as it is: encoding any of these again would change the bytes sent. A constructor is looked up on `globalThis` so a runtime without one (no `FormData`) just never matches it. */
+    static isRawBody(body: unknown): body is NonNullable<RequestInit['body']>;
     private requestInit;
     private sender;
     private queryString;
