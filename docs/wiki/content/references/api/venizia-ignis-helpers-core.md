@@ -892,6 +892,17 @@ export declare class HttpResponseReader {
         context: string;
     }): Promise<TJsonValue>;
     /**
+     * A download as a file: its `blob`, the `filename` of its `Content-Disposition` (`filename*` first) and its `contentType`.
+     * A non-2xx answer throws what `toApplicationError({ response })` throws, so an error page is never saved as a file.
+     */
+    static readFile(opts: {
+        response: Response;
+    }): Promise<{
+        blob: Blob;
+        filename?: string;
+        contentType?: string;
+    }>;
+    /**
      * The body as JSON whatever its content type says, `null` for a 204 or an empty body: for a route that
      * answers JSON under a type a proxy rewrote. Errors as `readBody` does.
      */
