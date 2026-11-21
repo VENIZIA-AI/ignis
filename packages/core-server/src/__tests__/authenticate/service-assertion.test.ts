@@ -13,7 +13,7 @@ import { ServiceAssertion } from '@venizia/ignis-kernel';
 import type { IServiceAuthOptions } from '@venizia/ignis-kernel';
 import { ServiceAssertionSignerService } from '@/components/auth/authenticate/services/service/signer.service';
 import { ServiceAssertionVerifierService } from '@/components/auth/authenticate/services/service/verifier.service';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 
 /**
  * Real Ed25519 keys, a real JWK set served over HTTP, and verification through
@@ -287,7 +287,7 @@ describe('the callee decides the window, per caller', () => {
     const token = await jwt.sign(privateKey);
 
     // Default window: refused.
-    const result = await RejectionHelper.rejectionOf({
+    const result = await RejectionUtility.rejectionOf({
       task: buildVerifier(calleeOptions()).verify({ token, method: 'GET', path: '/v1/api/x' }),
     });
     expect(result).toBeInstanceOf(Error);

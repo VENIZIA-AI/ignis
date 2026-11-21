@@ -1,4 +1,4 @@
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { HttpResponseReader } from '@venizia/ignis-helpers/core';
 import { HttpDataSource } from '@/http/datasource';
 import { HttpRepository } from '@/http/repository';
@@ -198,7 +198,7 @@ describe('an id that names another route is refused before a request is spent', 
         resource: 'users',
       });
 
-      await RejectionHelper.expectRejection({
+      await RejectionUtility.expectRejection({
         task: repository.deleteById({ id }),
         message: /Invalid id/,
       });
@@ -265,7 +265,7 @@ describe('a call adds its own headers and an abort signal', () => {
     const controller = new AbortController();
     controller.abort();
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildRepository().find({ filter: {}, options: { signal: controller.signal } }),
       message: /abort/i,
     });
@@ -338,7 +338,7 @@ describe('a missing Content-Range names the cross-origin cause', () => {
       resource: 'users',
     });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: repository.count({ where: {} }),
       message: /Access-Control-Expose-Headers/,
     });
@@ -484,7 +484,7 @@ describe('review cases', () => {
       },
     });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: dataSource.read({ paths: ['users'], signal: controller.signal }),
       message: /abort/i,
     });
@@ -576,7 +576,7 @@ describe('list extras, asked for by name', () => {
   test('an unmarked { data, extra } body is not unwrapped as a list', async () => {
     stubFetch([{ status: 200, text: JSON.stringify({ data: [1, 2], extra: { note: 'x' } }) }]);
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: new HttpDataSource({ baseUrl: BASE_URL }).read({ paths: ['items'] }),
       message: /neither an array/,
     });

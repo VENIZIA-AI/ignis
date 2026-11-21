@@ -1,4 +1,4 @@
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { describe, expect, test } from 'bun:test';
 import { RelationalMigrationRunner } from '@/relational/core/migrations';
 import type { IMigration } from '@/relational/core/migrations';
@@ -238,7 +238,7 @@ describe("RelationalMigrationRunner's ledger", () => {
 
     const runner = new RelationalMigrationRunner({ driver, ledger: { schema: 'audit' } });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: runner.run({ migrations: MIGRATIONS }),
       message: /boom/,
     });

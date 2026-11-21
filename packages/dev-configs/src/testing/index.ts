@@ -1,3 +1,3 @@
-export * from './rejection.helper';
+export * from './rejection.utility';
 export * from './repo-tmp';
-export * from './spawn.helper';
+export * from './spawn.utility';

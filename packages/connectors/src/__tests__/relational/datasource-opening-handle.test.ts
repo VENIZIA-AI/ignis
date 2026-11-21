@@ -1,5 +1,5 @@
 import { PGlite } from '@electric-sql/pglite';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { datasource, model, RestApplication, BindingKeys } from '@venizia/ignis-kernel';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
@@ -286,7 +286,7 @@ describe('the wrong ways to use the datasource inside configure()', () => {
     const dataSource = new FirstUseOpeningDataSource();
     dataSource.deferOpen({});
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: repositoryOf(dataSource).find({ filter: {} }),
       message: /still opening.*opening argument/,
     });
@@ -302,7 +302,7 @@ describe('the wrong ways to use the datasource inside configure()', () => {
     const repository = repositoryOf(dataSource);
     Probe.repository = repository;
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: repository.find({ filter: {} }),
       message: /did not finish within 80 ms.*opening argument/,
     });
@@ -322,7 +322,7 @@ describe('an open that is abandoned after its timeout', () => {
     const repository = repositoryOf(dataSource);
     const gate = Probe.gate();
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: repository.find({ filter: {} }),
       message: /did not finish within 80 ms/,
     });
@@ -343,11 +343,11 @@ describe('an open that is abandoned after its timeout', () => {
     const repository = repositoryOf(dataSource);
     const gate = Probe.gate();
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: repository.find({ filter: {} }),
       message: /did not finish/,
     });
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: repository.find({ filter: {} }),
       message: /previous open is still running/,
     });

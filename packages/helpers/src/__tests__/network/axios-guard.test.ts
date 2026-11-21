@@ -5,7 +5,7 @@
  */
 
 import { afterAll, afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 
 const realDnsModule = await import('node:dns/promises');
 const realDns = { ...realDnsModule };
@@ -113,7 +113,7 @@ describe('AxiosFetcher with a guard connects to the vetted address', () => {
     lookupMock.mockResolvedValue(answer('10.0.0.5'));
 
     const fetcher = new AxiosFetcher({ name: 'private', guardEngine: UrlGuard });
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: fetcher.get({ url: `http://internal.invalid:${server.port}/x`, guard: policy }),
     });
 
@@ -129,7 +129,7 @@ describe('AxiosFetcher with a guard connects to the vetted address', () => {
     );
 
     const fetcher = new AxiosFetcher({ name: 'hop', guardEngine: UrlGuard });
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: fetcher.get({ url: `http://public.invalid:${server.port}/to-internal`, guard: policy }),
     });
 
@@ -172,7 +172,7 @@ describe('AxiosFetcher with a guard connects to the vetted address', () => {
     );
 
     const fetcher = new AxiosFetcher({ name: 'replay', guardEngine: UrlGuard });
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: fetcher.post({
         url: `http://public.invalid:${server.port}/to-internal`,
         body: { a: 1 },

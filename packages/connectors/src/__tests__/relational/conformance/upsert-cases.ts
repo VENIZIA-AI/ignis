@@ -5,7 +5,7 @@ import type { TScopeResolution } from './scope-resolution';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { RepositoryErrorCodes, ScopeOperations } from '@venizia/ignis-kernel';
 import type { ITransaction, TScopeOperation } from '@venizia/ignis-kernel';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { describe, expect, spyOn, test } from 'bun:test';
 
 /**
@@ -127,7 +127,7 @@ export const defineUpsertCases = <TTransaction extends ITransaction>(
   }) => {
     const before = await opts.ctx.rawRows();
 
-    const error = await RejectionHelper.rejectionOf({ task: opts.task() });
+    const error = await RejectionUtility.rejectionOf({ task: opts.task() });
 
     expect(codeOf(error)).toBe(RepositoryErrorCodes.SCOPE_WRITE_DENIED);
     expect(statusOf(error)).toBe(403);
@@ -508,7 +508,7 @@ export const defineUpsertCases = <TTransaction extends ITransaction>(
         });
 
         try {
-          const error = await RejectionHelper.rejectionOf({
+          const error = await RejectionUtility.rejectionOf({
             task: ctx.items.upsert(refusal.opts(ctx)),
           });
 
@@ -532,7 +532,7 @@ export const defineUpsertCases = <TTransaction extends ITransaction>(
       const insert = spyOn(ctx.executor, 'insert');
 
       try {
-        const error = await RejectionHelper.rejectionOf({
+        const error = await RejectionUtility.rejectionOf({
           task: ctx.items.upsert({
             data: { merchantId: ME, code: 'N', value: 'x' },
             on: ctx.slugKey,

@@ -1,6 +1,6 @@
 import './kernel-stub';
 import { ArtifactScanCache } from '@/bun';
-import { SpawnHelper } from '@venizia/dev-configs/testing';
+import { SpawnUtility } from '@venizia/dev-configs/testing';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { cpSync, existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -27,7 +27,7 @@ const runNode = () => {
     throw new Error('[vite-under-node] `node` is not on the PATH | this test needs a real Node');
   }
 
-  const result = SpawnHelper.spawnSyncBounded({
+  const result = SpawnUtility.spawnSyncBounded({
     cmd: [node, script],
     cwd: workspace,
     stdout: 'pipe',

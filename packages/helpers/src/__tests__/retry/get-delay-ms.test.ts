@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
-import { RetryBackoffStrategies, RetryHelper, RetryJitterModes } from '@/modules/retry';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
+import { RetryBackoffStrategies, RetryUtility, RetryJitterModes } from '@/modules/retry';
 
 const FIXED = {
   strategy: RetryBackoffStrategies.FIXED,
@@ -8,12 +8,12 @@ const FIXED = {
   jitter: RetryJitterModes.NONE,
 } as const;
 
-describe('RetryHelper.executeWithRetry - getDelayMs is a floor for the next wait', () => {
+describe('RetryUtility.executeWithRetry - getDelayMs is a floor for the next wait', () => {
   test('a longer floor than the backoff is the delay that is slept and reported', async () => {
     const delays: number[] = [];
     let calls = 0;
 
-    const result = await RetryHelper.executeWithRetry({
+    const result = await RetryUtility.executeWithRetry({
       operation: 'floor',
       maxAttempts: 2,
       backoff: FIXED,
@@ -40,7 +40,7 @@ describe('RetryHelper.executeWithRetry - getDelayMs is a floor for the next wait
     const delays: number[] = [];
     let calls = 0;
 
-    await RetryHelper.executeWithRetry({
+    await RetryUtility.executeWithRetry({
       operation: 'shorter',
       maxAttempts: 3,
       backoff: FIXED,
@@ -65,8 +65,8 @@ describe('RetryHelper.executeWithRetry - getDelayMs is a floor for the next wait
   test('a floor that does not fit the total budget ends the retries and rethrows the error', async () => {
     let calls = 0;
 
-    const failure = await RejectionHelper.rejectionOf({
-      task: RetryHelper.executeWithRetry({
+    const failure = await RejectionUtility.rejectionOf({
+      task: RetryUtility.executeWithRetry({
         operation: 'budget',
         maxAttempts: 5,
         maxTotalMs: 50,
@@ -88,7 +88,7 @@ describe('RetryHelper.executeWithRetry - getDelayMs is a floor for the next wait
     const seen: Array<{ attempt: number; message: string }> = [];
     let calls = 0;
 
-    await RetryHelper.executeWithRetry({
+    await RetryUtility.executeWithRetry({
       operation: 'context',
       maxAttempts: 2,
       backoff: FIXED,

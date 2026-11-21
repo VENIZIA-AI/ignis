@@ -4,7 +4,7 @@
  */
 
 import { afterAll, describe, expect, test } from 'bun:test';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { z } from 'zod';
 import {
   AxiosFetcher,
@@ -68,7 +68,7 @@ afterAll(async () => {
 });
 
 const refusal = async (task: Promise<unknown>): Promise<string> => {
-  const error = await RejectionHelper.rejectionOf({ task });
+  const error = await RejectionUtility.rejectionOf({ task });
 
   return error instanceof Error ? error.message : String(error);
 };
@@ -263,7 +263,7 @@ describe('a guard refuses every option that chooses the connection', () => {
 describe('Retry-After', () => {
   test('a wait above the backoff ceiling ends the retries and rethrows the 429', async () => {
     const before = hits.length;
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: new NativeFetcher({ name: 'n' }).get({
         url: `${base}/long-wait`,
         retry: { maxAttempts: 4, backoff: FAST },
@@ -346,7 +346,7 @@ describe('a guarded call caps the body it reads', () => {
 describe('axios: the size cap is a refusal, not a transport error', () => {
   test('maxBytes overflow is the url-refused error and is not retried', async () => {
     const before = hits.length;
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: new AxiosFetcher({ name: 'a' }).get({
         url: `${base}/limit`,
         maxBytes: 100,
@@ -473,7 +473,7 @@ describe('acceptStatus as a list', () => {
     const fetcher = new NativeFetcher({ name: 'n' });
     const missing = await fetcher.get({ url: `${base}/missing`, acceptStatus: [NOT_FOUND] });
     const plain = await fetcher.get({ url: `${base}/x`, acceptStatus: [NOT_FOUND] });
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: fetcher.get({ url: `${base}/down`, acceptStatus: [NOT_FOUND] }),
     });
 
@@ -483,7 +483,7 @@ describe('acceptStatus as a list', () => {
   });
 
   test('a function decides alone: it can refuse a 2xx', async () => {
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: new NativeFetcher({ name: 'n' }).get({ url: `${base}/x`, acceptStatus: () => false }),
     });
 
@@ -491,7 +491,7 @@ describe('acceptStatus as a list', () => {
   });
 
   test('an empty list is 2xx only', async () => {
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: new NativeFetcher({ name: 'n' }).get({ url: `${base}/missing`, acceptStatus: [] }),
     });
 

@@ -1096,7 +1096,7 @@ Source: `packages/helpers/src/modules/slug/common/constants.ts`
 
 *class*
 
-Password-hash schemes `CredentialHelper` accepts. `isValid` narrows a string to `TCredentialAlgorithm`.
+Password-hash schemes `CredentialUtility` accepts. `isValid` narrows a string to `TCredentialAlgorithm`.
 
 ```ts
 export declare class CredentialAlgorithms {
@@ -1110,7 +1110,7 @@ export declare class CredentialAlgorithms {
 
 Source: `packages/helpers/src/modules/crypto/common/constants.ts`
 
-## `CredentialHelper`
+## `CredentialUtility`
 
 *class*
 
@@ -1134,7 +1134,7 @@ before bcrypt sees it. Two things follow, and they are the whole truth about "th
   password followed by anything, the way bcrypt itself always has.
 
 ```ts
-export declare class CredentialHelper {
+export declare class CredentialUtility {
     /**
      * A hash of `password`: argon2id (Bun's default parameters), or bcrypt with `algorithm: 'bcrypt'`.
      * For bcrypt, `cost` (4 to 31) is the work factor, `2 ** cost` rounds. `cost` with argon2id
@@ -1202,7 +1202,7 @@ Source: `packages/helpers/src/modules/crypto/common/constants.ts`
 
 *const*
 
-Scheme `CredentialHelper.hash` uses when `algorithm` is omitted.
+Scheme `CredentialUtility.hash` uses when `algorithm` is omitted.
 
 ```ts
 export declare const DEFAULT_CREDENTIAL_ALGORITHM: TCredentialAlgorithm;
@@ -4151,7 +4151,7 @@ export declare class RedisDefaults {
     /** Reconnect attempts before the helper gives up: `0` never reconnects, `RETRY_FOREVER` never stops. */
     static readonly MAX_RETRY = 5;
     static readonly RETRY_FOREVER = -1;
-    /** The wait before reconnect attempt N, computed by `RetryHelper.computeBackoffDelayMs`. */
+    /** The wait before reconnect attempt N, computed by `RetryUtility.computeBackoffDelayMs`. */
     static readonly RECONNECT_BACKOFF: {
         strategy: "exponential";
         initialDelayMs: number;
@@ -5717,10 +5717,10 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `RequestIdGenerator` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `ResolverUtility` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `RetryBackoffStrategies` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `RetryHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `RetryJitterModes` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `RetryUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `RuntimeModules` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
-- `SlugHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `SlugUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `SnowflakeConfig` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `SnowflakeUidHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TAbstractClass` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)

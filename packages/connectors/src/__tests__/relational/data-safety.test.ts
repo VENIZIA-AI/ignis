@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { pgTable, serial, timestamp, varchar } from 'drizzle-orm/pg-core';
 import { model } from '@venizia/ignis-kernel';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { StubDataSource } from './fixtures/stub-datasource.fixture';
 import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect/query-dialect';
 import { BaseRelationalEntity } from '@/relational/core/models';
@@ -149,7 +149,7 @@ describe('a "__proto__" key in a write body is a plain key, never a prototype', 
       },
     );
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: repository.deleteById({ id: 1, data: proto }),
       message: /Column NOT FOUND \| key: '__proto__'/,
     });
@@ -165,7 +165,7 @@ describe('a "__proto__" key in a write body is a plain key, never a prototype', 
       },
     );
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: repository.updateById({ id: 1, data: proto }),
       message: /Column NOT FOUND \| key: '__proto__'/,
     });

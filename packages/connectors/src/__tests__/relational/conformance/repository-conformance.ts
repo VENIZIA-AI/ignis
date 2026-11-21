@@ -9,7 +9,7 @@ import type { DefaultRelationalRepository } from '@/relational/core/repositories
 import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 
 /**
  * The columns every engine's conformance table declares. Types differ per engine - `tags` is a
@@ -212,19 +212,19 @@ export const runRepositoryConformance = <TTransaction extends ITransaction>(opts
      * builds.
      */
     test('find() refuses a limit that is not a non-negative integer', async () => {
-      await RejectionHelper.expectRejection({
+      await RejectionUtility.expectRejection({
         task: repository.find<IConformanceRow>({ filter: { limit: -1 } }),
         message: /Invalid 'limit'/,
       });
 
-      await RejectionHelper.expectRejection({
+      await RejectionUtility.expectRejection({
         task: repository.find<IConformanceRow>({ filter: { limit: 1.5 } }),
         message: /Invalid 'limit'/,
       });
     });
 
     test('find() refuses a page above the framework ceiling', async () => {
-      await RejectionHelper.expectRejection({
+      await RejectionUtility.expectRejection({
         task: repository.find<IConformanceRow>({ filter: { limit: DEFAULT_MAX_LIMIT + 1 } }),
         message: /exceeds this model's limit/,
       });
@@ -236,7 +236,7 @@ export const runRepositoryConformance = <TTransaction extends ITransaction>(opts
      * check exists at all.
      */
     test('find() refuses a negative limit inside a relation scope', async () => {
-      await RejectionHelper.expectRejection({
+      await RejectionUtility.expectRejection({
         task: repository.find<IConformanceRow>({
           filter: { include: [{ relation: 'anything', scope: { limit: -1 } }] },
         }),

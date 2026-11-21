@@ -1,5 +1,5 @@
 import type { ITransaction } from '@venizia/ignis-kernel';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { beforeEach, describe, expect, spyOn, test } from 'bun:test';
@@ -61,7 +61,7 @@ const expectBadRequest = async <TTransaction extends ITransaction>(opts: {
 }) => {
   const { result: reason, calls } = await withFinds({
     repository: opts.repository,
-    run: () => RejectionHelper.rejectionOf({ task: opts.task() }),
+    run: () => RejectionUtility.rejectionOf({ task: opts.task() }),
   });
 
   expect(isApplicationError(reason) && reason.statusCode).toBe(HTTP.ResultCodes.RS_4.BadRequest);

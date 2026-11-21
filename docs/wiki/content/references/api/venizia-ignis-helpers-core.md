@@ -1363,7 +1363,7 @@ Source: `packages/helpers/src/modules/queue/internal/hf/common/types.ts`
 
 *interface*
 
-Retry settings of a call; the presence of the object turns retrying on. They are `RetryHelper.executeWithRetry`'s.
+Retry settings of a call; the presence of the object turns retrying on. They are `RetryUtility.executeWithRetry`'s.
 
 ```ts
 export interface IHttpRetryOptions {
@@ -2739,15 +2739,36 @@ export declare class RetryBackoffStrategies {
 
 Source: `packages/helpers/src/modules/retry/common/constants.ts`
 
-## `RetryHelper`
+## `RetryJitterModes`
 
 *class*
 
-Static members call each other through the class name (`RetryHelper.xxx`), never `this` - a
+How randomness is applied to a computed retry delay.
+
+```ts
+export declare class RetryJitterModes {
+    /** The computed delay is used as-is. */
+    static readonly NONE = "none";
+    /** Uniform random in [0, delay) - decorrelates a thundering herd hardest. */
+    static readonly FULL = "full";
+    /** delay/2 + uniform random in [0, delay/2) - jittered but never less than half the delay. */
+    static readonly EQUAL = "equal";
+    static readonly SCHEME_SET: Set<string>;
+    static isValid(value: string): value is TRetryJitterMode;
+}
+```
+
+Source: `packages/helpers/src/modules/retry/common/constants.ts`
+
+## `RetryUtility`
+
+*class*
+
+Static members call each other through the class name (`RetryUtility.xxx`), never `this` - a
 detached static method loses its `this` binding.
 
 ```ts
-export declare class RetryHelper extends BaseHelper {
+export declare class RetryUtility {
     private static readonly RETRY_TIMEOUT_MARKER;
     /** True when `error` is a per-attempt timeout raised by `runWithTimeout`/`executeWithRetry`. */
     static isRetryTimeoutError(error: unknown): boolean;
@@ -2813,44 +2834,23 @@ export declare class RetryHelper extends BaseHelper {
 }
 ```
 
-Source: `packages/helpers/src/modules/retry/helper.ts`
+Source: `packages/helpers/src/utilities/retry.utility.ts`
 
-## `RetryJitterModes`
-
-*class*
-
-How randomness is applied to a computed retry delay.
-
-```ts
-export declare class RetryJitterModes {
-    /** The computed delay is used as-is. */
-    static readonly NONE = "none";
-    /** Uniform random in [0, delay) - decorrelates a thundering herd hardest. */
-    static readonly FULL = "full";
-    /** delay/2 + uniform random in [0, delay/2) - jittered but never less than half the delay. */
-    static readonly EQUAL = "equal";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): value is TRetryJitterMode;
-}
-```
-
-Source: `packages/helpers/src/modules/retry/common/constants.ts`
-
-## `SlugHelper`
+## `SlugUtility`
 
 *class*
 
 Vietnamese-aware slugging. See `D_STROKE_REPLACEMENTS` for why `đ` maps to `d` and not `dj`.
 
 ```ts
-export declare class SlugHelper extends BaseHelper {
+export declare class SlugUtility {
     static slugify(opts: {
         value: string;
     }): string;
 }
 ```
 
-Source: `packages/helpers/src/modules/slug/helper.ts`
+Source: `packages/helpers/src/utilities/slug.utility.ts`
 
 ## `SnowflakeConfig`
 

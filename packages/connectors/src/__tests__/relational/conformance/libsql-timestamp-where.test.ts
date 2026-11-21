@@ -1,7 +1,7 @@
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   BaseAppErrorMiddleware,
@@ -115,7 +115,7 @@ describe('SQLite - a column that takes a string natively', () => {
   });
 
   test('refuses a bad value with a 400 that names the column', async () => {
-    await RejectionHelper.expectRejection({ task: find({ at: 'someday' }), message: /'at'/ });
+    await RejectionUtility.expectRejection({ task: find({ at: 'someday' }), message: /'at'/ });
   });
 });
 

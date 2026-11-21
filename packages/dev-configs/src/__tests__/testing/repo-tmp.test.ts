@@ -2,7 +2,7 @@ import { afterAll, describe, expect, test } from 'bun:test';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { RepoTmp, REPO_TMP_DIRECTORY } from '../../testing/repo-tmp';
-import { SpawnHelper } from '../../testing/spawn.helper';
+import { SpawnUtility } from '../../testing/spawn.utility';
 
 const SCRATCH = join(__dirname, '../../../../../.agents/local/tmp');
 mkdirSync(SCRATCH, { recursive: true });
@@ -28,7 +28,7 @@ describe('RepoTmp.findRoot', () => {
 
 describe('RepoTmp.apply (in a child process: it replaces Bun.spawn)', () => {
   const run = (opts: { env?: Record<string, string> } = {}) => {
-    const result = SpawnHelper.spawnSyncBounded({
+    const result = SpawnUtility.spawnSyncBounded({
       cmd: ['bun', join(__dirname, 'fixtures/repo-tmp.script.ts'), root],
       env: { ...process.env, TMPDIR: '/somewhere/else', ...opts.env },
     });

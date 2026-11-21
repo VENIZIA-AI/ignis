@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { PACKAGE_ROOT } from '../package-root';
-import { SpawnHelper } from '@venizia/dev-configs/testing';
+import { SpawnUtility } from '@venizia/dev-configs/testing';
 
 /**
  * Prelude of every probe: a fake provider, a recorder over the console, and `loadTwoCopies()`, which loads the factory
@@ -65,7 +65,7 @@ const runInFreshProcess = async (opts: {
         JSON.stringify(corePath),
       ) + opts.body,
     );
-    const result = SpawnHelper.spawnSyncBounded({
+    const result = SpawnUtility.spawnSyncBounded({
       cmd: ['bun', script],
       cwd: PACKAGE_ROOT,
       stdout: 'pipe',

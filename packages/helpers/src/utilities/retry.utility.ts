@@ -2,31 +2,32 @@ import type { ValueOrPromise } from '@/common';
 import { getError } from '@/modules/error';
 import type { ILogger } from '@/modules/logger';
 import { PromiseUtility } from '@/utilities/promise.utility';
-import { RetryBackoffStrategies, RetryJitterModes } from './common/constants';
-import type { IRetryBackoffOptions, IRetryContext } from './common/types';
-import { BaseHelper } from '@/modules/base';
+import { RetryBackoffStrategies, RetryJitterModes } from '@/modules/retry/common/constants';
+import type { IRetryBackoffOptions, IRetryContext } from '@/modules/retry/common/types';
 
 type TRetryAttemptOutcome<T> =
   | { isResolved: true; value: T }
   | { isResolved: false; error: unknown; isRetryAllowed: boolean };
 
 /**
- * Static members call each other through the class name (`RetryHelper.xxx`), never `this` - a
+ * Static members call each other through the class name (`RetryUtility.xxx`), never `this` - a
  * detached static method loses its `this` binding.
  */
-export class RetryHelper extends BaseHelper {
+export class RetryUtility {
   private static readonly RETRY_TIMEOUT_MARKER = Symbol.for('@venizia/ignis-helpers:retry-timeout');
 
   /** True when `error` is a per-attempt timeout raised by `runWithTimeout`/`executeWithRetry`. */
   static isRetryTimeoutError(error: unknown): boolean {
-    return typeof error === 'object' && error !== null && RetryHelper.RETRY_TIMEOUT_MARKER in error;
+    return (
+      typeof error === 'object' && error !== null && RetryUtility.RETRY_TIMEOUT_MARKER in error
+    );
   }
 
   private static buildTimeoutError(opts: { operation: string; timeoutMs: number }) {
     const error = getError({
       message: `[runWithTimeout][${opts.operation}] Timed out after ${opts.timeoutMs}ms`,
     });
-    Object.defineProperty(error, RetryHelper.RETRY_TIMEOUT_MARKER, { value: true });
+    Object.defineProperty(error, RetryUtility.RETRY_TIMEOUT_MARKER, { value: true });
 
     return error;
   }
@@ -53,7 +54,7 @@ export class RetryHelper extends BaseHelper {
       return;
     }
 
-    RetryHelper.throwIfAborted({ operation, signal });
+    RetryUtility.throwIfAborted({ operation, signal });
 
     // The listener is removed in `finally` rather than by the timer callback - the two would otherwise have to reference each other, and a leaked listener on a long-lived signal accumulates across retries.
     let removeAbortListener = () => {};
@@ -94,7 +95,7 @@ export class RetryHelper extends BaseHelper {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeoutPromise = new Promise<never>((_resolve, reject) => {
       timer = setTimeout(() => {
-        reject(RetryHelper.buildTimeoutError({ operation, timeoutMs }));
+        reject(RetryUtility.buildTimeoutError({ operation, timeoutMs }));
       }, timeoutMs);
     });
 
@@ -211,7 +212,7 @@ export class RetryHelper extends BaseHelper {
     } = opts;
 
     try {
-      const value = await RetryHelper.runWithTimeout({
+      const value = await RetryUtility.runWithTimeout({
         operation,
         timeoutMs: attemptTimeoutMs,
         execution: () => execution({ attempt, signal }),
@@ -234,7 +235,7 @@ export class RetryHelper extends BaseHelper {
 
       // `getDelayMs` is a FLOOR (a server's Retry-After): the backoff never shortens it, and the deadline check below sees the longer wait.
       const nextDelayMs = Math.max(
-        RetryHelper.computeBackoffDelayMs({ attempt, backoff }),
+        RetryUtility.computeBackoffDelayMs({ attempt, backoff }),
         getDelayMs?.({ attempt, error, elapsedMs }) ?? 0,
       );
 
@@ -256,7 +257,7 @@ export class RetryHelper extends BaseHelper {
       await onRetry?.({ attempt, error, elapsedMs, nextDelayMs });
 
       if (nextDelayMs > 0) {
-        await RetryHelper.sleepWithSignal({ ms: nextDelayMs, operation, signal });
+        await RetryUtility.sleepWithSignal({ ms: nextDelayMs, operation, signal });
       }
 
       return { isResolved: false, error, isRetryAllowed: true };
@@ -317,7 +318,7 @@ export class RetryHelper extends BaseHelper {
     let lastError: unknown;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      RetryHelper.throwIfAborted({ operation, signal });
+      RetryUtility.throwIfAborted({ operation, signal });
 
       const remainingMs = deadline ? deadline - Date.now() : undefined;
 
@@ -331,7 +332,7 @@ export class RetryHelper extends BaseHelper {
         attemptTimeoutMs = attemptTimeoutMs ? Math.min(attemptTimeoutMs, remainingMs) : remainingMs;
       }
 
-      const outcome = await RetryHelper.runRetryAttempt({
+      const outcome = await RetryUtility.runRetryAttempt({
         attempt,
         attemptTimeoutMs,
         startedAt,
@@ -411,13 +412,13 @@ export class RetryHelper extends BaseHelper {
     }
 
     // Surfaced before the first execution - a misconfigured backoff discovered mid-loop would discard an already-fetched result.
-    RetryHelper.computeBackoffDelayMs({ attempt: 1, backoff });
+    RetryUtility.computeBackoffDelayMs({ attempt: 1, backoff });
 
     const startedAt = Date.now();
     let lastResult: T | undefined;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      RetryHelper.throwIfAborted({ operation, signal });
+      RetryUtility.throwIfAborted({ operation, signal });
 
       const result2 = await execution({ attempt, signal });
       lastResult = result2;
@@ -436,10 +437,10 @@ export class RetryHelper extends BaseHelper {
         ?.for('executeWithRetryUntil')
         .debug('[%s] until condition not met | Attempt: %d', operation, attempt);
 
-      const nextDelayMs = RetryHelper.computeBackoffDelayMs({ attempt, backoff });
+      const nextDelayMs = RetryUtility.computeBackoffDelayMs({ attempt, backoff });
 
       if (nextDelayMs > 0) {
-        await RetryHelper.sleepWithSignal({ ms: nextDelayMs, operation, signal });
+        await RetryUtility.sleepWithSignal({ ms: nextDelayMs, operation, signal });
       }
     }
 

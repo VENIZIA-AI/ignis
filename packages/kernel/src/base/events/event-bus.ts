@@ -5,7 +5,7 @@ import {
   BaseHelper,
   getError,
   RetryBackoffStrategies,
-  RetryHelper,
+  RetryUtility,
   RetryJitterModes,
 } from '@venizia/ignis-helpers/core';
 import { EventDispatchRetry, EventHandlerTypes } from './common/constants';
@@ -55,7 +55,7 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
     let totalWindowMs = 0;
 
     for (let attempt = 1; attempt < maxAttempts; attempt++) {
-      totalWindowMs += RetryHelper.computeBackoffDelayMs({
+      totalWindowMs += RetryUtility.computeBackoffDelayMs({
         attempt,
         backoff: {
           strategy: RetryBackoffStrategies.EXPONENTIAL,
@@ -270,10 +270,10 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
    * once (`FUNCTION`) - see `buildHandlerInvoker` - so this method calls it uniformly. A handler that
    * throws synchronously is caught exactly like one that returns a rejected promise: `execution`
    * here is itself `async`, and JS converts a synchronous throw inside an async function body into a
-   * rejection of that function's own promise - `RetryHelper.executeWithRetry`'s attempt loop never
+   * rejection of that function's own promise - `RetryUtility.executeWithRetry`'s attempt loop never
    * sees the difference.
    *
-   * `RetryHelper.executeWithRetry` is used without its own `logger` - its internal per-attempt/exhaustion
+   * `RetryUtility.executeWithRetry` is used without its own `logger` - its internal per-attempt/exhaustion
    * logging knows nothing about the event name or `traceId`, so it cannot be the trace anyone
    * relies on. The one line below, logged only on final failure, is.
    */
@@ -286,7 +286,7 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
     let lastAttempt = 0;
 
     try {
-      await RetryHelper.executeWithRetry({
+      await RetryUtility.executeWithRetry({
         operation: `EventBus.dispatch:${event.name}`,
         maxAttempts,
         backoff: {

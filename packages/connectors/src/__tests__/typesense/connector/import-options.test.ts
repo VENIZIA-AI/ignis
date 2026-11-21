@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from 'bun:test';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { TypesenseConnector } from '@/search/typesense/connector';
 import { TypesenseImportActions } from '@/search/typesense/common';
 import { makeHelper } from './fake-client';
@@ -88,7 +88,7 @@ describe('importDocuments: remote embedding, returnId and returnDoc', () => {
     '%s that is not a positive integer is refused before anything is sent',
     async (name, options) => {
       const { helper, fake } = makeHelper();
-      const error = await RejectionHelper.rejectionOf({
+      const error = await RejectionUtility.rejectionOf({
         task: helper.importDocuments({
           collection: 'products',
           documents: [{ id: '1' }],
@@ -111,7 +111,7 @@ describe('importDocuments: remote embedding, returnId and returnDoc', () => {
     async (_name, remoteEmbedding) => {
       const { helper } = makeHelper();
       const untyped: Record<string, unknown> = { remoteEmbedding };
-      const error = await RejectionHelper.rejectionOf({
+      const error = await RejectionUtility.rejectionOf({
         task: helper.importDocuments({
           collection: 'products',
           documents: [{ id: '1' }],
@@ -126,7 +126,7 @@ describe('importDocuments: remote embedding, returnId and returnDoc', () => {
   test('a flag that is not a boolean is refused (an untyped caller)', async () => {
     const { helper } = makeHelper();
     const untyped: Record<string, unknown> = { returnId: 'yes' };
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: helper.importDocuments({
         collection: 'products',
         documents: [{ id: '1' }],

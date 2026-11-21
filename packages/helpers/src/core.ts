@@ -38,8 +38,8 @@ export * from './modules/network/utilities/url-builder';
 export { RetryBackoffStrategies, RetryJitterModes } from './modules/retry/common/constants';
 export type { TRetryBackoffStrategy, TRetryJitterMode } from './modules/retry/common/constants';
 export type { IRetryBackoffOptions, IRetryContext } from './modules/retry/common/types';
-export { RetryHelper } from './modules/retry/helper';
-export { SlugHelper } from './modules/slug/helper';
+export { RetryUtility } from './utilities/retry.utility';
+export { SlugUtility } from './utilities/slug.utility';
 export { TreeBuilder } from './modules/tree/builder';
 export type {
   IBuildOptions,

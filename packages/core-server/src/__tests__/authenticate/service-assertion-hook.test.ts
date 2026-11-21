@@ -3,7 +3,7 @@ import { exportPKCS8, exportSPKI, generateKeyPair } from 'jose';
 import { ServiceAssertion } from '@venizia/ignis-kernel';
 import type { IServiceAuthOptions } from '@venizia/ignis-kernel';
 import { NativeFetcher, UrlFetchError } from '@venizia/ignis-helpers/core';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { ServiceAssertionSignerService } from '@/components/auth/authenticate/services/service/signer.service';
 import { ServiceAssertionVerifierService } from '@/components/auth/authenticate/services/service/verifier.service';
 
@@ -146,7 +146,7 @@ describe('signer.createRequestHook', () => {
   });
 
   test('a call signed for another audience is refused by the callee', async () => {
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: fetcherFor('someone-else').get({ url: `${calleeUrl}/v1/api/calc` }),
     });
 
@@ -164,7 +164,7 @@ describe('signer.createRequestHook', () => {
       name: 'no-keys',
       hooks: { onRequest: verifyOnly.createRequestHook({ audience: CALLEE }) },
     });
-    const error = await RejectionHelper.rejectionOf({
+    const error = await RejectionUtility.rejectionOf({
       task: noKeysFetcher.get({ url: `${calleeUrl}/v1/api/calc` }),
     });
 

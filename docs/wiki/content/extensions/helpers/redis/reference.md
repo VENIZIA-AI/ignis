@@ -139,7 +139,7 @@ Notes on the fields:
 
 ### Retry strategy
 
-All three helpers (single, sentinel and cluster) reconnect the same way. ioredis calls the strategy with `attempt` starting at `1`; the wait comes from `RetryHelper.computeBackoffDelayMs` with `RedisDefaults.RECONNECT_BACKOFF`: exponential from 1 s, doubling, capped at 30 s, with equal jitter (each wait is between half and all of the computed delay).
+All three helpers (single, sentinel and cluster) reconnect the same way. ioredis calls the strategy with `attempt` starting at `1`; the wait comes from `RetryUtility.computeBackoffDelayMs` with `RedisDefaults.RECONNECT_BACKOFF`: exponential from 1 s, doubling, capped at 30 s, with equal jitter (each wait is between half and all of the computed delay).
 
 | `attempt` | Delay |
 |---|---|

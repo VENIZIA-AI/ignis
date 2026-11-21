@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import path from 'node:path';
 import { UuidV4Generator, UuidV7Generator, UuidHelper } from '@/modules/uid';
 import { PACKAGE_ROOT } from '../package-root';
-import { SpawnHelper } from '@venizia/dev-configs/testing';
+import { SpawnUtility } from '@venizia/dev-configs/testing';
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -76,7 +76,7 @@ describe('an older helpers version already holding the v7 slot', () => {
       const stamps = ids.map(id => Number.parseInt(id.slice(0, 8) + id.slice(9, 13), 16));
       console.log(JSON.stringify({ ids, current: stamps.every(stamp => Math.abs(stamp - Date.now()) < 60_000) }));
     `;
-    const run = SpawnHelper.spawnSyncBounded({
+    const run = SpawnUtility.spawnSyncBounded({
       cmd: [process.execPath, '-e', script],
       stderr: 'pipe',
     });
@@ -101,7 +101,7 @@ describe('an older helpers version already holding a UuidHelper instance', () =>
       const stamps = ids.map(id => Number.parseInt(id.slice(0, 8) + id.slice(9, 13), 16));
       console.log(JSON.stringify({ fresh: helper instanceof UuidHelper, current: stamps.every(stamp => Math.abs(stamp - Date.now()) < 60_000) }));
     `;
-    const run = SpawnHelper.spawnSyncBounded({
+    const run = SpawnUtility.spawnSyncBounded({
       cmd: [process.execPath, '-e', script],
       stderr: 'pipe',
     });

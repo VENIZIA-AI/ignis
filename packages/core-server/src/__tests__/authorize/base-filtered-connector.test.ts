@@ -1,4 +1,4 @@
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { describe, test, expect } from 'bun:test';
 import { BaseFilteredAdapter } from '@/components/auth/authorize/adapters/base-filtered';
 import type { ICasbinPolicySource } from '@/components/auth/authorize/adapters/common';
@@ -56,7 +56,7 @@ describe('BaseFilteredAdapter - connector resolution', () => {
     const dataSource: ICasbinPolicySource = {};
     const adapter = new TestFilteredAdapter({ dataSource });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: adapter.exposeConnector(),
       message: /BaseFilteredAdapter/,
     });

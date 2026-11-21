@@ -1,4 +1,4 @@
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { HttpDataSource } from '@/http/datasource';
 import { HttpRepository } from '@/http/repository';
 import { afterEach, describe, expect, test } from 'bun:test';
@@ -73,7 +73,7 @@ describe('an unknown total is not a total, and the message says which', () => {
   test('count refuses, naming the header it got', async () => {
     stubFetch({ body: [{ id: 'a' }], contentRange: UNKNOWN });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: build().count({ where: {} }),
       message: /Content-Range "records 0-24\/\*" carries no readable total/,
     });
@@ -82,7 +82,7 @@ describe('an unknown total is not a total, and the message says which', () => {
   test('find with a range refuses the same way', async () => {
     stubFetch({ body: [{ id: 'a' }], contentRange: UNKNOWN });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: build().find({ filter: {}, options: { shouldQueryRange: true } }),
       message: /carries no readable total/,
     });
@@ -102,7 +102,7 @@ describe('no header means no total, and it says so', () => {
   test('count refuses rather than reporting the page size', async () => {
     stubFetch({ body: [{ id: 'a' }] });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: build().count({ where: {} }),
       message: /no Content-Range/,
     });
@@ -111,7 +111,7 @@ describe('no header means no total, and it says so', () => {
   test('a range that was asked for and not answered refuses too', async () => {
     stubFetch({ body: [{ id: 'a' }] });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: build().find({ filter: {}, options: { shouldQueryRange: true } }),
       message: /no Content-Range/,
     });
@@ -235,7 +235,7 @@ describe('a body that is not a list, and a count route that answers no count', (
   test('an envelope missing count is refused, not read as one row', async () => {
     stubFetch({ body: { data: [], page: 1 }, contentRange: 'records */0' });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: build().find({}),
       message: /neither an array nor a \{ count, data \} envelope/,
     });
@@ -244,7 +244,7 @@ describe('a body that is not a list, and a count route that answers no count', (
   test('existsWith does not answer true for that body', async () => {
     stubFetch({ body: { data: [], page: 1 } });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: build().existsWith({ where: {} }),
       message: /neither an array/,
     });
@@ -253,7 +253,7 @@ describe('a body that is not a list, and a count route that answers no count', (
   test('a count route answering a different shape is refused, not read as 0', async () => {
     stubFetch({ body: { total: 42 } });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: build({ countPath: 'count' }).count({ where: {} }),
       message: /no numeric count/,
     });

@@ -59,8 +59,8 @@ A helper that imports an optional peer as a value lives only on its own sub-path
 
 | Sub-path | What it gives | Extra peers |
 |---|---|---|
-| `.` | Everything peer-free: `LoggerFactory`, `ILogger`, `HfLogger`, Redis helpers (`RedisHelperFactory`), `SequentialQueueHelper`, disk and in-memory storage, `AES` / `RSA` / `ECDH`, fetch and TCP / TLS / UDP helpers, Bun WebSocket server, `SecretsHelperFactory`, `ApplicationEnvironment`, `WorkerPoolHelper`, `RetryHelper`, `TemporalHelper`, `UuidHelper`, `SnowflakeUidHelper`, `ModuleUtility`, `getError` | none to load. `ioredis` to use Redis; `hono` for the JSX types |
-| `./core` | Browser-safe runtime classes: `BaseHelper`, the error module, `RetryHelper`, `TemporalHelper`, `UuidHelper`, `TreeBuilder`, `TreeWalker`, `SlugHelper`, `UrlPolicy`, parse utilities | none |
+| `.` | Everything peer-free: `LoggerFactory`, `ILogger`, `HfLogger`, Redis helpers (`RedisHelperFactory`), `SequentialQueueHelper`, disk and in-memory storage, `AES` / `RSA` / `ECDH`, fetch and TCP / TLS / UDP helpers, Bun WebSocket server, `SecretsHelperFactory`, `ApplicationEnvironment`, `WorkerPoolHelper`, `RetryUtility`, `TemporalHelper`, `UuidHelper`, `SnowflakeUidHelper`, `ModuleUtility`, `getError` | none to load. `ioredis` to use Redis; `hono` for the JSX types |
+| `./core` | Browser-safe runtime classes: `BaseHelper`, the error module, `RetryUtility`, `TemporalHelper`, `UuidHelper`, `TreeBuilder`, `TreeWalker`, `SlugUtility`, `UrlPolicy`, parse utilities | none |
 | `./common` | Constants, types, redaction and resolvers | none |
 | `./uuid` | `UuidHelper` and the standalone `UuidV4Generator`, `UuidV5Generator`, `UuidV7Generator` | none |
 | `./temporal` | `TemporalHelper` and the `Native`, `Dayjs`, `Luxon` temporal adapters | none (your own `dayjs` or `luxon` if you pick that adapter) |

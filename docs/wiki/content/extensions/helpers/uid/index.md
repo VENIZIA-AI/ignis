@@ -330,14 +330,14 @@ const id = await generator.nextId({
 Insert and catch the violation. Checking whether an ID exists and then inserting it leaves a window where another request takes the same ID between the two statements.
 
 ```typescript
-import { OpaqueUidHelper, RetryHelper } from '@venizia/ignis-helpers';
+import { OpaqueUidHelper, RetryUtility } from '@venizia/ignis-helpers';
 
 const generator = new OpaqueUidHelper({
   prefix: { enable: true, value: 'INV' },
   delimiter: { enable: true, value: '-' },
 });
 
-const invoice = await RetryHelper.executeWithRetry({
+const invoice = await RetryUtility.executeWithRetry({
   operation: 'createInvoice',
   maxAttempts: 5,
   // A fresh ID per attempt - retrying with the same one would collide forever.

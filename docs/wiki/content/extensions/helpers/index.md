@@ -49,11 +49,11 @@ this package that are already browser-safe.
 | Import from | Holds |
 |---|---|
 | `@venizia/ignis-helpers/common` | Constants and pure types: `HTTP`, `GRPC`, `TConstValue`, the duration and mime tables, the redaction helpers |
-| `@venizia/ignis-helpers/core` | Browser-safe runtime classes: `BaseHelper`, `RetryHelper`, `UrlPolicy`, `ECDH` and more (listed below the table) |
+| `@venizia/ignis-helpers/core` | Browser-safe runtime classes: `BaseHelper`, `RetryUtility`, `UrlPolicy`, `ECDH` and more (listed below the table) |
 | `@venizia/ignis-helpers/temporal` | `TemporalHelper` and its adapters alone |
 | `@venizia/ignis-helpers/uuid` | `UuidV4Generator`, `UuidV5Generator`, `UuidV7Generator` and `UuidHelper` alone - see [UID](./uid/) |
 
-`/core` holds `BaseHelper`, the error module, `RetryHelper`, `TemporalHelper`, `TreeBuilder`, `TreeWalker`, `SlugHelper`, `UrlPolicy`, `BuildInfoRegistry`, `ProjectRootRegistry`, `ECDH` (with its base class `AbstractCryptoAlgorithm`), and the parse utilities.
+`/core` holds `BaseHelper`, the error module, `RetryUtility`, `TemporalHelper`, `TreeBuilder`, `TreeWalker`, `SlugUtility`, `UrlPolicy`, `BuildInfoRegistry`, `ProjectRootRegistry`, `ECDH` (with its base class `AbstractCryptoAlgorithm`), and the parse utilities.
 
 Import one of them when your code has to bundle for a browser.
 
@@ -67,7 +67,7 @@ carries `applicationEnvironment`, which reads `process.env`, so only `Environmen
 
 ```typescript
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { RetryHelper } from '@venizia/ignis-helpers/core';
+import { RetryUtility } from '@venizia/ignis-helpers/core';
 ```
 
 ## See also

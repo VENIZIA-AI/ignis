@@ -19,7 +19,7 @@ export class EventDispatchRetry {
   /**
    * Ceiling, in ms, on the total backoff window `register`'s `retry` can produce (the sum of every
    * inter-attempt delay, computed without jitter since jitter only shrinks it). Matches
-   * `RetryHelper`'s own default cap on a SINGLE delay: a dispatch holds a handler's resources - e.g.
+   * `RetryUtility`'s own default cap on a SINGLE delay: a dispatch holds a handler's resources - e.g.
    * a database connection - for its entire retry window, so the sum across every attempt gets the
    * same "unreasonable beyond this" line the framework already draws for one attempt.
    */

@@ -16,7 +16,7 @@ The helpers utilities used to be bare functions (`int`, `sleep`, `executePromise
 | **Performance** | `ignis-helpers` | Execution timing | `PerformanceUtility.executeWithMeasure()`, `.getCheckpoint()` |
 | **Promise** | `ignis-helpers` | Promise helpers | `PromiseUtility.executeWithLimit()`, `.withTimeout()`, `isPromiseLike()`, `ErrorUtility.toError()` |
 | **Request** | `ignis-helpers` | HTTP utilities | `RequestUtility.parseMultipartBody()`, `.sanitizeFilename()`, `.buildContentDispositionHeader()` |
-| **Retry** | `ignis-helpers` | Backoff-driven retries | `RetryHelper` |
+| **Retry** | `ignis-helpers` | Backoff-driven retries | `RetryUtility` |
 | **Schema** | `ignis` | Zod schema helpers | `OpenApiResponses.jsonContent()`, `.jsonResponse()`; `OpenApiSchemas.requiredString()`, `.idParams()` |
 | **Statuses** | `ignis` | Status code constants | `Statuses`, `CommonStatuses`, `UserStatuses`, `RoleStatuses` |
 | **Timing** | `ignis-helpers` | Pause and measure | `PromiseUtility.sleep()`, `.withTimeout()`, `HrTimeUtility.getSeconds()` |
@@ -42,7 +42,7 @@ Calendar dates - parsing, formatting, adding a month in a time zone - live in [`
 - [**JSX**](./jsx.md) - HTML and JSX response utilities for server-side rendering and OpenAPI documentation
 - [**Promise**](./promise.md) - Helper functions for working with Promises including concurrency limiting and value transformation
 - [**Request**](./request.md) - HTTP request utilities for parsing multipart form data and creating secure Content-Disposition headers
-- [**Retry**](./retry.md) - Backoff-driven retry helpers on `RetryHelper` - error-triggered (`executeWithRetry`) and predicate-driven (`executeWithRetryUntil`)
+- [**Retry**](./retry.md) - Backoff-driven retry helpers on `RetryUtility` - error-triggered (`executeWithRetry`) and predicate-driven (`executeWithRetryUntil`)
 
 ### Runtime
 

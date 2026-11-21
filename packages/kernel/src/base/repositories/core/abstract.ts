@@ -5,7 +5,11 @@ import { MetadataRegistry } from '@/helpers/inversion';
 import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { ResolverUtility } from '@venizia/ignis-helpers/common';
-import { RetryBackoffStrategies, RetryHelper, RetryJitterModes } from '@venizia/ignis-helpers/core';
+import {
+  RetryBackoffStrategies,
+  RetryUtility,
+  RetryJitterModes,
+} from '@venizia/ignis-helpers/core';
 import type {
   IExtraOptions,
   IPersistableRepository,
@@ -332,7 +336,7 @@ export abstract class AbstractRepository<
 
     const { maxAttempts, maxTotalMs, signal, backoff, until } = options.retry;
 
-    return RetryHelper.executeWithRetryUntil<TResult>({
+    return RetryUtility.executeWithRetryUntil<TResult>({
       operation: [this.constructor.name, operation].join('.'),
       execution,
       until: until ?? defaultUntil,

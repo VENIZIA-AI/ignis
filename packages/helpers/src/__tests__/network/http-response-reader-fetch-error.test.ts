@@ -1,7 +1,7 @@
 import { HttpResponseReader } from '@/modules/network/http-request/fetcher/common/response-reader';
 import { NativeFetcher } from '@/modules/network/http-request/fetcher/native-fetcher';
 import { UrlFetchError } from '@/modules/network/utilities/url-safety/common/errors';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { afterAll, describe, expect, test } from 'bun:test';
 
 const server = Bun.serve({
@@ -20,7 +20,7 @@ afterAll(async () => {
 
 describe('HttpResponseReader.fromFetchError', () => {
   test("reads the server's envelope from the body a fetcher's refused answer kept", async () => {
-    const failure = await RejectionHelper.rejectionOf({
+    const failure = await RejectionUtility.rejectionOf({
       task: new NativeFetcher({ name: 'n' }).get({ url: `http://127.0.0.1:${server.port}/` }),
     });
 
@@ -39,7 +39,7 @@ describe('HttpResponseReader.fromFetchError', () => {
   });
 
   test("without context, the error from a fetcher's refused answer has the server's text as message", async () => {
-    const failure = await RejectionHelper.rejectionOf({
+    const failure = await RejectionUtility.rejectionOf({
       task: new NativeFetcher({ name: 'n' }).get({ url: `http://127.0.0.1:${server.port}/` }),
     });
 

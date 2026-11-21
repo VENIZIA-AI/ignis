@@ -9,8 +9,8 @@ import type {
 import { SearchFilterOutcomes, SearchModes } from '@/search/core/repositories/common';
 import {
   isOperatorObject,
-  SearchDialectHelper,
-} from '@/search/core/repositories/common/dialect-helpers';
+  SearchDialectUtility,
+} from '@/search/core/repositories/common/dialect.utility';
 import type { ITypesenseSearchQuery } from '@/search/typesense/repositories/common';
 import { Sorts, QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
@@ -329,7 +329,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
       query.sortBy = this.toOrderBy({ order, capabilities });
     }
 
-    // Native offset, not a page number. `SearchDialectHelper.toSearchPage` refuses a skip that is not a multiple of
+    // Native offset, not a page number. `SearchDialectUtility.toSearchPage` refuses a skip that is not a multiple of
     // limit, so `skip: 15, limit: 10` was rejected - a rule Typesense never imposed and one the
     // relational reference never had either (relational/.../filter.ts:283-287 passes skip straight
     // through to Drizzle). Exactly one pagination pair reaches the engine, because Typesense
@@ -350,7 +350,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
     }
 
     // An empty selection (`[]`, or an object with no `true`) selects nothing in particular: the engine returns whole documents, so no include list is sent.
-    const included = fields ? SearchDialectHelper.toFieldsCsv({ fields }) : '';
+    const included = fields ? SearchDialectUtility.toFieldsCsv({ fields }) : '';
 
     if (included) {
       query.includeFields = included;
@@ -642,7 +642,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
       }
     }
 
-    return SearchDialectHelper.reduceCompiled({ clauses, isDisjunction: false, joiner: ' && ' });
+    return SearchDialectUtility.reduceCompiled({ clauses, isDisjunction: false, joiner: ' && ' });
   }
 
   /** @see ISearchQueryDialect.canExpress */
@@ -653,7 +653,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
   /** @see ISearchQueryDialect.conjoin */
   conjoin(opts: { clauses: TCompiledWhere[] }): TCompiledWhere {
     const { clauses } = opts;
-    const combined = SearchDialectHelper.reduceCompiled({
+    const combined = SearchDialectUtility.reduceCompiled({
       clauses,
       isDisjunction: false,
       joiner: ' && ',
@@ -662,7 +662,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
     // Parenthesised once two clauses actually join, reproducing byte-for-byte what the previous
     // `{ and: [defaultWhere, where] }` merge emitted through the logical-group path.
     return clauses.filter((clause) => clause.outcome === SearchFilterOutcomes.FILTER).length > 1
-      ? SearchDialectHelper.parenthesize({ compiled: combined })
+      ? SearchDialectUtility.parenthesize({ compiled: combined })
       : combined;
   }
 
@@ -674,7 +674,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
   }
 
   fieldNotFoundError(opts: { kind: 'where' | 'order'; field: string }): Error {
-    return SearchDialectHelper.fieldNotFoundError({
+    return SearchDialectUtility.fieldNotFoundError({
       field: opts.field,
       engine: ENGINE,
       method: opts.kind === 'order' ? 'toOrderBy' : 'compileWhere',
@@ -690,7 +690,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
       .map((entry) => {
         const { field, direction } = Sorts.parseEntry({ entry });
 
-        SearchDialectHelper.assertKnownField({
+        SearchDialectUtility.assertKnownField({
           field,
           engine: ENGINE,
           capabilities,
@@ -716,8 +716,8 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
     // An empty member (`{}`) compiles to matchAll and the algebra absorbs it correctly: identity
     // under `and`, absorbing under `or`. Dropping it by string-length, as this once did, is what
     // turned `or: []` into "no constraint".
-    return SearchDialectHelper.parenthesize({
-      compiled: SearchDialectHelper.reduceCompiled({
+    return SearchDialectUtility.parenthesize({
+      compiled: SearchDialectUtility.reduceCompiled({
         clauses,
         isDisjunction,
         joiner: isDisjunction ? ' || ' : ' && ',
@@ -732,20 +732,20 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
   }): TCompiledWhere {
     const { field, value, capabilities } = opts;
 
-    SearchDialectHelper.assertKnownField({ field, engine: ENGINE, capabilities });
+    SearchDialectUtility.assertKnownField({ field, engine: ENGINE, capabilities });
 
     if (Array.isArray(value)) {
       // Mirrors relational `buildValueCondition`: an empty IN-list can match nothing, so it is
       // absorbing false - NOT the malformed `field:=[]` this used to emit.
       return value.length === 0
         ? { outcome: SearchFilterOutcomes.MATCH_NONE }
-        : SearchDialectHelper.toFilterClause({
+        : SearchDialectUtility.toFilterClause({
             filterBy: `${field}:=[${this.escapeArray({ field, value })}]`,
           });
     }
 
     if (!isOperatorObject(value)) {
-      return SearchDialectHelper.toFilterClause({
+      return SearchDialectUtility.toFilterClause({
         filterBy: `${field}:=${this.escapeValue({ field, value })}`,
       });
     }
@@ -754,7 +754,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
       this.compileOperatorClause({ field, op, value: opValue }),
     );
 
-    const combined = SearchDialectHelper.reduceCompiled({
+    const combined = SearchDialectUtility.reduceCompiled({
       clauses,
       isDisjunction: false,
       joiner: ' && ',
@@ -763,7 +763,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
     // Parenthesised only when more than one operator actually contributed a filter, preserving the
     // exact shape callers already assert on for the single-operator case.
     return clauses.filter((clause) => clause.outcome === SearchFilterOutcomes.FILTER).length > 1
-      ? SearchDialectHelper.parenthesize({ compiled: combined })
+      ? SearchDialectUtility.parenthesize({ compiled: combined })
       : combined;
   }
 
@@ -776,13 +776,13 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
 
     switch (op) {
       case QueryOperators.EQ: {
-        return SearchDialectHelper.toFilterClause({
+        return SearchDialectUtility.toFilterClause({
           filterBy: `${field}:=${this.escapeValue({ field, value })}`,
         });
       }
       case QueryOperators.NEQ:
       case QueryOperators.NE: {
-        return SearchDialectHelper.toFilterClause({
+        return SearchDialectUtility.toFilterClause({
           filterBy: `${field}:!=${this.escapeValue({ field, value })}`,
         });
       }
@@ -799,7 +799,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
               NO_NULL_REASON,
             );
 
-          return SearchDialectHelper.throwUnsupportedOperator({
+          return SearchDialectUtility.throwUnsupportedOperator({
             operator: op,
             field,
             engine: ENGINE,
@@ -807,7 +807,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
           });
         }
 
-        return SearchDialectHelper.toFilterClause({
+        return SearchDialectUtility.toFilterClause({
           filterBy: `${field}:=${this.escapeValue({ field, value })}`,
         });
       }
@@ -823,7 +823,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
               NO_NULL_REASON,
             );
 
-          return SearchDialectHelper.throwUnsupportedOperator({
+          return SearchDialectUtility.throwUnsupportedOperator({
             operator: op,
             field,
             engine: ENGINE,
@@ -831,27 +831,27 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
           });
         }
 
-        return SearchDialectHelper.toFilterClause({
+        return SearchDialectUtility.toFilterClause({
           filterBy: `${field}:!=${this.escapeValue({ field, value })}`,
         });
       }
       case QueryOperators.GT: {
-        return SearchDialectHelper.toFilterClause({
+        return SearchDialectUtility.toFilterClause({
           filterBy: `${field}:>${this.escapeValue({ field, value })}`,
         });
       }
       case QueryOperators.GTE: {
-        return SearchDialectHelper.toFilterClause({
+        return SearchDialectUtility.toFilterClause({
           filterBy: `${field}:>=${this.escapeValue({ field, value })}`,
         });
       }
       case QueryOperators.LT: {
-        return SearchDialectHelper.toFilterClause({
+        return SearchDialectUtility.toFilterClause({
           filterBy: `${field}:<${this.escapeValue({ field, value })}`,
         });
       }
       case QueryOperators.LTE: {
-        return SearchDialectHelper.toFilterClause({
+        return SearchDialectUtility.toFilterClause({
           filterBy: `${field}:<=${this.escapeValue({ field, value })}`,
         });
       }
@@ -862,7 +862,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
           return { outcome: SearchFilterOutcomes.MATCH_NONE };
         }
 
-        return SearchDialectHelper.toFilterClause({
+        return SearchDialectUtility.toFilterClause({
           filterBy: `${field}:=[${this.escapeArray({ field, value })}]`,
         });
       }
@@ -872,12 +872,12 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
           return { outcome: SearchFilterOutcomes.MATCH_ALL };
         }
 
-        return SearchDialectHelper.toFilterClause({
+        return SearchDialectUtility.toFilterClause({
           filterBy: `${field}:!=[${this.escapeArray({ field, value })}]`,
         });
       }
       case QueryOperators.BETWEEN: {
-        return SearchDialectHelper.toFilterClause({
+        return SearchDialectUtility.toFilterClause({
           filterBy: `${field}:[${this.escapeBetween({ field, value })}]`,
         });
       }
@@ -886,7 +886,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
         // range, but the rewrite is exact for any field that HAS a value.
         const [min, max] = this.assertBetweenTuple({ field, value });
 
-        return SearchDialectHelper.toFilterClause({
+        return SearchDialectUtility.toFilterClause({
           filterBy: `(${field}:<${this.escapeValue({ field, value: min })} || ${field}:>${this.escapeValue({ field, value: max })})`,
         });
       }
@@ -903,7 +903,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
             NO_NULL_REASON,
           );
 
-        return SearchDialectHelper.throwUnsupportedOperator({
+        return SearchDialectUtility.throwUnsupportedOperator({
           operator: op,
           field,
           engine: ENGINE,
@@ -915,7 +915,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
           .for(this.compileOperatorClause.name)
           .warn('Unsupported operator | operator: %s | field: %s | engine: %s', op, field, ENGINE);
 
-        return SearchDialectHelper.throwUnsupportedOperator({
+        return SearchDialectUtility.throwUnsupportedOperator({
           operator: op,
           field,
           engine: ENGINE,

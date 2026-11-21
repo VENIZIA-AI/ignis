@@ -1,6 +1,6 @@
 import type { TWhere } from '@venizia/ignis-kernel';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { describe, expect, test } from 'bun:test';
 
 /**
@@ -198,7 +198,7 @@ export class TimestampWhereCases {
 
     describe.each(columns)(`${engine} - a timestamp column ($0): refused with a 400`, (column) => {
       test.each(REFUSED)('$name', async (item) => {
-        const error = await RejectionHelper.rejectionOf({ task: find(item.where(column)) });
+        const error = await RejectionUtility.rejectionOf({ task: find(item.where(column)) });
 
         expect(isApplicationError(error) && error.statusCode).toBe(400);
 

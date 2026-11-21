@@ -5,7 +5,7 @@ import { AbstractDataSource, DataSourceOpenModes, DataSourceRoot } from '@/base/
 import { datasource } from '@/base/metadata';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { BindingKeys } from '@/helpers/inversion';
 
@@ -217,7 +217,7 @@ describe('the application starts without opening a datasource that opens on firs
   });
 
   test('a family that cannot honour first-use refuses it at boot, naming the datasource', async () => {
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: boot(UnsupportedDataSource),
       message: /UnsupportedDataSource.*first-use.*not supported/,
     });
@@ -225,7 +225,7 @@ describe('the application starts without opening a datasource that opens on firs
   });
 
   test('a DataSourceRoot family that declares first-use is refused at boot too, not started and ignored', async () => {
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: boot(RootOnlyDataSource),
       message: /RootOnlyDataSource.*first-use.*not supported/,
     });
@@ -321,7 +321,7 @@ describe('a failed open', () => {
     const dataSource = lazyOf(application);
     OpenControl.failures = 1;
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: dataSource.ensureOpen(),
       message: /engine refused to start/,
     });
@@ -336,8 +336,8 @@ describe('a failed open', () => {
     const dataSource = lazyOf(application);
     OpenControl.failures = 2;
 
-    await RejectionHelper.expectRejection({ task: dataSource.ensureOpen(), message: /refused/ });
-    await RejectionHelper.expectRejection({ task: dataSource.ensureOpen(), message: /refused/ });
+    await RejectionUtility.expectRejection({ task: dataSource.ensureOpen(), message: /refused/ });
+    await RejectionUtility.expectRejection({ task: dataSource.ensureOpen(), message: /refused/ });
     await dataSource.ensureOpen();
 
     expect(Journal.count('configure:LazyDataSource')).toBe(3);
@@ -363,7 +363,7 @@ describe('a failed open', () => {
       }),
     });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: dataSource.ensureOpen(),
       message: /engine refused to start/,
     });
@@ -422,7 +422,7 @@ describe('stopping', () => {
 
     await application.stop();
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: dataSource.ensureOpen(),
       message: /The datasource is closed/,
     });
@@ -469,7 +469,7 @@ describe('the handles configure() is given', () => {
 
     expect(() => opening?.getConnector()).toThrow(/opening.getConnector/);
     expect(() => opening?.getClient()).toThrow(/opening.getClient/);
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: opening!.beginTransaction(),
       message: /opening.beginTransaction/,
     });
@@ -578,7 +578,7 @@ describe('isOpen() and the order of the checks', () => {
     await dataSource.ensureOpen();
     await application.stop();
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: dataSource.ensureOpen(),
       message: /The datasource is closed/,
     });
@@ -643,14 +643,14 @@ describe('the timeout of the open', () => {
     const hold = gate();
     OpenControl.hold = hold;
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: dataSource.ensureOpen(),
       message: /did not finish/,
     });
     expect(Journal.count('discard:ShortTimeoutDataSource')).toBe(1);
 
     // The first configure() is still waiting: a second call is refused, and no second configure() starts.
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: dataSource.ensureOpen(),
       message: /previous open is still running/,
     });
@@ -681,7 +681,7 @@ describe('the timeout of the open', () => {
     });
     OpenControl.hold = gate();
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: dataSource.ensureOpen(),
       message: /did not finish/,
     });

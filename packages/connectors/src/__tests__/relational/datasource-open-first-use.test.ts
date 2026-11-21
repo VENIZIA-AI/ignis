@@ -1,5 +1,5 @@
 import { PGlite } from '@electric-sql/pglite';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { datasource, model } from '@venizia/ignis-kernel';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { integer, pgTable, serial, text } from 'drizzle-orm/pg-core';
@@ -316,7 +316,7 @@ describe('a failed open', () => {
     const { dataSource, repository } = build();
     Probe.failAfterClient = 1;
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: repository.find({ filter: {} }),
       message: /migration refused/,
     });
@@ -334,7 +334,7 @@ describe('a failed open', () => {
     const { dataSource, repository } = build();
     Probe.failAfterClient = 1;
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: repository.find({ filter: {} }),
       message: /migration refused/,
     });
@@ -383,7 +383,7 @@ describe('stopping', () => {
 
     await dataSource.close();
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: repository.find({ filter: {} }),
       message: /The datasource is closed/,
     });

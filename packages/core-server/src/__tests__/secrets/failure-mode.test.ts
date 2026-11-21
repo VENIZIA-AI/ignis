@@ -1,7 +1,7 @@
 import { BaseApplication } from '@/base/applications/base';
 import { SecretProviders, type ISecretsRegistration } from '@venizia/ignis-helpers';
 import { afterEach, describe, expect, test } from 'bun:test';
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 
 class FailingSecretsApp extends BaseApplication {
   override getProjectRoot() {
@@ -49,7 +49,7 @@ describe('hydrateSecrets failure mode', () => {
       config: { path: { base: '', isStrict: false } },
     });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: app.hydrateSecrets(),
       message: /non-development environment/,
     });

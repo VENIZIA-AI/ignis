@@ -1,4 +1,4 @@
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { exportPKCS8, exportSPKI, generateKeyPair, SignJWT } from 'jose';
 import type { CryptoKey } from 'jose';
@@ -106,12 +106,12 @@ describe('JWKS issuer', () => {
     const issuer = buildIssuer();
 
     const result2 = await signedElsewhere({});
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: issuer.verify({ type: 'Bearer', token: result2 }),
       message: REFUSED,
     });
     const result3 = await signedElsewhere({ issuer: 'identity', audience: 'commerce' });
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: issuer.verify({
         type: 'Bearer',
         token: result3,
@@ -146,7 +146,7 @@ describe('JWKS verifier', () => {
   test('refuses a token of the issuer key that carries no claims (the reset or invite token)', async () => {
     const token = await signedElsewhere({});
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildVerifier().verify({ type: 'Bearer', token }),
       message: REFUSED,
     });
@@ -156,7 +156,7 @@ describe('JWKS verifier', () => {
     const verifier = buildVerifier();
 
     const result2 = await signedElsewhere({ issuer: 'somebody-else', audience: 'inventory' });
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: verifier.verify({
         type: 'Bearer',
         token: result2,
@@ -164,7 +164,7 @@ describe('JWKS verifier', () => {
       message: REFUSED,
     });
     const result3 = await signedElsewhere({ issuer: 'identity', audience: 'commerce' });
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: verifier.verify({
         type: 'Bearer',
         token: result3,
@@ -176,7 +176,7 @@ describe('JWKS verifier', () => {
   test('refuses an algorithm that is not in verify.algorithms', async () => {
     const token = await buildIssuer().generate({ payload: payload() });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildVerifier({ verify: { algorithms: ['RS256'] } }).verify({ type: 'Bearer', token }),
       message: REFUSED,
     });
@@ -203,18 +203,18 @@ describe('JWKS key confusion', () => {
       .setExpirationTime('1h');
     const forged = await jwt.sign(new TextEncoder().encode(publicPem));
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildVerifier().verify({ type: 'Bearer', token: forged }),
       message: REFUSED,
     });
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildVerifier({ verify: { algorithms: ['ES256', 'HS256'] } }).verify({
         type: 'Bearer',
         token: forged,
       }),
       message: REFUSED,
     });
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildIssuer().verify({ type: 'Bearer', token: forged }),
       message: REFUSED,
     });
@@ -240,7 +240,7 @@ describe('JWKS claims without an audience', () => {
   test('the issuer is still required on the verifier', async () => {
     const other = await signedElsewhere({ issuer: 'somebody-else' });
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildVerifier({ claims: { issuer: 'identity' } }).verify({
         type: 'Bearer',
         token: other,
@@ -266,7 +266,7 @@ describe('a JWKS that redirects is not followed', () => {
 
       const result = await direct.verify({ type: 'Bearer', token });
       expect(result.userId).toBe(1);
-      await RejectionHelper.expectRejection({
+      await RejectionUtility.expectRejection({
         task: behindRedirect.verify({ type: 'Bearer', token }),
         message: REFUSED,
       });

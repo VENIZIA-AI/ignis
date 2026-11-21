@@ -2,7 +2,7 @@ import { ObjectUtility } from '@venizia/ignis-inversion';
 import { PromiseUtility } from '@/utilities/promise.utility';
 import { getError } from '@/modules/error';
 import { LoggerFactory } from '@/modules/logger';
-import { RetryHelper } from '@/modules/retry';
+import { RetryUtility } from '@/modules/retry';
 import { BaseHelper } from '@/modules/base';
 import { type EventEmitter } from 'node:events';
 import zlib from 'node:zlib';
@@ -88,7 +88,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
         return undefined;
       }
 
-      return RetryHelper.computeBackoffDelayMs({
+      return RetryUtility.computeBackoffDelayMs({
         attempt,
         backoff: RedisDefaults.RECONNECT_BACKOFF,
       });

@@ -14,7 +14,7 @@ import {
 } from '@/modules/temporal';
 import type { ITemporalAdapter, TTemporalUnit } from '@/modules/temporal';
 import { PACKAGE_ROOT } from '../package-root';
-import { SpawnHelper } from '@venizia/dev-configs/testing';
+import { SpawnUtility } from '@venizia/dev-configs/testing';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -485,7 +485,7 @@ describe('TemporalHelper and the host zone', () => {
         console.log(helper.format({ value }));
         console.log(dayjs(value).tz('Asia/Ho_Chi_Minh').format());
       `;
-      const run = SpawnHelper.spawnSyncBounded({
+      const run = SpawnUtility.spawnSyncBounded({
         cmd: [process.execPath, '-e', script],
         cwd: PACKAGE_ROOT,
         env: { ...process.env, TZ: 'America/New_York' },

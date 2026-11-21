@@ -3,7 +3,7 @@ import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PlatformaticKafkaPlugins } from '../../../modules/queue/kafka';
-import { SpawnHelper } from '@venizia/dev-configs/testing';
+import { SpawnUtility } from '@venizia/dev-configs/testing';
 
 const ENTRYPOINT = 'src/__tests__/kafka/fixtures/kafka-entrypoint.ts';
 
@@ -41,7 +41,7 @@ const probe = async (): Promise<void> => {
       return;
     }
 
-    const executed = SpawnHelper.spawnSyncBounded({ cmd: [outfile] });
+    const executed = SpawnUtility.spawnSyncBounded({ cmd: [outfile] });
     console.log(
       JSON.stringify({
         success: built.success,

@@ -1,4 +1,4 @@
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { HttpDataSource } from '@/http/datasource';
 import { HttpRepository } from '@/http/repository';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
@@ -137,7 +137,7 @@ describe('HttpDataSource.request - a body and headers on any method', () => {
   test('a per-request x-request-count is refused before anything is sent', async () => {
     const attempts = stubFetch([{ status: 200, body: {} }]);
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildDataSource().request({
         paths: ['tickets'],
         headers: { 'X-Request-Count': 'true' },
@@ -342,11 +342,11 @@ describe('HttpRepository - the write verbs map to the IGNIS CRUD routes', () => 
   test('an empty bulk where is refused before any request, as the server would refuse it', async () => {
     const attempts = stubFetch([{ status: 200, body: [] }]);
 
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildRepository().updateBy({ where: {}, data: { status: 'closed' } }),
       message: /where is required/,
     });
-    await RejectionHelper.expectRejection({
+    await RejectionUtility.expectRejection({
       task: buildRepository().deleteBy({ where: {} }),
       message: /where is required/,
     });

@@ -648,7 +648,7 @@ import {
   repository,
   TRouteContext, BindingKeys,
 } from '@venizia/ignis';
-import { HTTP, CredentialHelper } from '@venizia/ignis-helpers';
+import { HTTP, CredentialUtility } from '@venizia/ignis-helpers';
 import { PostgresDataSource } from '../datasources';
 import { User } from '../models';
 
@@ -703,9 +703,9 @@ class UserService extends BaseService {
   }
 
   async create(data: CreateUserDto) {
-    // Business logic. Passwords want a slow, salted KDF, so this is `CredentialHelper` (argon2id over
+    // Business logic. Passwords want a slow, salted KDF, so this is `CredentialUtility` (argon2id over
     // `Bun.password`), not the digest helper - `Hash` is for message digests and HMACs, never for credentials.
-    const hashedPassword = await CredentialHelper.hash({ password: data.password });
+    const hashedPassword = await CredentialUtility.hash({ password: data.password });
 
     return this.userRepository.create({
       data: {

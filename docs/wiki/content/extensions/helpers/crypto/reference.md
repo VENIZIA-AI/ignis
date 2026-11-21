@@ -474,7 +474,7 @@ const sha256Hmac = Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({
 
 ## Passwords
 
-`CredentialHelper` is a class of static methods over `Bun.password`. It throws on a runtime other than Bun.
+`CredentialUtility` is a class of static methods over `Bun.password`. It throws on a runtime other than Bun.
 
 | Method | Returns | Notes |
 |---|---|---|
@@ -516,8 +516,8 @@ const sha256Hmac = Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({
 | `Hash.withAlgorithm(algorithm)` | `Hash` | `Hash` | Get the memoized instance for an algorithm |
 | `digest(opts)` | `Hash` | `string` | Plain digest, no secret |
 | `hmac(opts)` | `Hash` | `string` | Keyed HMAC, secret required |
-| `CredentialHelper.hash(opts)` | `CredentialHelper` | `Promise<string>` | An argon2id (default) or bcrypt password hash over `Bun.password` |
-| `CredentialHelper.verify(opts)` | `CredentialHelper` | `Promise<boolean>` | Check a password against a stored hash |
+| `CredentialUtility.hash(opts)` | `CredentialUtility` | `Promise<string>` | An argon2id (default) or bcrypt password hash over `Bun.password` |
+| `CredentialUtility.verify(opts)` | `CredentialUtility` | `Promise<boolean>` | Check a password against a stored hash |
 
 ## Troubleshooting
 

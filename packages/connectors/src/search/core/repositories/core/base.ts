@@ -15,7 +15,7 @@ import type {
   TCompiledWhere,
 } from '@/search/core/repositories/common';
 import { SearchFilterOutcomes } from '@/search/core/repositories/common';
-import { SearchDialectHelper } from '@/search/core/repositories/common/dialect-helpers';
+import { SearchDialectUtility } from '@/search/core/repositories/common/dialect.utility';
 
 /** The order a search query reads a filter in: `build` reads the order entries, then the caller's where is compiled. */
 const SEARCH_READ_ORDER: ReadonlyArray<TRequestFilterPart> = [
@@ -151,7 +151,7 @@ export abstract class SearchBaseRepository<
    * choice and `TRow` says so. No selection, or an empty one the engine reads as none: all of them.
    */
   protected selectedNullableFields(opts: { fields?: TFields }): readonly string[] {
-    const names = opts.fields ? SearchDialectHelper.toFieldNames({ fields: opts.fields }) : [];
+    const names = opts.fields ? SearchDialectUtility.toFieldNames({ fields: opts.fields }) : [];
 
     return names.length === 0
       ? this.nullableFields

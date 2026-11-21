@@ -1,4 +1,4 @@
-import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import type { IUniqueKey } from '@/relational/core/models';
 import type { IRelationalQueryExecutor } from '@/relational/core/repositories/common';
 import type { TTableObject } from '@/relational/core/models';
@@ -148,7 +148,7 @@ export const defineSoftDeleteDataCases = <TTransaction extends ITransaction>(
   }) => {
     const before = await opts.ctx.rawRows();
 
-    const error = await RejectionHelper.rejectionOf({ task: opts.task() });
+    const error = await RejectionUtility.rejectionOf({ task: opts.task() });
 
     expect(statusOf(error)).toBe(400);
 
@@ -288,7 +288,7 @@ export const defineSoftDeleteDataCases = <TTransaction extends ITransaction>(
         () => ctx.open.deleteBy({ where: {} }),
         () => ctx.open.restoreBy({ where: {} }),
       ]) {
-        const error = await RejectionHelper.rejectionOf({ task: task() });
+        const error = await RejectionUtility.rejectionOf({ task: task() });
 
         expect(messageOf(error)).toContain('Empty where condition');
       }
@@ -402,7 +402,7 @@ export const defineSoftDeleteDataCases = <TTransaction extends ITransaction>(
     }) => {
       const before = await opts.ctx.rawRows();
 
-      const error = await RejectionHelper.rejectionOf({ task: opts.task() });
+      const error = await RejectionUtility.rejectionOf({ task: opts.task() });
 
       expect(codeOf(error)).toBe(RepositoryErrorCodes.SCOPE_WRITE_DENIED);
       expect(statusOf(error)).toBe(403);

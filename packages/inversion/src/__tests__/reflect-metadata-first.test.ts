@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import path from 'node:path';
-import { SpawnHelper } from '@venizia/dev-configs/testing';
+import { SpawnUtility } from '@venizia/dev-configs/testing';
 
 /**
  * A bundler may evaluate a split chunk holding decorated code before the `reflect-metadata` module
@@ -9,7 +9,7 @@ import { SpawnHelper } from '@venizia/dev-configs/testing';
  */
 describe('decorators work without the caller importing reflect-metadata', () => {
   test('a module that reaches the registry directly records an @inject', () => {
-    const run = SpawnHelper.spawnSyncBounded({
+    const run = SpawnUtility.spawnSyncBounded({
       cmd: [
         'bun',
         path.join(process.cwd(), 'src/__tests__/fixtures/decorators-without-reflect-metadata.ts'),
