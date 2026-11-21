@@ -6,7 +6,7 @@ import { getError } from '@/modules/error';
 import { BodyLimit } from '@/modules/network/http-request/fetcher/common/body-limit';
 import { FetchSchemaError } from '@/modules/network/http-request/fetcher/common/errors';
 import { HttpResponseReader } from '@/modules/network/http-request/fetcher/common/response-reader';
-import { FetchHeaders } from '@/modules/network/http-request/fetcher/common/utilities';
+import { HttpHeaders } from '@/modules/network/http-request/fetcher/common/utilities';
 import { NativeFetcher } from '@/modules/network/http-request/fetcher/native-fetcher';
 import {
   UrlSafetyErrors,
@@ -70,18 +70,18 @@ describe('an empty body with a schema is still a FetchSchemaError, capped or not
   });
 });
 
-describe('FetchHeaders.withJsonDefault', () => {
+describe('HttpHeaders.withJsonDefault', () => {
   test('is the JSON content type under the layers: replaced in any case, or removed with null', () => {
-    expect(FetchHeaders.withJsonDefault({ layers: [] }).get(HTTP.Headers.CONTENT_TYPE)).toBe(
+    expect(HttpHeaders.withJsonDefault({ layers: [] }).get(HTTP.Headers.CONTENT_TYPE)).toBe(
       HTTP.HeaderValues.APPLICATION_JSON_UTF8,
     );
     expect(
-      FetchHeaders.withJsonDefault({ layers: [{ 'Content-Type': 'text/plain' }] }).get(
+      HttpHeaders.withJsonDefault({ layers: [{ 'Content-Type': 'text/plain' }] }).get(
         'content-type',
       ),
     ).toBe('text/plain');
     expect(
-      FetchHeaders.withJsonDefault({ layers: [{ 'content-type': null }] }).has('content-type'),
+      HttpHeaders.withJsonDefault({ layers: [{ 'content-type': null }] }).has('content-type'),
     ).toBe(false);
   });
 });
