@@ -2958,10 +2958,10 @@ Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.
 
 *type*
 
-A header map as a call or a default writes it: a `null` or `undefined` value removes that header (a default included).
+A header map as a call or a default writes it: a `Headers`, `[name, value]` pairs or a record. In a record a `null` or `undefined` value removes that header (a default included); a number is sent as text.
 
 ```ts
-export type THttpHeaders = Headers | Record<string, string | null | undefined>;
+export type THttpHeaders = Headers | Array<[string, string]> | Record<string, string | number | null | undefined>;
 ```
 
 Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`

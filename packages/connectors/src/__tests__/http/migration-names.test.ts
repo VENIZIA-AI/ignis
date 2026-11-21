@@ -4,10 +4,9 @@ import type {
   IHttpDataSourceSettings,
   IHttpRequestContext,
   THttpFetch,
-  THttpHeaders,
 } from '@/http';
 import { describe, expect, test } from 'bun:test';
-import type { TNativeFetchSender } from '@venizia/ignis-helpers/core';
+import type { THttpHeaders, TNativeFetchSender } from '@venizia/ignis-helpers/core';
 
 /** The replacements the migration of `remove-unused-network-exports` names must compile: this file is that check. */
 type TRepositoryOptions = NonNullable<Parameters<HttpRepository['existsWith']>[0]['options']>;

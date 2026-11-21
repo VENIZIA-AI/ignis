@@ -1,4 +1,4 @@
-import type { TNativeFetchSender } from '@venizia/ignis-helpers/core';
+import type { THttpHeaders, TNativeFetchSender } from '@venizia/ignis-helpers/core';
 
 /** A credential the HTTP datasource attaches to a request: `Authorization: <type> <value>`, and `provider`, when set, as the `x-auth-provider` header. */
 export interface IAuthToken {
@@ -25,9 +25,6 @@ export interface IHttpRequestContext {
   /** The call's own signal: a hook may stop waiting on it. A refresh shared by other calls should not be aborted by one. */
   signal?: AbortSignal;
 }
-
-/** Not `Record` alone: header names are case-insensitive, and an object merge appends two spellings. */
-export type THttpHeaders = Headers | Array<[string, string]> | Record<string, string>;
 
 /**
  * A request body. A plain object or array goes out as JSON; a string, `Blob`, `FormData`,

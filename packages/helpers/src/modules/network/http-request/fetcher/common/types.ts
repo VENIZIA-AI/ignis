@@ -14,8 +14,11 @@ export type TFetcherWorker<T extends TFetcherVariant> = T extends 'axios'
   ? AxiosInstance
   : typeof fetch;
 
-/** A header map as a call or a default writes it: a `null` or `undefined` value removes that header (a default included). */
-export type THttpHeaders = Headers | Record<string, string | null | undefined>;
+/** A header map as a call or a default writes it: a `Headers`, `[name, value]` pairs or a record. In a record a `null` or `undefined` value removes that header (a default included); a number is sent as text. */
+export type THttpHeaders =
+  | Headers
+  | Array<[string, string]>
+  | Record<string, string | number | null | undefined>;
 
 /** What a fetcher answers when the call passes a `schema`: the parsed body beside the raw response. */
 export interface IFetchParsed<D, RS> {
