@@ -359,6 +359,21 @@ describe('devz codemod binding-keys: the rewrite', () => {
     expect(result.unnamed).toEqual([1]);
   });
 
+  test('an import type is a path of the use site, so it is not copied: unknown', () => {
+    const result = body(
+      [
+        `class Keys { static readonly K = 'a.A'; }`,
+        `a.get<import('./mailer').Mailer>({ key: Keys.K });`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.output).toContain(
+      `static readonly K = BindingKeys.build<unknown>({ key: 'a.A' });`,
+    );
+    expect(result.unnamed).toEqual([1]);
+  });
+
   test('one type name that means two types at the use sites does not agree', () => {
     const result = body(
       [

@@ -463,6 +463,11 @@ export class BindingKeysCodemod {
         ts.isIdentifier(name) ? name.text : head(name.left);
 
       const search = (node: import('typescript').Node): void => {
+        // `import('../mailer').Mailer` names a path that means something only from the file that wrote it.
+        if (ts.isImportTypeNode(node)) {
+          found.set(`import(${node.argument.getText()})`, undefined);
+        }
+
         const name = ts.isTypeReferenceNode(node)
           ? node.typeName
           : ts.isTypeQueryNode(node)
