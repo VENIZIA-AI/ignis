@@ -1264,7 +1264,7 @@ search-scope-resolver-input:
   data: A resolver you write is unaffected. The new last type parameters of build() and AbstractSearchController default to no extra keys and no injected classes, so type arguments passed by position still line up.
 
 class-types-never-arguments:
-  symbols: [TConstructor, TAbstractConstructor, TClass, TAbstractClass, TConstValue, TStringConstValue, TNumberConstValue, ArtifactIndexHelper.sortConfigurationsTopologically, ResolverUtility.resolveInjectTarget, isDataSourceClass, MetadataRegistry.getDataSourceModelClasses, MetadataRegistry.datasourceModels, Container.resolveBindingKey, TDataSourceDriverClass, TBootProbeTarget, MetadataRegistry.resolveModelKey, TInjectTarget, isClass, isClassProvider, MetadataRegistry.getMethodNames]
+  symbols: [TConstructor, TAbstractConstructor, TClass, TAbstractClass, ArtifactIndexHelper.sortConfigurationsTopologically, ResolverUtility.resolveInjectTarget, isDataSourceClass, MetadataRegistry.getDataSourceModelClasses, MetadataRegistry.datasourceModels, Container.resolveBindingKey, TDataSourceDriverClass, TBootProbeTarget, MetadataRegistry.resolveModelKey, TInjectTarget, isClass, isClassProvider, MetadataRegistry.getMethodNames]
   upgrade:
     before: |-
       const readVersion = (cls: TClass<Service>): string => cls.version; // any
@@ -1307,6 +1307,7 @@ class-types-never-arguments:
       // T is inferred from the classes; give one common instance type when the classes differ
       const sorted = helper.sortConfigurationsTopologically<BaseConfiguration>({ classes: [ConfigA, ConfigB] });
     steps:
+      - "The plan counts every mention of TClass, TConstructor and the other symbols, not every break: only a use that reads a static property of a TClass, calls a TConstructor with arguments or assigns per-entity classes to one TClass of a union entity fails the typecheck. Run bun check and fix what it names."
       - "Replace static property access on `TClass` with `typeof Service` or intersect `TClass` with the required static properties."
       - "Construct instances from `TConstructor` using `Reflect.construct` or type the parameter with an explicit `new (...) => T` constructor signature."
       - "Type per-entity collections explicitly per entity instead of using a single `TClass` over a union entity type."
@@ -1341,6 +1342,7 @@ class-slot-checks-the-instance:
       const register = <TEntity extends TNamedEntity>(repositoryClass: TClass<HttpRepository<TEntity>>) => repositoryClass;
       const registered = register(OrganizerRepository);
     steps:
+      - "The plan counts every mention of TClass, the same ones as class-types-never-arguments; only a class slot typed wider than the class it receives fails (TS2322). Run bun check and fix what it names."
       - "Run bun check to locate class slots failing with TS2322."
       - "Retype each failing slot by the members you read, or pick those members from the slot repository type."
       - "Make the slot generic to infer the entity from the repository class."
@@ -1384,6 +1386,7 @@ mixin-base-takes-tmixinconstructor:
         override async find(): Promise<string[]> { return ['x']; }
       }
     steps:
+      - "The plan counts every mention of TClass; only a generic mixin whose base parameter is constrained by TClass or TAbstractClass fails (TS2545). Run bun check and fix what it names."
       - "Fix a mixin that reports TS2545 first, before addressing TS2510 errors on the classes that extend it."
       - "Constrain a generic mixin base that uses `TClass` with `TMixinConstructor`."
       - "Constrain a generic mixin base that uses `TAbstractClass` with `TAbstractMixinConstructor`."
@@ -2251,6 +2254,7 @@ inject-target-is-object:
         (key: string) => (target: object, name: string | symbol | undefined, index?: number) =>
           inject({ key })(target, name, index);
     steps:
+      - "The plan counts every use of inject; only a wrapper that forwards the decorator target typed unknown, or as an unconstrained type parameter, fails (TS2345). Run bun check and fix what it names."
       - "Inspect wrapper functions that forward arguments to inject."
       - "Update the target parameter type from unknown or unconstrained generic types to object or T extends object."
       - "Recompile the application and resolve any TS2345 errors on forwarded inject decorator targets."
