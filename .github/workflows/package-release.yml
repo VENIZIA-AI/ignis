@@ -114,7 +114,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.4.4'
+          bun-version: '1.4.5'
 
       - name: Plan the release
         id: plan
@@ -173,7 +173,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.4.4'
+          bun-version: '1.4.5'
 
       # -------------------------------------------------------------------------
       # PREPARE
@@ -399,7 +399,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.4.4'
+          bun-version: '1.4.5'
 
       - name: Force update workspace
         run: bun run --filter "@venizia/*" force-update workspace
@@ -498,7 +498,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.4.4'
+          bun-version: '1.4.5'
 
       - name: Setup Git
         run: |
@@ -661,7 +661,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.4.4'
+          bun-version: '1.4.5'
 
       # The action runs the project's installed atlas (`vulcan x atlas index publish`).
       - name: Install

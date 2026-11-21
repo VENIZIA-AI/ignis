@@ -90,7 +90,7 @@ tags: [process, build]
    `connectors` (engine-client rows waived in the manifest); `make purity-<package>` for the others
    prints a no-op. It reads `dist/`, so run it after a build, never instead of one. Run it on
    Bun >= 1.4.1: `connectors/postgres/supabase [import]` is pure on 1.4.1 and red on 1.4.0. The
-   release workflow pins `bun-version: '1.4.4'`; `ci.yml` installs `latest`.
+   release workflow pins `bun-version: '1.4.5'`; `ci.yml` installs `latest`.
 9. Two details keep that gate honest - do not "simplify" them away. It inspects the `--metafile`
    module graph instead of grepping the bundle for a `node:` prefix, because
    `bun build --target=browser` silently stubs unpolyfillable builtins to an empty object, exits 0,
