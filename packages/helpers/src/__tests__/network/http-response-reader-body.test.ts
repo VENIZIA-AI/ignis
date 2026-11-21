@@ -1,4 +1,4 @@
-import { HttpResponseReader } from '@/base/repositories/common/response-reader';
+import { HttpResponseReader } from '@/modules/network/http-request/fetcher/common/response-reader';
 import { describe, expect, test } from 'bun:test';
 
 const context = '[Client][read] 200 | /tickets';

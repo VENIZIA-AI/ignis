@@ -368,3 +368,24 @@ mail-template-missing-empty:
       - "Pin @venizia/ignis to 0.4.8, where a missing key stays as written and an object prints as text; sections are not available there."
       - "Or stay on the new version and pass missing: 'keep' on every render and sendTemplate call; the object and function refusals have no switch."
   data: Nothing stored changes. A template registered in memory is unchanged text.
+
+http-response-reader-in-helpers:
+  symbols: [HttpResponseReader, HttpResponseReader.isPlainObject, HttpResponseReader.toText]
+  upgrade:
+    before: |-
+      import { HttpResponseReader } from '@venizia/ignis-kernel/repository';
+      // or: import { HttpResponseReader } from '@venizia/ignis-connectors/http';
+
+      const isObject = HttpResponseReader.isPlainObject(body);
+    after: |-
+      import { HttpResponseReader, RecordUtility } from '@venizia/ignis-helpers';
+
+      const isObject = RecordUtility.isPlainObject(body);
+    steps:
+      - "Import HttpResponseReader from @venizia/ignis-helpers (or @venizia/ignis-helpers/core) instead of @venizia/ignis-kernel/repository or @venizia/ignis-connectors/http, and add @venizia/ignis-helpers as a direct dependency if your project lacks it."
+      - "Replace HttpResponseReader.isPlainObject(value) with RecordUtility.isPlainObject(value) from @venizia/ignis-helpers; it also accepts an object with a null prototype."
+      - "HttpResponseReader.toText is private: an empty string as absent is yours to write where you used it."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-kernel and @venizia/ignis-connectors to 0.4.8 and import HttpResponseReader from @venizia/ignis-kernel/repository again."
+  data: Nothing stored changes.

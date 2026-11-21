@@ -1186,7 +1186,7 @@ An IPv6 literal is expanded to its eight 16-bit groups before it is classified, 
 
 A `?` inside a path segment is not escaped: it starts the query, as it always did (use `params` for a query). A double slash (`a//b`) is not refused: it cannot leave the base.
 
-`ResponseReader.readText({ response, maxBytes? })` turns a `Response` into text, the one way every reader does it: `''` for a 204, an empty body or no body, and the read fails at `maxBytes`. The fetchers' schema path and the kernel's `HttpResponseReader` use it.
+`HttpResponseReader.readText({ response, maxBytes? })` turns a `Response` into text, the one way every reader does it: `''` for a 204, an empty body or no body, and the read fails at `maxBytes`. The fetchers' schema path uses it too.
 
 `UrlGuard` is also what you hand a fetcher as `guardEngine` (`createRoute`). The name `UrlIngest` is gone, with `fetchGuarded`, `readCappedBody` and `capStream`: the fetchers do that work now, and `BodyLimit` holds the body cap.
 

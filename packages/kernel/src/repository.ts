@@ -31,7 +31,6 @@ export { DataRangeUtility } from '@/base/repositories/common/types/results';
 
 // How a client reads what an IGNIS server answers - shared by the http connector and any client
 // that reads the same server without it.
-export { HttpResponseReader } from '@/base/repositories/common/response-reader';
 export { HttpExtraRequest } from '@/base/repositories/common/extra-request';
 export type { TExtraRequest, TExtraResult } from '@/base/repositories/common/extra-request';
 

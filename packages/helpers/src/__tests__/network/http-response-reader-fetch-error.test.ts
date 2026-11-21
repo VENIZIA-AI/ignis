@@ -1,5 +1,6 @@
-import { HttpResponseReader } from '@/base/repositories/common/response-reader';
-import { NativeFetcher, UrlFetchError } from '@venizia/ignis-helpers/core';
+import { HttpResponseReader } from '@/modules/network/http-request/fetcher/common/response-reader';
+import { NativeFetcher } from '@/modules/network/http-request/fetcher/native-fetcher';
+import { UrlFetchError } from '@/modules/network/utilities/url-safety/common/errors';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
 import { afterAll, describe, expect, test } from 'bun:test';
 

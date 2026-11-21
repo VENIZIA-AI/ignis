@@ -16,7 +16,7 @@ import {
   type TFetcherLogger,
 } from './base-fetcher';
 import { BodyLimit } from './common/body-limit';
-import { ResponseReader } from './common/response-reader';
+import { HttpResponseReader } from './common/response-reader';
 import type { IFetchGuard } from './common/guard';
 import type { IFetcherDefaults, IFetcherHooks } from './common/types';
 import { FetchHeaders } from './common/utilities';
@@ -315,7 +315,7 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
         });
       },
       readJson: async ({ maxBytes }) => {
-        const text = await ResponseReader.readText({ response, maxBytes });
+        const text = await HttpResponseReader.readText({ response, maxBytes });
 
         return JSON.parse(text);
       },
