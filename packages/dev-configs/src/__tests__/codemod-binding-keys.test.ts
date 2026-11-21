@@ -29,6 +29,10 @@ const VIRTUAL_FILES = new Map<string, string>([
   ['/virtual/src/file.ts', ''],
   ['/virtual/node_modules/@venizia/ignis/index.d.ts', FRAMEWORK_STUB],
   ['/virtual/src/thing.d.ts', 'export declare const thing: number;'],
+  [
+    '/virtual/node_modules/typescript/lib/lib.stub.d.ts',
+    'interface Function { readonly name: string } interface Object { constructor: Function } interface CallableFunction extends Function {} interface NewableFunction extends Function {} interface Array<T> {} interface String {} interface Boolean {} interface Number {} interface IArguments {} interface RegExp {} interface Symbol {} interface Error { name: string; message: string }',
+  ],
 ]);
 
 /** A program over `source` and the stub framework: the checker answers what `a` is, as it does in a project. */
@@ -70,7 +74,11 @@ const programOf = (source: string, fileName: string) => {
         : undefined;
     });
 
-  const program = ts.createProgram({ rootNames: [fileName], options, host });
+  const program = ts.createProgram({
+    rootNames: [fileName, '/virtual/node_modules/typescript/lib/lib.stub.d.ts'],
+    options,
+    host,
+  });
   const sourceFile = program.getSourceFile(fileName);
 
   if (sourceFile === undefined) {
@@ -372,6 +380,74 @@ describe('devz codemod binding-keys: the rewrite', () => {
       `static readonly K = BindingKeys.build<unknown>({ key: 'a.A' });`,
     );
     expect(result.unnamed).toEqual([1]);
+  });
+
+  test('Foo.name is wrapped in place, and the type the call claimed moves into build<T>', () => {
+    const result = body([`class Foo {}`, `a.get<Foo>({ key: Foo.name });`, ''].join('\n'));
+
+    expect(result.output).toBe(
+      [`class Foo {}`, `a.get({ key: BindingKeys.build<Foo>({ key: Foo.name }) });`, ''].join('\n'),
+    );
+    expect(result.manual).toEqual([]);
+    expect(result.unnamed).toEqual([]);
+  });
+
+  test('Foo.name with no claimed type is build<unknown>, listed as a type to name', () => {
+    const result = body([`class Foo {}`, `a.bind({ key: Foo.name });`, ''].join('\n'));
+
+    expect(result.output).toContain(
+      `a.bind({ key: BindingKeys.build<unknown>({ key: Foo.name }) });`,
+    );
+    expect(result.unnamed).toEqual([2]);
+  });
+
+  test('this.constructor.name is wrapped in place too', () => {
+    const result = body(
+      [`class Foo { run() { return a.get<Foo>({ key: this.constructor.name }); } }`, ''].join('\n'),
+    );
+
+    expect(result.output).toContain(
+      `a.get({ key: BindingKeys.build<Foo>({ key: this.constructor.name }) })`,
+    );
+  });
+
+  test('this.name in a static method and an @inject parameter claim are wrapped', () => {
+    const result = body(
+      [
+        `class Foo { static run() { return a.get<Foo>({ key: this.name }); } }`,
+        `class S { constructor(@inject({ key: Foo.name }) readonly f: Foo) {} }`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.output).toContain(`a.get({ key: BindingKeys.build<Foo>({ key: this.name }) })`);
+    expect(result.output).toContain(`@inject({ key: BindingKeys.build<Foo>({ key: Foo.name }) })`);
+  });
+
+  test('a lib string other than name (err.message) is not a key: it stays manual', () => {
+    const result = body(
+      [`declare const err: Error;`, `a.get<Foo>({ key: err.message });`, ''].join('\n'),
+    );
+
+    expect(result.changed).toBe(false);
+    expect(result.manual.map((item) => item.line)).toEqual([2]);
+  });
+
+  test('a second run changes nothing', () => {
+    const first = body([`class Foo {}`, `a.get<Foo>({ key: Foo.name });`, ''].join('\n'));
+    const again = rewrite(`${PRELUDE}${first.output}`);
+
+    expect(first.changed).toBe(true);
+    expect(again.changed).toBe(false);
+  });
+
+  test('a name property of your own is not a lib string: it stays manual', () => {
+    const result = body(
+      [`declare const own: { name: string };`, `a.get<Foo>({ key: own.name });`, ''].join('\n'),
+    );
+
+    expect(result.changed).toBe(false);
+    expect(result.manual.map((item) => item.line)).toEqual([2]);
   });
 
   test('one type name that means two types at the use sites does not agree', () => {

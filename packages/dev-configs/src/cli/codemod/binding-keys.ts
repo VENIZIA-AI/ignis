@@ -26,7 +26,8 @@ It rewrites a call named get, gets, getBinding, bind, isBound or unbind whose ar
 test. A string key, a substitution-free template literal, a { namespace, key } literal and a template written
 \${namespace}.Name or \${namespace}.\${name} are rewritten. These are listed
 as "manual" and left alone: a key made at run time (a template with substitutions, a call) and a Symbol key (symbols are no
-longer keys). A key held in a name (MAILER, Keys.MAILER) is built where it is declared, in any file of the run: a const, a
+longer keys). A key written Foo.name or this.constructor.name (a string TypeScript's own lib declares) is wrapped in
+place. A key held in a name (MAILER, Keys.MAILER) is built where it is declared, in any file of the run: a const, a
 readonly property or a property of an object literal, with a string initializer and no type annotation. Its type is the
 one type its use sites claim (get<Mailer>, the type of a decorated parameter), else unknown (listed as "type"); the use
 sites are not edited. A name declared another way (a let, an annotation, a parameter, a call, a package you do not own)
@@ -64,6 +65,9 @@ const KEY_DECORATORS = new Set(['inject', 'provide']);
 const IGNIS_MODULE = /^@venizia\/ignis(?:-kernel|-inversion)?$/;
 
 const BUILDER = 'BindingKeys';
+
+/** A declaration file of TypeScript's own `lib` (where `Function.name` is declared). */
+const LIB_FILE = /[\\/]typescript[\\/]lib[\\/]lib\.[^\\/]*\.d\.ts$/;
 
 /** The classes and interfaces whose key methods are the container's. */
 const CONTAINER_TYPES = new Set([
@@ -381,6 +385,26 @@ export class BindingKeysCodemod {
       ts.isIdentifier(node.parent.type.typeName) &&
       node.parent.type.typeName.text === 'const';
 
+    /** `Foo.name`, `this.constructor.name`: the `name` that TypeScript's own lib declares, so there is no constant of yours to build. Another lib string (`err.message`, `location.href`) is not a key. */
+    const isLibString = (value: import('typescript').Expression): boolean => {
+      if (
+        checker === undefined ||
+        !ts.isPropertyAccessExpression(value) ||
+        value.name.text !== 'name'
+      ) {
+        return false;
+      }
+
+      const declared = checker.getSymbolAtLocation(value.name)?.declarations?.[0]?.getSourceFile();
+
+      return (
+        declared !== undefined &&
+        declared.isDeclarationFile &&
+        LIB_FILE.test(declared.fileName) &&
+        (checker.getTypeAtLocation(value).flags & ts.TypeFlags.StringLike) !== 0
+      );
+    };
+
     /**
      * The declaration of a key held in a name (`MAILER`, `Keys.MAILER`) that the codemod may build where it is made: a const, a
      * readonly property or a property of an object literal, with a string initializer, no type annotation, in a file of the
@@ -551,6 +575,13 @@ export class BindingKeysCodemod {
         claims.set(held.key, entry);
 
         return false;
+      } else if (isLibString(value)) {
+        // `Foo.name` is wrapped in place, like a literal: the type the call claimed moves into build<T>.
+        edits.push({
+          start: value.getStart(file),
+          end: value.getEnd(),
+          text: `${builder}.build<${text}>({ key: ${value.getText(file)} })`,
+        });
       } else if (isBuilderCall(value)) {
         if (value.typeArguments !== undefined) {
           return false;
