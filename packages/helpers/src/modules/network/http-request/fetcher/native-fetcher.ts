@@ -19,7 +19,7 @@ import { BodyLimit } from './common/body-limit';
 import { ResponseReader } from './common/response-reader';
 import type { IFetchGuard } from './common/guard';
 import type { IFetcherDefaults, IFetcherHooks } from './common/types';
-import { FetchHeaders } from './common/utilities';
+import { HttpHeaders } from './common/utilities';
 
 /** The fields of `RequestInit` a call or a fetcher cannot set because the pipeline owns them. */
 type TOwnedInitFields = 'body' | 'headers' | 'method' | 'signal' | 'redirect';
@@ -360,7 +360,7 @@ export class NativeFetchNetworkRequest extends BaseNetworkRequest<'native'> {
     } = networkOptions;
 
     // Case-insensitive, like the wire: a caller's `Content-Type` replaces the default one.
-    const mergedHeaders = FetchHeaders.withJsonDefault({
+    const mergedHeaders = HttpHeaders.withJsonDefault({
       layers: [headers === undefined ? undefined : new Headers(headers), opts.defaults?.headers],
     });
 

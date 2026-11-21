@@ -19,12 +19,12 @@ import type { IFetchGuard, IFetchGuardHop, IFetchGuardRoute } from './common/gua
 import { FetchRequestContext } from './common/request-context';
 import type {
   IFetchParsed,
-  IFetchRetryOptions,
+  IHttpRetryOptions,
   IFetcherDefaults,
   IFetcherHooks,
-  TFetchHeaders,
+  THttpHeaders,
 } from './common/types';
-import { FetchHeaders, FetchRedirects, FetchRetry, FetchStatus } from './common/utilities';
+import { HttpHeaders, HttpRedirects, HttpRetry, HttpStatus } from './common/utilities';
 
 /** The attempts a call makes when its `retry` names no `maxAttempts` (the retry helper's own default). */
 const DEFAULT_MAX_ATTEMPTS = 3;
@@ -38,12 +38,12 @@ export interface IRequestOptions {
   method?: THttpMethod | (string & Record<never, never>);
   params?: Record<string, unknown>;
   /** Merged over the fetcher's default headers, header by header; a `null` or `undefined` value removes a default. */
-  headers?: TFetchHeaders;
+  headers?: THttpHeaders;
   body?: unknown;
   signal?: AbortSignal;
   timeout?: number;
   /** Presence turns retrying on; replaces the fetcher's default retry whole. `{ maxAttempts: 1 }` stops it. */
-  retry?: IFetchRetryOptions;
+  retry?: IHttpRetryOptions;
   /** Presence turns the url guard on (`{}` is the default policy). A fetcher default guard can be replaced here, never removed. */
   guard?: IUrlSafetyPolicy;
   /** The body is cut off, and the call fails, once it crosses this many bytes. */
@@ -162,7 +162,7 @@ interface IResolvedCall {
   /** The call's own `timeout`. When unset, each attempt takes the guard policy's, then `defaultTimeout`, then (guarded) the 10 s default. */
   timeout?: number;
   defaultTimeout?: number;
-  retry?: IFetchRetryOptions;
+  retry?: IHttpRetryOptions;
   guard?: IUrlSafetyPolicy;
   maxBytes?: number;
   maxRedirects?: number;
@@ -294,7 +294,7 @@ export abstract class AbstractNetworkFetchableHelper<
     return {
       method,
       url: this.buildUrl({ url: request.url, params: request.params }),
-      headers: FetchHeaders.merge({ layers: [this.defaults.headers, request.headers] }),
+      headers: HttpHeaders.merge({ layers: [this.defaults.headers, request.headers] }),
       body: request.body,
       signal: request.signal,
       timeout: request.timeout,
@@ -308,7 +308,7 @@ export abstract class AbstractNetworkFetchableHelper<
         this.defaults.maxBytes ??
         (guard === undefined ? undefined : UrlSafetyDefaults.MAX_BYTES),
       maxRedirects: request.maxRedirects ?? guard?.maxRedirects,
-      acceptStatus: FetchStatus.toPredicate({ accept: request.acceptStatus }),
+      acceptStatus: HttpStatus.toPredicate({ accept: request.acceptStatus }),
       schema: request.schema,
       extra,
     };
@@ -445,7 +445,7 @@ export abstract class AbstractNetworkFetchableHelper<
 
         exchange = sent;
 
-        if (!isManual || !FetchRedirects.isRedirect({ status: exchange.status })) {
+        if (!isManual || !HttpRedirects.isRedirect({ status: exchange.status })) {
           break;
         }
 
@@ -494,10 +494,10 @@ export abstract class AbstractNetworkFetchableHelper<
         });
         const isSameOrigin = next.origin === target.origin;
 
-        if (FetchRedirects.becomesGet({ status: exchange.status, method })) {
+        if (HttpRedirects.becomesGet({ status: exchange.status, method })) {
           method = 'GET';
           body = undefined;
-          headers = FetchHeaders.without({ headers, names: FetchRedirects.BODY_HEADERS });
+          headers = HttpHeaders.without({ headers, names: HttpRedirects.BODY_HEADERS });
         } else if (body !== undefined && !isSameOrigin) {
           throw getError({
             error: UrlSafetyErrors.URL_REFUSED,
@@ -511,7 +511,7 @@ export abstract class AbstractNetworkFetchableHelper<
         }
 
         if (!isSameOrigin) {
-          headers = FetchHeaders.only({ headers, names: FetchRedirects.CROSS_ORIGIN_HEADERS });
+          headers = HttpHeaders.only({ headers, names: HttpRedirects.CROSS_ORIGIN_HEADERS });
         }
 
         target = next;
@@ -718,11 +718,11 @@ export abstract class AbstractNetworkFetchableHelper<
         backoff,
         shouldRetry: async (context) => {
           // A server that asks for a longer wait than the backoff allows ends the retries: the last error is the answer.
-          const asked = FetchRetry.readRetryAfterMs({ error: context.error });
+          const asked = HttpRetry.readRetryAfterMs({ error: context.error });
 
           if (
             asked !== undefined &&
-            asked > (backoff?.maxDelayMs ?? FetchRetry.DEFAULT_MAX_DELAY_MS)
+            asked > (backoff?.maxDelayMs ?? HttpRetry.DEFAULT_MAX_DELAY_MS)
           ) {
             return false;
           }
@@ -733,9 +733,9 @@ export abstract class AbstractNetworkFetchableHelper<
             return isAllowed;
           }
 
-          return FetchRetry.isRetryable({ error: context.error, signal: call.signal });
+          return HttpRetry.isRetryable({ error: context.error, signal: call.signal });
         },
-        getDelayMs: ({ error }) => FetchRetry.readRetryAfterMs({ error }),
+        getDelayMs: ({ error }) => HttpRetry.readRetryAfterMs({ error }),
         onRetry,
         execution: ({ attempt }) => run(attempt),
       });
