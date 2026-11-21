@@ -6,9 +6,8 @@ const USAGE = `Usage: devz codemod class-renames [paths...] [--write [--all] | -
 
 Renames the classes IGNIS renamed, at the import and at every use in the file: RetryHelper, SlugHelper
 and CredentialHelper (@venizia/ignis-helpers) become RetryUtility, SlugUtility and CredentialUtility,
-RejectionHelper and SpawnHelper (@venizia/dev-configs/testing) become RejectionUtility and SpawnUtility,
-SearchDialectHelper (@venizia/ignis-connectors) becomes SearchDialectUtility. One table, in this file; a
-later rename adds a row.
+RejectionHelper and SpawnHelper (@venizia/dev-configs/testing) become RejectionUtility and SpawnUtility. One
+table, in this file; a later rename adds a row.
 
 It reads TypeScript files (.ts, .tsx, .mts, .cts): a named import or re-export from the package that owns
 the class is renamed, and so is each use of the name it brought in (an aliased import, "Old as Alias", keeps
@@ -58,9 +57,9 @@ export interface IClassRename {
   packages: ReadonlyArray<string>;
 }
 
+/** `@venizia/ignis` re-exports the helpers as types only, so a value import of these classes comes from `@venizia/ignis-helpers`. */
 const HELPERS = ['@venizia/ignis-helpers', '@venizia/ignis'];
 const TESTING = ['@venizia/dev-configs/testing'];
-const CONNECTORS = ['@venizia/ignis-connectors', '@venizia/ignis'];
 
 /** The renamed classes: add a row for the next rename. */
 export class ClassRenameTable {
@@ -70,7 +69,6 @@ export class ClassRenameTable {
     { oldName: 'CredentialHelper', newName: 'CredentialUtility', packages: HELPERS },
     { oldName: 'RejectionHelper', newName: 'RejectionUtility', packages: TESTING },
     { oldName: 'SpawnHelper', newName: 'SpawnUtility', packages: TESTING },
-    { oldName: 'SearchDialectHelper', newName: 'SearchDialectUtility', packages: CONNECTORS },
   ];
 }
 
@@ -103,9 +101,9 @@ export class ClassRenames {
         row.packages.some((name) => specifier === name || specifier.startsWith(`${name}/`)),
       );
 
-    const rename = (node: import('typescript').Node, row: IClassRename) => {
+    const rename = (node: import('typescript').Node, row: IClassRename, text = row.newName) => {
       const start = node.getStart(file);
-      edits.set(start, { start, end: node.getEnd(), text: row.newName });
+      edits.set(start, { start, end: node.getEnd(), text });
     };
 
     /** The local names to rename everywhere in the file, and the namespace imports whose members are renamed. */
@@ -167,23 +165,38 @@ export class ClassRenames {
       return { output: source, changed: false, rewritten: 0 };
     }
 
+    /** An identifier that names a property, member or attribute, not the class. */
     const isMemberName = (node: import('typescript').Identifier): boolean => {
       const parent = node.parent;
 
+      if (ts.isPropertyAccessExpression(parent)) {
+        return parent.name === node;
+      }
+
+      if (ts.isQualifiedName(parent)) {
+        return parent.right === node;
+      }
+
+      if (ts.isBindingElement(parent)) {
+        return parent.propertyName === node;
+      }
+
       return (
-        ((ts.isPropertyAccessExpression(parent) || ts.isQualifiedName(parent)) &&
-          (ts.isPropertyAccessExpression(parent) ? parent.name : parent.right) === node) ||
-        ((ts.isPropertyAssignment(parent) ||
+        (ts.isPropertyAssignment(parent) ||
           ts.isPropertyDeclaration(parent) ||
           ts.isPropertySignature(parent) ||
           ts.isMethodDeclaration(parent) ||
-          ts.isMethodSignature(parent)) &&
-          parent.name === node)
+          ts.isMethodSignature(parent) ||
+          ts.isGetAccessorDeclaration(parent) ||
+          ts.isSetAccessorDeclaration(parent) ||
+          ts.isEnumMember(parent) ||
+          ts.isJsxAttribute(parent)) &&
+        parent.name === node
       );
     };
 
     const visit = (node: import('typescript').Node): void => {
-      if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
+      if (ts.isImportDeclaration(node) || (ts.isExportDeclaration(node) && node.moduleSpecifier)) {
         return;
       }
 
@@ -191,7 +204,14 @@ export class ClassRenames {
         const row = locals.get(node.text);
 
         if (row && !isMemberName(node)) {
-          rename(node, row);
+          // `{ Old }` keeps its key: `{ Old: New }`.
+          rename(
+            node,
+            row,
+            ts.isShorthandPropertyAssignment(node.parent) && node.parent.name === node
+              ? `${node.text}: ${row.newName}`
+              : row.newName,
+          );
         }
       }
 

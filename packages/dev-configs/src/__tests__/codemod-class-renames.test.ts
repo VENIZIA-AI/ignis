@@ -1,13 +1,18 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import ts from 'typescript';
 import { CodemodCommand } from '../cli/codemod';
 import { ClassRenameTable, ClassRenames } from '../cli/codemod/class-renames';
 
 const rewrite = (source: string, reverse = false) =>
-  ClassRenames.rewrite({ typescript: ts, fileName: 'file.ts', source, reverse });
+  ClassRenames.rewrite({
+    typescript: ts,
+    fileName: source.includes('<div') ? 'file.tsx' : 'file.ts',
+    source,
+    reverse,
+  });
 
 describe('devz codemod class-renames: the rewrite', () => {
   test('the import and every use are renamed, in code and in types', () => {
@@ -97,6 +102,61 @@ describe('devz codemod class-renames: the rewrite', () => {
     );
   });
 
+  test('a local export of the imported name follows the rename (the barrel shape)', () => {
+    const result = rewrite(
+      `import { RetryHelper } from '@venizia/ignis-helpers';\nexport { RetryHelper };\n`,
+    );
+
+    expect(result.output).toBe(
+      `import { RetryUtility } from '@venizia/ignis-helpers';\nexport { RetryUtility };\n`,
+    );
+  });
+
+  test('a shorthand property keeps its key, and property-name positions are left alone', () => {
+    const result = rewrite(
+      [
+        `import { RetryHelper } from '@venizia/ignis-helpers';`,
+        `const registry = { RetryHelper };`,
+        `const { RetryHelper: retry } = registry;`,
+        `class K { get RetryHelper() { return 1; } set RetryHelper(value: number) {} }`,
+        `enum E { RetryHelper }`,
+        `const element = <div RetryHelper="x" />;`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.output).toBe(
+      [
+        `import { RetryUtility } from '@venizia/ignis-helpers';`,
+        `const registry = { RetryHelper: RetryUtility };`,
+        `const { RetryHelper: retry } = registry;`,
+        `class K { get RetryHelper() { return 1; } set RetryHelper(value: number) {} }`,
+        `enum E { RetryHelper }`,
+        `const element = <div RetryHelper="x" />;`,
+        '',
+      ].join('\n'),
+    );
+  });
+
+  test('a type-only import is renamed, a string literal is not', () => {
+    const result = rewrite(
+      `import type { SlugHelper } from '@venizia/ignis-helpers';\nconst name = 'SlugHelper';\ntype T = SlugHelper;\n`,
+    );
+
+    expect(result.output).toBe(
+      `import type { SlugUtility } from '@venizia/ignis-helpers';\nconst name = 'SlugHelper';\ntype T = SlugUtility;\n`,
+    );
+  });
+
+  test('it is idempotent: the output is not changed by a second run', () => {
+    const first = rewrite(
+      `import { RejectionHelper } from '@venizia/dev-configs/testing';\nRejectionHelper.rejectionOf({ task });\nexport { RejectionHelper };\n`,
+    );
+    const second = rewrite(first.output);
+
+    expect(second).toEqual({ output: first.output, changed: false, rewritten: 0 });
+  });
+
   test('a file with no import of a renamed class is not changed', () => {
     const source = `const RetryHelper = 1;\nexport { RetryHelper };\n`;
 
@@ -171,6 +231,37 @@ describe('devz codemod class-renames: the command', () => {
     });
     expect(result3).toBe(0);
     expect(readFileSync(file, 'utf8')).toContain('SlugUtility.slugify');
+  });
+
+  test('after --write a second run changes nothing: --check exits 0 and an unchanged file is not rewritten', async () => {
+    const other = join(directory, 'src', 'b.ts');
+    writeFileSync(other, 'export const value = 1;\n');
+    execFileSync('git', ['add', '-A'], { cwd: directory });
+    execFileSync(
+      'git',
+      ['-c', 'user.name=test', '-c', 'user.email=test@example.com', 'commit', '-q', '-m', 'b'],
+      { cwd: directory },
+    );
+    const before = statSync(other).mtimeMs;
+
+    const result5 = await CodemodCommand.run({
+      root: directory,
+      args: ['class-renames', 'src', '--write'],
+    });
+    expect(result5).toBe(0);
+    execFileSync('git', ['add', '-A'], { cwd: directory });
+    execFileSync(
+      'git',
+      ['-c', 'user.name=test', '-c', 'user.email=test@example.com', 'commit', '-q', '-m', 'after'],
+      { cwd: directory },
+    );
+
+    const result6 = await CodemodCommand.run({
+      root: directory,
+      args: ['class-renames', 'src', '--check'],
+    });
+    expect(result6).toBe(0);
+    expect(statSync(other).mtimeMs).toBe(before);
   });
 
   test('--write with no path is refused', async () => {

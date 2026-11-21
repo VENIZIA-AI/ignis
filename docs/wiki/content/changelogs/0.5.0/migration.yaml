@@ -447,11 +447,11 @@ retry-helper-is-utility:
     before: |-
       import { RetryHelper } from '@venizia/ignis-helpers';
 
-      RetryHelper.example();
+      await RetryHelper.executeWithRetry({ operation: 'send', execution: () => send(), maxAttempts: 3 });
     after: |-
       import { RetryUtility } from '@venizia/ignis-helpers';
 
-      RetryUtility.example();
+      await RetryUtility.executeWithRetry({ operation: 'send', execution: () => send(), maxAttempts: 3 });
     steps:
       - "Run bun node_modules/.bin/devz codemod class-renames [paths...] --write from the project root, with the files committed (or --write --all); it renames RetryHelper to RetryUtility at its import from @venizia/ignis-helpers and at every use in the file."
       - "Rename by hand what the codemod does not read: a .js file, import('@venizia/ignis-helpers').RetryHelper and a relative import of your own copy."
@@ -466,11 +466,11 @@ slug-helper-is-utility:
     before: |-
       import { SlugHelper } from '@venizia/ignis-helpers';
 
-      SlugHelper.example();
+      const slug = SlugHelper.slugify({ value: title });
     after: |-
       import { SlugUtility } from '@venizia/ignis-helpers';
 
-      SlugUtility.example();
+      const slug = SlugUtility.slugify({ value: title });
     steps:
       - "Run bun node_modules/.bin/devz codemod class-renames [paths...] --write from the project root, with the files committed (or --write --all); it renames SlugHelper to SlugUtility at its import from @venizia/ignis-helpers and at every use in the file."
       - "Rename by hand what the codemod does not read: a .js file, import('@venizia/ignis-helpers').SlugHelper and a relative import of your own copy."
@@ -485,11 +485,11 @@ credential-helper-is-utility:
     before: |-
       import { CredentialHelper } from '@venizia/ignis-helpers';
 
-      CredentialHelper.example();
+      const hash = await CredentialHelper.hash({ password });
     after: |-
       import { CredentialUtility } from '@venizia/ignis-helpers';
 
-      CredentialUtility.example();
+      const hash = await CredentialUtility.hash({ password });
     steps:
       - "Run bun node_modules/.bin/devz codemod class-renames [paths...] --write from the project root, with the files committed (or --write --all); it renames CredentialHelper to CredentialUtility at its import from @venizia/ignis-helpers and at every use in the file."
       - "Rename by hand what the codemod does not read: a .js file, import('@venizia/ignis-helpers').CredentialHelper and a relative import of your own copy."
@@ -504,11 +504,11 @@ rejection-helper-is-utility:
     before: |-
       import { RejectionHelper } from '@venizia/dev-configs/testing';
 
-      RejectionHelper.example();
+      const error = await RejectionHelper.rejectionOf({ task: run() });
     after: |-
       import { RejectionUtility } from '@venizia/dev-configs/testing';
 
-      RejectionUtility.example();
+      const error = await RejectionUtility.rejectionOf({ task: run() });
     steps:
       - "Run bun node_modules/.bin/devz codemod class-renames [paths...] --write from the project root, with the files committed (or --write --all); it renames RejectionHelper to RejectionUtility at its import from @venizia/dev-configs/testing and at every use in the file."
       - "Rename by hand what the codemod does not read: a .js file, import('@venizia/dev-configs/testing').RejectionHelper and a relative import of your own copy."
@@ -523,33 +523,14 @@ spawn-helper-is-utility:
     before: |-
       import { SpawnHelper } from '@venizia/dev-configs/testing';
 
-      SpawnHelper.example();
+      const result = SpawnHelper.spawnSyncBounded({ cmd: ['bun', '--version'] });
     after: |-
       import { SpawnUtility } from '@venizia/dev-configs/testing';
 
-      SpawnUtility.example();
+      const result = SpawnUtility.spawnSyncBounded({ cmd: ['bun', '--version'] });
     steps:
       - "Run bun node_modules/.bin/devz codemod class-renames [paths...] --write from the project root, with the files committed (or --write --all); it renames SpawnHelper to SpawnUtility at its import from @venizia/dev-configs/testing and at every use in the file."
       - "Rename by hand what the codemod does not read: a .js file, import('@venizia/dev-configs/testing').SpawnHelper and a relative import of your own copy."
-  downgrade:
-    steps:
-      - "Pin the packages to 0.4.8 and run devz codemod class-renames --reverse --write."
-  data: Nothing stored changes.
-
-search-dialect-helper-is-utility:
-  symbols: [SearchDialectHelper, SearchDialectUtility]
-  upgrade:
-    before: |-
-      import { SearchDialectHelper } from '@venizia/ignis-connectors/search';
-
-      SearchDialectHelper.example();
-    after: |-
-      import { SearchDialectUtility } from '@venizia/ignis-connectors/search';
-
-      SearchDialectUtility.example();
-    steps:
-      - "Run bun node_modules/.bin/devz codemod class-renames [paths...] --write from the project root, with the files committed (or --write --all); it renames SearchDialectHelper to SearchDialectUtility at its import from @venizia/ignis-connectors/search and at every use in the file."
-      - "Rename by hand what the codemod does not read: a .js file, import('@venizia/ignis-connectors/search').SearchDialectHelper and a relative import of your own copy."
   downgrade:
     steps:
       - "Pin the packages to 0.4.8 and run devz codemod class-renames --reverse --write."
