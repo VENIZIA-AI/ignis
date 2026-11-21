@@ -163,7 +163,7 @@ describe('one mutation per guard: removing the guard from a copy fails the check
     },
     {
       guard: ReleaseWorkflowGuards.BUN_EXACT,
-      edits: [{ find: "bun-version: '1.4.4'", replace: 'bun-version: latest', everywhere: true }],
+      edits: [{ find: "bun-version: '1.4.5'", replace: 'bun-version: latest', everywhere: true }],
     },
     {
       guard: ReleaseWorkflowGuards.NO_NPM_TOKEN,
@@ -646,9 +646,9 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.PLAN_TRIES_THE_MERGE_BACK,
       edits: [
         {
-          find: "          fetch-depth: 0\n          persist-credentials: false\n\n      # Exact, so a new bun cannot change what a release does. Raising it is a pull request of its own.\n      - name: Setup Bun\n        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0\n        with:\n          bun-version: '1.4.4'\n\n      - name: Plan the release",
+          find: "          fetch-depth: 0\n          persist-credentials: false\n\n      # Exact, so a new bun cannot change what a release does. Raising it is a pull request of its own.\n      - name: Setup Bun\n        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0\n        with:\n          bun-version: '1.4.5'\n\n      - name: Plan the release",
           replace:
-            "          fetch-depth: 1\n          persist-credentials: false\n\n      # Exact, so a new bun cannot change what a release does. Raising it is a pull request of its own.\n      - name: Setup Bun\n        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0\n        with:\n          bun-version: '1.4.4'\n\n      - name: Plan the release",
+            "          fetch-depth: 1\n          persist-credentials: false\n\n      # Exact, so a new bun cannot change what a release does. Raising it is a pull request of its own.\n      - name: Setup Bun\n        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0\n        with:\n          bun-version: '1.4.5'\n\n      - name: Plan the release",
         },
       ],
     },

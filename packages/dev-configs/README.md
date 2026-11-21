@@ -10,7 +10,7 @@ bun add -d @venizia/dev-configs oxlint oxlint-tsgolint eslint typescript
 ```
 
 `oxlint` (>=1.89.0), `oxlint-tsgolint` (>=7.0.2004), `eslint` (9 or 10),
-`typescript` (5 or 6) are optional peers. Install only the tools you use. Formatting is `bun fmt` (Bun 1.4.4 or newer), set in `bunfig.toml`: see [Formatting](#formatting). Keep the
+`typescript` (5 or 6) are optional peers. Install only the tools you use. Formatting is `bun fmt` (Bun 1.4 or newer), set in `bunfig.toml`: see [Formatting](#formatting). Keep the
 ESLint config `.mjs`: a TypeScript one (`.mts`) makes ESLint require `jiti`, one more dependency. A
 project that only wants the full ESLint preset installs `eslint` and skips the oxc tools.
 

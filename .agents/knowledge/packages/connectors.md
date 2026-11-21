@@ -602,7 +602,7 @@ dropped the `export { anonRole, ... } from 'drizzle-orm/supabase'` re-export und
 with `drizzle-orm/supabase` as an unresolved external import. Bun 1.4.1 binds them and the row is
 pure. The row carried a waiver for the 1.4.0 defect until a connectors release on 1.4.1 failed the
 gate with "STALE WAIVER"; the gate needs Bun >= 1.4.1 for that row. The release workflow pins
-`bun-version: '1.4.4'`; `ci.yml` installs `latest`.
+`bun-version: '1.4.5'`; `ci.yml` installs `latest`.
 
 `/postgres` and `/sqlite` were red too, on `node:async_hooks`. Both user-audit enrichers imported
 `tryGetContext` from `hono/context-storage`, whose module body runs `var asyncLocalStorage = new
