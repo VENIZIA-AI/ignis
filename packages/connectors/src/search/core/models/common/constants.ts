@@ -2,7 +2,7 @@ import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { ConstClass } from '@venizia/ignis-helpers/common';
 
 /** Engine-neutral field type vocabulary for the search-collection DSL. */
-export class SearchFieldTypes {
+export class SearchFieldTypes extends ConstClass {
   static readonly STRING = 'string';
   static readonly NUMBER = 'number';
   static readonly BOOLEAN = 'boolean';
@@ -11,21 +11,6 @@ export class SearchFieldTypes {
   static readonly NUMBER_ARRAY = 'number[]';
   static readonly BOOLEAN_ARRAY = 'boolean[]';
   static readonly VECTOR = 'vector';
-
-  static readonly SCHEME_SET = new Set<string>([
-    this.STRING,
-    this.NUMBER,
-    this.BOOLEAN,
-    this.GEOPOINT,
-    this.STRING_ARRAY,
-    this.NUMBER_ARRAY,
-    this.BOOLEAN_ARRAY,
-    this.VECTOR,
-  ]);
-
-  static isValid(value: string): value is TSearchFieldType {
-    return this.SCHEME_SET.has(value);
-  }
 
   /** Full-text search matches text fields only (`string`, `string[]`): the rule `defaultQueryBy` and a route's `query.queryBy` share. */
   static isText(type: string): boolean {

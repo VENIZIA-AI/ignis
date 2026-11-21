@@ -139,7 +139,7 @@ export class DurationMultipliers {
    * `null` rather than a throw, so a caller that wants an error raises its own with its own context.
    * Every method here answers the same way.
    *
-   * The unit is checked against {@link DurationUnits.SCHEME_SET} first: a plain-object read alone
+   * The unit is checked against {@link DurationUnits.isValid} first: a plain-object read alone
    * would answer `'constructor'` or `'toString'` with a member of `Object.prototype`, not `undefined`.
    */
   static toMilliseconds(opts: IDuration | null): number | null {

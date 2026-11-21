@@ -58,16 +58,10 @@ export class AuthorizationActions {
 export type TAuthorizationAction = TConstValue<typeof AuthorizationActions>;
 
 /** Outcome of a voter or enforcer. The `isAllow`/`isDeny`/`isAbstain` helpers also accept a number: positive allows, negative denies, zero abstains. */
-export class AuthorizationDecisions {
+export class AuthorizationDecisions extends ConstClass {
   static readonly ALLOW = 'allow';
   static readonly DENY = 'deny';
   static readonly ABSTAIN = 'abstain';
-
-  static readonly SCHEME_SET = new Set([this.ALLOW, this.DENY, this.ABSTAIN]);
-
-  static isValid(input: string): boolean {
-    return this.SCHEME_SET.has(input);
-  }
 
   static isAllow(input: string | number): boolean {
     if (typeof input === 'number') {
