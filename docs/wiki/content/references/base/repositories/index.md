@@ -282,6 +282,7 @@ The same class reads a success body (`readBody` and `readJson` answer a `TJsonVa
 - `HttpResponseReader.readText({ response, maxBytes? })`: the text, `''` for a 204, an empty body or no body; the read fails at `maxBytes` (the one reader the fetchers use too).
 - `HttpResponseReader.fromFetchError({ error, context?, rootKey })`: `toApplicationError` for a fetcher's refused answer; it reads the body the `UrlFetchError` kept.
 - `HttpResponseReader.readBody({ response, context })`: reads by content type. `null` for a 204 or an empty body; the parsed value when the type names JSON (`application/json`, `application/problem+json`); the text for any other type (`text/plain`, `text/csv`).
+- `HttpResponseReader.readFile({ response })`: a download as `{ blob, filename?, contentType? }`, the filename from `Content-Disposition` (`filename*` first). A non-2xx answer throws the server's `ApplicationError` (message = its own text), so an error page is never saved as a file: `HttpResponseReader.readFile({ response: await dataSource.request({ paths }) })`.
 - `HttpResponseReader.readJson({ response, context })`: `null` for a 204 or an empty body, else the parsed value whatever the content type says. `HttpDataSource` reads through it.
 
 A body that claims JSON and is not is a `502` whose message is `context`, the size of the body and its content type, never its content (a relaying server may pass the message on). `context` is where it happened, as for `toApplicationError`. Turning `null` into `[]` for a list stays with the client.

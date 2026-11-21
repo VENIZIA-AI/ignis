@@ -214,6 +214,33 @@ export class HttpResponseReader {
   }
 
   /**
+   * A download as a file: its `blob`, the `filename` of its `Content-Disposition` (`filename*` first) and its `contentType`.
+   * A non-2xx answer throws what `toApplicationError({ response })` throws, so an error page is never saved as a file.
+   */
+  static async readFile(opts: {
+    response: Response;
+  }): Promise<{ blob: Blob; filename?: string; contentType?: string }> {
+    const { response } = opts;
+
+    if (!response.ok) {
+      const result = await HttpResponseReader.toApplicationError({ response });
+      throw result;
+    }
+
+    const { filename } = HttpResponseReader.parseContentDisposition({
+      header: response.headers.get(HTTP.Headers.CONTENT_DISPOSITION),
+    });
+
+    const result2 = await response.blob();
+
+    return {
+      blob: result2,
+      filename,
+      contentType: response.headers.get(HTTP.Headers.CONTENT_TYPE) ?? undefined,
+    };
+  }
+
+  /**
    * The body as JSON whatever its content type says, `null` for a 204 or an empty body: for a route that
    * answers JSON under a type a proxy rewrote. Errors as `readBody` does.
    */
