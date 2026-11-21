@@ -1,6 +1,6 @@
 import { HttpReadShapes, type THttpReadShape } from './constants';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, NativeFetcher } from '@venizia/ignis-helpers/core';
 import { HttpExtraRequest } from '@venizia/ignis-kernel/repository';
 import type { TExtraRequest, THttpBody, THttpHeaders } from './types';
 
@@ -70,18 +70,6 @@ export class HttpWire {
       return { payload: undefined, isJson: false, isFormData: false };
     }
 
-    const isFormData = body instanceof FormData;
-    const isSentAsIs =
-      isFormData ||
-      typeof body === 'string' ||
-      body instanceof Blob ||
-      body instanceof URLSearchParams ||
-      body instanceof ArrayBuffer;
-
-    if (isSentAsIs) {
-      return { payload: body, isJson: false, isFormData };
-    }
-
     // A typed array may sit on a SharedArrayBuffer, which `fetch` refuses; a Blob copy never does.
     if (ArrayBuffer.isView(body)) {
       return {
@@ -89,6 +77,10 @@ export class HttpWire {
         isJson: false,
         isFormData: false,
       };
+    }
+
+    if (NativeFetcher.isRawBody(body)) {
+      return { payload: body, isJson: false, isFormData: body instanceof FormData };
     }
 
     return {
