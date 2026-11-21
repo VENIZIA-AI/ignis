@@ -2,6 +2,7 @@ import { HttpReadShapes, type THttpReadShape } from './common/constants';
 import { DataSourceRoot } from '@venizia/ignis-kernel/repository';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import {
+  HttpHeaders,
   HttpResponseReader,
   NativeFetcher,
   RecordUtility,
@@ -27,15 +28,15 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
   override schema = {} as never;
 
   /** Normalised once: every request copies these, never re-parses `settings.headers`. */
-  protected configuredHeaders: Array<[string, string]>;
+  protected configuredHeaders: Headers;
 
   constructor(opts: IHttpDataSourceSettings & { name?: string }) {
     super({ scope: opts.name ?? HttpDataSource.name });
 
     const { name = 'http', ...settings } = opts;
 
-    const configured = HttpWire.toHeaderEntries({ headers: settings.headers });
-    HttpWire.assertNoRequestCountHeader({ entries: configured, name });
+    const configured = HttpHeaders.merge({ layers: [settings.headers] });
+    HttpWire.assertNoRequestCountHeader({ headers: configured, name });
 
     UrlBuilder.assertBase({ baseUrl: settings.baseUrl, scope: name });
 
@@ -55,32 +56,22 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
   }
 
   /** Re-run on every send, so a header the app changed since the last request is the one sent. */
-  protected resolveHeaders(opts: { context: IHttpRequestContext }): Array<[string, string]> {
-    const resolver = this.settings.headersResolver;
+  protected resolveHeaders(opts: { context: IHttpRequestContext }): Headers {
+    const headers = HttpHeaders.merge({ layers: [this.settings.headersResolver?.(opts.context)] });
+    HttpWire.assertNoRequestCountHeader({ headers, name: this.name });
 
-    if (!resolver) {
-      return [];
-    }
-
-    const entries = HttpWire.toHeaderEntries({ headers: resolver(opts.context) });
-    HttpWire.assertNoRequestCountHeader({ entries, name: this.name });
-
-    return entries;
+    return headers;
   }
 
   protected buildHeaders(opts: {
     token?: IAuthToken;
-    requestHeaders?: Array<[string, string]>;
+    requestHeaders?: Headers;
     isJsonBody?: boolean;
     isFormDataBody?: boolean;
   }): Headers {
     const { token, requestHeaders, isJsonBody, isFormDataBody } = opts;
-    const headers = new Headers(this.configuredHeaders);
-
     // A request's own headers win over the configured ones; the connector's below win over both.
-    for (const [name, value] of requestHeaders ?? []) {
-      headers.set(name, value);
-    }
+    const headers = HttpHeaders.merge({ layers: [this.configuredHeaders, requestHeaders] });
 
     if (isJsonBody && !headers.has(HTTP.Headers.CONTENT_TYPE)) {
       headers.set(HTTP.Headers.CONTENT_TYPE, HTTP.HeaderValues.APPLICATION_JSON);
@@ -155,8 +146,8 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
     } & IHttpCallOptions,
   ): Promise<Response> {
     const { url, signal } = opts;
-    const requestHeaders = HttpWire.toHeaderEntries({ headers: opts.headers });
-    HttpWire.assertNoRequestCountHeader({ entries: requestHeaders, name: this.name });
+    const requestHeaders = HttpHeaders.merge({ layers: [opts.headers] });
+    HttpWire.assertNoRequestCountHeader({ headers: requestHeaders, name: this.name });
 
     const method = opts.method ?? HTTP.Methods.GET;
     const context: IHttpRequestContext = { paths: opts.paths, method, url, signal };
@@ -172,7 +163,9 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
           const built = this.buildHeaders({
             token: this.resolveAuthToken({ context }),
             // Resolved first, so the call's own headers win over them.
-            requestHeaders: [...this.resolveHeaders({ context }), ...requestHeaders],
+            requestHeaders: HttpHeaders.merge({
+              layers: [this.resolveHeaders({ context }), requestHeaders],
+            }),
             isJsonBody: isJson,
             isFormDataBody: isFormData,
           });

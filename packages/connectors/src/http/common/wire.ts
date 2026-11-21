@@ -1,53 +1,20 @@
 import { HttpReadShapes, type THttpReadShape } from './constants';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { getError, NativeFetcher } from '@venizia/ignis-helpers/core';
+import { getError, HttpHeaders, NativeFetcher } from '@venizia/ignis-helpers/core';
+import type { THttpHeaders } from '@venizia/ignis-helpers/core';
 import { HttpExtraRequest } from '@venizia/ignis-kernel/repository';
-import type { TExtraRequest, THttpBody, THttpHeaders } from './types';
+import type { TExtraRequest, THttpBody } from './types';
 
 /**
  * What `HttpDataSource` puts on the wire and reads back off it: headers, request bodies, rows and
  * the path an error message names. Internal - not part of the `http` entry.
  */
 export class HttpWire {
-  /**
-   * Caller headers as unique lowercase pairs, last spelling winning.
-   *
-   * Never `new Headers(input)`: that constructor APPENDS, so `{ 'X-Tenant': 'north', 'x-tenant':
-   * 'south' }` - which a merge of two config objects produces - reaches the wire as `"north, south"`,
-   * a value neither caller wrote. A `Headers` instance arrives already joined; that one is the
-   * caller's own, and is passed through as it stands.
-   */
-  static toHeaderEntries(opts: { headers?: THttpHeaders }): Array<[string, string]> {
-    const { headers } = opts;
-
-    if (!headers) {
-      return [];
-    }
-
-    const source =
-      headers instanceof Headers
-        ? [...headers.entries()]
-        : Array.isArray(headers)
-          ? headers
-          : Object.entries(headers);
-
-    const merged = new Map<string, string>();
-
-    for (const [name, value] of source) {
-      merged.set(name.toLowerCase(), value);
-    }
-
-    return [...merged.entries()];
-  }
-
   /** The connector always sends `x-request-count: false`; a caller header carrying it would contradict that. */
-  static assertNoRequestCountHeader(opts: {
-    entries: Array<[string, string]>;
-    name: string;
-  }): void {
-    const { entries, name } = opts;
+  static assertNoRequestCountHeader(opts: { headers: Headers; name: string }): void {
+    const { headers, name } = opts;
 
-    if (entries.some(([headerName]) => headerName === HTTP.Headers.REQUEST_COUNT_DATA)) {
+    if (headers.has(HTTP.Headers.REQUEST_COUNT_DATA)) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         message: `[${name}] ${HTTP.Headers.REQUEST_COUNT_DATA} is owned by HttpDataSource and always sent as false: rows come back bare, the total in Content-Range.`,
@@ -144,9 +111,7 @@ export class HttpWire {
       return headers;
     }
 
-    const extraHeader: [string, string] = [HttpExtraRequest.HEADER, value];
-
-    return [...HttpWire.toHeaderEntries({ headers }), extraHeader];
+    return HttpHeaders.merge({ layers: [headers, { [HttpExtraRequest.HEADER]: value }] });
   }
 
   /**
