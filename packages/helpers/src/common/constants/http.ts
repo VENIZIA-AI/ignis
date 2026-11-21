@@ -1,4 +1,4 @@
-import { type ValueOf } from '../types';
+import { type TConstValue, type ValueOf } from '../types';
 
 /** HTTP constants: header names, CORS headers, header values, methods, protocols and status codes. Header names, methods and protocols are lowercase. */
 export class HTTP {
@@ -251,3 +251,18 @@ export type THttpProtocol =
   | Uppercase<ValueOf<typeof HTTP.Protocols>>;
 /** A numeric HTTP status code from any class in `HTTP.ResultCodes`. */
 export type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>;
+
+/** How a client treats a download: ATTACHMENT saves it, INLINE shows it. */
+export class ContentDispositionTypes {
+  static readonly ATTACHMENT = 'attachment';
+  static readonly INLINE = 'inline';
+
+  static readonly SCHEME_SET = new Set<string>([this.ATTACHMENT, this.INLINE]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+/** Valid Content-Disposition type values. */
+export type TContentDispositionType = TConstValue<typeof ContentDispositionTypes>;

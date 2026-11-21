@@ -1,6 +1,7 @@
 /** `filename*` carries the real name; `filename` is the ASCII fallback. Both must be legal header text. */
 
 import { describe, expect, test } from 'bun:test';
+import { HttpResponseReader } from '@/modules/network/http-request/fetcher/common/response-reader';
 import { RequestUtility } from '@/utilities/request.utility';
 
 const toHeaderValue = (opts: { filename: string }): string =>
@@ -23,7 +24,8 @@ describe('createContentDispositionHeader', () => {
     'the name reads back unchanged: %s',
     (filename) => {
       expect(
-        RequestUtility.parseContentDisposition({ header: toHeaderValue({ filename }) }).filename,
+        HttpResponseReader.parseContentDisposition({ header: toHeaderValue({ filename }) })
+          .filename,
       ).toBe(filename);
     },
   );
@@ -54,7 +56,7 @@ describe('createContentDispositionHeader', () => {
       const value = toHeaderValue({ filename });
 
       expect(value).toEndWith(`filename*=UTF-8''${expected}`);
-      expect(RequestUtility.parseContentDisposition({ header: value }).filename).not.toMatch(
+      expect(HttpResponseReader.parseContentDisposition({ header: value }).filename).not.toMatch(
         /\p{Cf}/u,
       );
     },
@@ -68,7 +70,7 @@ describe('createContentDispositionHeader', () => {
     ],
   ])('%s reads back unchanged', (_label, filename) => {
     expect(
-      RequestUtility.parseContentDisposition({ header: toHeaderValue({ filename }) }).filename,
+      HttpResponseReader.parseContentDisposition({ header: toHeaderValue({ filename }) }).filename,
     ).toBe(filename);
   });
 

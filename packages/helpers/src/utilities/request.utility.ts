@@ -1,3 +1,4 @@
+import type { TContentDispositionType } from '@/common/constants/http';
 import type { TConstValue } from '@/common/types';
 import { getError } from '@/modules/error';
 import { MIN_TOKEN_BYTES, TokenUidHelper, UidTokenEncodings } from '@/modules/uid';
@@ -61,21 +62,6 @@ export interface IParsedMultipartBody {
 /** Control, format (bidi overrides, zero-width space) and lone surrogate characters: a format character reorders the name a client shows, a lone surrogate makes `encodeURIComponent` throw. The zero-width joiner and non-joiner stay: they build emoji sequences and Persian words, and reorder nothing. */
 const UNENCODABLE_FILENAME_CHARACTERS = /(?![‌‍])[\p{Cc}\p{Cf}\p{Cs}]/gu;
 const LEADING_DOTS = /^\.+/;
-
-/** How a client treats a download: ATTACHMENT saves it, INLINE shows it. */
-export class ContentDispositionTypes {
-  static readonly ATTACHMENT = 'attachment';
-  static readonly INLINE = 'inline';
-
-  static readonly SCHEME_SET = new Set<string>([this.ATTACHMENT, this.INLINE]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
-}
-
-/** Valid Content-Disposition type values. */
-export type TContentDispositionType = TConstValue<typeof ContentDispositionTypes>;
 
 /** Multipart body parsing and `Content-Disposition` header building and parsing for requests and uploads. */
 export class RequestUtility {
@@ -256,54 +242,5 @@ export class RequestUtility {
 
     // filename= is the ASCII fallback for old browsers, filename*= the UTF-8 form for modern ones.
     return `${type}; filename="${sanitized}"; filename*=UTF-8''${encoded}`;
-  }
-
-  /**
-   * Reads a filename out of a `Content-Disposition` value.
-   *
-   * Three forms, in the order the RFC gives them precedence: `filename*=UTF-8''...` (percent-encoded,
-   * and the one hand-rolled parsers miss), a quoted `filename="..."`, and a bare `filename=...`.
-   * Splitting on `filename=` alone returns the percent-encoded bytes for any non-ASCII name, which in
-   * a product with non-English filenames is most of them.
-   *
-   * The pair of {@link RequestUtility.buildContentDispositionHeader}: one writes the header, this one reads it.
-   */
-  static parseContentDisposition(opts: { header: string | null | undefined }): {
-    type?: string;
-    filename?: string;
-  } {
-    const { header } = opts;
-
-    if (!header) {
-      return {};
-    }
-
-    const type = header.split(';')[0]?.trim() || undefined;
-
-    // `filename*` wins when both are present - it is the one that can carry a non-ASCII name.
-    const extended = header.match(/filename\*\s*=\s*([^;]+)/i);
-
-    if (extended) {
-      const value = extended[1].trim();
-      // `UTF-8''name` or `UTF-8'lang'name`; anything before the last quote is charset and language.
-      const encoded = value.slice(value.lastIndexOf("'") + 1);
-
-      try {
-        return { type, filename: decodeURIComponent(encoded) };
-        // eslint-disable-next-line venizia/no-silent-catch -- a malformed `filename*` falls through to the plain `filename` parameter; only the extended name is lost
-      } catch {
-        // A malformed sequence is not worth failing a download over - fall through to `filename`.
-      }
-    }
-
-    const quoted = header.match(/filename\s*=\s*"([^"]*)"/i);
-
-    if (quoted) {
-      return { type, filename: quoted[1] };
-    }
-
-    const bare = header.match(/filename\s*=\s*([^;]+)/i);
-
-    return { type, filename: bare ? bare[1].trim() : undefined };
   }
 }

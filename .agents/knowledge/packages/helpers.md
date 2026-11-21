@@ -80,7 +80,7 @@ written out now, diffed against node across 22 cases with zero mismatches. `URLS
 the answer: it disagrees on four, including turning `undefined` into the STRING "undefined" and
 collapsing `a=1&a=2` into `a=1%2C2`.
 
-`RequestUtility.parseContentDisposition` is the reading half of `RequestUtility.buildContentDispositionHeader`. It handles the
+`HttpResponseReader.parseContentDisposition` (browser-safe; `RequestUtility` imports `node:*`) is the reading half of `RequestUtility.buildContentDispositionHeader`. It handles the
 RFC 5987 `filename*` form, which a parser that splits on `filename=` returns percent-encoded - the
 wrong answer for any non-ASCII filename.
 

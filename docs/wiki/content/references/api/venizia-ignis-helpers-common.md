@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/common, from the built decl
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-54 exports, 54 with TSDoc. 7 more are re-exported from other entries (listed at the end).
+56 exports, 56 with TSDoc. 7 more are re-exported from other entries (listed at the end).
 
 ## `ClassResolver`
 
@@ -37,6 +37,23 @@ export declare const CONTENT_TYPE_BY_EXTENSION: Readonly<Partial<Record<string, 
 ```
 
 Source: `packages/helpers/src/common/constants/mime.ts`
+
+## `ContentDispositionTypes`
+
+*class*
+
+How a client treats a download: ATTACHMENT saves it, INLINE shows it.
+
+```ts
+export declare class ContentDispositionTypes {
+    static readonly ATTACHMENT = "attachment";
+    static readonly INLINE = "inline";
+    static readonly SCHEME_SET: Set<string>;
+    static isValid(value: string): boolean;
+}
+```
+
+Source: `packages/helpers/src/common/constants/http.ts`
 
 ## `ContentTypes`
 
@@ -825,6 +842,18 @@ export type TConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string 
 ```
 
 Source: `packages/helpers/src/common/types/const-value.ts`
+
+## `TContentDispositionType`
+
+*type*
+
+Valid Content-Disposition type values.
+
+```ts
+export type TContentDispositionType = TConstValue<typeof ContentDispositionTypes>;
+```
+
+Source: `packages/helpers/src/common/constants/http.ts`
 
 ## `TContentType`
 

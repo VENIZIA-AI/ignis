@@ -892,6 +892,17 @@ export declare class HttpResponseReader {
         context: string;
     }): Promise<TJsonValue>;
     /**
+     * A download as a file: its `blob`, the `filename` of its `Content-Disposition` (`filename*` first) and its `contentType`.
+     * A non-2xx answer throws what `toApplicationError({ response })` throws, so an error page is never saved as a file.
+     */
+    static readFile(opts: {
+        response: Response;
+    }): Promise<{
+        blob: Blob;
+        filename?: string;
+        contentType?: string;
+    }>;
+    /**
      * The body as JSON whatever its content type says, `null` for a 204 or an empty body: for a route that
      * answers JSON under a type a proxy rewrote. Errors as `readBody` does.
      */
@@ -912,6 +923,22 @@ export declare class HttpResponseReader {
     }): {
         body: unknown;
         extra?: Record<string, unknown>;
+    };
+    /**
+     * Reads a filename out of a `Content-Disposition` value.
+     *
+     * Three forms, in the order the RFC gives them precedence: `filename*=UTF-8''...` (percent-encoded,
+     * and the one hand-rolled parsers miss), a quoted `filename="..."`, and a bare `filename=...`.
+     * Splitting on `filename=` alone returns the percent-encoded bytes for any non-ASCII name, which in
+     * a product with non-English filenames is most of them.
+     *
+     * The pair of `RequestUtility.buildContentDispositionHeader`: one writes the header, this one reads it.
+     */
+    static parseContentDisposition(opts: {
+        header: string | null | undefined;
+    }): {
+        type?: string;
+        filename?: string;
     };
 }
 ```

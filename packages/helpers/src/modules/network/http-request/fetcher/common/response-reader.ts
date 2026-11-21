@@ -214,6 +214,33 @@ export class HttpResponseReader {
   }
 
   /**
+   * A download as a file: its `blob`, the `filename` of its `Content-Disposition` (`filename*` first) and its `contentType`.
+   * A non-2xx answer throws what `toApplicationError({ response })` throws, so an error page is never saved as a file.
+   */
+  static async readFile(opts: {
+    response: Response;
+  }): Promise<{ blob: Blob; filename?: string; contentType?: string }> {
+    const { response } = opts;
+
+    if (!response.ok) {
+      const result = await HttpResponseReader.toApplicationError({ response });
+      throw result;
+    }
+
+    const { filename } = HttpResponseReader.parseContentDisposition({
+      header: response.headers.get(HTTP.Headers.CONTENT_DISPOSITION),
+    });
+
+    const result2 = await response.blob();
+
+    return {
+      blob: result2,
+      filename,
+      contentType: response.headers.get(HTTP.Headers.CONTENT_TYPE) ?? undefined,
+    };
+  }
+
+  /**
    * The body as JSON whatever its content type says, `null` for a 204 or an empty body: for a route that
    * answers JSON under a type a proxy rewrote. Errors as `readBody` does.
    */
@@ -271,5 +298,54 @@ export class HttpResponseReader {
     const { extra, ...envelope } = body;
 
     return { body: 'count' in envelope ? envelope : envelope.data, extra: { ...extra } };
+  }
+
+  /**
+   * Reads a filename out of a `Content-Disposition` value.
+   *
+   * Three forms, in the order the RFC gives them precedence: `filename*=UTF-8''...` (percent-encoded,
+   * and the one hand-rolled parsers miss), a quoted `filename="..."`, and a bare `filename=...`.
+   * Splitting on `filename=` alone returns the percent-encoded bytes for any non-ASCII name, which in
+   * a product with non-English filenames is most of them.
+   *
+   * The pair of `RequestUtility.buildContentDispositionHeader`: one writes the header, this one reads it.
+   */
+  static parseContentDisposition(opts: { header: string | null | undefined }): {
+    type?: string;
+    filename?: string;
+  } {
+    const { header } = opts;
+
+    if (!header) {
+      return {};
+    }
+
+    const type = header.split(';')[0]?.trim() || undefined;
+
+    // `filename*` wins when both are present - it is the one that can carry a non-ASCII name.
+    const extended = header.match(/filename\*\s*=\s*([^;]+)/i);
+
+    if (extended) {
+      const value = extended[1].trim();
+      // `UTF-8''name` or `UTF-8'lang'name`; anything before the last quote is charset and language.
+      const encoded = value.slice(value.lastIndexOf("'") + 1);
+
+      try {
+        return { type, filename: decodeURIComponent(encoded) };
+        // eslint-disable-next-line venizia/no-silent-catch -- a malformed `filename*` falls through to the plain `filename` parameter; only the extended name is lost
+      } catch {
+        // A malformed sequence is not worth failing a download over - fall through to `filename`.
+      }
+    }
+
+    const quoted = header.match(/filename\s*=\s*"([^"]*)"/i);
+
+    if (quoted) {
+      return { type, filename: quoted[1] };
+    }
+
+    const bare = header.match(/filename\s*=\s*([^;]+)/i);
+
+    return { type, filename: bare ? bare[1].trim() : undefined };
   }
 }

@@ -53,7 +53,8 @@ export class FileController extends BaseRestController {
 | `RequestUtility.sanitizeFilename` | `sanitizeFilename({ filename: string }): string` | Strips path components and dangerous characters from `filename`. Returns `'download'` for empty or suspicious input. |
 | `RequestUtility.encodeRfc5987` | `encodeRfc5987({ filename: string }): string` | RFC 5987 encodes `filename` for the `filename*` header parameter (`encodeURIComponent` plus escaped `'`, `(`, `)`, `*`). |
 | `RequestUtility.buildContentDispositionHeader` | `buildContentDispositionHeader(opts: { filename: string; type: 'attachment' \| 'inline' }): string` | Builds a full `Content-Disposition` value, sanitizing the filename |
-| `RequestUtility.parseContentDisposition` | `parseContentDisposition({ header: string \| null \| undefined }): { type?: string; filename?: string }` | Reads the type and filename back out of a `Content-Disposition` value; `filename*` wins over `filename`. |
+
+`HttpResponseReader.parseContentDisposition({ header })` (helpers, browser-safe) reads the type and filename back out of a `Content-Disposition` value; `filename*` wins over `filename`. It is the pair of `buildContentDispositionHeader`.
 
 ### Multipart bodies
 
