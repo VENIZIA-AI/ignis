@@ -644,65 +644,6 @@ export declare class EnvironmentNames {
 
 Source: `packages/helpers/src/modules/env/names.ts`
 
-## `FetchHeaders`
-
-*class*
-
-Header maps: merged per header, the call winning, a `null` or `undefined` value removing a header.
-
-```ts
-export declare class FetchHeaders {
-    /** The headers of `layers` in order, later layers over earlier ones, as one `Headers`. */
-    static merge(opts: {
-        layers: ReadonlyArray<TFetchHeaders | undefined>;
-    }): Headers;
-    /** `merge` under a JSON content type: the layers may replace it (any case) or remove it with `null`. */
-    static withJsonDefault(opts: {
-        layers: ReadonlyArray<TFetchHeaders | undefined>;
-    }): Headers;
-    /** A copy of `headers` keeping only the names in `names`. */
-    static only(opts: {
-        headers: Headers;
-        names: ReadonlyArray<string>;
-    }): Headers;
-    /** A copy of `headers` without the names in `names`. */
-    static without(opts: {
-        headers: Headers;
-        names: ReadonlyArray<string>;
-    }): Headers;
-}
-```
-
-Source: `packages/helpers/src/modules/network/http-request/fetcher/common/utilities.ts`
-
-## `FetchRedirects`
-
-*class*
-
-The redirect rules of a fetcher that walks redirects by hand.
-
-```ts
-export declare class FetchRedirects {
-    /** Request headers that name the body; they go when a redirect turns the request into a GET. */
-    static readonly BODY_HEADERS: ReadonlyArray<string>;
-    /**
-     * The only caller headers a cross-origin redirect keeps. Every other one is dropped: a tenant's webhook secret
-     * (`x-api-key`, a signature) must not follow a redirect to a host that tenant did not name.
-     */
-    static readonly CROSS_ORIGIN_HEADERS: ReadonlyArray<string>;
-    static isRedirect(opts: {
-        status: number;
-    }): boolean;
-    /** 303, and a POST answered 301 or 302, continue as a GET without the body. */
-    static becomesGet(opts: {
-        status: number;
-        method: string;
-    }): boolean;
-}
-```
-
-Source: `packages/helpers/src/modules/network/http-request/fetcher/common/utilities.ts`
-
 ## `FetchRequestContext`
 
 *class*
@@ -725,34 +666,6 @@ export declare class FetchRequestContext implements IFetchRequestContext {
 ```
 
 Source: `packages/helpers/src/modules/network/http-request/fetcher/common/request-context.ts`
-
-## `FetchRetry`
-
-*class*
-
-What a retried call retries, and for how long a server asks it to wait.
-
-```ts
-export declare class FetchRetry {
-    /** The longest wait a call takes between two attempts unless `backoff.maxDelayMs` says otherwise; the retry helper's own default. */
-    static readonly DEFAULT_MAX_DELAY_MS = 30000;
-    /**
-     * The default decision: a network error, a timeout, a 5xx and a 429 are worth another attempt. Any other 4xx, a 3xx, a
-     * url the guard refused (refused forever), a schema mismatch and a caller's own abort are not.
-     */
-    static isRetryable(opts: {
-        error: unknown;
-        signal?: AbortSignal;
-    }): boolean;
-    /** The wait a 429 or 503 asks for in `Retry-After`, in milliseconds: seconds, or an HTTP date. `undefined` when there is none. */
-    static readRetryAfterMs(opts: {
-        error: unknown;
-        now?: number;
-    }): number | undefined;
-}
-```
-
-Source: `packages/helpers/src/modules/network/http-request/fetcher/common/utilities.ts`
 
 ## `FetchSchemaError`
 
@@ -777,25 +690,6 @@ export declare class FetchSchemaError extends ApplicationError {
 ```
 
 Source: `packages/helpers/src/modules/network/http-request/fetcher/common/errors.ts`
-
-## `FetchStatus`
-
-*class*
-
-Which statuses a fetcher takes as an answer.
-
-```ts
-export declare class FetchStatus {
-    /** Whether `status` is 2xx. */
-    private static isSuccess;
-    /** The one place `acceptStatus` becomes a decision: a list adds to 2xx, a function replaces it, unset is 2xx. */
-    static toPredicate(opts: {
-        accept: ReadonlyArray<number> | ((status: number) => boolean) | undefined;
-    }): (status: number) => boolean;
-}
-```
-
-Source: `packages/helpers/src/modules/network/http-request/fetcher/common/utilities.ts`
 
 ## `FormBodyUtility`
 
@@ -854,6 +748,112 @@ export declare class HfQueueHelper<T> extends BaseHelper {
 ```
 
 Source: `packages/helpers/src/modules/queue/internal/hf/helper.ts`
+
+## `HttpHeaders`
+
+*class*
+
+Header maps: merged per header, the call winning, a `null` or `undefined` value removing a header.
+
+```ts
+export declare class HttpHeaders {
+    /** The headers of `layers` in order, later layers over earlier ones, as one `Headers`. */
+    static merge(opts: {
+        layers: ReadonlyArray<THttpHeaders | undefined>;
+    }): Headers;
+    /** `merge` under a JSON content type: the layers may replace it (any case) or remove it with `null`. */
+    static withJsonDefault(opts: {
+        layers: ReadonlyArray<THttpHeaders | undefined>;
+    }): Headers;
+    /** A copy of `headers` keeping only the names in `names`. */
+    static only(opts: {
+        headers: Headers;
+        names: ReadonlyArray<string>;
+    }): Headers;
+    /** A copy of `headers` without the names in `names`. */
+    static without(opts: {
+        headers: Headers;
+        names: ReadonlyArray<string>;
+    }): Headers;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/utilities.ts`
+
+## `HttpRedirects`
+
+*class*
+
+The redirect rules of a fetcher that walks redirects by hand.
+
+```ts
+export declare class HttpRedirects {
+    /** Request headers that name the body; they go when a redirect turns the request into a GET. */
+    static readonly BODY_HEADERS: ReadonlyArray<string>;
+    /**
+     * The only caller headers a cross-origin redirect keeps. Every other one is dropped: a tenant's webhook secret
+     * (`x-api-key`, a signature) must not follow a redirect to a host that tenant did not name.
+     */
+    static readonly CROSS_ORIGIN_HEADERS: ReadonlyArray<string>;
+    static isRedirect(opts: {
+        status: number;
+    }): boolean;
+    /** 303, and a POST answered 301 or 302, continue as a GET without the body. */
+    static becomesGet(opts: {
+        status: number;
+        method: string;
+    }): boolean;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/utilities.ts`
+
+## `HttpRetry`
+
+*class*
+
+What a retried call retries, and for how long a server asks it to wait.
+
+```ts
+export declare class HttpRetry {
+    /** The longest wait a call takes between two attempts unless `backoff.maxDelayMs` says otherwise; the retry helper's own default. */
+    static readonly DEFAULT_MAX_DELAY_MS = 30000;
+    /**
+     * The default decision: a network error, a timeout, a 5xx and a 429 are worth another attempt. Any other 4xx, a 3xx, a
+     * url the guard refused (refused forever), a schema mismatch and a caller's own abort are not.
+     */
+    static isRetryable(opts: {
+        error: unknown;
+        signal?: AbortSignal;
+    }): boolean;
+    /** The wait a 429 or 503 asks for in `Retry-After`, in milliseconds: seconds, or an HTTP date. `undefined` when there is none. */
+    static readRetryAfterMs(opts: {
+        error: unknown;
+        now?: number;
+    }): number | undefined;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/utilities.ts`
+
+## `HttpStatus`
+
+*class*
+
+Which statuses a fetcher takes as an answer.
+
+```ts
+export declare class HttpStatus {
+    /** Whether `status` is 2xx. */
+    private static isSuccess;
+    /** The one place `acceptStatus` becomes a decision: a list adds to 2xx, a function replaces it, unset is 2xx. */
+    static toPredicate(opts: {
+        accept: ReadonlyArray<number> | ((status: number) => boolean) | undefined;
+    }): (status: number) => boolean;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/utilities.ts`
 
 ## `IBuildInfo`
 
@@ -990,8 +990,8 @@ What a fetcher applies to every call unless the call says otherwise.
 export interface IFetcherDefaults {
     /** Per attempt, in milliseconds. */
     timeout?: number;
-    headers?: TFetchHeaders;
-    retry?: IFetchRetryOptions;
+    headers?: THttpHeaders;
+    retry?: IHttpRetryOptions;
     maxBytes?: number;
     /** A call may replace this policy with its own; it cannot switch the guard off. */
     guard?: IUrlSafetyPolicy;
@@ -1177,29 +1177,6 @@ export interface IFetchRequestContext {
 
 Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`
 
-## `IFetchRetryOptions`
-
-*interface*
-
-Retry settings of a call; the presence of the object turns retrying on. They are `RetryHelper.executeWithRetry`'s.
-
-```ts
-export interface IFetchRetryOptions {
-    /** @default 3 */
-    maxAttempts?: number;
-    /** The budget across every attempt and wait, in milliseconds; a `Retry-After` that does not fit ends the retries. */
-    maxTotalMs?: number;
-    backoff?: IRetryBackoffOptions;
-    /** Replaces the default decision (network error, timeout, 5xx and 429 retry; any other 4xx, a 3xx, a guard refusal, a schema mismatch and a caller abort do not). */
-    shouldRetry?: (context: IRetryContext) => ValueOrPromise<boolean>;
-    onRetry?: (context: IRetryContext & {
-        nextDelayMs: number;
-    }) => ValueOrPromise<void>;
-}
-```
-
-Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`
-
 ## `IFetchSchemaIssue`
 
 *interface*
@@ -1244,6 +1221,29 @@ export interface IHfQueueNode<T> {
 ```
 
 Source: `packages/helpers/src/modules/queue/internal/hf/common/types.ts`
+
+## `IHttpRetryOptions`
+
+*interface*
+
+Retry settings of a call; the presence of the object turns retrying on. They are `RetryHelper.executeWithRetry`'s.
+
+```ts
+export interface IHttpRetryOptions {
+    /** @default 3 */
+    maxAttempts?: number;
+    /** The budget across every attempt and wait, in milliseconds; a `Retry-After` that does not fit ends the retries. */
+    maxTotalMs?: number;
+    backoff?: IRetryBackoffOptions;
+    /** Replaces the default decision (network error, timeout, 5xx and 429 retry; any other 4xx, a 3xx, a guard refusal, a schema mismatch and a caller abort do not). */
+    shouldRetry?: (context: IRetryContext) => ValueOrPromise<boolean>;
+    onRetry?: (context: IRetryContext & {
+        nextDelayMs: number;
+    }) => ValueOrPromise<void>;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`
 
 ## `IIdGeneratorOptions`
 
@@ -1658,12 +1658,12 @@ export interface IRequestOptions {
     method?: THttpMethod | (string & Record<never, never>);
     params?: Record<string, unknown>;
     /** Merged over the fetcher's default headers, header by header; a `null` or `undefined` value removes a default. */
-    headers?: TFetchHeaders;
+    headers?: THttpHeaders;
     body?: unknown;
     signal?: AbortSignal;
     timeout?: number;
     /** Presence turns retrying on; replaces the fetcher's default retry whole. `{ maxAttempts: 1 }` stops it. */
-    retry?: IFetchRetryOptions;
+    retry?: IHttpRetryOptions;
     /** Presence turns the url guard on (`{}` is the default policy). A fetcher default guard can be replaced here, never removed. */
     guard?: IUrlSafetyPolicy;
     /** The body is cut off, and the call fails, once it crosses this many bytes. */
@@ -2844,14 +2844,14 @@ export type TFetcherWorker<T extends TFetcherVariant> = T extends 'axios' ? Axio
 
 Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`
 
-## `TFetchHeaders`
+## `THttpHeaders`
 
 *type*
 
 A header map as a call or a default writes it: a `null` or `undefined` value removes that header (a default included).
 
 ```ts
-export type TFetchHeaders = Headers | Record<string, string | null | undefined>;
+export type THttpHeaders = Headers | Record<string, string | null | undefined>;
 ```
 
 Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`

@@ -234,7 +234,7 @@ fetch-non-2xx-throws:
   data: Nothing stored changes.
 
 fetch-headers-merge:
-  symbols: [IFetcherDefaults.headers, TFetchHeaders, NativeFetcher, IRequestOptions.timeout]
+  symbols: [IFetcherDefaults.headers, THttpHeaders, NativeFetcher, IRequestOptions.timeout]
   upgrade:
     before: |-
       const fetcher = new NodeFetcher({ name: 'uploads', defaultConfigs: { headers: { 'content-type': 'application/json' } } });
@@ -278,7 +278,7 @@ url-ingest-merged-into-guard:
   data: Nothing stored changes.
 
 remove-unused-network-exports:
-  symbols: [QueryStringNullishModes, QueryStringNestedModes, TQueryStringNullishMode, TQueryStringNestedMode, TFetchResult, TUrlScheme, BodyLimit.DEFAULT_MAX_BYTES, FetchErrors, THttpQuery, TAuthTokenResolver, THttpHeadersResolver, HttpResourceEntity, THttpRepositoryOptions, FetchRedirects.STATUSES, FetchStatus.isSuccess, UrlPolicy.readHosts]
+  symbols: [QueryStringNullishModes, QueryStringNestedModes, TQueryStringNullishMode, TQueryStringNestedMode, TFetchResult, TUrlScheme, BodyLimit.DEFAULT_MAX_BYTES, FetchErrors, THttpQuery, TAuthTokenResolver, THttpHeadersResolver, HttpResourceEntity, THttpRepositoryOptions, HttpRedirects.STATUSES, HttpStatus.isSuccess, UrlPolicy.readHosts]
   upgrade:
     before: |-
       import { QueryStringNullishModes, QueryStringNestedModes } from '@venizia/ignis-helpers';
@@ -301,7 +301,7 @@ remove-unused-network-exports:
       - "BodyLimit.DEFAULT_MAX_BYTES: use UrlSafetyDefaults.MAX_BYTES."
       - "FetchErrors: nothing to change for the error; FetchSchemaError and its code core.fetch.schema_mismatch are unchanged."
       - "HttpResourceEntity: not public; HttpRepository is the public name. THttpRepositoryOptions: use NonNullable<Parameters<HttpRepository<E>['existsWith']>[0]['options']>."
-      - "FetchRedirects.STATUSES, FetchStatus.isSuccess, UrlPolicy.readHosts: not public; the statuses are 301, 302, 303, 307 and 308, and 2xx is status >= 200 && status < 300."
+      - "HttpRedirects.STATUSES, HttpStatus.isSuccess, UrlPolicy.readHosts: not public; the statuses are 301, 302, 303, 307 and 308, and 2xx is status >= 200 && status < 300."
   downgrade:
     steps:
       - "Pin @venizia/ignis-helpers, @venizia/ignis-connectors and @venizia/ignis to the release before this one, where every name above is exported, and reverse the table."

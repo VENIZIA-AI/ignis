@@ -4,12 +4,12 @@ import {
   UrlSafetyRefusals,
 } from '@/modules/network/utilities/url-safety/common/errors';
 import { FetchSchemaError } from './errors';
-import type { TFetchHeaders } from './types';
+import type { THttpHeaders } from './types';
 
 /** Header maps: merged per header, the call winning, a `null` or `undefined` value removing a header. */
-export class FetchHeaders {
+export class HttpHeaders {
   /** The headers of `layers` in order, later layers over earlier ones, as one `Headers`. */
-  static merge(opts: { layers: ReadonlyArray<TFetchHeaders | undefined> }): Headers {
+  static merge(opts: { layers: ReadonlyArray<THttpHeaders | undefined> }): Headers {
     const merged = new Headers();
 
     for (const layer of opts.layers) {
@@ -35,8 +35,8 @@ export class FetchHeaders {
   }
 
   /** `merge` under a JSON content type: the layers may replace it (any case) or remove it with `null`. */
-  static withJsonDefault(opts: { layers: ReadonlyArray<TFetchHeaders | undefined> }): Headers {
-    return FetchHeaders.merge({
+  static withJsonDefault(opts: { layers: ReadonlyArray<THttpHeaders | undefined> }): Headers {
+    return HttpHeaders.merge({
       layers: [
         { [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON_UTF8 },
         ...opts.layers,
@@ -72,7 +72,7 @@ export class FetchHeaders {
 }
 
 /** Which statuses a fetcher takes as an answer. */
-export class FetchStatus {
+export class HttpStatus {
   /** Whether `status` is 2xx. */
   private static isSuccess(opts: { status: number }): boolean {
     return Math.floor(opts.status / 100) === 2;
@@ -90,7 +90,7 @@ export class FetchStatus {
 
     const extra = new Set(accept);
 
-    return (status) => FetchStatus.isSuccess({ status }) || extra.has(status);
+    return (status) => HttpStatus.isSuccess({ status }) || extra.has(status);
   }
 }
 
@@ -98,7 +98,7 @@ export class FetchStatus {
 const REDIRECT_STATUSES: ReadonlyArray<number> = [301, 302, 303, 307, 308];
 
 /** The redirect rules of a fetcher that walks redirects by hand. */
-export class FetchRedirects {
+export class HttpRedirects {
   /** Request headers that name the body; they go when a redirect turns the request into a GET. */
   static readonly BODY_HEADERS: ReadonlyArray<string> = [
     HTTP.Headers.CONTENT_TYPE,
@@ -130,7 +130,7 @@ export class FetchRedirects {
 }
 
 /** What a retried call retries, and for how long a server asks it to wait. */
-export class FetchRetry {
+export class HttpRetry {
   /** The longest wait a call takes between two attempts unless `backoff.maxDelayMs` says otherwise; the retry helper's own default. */
   static readonly DEFAULT_MAX_DELAY_MS = 30_000;
 

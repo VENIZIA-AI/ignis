@@ -17,7 +17,7 @@ import {
 import type { IFetchGuard } from './common/guard';
 import type { IFetcherDefaults, IFetcherHooks } from './common/types';
 import { BodyLimit } from './common/body-limit';
-import { FetchHeaders } from './common/utilities';
+import { HttpHeaders } from './common/utilities';
 
 /**
  * The request options a guarded call accepts, besides the ones the pipeline owns. An allowlist, not a denylist: axios keeps
@@ -338,7 +338,7 @@ export class AxiosNetworkRequest extends BaseNetworkRequest<'axios'> {
         defaults: {
           timeout: timeout ?? 60 * 1000,
           ...opts.defaults,
-          headers: FetchHeaders.withJsonDefault({ layers: [headers, opts.defaults?.headers] }),
+          headers: HttpHeaders.withJsonDefault({ layers: [headers, opts.defaults?.headers] }),
         },
         hooks: opts.hooks,
         guardEngine: opts.guardEngine,

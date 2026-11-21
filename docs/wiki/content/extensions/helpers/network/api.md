@@ -207,7 +207,7 @@ Every field is per call, and wins over the fetcher's `defaults`.
 | `signal` | `AbortSignal` | The caller's own abort. It rejects with the caller's reason, apart from a timeout (`TimeoutError`) |
 | `schema` | `z.ZodType` | Parse the JSON body; a mismatch is a [`FetchSchemaError`](#fetchschemaerror) |
 | `acceptStatus` | `number[] \| (status: number) => boolean` | The one opt-out of "a status outside 2xx throws": a list adds to 2xx, a function decides alone. See [Status check](#status-check) |
-| `retry` | `IFetchRetryOptions` | Present turns retrying on. See [Retry](#retry) |
+| `retry` | `IHttpRetryOptions` | Present turns retrying on. See [Retry](#retry) |
 | `guard` | `IUrlSafetyPolicy` | Present turns the [url guard](#url-safety) on for this call |
 | `maxBytes` | `number` | Cap on the response body |
 | `maxRedirects` | `number` | `0` returns a 3xx as a `UrlFetchError`; a positive number walks the redirects by hand |
@@ -291,7 +291,7 @@ An empty list is 2xx only. An accepted status is an answer, so it is never retri
 
 #### Retry
 
-`retry` is `IFetchRetryOptions`: `maxAttempts` (default 3), `maxTotalMs` (the budget across every attempt and wait), `backoff`, `shouldRetry`, `onRetry`. It runs on `RetryHelper.executeWithRetry`.
+`retry` is `IHttpRetryOptions`: `maxAttempts` (default 3), `maxTotalMs` (the budget across every attempt and wait), `backoff`, `shouldRetry`, `onRetry`. It runs on `RetryHelper.executeWithRetry`.
 
 - Retried by default: a network error, a timeout, a 5xx and a 429.
 - Never retried by default: any other 4xx, a 3xx, a guard refusal, a schema mismatch, a caller abort.
