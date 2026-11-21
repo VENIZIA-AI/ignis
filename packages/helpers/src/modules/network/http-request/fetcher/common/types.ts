@@ -15,7 +15,7 @@ export type TFetcherWorker<T extends TFetcherVariant> = T extends 'axios'
   : typeof fetch;
 
 /** A header map as a call or a default writes it: a `null` or `undefined` value removes that header (a default included). */
-export type TFetchHeaders = Headers | Record<string, string | null | undefined>;
+export type THttpHeaders = Headers | Record<string, string | null | undefined>;
 
 /** What a fetcher answers when the call passes a `schema`: the parsed body beside the raw response. */
 export interface IFetchParsed<D, RS> {
@@ -26,7 +26,7 @@ export interface IFetchParsed<D, RS> {
 }
 
 /** Retry settings of a call; the presence of the object turns retrying on. They are `RetryHelper.executeWithRetry`'s. */
-export interface IFetchRetryOptions {
+export interface IHttpRetryOptions {
   /** @default 3 */
   maxAttempts?: number;
   /** The budget across every attempt and wait, in milliseconds; a `Retry-After` that does not fit ends the retries. */
@@ -41,8 +41,8 @@ export interface IFetchRetryOptions {
 export interface IFetcherDefaults {
   /** Per attempt, in milliseconds. */
   timeout?: number;
-  headers?: TFetchHeaders;
-  retry?: IFetchRetryOptions;
+  headers?: THttpHeaders;
+  retry?: IHttpRetryOptions;
   maxBytes?: number;
   /** A call may replace this policy with its own; it cannot switch the guard off. */
   guard?: IUrlSafetyPolicy;

@@ -1,5 +1,5 @@
 import { RejectionHelper } from '@venizia/dev-configs/testing';
-import { HttpResponseReader } from '@/http/common/readers';
+import { HttpResponseReader } from '@venizia/ignis-helpers/core';
 import { HttpDataSource } from '@/http/datasource';
 import { HttpRepository } from '@/http/repository';
 import { ApplicationError, MessageCode } from '@venizia/ignis-helpers/core';
