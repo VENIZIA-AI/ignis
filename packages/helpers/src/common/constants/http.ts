@@ -80,6 +80,12 @@ export class HTTP {
     RESPONSE_COUNT_DATA: 'x-response-count',
     RESPONSE_FORMAT: 'x-response-format',
     RESPONSE_EXTRA: 'x-response-extra',
+
+    // Client context
+    AUTH_PROVIDER: 'x-auth-provider',
+    LOCALE: 'x-locale',
+    TIMEZONE: 'timezone',
+    TIMEZONE_OFFSET: 'timezone-offset',
   } as const;
 
   /**
