@@ -107,6 +107,12 @@ binding-keys-required-brand:
       const mailer = container.get<Mailer>({ key: 'services.Mailer' });
       const repository = container.get({ key: { namespace: 'repositories', key: name } });
       container.bind({ key: Symbol.for('app.clock') }).toValue(clock);
+
+      class Keys {
+        static readonly MAILER = 'services.Mailer';
+      }
+
+      const viaConstant = container.get<Mailer>({ key: Keys.MAILER });
     after: |-
       import { BindingKeys } from '@venizia/ignis';
 
@@ -122,8 +128,16 @@ binding-keys-required-brand:
         key: BindingKeys.build<unknown>({ namespace: 'repositories', key: name }),
       });
       container.bind({ key: BindingKeys.build<Clock>({ key: 'app.clock' }) }).toValue(clock);
+
+      class Keys {
+        static readonly MAILER = BindingKeys.build<Mailer>({ key: 'services.Mailer' });
+      }
+
+      // The use site is unchanged: the constant now carries Mailer.
+      const viaConstant = container.get<Mailer>({ key: Keys.MAILER });
     steps:
       - "Install the dependencies and run `bun node_modules/.bin/devz codemod binding-keys [paths...] --write` (or `--write --all`) from the project root, with the files committed. It reads your project through its tsconfig and rewrites only calls the TypeScript checker resolves to the framework's container, `inject` or `provide` (a redis.get or a worker pool is left alone). It rewrites a string key, a substitution-free template, a { namespace, key } object and a ${namespace}.Name template to BindingKeys.build<T>, and moves the type argument of your call (or the type of the decorated parameter, without undefined) into build<T>."
+      - "A key your app keeps in a constant (a key class such as `static readonly MAILER = 'services.Mailer'`, an object property, a module `const`) is listed as `manual`. Build it where it is defined: `static readonly MAILER = BindingKeys.build<Mailer>({ key: 'services.Mailer' })`. Do not touch the places that use `Keys.MAILER`: the constant is still a string and now carries its value type. Pick `T` from the type your code already claims where the key is used (`container.get<Mailer>`, the type of the decorated parameter); with no claim, use `unknown`."
       - "Name the real type at every site the codemod lists as `type` (it wrote BindingKeys.build<unknown>), and fix each `manual` site: a key made at run time, a Symbol key, a string constant of another module (a key of a library you use, such as ARDOR before its typed keys), a receiver the checker could not resolve, and a key whose type names a type parameter."
       - "Replace a Symbol key by a string key made with BindingKeys.build<T>({ key: 'name' }); symbols are no longer container keys. In generic code, where T is not known yet, build `unknown` and return it typed as TBindingKey<T> (the brand is bivariant); BindingKeys.build<T> with a type parameter does not compile."
       - "Build the keys of `@provide`, of an event handler `{ type: BINDING_KEY, key }` and of the auth controller `serviceKey` with BindingKeys.build<T>."
