@@ -474,7 +474,7 @@ retry-helper-is-utility:
   downgrade:
     steps:
       - "Pin the packages to 0.4.8 and run devz codemod class-renames --reverse --write."
-  data: Nothing stored changes. After the codemod, rename by hand: a .js/.cjs/.mjs file, an `import('...').Old` type, a `require()` or a dynamic import.
+  data: "Nothing stored changes. After the codemod, rename by hand: a .js/.cjs/.mjs file, an `import('...').Old` type, a `require()` or a dynamic import."
   codemod: class-renames
 
 slug-helper-is-utility:
@@ -494,7 +494,7 @@ slug-helper-is-utility:
   downgrade:
     steps:
       - "Pin the packages to 0.4.8 and run devz codemod class-renames --reverse --write."
-  data: Nothing stored changes. After the codemod, rename by hand: a .js/.cjs/.mjs file, an `import('...').Old` type, a `require()` or a dynamic import.
+  data: "Nothing stored changes. After the codemod, rename by hand: a .js/.cjs/.mjs file, an `import('...').Old` type, a `require()` or a dynamic import."
   codemod: class-renames
 
 credential-helper-is-utility:
@@ -514,7 +514,7 @@ credential-helper-is-utility:
   downgrade:
     steps:
       - "Pin the packages to 0.4.8 and run devz codemod class-renames --reverse --write."
-  data: Nothing stored changes. After the codemod, rename by hand: a .js/.cjs/.mjs file, an `import('...').Old` type, a `require()` or a dynamic import.
+  data: "Nothing stored changes. After the codemod, rename by hand: a .js/.cjs/.mjs file, an `import('...').Old` type, a `require()` or a dynamic import."
   codemod: class-renames
 
 rejection-helper-is-utility:
@@ -534,7 +534,7 @@ rejection-helper-is-utility:
   downgrade:
     steps:
       - "Pin the packages to 0.4.8 and run devz codemod class-renames --reverse --write."
-  data: Nothing stored changes. After the codemod, rename by hand: a .js/.cjs/.mjs file, an `import('...').Old` type, a `require()` or a dynamic import.
+  data: "Nothing stored changes. After the codemod, rename by hand: a .js/.cjs/.mjs file, an `import('...').Old` type, a `require()` or a dynamic import."
   codemod: class-renames
 
 spawn-helper-is-utility:
@@ -554,5 +554,5 @@ spawn-helper-is-utility:
   downgrade:
     steps:
       - "Pin the packages to 0.4.8 and run devz codemod class-renames --reverse --write."
-  data: Nothing stored changes. After the codemod, rename by hand: a .js/.cjs/.mjs file, an `import('...').Old` type, a `require()` or a dynamic import.
+  data: "Nothing stored changes. After the codemod, rename by hand: a .js/.cjs/.mjs file, an `import('...').Old` type, a `require()` or a dynamic import."
   codemod: class-renames
