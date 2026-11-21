@@ -98,7 +98,7 @@ const rewrite = (source: string, importFrom?: string, fileName = '/virtual/src/f
 
 /** What a snippet needs to be about the container: the framework's names and a few receivers, on one line so line numbers stay the snippet's. */
 const PRELUDE =
-  "import { inject, provide, Binding, Container } from '@venizia/ignis'; declare const a: Container; declare const container: Container; declare const app: Container; declare const application: Container; declare const redis: { get<T>(opts: { key: string }): Promise<string | null> }; declare const workerPool: { get<T>(opts: { key: string }): T }; declare const loose: any; /*@*/ ";
+  "import { inject, provide, Binding, Container } from '@venizia/ignis'; declare const a: Container; declare const container: Container; declare const app: Container; declare const application: Container; declare const redis: { get<T>(opts: { key: string }): Promise<string | null> }; declare const workerPool: { get<T>(opts: { key: string }): T }; declare const loose: any; interface Mailer {} interface A {} interface B {} /*@*/ ";
 
 /** The rewrite of `snippet` after the prelude; the prelude (and the import it gained) is left out of the answer. */
 const body = (snippet: string) => {
@@ -251,7 +251,7 @@ describe('devz codemod binding-keys: the rewrite', () => {
     expect(result.manual).toEqual([]);
   });
 
-  test('a key held in a const of the file is rewritten where it is declared, once', () => {
+  test('a key held in a const of the file is built where it is declared, once, and the use sites are not edited', () => {
     const result = body(
       [
         `const MAILER = 'services.Mailer';`,
@@ -264,7 +264,7 @@ describe('devz codemod binding-keys: the rewrite', () => {
     expect(result.output).toBe(
       [
         `const MAILER = BindingKeys.build<Mailer>({ key: 'services.Mailer' });`,
-        `a.get({ key: MAILER });`,
+        `a.get<Mailer>({ key: MAILER });`,
         `a.bind({ key: MAILER });`,
         '',
       ].join('\n'),
@@ -272,16 +272,152 @@ describe('devz codemod binding-keys: the rewrite', () => {
     expect(result.rewritten).toBe(1);
   });
 
-  test('a name declared twice in the file is not guessed at', () => {
+  test('two consts of one name in different blocks are each built from their own use', () => {
     const result = body(
       [
-        `{ const K = 'a.A'; a.bind({ key: K }); }`,
-        `{ const K = 'b.B'; a.bind({ key: K }); }`,
+        `{ const K = 'a.A'; a.bind<A>({ key: K }); }`,
+        `{ const K = 'b.B'; a.bind<B>({ key: K }); }`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.output).toContain(`const K = BindingKeys.build<A>({ key: 'a.A' });`);
+    expect(result.output).toContain(`const K = BindingKeys.build<B>({ key: 'b.B' });`);
+  });
+
+  test('a readonly class property is built where it is declared, a use site is not edited', () => {
+    const result = body(
+      [
+        `class Keys { static readonly MAILER = 'services.Mailer'; }`,
+        `a.get<Mailer>({ key: Keys.MAILER });`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.output).toBe(
+      [
+        `class Keys { static readonly MAILER = BindingKeys.build<Mailer>({ key: 'services.Mailer' }); }`,
+        `a.get<Mailer>({ key: Keys.MAILER });`,
+        '',
+      ].join('\n'),
+    );
+    expect(result.manual).toEqual([]);
+    expect(result.unnamed).toEqual([]);
+  });
+
+  test('a property of an `as const` object map is built, a plain object literal is left manual', () => {
+    const result = body(
+      [
+        `const KEYS = { mailer: 'services.Mailer', clock: 'app.Clock' } as const;`,
+        `const LOOSE = { mailer: 'services.Mailer' };`,
+        `a.get<Mailer>({ key: KEYS.mailer });`,
+        `a.get<Mailer>({ key: LOOSE.mailer });`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.output).toContain(
+      `{ mailer: BindingKeys.build<Mailer>({ key: 'services.Mailer' }), clock: 'app.Clock' } as const`,
+    );
+    expect(result.output).toContain(`const LOOSE = { mailer: 'services.Mailer' };`);
+    expect(result.manual.map((item) => item.line)).toEqual([4]);
+    expect(result.rewritten).toBe(1);
+  });
+
+  test('a computed template and a class name are built too', () => {
+    const result = body(
+      [
+        'declare class Mailer { static readonly name: string } declare const NS: string; class Keys { static readonly A = `${NS}.Mailer`; static readonly B = Mailer.name; }',
+        `a.get<Mailer>({ key: Keys.A });`,
+        `a.get<Mailer>({ key: Keys.B });`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.output).toContain(
+      'static readonly A = BindingKeys.build<Mailer>({ key: `${NS}.Mailer` });',
+    );
+    expect(result.output).toContain(
+      'static readonly B = BindingKeys.build<Mailer>({ key: Mailer.name });',
+    );
+    expect(result.rewritten).toBe(2);
+  });
+
+  test('use sites that claim different types give unknown, listed as a type to name', () => {
+    const result = body(
+      [
+        `class Keys { static readonly K = 'a.A'; }`,
+        `a.get<A>({ key: Keys.K });`,
+        `a.get<B>({ key: Keys.K });`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.output).toContain(
+      `static readonly K = BindingKeys.build<unknown>({ key: 'a.A' });`,
+    );
+    expect(result.unnamed).toEqual([1]);
+  });
+
+  test('an import type is a path of the use site, so it is not copied: unknown', () => {
+    const result = body(
+      [
+        `class Keys { static readonly K = 'a.A'; }`,
+        `a.get<import('./mailer').Mailer>({ key: Keys.K });`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.output).toContain(
+      `static readonly K = BindingKeys.build<unknown>({ key: 'a.A' });`,
+    );
+    expect(result.unnamed).toEqual([1]);
+  });
+
+  test('one type name that means two types at the use sites does not agree', () => {
+    const result = body(
+      [
+        `class Keys { static readonly K = 'a.A'; }`,
+        `{ interface Local { x: 1 } a.get<Local>({ key: Keys.K }); }`,
+        `{ interface Local { y: 1 } a.get<Local>({ key: Keys.K }); }`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.output).toContain(
+      `static readonly K = BindingKeys.build<unknown>({ key: 'a.A' });`,
+    );
+  });
+
+  test('use sites that agree, or that do not all claim a type, give the claimed one', () => {
+    const result = body(
+      [
+        `class Keys { static readonly K = 'a.A'; }`,
+        `a.get<A>({ key: Keys.K });`,
+        `a.bind({ key: Keys.K });`,
+        `a.get<A>({ key: Keys.K });`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.output).toContain(`static readonly K = BindingKeys.build<A>({ key: 'a.A' });`);
+    expect(result.unnamed).toEqual([]);
+  });
+
+  test('an annotated, a let, a mutable property and a built key stay as they are', () => {
+    const result = body(
+      [
+        `class Keys { static readonly TYPED: string = 'a.A'; static MUTABLE = 'a.B'; }`,
+        `let free = 'a.C';`,
+        `a.get<A>({ key: Keys.TYPED });`,
+        `a.get<A>({ key: Keys.MUTABLE });`,
+        `a.get<A>({ key: free });`,
         '',
       ].join('\n'),
     );
 
     expect(result.changed).toBe(false);
+    expect(result.manual.map((item) => item.line)).toEqual([3, 4, 5]);
   });
 
   test('a template written as ${namespace}.Name or ${namespace}.${name} becomes build({ namespace, key })', () => {
@@ -728,6 +864,148 @@ describe('devz codemod binding-keys: the command', () => {
     expect(readFileSync(join(root, 'src/a.ts'), 'utf8')).toContain(
       "import { BindingKeys } from '@venizia/ignis';",
     );
+  });
+
+  const MAILER_FILE = `export interface Mailer { send(): void }\n`;
+  const KEYS_FILE = [
+    `import type { Mailer } from './mailer';`,
+    `export type Unused = Mailer;`,
+    `export class Keys {`,
+    `  static readonly MAILER = 'services.Mailer';`,
+    `}`,
+    '',
+  ].join('\n');
+  const KEYS_WITHOUT_MAILER_FILE = [
+    `export class Keys {`,
+    `  static readonly MAILER = 'services.Mailer';`,
+    `}`,
+    '',
+  ].join('\n');
+  const USE_FILE = [
+    `import { Container } from '@venizia/ignis';`,
+    `import { Keys } from './keys';`,
+    `import type { Mailer } from './mailer';`,
+    `declare const a: Container;`,
+    `a.get<Mailer>({ key: Keys.MAILER });`,
+    '',
+  ].join('\n');
+  const FROM = ['--import-from', '@venizia/ignis'];
+
+  const project = (keys: string) => {
+    installFramework();
+    write('src/mailer.ts', MAILER_FILE);
+    write('src/keys.ts', keys);
+    write('src/use.ts', USE_FILE);
+  };
+
+  test('a key constant declared in another file is built there with the type that file sees, the use file is not rewritten, a second run changes nothing', async () => {
+    project(KEYS_FILE);
+
+    const code = await CodemodCommand.run({
+      root,
+      args: ['binding-keys', 'src', '--write', ...FROM],
+    });
+
+    expect(code).toBe(0);
+    expect(readFileSync(join(root, 'src/keys.ts'), 'utf8')).toContain(
+      "static readonly MAILER = BindingKeys.build<Mailer>({ key: 'services.Mailer' });",
+    );
+    expect(readFileSync(join(root, 'src/keys.ts'), 'utf8')).toContain(
+      "import { BindingKeys } from '@venizia/ignis';",
+    );
+    expect(readFileSync(join(root, 'src/use.ts'), 'utf8')).toBe(USE_FILE);
+    expect(warns).not.toHaveBeenCalled();
+
+    commit();
+    const again = await CodemodCommand.run({
+      root,
+      args: ['binding-keys', 'src', '--check', ...FROM],
+    });
+
+    expect(again).toBe(0);
+  });
+
+  test('a map declared as const in another file is built there, a plain object literal is not', async () => {
+    installFramework();
+    write(
+      'src/keys.ts',
+      [
+        `import { BindingKeys } from '@venizia/ignis';`,
+        `export const used = BindingKeys;`,
+        `export const MAP = { X: 'map.X' } as const;`,
+        `export const LOOSE = { Y: 'map.Y' };`,
+        '',
+      ].join('\n'),
+    );
+    write(
+      'src/use.ts',
+      [
+        `import { Container } from '@venizia/ignis';`,
+        `import { MAP, LOOSE } from './keys';`,
+        `declare const a: Container;`,
+        `a.get<number>({ key: MAP.X });`,
+        `a.get<number>({ key: LOOSE.Y });`,
+        '',
+      ].join('\n'),
+    );
+
+    await CodemodCommand.run({ root, args: ['binding-keys', 'src', '--write'] });
+    const keys = readFileSync(join(root, 'src/keys.ts'), 'utf8');
+
+    expect(keys).toContain("{ X: BindingKeys.build<number>({ key: 'map.X' }) } as const");
+    expect(keys).toContain("{ Y: 'map.Y' }");
+  });
+
+  test('a type the declaration file cannot see is not copied there: unknown, listed as a type to name, no import added', async () => {
+    project(KEYS_WITHOUT_MAILER_FILE);
+
+    const code = await CodemodCommand.run({
+      root,
+      args: ['binding-keys', 'src', '--write', ...FROM],
+    });
+    const keys = readFileSync(join(root, 'src/keys.ts'), 'utf8');
+
+    expect(code).toBe(0);
+    expect(keys).toContain("BindingKeys.build<unknown>({ key: 'services.Mailer' })");
+    expect(keys).not.toContain("from './mailer'");
+    expect(warns.mock.calls.flat().join('\n')).toContain('src/keys.ts:2');
+  });
+
+  test('a keys file that imports nothing from the framework is listed to pass --import-from, and not built', async () => {
+    project(KEYS_WITHOUT_MAILER_FILE);
+
+    const code = await CodemodCommand.run({ root, args: ['binding-keys', 'src', '--write'] });
+
+    expect(code).toBe(0);
+    expect(readFileSync(join(root, 'src/keys.ts'), 'utf8')).toBe(KEYS_WITHOUT_MAILER_FILE);
+    expect(warns.mock.calls.flat().join('\n')).toContain('pass --import-from');
+  });
+
+  test('a declaration outside the files of the run is listed, not edited', async () => {
+    project(KEYS_FILE);
+
+    const code = await CodemodCommand.run({
+      root,
+      args: ['binding-keys', 'src/use.ts', '--write', ...FROM],
+    });
+
+    expect(code).toBe(0);
+    expect(readFileSync(join(root, 'src/keys.ts'), 'utf8')).toBe(KEYS_FILE);
+    expect(warns.mock.calls.flat().join('\n')).toContain('a string held in a name');
+  });
+
+  test('a declaration file with local changes is refused and nothing is written', async () => {
+    project(KEYS_FILE);
+    writeFileSync(join(root, 'src/keys.ts'), `${KEYS_FILE}// edited\n`);
+
+    const code = await CodemodCommand.run({
+      root,
+      args: ['binding-keys', 'src', '--write', ...FROM],
+    });
+
+    expect(code).toBe(1);
+    expect(readFileSync(join(root, 'src/keys.ts'), 'utf8')).not.toContain('BindingKeys.build');
+    expect(readFileSync(join(root, 'src/use.ts'), 'utf8')).toBe(USE_FILE);
   });
 
   test('inside a git repository --write refuses a file with local changes', async () => {

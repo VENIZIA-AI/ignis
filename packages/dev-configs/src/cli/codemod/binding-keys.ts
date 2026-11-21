@@ -26,9 +26,11 @@ It rewrites a call named get, gets, getBinding, bind, isBound or unbind whose ar
 test. A string key, a substitution-free template literal, a { namespace, key } literal and a template written
 \${namespace}.Name or \${namespace}.\${name} are rewritten. These are listed
 as "manual" and left alone: a key made at run time (a template with substitutions, a call) and a Symbol key (symbols are no
-longer keys). A key that is a const of the file (const MAILER = 'services.Mailer') is rewritten where it is declared. Any
-other name or property (Keys.MAILER) is left alone without a line: it may already be a built key, and your typecheck
-names a raw one.
+longer keys). A key held in a name (MAILER, Keys.MAILER) is built where it is declared, in any file of the run: a const, a
+readonly property or a property of an object literal, with a string initializer and no type annotation. Its type is the
+one type its use sites claim (get<Mailer>, the type of a decorated parameter), else unknown (listed as "type"); the use
+sites are not edited. A name declared another way (a let, an annotation, a parameter, a call, a package you do not own)
+is listed as "manual". build throws on an empty key, so a computed constant that comes out '' now throws when its class loads.
 
 BindingKeys is imported from the module the file already takes inject from, else from the first @venizia/ignis import,
 or from --import-from <module>; a file with none of them is listed as manual and not rewritten. An existing import of
@@ -114,6 +116,15 @@ export interface IBindingKeysResult {
   manual: Array<{ line: number; reason: string }>;
 }
 
+/** What the use sites of one key constant claim: each claim is the type's text and the symbols its names resolve to at the use site. */
+export interface IKeyClaims {
+  declaration: import('typescript').Node;
+  claims: Array<{
+    text: string | undefined;
+    names: Array<{ name: string; symbol: import('typescript').Symbol | undefined }>;
+  }>;
+}
+
 /** Rewrites raw binding keys to `BindingKeys.build<T>({ key })`. */
 export class BindingKeysCodemod {
   /** The module `BindingKeys` comes from in this file: an existing import, the module of `inject`, a @venizia/ignis import, or `fallback`. */
@@ -188,6 +199,51 @@ export class BindingKeysCodemod {
     return BUILDER;
   }
 
+  /**
+   * The type a key constant is built with: the one type its use sites claim, else `undefined` (`unknown`). A type is copied as
+   * text into the declaration's file, so it counts only when every name in it means the same symbol at each use site and
+   * at the declaration (a type of another file, not imported there, would not compile); no import is added.
+   */
+  static agreedType(opts: {
+    typescript: typeof import('typescript');
+    checker: import('typescript').TypeChecker;
+    entry: IKeyClaims;
+  }): string | undefined {
+    const { typescript: ts, checker, entry } = opts;
+    const named = entry.claims.filter((claim) => claim.text !== undefined);
+    const texts = new Set(named.map((claim) => claim.text));
+
+    if (texts.size !== 1) {
+      return undefined;
+    }
+
+    // An exported declaration has a local symbol and an export symbol; an import resolves to the export one.
+    const dealias = (symbol: import('typescript').Symbol | undefined) =>
+      symbol === undefined
+        ? undefined
+        : checker.getExportSymbolOfSymbol(
+            symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol,
+          );
+    const flags =
+      ts.SymbolFlags.Type | ts.SymbolFlags.Value | ts.SymbolFlags.Namespace | ts.SymbolFlags.Alias;
+    const inScope = checker.getSymbolsInScope(entry.declaration, flags);
+
+    for (const { name } of named[0].names) {
+      const here = dealias(inScope.find((candidate) => candidate.name === name));
+
+      if (
+        here === undefined ||
+        named.some((claim) =>
+          claim.names.some((other) => other.name === name && dealias(other.symbol) !== here),
+        )
+      ) {
+        return undefined;
+      }
+    }
+
+    return named[0].text;
+  }
+
   static rewrite(opts: {
     typescript: typeof import('typescript');
     fileName: string;
@@ -201,6 +257,12 @@ export class BindingKeysCodemod {
     };
     /** Reads a file for the package.json lookup; defaults to the file system. */
     readFile?: (path: string) => string | undefined;
+    /** Out: the value type each use site claims for a key constant, by declaration (`<file>:<initializer start>`). */
+    claims?: Map<string, IKeyClaims>;
+    /** In: the type to build each key constant of THIS file with (`undefined` is `unknown`); a constant of this file not named here gets the type its own use sites agree on. */
+    declare?: Map<string, string | undefined>;
+    /** Whether a declaration in `fileName` may be edited: the files the run reads. Defaults to this file only. */
+    isEditable?: (fileName: string) => boolean;
   }): IBindingKeysResult {
     const {
       typescript: ts,
@@ -208,6 +270,7 @@ export class BindingKeysCodemod {
       importFrom,
       program,
       readFile = (path: string) => ts.sys.readFile(path),
+      claims = new Map<string, IKeyClaims>(),
     } = opts;
     const language = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
     const file =
@@ -220,12 +283,10 @@ export class BindingKeysCodemod {
     const manual: Array<{ line: number; reason: string }> = [];
     const unnamed: number[] = [];
     const handled = new Set<import('typescript').Node>();
-    /** `const NAME = 'literal'` declared once in the file: a key held in a constant is rewritten where it is declared. */
-    const constants = new Map<string, import('typescript').VariableDeclaration>();
-    const duplicates = new Set<string>();
     let rewritten = 0;
     const lineOf = (node: import('typescript').Node): number =>
       file.getLineAndCharacterOfPosition(node.getStart(file)).line + 1;
+    const isEditable = opts.isEditable ?? ((name: string) => name === file.fileName);
 
     const propertyOf = (
       node: import('typescript').ObjectLiteralExpression,
@@ -312,6 +373,124 @@ export class BindingKeysCodemod {
       return undefined;
     };
 
+    /** An object literal under `as const`: its properties are readonly, as a `readonly` class property is. */
+    const isConstObject = (node: import('typescript').Node): boolean =>
+      ts.isObjectLiteralExpression(node) &&
+      ts.isAsExpression(node.parent) &&
+      ts.isTypeReferenceNode(node.parent.type) &&
+      ts.isIdentifier(node.parent.type.typeName) &&
+      node.parent.type.typeName.text === 'const';
+
+    /**
+     * The declaration of a key held in a name (`MAILER`, `Keys.MAILER`) that the codemod may build where it is made: a const, a
+     * readonly property or a property of an object literal, with a string initializer, no type annotation, in a file of the
+     * run (not a declaration file, not node_modules). `undefined` when the name is anything else.
+     */
+    const heldDeclaration = (
+      value: import('typescript').Expression,
+    ):
+      | {
+          initializer: import('typescript').Expression;
+          key: string;
+          declaration: import('typescript').Node;
+        }
+      | undefined => {
+      if (checker === undefined) {
+        return undefined;
+      }
+
+      const name = ts.isPropertyAccessExpression(value) ? value.name : value;
+      let symbol = checker.getSymbolAtLocation(name);
+
+      if (symbol !== undefined && symbol.flags & ts.SymbolFlags.Alias) {
+        symbol = checker.getAliasedSymbol(symbol);
+      }
+
+      const declaration = symbol?.valueDeclaration;
+      const initializer =
+        declaration !== undefined &&
+        (ts.isVariableDeclaration(declaration) ||
+          ts.isPropertyDeclaration(declaration) ||
+          ts.isPropertyAssignment(declaration))
+          ? declaration.initializer
+          : undefined;
+
+      if (declaration === undefined || initializer === undefined) {
+        return undefined;
+      }
+
+      const isHeld = ts.isVariableDeclaration(declaration)
+        ? ts.isIdentifier(declaration.name) &&
+          (ts.getCombinedNodeFlags(declaration) & ts.NodeFlags.Const) !== 0 &&
+          declaration.type === undefined
+        : ts.isPropertyDeclaration(declaration)
+          ? (ts.getCombinedModifierFlags(declaration) & ts.ModifierFlags.Readonly) !== 0 &&
+            declaration.type === undefined
+          : isConstObject(declaration.parent);
+      const declared = declaration.getSourceFile();
+      const type = checker.getTypeAtLocation(initializer);
+
+      if (
+        !isHeld ||
+        declared.isDeclarationFile ||
+        declared.fileName.includes('/node_modules/') ||
+        !isEditable(declared.fileName) ||
+        !(type.flags & ts.TypeFlags.StringLike) ||
+        type.getProperty('valueType') !== undefined
+      ) {
+        return undefined;
+      }
+
+      return {
+        initializer,
+        key: `${declared.fileName}:${initializer.getStart(declared)}`,
+        declaration,
+      };
+    };
+
+    /** The names a type mentions (`Mailer`, the head of `ns.Mailer`, `typeof X`) with what each means at the use site. */
+    const namesOf = (
+      type: import('typescript').TypeNode,
+    ): Array<{ name: string; symbol: import('typescript').Symbol | undefined }> => {
+      const found = new Map<string, import('typescript').Symbol | undefined>();
+      const flags =
+        ts.SymbolFlags.Type |
+        ts.SymbolFlags.Value |
+        ts.SymbolFlags.Namespace |
+        ts.SymbolFlags.Alias;
+      const inScope = checker?.getSymbolsInScope(type, flags) ?? [];
+      const head = (name: import('typescript').EntityName): string =>
+        ts.isIdentifier(name) ? name.text : head(name.left);
+
+      const search = (node: import('typescript').Node): void => {
+        // `import('../mailer').Mailer` names a path that means something only from the file that wrote it.
+        if (ts.isImportTypeNode(node)) {
+          found.set(`import(${node.argument.getText()})`, undefined);
+        }
+
+        const name = ts.isTypeReferenceNode(node)
+          ? node.typeName
+          : ts.isTypeQueryNode(node)
+            ? node.exprName
+            : undefined;
+
+        if (name !== undefined) {
+          const text = head(name);
+
+          found.set(
+            text,
+            inScope.find((candidate) => candidate.name === text),
+          );
+        }
+
+        ts.forEachChild(node, search);
+      };
+
+      search(type);
+
+      return [...found].map(([name, symbol]) => ({ name, symbol }));
+    };
+
     /**
      * Wraps the key of one options object. `typeText` is the value type the call already claimed, or `undefined` for
      * `unknown`. Answers whether the key was rewritten.
@@ -319,6 +498,7 @@ export class BindingKeysCodemod {
     const rewriteKey = (
       options: import('typescript').ObjectLiteralExpression,
       typeText: string | undefined,
+      typeNode?: import('typescript').TypeNode,
     ): boolean => {
       const property = propertyOf(options, 'key');
 
@@ -328,6 +508,10 @@ export class BindingKeysCodemod {
 
       const value = property.initializer;
       const text = typeText ?? 'unknown';
+      const held =
+        ts.isIdentifier(value) || ts.isPropertyAccessExpression(value)
+          ? heldDeclaration(value)
+          : undefined;
 
       if (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)) {
         edits.push({
@@ -356,31 +540,17 @@ export class BindingKeysCodemod {
           end: value.getEnd(),
           text: `${builder}.build<${text}>(${namespaceKeyOf(value)})`,
         });
-      } else if (
-        ts.isIdentifier(value) &&
-        constants.has(value.text) &&
-        !duplicates.has(value.text)
-      ) {
-        const declaration = constants.get(value.text);
+      } else if (held !== undefined) {
+        // The key is built where it is declared (the claim is answered once every file is read); this site needs no edit.
+        const entry = claims.get(held.key) ?? { declaration: held.declaration, claims: [] };
 
-        if (declaration?.initializer === undefined || handled.has(declaration)) {
-          return false;
-        }
-
-        handled.add(declaration);
-        edits.push({
-          start: declaration.initializer.getStart(file),
-          end: declaration.initializer.getEnd(),
-          text: `${builder}.build<${text}>({ key: ${declaration.initializer.getText(file)} })`,
+        entry.claims.push({
+          text: typeText,
+          names: typeNode === undefined ? [] : namesOf(typeNode),
         });
+        claims.set(held.key, entry);
 
-        if (typeText === undefined) {
-          unnamed.push(lineOf(declaration));
-        }
-
-        rewritten += 1;
-
-        return true;
+        return false;
       } else if (isBuilderCall(value)) {
         if (value.typeArguments !== undefined) {
           return false;
@@ -665,7 +835,7 @@ export class BindingKeysCodemod {
                     : decorated === undefined
                       ? undefined
                       : liftedTypeText(decorated);
-                const done = rewriteKey(first, typeText);
+                const done = rewriteKey(first, typeText, callArgument ?? decorated);
 
                 // The type argument moved into `build<T>`; the call no longer needs it. Comments inside it stay.
                 if (done && callArgument !== undefined) {
@@ -686,27 +856,45 @@ export class BindingKeysCodemod {
       ts.forEachChild(node, visit);
     };
 
-    const collect = (node: import('typescript').Node): void => {
-      if (
-        ts.isVariableDeclaration(node) &&
-        ts.isIdentifier(node.name) &&
-        node.initializer !== undefined &&
-        (ts.isStringLiteral(node.initializer) ||
-          ts.isNoSubstitutionTemplateLiteral(node.initializer)) &&
-        (ts.getCombinedNodeFlags(node) & ts.NodeFlags.Const) !== 0
-      ) {
-        if (constants.has(node.name.text)) {
-          duplicates.add(node.name.text);
+    visit(file);
+
+    // A key constant of this file: build it with the type its use sites agree on, or the one the run settled.
+    const build = new Map(opts.declare);
+
+    for (const [key, entry] of claims) {
+      if (key.startsWith(`${file.fileName}:`) && !build.has(key) && checker !== undefined) {
+        build.set(key, BindingKeysCodemod.agreedType({ typescript: ts, checker, entry }));
+      }
+    }
+
+    if (build.size > 0) {
+      const declare = (node: import('typescript').Node): void => {
+        if (
+          (ts.isVariableDeclaration(node) ||
+            ts.isPropertyDeclaration(node) ||
+            ts.isPropertyAssignment(node)) &&
+          node.initializer !== undefined &&
+          build.has(`${file.fileName}:${node.initializer.getStart(file)}`)
+        ) {
+          const type = build.get(`${file.fileName}:${node.initializer.getStart(file)}`);
+
+          edits.push({
+            start: node.initializer.getStart(file),
+            end: node.initializer.getEnd(),
+            text: `${builder}.build<${type ?? 'unknown'}>({ key: ${node.initializer.getText(file)} })`,
+          });
+          rewritten += 1;
+
+          if (type === undefined) {
+            unnamed.push(lineOf(node.initializer));
+          }
         }
 
-        constants.set(node.name.text, node);
-      }
+        ts.forEachChild(node, declare);
+      };
 
-      ts.forEachChild(node, collect);
-    };
-
-    collect(file);
-    visit(file);
+      declare(file);
+    }
 
     if (edits.length === 0) {
       return { output: source, changed: false, rewritten, unnamed, manual };
@@ -894,6 +1082,38 @@ export class BindingKeysCommand {
       files: collected.flat(),
     });
     const checker = program.getTypeChecker();
+    const prefilter = /\b(?:get|gets|getBinding|bind|isBound|unbind|inject|provide|build)\b/;
+    const editable = new Set(collected.flat().map((file) => resolve(file)));
+    const isEditable = (fileName: string): boolean => editable.has(resolve(fileName));
+
+    // First pass: every use site of a key held in a constant claims a type for the constant's declaration, which can be in
+    // another file. The answer is one type per declaration, so the second pass edits each declaration once.
+    const claims = new Map<string, IKeyClaims>();
+
+    for (const file of collected.flat()) {
+      const source = readFileSync(file, 'utf8');
+      const sourceFile = program.getSourceFile(file);
+
+      if (sourceFile !== undefined && prefilter.test(source)) {
+        BindingKeysCodemod.rewrite({
+          typescript,
+          fileName: file,
+          source,
+          importFrom,
+          program: { sourceFile, checker },
+          claims,
+          isEditable,
+        });
+      }
+    }
+
+    const declare = new Map<string, string | undefined>();
+    const declareFiles = new Set<string>();
+
+    for (const [key, entry] of claims) {
+      declare.set(key, BindingKeysCodemod.agreedType({ typescript, checker, entry }));
+      declareFiles.add(entry.declaration.getSourceFile().fileName);
+    }
 
     for (const [index, target] of targets.entries()) {
       const files = collected[index];
@@ -908,17 +1128,20 @@ export class BindingKeysCommand {
       for (const file of files) {
         const source = readFileSync(file, 'utf8');
 
-        if (!/\b(?:get|gets|getBinding|bind|isBound|unbind|inject|provide|build)\b/.test(source)) {
+        const sourceFile = program.getSourceFile(file);
+
+        if (!prefilter.test(source) && !declareFiles.has(sourceFile?.fileName ?? file)) {
           continue;
         }
 
-        const sourceFile = program.getSourceFile(file);
         const result = BindingKeysCodemod.rewrite({
           typescript,
           fileName: file,
           source,
           importFrom,
           program: sourceFile === undefined ? undefined : { sourceFile, checker },
+          declare,
+          isEditable,
         });
         const shown = relative(root, file).split('\\').join('/') || file;
 
