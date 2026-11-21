@@ -15,7 +15,7 @@ const convert = (source: string, overrides = {}) =>
     overrides,
   });
 
-const IMPORT = "import type { TConstValue } from '@venizia/ignis-helpers/common';";
+const IMPORT = "import { ConstClass, type TConstValue } from '@venizia/ignis-helpers/common';";
 
 describe('ConstClasses.convert - an exported type alias', () => {
   test('becomes a const class and TConstValue, in the shape the repository uses', () => {
@@ -25,15 +25,9 @@ describe('ConstClasses.convert - an exported type alias', () => {
       [
         IMPORT,
         '',
-        'export class Modes {',
+        'export class Modes extends ConstClass {',
         "  static readonly READ = 'read';",
         "  static readonly WRITE = 'write';",
-        '',
-        '  static readonly SCHEME_SET = new Set<string>([this.READ, this.WRITE]);',
-        '',
-        '  static isValid(value: string): value is TMode {',
-        '    return this.SCHEME_SET.has(value);',
-        '  }',
         '}',
         '',
         'export type TMode = TConstValue<typeof Modes>;',
@@ -120,7 +114,7 @@ describe('ConstClasses.convert - a property of an exported interface or object t
   test('gets a class and a type above the container, and the property uses the type', () => {
     const result = convert("export interface IOptions {\n  storage?: 'memory' | 'disk';\n}\n");
 
-    expect(result.output).toContain('export class OptionsStorages {');
+    expect(result.output).toContain('export class OptionsStorages extends ConstClass {');
     expect(result.output).toContain(
       'export type TOptionsStorage = TConstValue<typeof OptionsStorages>;',
     );
@@ -145,7 +139,7 @@ describe('ConstClasses.convert - a property of an exported interface or object t
   test('an object type alias works like an interface', () => {
     const result = convert("export type TOptions = { storage: 'memory' | 'disk' };\n");
 
-    expect(result.output).toContain('export class OptionsStorages {');
+    expect(result.output).toContain('export class OptionsStorages extends ConstClass {');
     expect(result.output).toContain('export type TOptions = { storage: TOptionsStorage };');
   });
 });
@@ -198,7 +192,9 @@ describe('ConstClasses.convert - what it leaves alone', () => {
   });
 
   test('a name already used in the file is reported and nothing changes', () => {
-    const result = convert("export class Modes {}\nexport type TMode = 'read' | 'write';\n");
+    const result = convert(
+      "export class Modes extends ConstClass {}\nexport type TMode = 'read' | 'write';\n",
+    );
 
     expect(result.changed).toBe(false);
     expect(result.untouched[0]?.reason).toContain('Modes is already used');
@@ -225,7 +221,7 @@ describe('ConstClasses.convert - the mapping file and the import', () => {
       'src/a.ts#TMode': { class: 'FileModes', members: { 'read-only': 'READONLY' } },
     });
 
-    expect(result.output).toContain('export class FileModes {');
+    expect(result.output).toContain('export class FileModes extends ConstClass {');
     expect(result.output).toContain("static readonly READONLY = 'read-only';");
     expect(result.output).toContain('TConstValue<typeof FileModes>');
   });
@@ -254,10 +250,10 @@ describe('ConstClasses.convert - the mapping file and the import', () => {
     );
 
     expect(same.output).toContain(
-      "import { getError, type TConstValue } from '@venizia/ignis-helpers/common';",
+      "import { getError, ConstClass, type TConstValue } from '@venizia/ignis-helpers/common';",
     );
     expect(has.output.match(/TConstValue/g)).toHaveLength(2);
-    expect(has.output).not.toContain('@venizia/ignis-helpers/common');
+    expect(has.output).toContain("import { ConstClass } from '@venizia/ignis-helpers/common';");
   });
 
   test('a new import goes after the last import', () => {
@@ -345,13 +341,16 @@ describe('devz codemod const-classes - the command', () => {
 
     const result = await code(['--write', '--all']);
     expect(result).toBe(0);
-    expect(read('src/a.ts')).toContain('export class Modes {');
+    expect(read('src/a.ts')).toContain('export class Modes extends ConstClass {');
     const result2 = await code(['--check']);
     expect(result2).toBe(0);
   });
 
   test('the converted file typechecks, and the old literals still fit the type', async () => {
-    write('src/helpers.ts', 'export type TConstValue<T> = Extract<T[keyof T], string> & {};\n');
+    write(
+      'src/helpers.ts',
+      'export type TConstValue<T> = Extract<T[keyof T], string> & {};\nexport class ConstClass {}\n',
+    );
     write(
       'src/a.ts',
       "export type TMode = 'read' | 'write';\nexport const mode: TMode = 'read';\nexport const same = (value: TMode) => value === 'write';\n",
@@ -381,8 +380,119 @@ describe('devz codemod const-classes - the command', () => {
       .getPreEmitDiagnostics(program)
       .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
 
-    expect(read('src/a.ts')).toContain("import type { TConstValue } from './helpers';");
+    expect(read('src/a.ts')).toContain("import { ConstClass, type TConstValue } from './helpers';");
     expect(messages).toEqual([]);
+  });
+
+  test('a standard class moves to ConstClass and its callers read isValid and values()', async () => {
+    write(
+      'src/modes.ts',
+      [
+        "import { ConstClass as Base } from './elsewhere';",
+        '',
+        'export class Modes {',
+        "  static readonly READ = 'read';",
+        "  static readonly WRITE = 'write';",
+        '',
+        '  /** The values. */',
+        '  static readonly SCHEME_SET = new Set<string>([this.READ, this.WRITE]);',
+        '',
+        '  static isValid(value: string): boolean {',
+        '    return this.SCHEME_SET.has(value);',
+        '  }',
+        '}',
+        '',
+        'export class Keeps {',
+        "  static readonly A = 'a';",
+        '  static readonly OTHER = 1;',
+        '  static readonly SCHEME_SET = new Set<string>([this.A]);',
+        '}',
+        'void Base;',
+        '',
+      ].join('\n'),
+    );
+    write(
+      'src/use.ts',
+      [
+        "import { Modes, Keeps } from './modes';",
+        'declare const input: string;',
+        'export const ok = Modes.SCHEME_SET.has(input);',
+        'export const all = [...Modes.SCHEME_SET];',
+        'export const more = [0, ...Modes.SCHEME_SET];',
+        'export const kept = Keeps.SCHEME_SET.has(input);',
+        'export const size = Modes.SCHEME_SET.size;',
+        '',
+      ].join('\n'),
+    );
+
+    const dirtyRun = await code(['--write', '--all', '--import-from', './helpers']);
+    expect(dirtyRun).toBe(1);
+    expect(warnings.join('\n')).toContain('refused  src/modes.ts  has local changes');
+    expect(read('src/modes.ts')).toContain('static readonly SCHEME_SET');
+
+    execFileSync('git', ['add', '-A'], { cwd: root });
+    execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'i'], {
+      cwd: root,
+    });
+
+    const dry = await code(['--import-from', './helpers']);
+    expect(dry).toBe(0);
+    expect(read('src/modes.ts')).toContain('static readonly SCHEME_SET');
+
+    const result = await code(['--write', '--all', '--import-from', './helpers']);
+    expect(result).toBe(0);
+    expect(read('src/modes.ts')).toBe(
+      [
+        "import { ConstClass as Base } from './elsewhere';",
+        "import { ConstClass } from './helpers';",
+        '',
+        'export class Modes extends ConstClass {',
+        "  static readonly READ = 'read';",
+        "  static readonly WRITE = 'write';",
+        '}',
+        '',
+        'export class Keeps {',
+        "  static readonly A = 'a';",
+        '  static readonly OTHER = 1;',
+        '  static readonly SCHEME_SET = new Set<string>([this.A]);',
+        '}',
+        'void Base;',
+        '',
+      ].join('\n'),
+    );
+    expect(read('src/use.ts')).toBe(
+      [
+        "import { Modes, Keeps } from './modes';",
+        'declare const input: string;',
+        'export const ok = Modes.isValid(input);',
+        'export const all = Modes.values();',
+        'export const more = [0, ...Modes.values()];',
+        'export const kept = Keeps.SCHEME_SET.has(input);',
+        'export const size = Modes.SCHEME_SET.size;',
+        '',
+      ].join('\n'),
+    );
+    expect(warnings.join('\n')).toContain('src/use.ts:7  Modes.SCHEME_SET is gone');
+  });
+
+  test('a caller of a class that already extends ConstClass is rewritten, with the class outside the run', async () => {
+    write(
+      'src/lib.ts',
+      "export class ConstClass {}\nexport class Modes extends ConstClass {\n  static readonly READ = 'read';\n}\n",
+    );
+    write(
+      'src/use.ts',
+      "import { Modes } from './lib';\ndeclare const input: string;\nexport const ok = Modes.SCHEME_SET.has(input);\n",
+    );
+
+    execFileSync('git', ['add', '-A'], { cwd: root });
+    execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'i'], {
+      cwd: root,
+    });
+
+    const result = await code(['--write', 'src/use.ts']);
+    expect(result).toBe(0);
+    expect(read('src/use.ts')).toContain('Modes.isValid(input)');
   });
 
   test('--emit-map writes the proposals, and --map applies the edited names', async () => {
@@ -400,7 +510,7 @@ describe('devz codemod const-classes - the command', () => {
     write('names.json', JSON.stringify(emitted));
     const result2 = await code(['--write', '--all', '--map', 'names.json']);
     expect(result2).toBe(0);
-    expect(read('src/a.ts')).toContain('export class FileModes {');
+    expect(read('src/a.ts')).toContain('export class FileModes extends ConstClass {');
   });
 
   test('a mapping file that cannot be read exits 2 and writes nothing', async () => {
@@ -534,8 +644,10 @@ describe('ConstClasses.convert - a decorated class keeps its decorators', () => 
   });
 
   test('the check sees the bug it guards against: a class inserted between a decorator and its class', () => {
-    const correct = '@service()\nexport class InvoiceService {}\n\nexport class Modes {}\n';
-    const broken = '@service()\nexport class Modes {}\n\nexport class InvoiceService {}\n';
+    const correct =
+      '@service()\nexport class InvoiceService {}\n\nexport class Modes extends ConstClass {}\n';
+    const broken =
+      '@service()\nexport class Modes extends ConstClass {}\n\nexport class InvoiceService {}\n';
 
     expect(decoratorsByClass(broken)).not.toEqual(decoratorsByClass(correct));
     expect(decoratorsByClass(correct)).toEqual({ InvoiceService: ['@service()'], Modes: [] });
@@ -544,7 +656,7 @@ describe('ConstClasses.convert - a decorated class keeps its decorators', () => 
   test('a union inside a decorated class is reported and the class is left byte for byte', () => {
     const source = [
       '@service()',
-      'export class ReportService {',
+      'export class ReportService extends ConstClass {',
       "  kind: 'monthly' | 'yearly' = 'monthly';",
       '',
       "  render(format: 'pdf' | 'html'): string {",

@@ -1,6 +1,8 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import type ts from 'typescript';
+import { BindingKeysCommand } from './binding-keys';
+import { ConstClassSets } from './const-class-sets';
 import { CodemodFiles } from './files';
 
 type TTypeScript = typeof ts;
@@ -194,7 +196,7 @@ export class ConstClasses {
         nullish: union.nullish,
       });
 
-      const classText = ConstClasses.renderClass({ className, typeName, members });
+      const classText = ConstClasses.renderClass({ className, members });
       const reference = `TConstValue<typeof ${className}>`;
       const nullishText = union.nullish.map((member) => ` | ${member}`).join('');
 
@@ -274,7 +276,15 @@ export class ConstClasses {
     }
 
     // Last, so that at the top of a file the import lands above the class inserted at the same place.
-    const importEdit = ConstClasses.planImport({ typescript, sourceFile, importFrom });
+    const importEdit = ConstClasses.planImports({
+      typescript,
+      sourceFile,
+      importFrom,
+      names: [
+        { name: 'ConstClass', isType: false },
+        { name: 'TConstValue', isType: true },
+      ],
+    });
 
     if (importEdit) {
       edits.push(importEdit);
@@ -499,20 +509,13 @@ export class ConstClasses {
 
   private static renderClass(opts: {
     className: string;
-    typeName: string;
     members: Array<{ value: string; key: string }>;
   }): string {
-    const { className, typeName, members } = opts;
+    const { className, members } = opts;
     const quote = (value: string) => `'${value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
     const lines = [
-      `export class ${className} {`,
+      `export class ${className} extends ConstClass {`,
       ...members.map(({ value, key }) => `  static readonly ${key} = ${quote(value)};`),
-      '',
-      `  static readonly SCHEME_SET = new Set<string>([${members.map(({ key }) => `this.${key}`).join(', ')}]);`,
-      '',
-      `  static isValid(value: string): value is ${typeName} {`,
-      '    return this.SCHEME_SET.has(value);',
-      '  }',
       '}',
     ];
 
@@ -582,13 +585,15 @@ export class ConstClasses {
     return false;
   }
 
-  /** The edit that makes `TConstValue` available: nothing when the file has it, a specifier on an import from the same module, else a new import line. */
-  private static planImport(opts: {
+  /** The edit that makes `names` available: nothing for the ones the file imports, a specifier on an import from the same module, else a new import line. */
+  static planImports(opts: {
     typescript: TTypeScript;
     sourceFile: ts.SourceFile;
     importFrom: string;
+    names: Array<{ name: string; isType: boolean }>;
   }): IEdit | undefined {
     const { typescript, sourceFile, importFrom } = opts;
+    const imported = new Set<string>();
     let lastImportEnd = 0;
     let sameModule: ts.ImportDeclaration | undefined;
 
@@ -601,8 +606,8 @@ export class ConstClasses {
       const bindings = statement.importClause?.namedBindings;
 
       if (bindings && typescript.isNamedImports(bindings)) {
-        if (bindings.elements.some((element) => element.name.text === 'TConstValue')) {
-          return undefined;
+        for (const element of bindings.elements) {
+          imported.add(element.name.text);
         }
 
         if (
@@ -612,6 +617,12 @@ export class ConstClasses {
           sameModule = statement;
         }
       }
+    }
+
+    const missing = opts.names.filter(({ name }) => !imported.has(name));
+
+    if (missing.length === 0) {
+      return undefined;
     }
 
     const bindings = sameModule?.importClause?.namedBindings;
@@ -624,15 +635,22 @@ export class ConstClasses {
     ) {
       const last = bindings.elements[bindings.elements.length - 1];
       const typeOnly = sameModule.importClause?.isTypeOnly === true;
+      const specifiers = missing.map(({ name, isType }) =>
+        isType && !typeOnly ? `type ${name}` : name,
+      );
 
       return {
         start: last?.end ?? bindings.end,
         end: last?.end ?? bindings.end,
-        text: typeOnly ? ', TConstValue' : ', type TConstValue',
+        text: `, ${specifiers.join(', ')}`,
       };
     }
 
-    const line = `import type { TConstValue } from '${importFrom}';`;
+    const allTypes = missing.every(({ isType }) => isType);
+    const specifiers = missing.map(({ name, isType }) =>
+      isType && !allTypes ? `type ${name}` : name,
+    );
+    const line = `import ${allTypes ? 'type ' : ''}{ ${specifiers.join(', ')} } from '${importFrom}';`;
 
     if (lastImportEnd > 0) {
       return { start: lastImportEnd, end: lastImportEnd, text: `\n${line}` };
@@ -644,7 +662,7 @@ export class ConstClasses {
 
 const USAGE = `Usage: devz codemod const-classes [paths...] [--write | --check] [--map <file>] [--emit-map <file>] [--import-from <module>] [--include-tests]
 
-Turns a string-literal union in an exported declaration into a const class (SCHEME_SET, isValid) plus
+Turns a string-literal union in an exported declaration into a const class (it extends ConstClass) plus
 \`TConstValue<typeof X>\`, the shape the venizia/const-class-values lint rule asks for. It handles an
 exported type alias and a property of an exported interface or object type. The values stay the same,
 so every existing literal still type-checks and no call site changes.
@@ -822,6 +840,17 @@ export class ConstClassesCommand {
     const targets = (paths.length > 0 ? paths : ['.']).map((path) => resolve(root, path));
     const importFrom = values.get(ConstClassFlags.IMPORT_FROM);
     const emitted: TConstClassMap = {};
+    // Read before the first phase writes, so a file this run wrote is not mistaken for one the user changed.
+    const dirty = new Set<string>();
+
+    if (isWrite) {
+      for (const target of targets) {
+        for (const file of CodemodFiles.dirty({ target }) ?? []) {
+          dirty.add(resolve(file));
+        }
+      }
+    }
+
     let changedFiles = 0;
     let converted = 0;
     let untouchedCount = 0;
@@ -885,6 +914,16 @@ export class ConstClassesCommand {
       }
     }
 
+    const sets = await ConstClassesCommand.moveToConstClass({
+      typescript,
+      root,
+      targets,
+      isWrite,
+      includeTests,
+      dirty,
+      importFrom: importFrom ?? DEFAULT_IMPORT_FROM,
+    });
+
     const emitPath = values.get(ConstClassFlags.EMIT_MAP);
 
     if (emitPath) {
@@ -898,12 +937,137 @@ export class ConstClassesCommand {
       `devz codemod const-classes: ${converted} union(s) ${isWrite ? 'converted' : 'would be converted'} in ${changedFiles} file(s), ${untouchedCount} left untouched`,
     );
 
-    if (!isWrite && changedFiles > 0) {
+    console.log(
+      `devz codemod const-classes: ${sets.classes} class(es) ${isWrite ? 'moved' : 'would move'} to ConstClass, ${sets.calls} SCHEME_SET call(s) ${isWrite ? 'rewritten' : 'would be rewritten'}, ${sets.manual} manual` +
+        (sets.refused > 0 ? `, ${sets.refused} refused` : ''),
+    );
+
+    if (!isWrite && (changedFiles > 0 || sets.changedFiles > 0)) {
       console.log(
         `Nothing was written. Run again with ${ConstClassFlags.WRITE} to apply (add --map to rename), then run your typecheck and lint.`,
       );
     }
 
-    return isCheck && (converted > 0 || untouchedCount > 0) ? 1 : 0;
+    if (isWrite && sets.refused > 0) {
+      return 1;
+    }
+
+    return isCheck &&
+      (converted > 0 || untouchedCount > 0 || sets.changedFiles > 0 || sets.manual > 0)
+      ? 1
+      : 0;
+  }
+
+  /**
+   * Second phase: a value class with a `SCHEME_SET` and a standard `isValid` extends `ConstClass`, and its callers
+   * read `isValid` and `values()`. Needs the project's checker, so it reads the program once the first phase is written.
+   */
+  private static async moveToConstClass(opts: {
+    typescript: TTypeScript;
+    root: string;
+    targets: string[];
+    isWrite: boolean;
+    includeTests: boolean;
+    dirty: Set<string>;
+    importFrom: string;
+  }): Promise<{
+    classes: number;
+    calls: number;
+    manual: number;
+    refused: number;
+    changedFiles: number;
+  }> {
+    const { typescript, root, targets, isWrite, includeTests, dirty, importFrom } = opts;
+    const result = { classes: 0, calls: 0, manual: 0, refused: 0, changedFiles: 0 };
+    const collected = targets.map((target) => CodemodFiles.collect({ target }));
+    const all = collected.flat();
+    const mentions = all.filter((file) => readFileSync(file, 'utf8').includes('SCHEME_SET'));
+
+    if (mentions.length === 0) {
+      return result;
+    }
+
+    const program = BindingKeysCommand.createProgram({ typescript, root, files: all });
+    const checker = program.getTypeChecker();
+    const isTest = (file: string) =>
+      TEST_FILE_PATTERN.test(relative(root, file).split('\\').join('/'));
+    const converted = new Set<string>();
+
+    for (const file of mentions) {
+      const sourceFile = program.getSourceFile(file);
+
+      if (sourceFile === undefined || (isTest(file) && !includeTests)) {
+        continue;
+      }
+
+      for (const node of ConstClassSets.standardClasses({ typescript, sourceFile })) {
+        if (node.name === undefined) {
+          continue;
+        }
+
+        // A class in a file with local changes stays, so its callers stay too.
+        if (dirty.has(resolve(file))) {
+          result.refused += 1;
+          console.warn(
+            `refused  ${relative(root, file).split('\\').join('/')}  has local changes (commit or stash them, then run again)`,
+          );
+          break;
+        }
+
+        converted.add(
+          ConstClassSets.keyOf({ fileName: sourceFile.fileName, name: node.name.text }),
+        );
+      }
+    }
+
+    for (const file of mentions) {
+      const sourceFile = program.getSourceFile(file);
+
+      if (sourceFile === undefined) {
+        continue;
+      }
+
+      const rewrite = ConstClassSets.rewrite({
+        typescript,
+        source: readFileSync(file, 'utf8'),
+        sourceFile,
+        checker,
+        converted,
+        convertHere: !(isTest(file) && !includeTests) && !dirty.has(resolve(file)),
+        importFrom,
+      });
+      const shown = relative(root, file).split('\\').join('/') || file;
+
+      for (const item of rewrite.manual) {
+        result.manual += 1;
+        console.warn(`manual  ${shown}:${item.line}  ${item.reason}`);
+      }
+
+      if (!rewrite.changed) {
+        continue;
+      }
+
+      if (dirty.has(resolve(file))) {
+        result.refused += 1;
+        console.warn(`refused  ${shown}  has local changes (commit or stash them, then run again)`);
+        continue;
+      }
+
+      result.changedFiles += 1;
+      result.classes += rewrite.classes.length;
+      result.calls += rewrite.calls;
+
+      for (const item of rewrite.classes) {
+        console.log(
+          `${isWrite ? 'moved' : 'would move'}  ${shown}:${item.line}  class ${item.name} -> extends ConstClass`,
+        );
+      }
+
+      if (isWrite) {
+        writeFileSync(file, rewrite.output);
+      }
+    }
+
+    return result;
   }
 }
