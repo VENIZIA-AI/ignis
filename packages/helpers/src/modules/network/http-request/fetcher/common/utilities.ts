@@ -22,11 +22,11 @@ export class HttpHeaders {
         continue;
       }
 
-      for (const [name, value] of Object.entries(layer)) {
+      for (const [name, value] of Array.isArray(layer) ? layer : Object.entries(layer)) {
         if (value === null || value === undefined) {
           merged.delete(name);
         } else {
-          merged.set(name, value);
+          merged.set(name, String(value));
         }
       }
     }

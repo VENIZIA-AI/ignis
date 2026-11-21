@@ -408,3 +408,35 @@ parse-content-disposition-in-reader:
     steps:
       - "Pin @venizia/ignis-helpers and @venizia/ignis to 0.4.8 and call RequestUtility.parseContentDisposition again."
   data: Nothing stored changes.
+
+http-datasource-headers-object:
+  symbols: [HttpDataSource.configuredHeaders, HttpDataSource.resolveHeaders, HttpDataSource.buildHeaders, THttpHeaders]
+  upgrade:
+    before: |-
+      import type { THttpHeaders } from '@venizia/ignis-connectors/http';
+
+      class AppDataSource extends HttpDataSource {
+        protected override buildHeaders(opts: { requestHeaders?: Array<[string, string]> }): Headers {
+          const headers = super.buildHeaders(opts);
+          headers.set('x-tenant', this.tenant);
+          return headers;
+        }
+      }
+    after: |-
+      import type { THttpHeaders } from '@venizia/ignis-helpers';
+
+      class AppDataSource extends HttpDataSource {
+        protected override buildHeaders(opts: { requestHeaders?: Headers }): Headers {
+          const headers = super.buildHeaders(opts);
+          headers.set('x-tenant', this.tenant);
+          return headers;
+        }
+      }
+    steps:
+      - "Import THttpHeaders from @venizia/ignis-helpers instead of @venizia/ignis-connectors/http."
+      - "In a subclass, type the requestHeaders option of buildHeaders as Headers, not Array<[string, string]>, and treat the result of resolveHeaders() and the configuredHeaders field as a Headers (read with get/has/forEach, not by index or spread)."
+      - "A subclass that only calls super.buildHeaders(opts) and sets headers on the result needs no other change."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-connectors and @venizia/ignis to 0.4.8 and put the pair arrays back in the overrides."
+  data: Nothing stored changes.

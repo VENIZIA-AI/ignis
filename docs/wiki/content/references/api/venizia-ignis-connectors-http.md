@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/http, from the built dec
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-16 exports, 16 with TSDoc. 2 more are re-exported from other entries (listed at the end).
+15 exports, 15 with TSDoc. 2 more are re-exported from other entries (listed at the end).
 
 ## `HttpDataSource`
 
@@ -21,7 +21,7 @@ export declare class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettin
     settings: IHttpDataSourceSettings;
     schema: never;
     /** Normalised once: every request copies these, never re-parses `settings.headers`. */
-    protected configuredHeaders: Array<[string, string]>;
+    protected configuredHeaders: Headers;
     constructor(opts: IHttpDataSourceSettings & {
         name?: string;
     });
@@ -35,10 +35,10 @@ export declare class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettin
     /** Re-run on every send, so a header the app changed since the last request is the one sent. */
     protected resolveHeaders(opts: {
         context: IHttpRequestContext;
-    }): Array<[string, string]>;
+    }): Headers;
     protected buildHeaders(opts: {
         token?: IAuthToken;
-        requestHeaders?: Array<[string, string]>;
+        requestHeaders?: Headers;
         isJsonBody?: boolean;
         isFormDataBody?: boolean;
     }): Headers;
@@ -597,18 +597,6 @@ What sends a request: a URL and its init, a `Response` back. The public name of 
 
 ```ts
 export type THttpFetch = TNativeFetchSender;
-```
-
-Source: `packages/connectors/src/http/common/types.ts`
-
-## `THttpHeaders`
-
-*type*
-
-Not `Record` alone: header names are case-insensitive, and an object merge appends two spellings.
-
-```ts
-export type THttpHeaders = Headers | Array<[string, string]> | Record<string, string>;
 ```
 
 Source: `packages/connectors/src/http/common/types.ts`
