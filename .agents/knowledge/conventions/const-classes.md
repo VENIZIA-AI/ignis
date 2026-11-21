@@ -33,6 +33,7 @@ z.enum(ArtifactTypes.values());        // a non-empty tuple of the literal union
 - `values()` returns the string statics in declaration order, the values of a base class first when the class
   extends another const class (`ServerBootSteps extends BootSteps`). It is cached per class and throws when the
   class holds no string.
+- `values` and `isValid` are reserved names; a value cannot be named either.
 - `isValid(value: unknown)` is `typeof value === 'string'` plus a membership check, as a type guard.
 - A class stays hand-written (own `SCHEME_SET`, own `isValid`) when it is not a plain list of strings: other string
   statics that are not values (`SOURCE_GLOB`), derived or grouped sets (`RELATIONAL_SCHEME_SET`), number values,

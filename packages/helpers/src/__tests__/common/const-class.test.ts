@@ -11,6 +11,10 @@ class Shades extends Colors {
   static readonly GREEN = 'green';
 }
 
+class Cached extends ConstClass {
+  static readonly CACHE = 'cache';
+}
+
 class Empty extends ConstClass {}
 
 class Mixed extends ConstClass {
@@ -31,6 +35,11 @@ describe('ConstClass', () => {
     expect([...Shades.values()]).toEqual(['red', 'blue', 'green']);
     expect(Shades.isValid('red')).toBe(true);
     expect(Colors.isValid('green')).toBe(false);
+  });
+
+  test('a value named CACHE does not clash with the internal cache', () => {
+    expect([...Cached.values()]).toEqual(['cache']);
+    expect(Cached.isValid('cache')).toBe(true);
   });
 
   test('values is cached per class', () => {

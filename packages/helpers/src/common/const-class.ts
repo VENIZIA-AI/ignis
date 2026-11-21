@@ -16,13 +16,13 @@ import type { TConstValue } from './types';
  * z.enum(ArtifactTypes.values());
  */
 export class ConstClass {
-  private static readonly CACHE = new WeakMap<object, readonly string[]>();
+  static readonly #cache = new WeakMap<object, readonly string[]>();
 
   /** The string values of this class and of the classes it extends, base class first. Throws when there are none. */
   static values<T extends typeof ConstClass>(
     this: T,
   ): readonly [TConstValue<T>, ...TConstValue<T>[]] {
-    let values = ConstClass.CACHE.get(this);
+    let values = ConstClass.#cache.get(this);
 
     if (!values) {
       // A subclass lists the values it inherits too, the base class's first.
@@ -48,7 +48,7 @@ export class ConstClass {
         throw getError({ message: `${this.name} has no values` });
       }
 
-      ConstClass.CACHE.set(this, values);
+      ConstClass.#cache.set(this, values);
     }
 
     return values as unknown as readonly [TConstValue<T>, ...TConstValue<T>[]];
