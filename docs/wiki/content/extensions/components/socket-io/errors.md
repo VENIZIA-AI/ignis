@@ -54,7 +54,7 @@ Every error condition the Socket.IO component and its two helpers can raise, plu
 
 ### "Invalid instance of redisConnection"
 
-- **Cause:** The value bound to `REDIS_CONNECTION` isn't an `AbstractRedisHelper` instance - not a `RedisSingleHelper`, `RedisClusterHelper`, or `RedisSentinelHelper`.
+- **Cause:** The value bound to `REDIS_CONNECTION` isn't a Redis helper (it fails `isRedisHelper`) - not a `RedisSingleHelper`, `RedisClusterHelper`, or `RedisSentinelHelper`.
 - **Fix:** Bind one of the concrete topology helpers, never a raw `ioredis` client.
 
 ```typescript
@@ -68,7 +68,7 @@ this.bind({ key: SocketIOBindingKeys.REDIS_CONNECTION })
 this.bind({ key: SocketIOBindingKeys.REDIS_CONNECTION })
   .toValue(new RedisClusterHelper({ name: 'socket-io', nodes, password }));
 
-// Wrong - raw ioredis client, not an AbstractRedisHelper
+// Wrong - raw ioredis client, not a Redis helper
 this.bind({ key: SocketIOBindingKeys.REDIS_CONNECTION }).toValue(new Redis(6379));
 ```
 
