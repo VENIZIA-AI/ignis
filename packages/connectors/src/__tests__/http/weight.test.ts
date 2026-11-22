@@ -7,7 +7,7 @@ import { join } from 'node:path';
  * nobody measures is not one.
  */
 const HTTP_ENTRY = join(process.cwd(), 'src/http/index.ts');
-/** The measured size is about 63 KB: the data source sends through `NativeFetcher`, whose pipeline (status check, retry, hooks, the error classes) is browser-pure and ships with it; the guard's `UrlPolicy` and duration units stay out. The SQL stack was 140 KB more. */
+/** The measured size is about 66 KB: the data source sends through `NativeFetcher`, whose pipeline (status check, retry, hooks, the error classes) is browser-pure and ships with it; the guard's `UrlPolicy` and duration units stay out. The SQL stack was 140 KB more. */
 const CEILING_BYTES = 67 * 1024;
 
 const bundle = async () => {
