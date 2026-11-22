@@ -70,11 +70,6 @@ export class HttpHeaders {
     });
   }
 
-  /** Whether the runtime describes `body` itself: a `FormData` (its boundary), a `URLSearchParams` or a `Blob` (their own types). */
-  static isSelfDescribingBody(opts: { body: unknown }): boolean {
-    return HttpBodies.isAnyOf({ body: opts.body, names: ['FormData', 'URLSearchParams', 'Blob'] });
-  }
-
   /**
    * `headers` for a call with `body`: the JSON default content type is dropped when the runtime describes the body itself,
    * so it sets the multipart boundary or the right type. A content type the call names wins and stays.
@@ -85,12 +80,11 @@ export class HttpHeaders {
     body: unknown;
   }): Headers {
     const { headers, call, body } = opts;
-    const hasCallType =
-      call === undefined ? false : HttpHeaders.merge({ layers: [call] }).has('content-type');
 
+    // A `FormData` (its boundary), a `URLSearchParams` or a `Blob` (their own types) is described by the runtime.
     if (
-      HttpHeaders.isSelfDescribingBody({ body }) &&
-      !hasCallType &&
+      HttpBodies.isAnyOf({ body, names: ['FormData', 'URLSearchParams', 'Blob'] }) &&
+      !HttpHeaders.merge({ layers: [call] }).has('content-type') &&
       headers.get('content-type')?.toLowerCase() === HTTP.HeaderValues.APPLICATION_JSON_UTF8
     ) {
       headers.delete('content-type');
