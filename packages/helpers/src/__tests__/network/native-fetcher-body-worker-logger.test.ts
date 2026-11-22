@@ -107,12 +107,12 @@ describe('NativeFetcher - worker', () => {
 describe('NativeFetcher - query string options', () => {
   const filter = { where: { id: 1 } };
 
-  test('the default writes an object param as an empty value', async () => {
+  test('the default writes an object param as an empty value and skips an undefined', async () => {
     const captured = captureRequest();
 
     await buildFetcher().get({ url: 'http://example.test/a', params: { filter, q: undefined } });
 
-    expect(captured.url).toBe('http://example.test/a?filter=&q=');
+    expect(captured.url).toBe('http://example.test/a?filter=');
   });
 
   test('the ARDOR options send the filter as JSON and skip an undefined', async () => {

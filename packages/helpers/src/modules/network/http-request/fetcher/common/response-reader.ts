@@ -353,10 +353,11 @@ export class HttpResponseReader {
     }
 
     // An empty name is no name: `filename=""` and `filename*=UTF-8''` answer `undefined`, so `name ?? fallback` falls back.
-    const quoted = header.match(/filename\s*=\s*"([^"]*)"/i);
+    // A quoted string may hold `\"` and `\\` (RFC 6266 quoted-pairs): the backslash is dropped, the character kept.
+    const quoted = header.match(/filename\s*=\s*"((?:[^"\\]|\\.)*)"/i);
 
     if (quoted) {
-      return { type, filename: quoted[1] || undefined };
+      return { type, filename: quoted[1].replace(/\\(.)/g, '$1') || undefined };
     }
 
     const bare = header.match(/filename\s*=\s*([^;]+)/i);

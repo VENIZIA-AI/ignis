@@ -484,18 +484,18 @@ A caller's `Content-Type`, in any case, replaces the default. Set `timeout` in `
 QueryStringUtility.toQueryString(opts: { params: Record<string, unknown>; nullish?: 'empty' | 'skip'; nested?: 'drop' | 'json' }): string
 ```
 
-Writes `params` as a query string without `node:querystring`, so it works in a browser. The defaults match `node:querystring`: an array repeats its key (`a=1&a=2`), `null` and `undefined` give an empty value (`a=`), an object gives an empty value, a space is `%20`.
+Writes `params` as a query string without `node:querystring`, so it works in a browser. It matches `node:querystring` except for the empty values: an array repeats its key (`a=1&a=2`), `null`, `undefined` and an empty array leave the pair out (`nullish: 'empty'` writes `a=` for a `null` or `undefined` instead), an object gives an empty value, a space is `%20`.
 
 | Option | Value | Effect |
 |---|---|---|
-| `nullish` | `'empty'` (default) | `a=` |
-| `nullish` | `'skip'` | The pair is left out (inside an array too) |
+| `nullish` | `'skip'` (default) | The pair is left out (inside an array too) |
+| `nullish` | `'empty'` | `a=`, as `node:querystring` writes it |
 | `nested` | `'drop'` (default) | An object is an empty value; an array repeats its key |
 | `nested` | `'json'` | An object **or an array** is ONE JSON parameter |
 
 With `nested: 'json'` an array becomes `ids=%5B1%2C2%5D` and an object `filter=%7B%22where%22...`; primitives are unchanged.
 
-A client that sends a JSON filter passes `{ nullish: 'skip', nested: 'json' }`, through `NativeFetchNetworkRequest`'s `networkOptions.queryString`.
+A client that sends a JSON filter passes `{ nested: 'json' }`, through `NativeFetchNetworkRequest`'s `networkOptions.queryString`.
 
 ---
 
@@ -1184,7 +1184,7 @@ An IPv6 literal is expanded to its eight 16-bit groups before it is classified, 
 | `assertPaths` | No path is a dot segment, hides one (`%2e%2e`, `.%2e`, a trailing space, a `?` or `#` after the dots), or carries a backslash, `%5c` or a control character |
 | `toText` | `baseUrl` (no trailing slash) and each path with one leading slash |
 
-A `?` inside a path segment is not escaped: it starts the query, as it always did (use `params` for a query). A double slash (`a//b`) is not refused: it cannot leave the base.
+A `?` or `#` inside a path segment is not escaped: it starts the query or the fragment, as it always did (use `params` for a query, or `%3F` and `%23` for the characters themselves). A `%` that is not an escape (`100%`) is written `%25`; a valid escape (`%20`) is left alone. A double slash (`a//b`) is not refused: it cannot leave the base.
 
 `HttpResponseReader.readText({ response, maxBytes? })` turns a `Response` into text, the one way every reader does it: `''` for a 204, an empty body or no body, and the read fails at `maxBytes`. The fetchers' schema path uses it too.
 

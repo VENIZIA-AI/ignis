@@ -20,6 +20,7 @@ import {
   UrlSafetyRefusals,
 } from '@/modules/network/utilities/url-safety/common/errors';
 import { getError } from '@/modules/error';
+import { UrlBuilder } from '@/modules/network/utilities/url-builder';
 
 const server = Bun.serve({
   port: 0,
@@ -254,5 +255,42 @@ describe('a FormData, URLSearchParams or Blob body under the JSON default conten
 
       expect(data.contentType).toBe('application/json; charset=utf-8');
     }
+  });
+});
+
+describe('LOW fixes: a bare % in a path, a quoted-pair in a filename', () => {
+  test('a % that is not an escape becomes %25 in the path part, a valid escape is left alone', () => {
+    expect(UrlBuilder.toText({ baseUrl: 'http://x.test/api', paths: ['100%'] })).toBe(
+      'http://x.test/api/100%25',
+    );
+    expect(UrlBuilder.toText({ baseUrl: 'http://x.test/api', paths: ['a%20b', 'c%3Fd'] })).toBe(
+      'http://x.test/api/a%20b/c%3Fd',
+    );
+    expect(UrlBuilder.toText({ baseUrl: 'http://x.test/api', paths: ['50%/off?x=100%'] })).toBe(
+      'http://x.test/api/50%25/off?x=100%',
+    );
+    // A path after one that opened the query is already in the query.
+    expect(UrlBuilder.toText({ baseUrl: 'http://x.test/api', paths: ['a?x', '100%'] })).toBe(
+      'http://x.test/api/a?x/100%',
+    );
+  });
+
+  test('a ? and a # in a segment still start the query and the fragment', () => {
+    const url = UrlBuilder.join({ baseUrl: 'http://x.test/api', paths: ['a?b#c'], scope: 'test' });
+
+    expect(url.search).toBe('?b');
+    expect(url.hash).toBe('#c');
+  });
+
+  test('a quoted-pair is unescaped: \\" is a quote and \\\\ is a backslash', () => {
+    const quote = HttpResponseReader.parseContentDisposition({
+      header: 'attachment; filename="a\\"b.pdf"',
+    });
+    const backslash = HttpResponseReader.parseContentDisposition({
+      header: 'attachment; filename="a\\\\b.pdf"',
+    });
+
+    expect(quote.filename).toBe('a"b.pdf');
+    expect(backslash.filename).toBe('a\\b.pdf');
   });
 });
