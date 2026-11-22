@@ -789,10 +789,6 @@ export declare class HttpHeaders {
     static withJsonDefault(opts: {
         layers: ReadonlyArray<THttpHeaders | null | undefined>;
     }): Headers;
-    /** Whether the runtime describes `body` itself: a `FormData` (its boundary), a `URLSearchParams` or a `Blob` (their own types). */
-    static isSelfDescribingBody(opts: {
-        body: unknown;
-    }): boolean;
     /**
      * `headers` for a call with `body`: the JSON default content type is dropped when the runtime describes the body itself,
      * so it sets the multipart boundary or the right type. A content type the call names wins and stays.
