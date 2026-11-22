@@ -42,6 +42,9 @@ const GUARDED_OPTIONS = new Set([
   'rejectUnauthorized',
 ]);
 
+/** Axios fields a default can never carry: the pipeline sends the body from `body` and decides which statuses throw (`acceptStatus`), so a default `data` or `validateStatus` would be overwritten. */
+type TRefusedAxiosFields = 'data' | 'validateStatus';
+
 /** The fields of an axios config the pipeline owns. */
 type TOwnedAxiosFields =
   | 'url'
@@ -62,6 +65,10 @@ export interface IAxiosRequestOptions
   body?: Record<string, unknown>;
   /** Not accepted: the body is sent from `body`, so an axios `data` would be dropped. Pass `body`. */
   data?: never;
+  /** Not accepted: which statuses throw is `acceptStatus`, so an axios `validateStatus` would be dropped. */
+  validateStatus?: never;
+  /** Not accepted: `params` are written into the url by the pipeline, so a call's `paramsSerializer` would be dropped. */
+  paramsSerializer?: never;
   /** Whether this call rejects an HTTPS server whose certificate fails verification; `false` turns verification off for this call. */
   rejectUnauthorized?: boolean;
 }
@@ -115,7 +122,7 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
 
   constructor(opts: {
     name: string;
-    defaultConfigs?: Omit<AxiosRequestConfig, 'data'>;
+    defaultConfigs?: Omit<AxiosRequestConfig, TRefusedAxiosFields>;
     /** Joined to a relative call url; an absolute one is sent as it is. */
     baseUrl?: string;
     defaults?: IFetcherDefaults;
@@ -311,7 +318,10 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
 /** Options of `AxiosNetworkRequest`: an axios config with `baseUrl` in place of `baseURL`. */
 export interface IAxiosNetworkRequestOptions {
   name: string;
-  networkOptions: Omit<AxiosRequestConfig, 'baseURL' | 'headers' | 'timeout' | 'data'> & {
+  networkOptions: Omit<
+    AxiosRequestConfig,
+    'baseURL' | 'headers' | 'timeout' | TRefusedAxiosFields
+  > & {
     baseUrl?: string;
     headers?: Record<string, string>;
     /** Per attempt, in milliseconds. @default 60000 */
@@ -328,7 +338,7 @@ export class AxiosNetworkRequest extends BaseNetworkRequest<'axios'> {
     const { name, networkOptions } = opts;
     const { headers, baseUrl, timeout, ...rest } = networkOptions;
 
-    const defaultConfigs: Omit<AxiosRequestConfig, 'data'> = {
+    const defaultConfigs: Omit<AxiosRequestConfig, TRefusedAxiosFields> = {
       withCredentials: true,
       ...rest,
       baseURL: baseUrl,

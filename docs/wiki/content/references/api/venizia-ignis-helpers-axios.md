@@ -29,7 +29,7 @@ export declare class AxiosFetcher extends AbstractNetworkFetchableHelper<'axios'
     private readonly configured;
     constructor(opts: {
         name: string;
-        defaultConfigs?: Omit<AxiosRequestConfig, 'data'>;
+        defaultConfigs?: Omit<AxiosRequestConfig, TRefusedAxiosFields>;
         /** Joined to a relative call url; an absolute one is sent as it is. */
         baseUrl?: string;
         defaults?: IFetcherDefaults;
@@ -56,6 +56,9 @@ export declare class AxiosFetcher extends AbstractNetworkFetchableHelper<'axios'
     private refineError;
     protected exchange(opts: IFetchExchangeRequest): Promise<IFetchExchange<AxiosResponse<unknown>>>;
 }
+
+/** Axios fields a default can never carry: the pipeline sends the body from `body` and decides which statuses throw (`acceptStatus`), so a default `data` or `validateStatus` would be overwritten. */
+type TRefusedAxiosFields = 'data' | 'validateStatus';
 ```
 
 Source: `packages/helpers/src/modules/network/http-request/fetcher/axios-fetcher.ts`
@@ -83,7 +86,7 @@ Options of `AxiosNetworkRequest`: an axios config with `baseUrl` in place of `ba
 ```ts
 export interface IAxiosNetworkRequestOptions {
     name: string;
-    networkOptions: Omit<AxiosRequestConfig, 'baseURL' | 'headers' | 'timeout' | 'data'> & {
+    networkOptions: Omit<AxiosRequestConfig, 'baseURL' | 'headers' | 'timeout' | TRefusedAxiosFields> & {
         baseUrl?: string;
         headers?: Record<string, string>;
         /** Per attempt, in milliseconds. @default 60000 */
@@ -93,6 +96,9 @@ export interface IAxiosNetworkRequestOptions {
     hooks?: IFetcherHooks;
     guardEngine?: IFetchGuard;
 }
+
+/** Axios fields a default can never carry: the pipeline sends the body from `body` and decides which statuses throw (`acceptStatus`), so a default `data` or `validateStatus` would be overwritten. */
+type TRefusedAxiosFields = 'data' | 'validateStatus';
 ```
 
 Source: `packages/helpers/src/modules/network/http-request/fetcher/axios-fetcher.ts`
@@ -110,6 +116,10 @@ export interface IAxiosRequestOptions extends Omit<AxiosRequestConfig, TOwnedAxi
     body?: Record<string, unknown>;
     /** Not accepted: the body is sent from `body`, so an axios `data` would be dropped. Pass `body`. */
     data?: never;
+    /** Not accepted: which statuses throw is `acceptStatus`, so an axios `validateStatus` would be dropped. */
+    validateStatus?: never;
+    /** Not accepted: `params` are written into the url by the pipeline, so a call's `paramsSerializer` would be dropped. */
+    paramsSerializer?: never;
     /** Whether this call rejects an HTTPS server whose certificate fails verification; `false` turns verification off for this call. */
     rejectUnauthorized?: boolean;
 }

@@ -246,4 +246,29 @@ describe('AxiosNetworkRequest and AxiosFetcher - data is not an option anywhere'
 
     expect([networkOptions, defaultConfigs]).toHaveLength(2);
   });
+
+  test('validateStatus and paramsSerializer are type errors on a call and on the defaults', () => {
+    const call: IAxiosRequestOptions = {
+      url: 'http://127.0.0.1/user',
+      // @ts-expect-error - which statuses throw is acceptStatus
+      validateStatus: () => true,
+      // @ts-expect-error - params are written into the url by the pipeline
+      paramsSerializer: { serialize: () => '' },
+    };
+    const networkOptions: IAxiosNetworkRequestOptions['networkOptions'] = {
+      // @ts-expect-error - which statuses throw is acceptStatus
+      validateStatus: () => true,
+    };
+
+    expect([call, networkOptions]).toHaveLength(2);
+  });
+
+  test('a timeout rejects with a TimeoutError, not an AxiosError', async () => {
+    const fetcher = new AxiosFetcher({ name: 'timeout', defaultConfigs: {} });
+    const error = await RejectionUtility.rejectionOf({
+      task: fetcher.get({ url: `${base}/slow`, timeout: 50 }),
+    });
+
+    expect((error as Error).name).toBe('TimeoutError');
+  });
 });
