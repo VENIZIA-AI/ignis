@@ -52,7 +52,9 @@ explicit key rather than relying on auto-injection.
 The second write is not redundant. Only it sees a `TMixinOpts.binding` passed at the call site, and
 only it fires for a class registered by hand (`application.service(X)`), which carries no stereotype
 metadata to derive anything from. `ArtifactNamespaces` is the `ArtifactTypes → BindingNamespaces`
-map that the first writer needs, and lives in the same file.
+map that the first writer needs, and lives in the same file. It is built on first use (not at module
+load) because `ArtifactTypes.define` reaches `BindingNamespaces`; a type an application defined takes its
+namespace from its definition, and `BindingNamespaces.isBuiltIn` is how `define` refuses a built-in one.
 
 A second *registration* under a different key logs a warning naming both - the shape only arises when
 two applications in one process bind the same class differently, and a silent last-writer-wins there

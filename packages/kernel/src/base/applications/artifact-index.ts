@@ -10,7 +10,7 @@ import type {
   IConditionalArtifactIndex,
   TArtifactIndexInput,
 } from './common';
-import { ArtifactIndexFields } from './common';
+import { ArtifactIndexFields, type TArtifactIndexField } from './common';
 
 /** Turns a `configs.artifacts` input into the classes to register: flattens nested indexes, drops the classes whose `when` says no, orders the rest. It never touches the container - `registerArtifacts` does the binding. */
 export class ArtifactIndexHelper extends BaseHelper {
@@ -41,6 +41,7 @@ export class ArtifactIndexHelper extends BaseHelper {
   buildDiscoveredIndex(): IArtifactIndex {
     const registry = MetadataRegistry.getInstance();
     const index: Record<string, TClass<unknown>[]> = {};
+    const custom: Record<string, TClass<unknown>[]> = {};
 
     const discoveredArtifacts = registry.getDiscoveredArtifacts();
 
@@ -52,6 +53,11 @@ export class ArtifactIndexHelper extends BaseHelper {
       const type = registry.getArtifactMetadata({ target })?.type;
       const field = type ? ArtifactIndexHelper.INDEX_FIELD_BY_TYPE[type] : undefined;
 
+      if (type && !field && ArtifactTypes.definitionOf({ type })) {
+        custom[type] = [...(custom[type] ?? []), target];
+        continue;
+      }
+
       if (!field) {
         continue;
       }
@@ -59,7 +65,7 @@ export class ArtifactIndexHelper extends BaseHelper {
       index[field] = [...(index[field] ?? []), target];
     }
 
-    return index;
+    return Object.keys(custom).length > 0 ? { ...index, custom } : index;
   }
 
   /** Every kind of the input, each already filtered by `when` and sorted by `order`, keyed the way `IArtifactIndex` is. */
@@ -105,7 +111,30 @@ export class ArtifactIndexHelper extends BaseHelper {
       application,
     });
 
-    return { configurations, dataSources, components, repositories, services, controllers };
+    const custom = await this.selectCustom({ indexes, application });
+
+    return { configurations, dataSources, components, repositories, services, controllers, custom };
+  }
+
+  /** The classes of each custom type across every index, each type chosen like a built-in field (`when`, `order`, no duplicates). Types come in the order they are first named. */
+  private async selectCustom(opts: {
+    indexes: IArtifactIndex[];
+    application: unknown;
+  }): Promise<Record<string, TClass<unknown>[]>> {
+    const { indexes, application } = opts;
+    const types = [...new Set(indexes.flatMap((index) => Object.keys(index.custom ?? {})))];
+    const custom: Record<string, TClass<unknown>[]> = {};
+
+    for (const type of types) {
+      const chosen = await this.choose({
+        listed: indexes.flatMap((index) => [...(index.custom?.[type] ?? [])]),
+        label: `custom.${type}`,
+        application,
+      });
+      custom[type] = chosen;
+    }
+
+    return custom;
   }
 
   /**
@@ -243,12 +272,21 @@ export class ArtifactIndexHelper extends BaseHelper {
     const { group } = opts;
     const content = await ArtifactGroup.resolveContent({ group });
 
+    const { custom = {}, ...lists } = content;
+
     // One element type for the six kinds, so `.map` is callable on every member of the union.
-    for (const [field, classes] of Object.entries(content)) {
+    for (const [field, classes] of Object.entries(lists)) {
       this.assertClasses({ field, classes });
     }
 
-    const kinds: Array<ReadonlyArray<TClass<unknown>> | undefined> = Object.values(content);
+    for (const [type, classes] of Object.entries(custom)) {
+      this.assertClasses({ field: `custom.${type}`, classes });
+    }
+
+    const kinds: Array<ReadonlyArray<TClass<unknown>> | undefined> = [
+      ...Object.values(lists),
+      ...Object.values(custom),
+    ];
     const names = kinds.flatMap((classes) => (classes ?? []).map((target) => target.name));
 
     if (names.length === 0 && !group.kinds) {
@@ -270,18 +308,33 @@ export class ArtifactIndexHelper extends BaseHelper {
   }
 
   /** The classes of one kind across every index, minus those whose `when` says no, sorted by `order` (stable). The `when` conditions run concurrently: each reads config and environment, never another artifact. */
-  async select<Field extends keyof IArtifactIndex>(opts: {
+  async select<Field extends TArtifactIndexField>(opts: {
     indexes: IArtifactIndex[];
     field: Field;
     application: unknown;
   }): Promise<NonNullable<IArtifactIndex[Field]>[number][]> {
     const { indexes, field, application } = opts;
+
+    return this.choose({
+      listed: indexes.flatMap((index) => [...(index[field] ?? [])]),
+      label: field,
+      application,
+    });
+  }
+
+  /** The shared half of `select` and `selectCustom`: the listed classes de-duplicated, minus those whose `when` says no, sorted by `order`. */
+  private async choose<Listed extends TClass<unknown>>(opts: {
+    listed: ReadonlyArray<Listed>;
+    label: string;
+    application: unknown;
+  }): Promise<Listed[]> {
+    const { label, application } = opts;
     const registry = MetadataRegistry.getInstance();
 
     // De-duplicated: discovery and a declared index can name the same class, and registering it
     // twice trips `bootChecks.binding.allowOverride: false`. First mention wins its position.
-    const listed = [...new Set(indexes.flatMap((index) => [...(index[field] ?? [])]))];
-    this.assertClasses({ field, classes: listed });
+    const listed = [...new Set(opts.listed)];
+    this.assertClasses({ field: label, classes: listed });
     const decisions = await Promise.all(
       listed.map((target) => this.isSelected({ target, application })),
     );
@@ -291,7 +344,7 @@ export class ArtifactIndexHelper extends BaseHelper {
         return true;
       }
 
-      this.logger.debug('Skipped by condition | kind: %s | class: %s', field, target.name);
+      this.logger.debug('Skipped by condition | field: %s | class: %s', label, target.name);
 
       return false;
     });

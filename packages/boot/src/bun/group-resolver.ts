@@ -32,19 +32,30 @@ export class GroupArtifactsResolver {
       await ArtifactSources.loadScanner();
     }
 
-    const index: Record<string, Array<TClass<unknown>>> = {};
+    const index: TGeneratedArtifactIndex = {};
+    const custom: Record<string, Array<TClass<never>>> = {};
 
     for (const artifact of ArtifactSources.folderArtifacts({ folder, site, ignore })) {
       const field = ArtifactStereotypes.EMIT_ORDER.find(
         (entry) => entry.type === artifact.type,
       )?.field;
+      const isCustom = !field && !ArtifactStereotypes.isBuiltIn({ type: artifact.type });
 
-      if (!field) {
+      if (!field && !isCustom) {
         continue;
       }
 
       const loaded = await import(artifact.filePath);
-      index[field] = [...(index[field] ?? []), loaded[artifact.className]];
+
+      if (field) {
+        index[field] = [...(index[field] ?? []), loaded[artifact.className]];
+      } else {
+        custom[artifact.type] = [...(custom[artifact.type] ?? []), loaded[artifact.className]];
+      }
+    }
+
+    if (Object.keys(custom).length > 0) {
+      index.custom = custom;
     }
 
     return index;

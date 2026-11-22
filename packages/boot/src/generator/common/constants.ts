@@ -55,6 +55,36 @@ export class ArtifactStereotypes {
 
   static readonly SOURCE_MODULES = /^@venizia\/ignis(?:-kernel)?(?:\/.+)?$/;
 
+  /** The index field that carries the classes of the application's own types (`ArtifactTypes.define`), by type name; mirrors the kernel's `IArtifactIndex.custom`. */
+  static readonly CUSTOM_FIELD = 'custom';
+
+  /** Whether `type` is one of the built-in artifact types, `model` included. */
+  static isBuiltIn(opts: { type: string }): boolean {
+    return ArtifactTypes.isValid(opts.type);
+  }
+
+  /** The classes of the custom types among `artifacts`, grouped by type name; types and classes in name order, so the output is stable. */
+  static groupCustom<Artifact extends { type: string; className: string }>(opts: {
+    artifacts: ReadonlyArray<Artifact>;
+  }): Array<{ type: string; artifacts: Artifact[] }> {
+    const byType = new Map<string, Artifact[]>();
+
+    for (const artifact of opts.artifacts) {
+      if (ArtifactStereotypes.isBuiltIn({ type: artifact.type })) {
+        continue;
+      }
+
+      byType.set(artifact.type, [...(byType.get(artifact.type) ?? []), artifact]);
+    }
+
+    return [...byType.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([type, artifacts]) => ({
+        type,
+        artifacts: artifacts.sort((left, right) => left.className.localeCompare(right.className)),
+      }));
+  }
+
   static readonly DEFAULT_IGNORE = [
     '**/__tests__/**',
     '**/*.test.{ts,tsx}',
@@ -83,6 +113,8 @@ export class ScanSkipReasons extends ConstClass {
   static readonly ABSTRACT = 'abstract';
   static readonly NOT_EXPORTED = 'not-exported';
   static readonly IGNORED = 'ignored';
+  /** The decorator comes from an `ArtifactTypes.define` the scanner cannot read (a type that is not a literal, a built package, a barrel). */
+  static readonly UNREADABLE_TYPE = 'unreadable-type';
 }
 
 /** One of the `ScanSkipReasons` values. */

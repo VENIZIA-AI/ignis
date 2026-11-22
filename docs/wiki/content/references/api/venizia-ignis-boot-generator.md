@@ -50,6 +50,10 @@ export declare class ArtifactIndexEmitter {
             sourceModules?: string[];
         };
     }): string;
+    /** `text` as a single-quoted string literal, with the backslash and the quote escaped, as the formatter writes it. */
+    private static quote;
+    /** The `custom` field: one list per type the application defined, nothing at all when it defined none. */
+    private static renderCustom;
     /** One line while it fits the print width, else one name per line - so `bun fmt --check` on the generated file stays quiet. */
     private static renderField;
     private static importPath;
@@ -129,6 +133,11 @@ export declare class ArtifactScanner extends BaseHelper {
     private collectStereotypeImports;
     /** The identifiers called as decorators on the file's top-level classes (`@service()`, `@kit.service()` is not followed). */
     private collectClassDecoratorNames;
+    /**
+     * local identifier -> type, for the decorators this file's classes wear that an application defined with
+     * `ArtifactTypes.define`: declared in this file, or imported from a module whose chain of exports reaches the declaration.
+     */
+    private collectCustomDecorators;
     private collectExportClauseNames;
     private artifactTypesOf;
     private typeOfInjectableCall;
@@ -156,6 +165,22 @@ export declare class ArtifactStereotypes {
     static readonly SCHEME_SET: Set<string>;
     static isValid(value: string): boolean;
     static readonly SOURCE_MODULES: RegExp;
+    /** The index field that carries the classes of the application's own types (`ArtifactTypes.define`), by type name; mirrors the kernel's `IArtifactIndex.custom`. */
+    static readonly CUSTOM_FIELD = "custom";
+    /** Whether `type` is one of the built-in artifact types, `model` included. */
+    static isBuiltIn(opts: {
+        type: string;
+    }): boolean;
+    /** The classes of the custom types among `artifacts`, grouped by type name; types and classes in name order, so the output is stable. */
+    static groupCustom<Artifact extends {
+        type: string;
+        className: string;
+    }>(opts: {
+        artifacts: ReadonlyArray<Artifact>;
+    }): Array<{
+        type: string;
+        artifacts: Artifact[];
+    }>;
     static readonly DEFAULT_IGNORE: string[];
     /**
      * The kernel's `registerArtifacts` order; `model` is never emitted. Configurations come first:
@@ -227,7 +252,8 @@ export interface IScannedArtifact {
     className: string;
     /** Absolute path of the declaring file. */
     filePath: string;
-    type: TArtifactType;
+    /** A built-in `TArtifactType`, or the name an `ArtifactTypes.define` gave. */
+    type: string;
 }
 ```
 
@@ -302,6 +328,8 @@ export declare class ScanSkipReasons extends ConstClass {
     static readonly ABSTRACT = "abstract";
     static readonly NOT_EXPORTED = "not-exported";
     static readonly IGNORED = "ignored";
+    /** The decorator comes from an `ArtifactTypes.define` the scanner cannot read (a type that is not a literal, a built package, a barrel). */
+    static readonly UNREADABLE_TYPE = "unreadable-type";
 }
 ```
 
@@ -340,7 +368,9 @@ The index boot builds and moves around without knowing the application's classes
 Each kind of the kernel's index names its own class type (`TClass<BaseConfiguration>`, `TClass<IService>`, ...), which boot cannot name. `TClass<never>` is the bottom of that family: it is assignable to every one of them, so a group that carries it is still the kernel's `IArtifactGroup`. Its instance type is `never`, so boot only passes the classes along and never constructs one.
 
 ```ts
-export type TGeneratedArtifactIndex = Partial<Record<TArtifactIndexField, ReadonlyArray<TClass<never>>>>;
+export type TGeneratedArtifactIndex = Partial<Record<TArtifactIndexField, ReadonlyArray<TClass<never>>>> & {
+    custom?: Readonly<Record<string, ReadonlyArray<TClass<never>>>>;
+};
 ```
 
 Source: `packages/boot/src/generator/common/types.ts`
@@ -352,7 +382,9 @@ Source: `packages/boot/src/generator/common/types.ts`
 What an application may hand to an `AutoArtifactGroup` as its index: a list of classes per kind, with the same kinds as the kernel's `IArtifactIndex` (boot does not depend on the kernel, so it cannot name that type). The classes are `TClass<unknown>` so any real class is accepted; the group keeps the exact type the application passed.
 
 ```ts
-export type TGeneratedArtifactIndexInput = Partial<Record<TArtifactIndexField, ReadonlyArray<TClass<unknown>>>>;
+export type TGeneratedArtifactIndexInput = Partial<Record<TArtifactIndexField, ReadonlyArray<TClass<unknown>>>> & {
+    custom?: Readonly<Record<string, ReadonlyArray<TClass<unknown>>>>;
+};
 ```
 
 Source: `packages/boot/src/generator/common/types.ts`

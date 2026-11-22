@@ -100,7 +100,7 @@ export declare class ArtifactGroup implements IArtifactGroup {
         ignore?: ReadonlyArray<string>;
         content?: IArtifactIndex;
     }): ArtifactGroup;
-    /** A group carrying only `kinds` - for a slicer that splits `configs.artifacts` by run mode. The source group is resolved when artifacts are registered, never here. */
+    /** A group carrying only `kinds` - for a slicer that splits `configs.artifacts` by run mode. `custom` is one kind for every type the application defined: a slice keeps all of them or none. The source group is resolved when artifacts are registered, never here. */
     static pick(opts: {
         group: IArtifactGroup;
         kinds: ReadonlyArray<keyof IArtifactIndex>;
@@ -125,6 +125,7 @@ export declare class ArtifactGroup implements IArtifactGroup {
     get repositories(): never;
     get services(): never;
     get controllers(): never;
+    get custom(): never;
     private static holder;
     /** The module that declared the group, read from the call stack. */
     private static callSite;
@@ -145,11 +146,14 @@ Source: `packages/kernel/src/base/applications/artifact-group.ts`
 
 *class*
 
-Artifact kind -> namespace. `registerArtifact` gets its namespace from the call site; `@injectable` has only the class.
+Artifact type -> namespace. `registerArtifact` gets its namespace from the call site; `@injectable` has only the class.
 
 ```ts
 export declare class ArtifactNamespaces {
-    private static readonly BY_TYPE;
+    private static builtInByType?;
+    /** Built on first use: `ArtifactTypes.define` reaches `BindingNamespaces`, so this module must not read `ArtifactTypes` while it loads. */
+    private static builtIn;
+    /** A built-in type's namespace, else the namespace its `ArtifactTypes.define` gave. */
     static resolve(opts: {
         type: string;
     }): TBindingNamespace;
@@ -162,10 +166,11 @@ Source: `packages/kernel/src/common/bindings.ts`
 
 *class*
 
-What a decorated class is to the application - the one fact the artifact generator and the registration methods both read.
+What a decorated class is to the application - the one fact the artifact generator and the registration methods both read. The seven constants are the built-in types; an application adds its own with `define`.
 
-```ts
+````ts
 export declare class ArtifactTypes extends ConstClass {
+    #private;
     static readonly CONFIGURATION = "configuration";
     static readonly COMPONENT = "component";
     static readonly CONTROLLER = "controller";
@@ -173,8 +178,32 @@ export declare class ArtifactTypes extends ConstClass {
     static readonly REPOSITORY = "repository";
     static readonly DATASOURCE = "datasource";
     static readonly MODEL = "model";
+    /**
+     * Declares an artifact type of the application and returns its decorator: `@emitter()` registers the class like a
+     * stereotype does, in `namespace`, bound with `scope`. Declaring the same type again with the same namespace and scope
+     * (a module imported twice) changes nothing; with another one, it throws.
+     *
+     * @example
+     * ```typescript
+     * export const emitter = ArtifactTypes.define({
+     *   type: 'emitter',
+     *   namespace: 'emitters',
+     *   scope: BindingScopes.SINGLETON,
+     * });
+     *
+     * export @emitter()
+     * class OrderEmitter {}
+     * ```
+     */
+    static define(opts: IArtifactTypeDefinition): <ApplicationType = unknown>(registration?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator;
+    /** The names of the types `define` recorded, in the order they were defined. */
+    static definedTypes(): string[];
+    /** The definition `define` recorded for `type`; `undefined` for a built-in type and for a name nobody defined. */
+    static definitionOf(opts: {
+        type: string;
+    }): IArtifactTypeDefinition | undefined;
 }
-```
+````
 
 Source: `packages/kernel/src/helpers/inversion/common/constants.ts`
 
@@ -201,6 +230,10 @@ export declare class BindingNamespaces {
      * alone - a name carrying '.' or whitespace yields a key no boot step can drain by tag.
      */
     static isValid(opts: {
+        name: string;
+    }): boolean;
+    /** Whether `name` is the namespace of a built-in artifact type (or of the middlewares and providers the framework binds). */
+    static isBuiltIn(opts: {
         name: string;
     }): boolean;
     static createNamespace(opts: {
@@ -321,7 +354,7 @@ Source: `packages/kernel/src/base/applications/common/types/artifacts.ts`
 
 *interface*
 
-The shape `@venizia/ignis-boot`'s generator emits and `registerArtifacts()` consumes. Kinds are registered in this field order.
+The shape `@venizia/ignis-boot`'s generator emits and `registerArtifacts()` consumes. Fields are registered in this order.
 
 ```ts
 export interface IArtifactIndex {
@@ -331,6 +364,8 @@ export interface IArtifactIndex {
     repositories?: ReadonlyArray<TClass<IRepository>>;
     services?: ReadonlyArray<TClass<IService>>;
     controllers?: ReadonlyArray<TClass<unknown>>;
+    /** The classes of the types the application declared with `ArtifactTypes.define`, by type name. Registered after the services and before the controllers; a type with no loaded definition is an error. */
+    custom?: Readonly<Record<string, ReadonlyArray<TClass<unknown>>>>;
 }
 ```
 
@@ -340,11 +375,11 @@ Source: `packages/kernel/src/base/applications/common/types/artifacts.ts`
 
 *interface*
 
-Registration options of an artifact plus its `type`.
+Registration options of an artifact plus its `type`: a built-in one (`TArtifactType`) or one `ArtifactTypes.define` declared.
 
 ```ts
 export interface IArtifactMetadata<ApplicationType = unknown> extends IArtifactRegistrationOptions<ApplicationType> {
-    type: TArtifactType;
+    type: TArtifactType | (string & {});
 }
 ```
 

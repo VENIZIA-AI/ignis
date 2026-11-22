@@ -1,12 +1,13 @@
 import type { TClass } from '@venizia/ignis-helpers';
-import type { TArtifactIndexField, TArtifactType, TScanSkipReason } from './constants';
+import type { TArtifactIndexField, TScanSkipReason } from './constants';
 
 /** A decorated class the scanner put in the index. */
 export interface IScannedArtifact {
   className: string;
   /** Absolute path of the declaring file. */
   filePath: string;
-  type: TArtifactType;
+  /** A built-in `TArtifactType`, or the name an `ArtifactTypes.define` gave. */
+  type: string;
 }
 
 /** Options for one scan of a source tree. */
@@ -45,7 +46,7 @@ export interface IScanReport {
  */
 export type TGeneratedArtifactIndexInput = Partial<
   Record<TArtifactIndexField, ReadonlyArray<TClass<unknown>>>
->;
+> & { custom?: Readonly<Record<string, ReadonlyArray<TClass<unknown>>>> };
 
 /**
  * The index boot builds and moves around without knowing the application's classes: the object a generated index exports, and the default of `AutoArtifactGroup`.
@@ -54,4 +55,4 @@ export type TGeneratedArtifactIndexInput = Partial<
  */
 export type TGeneratedArtifactIndex = Partial<
   Record<TArtifactIndexField, ReadonlyArray<TClass<never>>>
->;
+> & { custom?: Readonly<Record<string, ReadonlyArray<TClass<never>>>> };

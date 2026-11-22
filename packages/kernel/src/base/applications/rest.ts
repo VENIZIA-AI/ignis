@@ -1,7 +1,7 @@
 import type { TBindingNamespace } from '@/common/bindings';
 import { ArtifactNamespaces, BindingNamespaces, CoreBindings } from '@/common/bindings';
 import type { Binding, TBindingKey, TBindingScope } from '@/helpers/inversion';
-import { BindingScopes, MetadataRegistry } from '@/helpers/inversion';
+import { ArtifactTypes, BindingScopes, MetadataRegistry } from '@/helpers/inversion';
 import { BindingVerifier } from '@venizia/ignis-inversion';
 import type { IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
@@ -758,14 +758,33 @@ export abstract class RestApplication<
       [resolved.services, BindingNamespaces.SERVICE],
       [resolved.controllers, BindingNamespaces.CONTROLLER],
     ];
+    // An application's own types: each needs its definition loaded, or the class has no namespace and no default scope.
+    const custom = Object.entries(resolved.custom).flatMap(([type, targets]) => {
+      const definition = ArtifactTypes.definitionOf({ type });
+
+      if (!definition) {
+        throw getError({
+          message: `[registerArtifacts] '${targets[0]?.name ?? type}' is listed under the artifact type '${type}', which is not defined | Import the module that calls ArtifactTypes.define({ type: '${type}', ... }) before the application boots`,
+        });
+      }
+
+      return targets.map((target) => ({ target, definition }));
+    });
     const collisions = ArtifactBindingKeys.findDerivedCollisions({
-      entries: kinds.flatMap(([targets, namespace]) =>
-        targets.map((target) => ({
+      entries: [
+        ...kinds.flatMap(([targets, namespace]) =>
+          targets.map((target) => ({
+            target,
+            namespace,
+            binding: registry.getArtifactMetadata({ target })?.binding,
+          })),
+        ),
+        ...custom.map(({ target, definition }) => ({
           target,
-          namespace,
+          namespace: definition.namespace,
           binding: registry.getArtifactMetadata({ target })?.binding,
         })),
-      ),
+      ],
     });
 
     for (const key of collisions) {
@@ -798,6 +817,15 @@ export abstract class RestApplication<
 
     for (const target of resolved.services) {
       this.service(target);
+    }
+
+    for (const { target, definition } of custom) {
+      this.registerArtifact({
+        target,
+        namespace: definition.namespace,
+        defaultScope: definition.scope,
+        caller: definition.type,
+      });
     }
 
     for (const target of resolved.controllers) {
