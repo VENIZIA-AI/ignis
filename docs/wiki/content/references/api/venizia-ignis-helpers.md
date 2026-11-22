@@ -5214,12 +5214,8 @@ Telling a url-guard refusal from a failure worth another attempt.
 
 ```ts
 export declare class UrlSafetyRefusals {
-    /** Whether `error` is a refusal that repeats: the guard's `URL_REFUSED` (an address, a scheme, a hop count) or a `BODY_TOO_LARGE`. A caller that retries must drop it. */
+    /** Whether `error` is the guard's `URL_REFUSED`: refused forever, so a caller that retries must drop it. */
     static is(opts: {
-        error: unknown;
-    }): boolean;
-    /** Whether `error` is a body over the cap, as against an address the guard refused. */
-    static isBodyTooLarge(opts: {
         error: unknown;
     }): boolean;
 }
