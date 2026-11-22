@@ -1,5 +1,5 @@
 import { BindingKeys } from '@venizia/ignis-inversion';
-import type { AbstractRedisHelper } from '@venizia/ignis-helpers';
+import type { IRedisHelper } from '@venizia/ignis-helpers';
 import type {
   SocketIOServerHelper,
   TSocketIOAuthenticateFn,
@@ -18,7 +18,7 @@ export class SocketIOBindingKeys {
     key: '@app/socket-io/server-options',
   });
 
-  static readonly REDIS_CONNECTION = BindingKeys.build<AbstractRedisHelper | null>({
+  static readonly REDIS_CONNECTION = BindingKeys.build<IRedisHelper | null>({
     key: '@app/socket-io/redis-connection',
   });
 
