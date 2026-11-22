@@ -81,6 +81,15 @@ export class UrlBuilder {
     return `${base}${paths.map((path) => (path.startsWith('/') ? path : `/${path}`)).join('')}`;
   }
 
+  /** A call url as sent: an absolute one stays as it is, a relative one is joined to `baseUrl` by `join`, with its refusals. */
+  static resolve(opts: { baseUrl: string; url: string; scope: string }): string {
+    const { baseUrl, url, scope } = opts;
+
+    return ABSOLUTE_URL_PATTERN.test(url)
+      ? url
+      : UrlBuilder.join({ baseUrl, paths: [url], scope }).toString();
+  }
+
   /**
    * The url of a request: the base and the paths, checked. A path may not be a dot segment, hide one, or carry a backslash
    * or a control character; a relative base (`/api`) is resolved against `origin` (the page's, by default); and the result

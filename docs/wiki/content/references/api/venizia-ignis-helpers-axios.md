@@ -30,6 +30,8 @@ export declare class AxiosFetcher extends AbstractNetworkFetchableHelper<'axios'
     constructor(opts: {
         name: string;
         defaultConfigs?: Omit<AxiosRequestConfig, 'data'>;
+        /** Joined to a relative call url; an absolute one is sent as it is. */
+        baseUrl?: string;
         defaults?: IFetcherDefaults;
         hooks?: IFetcherHooks;
         /** The server half of the url guard (`UrlGuard`); a call that passes `guard` needs it. */

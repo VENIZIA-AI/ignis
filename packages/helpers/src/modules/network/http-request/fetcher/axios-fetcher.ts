@@ -116,6 +116,8 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
   constructor(opts: {
     name: string;
     defaultConfigs?: Omit<AxiosRequestConfig, 'data'>;
+    /** Joined to a relative call url; an absolute one is sent as it is. */
+    baseUrl?: string;
     defaults?: IFetcherDefaults;
     hooks?: IFetcherHooks;
     /** The server half of the url guard (`UrlGuard`); a call that passes `guard` needs it. */
@@ -131,6 +133,7 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
     super({
       name: opts.name,
       variant: 'axios',
+      baseUrl: opts.baseUrl,
       defaults: opts.defaults,
       hooks: opts.hooks,
       guardEngine: opts.guardEngine,
@@ -337,6 +340,7 @@ export class AxiosNetworkRequest extends BaseNetworkRequest<'axios'> {
       fetcher: new AxiosFetcher({
         name,
         defaultConfigs,
+        baseUrl,
         defaults: {
           timeout: timeout ?? 60 * 1000,
           ...opts.defaults,
