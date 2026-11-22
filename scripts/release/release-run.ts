@@ -33,9 +33,14 @@ import { ReleaseRegistry } from './release-registry';
 import { ReleaseVersion } from './release-version';
 import { ReleaseTarballs } from './release-tarballs';
 
+/** How often moving `highest` is tried before the run reports it and goes on. */
+const HIGHEST_ATTEMPTS = 3;
+
 export interface ICommandResult {
   stdout: string;
   exitCode: number;
+  /** What the command wrote on stderr: why it failed, for a run that reports it and goes on. */
+  stderr?: string;
 }
 
 export interface IReleasePorts {
@@ -529,12 +534,21 @@ export class ReleaseRun {
           published: version,
         })
       ) {
-        const moved = await ports.run({
-          command: ['npm', 'dist-tag', 'add', `${packageName}@${version}`, 'highest'],
-          allowFailure: true,
-        });
+        // npm retries a failing request on its own and the registry sometimes still refuses (run 45025444605: two of six
+        // packages, ~75 s each, with no reason in the log), so the move is tried again before it is given up on.
+        const moveHighest = () =>
+          ports.run({
+            command: ['npm', 'dist-tag', 'add', `${packageName}@${version}`, 'highest'],
+            allowFailure: true,
+          });
+        let moved = await moveHighest();
+        for (let attempt = 1; attempt < HIGHEST_ATTEMPTS && moved.exitCode !== 0; attempt++) {
+          moved = await moveHighest();
+        }
         if (moved.exitCode !== 0) {
-          ports.log(`WARNING | could not set the 'highest' dist-tag of ${packageName} (non-fatal)`);
+          ports.log(
+            `WARNING | could not set the 'highest' dist-tag of ${packageName} after ${HIGHEST_ATTEMPTS} attempts (non-fatal) | ${moved.stderr?.slice(-400) || `exit ${moved.exitCode}, nothing on stderr`}`,
+          );
         }
       }
 
@@ -551,7 +565,7 @@ export class ReleaseRun {
       });
       if (synced.exitCode !== 0) {
         ports.log(
-          `WARNING | could not keep 'next' at or above 'latest' for ${packageName} (non-fatal)`,
+          `WARNING | could not keep 'next' at or above 'latest' for ${packageName} (non-fatal) | ${synced.stderr?.slice(-400) || `exit ${synced.exitCode}, nothing on stderr`}`,
         );
       }
 
@@ -616,7 +630,7 @@ const spawnRun: IReleasePorts['run'] = async (opts) => {
     throw new Error(`[${opts.command.join(' ')}] exited ${exitCode}\n${stderr || stdout}`);
   }
 
-  return { stdout: stdout.trim(), exitCode };
+  return { stdout: stdout.trim(), exitCode, stderr: stderr.trim() };
 };
 
 const realPorts = (): IReleasePorts => ({

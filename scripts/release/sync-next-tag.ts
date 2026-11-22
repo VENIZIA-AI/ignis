@@ -11,7 +11,8 @@
  * dist-tags for minutes after a publish, so that version is used for the package instead of what
  * `npm view` reports.
  *
- * It runs after a publish that must not be undone, so a failure is a loud warning and exit 0.
+ * It runs after a publish that must not be undone, so a failure is a loud warning on stderr and exit 1: the release loop
+ * reads that, logs the reason and goes on.
  */
 import { NpmDistTags, type TNpmDistTag } from './release-constants';
 
@@ -156,6 +157,8 @@ const main = async (): Promise<void> => {
     for (const failure of failures) {
       console.warn(`  - ${failure}`);
     }
+
+    process.exitCode = 1;
   }
 };
 
