@@ -33,9 +33,11 @@ describe('Container.get({ target })', () => {
     const container = containerWithMail();
     const key = BindingKeys.build<MailService>({ key: 'services.MailService' });
 
-    expect(container.get({ target: MailService })).toBeInstanceOf(
-      container.get({ key }).constructor,
-    );
+    const byTarget = container.get({ target: MailService });
+    const byKey = container.get({ key });
+
+    expect(byTarget).toBeInstanceOf(MailService);
+    expect(byTarget).toEqual(byKey);
   });
 
   test('an unregistered class throws what @inject({ target }) throws', () => {
