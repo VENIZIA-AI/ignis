@@ -46,9 +46,9 @@ export abstract class BaseContainer extends AbstractContainer {
   }
 
   /** A JavaScript caller can still pass a removed form (a symbol, `{ namespace, key }`): say what replaced it. */
-  private static assertKey(opts: { key: unknown; caller: string }): void {
+  private static assertKey<K>(opts: { key: K; caller: string }): K & string {
     if (typeof opts.key === 'string') {
-      return;
+      return opts.key;
     }
 
     throw getError({
@@ -170,21 +170,22 @@ export abstract class BaseContainer extends AbstractContainer {
   }): T | undefined {
     const { target, isOptional = false } = opts;
     // The class form is the key `@inject({ target })` would read, resolved by the same method with the same errors.
-    const key =
+    const resolved =
       target === undefined
         ? opts.key
-        : this.resolveBindingKey({ target, isOptional, owner: 'Container', at: 'get({ target })' });
+        : this.resolveBindingKey({
+            target,
+            isOptional,
+            owner: this.constructor.name,
+            at: 'get({ target })',
+          });
 
-    if (key === undefined) {
-      // An optional class nothing registered answers `undefined`; a call with neither is the JavaScript misuse `assertKey` names.
-      if (target === undefined) {
-        BaseContainer.assertKey({ key, caller: 'get' });
-      }
-
+    // An optional class nothing registered answers `undefined`; any other missing key is the JavaScript misuse `assertKey` names.
+    if (resolved === undefined && target !== undefined) {
       return undefined;
     }
 
-    BaseContainer.assertKey({ key, caller: 'get' });
+    const key = BaseContainer.assertKey({ key: resolved, caller: 'get' });
 
     const binding = this.getBinding<T>({ key });
 

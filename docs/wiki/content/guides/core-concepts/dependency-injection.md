@@ -179,6 +179,7 @@ constructor(
 
 ```typescript
 import { UserService } from '../services/user.service';
+import { CacheService } from '../services/cache.service';
 
 const userService = application.get({ target: UserService }); // UserService
 const cache = application.get({ target: CacheService, isOptional: true }); // CacheService | undefined

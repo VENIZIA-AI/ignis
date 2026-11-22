@@ -2,8 +2,8 @@ import 'reflect-metadata';
 
 import { describe, expect, test } from 'bun:test';
 import { BindingKeys } from '@/modules/binding/common/constants';
-import { Container } from '../modules/container/container';
-import { metadataRegistry } from '../modules/registry/registry';
+import { Container } from '@/modules/container/container';
+import { metadataRegistry } from '@/modules/registry/registry';
 
 class MailService {
   send(): string {
