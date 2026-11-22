@@ -32,6 +32,8 @@ export interface INativeFetchRequestOptions extends TNativeRequestInit, IRequest
   url: string;
   params?: Record<string, unknown>;
   body?: RequestInit['body'] | Record<string, unknown> | unknown[];
+  /** Not accepted: the body is `body`, so a `data` would be dropped. */
+  data?: never;
 }
 
 /** What sends a request when the fetcher is given one: the part of `fetch` it uses. */

@@ -80,6 +80,8 @@ export declare abstract class AbstractNetworkFetchableHelper<V extends TFetcherV
     protected describeBody(opts: {
         body: unknown;
     }): string | undefined;
+    /** The fields of a call the pipeline would drop, with what to do instead: refused at run time for a call that is not typed (a spread, a computed key). A fetcher names more. */
+    protected readonly refusedCallFields: Readonly<Record<string, string>>;
     /** Refuses a call the client cannot honour; `AxiosFetcher` refuses a guard it cannot pin. */
     protected assertCallSupported(_opts: {
         guard?: IUrlSafetyPolicy;
@@ -1522,6 +1524,8 @@ export interface INativeFetchRequestOptions extends TNativeRequestInit, IRequest
     url: string;
     params?: Record<string, unknown>;
     body?: RequestInit['body'] | Record<string, unknown> | unknown[];
+    /** Not accepted: the body is `body`, so a `data` would be dropped. */
+    data?: never;
 }
 ```
 
