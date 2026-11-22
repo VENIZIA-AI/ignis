@@ -6,6 +6,8 @@ import { z } from 'zod';
 import {
   AxiosFetcher,
   AxiosNetworkRequest,
+  type IAxiosNetworkRequestOptions,
+  type IAxiosRequestOptions,
 } from '@/modules/network/http-request/fetcher/axios-fetcher';
 import { FetchSchemaError } from '@/modules/network/http-request/fetcher/common/errors';
 import { UrlFetchError } from '@/modules/network/utilities/url-safety/common/errors';
@@ -216,5 +218,32 @@ describe('AxiosNetworkRequest', () => {
       task: fetcher.get({ url: request.getRequestUrl({ paths: ['404'] }) }),
     });
     expect(UrlFetchError.is(error)).toBe(true);
+  });
+});
+
+describe('IAxiosRequestOptions - the body is sent from body', () => {
+  test('an axios data is a type error, not a silently dropped field', () => {
+    const options: IAxiosRequestOptions = {
+      url: 'http://127.0.0.1/user',
+      // @ts-expect-error - pass body: data would be dropped
+      data: { name: 'Ada' },
+    };
+
+    expect(options.url).toBe('http://127.0.0.1/user');
+  });
+});
+
+describe('AxiosNetworkRequest and AxiosFetcher - data is not an option anywhere', () => {
+  test('networkOptions and defaultConfigs refuse an axios data', () => {
+    const networkOptions: IAxiosNetworkRequestOptions['networkOptions'] = {
+      // @ts-expect-error - every call sends its own body, so a default data would be overwritten
+      data: {},
+    };
+    const defaultConfigs: ConstructorParameters<typeof AxiosFetcher>[0]['defaultConfigs'] = {
+      // @ts-expect-error - same for the fetcher's default configs
+      data: {},
+    };
+
+    expect([networkOptions, defaultConfigs]).toHaveLength(2);
   });
 });

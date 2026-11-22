@@ -1699,11 +1699,11 @@ Source: `packages/helpers/src/common/constants/http.ts`
 
 *type*
 
-Reads one value by binding `key` from the container; the caller supplies `T`.
+Reads one value by binding `key` from the container; `T` comes from the key.
 
 ```ts
 export type TInjectionGetter = <T>(opts: {
-    key: string | symbol;
+    key: TBindingKey<T>;
 }) => T;
 ```
 

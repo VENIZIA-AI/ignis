@@ -19,7 +19,7 @@ Container keys of the WebSocket component: the server instance, its options, the
 export declare class WebSocketBindingKeys {
     static readonly WEBSOCKET_INSTANCE: import("@venizia/ignis-inversion").TBindingKey<WebSocketServerHelper<Record<string, unknown>, Record<string, unknown>>>;
     static readonly SERVER_OPTIONS: import("@venizia/ignis-inversion").TBindingKey<Partial<IServerOptions>>;
-    static readonly REDIS_CONNECTION: import("@venizia/ignis-inversion").TBindingKey<AbstractRedisHelper<import("@venizia/ignis-helpers").TRedisClient> | null>;
+    static readonly REDIS_CONNECTION: import("@venizia/ignis-inversion").TBindingKey<IRedisHelper | null>;
     static readonly AUTHENTICATE_HANDLER: import("@venizia/ignis-inversion").TBindingKey<TWebSocketAuthenticateFn | null>;
     static readonly VALIDATE_ROOM_HANDLER: import("@venizia/ignis-inversion").TBindingKey<TWebSocketValidateRoomFn | null>;
     static readonly CLIENT_CONNECTED_HANDLER: import("@venizia/ignis-inversion").TBindingKey<TWebSocketClientConnectedFn | null>;

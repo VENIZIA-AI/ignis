@@ -60,6 +60,8 @@ export interface IAxiosRequestOptions
   url: string;
   params?: Record<string, unknown>;
   body?: Record<string, unknown>;
+  /** Not accepted: the body is sent from `body`, so an axios `data` would be dropped. Pass `body`. */
+  data?: never;
   /** Whether this call rejects an HTTPS server whose certificate fails verification; `false` turns verification off for this call. */
   rejectUnauthorized?: boolean;
 }
@@ -113,7 +115,7 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
 
   constructor(opts: {
     name: string;
-    defaultConfigs?: AxiosRequestConfig;
+    defaultConfigs?: Omit<AxiosRequestConfig, 'data'>;
     defaults?: IFetcherDefaults;
     hooks?: IFetcherHooks;
     /** The server half of the url guard (`UrlGuard`); a call that passes `guard` needs it. */
@@ -306,7 +308,7 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
 /** Options of `AxiosNetworkRequest`: an axios config with `baseUrl` in place of `baseURL`. */
 export interface IAxiosNetworkRequestOptions {
   name: string;
-  networkOptions: Omit<AxiosRequestConfig, 'baseURL' | 'headers' | 'timeout'> & {
+  networkOptions: Omit<AxiosRequestConfig, 'baseURL' | 'headers' | 'timeout' | 'data'> & {
     baseUrl?: string;
     headers?: Record<string, string>;
     /** Per attempt, in milliseconds. @default 60000 */
@@ -323,7 +325,7 @@ export class AxiosNetworkRequest extends BaseNetworkRequest<'axios'> {
     const { name, networkOptions } = opts;
     const { headers, baseUrl, timeout, ...rest } = networkOptions;
 
-    const defaultConfigs: AxiosRequestConfig = {
+    const defaultConfigs: Omit<AxiosRequestConfig, 'data'> = {
       withCredentials: true,
       ...rest,
       baseURL: baseUrl,

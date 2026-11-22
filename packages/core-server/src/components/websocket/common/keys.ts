@@ -1,6 +1,6 @@
 import { BindingKeys } from '@venizia/ignis-inversion';
 import type {
-  AbstractRedisHelper,
+  IRedisHelper,
   TWebSocketAuthenticateFn,
   TWebSocketClientConnectedFn,
   TWebSocketClientDisconnectedFn,
@@ -22,7 +22,7 @@ export class WebSocketBindingKeys {
     key: '@app/websocket/server-options',
   });
 
-  static readonly REDIS_CONNECTION = BindingKeys.build<AbstractRedisHelper | null>({
+  static readonly REDIS_CONNECTION = BindingKeys.build<IRedisHelper | null>({
     key: '@app/websocket/redis-connection',
   });
 
