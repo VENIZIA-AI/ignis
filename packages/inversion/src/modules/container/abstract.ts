@@ -20,8 +20,16 @@ export abstract class AbstractContainer extends BaseHelper implements IContainer
   abstract unbind(opts: { key: TBindingKey }): boolean;
   abstract set<T>(opts: { binding: IBinding<T> }): void;
 
-  abstract get<T>(opts: { key: TBindingKey<T>; isOptional?: false }): T;
-  abstract get<T>(opts: { key: TBindingKey<T>; isOptional?: boolean }): T | undefined;
+  abstract get<T>(
+    opts:
+      | { key: TBindingKey<T>; isOptional?: false }
+      | { target: TClass<T>; key?: never; isOptional?: false },
+  ): T;
+  abstract get<T>(
+    opts:
+      | { key: TBindingKey<T>; isOptional?: boolean }
+      | { target: TClass<T>; key?: never; isOptional?: boolean },
+  ): T | undefined;
   abstract get(opts: { key: TBindingKey; isOptional?: boolean }): unknown;
   abstract gets<T extends unknown[]>(opts: {
     bindings: {

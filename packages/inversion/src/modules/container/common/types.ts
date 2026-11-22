@@ -15,8 +15,16 @@ export interface IContainer {
   unbind(opts: { key: TBindingKey }): boolean;
   set<T>(opts: { binding: IBinding<T> }): void;
 
-  get<T>(opts: { key: TBindingKey<T>; isOptional?: false }): T;
-  get<T>(opts: { key: TBindingKey<T>; isOptional?: boolean }): T | undefined;
+  get<T>(
+    opts:
+      | { key: TBindingKey<T>; isOptional?: false }
+      | { target: TClass<T>; key?: never; isOptional?: false },
+  ): T;
+  get<T>(
+    opts:
+      | { key: TBindingKey<T>; isOptional?: boolean }
+      | { target: TClass<T>; key?: never; isOptional?: boolean },
+  ): T | undefined;
   get(opts: { key: TBindingKey; isOptional?: boolean }): unknown;
   gets<T extends unknown[]>(opts: {
     bindings: {
