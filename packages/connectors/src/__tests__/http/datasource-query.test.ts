@@ -22,6 +22,15 @@ describe('HttpDataSource.buildUrl query values', () => {
     );
   });
 
+  test('a list holding an object or a list stays ONE JSON parameter, never an empty value', () => {
+    expect(build({ ids: [{ a: 1 }] })).toBe(
+      `https://api.example.com/v1/x?ids=${encodeURIComponent('[{"a":1}]')}`,
+    );
+    expect(build({ nested: [[1, 2]] })).toBe(
+      `https://api.example.com/v1/x?nested=${encodeURIComponent('[[1,2]]')}`,
+    );
+  });
+
   test('a string, a number and a boolean are written as they read', () => {
     expect(build({ s: 'a b', n: 2, t: true })).toBe(
       'https://api.example.com/v1/x?s=a%20b&n=2&t=true',
@@ -31,6 +40,12 @@ describe('HttpDataSource.buildUrl query values', () => {
   test('a path that carries its own query keeps it, and the parameters follow', () => {
     expect(dataSource.buildUrl({ paths: ['x?y=1'], query: { z: 2 } })).toBe(
       'https://api.example.com/v1/x?y=1&z=2',
+    );
+  });
+
+  test('a parameter named like one in the path adds to it: y=1&y=2, it no longer replaces', () => {
+    expect(dataSource.buildUrl({ paths: ['x?y=1'], query: { y: 2 } })).toBe(
+      'https://api.example.com/v1/x?y=1&y=2',
     );
   });
 

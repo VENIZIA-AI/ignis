@@ -101,16 +101,23 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
     return headers;
   }
 
-  /** One query parameter through the helpers' encoder; a value that cannot be written (a bigint in an object) is a 400 naming the parameter. */
+  /**
+   * One query parameter through the helpers' encoder: a `null`, an `undefined` and an empty array leave the pair out, a list of
+   * primitives repeats its key, an object (or a list holding one) is ONE JSON parameter, the filter wire. A value that cannot
+   * be written (a bigint in an object) is a 400 naming the parameter.
+   */
   private writeQueryParameter(opts: { key: string; value: unknown }): string {
     const { key, value } = opts;
+    const isJson =
+      value !== null &&
+      typeof value === 'object' &&
+      (!Array.isArray(value) || value.some((entry) => entry !== null && typeof entry === 'object'));
 
     try {
       return QueryStringUtility.toQueryString({
         params: { [key]: value },
         nullish: 'skip',
-        nested:
-          value !== null && typeof value === 'object' && !Array.isArray(value) ? 'json' : 'drop',
+        nested: isJson ? 'json' : 'drop',
       });
     } catch (error) {
       throw getError({
@@ -124,7 +131,6 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
     const { paths, query } = opts;
     const url = UrlBuilder.join({ baseUrl: this.settings.baseUrl, paths, scope: this.name });
 
-    // One encoder, the helpers': a `null`, an `undefined` and an empty array leave the pair out, a list repeats its key, an object is ONE JSON parameter (the filter wire).
     const written = Object.entries(query ?? {})
       .map(([key, value]) => this.writeQueryParameter({ key, value }))
       .filter(Boolean)

@@ -42,7 +42,11 @@ export declare class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettin
         isJsonBody?: boolean;
         isFormDataBody?: boolean;
     }): Headers;
-    /** One query parameter through the helpers' encoder; a value that cannot be written (a bigint in an object) is a 400 naming the parameter. */
+    /**
+     * One query parameter through the helpers' encoder: a `null`, an `undefined` and an empty array leave the pair out, a list of
+     * primitives repeats its key, an object (or a list holding one) is ONE JSON parameter, the filter wire. A value that cannot
+     * be written (a bigint in an object) is a 400 naming the parameter.
+     */
     private writeQueryParameter;
     buildUrl(opts: {
         paths: Array<string>;
