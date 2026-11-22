@@ -9,11 +9,11 @@ import type { THttpHeaders } from './types';
 /** Header maps: merged per header, the call winning, a `null` or `undefined` value removing a header. */
 export class HttpHeaders {
   /** The headers of `layers` in order, later layers over earlier ones, as one `Headers`. */
-  static merge(opts: { layers: ReadonlyArray<THttpHeaders | undefined> }): Headers {
+  static merge(opts: { layers: ReadonlyArray<THttpHeaders | null | undefined> }): Headers {
     const merged = new Headers();
 
     for (const layer of opts.layers) {
-      if (layer === undefined) {
+      if (layer === undefined || layer === null) {
         continue;
       }
 
@@ -35,13 +35,51 @@ export class HttpHeaders {
   }
 
   /** `merge` under a JSON content type: the layers may replace it (any case) or remove it with `null`. */
-  static withJsonDefault(opts: { layers: ReadonlyArray<THttpHeaders | undefined> }): Headers {
+  static withJsonDefault(opts: {
+    layers: ReadonlyArray<THttpHeaders | null | undefined>;
+  }): Headers {
     return HttpHeaders.merge({
       layers: [
         { [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON_UTF8 },
         ...opts.layers,
       ],
     });
+  }
+
+  /**
+   * Whether the runtime describes `body` itself: a `FormData` (its boundary), a `URLSearchParams` or a `Blob` (their own
+   * types). A constructor is looked up on `globalThis` so a runtime without one never matches it.
+   */
+  static isSelfDescribingBody(opts: { body: unknown }): boolean {
+    return ['FormData', 'URLSearchParams', 'Blob'].some((name) => {
+      const ctor = Reflect.get(globalThis, name);
+
+      return typeof ctor === 'function' && opts.body instanceof ctor;
+    });
+  }
+
+  /**
+   * `headers` for a call with `body`: the JSON default content type is dropped when the runtime describes the body itself,
+   * so it sets the multipart boundary or the right type. A content type the call names wins and stays.
+   */
+  static forBody(opts: {
+    headers: Headers;
+    call: THttpHeaders | undefined;
+    body: unknown;
+  }): Headers {
+    const { headers, call, body } = opts;
+    const hasCallType =
+      call === undefined ? false : HttpHeaders.merge({ layers: [call] }).has('content-type');
+
+    if (
+      HttpHeaders.isSelfDescribingBody({ body }) &&
+      !hasCallType &&
+      headers.get('content-type')?.toLowerCase() === HTTP.HeaderValues.APPLICATION_JSON_UTF8
+    ) {
+      headers.delete('content-type');
+    }
+
+    return headers;
   }
 
   /** A copy of `headers` keeping only the names in `names`. */

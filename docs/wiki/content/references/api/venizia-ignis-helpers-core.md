@@ -341,7 +341,7 @@ A cap on a body, for a stream piped onward or a body read into memory. Browser-p
 
 ```ts
 export declare class BodyLimit {
-    /** The one refusal of a body over the cap; `detail` says how it was found (declared, received, a client's own words). */
+    /** The one refusal of a body over the cap, with its own code (`core.url_safety.body_too_large`); `detail` says how it was found (declared, received, a client's own words). */
     static refuse(opts: {
         detail: string;
     }): ApplicationError;
@@ -761,11 +761,27 @@ Header maps: merged per header, the call winning, a `null` or `undefined` value 
 export declare class HttpHeaders {
     /** The headers of `layers` in order, later layers over earlier ones, as one `Headers`. */
     static merge(opts: {
-        layers: ReadonlyArray<THttpHeaders | undefined>;
+        layers: ReadonlyArray<THttpHeaders | null | undefined>;
     }): Headers;
     /** `merge` under a JSON content type: the layers may replace it (any case) or remove it with `null`. */
     static withJsonDefault(opts: {
-        layers: ReadonlyArray<THttpHeaders | undefined>;
+        layers: ReadonlyArray<THttpHeaders | null | undefined>;
+    }): Headers;
+    /**
+     * Whether the runtime describes `body` itself: a `FormData` (its boundary), a `URLSearchParams` or a `Blob` (their own
+     * types). A constructor is looked up on `globalThis` so a runtime without one never matches it.
+     */
+    static isSelfDescribingBody(opts: {
+        body: unknown;
+    }): boolean;
+    /**
+     * `headers` for a call with `body`: the JSON default content type is dropped when the runtime describes the body itself,
+     * so it sets the multipart boundary or the right type. A content type the call names wins and stays.
+     */
+    static forBody(opts: {
+        headers: Headers;
+        call: THttpHeaders | undefined;
+        body: unknown;
     }): Headers;
     /** A copy of `headers` keeping only the names in `names`. */
     static only(opts: {
@@ -929,8 +945,8 @@ export declare class HttpResponseReader {
     /**
      * Reads a filename out of a `Content-Disposition` value.
      *
-     * Three forms, in the order the RFC gives them precedence: `filename*=UTF-8''...` (percent-encoded,
-     * and the one hand-rolled parsers miss), a quoted `filename="..."`, and a bare `filename=...`.
+     * Three forms, in the order the RFC gives them precedence: `filename*=UTF-8''...` or `filename*=ISO-8859-1''...`
+     * (percent-encoded, and the one hand-rolled parsers miss; another charset falls through), a quoted `filename="..."`, and a bare `filename=...`.
      * Splitting on `filename=` alone returns the percent-encoded bytes for any non-ASCII name, which in
      * a product with non-English filenames is most of them.
      *
@@ -3552,6 +3568,15 @@ export declare const UrlSafetyErrors: {
             readonly code: "core.url_safety.url_refused";
         };
         readonly statusCode: 400;
+        readonly category: "business";
+    };
+    /** A body over the cap (`maxBytes`): its own code, so a caller tells it from a refused address without reading the message. */
+    readonly BODY_TOO_LARGE: {
+        readonly message: {
+            readonly text: "Body exceeds the cap";
+            readonly code: "core.url_safety.body_too_large";
+        };
+        readonly statusCode: 413;
         readonly category: "business";
     };
 };

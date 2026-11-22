@@ -303,8 +303,8 @@ export class HttpResponseReader {
   /**
    * Reads a filename out of a `Content-Disposition` value.
    *
-   * Three forms, in the order the RFC gives them precedence: `filename*=UTF-8''...` (percent-encoded,
-   * and the one hand-rolled parsers miss), a quoted `filename="..."`, and a bare `filename=...`.
+   * Three forms, in the order the RFC gives them precedence: `filename*=UTF-8''...` or `filename*=ISO-8859-1''...`
+   * (percent-encoded, and the one hand-rolled parsers miss; another charset falls through), a quoted `filename="..."`, and a bare `filename=...`.
    * Splitting on `filename=` alone returns the percent-encoded bytes for any non-ASCII name, which in
    * a product with non-English filenames is most of them.
    *
@@ -329,23 +329,36 @@ export class HttpResponseReader {
       const value = extended[1].trim();
       // `UTF-8''name` or `UTF-8'lang'name`; anything before the last quote is charset and language.
       const encoded = value.slice(value.lastIndexOf("'") + 1);
+      const charset = value.slice(0, Math.max(value.indexOf("'"), 0)).toLowerCase();
 
       try {
-        return { type, filename: decodeURIComponent(encoded) };
+        // UTF-8 and ISO-8859-1 are the two charsets RFC 8187 names; any other falls through to `filename`.
+        if (charset === '' || charset === 'utf-8') {
+          return { type, filename: decodeURIComponent(encoded) || undefined };
+        }
+
+        if (charset === 'iso-8859-1') {
+          const decoded = encoded.replace(/%([0-9a-f]{2})/gi, (_, hex: string) =>
+            String.fromCharCode(Number.parseInt(hex, 16)),
+          );
+
+          return { type, filename: decoded || undefined };
+        }
         // eslint-disable-next-line venizia/no-silent-catch -- a malformed `filename*` falls through to the plain `filename` parameter; only the extended name is lost
       } catch {
         // A malformed sequence is not worth failing a download over - fall through to `filename`.
       }
     }
 
+    // An empty name is no name: `filename=""` and `filename*=UTF-8''` answer `undefined`, so `name ?? fallback` falls back.
     const quoted = header.match(/filename\s*=\s*"([^"]*)"/i);
 
     if (quoted) {
-      return { type, filename: quoted[1] };
+      return { type, filename: quoted[1] || undefined };
     }
 
     const bare = header.match(/filename\s*=\s*([^;]+)/i);
 
-    return { type, filename: bare ? bare[1].trim() : undefined };
+    return { type, filename: bare?.[1].trim() || undefined };
   }
 }

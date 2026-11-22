@@ -45,6 +45,15 @@ const GUARDED_OPTIONS = new Set([
 /** Axios fields a default can never carry: the pipeline sends the body from `body`, decides which statuses throw (`acceptStatus`) and sends one absolute url, so a default `data`, `validateStatus` or `allowAbsoluteUrls` would be overwritten or would make axios join the url twice. */
 type TRefusedAxiosFields = 'data' | 'validateStatus' | 'allowAbsoluteUrls';
 
+/** What a call says instead of an axios field the pipeline would drop: refused at run time too, for a call that is not typed (a spread, a computed key). */
+const REFUSED_CALL_FIELDS: Readonly<Record<string, string>> = {
+  data: "pass the body as 'body'",
+  validateStatus: "use 'acceptStatus'",
+  paramsSerializer: "write a custom query string into 'url'",
+  baseURL: "the base is the fetcher's 'baseUrl'",
+  allowAbsoluteUrls: 'the pipeline sends one absolute url',
+};
+
 /** The fields of an axios config the pipeline owns. */
 type TOwnedAxiosFields =
   | 'url'
@@ -166,6 +175,14 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
     extra: Record<string | symbol, unknown>;
   }): void {
     const { guard, extra } = opts;
+
+    for (const [field, instead] of Object.entries(REFUSED_CALL_FIELDS)) {
+      if (extra[field] !== undefined) {
+        throw getError({
+          message: `[${this.name}] '${field}' is not an option of a call | ${instead}`,
+        });
+      }
+    }
 
     if (guard === undefined) {
       return;
