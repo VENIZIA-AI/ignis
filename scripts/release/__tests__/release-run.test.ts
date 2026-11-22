@@ -36,6 +36,8 @@ class FakeWorld {
   calls: string[] = [];
   logs: string[] = [];
   highest = new Map<string, string>();
+  /** How many `npm dist-tag add` calls of a package still fail (with a reason on stderr) before one answers. */
+  distTagFailures = new Map<string, number>();
   packed = new Map<string, Record<string, unknown>>();
   faults = {
     publish: new Set<string>(),
@@ -166,7 +168,7 @@ class FakeWorld {
     command: string[];
     cwd?: string;
     allowFailure?: boolean;
-  }): Promise<{ stdout: string; exitCode: number }> {
+  }): Promise<{ stdout: string; exitCode: number; stderr?: string }> {
     const { command, cwd } = opts;
     const dir = cwd?.replace(/^packages\//, '') ?? '';
     this.calls.push(`${cwd ? `[${dir}] ` : ''}${command.join(' ')}`);
@@ -222,6 +224,11 @@ class FakeWorld {
     }
     if (tool === 'npm' && verb === 'dist-tag') {
       const [name, version] = command[3].split(/@(?=[^@]*$)/);
+      const remaining = this.distTagFailures.get(name) ?? 0;
+      if (remaining > 0) {
+        this.distTagFailures.set(name, remaining - 1);
+        return { stdout: '', exitCode: 1, stderr: 'npm error code E429 too many requests' };
+      }
       this.highest.set(name, version);
       return ok();
     }
@@ -344,6 +351,31 @@ describe('ReleaseRun.execute: a clean run', () => {
     ]);
     expect(world.npm.has('@venizia/ignis-kernel@0.4.6')).toBe(true);
     expect(world.npm.has('@venizia/ignis-inversion@0.4.6')).toBe(false);
+  });
+
+  test("moving 'highest' is tried again: a refusal or two does not leave it behind", async () => {
+    const world = new FakeWorld();
+    world.distTagFailures.set('@venizia/ignis-kernel', 2);
+    await execute({ world });
+
+    expect(world.highest.get('@venizia/ignis-kernel')).toBe('0.4.6');
+    expect(world.logs.some((line) => line.includes("could not set the 'highest'"))).toBe(false);
+  });
+
+  test("a 'highest' that never moves is reported with the reason npm gave, and the run goes on", async () => {
+    const world = new FakeWorld();
+    world.distTagFailures.set('@venizia/ignis-kernel', 99);
+    const outcomes = await execute({ world });
+
+    const warning = world.logs.find((line) => line.includes("could not set the 'highest'"));
+
+    expect(warning).toContain('@venizia/ignis-kernel after 3 attempts');
+    expect(warning).toContain('E429 too many requests');
+    expect(outcomes.map((outcome) => outcome.state)).toEqual([
+      'published',
+      'published',
+      'published',
+    ]);
   });
 
   test('prints the + line the driver reads, once per published package', async () => {
