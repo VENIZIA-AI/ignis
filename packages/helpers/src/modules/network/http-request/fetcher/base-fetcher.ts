@@ -306,7 +306,11 @@ export abstract class AbstractNetworkFetchableHelper<
             : UrlBuilder.resolve({ baseUrl: this.baseUrl, url: request.url, scope: this.name }),
         params: request.params,
       }),
-      headers: HttpHeaders.merge({ layers: [this.defaults.headers, request.headers] }),
+      headers: HttpHeaders.forBody({
+        headers: HttpHeaders.merge({ layers: [this.defaults.headers, request.headers] }),
+        call: request.headers,
+        body: request.body,
+      }),
       body: request.body,
       signal: request.signal,
       timeout: request.timeout,

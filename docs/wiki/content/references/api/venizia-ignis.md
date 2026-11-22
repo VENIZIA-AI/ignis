@@ -3469,6 +3469,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `HookUtility` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `HrTimeUtility` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `HTTP` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `HttpBodies` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `HttpHeaders` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `HttpRedirects` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `HttpResponseReader` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)

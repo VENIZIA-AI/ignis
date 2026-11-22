@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-223 exports, 223 with TSDoc. 256 more are re-exported from other entries (listed at the end).
+223 exports, 223 with TSDoc. 257 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -5214,8 +5214,12 @@ Telling a url-guard refusal from a failure worth another attempt.
 
 ```ts
 export declare class UrlSafetyRefusals {
-    /** Whether `error` is the guard's `URL_REFUSED`: refused forever, so a caller that retries must drop it. */
+    /** Whether `error` is a refusal that repeats: the guard's `URL_REFUSED` (an address, a scheme, a hop count) or a `BODY_TOO_LARGE`. A caller that retries must drop it. */
     static is(opts: {
+        error: unknown;
+    }): boolean;
+    /** Whether `error` is a body over the cap, as against an address the guard refused. */
+    static isBodyTooLarge(opts: {
         error: unknown;
     }): boolean;
 }
@@ -5600,6 +5604,7 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `GRPC` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `HfQueueHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `HTTP` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `HttpBodies` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `HttpHeaders` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `HttpRedirects` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `HttpResponseReader` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)

@@ -13,6 +13,12 @@ export const UrlSafetyErrors = {
     statusCode: HTTP.ResultCodes.RS_4.BadRequest,
     category: ErrorScopes.BUSINESS,
   },
+  /** A body over the cap (`maxBytes`): its own code, so a caller tells it from a refused address without reading the message. */
+  BODY_TOO_LARGE: {
+    message: { text: 'Body exceeds the cap', code: 'core.url_safety.body_too_large' },
+    statusCode: HTTP.ResultCodes.RS_4.ContentTooLarge,
+    category: ErrorScopes.BUSINESS,
+  },
 } as const satisfies Record<string, TErrorDefinition>;
 
 /**
@@ -66,13 +72,24 @@ declare module '@venizia/ignis-inversion' {
 
 /** Telling a url-guard refusal from a failure worth another attempt. */
 export class UrlSafetyRefusals {
-  /** Whether `error` is the guard's `URL_REFUSED`: refused forever, so a caller that retries must drop it. */
+  /** Whether `error` is a refusal that repeats: the guard's `URL_REFUSED` (an address, a scheme, a hop count) or a `BODY_TOO_LARGE`. A caller that retries must drop it. */
   static is(opts: { error: unknown }): boolean {
     const { error } = opts;
 
     return (
       isApplicationError(error) &&
-      error.normalized.code === UrlSafetyErrors.URL_REFUSED.message.code
+      (error.normalized.code === UrlSafetyErrors.URL_REFUSED.message.code ||
+        error.normalized.code === UrlSafetyErrors.BODY_TOO_LARGE.message.code)
+    );
+  }
+
+  /** Whether `error` is a body over the cap, as against an address the guard refused. */
+  static isBodyTooLarge(opts: { error: unknown }): boolean {
+    const { error } = opts;
+
+    return (
+      isApplicationError(error) &&
+      error.normalized.code === UrlSafetyErrors.BODY_TOO_LARGE.message.code
     );
   }
 }

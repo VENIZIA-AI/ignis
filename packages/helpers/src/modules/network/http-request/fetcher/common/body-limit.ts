@@ -9,10 +9,10 @@ const DEFAULT_MAX_BYTES = UrlSafetyDefaults.MAX_BYTES;
 
 /** A cap on a body, for a stream piped onward or a body read into memory. Browser-pure: streams and typed arrays only. */
 export class BodyLimit {
-  /** The one refusal of a body over the cap; `detail` says how it was found (declared, received, a client's own words). */
+  /** The one refusal of a body over the cap, with its own code (`core.url_safety.body_too_large`); `detail` says how it was found (declared, received, a client's own words). */
   static refuse(opts: { detail: string }): ApplicationError {
     return getError({
-      error: UrlSafetyErrors.URL_REFUSED,
+      error: UrlSafetyErrors.BODY_TOO_LARGE,
       message: `[fetch] Body exceeds the cap | ${opts.detail}`,
     });
   }

@@ -19,7 +19,7 @@ import { BodyLimit } from './common/body-limit';
 import { HttpResponseReader } from './common/response-reader';
 import type { IFetchGuard } from './common/guard';
 import type { IFetcherDefaults, IFetcherHooks } from './common/types';
-import { HttpHeaders } from './common/utilities';
+import { HttpBodies, HttpHeaders } from './common/utilities';
 
 /** The fields of `RequestInit` a call or a fetcher cannot set because the pipeline owns them. */
 type TOwnedInitFields = 'body' | 'headers' | 'method' | 'signal' | 'redirect';
@@ -68,16 +68,15 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
   Awaited<ReturnType<typeof fetch>>,
   typeof fetch
 > {
-  /** What `fetch` takes as a body as it is: encoding any of these again would change the bytes sent. A constructor is looked up on `globalThis` so a runtime without one (no `FormData`) just never matches it. */
+  /** What `fetch` takes as a body as it is: encoding any of these again would change the bytes sent. */
   static isRawBody(body: unknown): body is NonNullable<RequestInit['body']> {
     if (typeof body === 'string' || ArrayBuffer.isView(body) || body instanceof ArrayBuffer) {
       return true;
     }
 
-    return ['Blob', 'FormData', 'URLSearchParams', 'ReadableStream'].some((name) => {
-      const ctor = Reflect.get(globalThis, name);
-
-      return typeof ctor === 'function' && body instanceof ctor;
+    return HttpBodies.isAnyOf({
+      body,
+      names: ['Blob', 'FormData', 'URLSearchParams', 'ReadableStream'],
     });
   }
 

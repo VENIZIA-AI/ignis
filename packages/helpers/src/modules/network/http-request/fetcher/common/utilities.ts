@@ -6,14 +6,38 @@ import {
 import { FetchSchemaError } from './errors';
 import type { THttpHeaders } from './types';
 
+/** Tests a body against runtime classes by name. */
+export class HttpBodies {
+  /**
+   * Whether `body` is an instance of one of the global classes `names`. A constructor is looked up on `globalThis` so a
+   * runtime without one (no `FormData`) never matches it, and the `Object.prototype.toString` tag catches the same kind of
+   * object from another realm or a polyfill, where `instanceof` is false.
+   */
+  static isAnyOf(opts: { body: unknown; names: ReadonlyArray<string> }): boolean {
+    const { body, names } = opts;
+
+    if (typeof body !== 'object' || body === null) {
+      return false;
+    }
+
+    const tag = Object.prototype.toString.call(body);
+
+    return names.some((name) => {
+      const ctor = Reflect.get(globalThis, name);
+
+      return (typeof ctor === 'function' && body instanceof ctor) || tag === `[object ${name}]`;
+    });
+  }
+}
+
 /** Header maps: merged per header, the call winning, a `null` or `undefined` value removing a header. */
 export class HttpHeaders {
   /** The headers of `layers` in order, later layers over earlier ones, as one `Headers`. */
-  static merge(opts: { layers: ReadonlyArray<THttpHeaders | undefined> }): Headers {
+  static merge(opts: { layers: ReadonlyArray<THttpHeaders | null | undefined> }): Headers {
     const merged = new Headers();
 
     for (const layer of opts.layers) {
-      if (layer === undefined) {
+      if (layer === undefined || layer === null) {
         continue;
       }
 
@@ -35,13 +59,38 @@ export class HttpHeaders {
   }
 
   /** `merge` under a JSON content type: the layers may replace it (any case) or remove it with `null`. */
-  static withJsonDefault(opts: { layers: ReadonlyArray<THttpHeaders | undefined> }): Headers {
+  static withJsonDefault(opts: {
+    layers: ReadonlyArray<THttpHeaders | null | undefined>;
+  }): Headers {
     return HttpHeaders.merge({
       layers: [
         { [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON_UTF8 },
         ...opts.layers,
       ],
     });
+  }
+
+  /**
+   * `headers` for a call with `body`: the JSON default content type is dropped when the runtime describes the body itself,
+   * so it sets the multipart boundary or the right type. A content type the call names wins and stays.
+   */
+  static forBody(opts: {
+    headers: Headers;
+    call: THttpHeaders | undefined;
+    body: unknown;
+  }): Headers {
+    const { headers, call, body } = opts;
+
+    // A `FormData` (its boundary), a `URLSearchParams` or a `Blob` (their own types) is described by the runtime.
+    if (
+      HttpBodies.isAnyOf({ body, names: ['FormData', 'URLSearchParams', 'Blob'] }) &&
+      !HttpHeaders.merge({ layers: [call] }).has('content-type') &&
+      headers.get('content-type')?.toLowerCase() === HTTP.HeaderValues.APPLICATION_JSON_UTF8
+    ) {
+      headers.delete('content-type');
+    }
+
+    return headers;
   }
 
   /** A copy of `headers` keeping only the names in `names`. */

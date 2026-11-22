@@ -803,7 +803,7 @@ const { upload, stat } = await StaticAssetIngestUtility.fromUrl({
 ```
 
 - **The URL is guarded.** A `NativeFetcher` with a `guard` and `UrlGuard` as its engine enforces the scheme allow-list, checks every resolved address, walks redirects by hand with a per-hop re-check, and applies a timeout.
-- **The body is capped twice.** A declared `content-length` over `policy.maxBytes` is refused before the write starts, with `UrlSafetyErrors.URL_REFUSED`. A body that lies or omits the header is cut off mid-flight by the fetcher's `maxBytes`.
+- **The body is capped twice.** A declared `content-length` over `policy.maxBytes` is refused before the write starts, with `UrlSafetyErrors.BODY_TOO_LARGE` (`core.url_safety.body_too_large`, status 413). A body that lies or omits the header is cut off mid-flight by the fetcher's `maxBytes`.
 - **The content type comes from the stored key**, never from what the remote host claimed - the same rule the asset routes apply, and for the same reason.
 - **It writes no meta link.** The columns an application attaches to an object come from its own domain, so the row stays yours. `stat` is returned because `getStat` already ran, so writing that row costs nothing extra.
 

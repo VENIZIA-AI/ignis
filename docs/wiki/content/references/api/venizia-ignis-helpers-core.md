@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-135 exports, 135 with TSDoc. 59 more are re-exported from other entries (listed at the end).
+136 exports, 136 with TSDoc. 59 more are re-exported from other entries (listed at the end).
 
 ## `AbstractCryptoAlgorithm`
 
@@ -341,7 +341,7 @@ A cap on a body, for a stream piped onward or a body read into memory. Browser-p
 
 ```ts
 export declare class BodyLimit {
-    /** The one refusal of a body over the cap; `detail` says how it was found (declared, received, a client's own words). */
+    /** The one refusal of a body over the cap, with its own code (`core.url_safety.body_too_large`); `detail` says how it was found (declared, received, a client's own words). */
     static refuse(opts: {
         detail: string;
     }): ApplicationError;
@@ -751,6 +751,28 @@ export declare class HfQueueHelper<T> extends BaseHelper {
 
 Source: `packages/helpers/src/modules/queue/internal/hf/helper.ts`
 
+## `HttpBodies`
+
+*class*
+
+Tests a body against runtime classes by name.
+
+```ts
+export declare class HttpBodies {
+    /**
+     * Whether `body` is an instance of one of the global classes `names`. A constructor is looked up on `globalThis` so a
+     * runtime without one (no `FormData`) never matches it, and the `Object.prototype.toString` tag catches the same kind of
+     * object from another realm or a polyfill, where `instanceof` is false.
+     */
+    static isAnyOf(opts: {
+        body: unknown;
+        names: ReadonlyArray<string>;
+    }): boolean;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/utilities.ts`
+
 ## `HttpHeaders`
 
 *class*
@@ -761,11 +783,20 @@ Header maps: merged per header, the call winning, a `null` or `undefined` value 
 export declare class HttpHeaders {
     /** The headers of `layers` in order, later layers over earlier ones, as one `Headers`. */
     static merge(opts: {
-        layers: ReadonlyArray<THttpHeaders | undefined>;
+        layers: ReadonlyArray<THttpHeaders | null | undefined>;
     }): Headers;
     /** `merge` under a JSON content type: the layers may replace it (any case) or remove it with `null`. */
     static withJsonDefault(opts: {
-        layers: ReadonlyArray<THttpHeaders | undefined>;
+        layers: ReadonlyArray<THttpHeaders | null | undefined>;
+    }): Headers;
+    /**
+     * `headers` for a call with `body`: the JSON default content type is dropped when the runtime describes the body itself,
+     * so it sets the multipart boundary or the right type. A content type the call names wins and stays.
+     */
+    static forBody(opts: {
+        headers: Headers;
+        call: THttpHeaders | undefined;
+        body: unknown;
     }): Headers;
     /** A copy of `headers` keeping only the names in `names`. */
     static only(opts: {
@@ -929,8 +960,8 @@ export declare class HttpResponseReader {
     /**
      * Reads a filename out of a `Content-Disposition` value.
      *
-     * Three forms, in the order the RFC gives them precedence: `filename*=UTF-8''...` (percent-encoded,
-     * and the one hand-rolled parsers miss), a quoted `filename="..."`, and a bare `filename=...`.
+     * Three forms, in the order the RFC gives them precedence: `filename*=UTF-8''...` or `filename*=ISO-8859-1''...`
+     * (percent-encoded, and the one hand-rolled parsers miss; another charset falls through), a quoted `filename="..."`, and a bare `filename=...`.
      * Splitting on `filename=` alone returns the percent-encoded bytes for any non-ASCII name, which in
      * a product with non-English filenames is most of them.
      *
@@ -2199,7 +2230,7 @@ Fetcher over the global `fetch` (`getWorker()`): the pipeline of `AbstractNetwor
 
 ```ts
 export declare class NativeFetcher extends AbstractNetworkFetchableHelper<'native', INativeFetchRequestOptions, Awaited<ReturnType<typeof fetch>>, typeof fetch> {
-    /** What `fetch` takes as a body as it is: encoding any of these again would change the bytes sent. A constructor is looked up on `globalThis` so a runtime without one (no `FormData`) just never matches it. */
+    /** What `fetch` takes as a body as it is: encoding any of these again would change the bytes sent. */
     static isRawBody(body: unknown): body is NonNullable<RequestInit['body']>;
     private requestInit;
     private sender;
@@ -3505,8 +3536,9 @@ export declare class UrlPolicy {
     }): URL;
     /**
      * True when the url will never be allowed, whatever happens next: a bad scheme, a non-public
-     * address, an origin outside a strict trusted list, a malformed url, or too many hops. Retrying any of those
-     * repeats the same rejection - drop the work instead.
+     * address, an origin outside a strict trusted list, a malformed url, too many hops, or a body over the cap
+     * (`UrlSafetyRefusals.isBodyTooLarge` tells that one apart). Retrying any of those repeats the same
+     * rejection - drop the work instead.
      *
      * A timeout, a DNS failure or a 5xx answers `false`: those are worth another attempt.
      */
@@ -3552,6 +3584,15 @@ export declare const UrlSafetyErrors: {
             readonly code: "core.url_safety.url_refused";
         };
         readonly statusCode: 400;
+        readonly category: "business";
+    };
+    /** A body over the cap (`maxBytes`): its own code, so a caller tells it from a refused address without reading the message. */
+    readonly BODY_TOO_LARGE: {
+        readonly message: {
+            readonly text: "Body exceeds the cap";
+            readonly code: "core.url_safety.body_too_large";
+        };
+        readonly statusCode: 413;
         readonly category: "business";
     };
 };
