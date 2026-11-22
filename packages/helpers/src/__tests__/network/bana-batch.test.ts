@@ -11,6 +11,7 @@ import {
   AxiosNetworkRequest,
 } from '@/modules/network/http-request/fetcher/axios-fetcher';
 import {
+  type INativeFetchRequestOptions,
   NativeFetcher,
   NativeFetchNetworkRequest,
 } from '@/modules/network/http-request/fetcher/native-fetcher';
@@ -99,6 +100,43 @@ describe('an axios field the pipeline drops is refused at run time too', () => {
         message: instead.includes("'") ? (instead.split("'")[1] ?? instead) : instead,
       });
     }
+  });
+});
+
+describe('a native call with data is refused, as an axios one is', () => {
+  test('an untyped data throws on NativeFetcher and on NativeFetchNetworkRequest', async () => {
+    const extra: Record<string, unknown> = { data: { a: 1 } };
+    const fetcher = new NativeFetcher({ name: 'n' });
+    const request = new NativeFetchNetworkRequest({
+      name: 'n',
+      networkOptions: { baseUrl: origin },
+    }).getNetworkService();
+
+    await RejectionUtility.expectRejection({
+      task: fetcher.post({ url: `${origin}/echo`, ...extra }),
+      message: "'data' is not an option of a call | pass the body as 'body'",
+    });
+    await RejectionUtility.expectRejection({
+      task: request.post({ url: '/echo', ...extra }),
+      message: "'data' is not an option of a call | pass the body as 'body'",
+    });
+  });
+
+  test('a typed data is a type error', () => {
+    const call: INativeFetchRequestOptions = {
+      url: `${origin}/echo`,
+      // @ts-expect-error - pass body: data would be dropped
+      data: { a: 1 },
+    };
+
+    expect(call.url).toBe(`${origin}/echo`);
+  });
+
+  test('body still works', async () => {
+    const fetcher = new NativeFetcher({ name: 'n' });
+    const { data } = await fetcher.post({ url: `${origin}/echo`, body: { a: 1 }, schema: Echo });
+
+    expect(data.size).toBeGreaterThan(0);
   });
 });
 

@@ -44,6 +44,7 @@ export declare class AxiosFetcher extends AbstractNetworkFetchableHelper<'axios'
          */
         rejectUnauthorized?: boolean;
     });
+    protected readonly refusedCallFields: Readonly<Record<string, string>>;
     protected assertCallSupported(opts: {
         guard?: IUrlSafetyPolicy;
         extra: Record<string | symbol, unknown>;

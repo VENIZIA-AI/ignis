@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-108 exports, 108 with TSDoc. 1009 more are re-exported from other entries (listed at the end).
+108 exports, 108 with TSDoc. 1010 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 

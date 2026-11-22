@@ -252,6 +252,11 @@ export abstract class AbstractNetworkFetchableHelper<
     return typeof body === 'string' ? `[body ${body.length} chars]` : '[body]';
   }
 
+  /** The fields of a call the pipeline would drop, with what to do instead: refused at run time for a call that is not typed (a spread, a computed key). A fetcher names more. */
+  protected readonly refusedCallFields: Readonly<Record<string, string>> = {
+    data: "pass the body as 'body'",
+  };
+
   /** Refuses a call the client cannot honour; `AxiosFetcher` refuses a guard it cannot pin. */
   protected assertCallSupported(_opts: {
     guard?: IUrlSafetyPolicy;
@@ -273,6 +278,14 @@ export abstract class AbstractNetworkFetchableHelper<
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         message: `[${this.name}] A call with a guard needs the guard engine | pass guardEngine: UrlGuard (from @venizia/ignis-helpers) to the fetcher`,
       });
+    }
+
+    for (const [field, instead] of Object.entries(this.refusedCallFields)) {
+      if (extra[field] !== undefined) {
+        throw getError({
+          message: `[${this.name}] '${field}' is not an option of a call | ${instead}`,
+        });
+      }
     }
 
     this.assertCallSupported({ guard, extra });
