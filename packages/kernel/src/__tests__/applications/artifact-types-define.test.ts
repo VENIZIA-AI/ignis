@@ -4,6 +4,7 @@ import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications/
 import { RestApplication } from '@/base/applications/rest';
 import { inject, injectable } from '@/base/metadata';
 import { ArtifactTypes, BindingKeys, BindingScopes } from '@/helpers/inversion';
+import { SingletonRealm } from '@/helpers/singleton-realm';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { describe, expect, test } from 'bun:test';
@@ -19,10 +20,16 @@ class DefineApplication extends RestApplication {
   setupMiddlewares(): void {}
 }
 
+const buildConfigs = (): IApplicationConfigs => ({
+  host: '127.0.0.1',
+  port: 0,
+  path: { base: '/', isStrict: false },
+});
+
 const buildApplication = () => {
   const application = new DefineApplication({
     scope: DefineApplication.name,
-    config: { path: { base: '/', isStrict: false } } as IApplicationConfigs,
+    config: buildConfigs(),
   });
   application.init();
 
@@ -61,6 +68,19 @@ describe('ArtifactTypes.define', () => {
     expect(ArtifactTypes.isValid('service')).toBe(true);
   });
 
+  test('the definitions live on the realm, so a second copy of the kernel sees them', () => {
+    const shared = SingletonRealm.resolve({
+      key: 'artifact-type-definitions',
+      create: () => new Map<string, unknown>(),
+    });
+
+    expect(shared.get('emitter')).toEqual({
+      type: 'emitter',
+      namespace: 'emitters',
+      scope: BindingScopes.SINGLETON,
+    });
+  });
+
   test('definitionOf answers the definition, and undefined for a built-in or an unknown type', () => {
     expect(ArtifactTypes.definitionOf({ type: 'emitter' })).toEqual({
       type: 'emitter',
@@ -97,6 +117,16 @@ describe('ArtifactTypes.define', () => {
     expect(() =>
       ArtifactTypes.define({ type: 'my thing', namespace: 'mine', scope: BindingScopes.SINGLETON }),
     ).toThrow(/Invalid type/);
+  });
+
+  test('two types in one namespace are refused: a tag could not tell them apart', () => {
+    expect(() =>
+      ArtifactTypes.define({
+        type: 'other-emitter',
+        namespace: 'emitters',
+        scope: BindingScopes.SINGLETON,
+      }),
+    ).toThrow(/already the namespace of the type 'emitter'/);
   });
 
   test('the same definition again is a no-op, another namespace or scope throws', () => {
@@ -159,6 +189,18 @@ describe('registerArtifacts with a custom type', () => {
     );
     expect(application.get({ target: SyncWorker })).not.toBe(
       application.get({ target: SyncWorker }),
+    );
+  });
+
+  test("a class's own scope beats the definition's", async () => {
+    @emitter({ scope: BindingScopes.TRANSIENT })
+    class TransientEmitter {}
+
+    const application = buildApplication();
+    await application.registerArtifacts({ custom: { emitter: [TransientEmitter] } });
+
+    expect(application.get({ target: TransientEmitter })).not.toBe(
+      application.get({ target: TransientEmitter }),
     );
   });
 
@@ -246,4 +288,19 @@ describe('ArtifactGroup.pick with custom', () => {
     expect(kept).toEqual({ custom: { emitter: [OrderEmitter] } });
     expect(dropped).toEqual({ services: [] });
   });
+});
+
+describe('the module graph', () => {
+  const ENTRIES = ['index', 'metadata', 'common/bindings', 'helpers/inversion/index'];
+
+  test.each(ENTRIES)(
+    'importing %s first, in a fresh process, loads without a cycle error',
+    (entry) => {
+      const run = Bun.spawnSync(['bun', '-e', `await import('./src/${entry}.ts')`], {
+        cwd: process.cwd(),
+      });
+
+      expect(run.exitCode, run.stderr.toString()).toBe(0);
+    },
+  );
 });

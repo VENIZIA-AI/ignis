@@ -50,6 +50,8 @@ export declare class ArtifactIndexEmitter {
             sourceModules?: string[];
         };
     }): string;
+    /** `text` as a single-quoted string literal, with the backslash and the quote escaped, as the formatter writes it. */
+    private static quote;
     /** The `custom` field: one list per type the application defined, nothing at all when it defined none. */
     private static renderCustom;
     /** One line while it fits the print width, else one name per line - so `bun fmt --check` on the generated file stays quiet. */
@@ -326,6 +328,8 @@ export declare class ScanSkipReasons extends ConstClass {
     static readonly ABSTRACT = "abstract";
     static readonly NOT_EXPORTED = "not-exported";
     static readonly IGNORED = "ignored";
+    /** The decorator comes from an `ArtifactTypes.define` the scanner cannot read (a type that is not a literal, a built package, a barrel). */
+    static readonly UNREADABLE_TYPE = "unreadable-type";
 }
 ```
 

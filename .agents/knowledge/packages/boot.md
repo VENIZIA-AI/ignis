@@ -63,7 +63,7 @@ A class is emitted when every rule holds; every miss is logged with its reason.
   matched as an exact specifier, for a package that re-exports the decorators), or with `injectable({ type })`
   where `type` is a string literal or `ArtifactTypes.<NAME>`, or with a decorator that an
   `ArtifactTypes.define({ type: '<string literal>', ... })` returned (declared in the file or reached by imports and
-  re-exports; `StereotypeReexportResolver.customTypeOf`). Those classes are emitted under `custom[type]`.
+  re-exports; `StereotypeReexportResolver.customTypeOf`). Those classes are emitted under `custom[type]`. A define the scanner cannot read (non-literal type, `ArtifactTypes` through a barrel or a namespace import, a `.d.ts` of a built package) skips the class with `ScanSkipReasons.UNREADABLE_TYPE` and a warning.
 - Not under an ignored glob: `**/__tests__/**`, `**/*.test.ts`, `**/*.spec.ts`, `**/generated/**`,
   plus `--ignore`. A decorated class under a USER pattern is still scanned and reported in
   `scanWithReport().ignored`; the CLI prints one `warning:` line per class on stderr (default patterns

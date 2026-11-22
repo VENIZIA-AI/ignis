@@ -5,6 +5,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import type { TBindingScope } from '@venizia/ignis-inversion';
 import type { IArtifactRegistrationOptions } from './types/artifact';
 import { injectable } from '@/base/metadata/injectable';
+import { SingletonRealm } from '@/helpers/singleton-realm';
 
 /** What an application declares about an artifact type of its own: the binding namespace its classes get and the scope they bind with unless a class says otherwise. */
 export interface IArtifactTypeDefinition {
@@ -23,8 +24,17 @@ export class ArtifactTypes extends ConstClass {
   static readonly DATASOURCE = 'datasource';
   static readonly MODEL = 'model';
 
-  /** The types an application declared. A true private field, so `values()` and `isValid` keep answering for the built-in types alone. */
-  static readonly #defined = new Map<string, IArtifactTypeDefinition>();
+  /**
+   * The types an application declared, on the realm and not on this module: a second copy of the kernel in one install
+   * shares them, as it shares the metadata registry. A true private member, so `values()` and `isValid` keep answering for
+   * the built-in types alone.
+   */
+  static #definitions(): Map<string, IArtifactTypeDefinition> {
+    return SingletonRealm.resolve({
+      key: 'artifact-type-definitions',
+      create: () => new Map<string, IArtifactTypeDefinition>(),
+    });
+  }
 
   /**
    * Declares an artifact type of the application and returns its decorator: `@emitter()` registers the class like a
@@ -66,7 +76,17 @@ export class ArtifactTypes extends ConstClass {
       });
     }
 
-    const existing = ArtifactTypes.#defined.get(type);
+    const sharing = [...ArtifactTypes.#definitions().values()].find(
+      (definition) => definition.namespace === namespace && definition.type !== type,
+    );
+
+    if (sharing) {
+      throw getError({
+        message: `[ArtifactTypes][define] '${namespace}' is already the namespace of the type '${sharing.type}' | type: '${type}' | A tag names one namespace, so two types in it could not be drained apart`,
+      });
+    }
+
+    const existing = ArtifactTypes.#definitions().get(type);
 
     if (existing && (existing.namespace !== namespace || existing.scope !== scope)) {
       throw getError({
@@ -75,7 +95,7 @@ export class ArtifactTypes extends ConstClass {
     }
 
     if (!existing) {
-      ArtifactTypes.#defined.set(type, { type, namespace, scope });
+      ArtifactTypes.#definitions().set(type, { type, namespace, scope });
     }
 
     return <ApplicationType = unknown>(
@@ -85,12 +105,12 @@ export class ArtifactTypes extends ConstClass {
 
   /** The names of the types `define` recorded, in the order they were defined. */
   static definedTypes(): string[] {
-    return [...ArtifactTypes.#defined.keys()];
+    return [...ArtifactTypes.#definitions().keys()];
   }
 
   /** The definition `define` recorded for `type`; `undefined` for a built-in type and for a name nobody defined. */
   static definitionOf(opts: { type: string }): IArtifactTypeDefinition | undefined {
-    return ArtifactTypes.#defined.get(opts.type);
+    return ArtifactTypes.#definitions().get(opts.type);
   }
 }
 

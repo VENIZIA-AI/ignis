@@ -113,6 +113,8 @@ export class ScanSkipReasons extends ConstClass {
   static readonly ABSTRACT = 'abstract';
   static readonly NOT_EXPORTED = 'not-exported';
   static readonly IGNORED = 'ignored';
+  /** The decorator comes from an `ArtifactTypes.define` the scanner cannot read (a type that is not a literal, a built package, a barrel). */
+  static readonly UNREADABLE_TYPE = 'unreadable-type';
 }
 
 /** One of the `ScanSkipReasons` values. */

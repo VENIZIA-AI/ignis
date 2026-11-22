@@ -33,7 +33,7 @@ export interface IArtifactRegistrationOptions<ApplicationType = unknown> {
 export interface IArtifactMetadata<
   ApplicationType = unknown,
 > extends IArtifactRegistrationOptions<ApplicationType> {
-  type: string;
+  type: TArtifactType | (string & {});
 }
 
 /** One `@provide` method: the key it binds, and the binding scope of the value. */

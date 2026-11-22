@@ -51,7 +51,7 @@ type TArtifactType = TConstValue<typeof ArtifactTypes>;
 
 ## Your own artifact types
 
-`@service` and its siblings cover the seven built-in types. An application with a kind of class of its own (an event emitter, a job handler) declares a type once, and gets a decorator that registers the class like a stereotype does. The class is bound once, with the scope the definition names, and is found by class, as any artifact is.
+`@service` and its siblings cover the seven built-in types. An application with a sort of class of its own (an event emitter, a job handler) declares a type once, and gets a decorator that registers the class like a stereotype does. The class is bound once, with the scope the definition names, and is found by class, as any artifact is.
 
 ```typescript
 // src/emitters/define.ts
@@ -123,7 +123,9 @@ export class EmitterComponent extends BaseComponent {
 }
 ```
 
-The module that calls `ArtifactTypes.define` must be loaded before the application registers its artifacts: a class listed under a type nobody defined throws, naming the class. The scanner finds the decorator by reading its declaration: it follows an import, or a re-export, to `const x = ArtifactTypes.define({ type: '<string literal>', ... })`. A type written another way (a variable, a template with a substitution) marks no class.
+The module that calls `ArtifactTypes.define` must be loaded before the application registers its artifacts: a class listed under a type nobody defined throws, naming the class. The scanner finds the decorator by reading its declaration: it follows an import, or a re-export, to `const x = ArtifactTypes.define({ type: '<string literal>', ... })`. A define the scanner cannot read is reported, not dropped in silence: the class is listed as skipped with the reason `unreadable-type` and a warning names why. That covers a `type` that is not a string literal (a variable, a template with a substitution), `ArtifactTypes` reached through a barrel of your own or a namespace import (`import * as kernel`), and a define exported from a **built package**: the scanner reads source, and a `.d.ts` carries no define call. For a built package, scan its source, or list the classes in `configs.artifacts` by hand.
+
+Two types cannot share a namespace (a tag names one namespace, so `findByTag` could not tell them apart), and the definitions are shared by every copy of the kernel in the install, as the metadata registry is.
 
 ## `IArtifactRegistrationOptions`
 
@@ -539,7 +541,7 @@ A class is emitted when all of the following hold:
 - It is **not `abstract`**.
 - It carries a stereotype decorator - `configuration`, `component`, `controller`, `service`, `repository`, `datasource` - **imported from `@venizia/ignis`, `@venizia/ignis-kernel` (or one of their sub-paths), or a `--source-module`**. The programmatic `followReexports: true` (what auto artifacts use) also accepts any module whose exports lead there through `export *` and renaming re-exports; only identifiers a class wears as a decorator are followed. Import aliases (`import { service as svc }`) are resolved. A same-named decorator from any other module is ignored.
 - Or it carries `@injectable({ type })` where `type` is a string literal or `ArtifactTypes.<NAME>`.
-- Or it carries a decorator that `ArtifactTypes.define({ type: '<string literal>', ... })` returned, declared in the same file or reached through imports and re-exports. The class lands under `custom` in the index.
+- Or it carries a decorator that `ArtifactTypes.define({ type: '<string literal>', ... })` returned, declared in the same file or reached through imports and re-exports of your source (not a built package). The class lands under `custom` in the index. A define the scanner cannot read skips the class with the reason `unreadable-type`.
 
 `@model` classes are recognised and never emitted. Every skip is logged with its reason.
 

@@ -67,9 +67,11 @@ export class BindingNamespaces {
 
 /** Artifact type -> namespace. `registerArtifact` gets its namespace from the call site; `@injectable` has only the class. */
 export class ArtifactNamespaces {
+  private static builtInByType?: Record<string, TBindingNamespace>;
+
   /** Built on first use: `ArtifactTypes.define` reaches `BindingNamespaces`, so this module must not read `ArtifactTypes` while it loads. */
   private static builtIn(): Record<string, TBindingNamespace> {
-    return {
+    ArtifactNamespaces.builtInByType ??= {
       [ArtifactTypes.CONFIGURATION]: BindingNamespaces.CONFIGURATION,
       [ArtifactTypes.COMPONENT]: BindingNamespaces.COMPONENT,
       [ArtifactTypes.CONTROLLER]: BindingNamespaces.CONTROLLER,
@@ -78,6 +80,8 @@ export class ArtifactNamespaces {
       [ArtifactTypes.DATASOURCE]: BindingNamespaces.DATASOURCE,
       [ArtifactTypes.MODEL]: BindingNamespaces.MODEL,
     };
+
+    return ArtifactNamespaces.builtInByType;
   }
 
   /** A built-in type's namespace, else the namespace its `ArtifactTypes.define` gave. */

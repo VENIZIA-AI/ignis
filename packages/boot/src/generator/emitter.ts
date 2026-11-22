@@ -91,6 +91,11 @@ export class ArtifactIndexEmitter {
     ].join('\n');
   }
 
+  /** `text` as a single-quoted string literal, with the backslash and the quote escaped, as the formatter writes it. */
+  private static quote(opts: { text: string }): string {
+    return `'${opts.text.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+  }
+
   /** The `custom` field: one list per type the application defined, nothing at all when it defined none. */
   private static renderCustom(opts: {
     custom: Array<{ type: string; artifacts: Array<{ className: string }> }>;
@@ -100,7 +105,9 @@ export class ArtifactIndexEmitter {
     }
 
     const lines = opts.custom.flatMap(({ type, artifacts }) => {
-      const key = /^[A-Za-z_$][\w$]*$/.test(type) ? type : `'${type}'`;
+      const key = /^[A-Za-z_$][\w$]*$/.test(type)
+        ? type
+        : ArtifactIndexEmitter.quote({ text: type });
       const names = artifacts.map((artifact) => artifact.className);
       const singleLine = `    ${key}: [${names.join(', ')}],`;
 

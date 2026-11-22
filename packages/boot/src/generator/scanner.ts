@@ -12,7 +12,7 @@ import {
   type IScannedArtifact,
   type TArtifactType,
 } from './common';
-import { StereotypeReexportResolver } from './reexport';
+import { StereotypeReexportResolver, type TDefinedType } from './reexport';
 
 /** Finds exported classes carrying a stereotype decorator by reading the source, never by running it. */
 export class ArtifactScanner extends BaseHelper {
@@ -158,13 +158,29 @@ export class ArtifactScanner extends BaseHelper {
       }
 
       const className = node.name.text;
-      const types = this.artifactTypesOf({
+      const { types, unreadable } = this.artifactTypesOf({
         node,
         stereotypeByLocalName,
         customByLocalName,
         filePath,
         className,
       });
+
+      if (types.length === 0 && unreadable.length > 0) {
+        if (!isHidden) {
+          skipped?.push({ className, filePath, reason: ScanSkipReasons.UNREADABLE_TYPE });
+          this.logger
+            .for('scanFile')
+            .warn(
+              'Skipped %s in %s | its decorator comes from an ArtifactTypes.define the scanner cannot read: %s',
+              className,
+              filePath,
+              unreadable[0],
+            );
+        }
+
+        return;
+      }
 
       if (types.length === 0) {
         return;
@@ -297,9 +313,9 @@ export class ArtifactScanner extends BaseHelper {
     source: ts.SourceFile;
     reader: StereotypeReexportResolver;
     excluded: Map<string, string>;
-  }): Map<string, string> {
+  }): Map<string, TDefinedType> {
     const { source, reader, excluded } = opts;
-    const result = new Map<string, string>();
+    const result = new Map<string, TDefinedType>();
     const imported = new Map<string, { specifier: string; name: string }>();
 
     for (const statement of source.statements) {
@@ -360,12 +376,13 @@ export class ArtifactScanner extends BaseHelper {
   private artifactTypesOf(opts: {
     node: ts.ClassDeclaration;
     stereotypeByLocalName: Map<string, string>;
-    customByLocalName: Map<string, string>;
+    customByLocalName: Map<string, TDefinedType>;
     filePath: string;
     className: string;
-  }): string[] {
+  }): { types: string[]; unreadable: string[] } {
     const { node, stereotypeByLocalName, customByLocalName, filePath, className } = opts;
     const types: string[] = [];
+    const unreadable: string[] = [];
 
     const decorators = ts.getDecorators(node) ?? [];
 
@@ -379,7 +396,12 @@ export class ArtifactScanner extends BaseHelper {
       const custom = customByLocalName.get(expression.expression.text);
 
       if (custom) {
-        types.push(custom);
+        if ('type' in custom) {
+          types.push(custom.type);
+        } else {
+          unreadable.push(custom.unreadable);
+        }
+
         continue;
       }
 
@@ -410,7 +432,7 @@ export class ArtifactScanner extends BaseHelper {
       types.push(type);
     }
 
-    return types;
+    return { types, unreadable };
   }
 
   private typeOfInjectableCall(opts: { call: ts.CallExpression }): TArtifactType | undefined {

@@ -33,6 +33,17 @@ describe('ArtifactScanner - decorators an application defined', () => {
     expect(names).not.toContain('DynamicDecorated');
   });
 
+  test('a define the scanner cannot read is reported, never dropped in silence', () => {
+    const { artifacts, skipped } = ArtifactScanner.getInstance().scanWithReport({ root: ROOT });
+    const unreadable = skipped
+      .filter((entry) => entry.reason === 'unreadable-type')
+      .map((entry) => entry.className)
+      .sort();
+
+    expect(unreadable).toEqual(['BarrelThing', 'BuiltThing', 'DynamicDecorated', 'NamespaceThing']);
+    expect(artifacts.map((artifact) => artifact.className)).not.toContain('DynamicDecorated');
+  });
+
   test('an abstract class is skipped, as a built-in one is', () => {
     const { skipped } = ArtifactScanner.getInstance().scanWithReport({ root: ROOT });
 

@@ -4,6 +4,9 @@ import { dirname } from 'node:path';
 import ts from 'typescript';
 import { ArtifactStereotypes } from './common';
 
+/** What `ArtifactTypes.define` stands for in a scan: its type, or why the scanner cannot read it. */
+export type TDefinedType = { type: string } | { unreadable: string };
+
 /** Follows a named import through `export *` and renaming re-exports until it reaches a source module, so a framework that re-exports the kernel's decorators is recognised. Reads declarations only; never builds a type-checked program. */
 export class StereotypeReexportResolver extends BaseHelper {
   static readonly MAX_DEPTH = 10;
@@ -14,7 +17,7 @@ export class StereotypeReexportResolver extends BaseHelper {
   private readonly resolutions = new Map<string, string | undefined>();
   private readonly sources = new Map<string, ts.SourceFile>();
   private readonly origins = new Map<string, string | undefined>();
-  private readonly customTypes = new Map<string, string | undefined>();
+  private readonly customTypes = new Map<string, TDefinedType | undefined>();
 
   constructor(opts: { root: string; sourceModules: Set<string> }) {
     super({ scope: StereotypeReexportResolver.name });
@@ -49,37 +52,41 @@ export class StereotypeReexportResolver extends BaseHelper {
     const key = `${dirname(opts.fromFile)}|${opts.specifier}|${opts.name}`;
 
     if (!this.origins.has(key)) {
-      this.origins.set(key, this.follow({ ...opts, depth: 0, seen: new Set<string>() }));
+      const found = this.walk({ ...opts, depth: 0, seen: new Set<string>() });
+      this.origins.set(key, typeof found === 'string' ? found : undefined);
     }
 
     return this.origins.get(key);
   }
 
   /**
-   * The type an application's own decorator stands for: `name`, exported by `specifier` as seen from `fromFile`, is followed
+   * What an application's own decorator stands for: `name`, exported by `specifier` as seen from `fromFile`, is followed
    * through re-exports to `const name = ArtifactTypes.define({ type: '<literal>', ... })`. `undefined` when the chain ends
-   * anywhere else - a built-in stereotype, a function that is not a `define`, a type that is not a string literal.
+   * anywhere else (a built-in stereotype, a function that is not a `define`); `unreadable` when it ends at something that
+   * looks like a `define` the scanner cannot read.
    */
-  customTypeOf(opts: { fromFile: string; specifier: string; name: string }): string | undefined {
+  customTypeOf(opts: {
+    fromFile: string;
+    specifier: string;
+    name: string;
+  }): TDefinedType | undefined {
     const key = `${dirname(opts.fromFile)}|${opts.specifier}|${opts.name}`;
 
     if (!this.customTypes.has(key)) {
-      this.customTypes.set(
-        key,
-        this.follow({
-          ...opts,
-          depth: 0,
-          seen: new Set<string>(),
-          declaredIn: (declared) => this.definedTypeIn(declared),
-        }),
-      );
+      const found = this.walk({
+        ...opts,
+        depth: 0,
+        seen: new Set<string>(),
+        declaredIn: (declared) => this.definedTypeIn(declared),
+      });
+      this.customTypes.set(key, typeof found === 'object' ? found : undefined);
     }
 
     return this.customTypes.get(key);
   }
 
-  /** The `type` of `const name = ArtifactTypes.define({ type: '<literal>', ... })` among the top-level statements of `source`. */
-  definedTypeIn(opts: { source: ts.SourceFile; name: string }): string | undefined {
+  /** What `name` is among the top-level statements of `source`: a readable `ArtifactTypes.define`, one the scanner cannot read, or neither (`undefined`). */
+  definedTypeIn(opts: { source: ts.SourceFile; name: string }): TDefinedType | undefined {
     const { source, name } = opts;
 
     for (const statement of source.statements) {
@@ -88,23 +95,53 @@ export class StereotypeReexportResolver extends BaseHelper {
       }
 
       for (const declaration of statement.declarationList.declarations) {
-        const call = declaration.initializer;
-
-        if (
-          !ts.isIdentifier(declaration.name) ||
-          declaration.name.text !== name ||
-          !call ||
-          !ts.isCallExpression(call) ||
-          !this.isArtifactTypesDefine({ source, call })
-        ) {
+        if (!ts.isIdentifier(declaration.name) || declaration.name.text !== name) {
           continue;
         }
 
-        return this.literalTypeOf({ call });
+        const call = declaration.initializer;
+
+        if (!call && source.isDeclarationFile) {
+          return {
+            unreadable:
+              'it is declared in a built package (a .d.ts carries no define call) | scan the package source, or list the classes by hand',
+          };
+        }
+
+        if (!call || !ts.isCallExpression(call) || !this.isDefineCall({ call })) {
+          continue;
+        }
+
+        if (!this.isArtifactTypesDefine({ source, call })) {
+          return {
+            unreadable:
+              'ArtifactTypes is not imported by name from @venizia/ignis or @venizia/ignis-kernel in that file (a barrel, a namespace import or an alias of your own)',
+          };
+        }
+
+        const type = this.literalTypeOf({ call });
+
+        return type === undefined ? { unreadable: "its 'type' is not a string literal" } : { type };
       }
     }
 
     return undefined;
+  }
+
+  /** `<something>.ArtifactTypes.define(...)` or `ArtifactTypes.define(...)` by shape alone, whatever `ArtifactTypes` is bound to. */
+  private isDefineCall(opts: { call: ts.CallExpression }): boolean {
+    const callee = opts.call.expression;
+
+    if (!ts.isPropertyAccessExpression(callee) || callee.name.text !== 'define') {
+      return false;
+    }
+
+    const receiver = callee.expression;
+
+    return (
+      (ts.isIdentifier(receiver) && receiver.text.endsWith('ArtifactTypes')) ||
+      (ts.isPropertyAccessExpression(receiver) && receiver.name.text === 'ArtifactTypes')
+    );
   }
 
   /** `ArtifactTypes.define(...)` where `ArtifactTypes` is imported from a source module in this file. */
@@ -204,15 +241,16 @@ export class StereotypeReexportResolver extends BaseHelper {
     );
   }
 
-  private follow(opts: {
+  /** The chain behind an import: a source-module name (a `string`) or, with `declaredIn`, what the declaring file says. */
+  private walk(opts: {
     fromFile: string;
     specifier: string;
     name: string;
     depth: number;
     seen: Set<string>;
     /** Reads what a file declares itself under `name`; set, the chain ends at a declaration, and a source module ends it with no answer. */
-    declaredIn?: (opts: { source: ts.SourceFile; name: string }) => string | undefined;
-  }): string | undefined {
+    declaredIn?: (opts: { source: ts.SourceFile; name: string }) => TDefinedType | undefined;
+  }): string | TDefinedType | undefined {
     const { fromFile, specifier, name, depth, seen, declaredIn } = opts;
 
     if (this.isSourceModule({ specifier })) {
@@ -239,8 +277,8 @@ export class StereotypeReexportResolver extends BaseHelper {
       return declared;
     }
 
-    const next = (target: { specifier: string; name: string }): string | undefined =>
-      this.follow({ fromFile: resolved, ...target, depth: depth + 1, seen, declaredIn });
+    const next = (target: { specifier: string; name: string }): string | TDefinedType | undefined =>
+      this.walk({ fromFile: resolved, ...target, depth: depth + 1, seen, declaredIn });
 
     const importedBy = new Map<string, { specifier: string; name: string }>();
 

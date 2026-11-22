@@ -150,6 +150,7 @@ Artifact type -> namespace. `registerArtifact` gets its namespace from the call 
 
 ```ts
 export declare class ArtifactNamespaces {
+    private static builtInByType?;
     /** Built on first use: `ArtifactTypes.define` reaches `BindingNamespaces`, so this module must not read `ArtifactTypes` while it loads. */
     private static builtIn;
     /** A built-in type's namespace, else the namespace its `ArtifactTypes.define` gave. */
@@ -378,7 +379,7 @@ Registration options of an artifact plus its `type`: a built-in one (`TArtifactT
 
 ```ts
 export interface IArtifactMetadata<ApplicationType = unknown> extends IArtifactRegistrationOptions<ApplicationType> {
-    type: string;
+    type: TArtifactType | (string & {});
 }
 ```
 
