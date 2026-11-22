@@ -536,15 +536,14 @@ export class ReleaseRun {
       ) {
         // npm retries a failing request on its own and the registry sometimes still refuses (run 45025444605: two of six
         // packages, ~75 s each, with no reason in the log), so the move is tried again before it is given up on.
-        let moved = await ports.run({
-          command: ['npm', 'dist-tag', 'add', `${packageName}@${version}`, 'highest'],
-          allowFailure: true,
-        });
-        for (let attempt = 1; attempt < HIGHEST_ATTEMPTS && moved.exitCode !== 0; attempt++) {
-          moved = await ports.run({
+        const moveHighest = () =>
+          ports.run({
             command: ['npm', 'dist-tag', 'add', `${packageName}@${version}`, 'highest'],
             allowFailure: true,
           });
+        let moved = await moveHighest();
+        for (let attempt = 1; attempt < HIGHEST_ATTEMPTS && moved.exitCode !== 0; attempt++) {
+          moved = await moveHighest();
         }
         if (moved.exitCode !== 0) {
           ports.log(
@@ -566,7 +565,7 @@ export class ReleaseRun {
       });
       if (synced.exitCode !== 0) {
         ports.log(
-          `WARNING | could not keep 'next' at or above 'latest' for ${packageName} (non-fatal)`,
+          `WARNING | could not keep 'next' at or above 'latest' for ${packageName} (non-fatal) | ${synced.stderr?.slice(-400) || `exit ${synced.exitCode}, nothing on stderr`}`,
         );
       }
 

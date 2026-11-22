@@ -38,6 +38,8 @@ class FakeWorld {
   highest = new Map<string, string>();
   /** How many `npm dist-tag add` calls of a package still fail (with a reason on stderr) before one answers. */
   distTagFailures = new Map<string, number>();
+  /** What `sync-next-tag.ts` writes on stderr when it fails (exit 1); empty means it succeeds. */
+  syncFailure = '';
   packed = new Map<string, Record<string, unknown>>();
   faults = {
     publish: new Set<string>(),
@@ -232,6 +234,9 @@ class FakeWorld {
       this.highest.set(name, version);
       return ok();
     }
+    if (tool === 'bun' && verb === 'scripts/release/sync-next-tag.ts' && this.syncFailure) {
+      return { stdout: '', exitCode: 1, stderr: this.syncFailure };
+    }
     if (tool === 'bun' && verb === 'scripts/release/stamp-release.ts') {
       const version = command[command.indexOf('--version') + 1];
       this.stamped.push(command[command.indexOf('--date') + 1]);
@@ -358,6 +363,11 @@ describe('ReleaseRun.execute: a clean run', () => {
     world.distTagFailures.set('@venizia/ignis-kernel', 2);
     await execute({ world });
 
+    const attempts = world.calls.filter((call) =>
+      call.includes('dist-tag add @venizia/ignis-kernel@0.4.6 highest'),
+    );
+
+    expect(attempts).toHaveLength(3);
     expect(world.highest.get('@venizia/ignis-kernel')).toBe('0.4.6');
     expect(world.logs.some((line) => line.includes("could not set the 'highest'"))).toBe(false);
   });
@@ -369,6 +379,11 @@ describe('ReleaseRun.execute: a clean run', () => {
 
     const warning = world.logs.find((line) => line.includes("could not set the 'highest'"));
 
+    const attempts = world.calls.filter((call) =>
+      call.includes('dist-tag add @venizia/ignis-kernel@0.4.6 highest'),
+    );
+
+    expect(attempts).toHaveLength(3);
     expect(warning).toContain('@venizia/ignis-kernel after 3 attempts');
     expect(warning).toContain('E429 too many requests');
     expect(outcomes.map((outcome) => outcome.state)).toEqual([
@@ -376,6 +391,17 @@ describe('ReleaseRun.execute: a clean run', () => {
       'published',
       'published',
     ]);
+  });
+
+  test("a failed 'next' move is logged with the reason, and the run goes on", async () => {
+    const world = new FakeWorld();
+    world.syncFailure = 'WARNING: next is NOT at or above latest | npm error code E429';
+    const outcomes = await execute({ world });
+
+    const warning = world.logs.find((line) => line.includes("could not keep 'next'"));
+
+    expect(warning).toContain('E429');
+    expect(outcomes).toHaveLength(3);
   });
 
   test('prints the + line the driver reads, once per published package', async () => {
