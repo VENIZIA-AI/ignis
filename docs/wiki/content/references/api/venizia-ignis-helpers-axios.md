@@ -29,7 +29,7 @@ export declare class AxiosFetcher extends AbstractNetworkFetchableHelper<'axios'
     private readonly configured;
     constructor(opts: {
         name: string;
-        defaultConfigs?: AxiosRequestConfig;
+        defaultConfigs?: Omit<AxiosRequestConfig, 'data'>;
         defaults?: IFetcherDefaults;
         hooks?: IFetcherHooks;
         /** The server half of the url guard (`UrlGuard`); a call that passes `guard` needs it. */
@@ -81,7 +81,7 @@ Options of `AxiosNetworkRequest`: an axios config with `baseUrl` in place of `ba
 ```ts
 export interface IAxiosNetworkRequestOptions {
     name: string;
-    networkOptions: Omit<AxiosRequestConfig, 'baseURL' | 'headers' | 'timeout'> & {
+    networkOptions: Omit<AxiosRequestConfig, 'baseURL' | 'headers' | 'timeout' | 'data'> & {
         baseUrl?: string;
         headers?: Record<string, string>;
         /** Per attempt, in milliseconds. @default 60000 */

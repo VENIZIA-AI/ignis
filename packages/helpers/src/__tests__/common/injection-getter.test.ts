@@ -1,24 +1,24 @@
 import { describe, expect, test } from 'bun:test';
-import { BindingKeys } from '@venizia/ignis-inversion';
-import type { IContainer } from '@venizia/ignis-inversion';
+import { BindingKeys, Container } from '@venizia/ignis-inversion';
 import type { TInjectionGetter } from '@/common/types';
 
 describe('TInjectionGetter - a getter over the container', () => {
   test('a getter built from Container.get is assignable, with no cast', () => {
-    const container = {
-      get: <T>(opts: { key: string }) => `value of ${opts.key}` as T,
-    } as unknown as IContainer;
+    const container = new Container();
+    const key = BindingKeys.build<string>({ key: 'services.Mailer' });
+    container.bind({ key }).toValue('mailer');
 
     const getter: TInjectionGetter = (opts) => container.get(opts);
-    const key = BindingKeys.build<string>({ key: 'services.Mailer' });
 
-    expect(getter<string>({ key })).toBe('value of services.Mailer');
+    expect(getter({ key })).toBe('mailer');
   });
 
   test('a plain string key is refused', () => {
-    const getter: TInjectionGetter = () => undefined as never;
+    const getter: TInjectionGetter = (opts) => new Container().get(opts);
 
-    // @ts-expect-error - a key is made by BindingKeys.build, not written as a string
-    getter({ key: 'services.Mailer' });
+    expect(() => {
+      // @ts-expect-error - a key is made by BindingKeys.build, not written as a string
+      getter({ key: 'services.Mailer' });
+    }).toThrow();
   });
 });

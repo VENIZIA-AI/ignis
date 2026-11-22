@@ -94,7 +94,7 @@ jwt-inner-option-keys:
       - Inject JWT_OPTIONS and JWKS_OPTIONS again where you now inject JWS_OPTIONS, JWKS_ISSUER_OPTIONS or JWKS_VERIFIER_OPTIONS.
   data: Nothing stored changes. The key strings @app/authenticate/jws-options, @app/authenticate/jwks-issuer-options and @app/authenticate/jwks-verifier-options are new; @app/authenticate/jwks-options no longer exists.
 binding-keys-required-brand:
-  symbols: [TBindingKey, BindingKeys.build, IContainer.get, IContainer.getBinding, IContainer.isBound, TMetadataKey]
+  symbols: [TBindingKey, BindingKeys.build, IContainer.get, IContainer.getBinding, IContainer.isBound, TMetadataKey, TInjectionGetter]
   upgrade:
     before: |-
       class Notifier {

@@ -231,3 +231,12 @@ describe('IAxiosRequestOptions - the body is sent from body', () => {
     expect(options.url).toBe('http://127.0.0.1/user');
   });
 });
+
+describe('AxiosNetworkRequest and AxiosFetcher - data is not an option anywhere', () => {
+  test('networkOptions and defaultConfigs refuse an axios data', () => {
+    // @ts-expect-error - every call sends its own body, so a default data would be overwritten
+    new AxiosNetworkRequest({ name: 'x', networkOptions: { baseUrl: 'http://127.0.0.1', data: {} } });
+    // @ts-expect-error - same for the fetcher's default configs
+    new AxiosFetcher({ name: 'x', defaultConfigs: { data: {} } });
+  });
+});
