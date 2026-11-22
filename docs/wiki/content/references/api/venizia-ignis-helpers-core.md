@@ -52,6 +52,8 @@ export declare abstract class AbstractNetworkFetchableHelper<V extends TFetcherV
     protected defaults: IFetcherDefaults;
     protected hooks: IFetcherHooks;
     protected guardEngine?: IFetchGuard;
+    /** The base a relative call url is joined to; unset, a call url must be absolute. */
+    protected baseUrl?: string;
     constructor(opts: {
         name: string;
         variant: V;
@@ -60,6 +62,8 @@ export declare abstract class AbstractNetworkFetchableHelper<V extends TFetcherV
         hooks?: IFetcherHooks;
         /** The server half of the url guard (`UrlGuard`); a call that passes `guard` needs it. */
         guardEngine?: IFetchGuard;
+        /** A relative call url is joined to it (`UrlBuilder.join`: no dot segment, stays under the base); an absolute call url is sent as it is. */
+        baseUrl?: string;
     });
     /** One exchange with the server: the request as the pipeline decided it, the answer in the pipeline's terms. */
     protected abstract exchange(opts: IFetchExchangeRequest, logger?: TFetcherLogger): Promise<IFetchExchange<RS>>;
@@ -2204,6 +2208,8 @@ export declare class NativeFetcher extends AbstractNetworkFetchableHelper<'nativ
         name: string;
         /** `RequestInit` settings for every call (`credentials`, `mode`, `cache`, ...); headers and the signal belong to `defaults` and to the call. */
         defaultConfigs?: TNativeRequestInit;
+        /** Joined to a relative call url; an absolute one is sent as it is. */
+        baseUrl?: string;
         defaults?: IFetcherDefaults;
         hooks?: IFetcherHooks;
         /** The server half of the url guard (`UrlGuard`); a call that passes `guard` needs it. */
@@ -3327,6 +3333,16 @@ export declare class UrlBuilder {
     static toText(opts: {
         baseUrl: string;
         paths: ReadonlyArray<string>;
+    }): string;
+    /**
+     * A call url as sent: an absolute one stays as it is, a relative one is joined to `baseUrl` by `join`, with its refusals.
+     * Only the path part is checked, as `join` checks a path: the query and the fragment pass as they were written. An empty
+     * path is the base itself, and a `//host/x` is a path under the base, never another host.
+     */
+    static resolve(opts: {
+        baseUrl: string;
+        url: string;
+        scope: string;
     }): string;
     /**
      * The url of a request: the base and the paths, checked. A path may not be a dot segment, hide one, or carry a backslash

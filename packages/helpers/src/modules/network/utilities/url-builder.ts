@@ -82,6 +82,25 @@ export class UrlBuilder {
   }
 
   /**
+   * A call url as sent: an absolute one stays as it is, a relative one is joined to `baseUrl` by `join`, with its refusals.
+   * Only the path part is checked, as `join` checks a path: the query and the fragment pass as they were written. An empty
+   * path is the base itself, and a `//host/x` is a path under the base, never another host.
+   */
+  static resolve(opts: { baseUrl: string; url: string; scope: string }): string {
+    const { baseUrl, url, scope } = opts;
+
+    if (ABSOLUTE_URL_PATTERN.test(url)) {
+      return url;
+    }
+
+    const cut = url.search(/[?#]/);
+    const path = cut === -1 ? url : url.slice(0, cut);
+    const rest = cut === -1 ? '' : url.slice(cut);
+
+    return `${UrlBuilder.join({ baseUrl, paths: path === '' ? [] : [path], scope }).toString()}${rest}`;
+  }
+
+  /**
    * The url of a request: the base and the paths, checked. A path may not be a dot segment, hide one, or carry a backslash
    * or a control character; a relative base (`/api`) is resolved against `origin` (the page's, by default); and the result
    * must be on the base's origin and under its path.

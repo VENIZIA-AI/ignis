@@ -10,6 +10,7 @@ import {
   UrlSafetyErrors,
 } from '@/modules/network/utilities/url-safety/common/errors';
 import type { IUrlSafetyPolicy } from '@/modules/network/utilities/url-safety/common/types';
+import { UrlBuilder } from '@/modules/network/utilities/url-builder';
 import { RetryUtility } from '@/utilities/retry.utility';
 import type { z } from 'zod';
 import { type TFetcherVariant } from '../common';
@@ -188,6 +189,8 @@ export abstract class AbstractNetworkFetchableHelper<
   protected defaults: IFetcherDefaults;
   protected hooks: IFetcherHooks;
   protected guardEngine?: IFetchGuard;
+  /** The base a relative call url is joined to; unset, a call url must be absolute. */
+  protected baseUrl?: string;
 
   constructor(opts: {
     name: string;
@@ -197,12 +200,15 @@ export abstract class AbstractNetworkFetchableHelper<
     hooks?: IFetcherHooks;
     /** The server half of the url guard (`UrlGuard`); a call that passes `guard` needs it. */
     guardEngine?: IFetchGuard;
+    /** A relative call url is joined to it (`UrlBuilder.join`: no dot segment, stays under the base); an absolute call url is sent as it is. */
+    baseUrl?: string;
   }) {
     this.name = opts.name;
     this.variant = opts.variant;
     this.defaults = opts.defaults ?? {};
     this.hooks = opts.hooks ?? {};
     this.guardEngine = opts.guardEngine;
+    this.baseUrl = opts.baseUrl;
 
     if (opts.worker !== undefined) {
       this.worker = opts.worker;
@@ -293,7 +299,13 @@ export abstract class AbstractNetworkFetchableHelper<
 
     return {
       method,
-      url: this.buildUrl({ url: request.url, params: request.params }),
+      url: this.buildUrl({
+        url:
+          this.baseUrl === undefined || this.baseUrl === ''
+            ? request.url
+            : UrlBuilder.resolve({ baseUrl: this.baseUrl, url: request.url, scope: this.name }),
+        params: request.params,
+      }),
       headers: HttpHeaders.merge({ layers: [this.defaults.headers, request.headers] }),
       body: request.body,
       signal: request.signal,

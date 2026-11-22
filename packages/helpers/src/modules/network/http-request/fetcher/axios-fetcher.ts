@@ -42,6 +42,9 @@ const GUARDED_OPTIONS = new Set([
   'rejectUnauthorized',
 ]);
 
+/** Axios fields a default can never carry: the pipeline sends the body from `body`, decides which statuses throw (`acceptStatus`) and sends one absolute url, so a default `data`, `validateStatus` or `allowAbsoluteUrls` would be overwritten or would make axios join the url twice. */
+type TRefusedAxiosFields = 'data' | 'validateStatus' | 'allowAbsoluteUrls';
+
 /** The fields of an axios config the pipeline owns. */
 type TOwnedAxiosFields =
   | 'url'
@@ -62,6 +65,14 @@ export interface IAxiosRequestOptions
   body?: Record<string, unknown>;
   /** Not accepted: the body is sent from `body`, so an axios `data` would be dropped. Pass `body`. */
   data?: never;
+  /** Not accepted: which statuses throw is `acceptStatus`, so an axios `validateStatus` would be dropped. */
+  validateStatus?: never;
+  /** Not accepted: `params` are written into the url by the pipeline, so a call's `paramsSerializer` would be dropped. */
+  paramsSerializer?: never;
+  /** Not accepted: the base is the fetcher's `baseUrl`, so a call's `baseURL` would be ignored. */
+  baseURL?: never;
+  /** Not accepted: the pipeline sends one absolute url, so axios must not join it again. */
+  allowAbsoluteUrls?: never;
   /** Whether this call rejects an HTTPS server whose certificate fails verification; `false` turns verification off for this call. */
   rejectUnauthorized?: boolean;
 }
@@ -115,7 +126,9 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
 
   constructor(opts: {
     name: string;
-    defaultConfigs?: Omit<AxiosRequestConfig, 'data'>;
+    defaultConfigs?: Omit<AxiosRequestConfig, TRefusedAxiosFields>;
+    /** Joined to a relative call url; an absolute one is sent as it is. Unset, `defaultConfigs.baseURL` is used. */
+    baseUrl?: string;
     defaults?: IFetcherDefaults;
     hooks?: IFetcherHooks;
     /** The server half of the url guard (`UrlGuard`); a call that passes `guard` needs it. */
@@ -131,6 +144,7 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
     super({
       name: opts.name,
       variant: 'axios',
+      baseUrl: opts.baseUrl ?? opts.defaultConfigs?.baseURL,
       defaults: opts.defaults,
       hooks: opts.hooks,
       guardEngine: opts.guardEngine,
@@ -308,7 +322,10 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
 /** Options of `AxiosNetworkRequest`: an axios config with `baseUrl` in place of `baseURL`. */
 export interface IAxiosNetworkRequestOptions {
   name: string;
-  networkOptions: Omit<AxiosRequestConfig, 'baseURL' | 'headers' | 'timeout' | 'data'> & {
+  networkOptions: Omit<
+    AxiosRequestConfig,
+    'baseURL' | 'headers' | 'timeout' | TRefusedAxiosFields
+  > & {
     baseUrl?: string;
     headers?: Record<string, string>;
     /** Per attempt, in milliseconds. @default 60000 */
@@ -325,7 +342,7 @@ export class AxiosNetworkRequest extends BaseNetworkRequest<'axios'> {
     const { name, networkOptions } = opts;
     const { headers, baseUrl, timeout, ...rest } = networkOptions;
 
-    const defaultConfigs: Omit<AxiosRequestConfig, 'data'> = {
+    const defaultConfigs: Omit<AxiosRequestConfig, TRefusedAxiosFields> = {
       withCredentials: true,
       ...rest,
       baseURL: baseUrl,
@@ -337,6 +354,7 @@ export class AxiosNetworkRequest extends BaseNetworkRequest<'axios'> {
       fetcher: new AxiosFetcher({
         name,
         defaultConfigs,
+        baseUrl,
         defaults: {
           timeout: timeout ?? 60 * 1000,
           ...opts.defaults,

@@ -587,3 +587,30 @@ const-class-base:
       - "Pin the @venizia packages to 0.4.8 and restore the files the codemod changed from git."
   data: "Nothing stored changes; the values of every class are the same strings. SCHEME_SET stays on the classes that hold more than a list of strings, so only a class that extends ConstClass loses it."
   codemod: const-classes
+
+fetch-timeout-error:
+  symbols: [AxiosFetcher, AxiosNetworkRequest, TimeoutError]
+  upgrade:
+    before: |-
+      try {
+        await request.getNetworkService().get({ url });
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.code === 'ECONNABORTED') {
+          retryLater();
+        }
+      }
+    after: |-
+      try {
+        await request.getNetworkService().get({ url });
+      } catch (error) {
+        if (error instanceof Error && error.name === 'TimeoutError') {
+          retryLater();
+        }
+      }
+    steps:
+      - "Search for ECONNABORTED and for code checks on a rejected AxiosFetcher or AxiosNetworkRequest call."
+      - "Catch a timeout by error.name === 'TimeoutError'. A non-2xx answer is a UrlFetchError (see fetch-non-2xx-throws)."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-helpers to 0.4.8 and catch ECONNABORTED again."
+  data: Nothing stored changes.

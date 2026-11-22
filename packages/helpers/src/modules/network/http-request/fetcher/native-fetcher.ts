@@ -89,6 +89,8 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
     name: string;
     /** `RequestInit` settings for every call (`credentials`, `mode`, `cache`, ...); headers and the signal belong to `defaults` and to the call. */
     defaultConfigs?: TNativeRequestInit;
+    /** Joined to a relative call url; an absolute one is sent as it is. */
+    baseUrl?: string;
     defaults?: IFetcherDefaults;
     hooks?: IFetcherHooks;
     /** The server half of the url guard (`UrlGuard`); a call that passes `guard` needs it. */
@@ -103,6 +105,7 @@ export class NativeFetcher extends AbstractNetworkFetchableHelper<
       name: opts.name,
       variant: 'native',
       worker: fetch,
+      baseUrl: opts.baseUrl,
       defaults: opts.defaults,
       hooks: opts.hooks,
       guardEngine: opts.guardEngine,
@@ -370,6 +373,7 @@ export class NativeFetchNetworkRequest extends BaseNetworkRequest<'native'> {
       fetcher: new NativeFetcher({
         name,
         defaultConfigs: requestInit,
+        baseUrl,
         defaults: { ...opts.defaults, headers: mergedHeaders },
         hooks: opts.hooks,
         guardEngine: opts.guardEngine,
