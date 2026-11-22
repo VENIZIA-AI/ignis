@@ -332,17 +332,19 @@ export class HttpResponseReader {
       const charset = value.slice(0, Math.max(value.indexOf("'"), 0)).toLowerCase();
 
       try {
-        // UTF-8 and ISO-8859-1 are the two charsets RFC 8187 names; any other falls through to `filename`.
-        if (charset === '' || charset === 'utf-8') {
-          return { type, filename: decodeURIComponent(encoded) || undefined };
-        }
+        // RFC 8187 requires UTF-8 only; ISO-8859-1 is the other charset RFC 5987 named and old servers still send. Any other falls through to `filename`.
+        const decoded =
+          charset === '' || charset === 'utf-8'
+            ? decodeURIComponent(encoded)
+            : charset === 'iso-8859-1'
+              ? encoded.replace(/%([0-9a-f]{2})/gi, (_, hex: string) =>
+                  String.fromCharCode(Number.parseInt(hex, 16)),
+                )
+              : '';
 
-        if (charset === 'iso-8859-1') {
-          const decoded = encoded.replace(/%([0-9a-f]{2})/gi, (_, hex: string) =>
-            String.fromCharCode(Number.parseInt(hex, 16)),
-          );
-
-          return { type, filename: decoded || undefined };
+        // An empty `filename*` reads as absent: the plain `filename` below is the answer then.
+        if (decoded !== '') {
+          return { type, filename: decoded };
         }
         // eslint-disable-next-line venizia/no-silent-catch -- a malformed `filename*` falls through to the plain `filename` parameter; only the extended name is lost
       } catch {

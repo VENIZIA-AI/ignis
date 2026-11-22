@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-135 exports, 135 with TSDoc. 59 more are re-exported from other entries (listed at the end).
+136 exports, 136 with TSDoc. 59 more are re-exported from other entries (listed at the end).
 
 ## `AbstractCryptoAlgorithm`
 
@@ -751,6 +751,28 @@ export declare class HfQueueHelper<T> extends BaseHelper {
 
 Source: `packages/helpers/src/modules/queue/internal/hf/helper.ts`
 
+## `HttpBodies`
+
+*class*
+
+Tests a body against runtime classes by name.
+
+```ts
+export declare class HttpBodies {
+    /**
+     * Whether `body` is an instance of one of the global classes `names`. A constructor is looked up on `globalThis` so a
+     * runtime without one (no `FormData`) never matches it, and the `Object.prototype.toString` tag catches the same kind of
+     * object from another realm or a polyfill, where `instanceof` is false.
+     */
+    static isAnyOf(opts: {
+        body: unknown;
+        names: ReadonlyArray<string>;
+    }): boolean;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/utilities.ts`
+
 ## `HttpHeaders`
 
 *class*
@@ -767,10 +789,7 @@ export declare class HttpHeaders {
     static withJsonDefault(opts: {
         layers: ReadonlyArray<THttpHeaders | null | undefined>;
     }): Headers;
-    /**
-     * Whether the runtime describes `body` itself: a `FormData` (its boundary), a `URLSearchParams` or a `Blob` (their own
-     * types). A constructor is looked up on `globalThis` so a runtime without one never matches it.
-     */
+    /** Whether the runtime describes `body` itself: a `FormData` (its boundary), a `URLSearchParams` or a `Blob` (their own types). */
     static isSelfDescribingBody(opts: {
         body: unknown;
     }): boolean;
@@ -2215,7 +2234,7 @@ Fetcher over the global `fetch` (`getWorker()`): the pipeline of `AbstractNetwor
 
 ```ts
 export declare class NativeFetcher extends AbstractNetworkFetchableHelper<'native', INativeFetchRequestOptions, Awaited<ReturnType<typeof fetch>>, typeof fetch> {
-    /** What `fetch` takes as a body as it is: encoding any of these again would change the bytes sent. A constructor is looked up on `globalThis` so a runtime without one (no `FormData`) just never matches it. */
+    /** What `fetch` takes as a body as it is: encoding any of these again would change the bytes sent. */
     static isRawBody(body: unknown): body is NonNullable<RequestInit['body']>;
     private requestInit;
     private sender;
@@ -3521,8 +3540,9 @@ export declare class UrlPolicy {
     }): URL;
     /**
      * True when the url will never be allowed, whatever happens next: a bad scheme, a non-public
-     * address, an origin outside a strict trusted list, a malformed url, or too many hops. Retrying any of those
-     * repeats the same rejection - drop the work instead.
+     * address, an origin outside a strict trusted list, a malformed url, too many hops, or a body over the cap
+     * (`UrlSafetyRefusals.isBodyTooLarge` tells that one apart). Retrying any of those repeats the same
+     * rejection - drop the work instead.
      *
      * A timeout, a DNS failure or a 5xx answers `false`: those are worth another attempt.
      */

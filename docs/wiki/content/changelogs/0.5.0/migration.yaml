@@ -614,3 +614,32 @@ fetch-timeout-error:
     steps:
       - "Pin @venizia/ignis-helpers to 0.4.8 and catch ECONNABORTED again."
   data: Nothing stored changes.
+
+body-cap-one-refusal:
+  symbols: [BodyLimit.refuse, UrlSafetyErrors, UrlSafetyRefusals.isBodyTooLarge, UrlSafetyRefusals.is]
+  upgrade:
+    before: |-
+      try {
+        await fetcher.get({ url, maxBytes: 1_000_000 });
+      } catch (error) {
+        if (UrlSafetyRefusals.is({ error })) {
+          reject('address refused or body too big');
+        }
+      }
+    after: |-
+      try {
+        await fetcher.get({ url, maxBytes: 1_000_000 });
+      } catch (error) {
+        if (UrlSafetyRefusals.isBodyTooLarge({ error })) {
+          reject('body too big');
+        } else if (UrlSafetyRefusals.is({ error })) {
+          reject('address refused');
+        }
+      }
+    steps:
+      - "A body over the cap now carries the code core.url_safety.body_too_large and status 413 (it was core.url_safety.url_refused and 400). The text begins [fetch] Body exceeds the cap; it used to begin [capStream] or [readBytes] in the helpers."
+      - "UrlSafetyRefusals.is and UrlPolicy.isRefusedError are still true for both, so a retry or drop rule keeps working. Search for the code url_refused or the status 400 on a fetch error and use UrlSafetyRefusals.isBodyTooLarge where you meant too big."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-helpers to 0.4.8."
+  data: Nothing stored changes.

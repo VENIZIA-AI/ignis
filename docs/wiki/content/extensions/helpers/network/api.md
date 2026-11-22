@@ -1293,7 +1293,7 @@ const response = await fetcher.get({ url, guard: policy, signal: controller.sign
 
 ### Telling a refusal from a retryable failure
 
-Every refusal carries the same code, `core.url_safety.url_refused`, from the `UrlSafetyErrors.URL_REFUSED` definition. `UrlPolicy.isRefusedError({ error })` tests it.
+A refusal carries `core.url_safety.url_refused` (`UrlSafetyErrors.URL_REFUSED`), except a body over the cap: that one carries `core.url_safety.body_too_large` (`UrlSafetyErrors.BODY_TOO_LARGE`, status 413). `UrlPolicy.isRefusedError({ error })` is true for both; `UrlSafetyRefusals.isBodyTooLarge({ error })` tells the oversized body from a refused address.
 
 A refused url is refused forever. A bad scheme, a non-public address, an origin outside a strict trusted list, a malformed url, too many hops, an oversized body - retrying any of those repeats the same rejection and turns your retry loop into a repeat scanner. Drop the work instead.
 

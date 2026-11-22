@@ -4,7 +4,7 @@ import { afterAll, describe, expect, test } from 'bun:test';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { z } from 'zod';
 import { BodyLimit } from '@/modules/network/http-request/fetcher/common/body-limit';
-import { HttpHeaders } from '@/modules/network/http-request/fetcher/common/utilities';
+import { HttpBodies, HttpHeaders } from '@/modules/network/http-request/fetcher/common/utilities';
 import { HttpResponseReader } from '@/modules/network/http-request/fetcher/common/response-reader';
 import {
   AxiosFetcher,
@@ -114,12 +114,12 @@ describe('HttpResponseReader.parseContentDisposition', () => {
     }
   });
 
-  test('an empty filename* falls back to nothing, not to the plain name it replaced', () => {
+  test('an empty filename* reads as absent: the plain filename is the answer', () => {
     const { filename } = HttpResponseReader.parseContentDisposition({
       header: 'attachment; filename="plain.txt"; filename*=UTF-8\'\'',
     });
 
-    expect(filename).toBeUndefined();
+    expect(filename).toBe('plain.txt');
   });
 
   test('ISO-8859-1 is decoded as latin1', () => {
@@ -140,6 +140,17 @@ describe('HttpResponseReader.parseContentDisposition', () => {
 
     expect(utf8.filename).toBe('Kiểm.txt');
     expect(other.filename).toBe('plain.txt');
+  });
+});
+
+describe('HttpBodies.isAnyOf', () => {
+  test('a body of another realm or a polyfill is found by its tag', () => {
+    const foreign = { [Symbol.toStringTag]: 'FormData' };
+
+    expect(HttpBodies.isAnyOf({ body: foreign, names: ['FormData'] })).toBe(true);
+    expect(HttpBodies.isAnyOf({ body: foreign, names: ['Blob'] })).toBe(false);
+    expect(HttpBodies.isAnyOf({ body: 'text', names: ['Blob'] })).toBe(false);
+    expect(HttpBodies.isAnyOf({ body: new FormData(), names: ['FormData'] })).toBe(true);
   });
 });
 

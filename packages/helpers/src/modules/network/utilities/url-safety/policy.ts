@@ -445,8 +445,9 @@ export class UrlPolicy {
 
   /**
    * True when the url will never be allowed, whatever happens next: a bad scheme, a non-public
-   * address, an origin outside a strict trusted list, a malformed url, or too many hops. Retrying any of those
-   * repeats the same rejection - drop the work instead.
+   * address, an origin outside a strict trusted list, a malformed url, too many hops, or a body over the cap
+   * (`UrlSafetyRefusals.isBodyTooLarge` tells that one apart). Retrying any of those repeats the same
+   * rejection - drop the work instead.
    *
    * A timeout, a DNS failure or a 5xx answers `false`: those are worth another attempt.
    */

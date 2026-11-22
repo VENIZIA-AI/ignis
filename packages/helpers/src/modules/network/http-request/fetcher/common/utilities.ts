@@ -6,6 +6,30 @@ import {
 import { FetchSchemaError } from './errors';
 import type { THttpHeaders } from './types';
 
+/** Tests a body against runtime classes by name. */
+export class HttpBodies {
+  /**
+   * Whether `body` is an instance of one of the global classes `names`. A constructor is looked up on `globalThis` so a
+   * runtime without one (no `FormData`) never matches it, and the `Object.prototype.toString` tag catches the same kind of
+   * object from another realm or a polyfill, where `instanceof` is false.
+   */
+  static isAnyOf(opts: { body: unknown; names: ReadonlyArray<string> }): boolean {
+    const { body, names } = opts;
+
+    if (typeof body !== 'object' || body === null) {
+      return false;
+    }
+
+    const tag = Object.prototype.toString.call(body);
+
+    return names.some((name) => {
+      const ctor = Reflect.get(globalThis, name);
+
+      return (typeof ctor === 'function' && body instanceof ctor) || tag === `[object ${name}]`;
+    });
+  }
+}
+
 /** Header maps: merged per header, the call winning, a `null` or `undefined` value removing a header. */
 export class HttpHeaders {
   /** The headers of `layers` in order, later layers over earlier ones, as one `Headers`. */
@@ -46,16 +70,9 @@ export class HttpHeaders {
     });
   }
 
-  /**
-   * Whether the runtime describes `body` itself: a `FormData` (its boundary), a `URLSearchParams` or a `Blob` (their own
-   * types). A constructor is looked up on `globalThis` so a runtime without one never matches it.
-   */
+  /** Whether the runtime describes `body` itself: a `FormData` (its boundary), a `URLSearchParams` or a `Blob` (their own types). */
   static isSelfDescribingBody(opts: { body: unknown }): boolean {
-    return ['FormData', 'URLSearchParams', 'Blob'].some((name) => {
-      const ctor = Reflect.get(globalThis, name);
-
-      return typeof ctor === 'function' && opts.body instanceof ctor;
-    });
+    return HttpBodies.isAnyOf({ body: opts.body, names: ['FormData', 'URLSearchParams', 'Blob'] });
   }
 
   /**
