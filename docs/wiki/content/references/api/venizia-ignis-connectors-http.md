@@ -42,6 +42,8 @@ export declare class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettin
         isJsonBody?: boolean;
         isFormDataBody?: boolean;
     }): Headers;
+    /** One query parameter through the helpers' encoder; a value that cannot be written (a bigint in an object) is a 400 naming the parameter. */
+    private writeQueryParameter;
     buildUrl(opts: {
         paths: Array<string>;
         query?: Record<string, unknown>;

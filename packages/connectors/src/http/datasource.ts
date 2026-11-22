@@ -108,6 +108,7 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
     try {
       return QueryStringUtility.toQueryString({
         params: { [key]: value },
+        nullish: 'skip',
         nested:
           value !== null && typeof value === 'object' && !Array.isArray(value) ? 'json' : 'drop',
       });
