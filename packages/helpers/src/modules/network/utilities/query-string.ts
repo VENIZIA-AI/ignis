@@ -12,8 +12,8 @@ export class QueryStringSeparators {
 export interface IQueryStringOptions {
   /**
    * What a `null` or `undefined` value becomes.
-   * `'empty'` is `a=` (what `node:querystring` does), `'skip'` leaves the pair out.
-   * @default 'empty'
+   * `'skip'` leaves the pair out, `'empty'` writes `a=` (what `node:querystring` does).
+   * @default 'skip'
    */
   nullish?: 'empty' | 'skip';
   /**
@@ -43,7 +43,7 @@ export class QueryStringUtility {
    * the trip. Without them the behavior is the one above.
    */
   static toQueryString(opts: { params: Record<string, unknown> } & IQueryStringOptions): string {
-    const { params, nullish = 'empty', nested = 'drop' } = opts;
+    const { params, nullish = 'skip', nested = 'drop' } = opts;
     const parts: string[] = [];
     const isSkipped = (value: unknown) =>
       nullish === 'skip' && (value === null || value === undefined);

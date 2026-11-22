@@ -1791,8 +1791,8 @@ How {@link QueryStringUtility.toQueryString} treats the values `node:querystring
 export interface IQueryStringOptions {
     /**
      * What a `null` or `undefined` value becomes.
-     * `'empty'` is `a=` (what `node:querystring` does), `'skip'` leaves the pair out.
-     * @default 'empty'
+     * `'skip'` leaves the pair out, `'empty'` writes `a=` (what `node:querystring` does).
+     * @default 'skip'
      */
     nullish?: 'empty' | 'skip';
     /**

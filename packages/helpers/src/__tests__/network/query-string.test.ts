@@ -11,10 +11,14 @@ describe('toQueryString matches what a server expects', () => {
     expect(QueryStringUtility.toQueryString({ params: { a: [1, 2] } })).toBe('a=1&a=2');
   });
 
-  /** The same coercion that sends a header reading "undefined". */
-  test('undefined and null are empty values, not their names', () => {
-    expect(QueryStringUtility.toQueryString({ params: { a: undefined, b: 1 } })).toBe('a=&b=1');
-    expect(QueryStringUtility.toQueryString({ params: { a: null, b: 1 } })).toBe('a=&b=1');
+  /** The same coercion that sends a header reading "undefined": neither the name nor an empty value is sent. */
+  test('undefined and null leave the pair out, never their names', () => {
+    expect(QueryStringUtility.toQueryString({ params: { a: undefined, b: 1 } })).toBe('b=1');
+    expect(QueryStringUtility.toQueryString({ params: { a: null, b: 1 } })).toBe('b=1');
+  });
+
+  test('an empty array leaves the pair out', () => {
+    expect(QueryStringUtility.toQueryString({ params: { a: [], b: 1 } })).toBe('b=1');
   });
 
   test('a space is percent-encoded, not a plus', () => {
@@ -37,13 +41,16 @@ describe('toQueryString matches what a server expects', () => {
   });
 });
 
-describe('toQueryString options - the defaults are unchanged', () => {
+describe('toQueryString options - the defaults', () => {
   const params = { a: undefined, b: null, c: [1, 2], d: { x: 1 }, e: 'a b' };
 
-  test('no options is node:querystring', () => {
-    expect(QueryStringUtility.toQueryString({ params })).toBe('a=&b=&c=1&c=2&d=&e=a%20b');
-    expect(QueryStringUtility.toQueryString({ params, nullish: 'empty', nested: 'drop' })).toBe(
+  test("no options skips a null or undefined and drops an object; nullish 'empty' is node:querystring", () => {
+    expect(QueryStringUtility.toQueryString({ params })).toBe('c=1&c=2&d=&e=a%20b');
+    expect(QueryStringUtility.toQueryString({ params, nullish: 'skip', nested: 'drop' })).toBe(
       QueryStringUtility.toQueryString({ params }),
+    );
+    expect(QueryStringUtility.toQueryString({ params, nullish: 'empty' })).toBe(
+      'a=&b=&c=1&c=2&d=&e=a%20b',
     );
   });
 
@@ -99,6 +106,8 @@ describe('toQueryString options - the defaults are unchanged', () => {
   });
 
   test("a null under nested 'json' with nullish 'empty' stays an empty value, not 'null'", () => {
-    expect(QueryStringUtility.toQueryString({ params: { a: null }, nested: 'json' })).toBe('a=');
+    expect(
+      QueryStringUtility.toQueryString({ params: { a: null }, nested: 'json', nullish: 'empty' }),
+    ).toBe('a=');
   });
 });
