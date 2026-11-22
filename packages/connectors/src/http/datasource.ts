@@ -2,9 +2,11 @@ import { HttpReadShapes, type THttpReadShape } from './common/constants';
 import { DataSourceRoot } from '@venizia/ignis-kernel/repository';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import {
+  getError,
   HttpHeaders,
   HttpResponseReader,
   NativeFetcher,
+  QueryStringUtility,
   RecordUtility,
   UrlBuilder,
   UrlFetchError,
@@ -99,23 +101,43 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
     return headers;
   }
 
+  /**
+   * One query parameter through the helpers' encoder: a `null`, an `undefined` and an empty array leave the pair out, a list of
+   * primitives repeats its key, an object (or a list holding one) is ONE JSON parameter, the filter wire. A value that cannot
+   * be written (a bigint in an object) is a 400 naming the parameter.
+   */
+  private writeQueryParameter(opts: { key: string; value: unknown }): string {
+    const { key, value } = opts;
+    const isJson =
+      value !== null &&
+      typeof value === 'object' &&
+      (!Array.isArray(value) || value.some((entry) => entry !== null && typeof entry === 'object'));
+
+    try {
+      return QueryStringUtility.toQueryString({
+        params: { [key]: value },
+        nullish: 'skip',
+        nested: isJson ? 'json' : 'drop',
+      });
+    } catch (error) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: `[${this.name}] Query parameter '${key}' cannot be sent as JSON | ${error instanceof Error ? error.message : String(error)}`,
+      });
+    }
+  }
+
   buildUrl(opts: { paths: Array<string>; query?: Record<string, unknown> }): string {
     const { paths, query } = opts;
     const url = UrlBuilder.join({ baseUrl: this.settings.baseUrl, paths, scope: this.name });
 
-    const parameters = Object.entries(query ?? {});
+    const written = Object.entries(query ?? {})
+      .map(([key, value]) => this.writeQueryParameter({ key, value }))
+      .filter(Boolean)
+      .join('&');
 
-    for (const [key, value] of parameters) {
-      if (value === undefined) {
-        continue;
-      }
-
-      url.searchParams.set(
-        key,
-        typeof value === 'string'
-          ? value
-          : HttpWire.toJson({ value, label: `[${this.name}] Query parameter '${key}'` }),
-      );
+    if (written) {
+      url.search = url.search ? `${url.search}&${written}` : written;
     }
 
     return url.toString();

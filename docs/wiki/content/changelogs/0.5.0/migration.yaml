@@ -643,3 +643,29 @@ body-cap-one-refusal:
     steps:
       - "Pin @venizia/ignis-helpers to 0.4.8."
   data: Nothing stored changes.
+
+http-datasource-query-values:
+  symbols: [HttpDataSource.buildUrl, HttpDataSource.read, HttpDataSource.request, QueryStringUtility.toQueryString]
+  upgrade:
+    before: |-
+      dataSource.buildUrl({ paths: ['x'], query: { a: null, d: [], arr: [1, 2], o: { k: 1 } } });
+      // .../x?a=null&d=%5B%5D&arr=%5B1%2C2%5D&o=%7B%22k%22%3A1%7D
+      dataSource.buildUrl({ paths: ['x?y=1'], query: { y: 2 } });
+      // .../x?y=2   (the path's own y was replaced)
+    after: |-
+      dataSource.buildUrl({ paths: ['x'], query: { a: null, d: [], arr: [1, 2], o: { k: 1 } } });
+      // .../x?arr=1&arr=2&o=%7B%22k%22%3A1%7D
+      dataSource.buildUrl({ paths: ['x?y=1'], query: { y: 2 } });
+      // .../x?y=1&y=2
+
+      // a server that read the list as JSON
+      dataSource.buildUrl({ paths: ['x'], query: { arr: JSON.stringify([1, 2]) } });
+    steps:
+      - "A null, an undefined and an empty array are no longer sent (a=null, d=%5B%5D became nothing). A server that needed the key present gets it by sending an empty string (a: '')."
+      - "A list of strings, numbers and booleans repeats its key (arr=1&arr=2), where it was one JSON parameter (arr=%5B1%2C2%5D). A server that parsed JSON there gets the old text by passing JSON.stringify(list) as a string."
+      - "A list that holds an object or a list, and an object, are still one JSON parameter: the HTTP repository's filter and where are unchanged."
+      - "A parameter that is also in the path's own query (paths: ['x?y=1'], query: { y: 2 }) now adds to it: y=1&y=2. It used to replace the path's value."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-connectors to 0.4.8."
+  data: Nothing stored changes.
