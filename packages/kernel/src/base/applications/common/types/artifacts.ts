@@ -6,7 +6,7 @@ import type { IDataSource } from '../../../datasources';
 import type { IRepository } from '../../../repositories';
 import type { IService } from '../../../services';
 
-/** The shape `@venizia/ignis-boot`'s generator emits and `registerArtifacts()` consumes. Kinds are registered in this field order. */
+/** The shape `@venizia/ignis-boot`'s generator emits and `registerArtifacts()` consumes. Fields are registered in this order. */
 export interface IArtifactIndex {
   configurations?: ReadonlyArray<TClass<BaseConfiguration>>;
   dataSources?: ReadonlyArray<TClass<IDataSource>>;
@@ -14,6 +14,8 @@ export interface IArtifactIndex {
   repositories?: ReadonlyArray<TClass<IRepository>>;
   services?: ReadonlyArray<TClass<IService>>;
   controllers?: ReadonlyArray<TClass<unknown>>;
+  /** The classes of the types the application declared with `ArtifactTypes.define`, by type name. Registered after the services and before the controllers; a type with no loaded definition is an error. */
+  custom?: Readonly<Record<string, ReadonlyArray<TClass<unknown>>>>;
 }
 
 /** An index (or nested indexes) registered only when `when` answers true - the run-mode gate: a worker keeps its controllers out of the container instead of mounting routes no security step guards. Extends the never-typed kind fields so code that destructures kinds from a non-array input still compiles against the union. */

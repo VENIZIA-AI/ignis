@@ -60,14 +60,14 @@ export class AutoArtifactsLoader {
           left.className.localeCompare(right.className),
       );
 
-    const loaded = new Map<IScannedArtifact, TClass<unknown>>();
+    const loaded = new Map<IScannedArtifact, TClass<never>>();
 
     for (const artifact of emitted) {
       const module = await import(artifact.filePath);
       loaded.set(artifact, module[artifact.className]);
     }
 
-    const index: Record<string, Array<TClass<unknown>>> = {};
+    const index: TGeneratedArtifactIndex = {};
 
     for (const { type, field } of ArtifactStereotypes.EMIT_ORDER) {
       const classes = emitted
@@ -78,6 +78,16 @@ export class AutoArtifactsLoader {
       if (classes.length > 0) {
         index[field] = classes;
       }
+    }
+
+    const custom: Record<string, Array<TClass<never>>> = {};
+
+    for (const group of ArtifactStereotypes.groupCustom({ artifacts: emitted })) {
+      custom[group.type] = group.artifacts.flatMap((artifact) => loaded.get(artifact) ?? []);
+    }
+
+    if (Object.keys(custom).length > 0) {
+      index.custom = custom;
     }
 
     return index;

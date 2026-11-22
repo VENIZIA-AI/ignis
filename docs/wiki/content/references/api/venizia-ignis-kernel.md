@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-362 exports, 362 with TSDoc. 88 more are re-exported from other entries (listed at the end).
+363 exports, 363 with TSDoc. 88 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -2909,6 +2909,22 @@ export interface IArtifactRegistrationMixin {
 ```
 
 Source: `packages/kernel/src/base/mixins/common/types.ts`
+
+## `IArtifactTypeDefinition`
+
+*interface*
+
+What an application declares about an artifact type of its own: the binding namespace its classes get and the scope they bind with unless a class says otherwise.
+
+```ts
+export interface IArtifactTypeDefinition {
+    type: string;
+    namespace: string;
+    scope: TBindingScope;
+}
+```
+
+Source: `packages/kernel/src/helpers/inversion/common/constants.ts`
 
 ## `IAuthenticateOptions`
 

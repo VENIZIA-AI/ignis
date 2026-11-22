@@ -33,7 +33,7 @@ Decorators mark a class as an artifact and carry its registration defaults. A ge
 
 ## `ArtifactTypes`
 
-The artifact kinds a stereotype may declare.
+The built-in artifact types a stereotype may declare. An application adds its own with `ArtifactTypes.define` (see [Your own artifact types](#your-own-artifact-types)).
 
 ```typescript
 class ArtifactTypes extends ConstClass {
@@ -48,6 +48,82 @@ class ArtifactTypes extends ConstClass {
 
 type TArtifactType = TConstValue<typeof ArtifactTypes>;
 ```
+
+## Your own artifact types
+
+`@service` and its siblings cover the seven built-in types. An application with a kind of class of its own (an event emitter, a job handler) declares a type once, and gets a decorator that registers the class like a stereotype does. The class is bound once, with the scope the definition names, and is found by class, as any artifact is.
+
+```typescript
+// src/emitters/define.ts
+import { ArtifactTypes, BindingScopes } from '@venizia/ignis';
+
+export const emitter = ArtifactTypes.define({
+  type: 'emitter',
+  namespace: 'emitters',
+  scope: BindingScopes.SINGLETON,
+});
+
+// src/emitters/order.emitter.ts
+import { emitter } from './define';
+
+@emitter()
+export class OrderEmitter {
+  emit(event: string): void {
+    // ...
+  }
+}
+```
+
+Find it by class, from a constructor or from the application:
+
+```typescript
+export class OrderService extends BaseService {
+  constructor(@inject({ target: OrderEmitter }) private readonly emitter: OrderEmitter) {
+    super({ scope: OrderService.name });
+  }
+}
+
+const emitter = application.get({ target: OrderEmitter }); // OrderEmitter
+```
+
+`@emitter()` takes the registration options `@service()` takes (`scope`, `order`, `when`, `binding`, `allowOverride`). A class's own `scope` wins over the definition's. The generated index (`ignis-artifacts`, `ArtifactGroup`, `@venizia/ignis-boot/auto`) lists these classes under `custom`, by type name, and `registerArtifacts` registers them after the services and before the controllers:
+
+```typescript
+export const GeneratedArtifacts = {
+  // ...
+  custom: {
+    emitter: [OrderEmitter],
+  },
+};
+```
+
+| `ArtifactTypes.define` | Result |
+|---|---|
+| `type` | The name the index and the errors use. A built-in type name is refused. |
+| `namespace` | The leading segment of every key of the type (`emitters.OrderEmitter`). One segment, and not a built-in namespace. |
+| `scope` | The scope of a class that declares none. |
+| The same call twice | A no-op (a module imported twice). The same `type` with another `namespace` or `scope` throws. |
+
+`ArtifactTypes.definitionOf({ type })` answers the definition. The seven constants, `values()` and `isValid` stay the built-in types: a defined type is not one of them.
+
+A type has no start or stop hook: it is registration and injection only. To do boot work for the classes of a type, drain them by tag in a component. Every binding is tagged with its namespace:
+
+```typescript
+@component()
+export class EmitterComponent extends BaseComponent {
+  constructor(@inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication) {
+    super({ scope: EmitterComponent.name });
+  }
+
+  override binding(): void {
+    for (const binding of this.application.findByTag({ tag: 'emitters' })) {
+      // resolve binding.key and wire it up
+    }
+  }
+}
+```
+
+The module that calls `ArtifactTypes.define` must be loaded before the application registers its artifacts: a class listed under a type nobody defined throws, naming the class. The scanner finds the decorator by reading its declaration: it follows an import, or a re-export, to `const x = ArtifactTypes.define({ type: '<string literal>', ... })`. A type written another way (a variable, a template with a substitution) marks no class.
 
 ## `IArtifactRegistrationOptions`
 
@@ -97,10 +173,10 @@ interface IArtifactMetadata<ApplicationType = unknown> extends IArtifactRegistra
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `type` | `TArtifactType` | required | The artifact kind |
+| `type` | `string` | required | A built-in type (`TArtifactType`) or one `ArtifactTypes.define` declared |
 | ...`IArtifactRegistrationOptions` | | | See above |
 
-Throws at decoration time when `type` is not in `ArtifactTypes.values()`: `[injectable][<Class>] Invalid artifact type: '<type>' | Expected one of: configuration, component, controller, service, repository, datasource, model`.
+Throws at decoration time when `type` is neither in `ArtifactTypes.values()` nor defined: `[injectable][<Class>] Invalid artifact type: '<type>' | Expected one of: configuration, component, controller, service, repository, datasource, model | or a type defined with ArtifactTypes.define`.
 
 ```typescript
 @injectable({ type: ArtifactTypes.SERVICE, scope: BindingScopes.SINGLETON })
@@ -191,6 +267,7 @@ interface IArtifactIndex {
   repositories?: ReadonlyArray<TClass<IRepository>>;
   services?: ReadonlyArray<TClass<IService>>;
   controllers?: ReadonlyArray<TClass<unknown>>;
+  custom?: Readonly<Record<string, ReadonlyArray<TClass<unknown>>>>; // the application's own types, by type name
 }
 
 interface IConditionalArtifactIndex {
@@ -213,7 +290,7 @@ type TArtifactIndexInput =
   | TArtifactIndexInput[];
 ```
 
-`IApplicationConfigs.artifacts?: TArtifactIndexInput` - one index, a conditional entry, a group, or arrays of them nested to any depth. A group (`ArtifactGroup`, `@venizia/ignis-boot/auto`) carries its classes only once artifacts are registered: its kind fields are typed `never`, and reading one throws, so a function that walks the input must pass an entry with `isArtifactGroup: true` through untouched. A conditional entry registers its `index` only when `when` answers true; a false answer drops the whole subtree. Use it for the run-mode gate: `{ when: () => runMode === 'server', index: { controllers: GeneratedArtifacts.controllers } }` keeps a worker's routes out of the container. The field names are the const class `ArtifactIndexFields` (`CONFIGURATIONS`, `DATA_SOURCES`, `COMPONENTS`, `REPOSITORIES`, `SERVICES`, `CONTROLLERS`, with `SCHEME_SET` and `isValid`); `registerArtifacts` reads the index through it, never through a string literal. Field order is registration order.
+`IApplicationConfigs.artifacts?: TArtifactIndexInput` - one index, a conditional entry, a group, or arrays of them nested to any depth. A group (`ArtifactGroup`, `@venizia/ignis-boot/auto`) carries its classes only once artifacts are registered: its kind fields are typed `never`, and reading one throws, so a function that walks the input must pass an entry with `isArtifactGroup: true` through untouched. A conditional entry registers its `index` only when `when` answers true; a false answer drops the whole subtree. Use it for the run-mode gate: `{ when: () => runMode === 'server', index: { controllers: GeneratedArtifacts.controllers } }` keeps a worker's routes out of the container. The field names are the const class `ArtifactIndexFields` (`CONFIGURATIONS`, `DATA_SOURCES`, `COMPONENTS`, `REPOSITORIES`, `SERVICES`, `CONTROLLERS`, with `SCHEME_SET` and `isValid`); `registerArtifacts` reads the index through it, never through a string literal. Field order is registration order; `custom` comes after `services`, before `controllers`. `ArtifactGroup.pick({ group, kinds })` takes `custom` as one kind: a slice keeps every custom type or none.
 
 ```typescript
 artifacts: [InventoryArtifacts, GeneratedArtifacts, { components: [HealthCheckComponent] }],
@@ -462,12 +539,13 @@ A class is emitted when all of the following hold:
 - It is **not `abstract`**.
 - It carries a stereotype decorator - `configuration`, `component`, `controller`, `service`, `repository`, `datasource` - **imported from `@venizia/ignis`, `@venizia/ignis-kernel` (or one of their sub-paths), or a `--source-module`**. The programmatic `followReexports: true` (what auto artifacts use) also accepts any module whose exports lead there through `export *` and renaming re-exports; only identifiers a class wears as a decorator are followed. Import aliases (`import { service as svc }`) are resolved. A same-named decorator from any other module is ignored.
 - Or it carries `@injectable({ type })` where `type` is a string literal or `ArtifactTypes.<NAME>`.
+- Or it carries a decorator that `ArtifactTypes.define({ type: '<string literal>', ... })` returned, declared in the same file or reached through imports and re-exports. The class lands under `custom` in the index.
 
 `@model` classes are recognised and never emitted. Every skip is logged with its reason.
 
 ### Output
 
-Deterministic: imports sorted by path, class names sorted within each field, one field per kind in the order `configurations`, `dataSources`, `components`, `repositories`, `services`, `controllers`, empty arrays kept. The order mirrors `registerArtifacts`; the kernel re-sorts configurations among themselves by their `after` declarations at boot, so their order inside the field does not matter. A field wider than 100 columns wraps one name per line, so the file passes `bun fmt --check` unchanged. The header names the regenerate command.
+Deterministic: imports sorted by path, class names sorted within each field, one field per kind in the order `configurations`, `dataSources`, `components`, `repositories`, `services`, `controllers`, empty arrays kept, then a `custom` field with one list per defined type (written only when a class of one exists). The order mirrors `registerArtifacts`; the kernel re-sorts configurations among themselves by their `after` declarations at boot, so their order inside the field does not matter. A field wider than 100 columns wraps one name per line, so the file passes `bun fmt --check` unchanged. The header names the regenerate command.
 
 ## Programmatic API
 

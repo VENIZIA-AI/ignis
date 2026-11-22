@@ -1,4 +1,5 @@
-import { ArtifactTypes, BindingKeys } from '@/helpers/inversion';
+import { BindingKeys } from '@venizia/ignis-inversion';
+import { ArtifactTypes } from '@/helpers/inversion';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 
@@ -33,6 +34,11 @@ export class BindingNamespaces {
     return typeof name === 'string' && BindingNamespaces.NAME_PATTERN.test(name);
   }
 
+  /** Whether `name` is the namespace of a built-in artifact type (or of the middlewares and providers the framework binds). */
+  static isBuiltIn(opts: { name: string }): boolean {
+    return Object.values(BindingNamespaces).some((value) => value === opts.name);
+  }
+
   static createNamespace(opts: { name: string }) {
     const { name } = opts;
 
@@ -59,24 +65,30 @@ export class BindingNamespaces {
   }
 }
 
-/** Artifact kind -> namespace. `registerArtifact` gets its namespace from the call site; `@injectable` has only the class. */
+/** Artifact type -> namespace. `registerArtifact` gets its namespace from the call site; `@injectable` has only the class. */
 export class ArtifactNamespaces {
-  private static readonly BY_TYPE: Record<string, TBindingNamespace> = {
-    [ArtifactTypes.CONFIGURATION]: BindingNamespaces.CONFIGURATION,
-    [ArtifactTypes.COMPONENT]: BindingNamespaces.COMPONENT,
-    [ArtifactTypes.CONTROLLER]: BindingNamespaces.CONTROLLER,
-    [ArtifactTypes.SERVICE]: BindingNamespaces.SERVICE,
-    [ArtifactTypes.REPOSITORY]: BindingNamespaces.REPOSITORY,
-    [ArtifactTypes.DATASOURCE]: BindingNamespaces.DATASOURCE,
-    [ArtifactTypes.MODEL]: BindingNamespaces.MODEL,
-  };
+  /** Built on first use: `ArtifactTypes.define` reaches `BindingNamespaces`, so this module must not read `ArtifactTypes` while it loads. */
+  private static builtIn(): Record<string, TBindingNamespace> {
+    return {
+      [ArtifactTypes.CONFIGURATION]: BindingNamespaces.CONFIGURATION,
+      [ArtifactTypes.COMPONENT]: BindingNamespaces.COMPONENT,
+      [ArtifactTypes.CONTROLLER]: BindingNamespaces.CONTROLLER,
+      [ArtifactTypes.SERVICE]: BindingNamespaces.SERVICE,
+      [ArtifactTypes.REPOSITORY]: BindingNamespaces.REPOSITORY,
+      [ArtifactTypes.DATASOURCE]: BindingNamespaces.DATASOURCE,
+      [ArtifactTypes.MODEL]: BindingNamespaces.MODEL,
+    };
+  }
 
+  /** A built-in type's namespace, else the namespace its `ArtifactTypes.define` gave. */
   static resolve(opts: { type: string }): TBindingNamespace {
-    const namespace = ArtifactNamespaces.BY_TYPE[opts.type];
+    const builtIn = ArtifactNamespaces.builtIn();
+    const namespace =
+      builtIn[opts.type] ?? ArtifactTypes.definitionOf({ type: opts.type })?.namespace;
 
     if (namespace === undefined) {
       throw getError({
-        message: `[ArtifactNamespaces][resolve] No namespace for artifact type | type: '${opts.type}' | known: ${Object.keys(ArtifactNamespaces.BY_TYPE).join(', ')}`,
+        message: `[ArtifactNamespaces][resolve] No namespace for artifact type | type: '${opts.type}' | known: ${Object.keys(builtIn).join(', ')} | defined: ${ArtifactTypes.definedTypes().join(', ') || 'none'}`,
       });
     }
 

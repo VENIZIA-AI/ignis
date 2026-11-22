@@ -39,16 +39,20 @@ export class ArtifactScanner extends BaseHelper {
       userGlobs: opts.ignore ?? [],
     });
     const sourceModules = new Set(opts.sourceModules);
-    const resolver = opts.followReexports
-      ? new StereotypeReexportResolver({ root, sourceModules })
-      : undefined;
+    // One resolver for both jobs: following re-exports to a stereotype is optional, finding the decorators an application defined is not.
+    const reader = new StereotypeReexportResolver({ root, sourceModules });
+    const resolver = opts.followReexports ? reader : undefined;
     const skipped: IScanSkipped[] = [];
 
     const artifacts = this.sortArtifacts(
-      kept.flatMap((filePath) => this.scanFile({ filePath, sourceModules, resolver, skipped })),
+      kept.flatMap((filePath) =>
+        this.scanFile({ filePath, sourceModules, resolver, reader, skipped }),
+      ),
     );
     const ignored = this.sortArtifacts(
-      hidden.flatMap((filePath) => this.scanHiddenFile({ filePath, sourceModules, resolver })),
+      hidden.flatMap((filePath) =>
+        this.scanHiddenFile({ filePath, sourceModules, resolver, reader }),
+      ),
     );
 
     for (const artifact of ignored) {
@@ -67,6 +71,7 @@ export class ArtifactScanner extends BaseHelper {
     filePath: string;
     sourceModules: Set<string>;
     resolver?: StereotypeReexportResolver;
+    reader: StereotypeReexportResolver;
   }): IScannedArtifact[] {
     try {
       return this.scanFile({ ...opts, isHidden: true });
@@ -116,10 +121,11 @@ export class ArtifactScanner extends BaseHelper {
     filePath: string;
     sourceModules: Set<string>;
     resolver?: StereotypeReexportResolver;
+    reader: StereotypeReexportResolver;
     skipped?: IScanSkipped[];
     isHidden?: boolean;
   }): IScannedArtifact[] {
-    const { filePath, sourceModules, resolver, skipped, isHidden = false } = opts;
+    const { filePath, sourceModules, resolver, reader, skipped, isHidden = false } = opts;
     const source = ts.createSourceFile(
       filePath,
       readFileSync(filePath, 'utf8'),
@@ -133,7 +139,13 @@ export class ArtifactScanner extends BaseHelper {
       resolver,
     });
 
-    if (stereotypeByLocalName.size === 0) {
+    const customByLocalName = this.collectCustomDecorators({
+      source,
+      reader,
+      excluded: stereotypeByLocalName,
+    });
+
+    if (stereotypeByLocalName.size === 0 && customByLocalName.size === 0) {
       return [];
     }
 
@@ -149,6 +161,7 @@ export class ArtifactScanner extends BaseHelper {
       const types = this.artifactTypesOf({
         node,
         stereotypeByLocalName,
+        customByLocalName,
         filePath,
         className,
       });
@@ -276,6 +289,56 @@ export class ArtifactScanner extends BaseHelper {
     return names;
   }
 
+  /**
+   * local identifier -> type, for the decorators this file's classes wear that an application defined with
+   * `ArtifactTypes.define`: declared in this file, or imported from a module whose chain of exports reaches the declaration.
+   */
+  private collectCustomDecorators(opts: {
+    source: ts.SourceFile;
+    reader: StereotypeReexportResolver;
+    excluded: Map<string, string>;
+  }): Map<string, string> {
+    const { source, reader, excluded } = opts;
+    const result = new Map<string, string>();
+    const imported = new Map<string, { specifier: string; name: string }>();
+
+    for (const statement of source.statements) {
+      if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
+        continue;
+      }
+
+      const bindings = statement.importClause?.namedBindings;
+
+      if (!bindings || !ts.isNamedImports(bindings)) {
+        continue;
+      }
+
+      for (const element of bindings.elements) {
+        imported.set(element.name.text, {
+          specifier: statement.moduleSpecifier.text,
+          name: (element.propertyName ?? element.name).text,
+        });
+      }
+    }
+
+    for (const local of this.collectClassDecoratorNames({ source })) {
+      if (excluded.has(local)) {
+        continue;
+      }
+
+      const origin = imported.get(local);
+      const type = origin
+        ? reader.customTypeOf({ fromFile: source.fileName, ...origin })
+        : reader.definedTypeIn({ source, name: local });
+
+      if (type) {
+        result.set(local, type);
+      }
+    }
+
+    return result;
+  }
+
   private collectExportClauseNames(opts: { source: ts.SourceFile }): Set<string> {
     const names = new Set<string>();
 
@@ -297,11 +360,12 @@ export class ArtifactScanner extends BaseHelper {
   private artifactTypesOf(opts: {
     node: ts.ClassDeclaration;
     stereotypeByLocalName: Map<string, string>;
+    customByLocalName: Map<string, string>;
     filePath: string;
     className: string;
-  }): TArtifactType[] {
-    const { node, stereotypeByLocalName, filePath, className } = opts;
-    const types: TArtifactType[] = [];
+  }): string[] {
+    const { node, stereotypeByLocalName, customByLocalName, filePath, className } = opts;
+    const types: string[] = [];
 
     const decorators = ts.getDecorators(node) ?? [];
 
@@ -309,6 +373,13 @@ export class ArtifactScanner extends BaseHelper {
       const expression = decorator.expression;
 
       if (!ts.isCallExpression(expression) || !ts.isIdentifier(expression.expression)) {
+        continue;
+      }
+
+      const custom = customByLocalName.get(expression.expression.text);
+
+      if (custom) {
+        types.push(custom);
         continue;
       }
 

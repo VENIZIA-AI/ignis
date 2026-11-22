@@ -14,6 +14,7 @@ export class StereotypeReexportResolver extends BaseHelper {
   private readonly resolutions = new Map<string, string | undefined>();
   private readonly sources = new Map<string, ts.SourceFile>();
   private readonly origins = new Map<string, string | undefined>();
+  private readonly customTypes = new Map<string, string | undefined>();
 
   constructor(opts: { root: string; sourceModules: Set<string> }) {
     super({ scope: StereotypeReexportResolver.name });
@@ -52,6 +53,118 @@ export class StereotypeReexportResolver extends BaseHelper {
     }
 
     return this.origins.get(key);
+  }
+
+  /**
+   * The type an application's own decorator stands for: `name`, exported by `specifier` as seen from `fromFile`, is followed
+   * through re-exports to `const name = ArtifactTypes.define({ type: '<literal>', ... })`. `undefined` when the chain ends
+   * anywhere else - a built-in stereotype, a function that is not a `define`, a type that is not a string literal.
+   */
+  customTypeOf(opts: { fromFile: string; specifier: string; name: string }): string | undefined {
+    const key = `${dirname(opts.fromFile)}|${opts.specifier}|${opts.name}`;
+
+    if (!this.customTypes.has(key)) {
+      this.customTypes.set(
+        key,
+        this.follow({
+          ...opts,
+          depth: 0,
+          seen: new Set<string>(),
+          declaredIn: (declared) => this.definedTypeIn(declared),
+        }),
+      );
+    }
+
+    return this.customTypes.get(key);
+  }
+
+  /** The `type` of `const name = ArtifactTypes.define({ type: '<literal>', ... })` among the top-level statements of `source`. */
+  definedTypeIn(opts: { source: ts.SourceFile; name: string }): string | undefined {
+    const { source, name } = opts;
+
+    for (const statement of source.statements) {
+      if (!ts.isVariableStatement(statement)) {
+        continue;
+      }
+
+      for (const declaration of statement.declarationList.declarations) {
+        const call = declaration.initializer;
+
+        if (
+          !ts.isIdentifier(declaration.name) ||
+          declaration.name.text !== name ||
+          !call ||
+          !ts.isCallExpression(call) ||
+          !this.isArtifactTypesDefine({ source, call })
+        ) {
+          continue;
+        }
+
+        return this.literalTypeOf({ call });
+      }
+    }
+
+    return undefined;
+  }
+
+  /** `ArtifactTypes.define(...)` where `ArtifactTypes` is imported from a source module in this file. */
+  private isArtifactTypesDefine(opts: { source: ts.SourceFile; call: ts.CallExpression }): boolean {
+    const { source, call } = opts;
+    const callee = call.expression;
+
+    if (
+      !ts.isPropertyAccessExpression(callee) ||
+      callee.name.text !== 'define' ||
+      !ts.isIdentifier(callee.expression)
+    ) {
+      return false;
+    }
+
+    const local = callee.expression.text;
+
+    return source.statements.some((statement) => {
+      if (
+        !ts.isImportDeclaration(statement) ||
+        !ts.isStringLiteral(statement.moduleSpecifier) ||
+        !this.isSourceModule({ specifier: statement.moduleSpecifier.text })
+      ) {
+        return false;
+      }
+
+      const bindings = statement.importClause?.namedBindings;
+
+      return (
+        !!bindings &&
+        ts.isNamedImports(bindings) &&
+        bindings.elements.some(
+          (element) =>
+            element.name.text === local &&
+            (element.propertyName ?? element.name).text === 'ArtifactTypes',
+        )
+      );
+    });
+  }
+
+  private literalTypeOf(opts: { call: ts.CallExpression }): string | undefined {
+    const [argument] = opts.call.arguments;
+
+    if (!argument || !ts.isObjectLiteralExpression(argument)) {
+      return undefined;
+    }
+
+    for (const entry of argument.properties) {
+      if (
+        ts.isPropertyAssignment(entry) &&
+        ts.isIdentifier(entry.name) &&
+        entry.name.text === 'type' &&
+        (ts.isStringLiteral(entry.initializer) ||
+          ts.isNoSubstitutionTemplateLiteral(entry.initializer))
+      ) {
+        return entry.initializer.text;
+      }
+    }
+
+    return undefined;
   }
 
   private resolveFile(opts: { fromFile: string; specifier: string }): string | undefined {
@@ -97,11 +210,13 @@ export class StereotypeReexportResolver extends BaseHelper {
     name: string;
     depth: number;
     seen: Set<string>;
+    /** Reads what a file declares itself under `name`; set, the chain ends at a declaration, and a source module ends it with no answer. */
+    declaredIn?: (opts: { source: ts.SourceFile; name: string }) => string | undefined;
   }): string | undefined {
-    const { fromFile, specifier, name, depth, seen } = opts;
+    const { fromFile, specifier, name, depth, seen, declaredIn } = opts;
 
     if (this.isSourceModule({ specifier })) {
-      return name;
+      return declaredIn ? undefined : name;
     }
 
     if (depth >= StereotypeReexportResolver.MAX_DEPTH) {
@@ -118,8 +233,14 @@ export class StereotypeReexportResolver extends BaseHelper {
     seen.add(visit);
 
     const source = this.parse({ file: resolved });
+    const declared = declaredIn?.({ source, name });
+
+    if (declared !== undefined) {
+      return declared;
+    }
+
     const next = (target: { specifier: string; name: string }): string | undefined =>
-      this.follow({ fromFile: resolved, ...target, depth: depth + 1, seen });
+      this.follow({ fromFile: resolved, ...target, depth: depth + 1, seen, declaredIn });
 
     const importedBy = new Map<string, { specifier: string; name: string }>();
 

@@ -108,28 +108,43 @@ export class IgnisArtifactsPlugin {
 
       const fields: string[] = [];
 
+      /** How the generated literal names one class: a `require` in a compiled file, else an import of its own. */
+      const reference = (artifact: { filePath: string; className: string }): string => {
+        if (isCompiled) {
+          return `require(${JSON.stringify(artifact.filePath)}).${artifact.className}`;
+        }
+
+        counter += 1;
+        const local = `__ignis_group_${counter}`;
+        const path = artifact.filePath
+          .split(sep)
+          .join('/')
+          .replace(ArtifactStereotypes.SOURCE_EXTENSION, '');
+        imports.push(`import { ${artifact.className} as ${local} } from '${path}';`);
+
+        return local;
+      };
+
       for (const { type, field } of ArtifactStereotypes.EMIT_ORDER) {
         const locals = artifacts
           .filter((artifact) => artifact.type === type)
-          .map((artifact) => {
-            if (isCompiled) {
-              return `require(${JSON.stringify(artifact.filePath)}).${artifact.className}`;
-            }
-
-            counter += 1;
-            const local = `__ignis_group_${counter}`;
-            const path = artifact.filePath
-              .split(sep)
-              .join('/')
-              .replace(ArtifactStereotypes.SOURCE_EXTENSION, '');
-            imports.push(`import { ${artifact.className} as ${local} } from '${path}';`);
-
-            return local;
-          });
+          .map((artifact) => reference(artifact));
 
         if (locals.length > 0) {
           fields.push(`${field}: [${locals.join(', ')}]`);
         }
+      }
+
+      const custom = ArtifactStereotypes.groupCustom({ artifacts }).map(
+        ({ type, artifacts: group }) => {
+          const locals = group.map((artifact) => reference(artifact));
+
+          return `${JSON.stringify(type)}: [${locals.join(', ')}]`;
+        },
+      );
+
+      if (custom.length > 0) {
+        fields.push(`${ArtifactStereotypes.CUSTOM_FIELD}: { ${custom.join(', ')} }`);
       }
 
       return `{ ${fields.join(', ')} }`;

@@ -29,11 +29,11 @@ export interface IArtifactRegistrationOptions<ApplicationType = unknown> {
   after?: ReadonlyArray<TClass<unknown>>;
 }
 
-/** Registration options of an artifact plus its `type`. */
+/** Registration options of an artifact plus its `type`: a built-in one (`TArtifactType`) or one `ArtifactTypes.define` declared. */
 export interface IArtifactMetadata<
   ApplicationType = unknown,
 > extends IArtifactRegistrationOptions<ApplicationType> {
-  type: TArtifactType;
+  type: string;
 }
 
 /** One `@provide` method: the key it binds, and the binding scope of the value. */

@@ -13,9 +13,9 @@ export const injectable = <ApplicationType = unknown>(
   opts: IArtifactMetadata<ApplicationType>,
 ): ClassDecorator => {
   return (target) => {
-    if (!ArtifactTypes.isValid(opts.type)) {
+    if (!ArtifactTypes.isValid(opts.type) && !ArtifactTypes.definitionOf({ type: opts.type })) {
       throw getError({
-        message: `[injectable][${target.name}] Invalid artifact type: '${opts.type}' | Expected one of: ${ArtifactTypes.values().join(', ')}`,
+        message: `[injectable][${target.name}] Invalid artifact type: '${opts.type}' | Expected one of: ${ArtifactTypes.values().join(', ')} | or a type defined with ArtifactTypes.define${ArtifactTypes.definedTypes().length > 0 ? `: ${ArtifactTypes.definedTypes().join(', ')}` : ''}`,
       });
     }
 

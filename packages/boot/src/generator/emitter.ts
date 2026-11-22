@@ -77,6 +77,7 @@ export class ArtifactIndexEmitter {
 
       return ArtifactIndexEmitter.renderField({ field, names });
     });
+    const custom = ArtifactStereotypes.groupCustom({ artifacts: emitted });
 
     return [
       ArtifactIndexEmitter.renderHeader({ ...command, exportName }),
@@ -84,9 +85,31 @@ export class ArtifactIndexEmitter {
       '',
       `export const ${exportName} = {`,
       ...fields,
+      ...ArtifactIndexEmitter.renderCustom({ custom }),
       '};',
       '',
     ].join('\n');
+  }
+
+  /** The `custom` field: one list per type the application defined, nothing at all when it defined none. */
+  private static renderCustom(opts: {
+    custom: Array<{ type: string; artifacts: Array<{ className: string }> }>;
+  }): string[] {
+    if (opts.custom.length === 0) {
+      return [];
+    }
+
+    const lines = opts.custom.flatMap(({ type, artifacts }) => {
+      const key = /^[A-Za-z_$][\w$]*$/.test(type) ? type : `'${type}'`;
+      const names = artifacts.map((artifact) => artifact.className);
+      const singleLine = `    ${key}: [${names.join(', ')}],`;
+
+      return singleLine.length <= ArtifactIndexEmitter.PRINT_WIDTH
+        ? [singleLine]
+        : [`    ${key}: [`, ...names.map((name) => `      ${name},`), '    ],'];
+    });
+
+    return [`  ${ArtifactStereotypes.CUSTOM_FIELD}: {`, ...lines, '  },'];
   }
 
   /** One line while it fits the print width, else one name per line - so `bun fmt --check` on the generated file stays quiet. */

@@ -57,7 +57,7 @@ export class ArtifactGroup implements IArtifactGroup {
     });
   }
 
-  /** A group carrying only `kinds` - for a slicer that splits `configs.artifacts` by run mode. The source group is resolved when artifacts are registered, never here. */
+  /** A group carrying only `kinds` - for a slicer that splits `configs.artifacts` by run mode. `custom` is one kind for every type the application defined: a slice keeps all of them or none. The source group is resolved when artifacts are registered, never here. */
   static pick(opts: {
     group: IArtifactGroup;
     kinds: ReadonlyArray<keyof IArtifactIndex>;
@@ -151,6 +151,10 @@ export class ArtifactGroup implements IArtifactGroup {
   }
 
   get controllers(): never {
+    throw ArtifactGroup.unreadKindError({ folder: this.folder });
+  }
+
+  get custom(): never {
     throw ArtifactGroup.unreadKindError({ folder: this.folder });
   }
 
