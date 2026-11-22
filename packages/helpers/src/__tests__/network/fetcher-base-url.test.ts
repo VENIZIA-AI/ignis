@@ -78,6 +78,19 @@ describe('a relative call url with a baseUrl', () => {
     }
   });
 
+  test('a dot segment right before the query or the fragment is still refused', async () => {
+    for (const client of clients(`${origin}/v1/api`)) {
+      await RejectionUtility.expectRejection({
+        task: client.call('/..?x=1'),
+        message: 'must stay under the base path',
+      });
+      await RejectionUtility.expectRejection({
+        task: client.call('/%2e%2e#f'),
+        message: 'must stay under the base path',
+      });
+    }
+  });
+
   test('the query and the fragment pass as written, even when they look like a dot segment', async () => {
     for (const client of clients(`${origin}/v1/api`)) {
       const next = await client.call('/a?next=/..');
@@ -158,7 +171,11 @@ describe('the axios fields that would break the join are type errors', () => {
       // @ts-expect-error - axios would join the absolute url a second time
       allowAbsoluteUrls: false,
     };
+    const defaultConfigs: ConstructorParameters<typeof AxiosFetcher>[0]['defaultConfigs'] = {
+      // @ts-expect-error - same for the fetcher's default configs
+      allowAbsoluteUrls: false,
+    };
 
-    expect([call, networkOptions]).toHaveLength(2);
+    expect([call, networkOptions, defaultConfigs]).toHaveLength(3);
   });
 });
