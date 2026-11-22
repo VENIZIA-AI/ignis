@@ -1,71 +1,11 @@
 import { getError } from '../error';
-import { type TBindingKey, type TClass, type TInjectTarget } from '@/common/types';
-import { ResolverUtility } from '@/common/utilities';
+import { type TClass } from '@/common/types';
 import { BaseContainer } from './base';
 
 /** Default container: constructor + property injection driven by the decorator metadata registry. */
 export class Container extends BaseContainer {
   constructor(opts?: { scope: string }) {
     super({ scope: opts?.scope ?? Container.name });
-  }
-
-  /**
-   * The class form reads the key the REGISTRATION recorded, so a call-site override and an imperative
-   * `application.service(X)` both resolve. `@inject` takes a key or a class; metadata a framework
-   * writes may carry both, and then the class wins and the key is the fallback for a class nothing
-   * recorded - one bound by hand with `bind({ key }).toClass(X)`. An optional class with neither
-   * resolves to `undefined`, as an optional key would.
-   */
-  protected resolveBindingKey(opts: {
-    key?: TBindingKey;
-    target?: TInjectTarget;
-    isOptional?: boolean;
-    cls: TClass<unknown>;
-    at: string;
-  }): TBindingKey | undefined {
-    const { key, target: declared, isOptional = false, cls, at } = opts;
-
-    if (declared === undefined && key !== undefined) {
-      return key;
-    }
-
-    if (declared === undefined) {
-      throw getError({
-        message: `[${cls.name}] ${at} has neither an @inject key nor a class`,
-      });
-    }
-
-    const target = ResolverUtility.resolveInjectTarget({ target: declared });
-
-    if (target === undefined) {
-      throw getError({
-        message: `[${cls.name}] ${at} names a function that did not return a class`,
-      });
-    }
-
-    const recorded = this.getMetadataRegistry().getBindingKey({ target }) ?? key;
-
-    if (recorded === undefined && isOptional) {
-      return undefined;
-    }
-
-    if (recorded === undefined) {
-      throw getError({
-        message: `[${cls.name}] ${at} names '${target.name}', which is not registered as an artifact | Decorate it (@service, @repository, ...) or register it on the application before it is injected`,
-        extra: { unregisteredClass: target.name },
-      });
-    }
-
-    // A same-name class records the same derived key (a library's own copy of a class the application registers): resolving it would hand back the OTHER class without a word.
-    const bound = this.getBinding({ key: recorded })?.boundClass();
-
-    if (bound && bound !== target && !(bound.prototype instanceof target)) {
-      throw getError({
-        message: `[${cls.name}] ${at} names '${target.name}', but '${String(recorded)}' is bound to a different class named '${bound.name}' | Two classes share one name and so one key - rename one, re-export the registered one, or inject by key`,
-      });
-    }
-
-    return recorded;
   }
 
   override instantiate<T>(cls: TClass<T>): T {
@@ -91,7 +31,7 @@ export class Container extends BaseContainer {
         key: meta.key,
         target: meta.target,
         isOptional,
-        cls,
+        owner: cls.name,
         at: `Constructor parameter ${index}`,
       });
 
@@ -122,7 +62,7 @@ export class Container extends BaseContainer {
         key: metadata.bindingKey,
         target: metadata.target,
         isOptional,
-        cls,
+        owner: cls.name,
         at: `Property '${String(propertyKey)}'`,
       });
 

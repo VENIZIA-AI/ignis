@@ -1,4 +1,5 @@
-import { type TBindingKey, type TClass, type TNullable } from '@/common/types';
+import { type TBindingKey, type TClass, type TInjectTarget, type TNullable } from '@/common/types';
+import { ResolverUtility } from '@/common/utilities';
 import { Binding } from '../binding/binding';
 import { getError } from '../error';
 import { metadataRegistry } from '../registry/registry';
@@ -55,6 +56,66 @@ export abstract class BaseContainer extends AbstractContainer {
     });
   }
 
+  /**
+   * The class form reads the key the REGISTRATION recorded, so a call-site override and an imperative
+   * `application.service(X)` both resolve. `@inject` takes a key or a class; metadata a framework
+   * writes may carry both, and then the class wins and the key is the fallback for a class nothing
+   * recorded - one bound by hand with `bind({ key }).toClass(X)`. An optional class with neither
+   * resolves to `undefined`, as an optional key would.
+   */
+  protected resolveBindingKey(opts: {
+    key?: TBindingKey;
+    target?: TInjectTarget;
+    isOptional?: boolean;
+    /** Whose declaration this is, as the messages name it: a class, or the container for a `get`. */
+    owner: string;
+    at: string;
+  }): TBindingKey | undefined {
+    const { key, target: declared, isOptional = false, owner, at } = opts;
+
+    if (declared === undefined && key !== undefined) {
+      return key;
+    }
+
+    if (declared === undefined) {
+      throw getError({
+        message: `[${owner}] ${at} has neither an @inject key nor a class`,
+      });
+    }
+
+    const target = ResolverUtility.resolveInjectTarget({ target: declared });
+
+    if (target === undefined) {
+      throw getError({
+        message: `[${owner}] ${at} names a function that did not return a class`,
+      });
+    }
+
+    const recorded = this.getMetadataRegistry().getBindingKey({ target }) ?? key;
+
+    if (recorded === undefined && isOptional) {
+      return undefined;
+    }
+
+    if (recorded === undefined) {
+      throw getError({
+        message: `[${owner}] ${at} names '${target.name}', which is not registered as an artifact | Decorate it (@service, @repository, ...) or register it on the application before it is injected`,
+        extra: { unregisteredClass: target.name },
+      });
+    }
+
+    // A same-name class records the same derived key (a library's own copy of a class the application registers): resolving it would hand back the OTHER class without a word.
+    const bound = this.getBinding({ key: recorded })?.boundClass();
+
+    if (bound && bound !== target && !(bound.prototype instanceof target)) {
+      throw getError({
+        message: `[${owner}] ${at} names '${target.name}', but '${String(recorded)}' is bound to a different class named '${bound.name}' | Two classes share one name and so one key - rename one, re-export the registered one, or inject by key`,
+      });
+    }
+
+    return recorded;
+  }
+
   override bind<T>(opts: { key: TBindingKey<T> }): Binding<T>;
   override bind(opts: { key: TBindingKey }): Binding;
   override bind<T>(opts: { key: TBindingKey<T> }): Binding<T> {
@@ -91,11 +152,38 @@ export abstract class BaseContainer extends AbstractContainer {
     this.bindings.set(binding.key, binding);
   }
 
-  override get<T>(opts: { key: TBindingKey<T>; isOptional?: false }): T;
-  override get<T>(opts: { key: TBindingKey<T>; isOptional?: boolean }): T | undefined;
+  override get<T>(
+    opts:
+      | { key: TBindingKey<T>; isOptional?: false }
+      | { target: TClass<T>; key?: never; isOptional?: false },
+  ): T;
+  override get<T>(
+    opts:
+      | { key: TBindingKey<T>; isOptional?: boolean }
+      | { target: TClass<T>; key?: never; isOptional?: boolean },
+  ): T | undefined;
   override get(opts: { key: TBindingKey; isOptional?: boolean }): unknown;
-  override get<T>(opts: { key: TBindingKey<T>; isOptional?: boolean }): T | undefined {
-    const { key, isOptional = false } = opts;
+  override get<T>(opts: {
+    key?: TBindingKey<T>;
+    target?: TClass<T>;
+    isOptional?: boolean;
+  }): T | undefined {
+    const { target, isOptional = false } = opts;
+    // The class form is the key `@inject({ target })` would read, resolved by the same method with the same errors.
+    const key =
+      target === undefined
+        ? opts.key
+        : this.resolveBindingKey({ target, isOptional, owner: 'Container', at: 'get({ target })' });
+
+    if (key === undefined) {
+      // An optional class nothing registered answers `undefined`; a call with neither is the JavaScript misuse `assertKey` names.
+      if (target === undefined) {
+        BaseContainer.assertKey({ key, caller: 'get' });
+      }
+
+      return undefined;
+    }
+
     BaseContainer.assertKey({ key, caller: 'get' });
 
     const binding = this.getBinding<T>({ key });

@@ -173,6 +173,19 @@ constructor(
 }
 ```
 
+### Getting an Artifact by Class
+
+`container.get({ target })` is the imperative twin of `@inject({ target })`: name the class and get the artifact registered for it, typed as that class, with no key and no cast.
+
+```typescript
+import { UserService } from '../services/user.service';
+
+const userService = application.get({ target: UserService }); // UserService
+const cache = application.get({ target: CacheService, isOptional: true }); // CacheService | undefined
+```
+
+It reads the key the class's registration recorded, as `@inject({ target })` does, so it follows the same rules and fails with the same errors. A class that was never registered (`@service`, `@repository`, `application.service(X)`) throws and names the class. A class that shares its key with a different registered class throws, and so does a call that passes `key` and `target` together (a type error). Use `get({ key })` for a binding that is not a registered class, such as a value or a configuration.
+
 ## Providers
 
 Providers are used for dependencies that require complex setup logic. A provider can be either a factory function or a class that implements the `IProvider<T>` interface with a `value()` method.
@@ -306,7 +319,8 @@ describe('UserService', () => {
 | Method | Description |
 | :--- | :--- |
 | `bind<T>({ key })` | Create a new binding |
-| `get<T>({ key, isOptional? })` | Resolve a single dependency |
+| `get<T>({ key, isOptional? })` | Resolve a single dependency by key |
+| `get<T>({ target, isOptional? })` | Resolve a registered class by the class itself |
 | `gets<T>({ bindings })` | Resolve multiple dependencies at once |
 | `resolve<T>(cls)` | Instantiate a class with DI (alias for `instantiate`) |
 | `isBound({ key })` | Check if a key is bound |

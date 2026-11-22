@@ -55,4 +55,5 @@ Inversion ships ES modules only (`dist/esm/`), one build program. A React fronte
 - [boot](/packages/boot.md)
 - [helpers](/packages/helpers.md)
 
+- **`get({ target })`:** the imperative twin of `@inject({ target })`. `BaseContainer.get` resolves the class through `resolveBindingKey` (the one method both use, so the errors and the same-name guard are shared; the messages name `Container` as the owner), then continues as `get({ key })`. A call names `key` or `target`, never both (`key?: never` on the target arm). `gets` and `getBinding` take keys only.
 - **Same-name guard:** resolving `@inject({ target: X })` checks the key's `toClass` binding (`Binding.boundClass()`) is `X` or a subclass; a different same-name class throws (two classes of one name derive one key - pinned names make this reachable in bundles). Value and provider bindings are not checked.

@@ -45,9 +45,17 @@ export declare abstract class AbstractContainer extends BaseHelper implements IC
     abstract get<T>(opts: {
         key: TBindingKey<T>;
         isOptional?: false;
+    } | {
+        target: TClass<T>;
+        key?: never;
+        isOptional?: false;
     }): T;
     abstract get<T>(opts: {
         key: TBindingKey<T>;
+        isOptional?: boolean;
+    } | {
+        target: TClass<T>;
+        key?: never;
         isOptional?: boolean;
     }): T | undefined;
     abstract get(opts: {
@@ -173,6 +181,21 @@ export declare abstract class BaseContainer extends AbstractContainer {
     getMetadataRegistry(): import("../index.js").MetadataRegistry;
     /** A JavaScript caller can still pass a removed form (a symbol, `{ namespace, key }`): say what replaced it. */
     private static assertKey;
+    /**
+     * The class form reads the key the REGISTRATION recorded, so a call-site override and an imperative
+     * `application.service(X)` both resolve. `@inject` takes a key or a class; metadata a framework
+     * writes may carry both, and then the class wins and the key is the fallback for a class nothing
+     * recorded - one bound by hand with `bind({ key }).toClass(X)`. An optional class with neither
+     * resolves to `undefined`, as an optional key would.
+     */
+    protected resolveBindingKey(opts: {
+        key?: TBindingKey;
+        target?: TInjectTarget;
+        isOptional?: boolean;
+        /** Whose declaration this is, as the messages name it: a class, or the container for a `get`. */
+        owner: string;
+        at: string;
+    }): TBindingKey | undefined;
     bind<T>(opts: {
         key: TBindingKey<T>;
     }): Binding<T>;
@@ -197,9 +220,17 @@ export declare abstract class BaseContainer extends AbstractContainer {
     get<T>(opts: {
         key: TBindingKey<T>;
         isOptional?: false;
+    } | {
+        target: TClass<T>;
+        key?: never;
+        isOptional?: false;
     }): T;
     get<T>(opts: {
         key: TBindingKey<T>;
+        isOptional?: boolean;
+    } | {
+        target: TClass<T>;
+        key?: never;
         isOptional?: boolean;
     }): T | undefined;
     get(opts: {
@@ -401,20 +432,6 @@ export declare class Container extends BaseContainer {
     constructor(opts?: {
         scope: string;
     });
-    /**
-     * The class form reads the key the REGISTRATION recorded, so a call-site override and an imperative
-     * `application.service(X)` both resolve. `@inject` takes a key or a class; metadata a framework
-     * writes may carry both, and then the class wins and the key is the fallback for a class nothing
-     * recorded - one bound by hand with `bind({ key }).toClass(X)`. An optional class with neither
-     * resolves to `undefined`, as an optional key would.
-     */
-    protected resolveBindingKey(opts: {
-        key?: TBindingKey;
-        target?: TInjectTarget;
-        isOptional?: boolean;
-        cls: TClass<unknown>;
-        at: string;
-    }): TBindingKey | undefined;
     instantiate<T>(cls: TClass<T>): T;
 }
 ```
@@ -614,9 +631,17 @@ export interface IContainer {
     get<T>(opts: {
         key: TBindingKey<T>;
         isOptional?: false;
+    } | {
+        target: TClass<T>;
+        key?: never;
+        isOptional?: false;
     }): T;
     get<T>(opts: {
         key: TBindingKey<T>;
+        isOptional?: boolean;
+    } | {
+        target: TClass<T>;
+        key?: never;
         isOptional?: boolean;
     }): T | undefined;
     get(opts: {
