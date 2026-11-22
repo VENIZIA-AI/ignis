@@ -437,6 +437,31 @@ await userRepository.updateById({
 });
 ```
 
+## 14. Renaming Wire Keys Before Parsing Them
+
+**Problem:** A response or a raw row arrives in `snake_case`, and the code runs `ParseUtility.keysToCamel` and then parses the result with a second schema.
+
+**Cause:** `keysToCamel` answers `Record<string, unknown>`, so nothing is validated or typed until the second parse. It also renames every key at every depth, including free-form maps and metadata whose keys are data (`{ 'x-request-id': ... }` becomes `xRequestId`).
+
+**Solution:** Parse once at the boundary. A schema with `.transform` validates the shape, types it, and renames only the fields you declare:
+
+```typescript
+import { z } from 'zod';
+
+// ❌ BAD - two passes, and every key is renamed, declared or not
+const renamed = ParseUtility.keysToCamel({ source: raw });
+const user = CamelUserSchema.parse(renamed);
+
+// ✅ GOOD - one pass: validated, typed and renamed where you say so
+const WireUserSchema = z
+  .object({ user_id: z.string(), created_at: z.string() })
+  .transform((value) => ({ userId: value.user_id, createdAt: value.created_at }));
+
+const user = WireUserSchema.parse(raw); // { userId: string; createdAt: string }
+```
+
+Keep `keysToCamel` for data of unknown shape that only needs its keys renamed, such as logs or a display of arbitrary metadata. See [Parse Utility](/references/utilities/parse).
+
 ## See Also
 
 - [Troubleshooting Tips](./troubleshooting-tips) - Debug common issues
