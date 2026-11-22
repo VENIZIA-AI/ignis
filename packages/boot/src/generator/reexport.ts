@@ -101,14 +101,19 @@ export class StereotypeReexportResolver extends BaseHelper {
 
         const call = declaration.initializer;
 
-        if (!call && source.isDeclarationFile) {
+        // A .d.ts carries no call. Only a declaration typed as what `define` returns (a decorator taking the registration options) is one.
+        if (
+          !call &&
+          source.isDeclarationFile &&
+          declaration.type?.getText(source).includes('IArtifactRegistrationOptions')
+        ) {
           return {
             unreadable:
               'it is declared in a built package (a .d.ts carries no define call) | scan the package source, or list the classes by hand',
           };
         }
 
-        if (!call || !ts.isCallExpression(call) || !this.isDefineCall({ call })) {
+        if (!call || !ts.isCallExpression(call) || !this.isDefineCall({ source, call })) {
           continue;
         }
 
@@ -129,8 +134,9 @@ export class StereotypeReexportResolver extends BaseHelper {
   }
 
   /** `<something>.ArtifactTypes.define(...)` or `ArtifactTypes.define(...)` by shape alone, whatever `ArtifactTypes` is bound to. */
-  private isDefineCall(opts: { call: ts.CallExpression }): boolean {
-    const callee = opts.call.expression;
+  private isDefineCall(opts: { source: ts.SourceFile; call: ts.CallExpression }): boolean {
+    const { source, call } = opts;
+    const callee = call.expression;
 
     if (!ts.isPropertyAccessExpression(callee) || callee.name.text !== 'define') {
       return false;
@@ -138,10 +144,36 @@ export class StereotypeReexportResolver extends BaseHelper {
 
     const receiver = callee.expression;
 
+    if (ts.isPropertyAccessExpression(receiver)) {
+      return receiver.name.text === 'ArtifactTypes';
+    }
+
     return (
-      (ts.isIdentifier(receiver) && receiver.text.endsWith('ArtifactTypes')) ||
-      (ts.isPropertyAccessExpression(receiver) && receiver.name.text === 'ArtifactTypes')
+      ts.isIdentifier(receiver) &&
+      (receiver.text === 'ArtifactTypes' ||
+        this.importedNameOf({ source, local: receiver.text }) === 'ArtifactTypes')
     );
+  }
+
+  /** The name `local` has in the module it is imported from (`import { ArtifactTypes as AT }` answers `ArtifactTypes` for `AT`). */
+  private importedNameOf(opts: { source: ts.SourceFile; local: string }): string | undefined {
+    for (const statement of opts.source.statements) {
+      const bindings = ts.isImportDeclaration(statement)
+        ? statement.importClause?.namedBindings
+        : undefined;
+
+      if (!bindings || !ts.isNamedImports(bindings)) {
+        continue;
+      }
+
+      const element = bindings.elements.find((entry) => entry.name.text === opts.local);
+
+      if (element) {
+        return (element.propertyName ?? element.name).text;
+      }
+    }
+
+    return undefined;
   }
 
   /** `ArtifactTypes.define(...)` where `ArtifactTypes` is imported from a source module in this file. */

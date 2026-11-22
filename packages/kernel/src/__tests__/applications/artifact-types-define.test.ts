@@ -8,6 +8,7 @@ import { SingletonRealm } from '@/helpers/singleton-realm';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { describe, expect, test } from 'bun:test';
+import { resolve } from 'node:path';
 
 class DefineApplication extends RestApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
@@ -19,6 +20,8 @@ class DefineApplication extends RestApplication {
   staticConfigure(): void {}
   setupMiddlewares(): void {}
 }
+
+const KERNEL_ROOT = resolve(import.meta.dir, '..', '..', '..');
 
 const buildConfigs = (): IApplicationConfigs => ({
   host: '127.0.0.1',
@@ -297,7 +300,7 @@ describe('the module graph', () => {
     'importing %s first, in a fresh process, loads without a cycle error',
     (entry) => {
       const run = Bun.spawnSync(['bun', '-e', `await import('./src/${entry}.ts')`], {
-        cwd: process.cwd(),
+        cwd: KERNEL_ROOT,
       });
 
       expect(run.exitCode, run.stderr.toString()).toBe(0);

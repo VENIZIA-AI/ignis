@@ -15,7 +15,12 @@ describe('ArtifactScanner - decorators an application defined', () => {
       .map((artifact) => `${artifact.type}:${artifact.className}`);
 
   test('finds a class by the type of the ArtifactTypes.define its decorator comes from', () => {
-    expect(scan()).toEqual(['emitter:MailEmitter', 'emitter:OrderEmitter', 'local:LocalThing']);
+    expect(scan()).toEqual([
+      'emitter:MailEmitter',
+      'emitter:OrderEmitter',
+      'local:LocalThing',
+      'via-alias:AliasEmitter',
+    ]);
   });
 
   test('follows an import, a renaming re-export and a definition in the class file itself', () => {
@@ -31,6 +36,16 @@ describe('ArtifactScanner - decorators an application defined', () => {
 
     expect(names).not.toContain('PlainDecorated');
     expect(names).not.toContain('DynamicDecorated');
+  });
+
+  test('an alias of ArtifactTypes imported from the kernel is resolved', () => {
+    expect(scan()).toContain('via-alias:AliasEmitter');
+  });
+
+  test('a third-party decorator declared in a .d.ts is not mistaken for a define', () => {
+    const { skipped } = ArtifactScanner.getInstance().scanWithReport({ root: ROOT });
+
+    expect(skipped.map((entry) => entry.className)).not.toContain('ThirdPartyThing');
   });
 
   test('a define the scanner cannot read is reported, never dropped in silence', () => {
@@ -80,6 +95,7 @@ describe('ArtifactIndexEmitter - custom types', () => {
         '  custom: {',
         '    emitter: [MailEmitter, OrderEmitter],',
         '    local: [LocalThing],',
+        "    'via-alias': [AliasEmitter],",
         '  },',
         '};',
       ].join('\n'),
