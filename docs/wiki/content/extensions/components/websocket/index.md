@@ -47,7 +47,7 @@ export class Application extends BaseApplication {
 ## How it works
 
 - **Two-phase startup solves a timing problem.** `binding()` runs during `initialize()`, before any Bun server exists. It validates bindings and registers a post-start hook. The actual `WebSocketServerHelper` is only constructed once `executePostStartHooks()` runs, after `Bun.serve()` has produced a live server instance.
-- **Two bindings gate startup.** `REDIS_CONNECTION` and `AUTHENTICATE_HANDLER` are both required. `REDIS_CONNECTION` must be an `AbstractRedisHelper` instance. `binding()` throws synchronously if either is missing or the wrong type - before the post-start hook is even registered.
+- **Two bindings gate startup.** `REDIS_CONNECTION` and `AUTHENTICATE_HANDLER` are both required. `REDIS_CONNECTION` must be a Redis helper (it passes `isRedisHelper`). `binding()` throws synchronously if either is missing or the wrong type - before the post-start hook is even registered.
 - **The runtime is checked first.** `start()` throws `IGNIS requires Bun >= 1.4` on any other runtime, so a misconfigured app fails at startup, not on first connection.
 - **The instance appears only after start.** The post-start hook binds the configured helper to `WebSocketBindingKeys.WEBSOCKET_INSTANCE`. It does not exist during DI construction. Inject it lazily from a service or controller, never via `@inject` in a constructor.
 - **A custom `fetch` handler splits traffic.** After the post-start hook runs, `server.reload()` swaps in a new handler. It routes WebSocket upgrade requests - `GET <path>` with an `Upgrade: websocket` header - to Bun's native handler.

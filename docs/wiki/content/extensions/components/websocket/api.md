@@ -140,7 +140,7 @@ Passed straight through to Bun's native WebSocket handler via `serverOptions` in
 | Binding Key | Constant | Type | Required | Default |
 |------------|----------|------|----------|---------|
 | `@app/websocket/server-options` | `WebSocketBindingKeys.SERVER_OPTIONS` | `Partial<IServerOptions>` | No | See [Configuration](#configuration) |
-| `@app/websocket/redis-connection` | `WebSocketBindingKeys.REDIS_CONNECTION` | `AbstractRedisHelper` | **Yes** | `null` |
+| `@app/websocket/redis-connection` | `WebSocketBindingKeys.REDIS_CONNECTION` | `IRedisHelper` | **Yes** | `null` |
 | `@app/websocket/authenticate-handler` | `WebSocketBindingKeys.AUTHENTICATE_HANDLER` | `TWebSocketAuthenticateFn` | **Yes** | `null` |
 | `@app/websocket/validate-room-handler` | `WebSocketBindingKeys.VALIDATE_ROOM_HANDLER` | `TWebSocketValidateRoomFn` | No | `null` |
 | `@app/websocket/client-connected-handler` | `WebSocketBindingKeys.CLIENT_CONNECTED_HANDLER` | `TWebSocketClientConnectedFn` | No | `null` |

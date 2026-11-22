@@ -44,7 +44,7 @@ Every error condition the WebSocket component and helper can raise, plus fixes f
 
 ### "Invalid instance of redisConnection"
 
-- **Cause:** The value bound to `REDIS_CONNECTION` is not an `AbstractRedisHelper` instance. It is not a `RedisSingleHelper`, `RedisClusterHelper`, or `RedisSentinelHelper`.
+- **Cause:** The value bound to `REDIS_CONNECTION` is not a Redis helper (it fails `isRedisHelper`). It is not a `RedisSingleHelper`, `RedisClusterHelper`, or `RedisSentinelHelper`.
 - **Fix:** Bind one of the concrete topology helpers, not a raw `ioredis` client.
 
 ```typescript
@@ -54,7 +54,7 @@ import { WebSocketBindingKeys } from '@venizia/ignis/websocket';
 this.bind({ key: WebSocketBindingKeys.REDIS_CONNECTION })
   .toValue(new RedisSingleHelper({ name: 'websocket', host, port, password }));
 
-// Wrong: raw ioredis client, not an AbstractRedisHelper
+// Wrong: raw ioredis client, not a Redis helper
 this.bind({ key: WebSocketBindingKeys.REDIS_CONNECTION }).toValue(new Redis(6379));
 ```
 
