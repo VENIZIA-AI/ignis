@@ -269,6 +269,6 @@ describe('AxiosNetworkRequest and AxiosFetcher - data is not an option anywhere'
       task: fetcher.get({ url: `${base}/slow`, timeout: 50 }),
     });
 
-    expect((error as Error).name).toBe('TimeoutError');
+    expect(error).toMatchObject({ name: 'TimeoutError' });
   });
 });

@@ -3,8 +3,16 @@
 import { afterAll, describe, expect, test } from 'bun:test';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { z } from 'zod';
-import { AxiosNetworkRequest } from '@/modules/network/http-request/fetcher/axios-fetcher';
-import { NativeFetchNetworkRequest } from '@/modules/network/http-request/fetcher/native-fetcher';
+import {
+  AxiosFetcher,
+  AxiosNetworkRequest,
+  type IAxiosNetworkRequestOptions,
+  type IAxiosRequestOptions,
+} from '@/modules/network/http-request/fetcher/axios-fetcher';
+import {
+  NativeFetcher,
+  NativeFetchNetworkRequest,
+} from '@/modules/network/http-request/fetcher/native-fetcher';
 
 const server = Bun.serve({
   port: 0,
@@ -61,19 +69,96 @@ describe('a relative call url with a baseUrl', () => {
     }
   });
 
-  test('a dot segment is refused, as getRequestUrl refuses it', async () => {
+  test('a dot segment in the path is refused, as getRequestUrl refuses it', async () => {
     for (const client of clients(`${origin}/v1/api`)) {
-      const error = await RejectionUtility.rejectionOf({ task: client.call('/../admin') });
+      await RejectionUtility.expectRejection({
+        task: client.call('/../admin'),
+        message: 'must stay under the base path',
+      });
+    }
+  });
 
-      expect((error as Error).message).toContain('must stay under the base path');
+  test('the query and the fragment pass as written, even when they look like a dot segment', async () => {
+    for (const client of clients(`${origin}/v1/api`)) {
+      const next = await client.call('/a?next=/..');
+      const drive = await client.call('/a?p=C:%5Cx');
+
+      expect(next.data.target).toBe('/v1/api/a?next=/..');
+      expect(drive.data.target).toBe('/v1/api/a?p=C:%5Cx');
+    }
+  });
+
+  test('an empty url is the base itself, as axios sent it', async () => {
+    for (const client of clients(`${origin}/v1/api`)) {
+      const empty = await client.call('');
+      const queryOnly = await client.call('?x=1');
+
+      expect(empty.data.target).toBe('/v1/api');
+      expect(queryOnly.data.target).toBe('/v1/api?x=1');
+    }
+  });
+
+  test('a protocol-relative url stays under the base: it never names another host', async () => {
+    for (const client of clients(`${origin}/v1/api`)) {
+      const sameName = await client.call('//users');
+      const otherHost = await client.call('//evil.test/x');
+
+      expect(sameName.data.target).toBe('/v1/api//users');
+      expect(otherHost.data.target).toBe('/v1/api//evil.test/x');
     }
   });
 
   test('with no baseUrl a relative url is still a clear error', async () => {
     for (const client of clients()) {
-      const error = await RejectionUtility.rejectionOf({ task: client.call('/users') });
-
-      expect((error as Error).message).toContain('Malformed url');
+      await RejectionUtility.expectRejection({
+        task: client.call('/users'),
+        message: 'Malformed url',
+      });
     }
+  });
+});
+
+describe('a fetcher built directly', () => {
+  test('AxiosFetcher takes the base from baseUrl, and from defaultConfigs.baseURL as 0.4.8 did', async () => {
+    const byOption = new AxiosFetcher({
+      name: 'a',
+      defaultConfigs: {},
+      baseUrl: `${origin}/v1/api`,
+    });
+    const byConfig = new AxiosFetcher({
+      name: 'b',
+      defaultConfigs: { baseURL: `${origin}/v1/api` },
+    });
+
+    for (const fetcher of [byOption, byConfig]) {
+      const { data } = await fetcher.get({ url: '/users', schema: Echo });
+
+      expect(data.target).toBe('/v1/api/users');
+    }
+  });
+
+  test('NativeFetcher takes the base from baseUrl', async () => {
+    const fetcher = new NativeFetcher({ name: 'n', baseUrl: `${origin}/v1/api` });
+    const { data } = await fetcher.get({ url: 'users', schema: Echo });
+
+    expect(data.target).toBe('/v1/api/users');
+  });
+});
+
+describe('the axios fields that would break the join are type errors', () => {
+  test('baseURL and allowAbsoluteUrls on a call, allowAbsoluteUrls on the defaults', () => {
+    const call: IAxiosRequestOptions = {
+      url: '/users',
+      // @ts-expect-error - the base is the fetcher's baseUrl
+      baseURL: 'http://other.test',
+      // @ts-expect-error - the pipeline sends one absolute url
+      allowAbsoluteUrls: false,
+    };
+    const networkOptions: IAxiosNetworkRequestOptions['networkOptions'] = {
+      // @ts-expect-error - axios would join the absolute url a second time
+      allowAbsoluteUrls: false,
+    };
+
+    expect([call, networkOptions]).toHaveLength(2);
   });
 });

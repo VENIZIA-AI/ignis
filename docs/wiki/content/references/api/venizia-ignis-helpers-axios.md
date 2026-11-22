@@ -30,7 +30,7 @@ export declare class AxiosFetcher extends AbstractNetworkFetchableHelper<'axios'
     constructor(opts: {
         name: string;
         defaultConfigs?: Omit<AxiosRequestConfig, TRefusedAxiosFields>;
-        /** Joined to a relative call url; an absolute one is sent as it is. */
+        /** Joined to a relative call url; an absolute one is sent as it is. Unset, `defaultConfigs.baseURL` is used. */
         baseUrl?: string;
         defaults?: IFetcherDefaults;
         hooks?: IFetcherHooks;
@@ -57,8 +57,8 @@ export declare class AxiosFetcher extends AbstractNetworkFetchableHelper<'axios'
     protected exchange(opts: IFetchExchangeRequest): Promise<IFetchExchange<AxiosResponse<unknown>>>;
 }
 
-/** Axios fields a default can never carry: the pipeline sends the body from `body` and decides which statuses throw (`acceptStatus`), so a default `data` or `validateStatus` would be overwritten. */
-type TRefusedAxiosFields = 'data' | 'validateStatus';
+/** Axios fields a default can never carry: the pipeline sends the body from `body`, decides which statuses throw (`acceptStatus`) and sends one absolute url, so a default `data`, `validateStatus` or `allowAbsoluteUrls` would be overwritten or would make axios join the url twice. */
+type TRefusedAxiosFields = 'data' | 'validateStatus' | 'allowAbsoluteUrls';
 ```
 
 Source: `packages/helpers/src/modules/network/http-request/fetcher/axios-fetcher.ts`
@@ -97,8 +97,8 @@ export interface IAxiosNetworkRequestOptions {
     guardEngine?: IFetchGuard;
 }
 
-/** Axios fields a default can never carry: the pipeline sends the body from `body` and decides which statuses throw (`acceptStatus`), so a default `data` or `validateStatus` would be overwritten. */
-type TRefusedAxiosFields = 'data' | 'validateStatus';
+/** Axios fields a default can never carry: the pipeline sends the body from `body`, decides which statuses throw (`acceptStatus`) and sends one absolute url, so a default `data`, `validateStatus` or `allowAbsoluteUrls` would be overwritten or would make axios join the url twice. */
+type TRefusedAxiosFields = 'data' | 'validateStatus' | 'allowAbsoluteUrls';
 ```
 
 Source: `packages/helpers/src/modules/network/http-request/fetcher/axios-fetcher.ts`
@@ -120,6 +120,10 @@ export interface IAxiosRequestOptions extends Omit<AxiosRequestConfig, TOwnedAxi
     validateStatus?: never;
     /** Not accepted: `params` are written into the url by the pipeline, so a call's `paramsSerializer` would be dropped. */
     paramsSerializer?: never;
+    /** Not accepted: the base is the fetcher's `baseUrl`, so a call's `baseURL` would be ignored. */
+    baseURL?: never;
+    /** Not accepted: the pipeline sends one absolute url, so axios must not join it again. */
+    allowAbsoluteUrls?: never;
     /** Whether this call rejects an HTTPS server whose certificate fails verification; `false` turns verification off for this call. */
     rejectUnauthorized?: boolean;
 }

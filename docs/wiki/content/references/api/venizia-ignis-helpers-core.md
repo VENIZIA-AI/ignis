@@ -3334,7 +3334,11 @@ export declare class UrlBuilder {
         baseUrl: string;
         paths: ReadonlyArray<string>;
     }): string;
-    /** A call url as sent: an absolute one stays as it is, a relative one is joined to `baseUrl` by `join`, with its refusals. */
+    /**
+     * A call url as sent: an absolute one stays as it is, a relative one is joined to `baseUrl` by `join`, with its refusals.
+     * Only the path part is checked, as `join` checks a path: the query and the fragment pass as they were written. An empty
+     * path is the base itself, and a `//host/x` is a path under the base, never another host.
+     */
     static resolve(opts: {
         baseUrl: string;
         url: string;

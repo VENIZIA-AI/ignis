@@ -42,8 +42,8 @@ const GUARDED_OPTIONS = new Set([
   'rejectUnauthorized',
 ]);
 
-/** Axios fields a default can never carry: the pipeline sends the body from `body` and decides which statuses throw (`acceptStatus`), so a default `data` or `validateStatus` would be overwritten. */
-type TRefusedAxiosFields = 'data' | 'validateStatus';
+/** Axios fields a default can never carry: the pipeline sends the body from `body`, decides which statuses throw (`acceptStatus`) and sends one absolute url, so a default `data`, `validateStatus` or `allowAbsoluteUrls` would be overwritten or would make axios join the url twice. */
+type TRefusedAxiosFields = 'data' | 'validateStatus' | 'allowAbsoluteUrls';
 
 /** The fields of an axios config the pipeline owns. */
 type TOwnedAxiosFields =
@@ -69,6 +69,10 @@ export interface IAxiosRequestOptions
   validateStatus?: never;
   /** Not accepted: `params` are written into the url by the pipeline, so a call's `paramsSerializer` would be dropped. */
   paramsSerializer?: never;
+  /** Not accepted: the base is the fetcher's `baseUrl`, so a call's `baseURL` would be ignored. */
+  baseURL?: never;
+  /** Not accepted: the pipeline sends one absolute url, so axios must not join it again. */
+  allowAbsoluteUrls?: never;
   /** Whether this call rejects an HTTPS server whose certificate fails verification; `false` turns verification off for this call. */
   rejectUnauthorized?: boolean;
 }
@@ -123,7 +127,7 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
   constructor(opts: {
     name: string;
     defaultConfigs?: Omit<AxiosRequestConfig, TRefusedAxiosFields>;
-    /** Joined to a relative call url; an absolute one is sent as it is. */
+    /** Joined to a relative call url; an absolute one is sent as it is. Unset, `defaultConfigs.baseURL` is used. */
     baseUrl?: string;
     defaults?: IFetcherDefaults;
     hooks?: IFetcherHooks;
@@ -140,7 +144,7 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
     super({
       name: opts.name,
       variant: 'axios',
-      baseUrl: opts.baseUrl,
+      baseUrl: opts.baseUrl ?? opts.defaultConfigs?.baseURL,
       defaults: opts.defaults,
       hooks: opts.hooks,
       guardEngine: opts.guardEngine,
