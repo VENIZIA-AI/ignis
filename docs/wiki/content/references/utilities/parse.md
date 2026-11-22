@@ -48,6 +48,7 @@ const camelObject = ParseUtility.keysToCamel({
 ## Notes
 
 - **`keysToCamel` keeps arrays as arrays**, camelizes their object elements, and passes `Date` values through untouched.
+- **When to use `keysToCamel`:** for data of unknown shape that only needs its keys renamed (logs, a display of arbitrary metadata). It answers `Record<string, unknown>`, validates nothing, and renames every key at every depth, free-form maps included. For `snake_case` wire data you know the shape of (a response, a raw row), parse once with a schema that renames what it declares: `z.object({ user_id: z.string(), created_at: z.string() }).transform((value) => ({ userId: value.user_id, createdAt: value.created_at })).parse(raw)` validates, types and renames in one step, where `keysToCamel` followed by a second parse does it in two and renames keys that are data. See [Common Pitfalls](/best-practices/common-pitfalls#_14-renaming-wire-keys-before-parsing-them).
 - **`parseArrayToMapWithKey` throws** if `key` is missing from an element; the last element wins on duplicate keys.
 - **`toInt`/`toFloat` are comma-tolerant.** Both strip `,` before parsing, so `'1,000'` and `1000` behave the same - useful for user-typed numeric input.
 - **`toDelimitedArray` and `toTrimmed` are the transform functions for list-shaped and string env values** - typical use is `applicationEnvironment.get(KEY, { transform: (input) => ParseUtility.toDelimitedArray({ input }) })`.
