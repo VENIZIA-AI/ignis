@@ -2,8 +2,8 @@ import 'reflect-metadata';
 
 import { describe, expect, test } from 'bun:test';
 import { BindingKeys } from '@/modules/binding/common/constants';
-import { Container } from '../modules/container/container';
-import { metadataRegistry } from '../modules/registry/registry';
+import { Container } from '@/modules/container/container';
+import { metadataRegistry } from '@/modules/registry/registry';
 
 class MailService {
   send(): string {
@@ -33,9 +33,11 @@ describe('Container.get({ target })', () => {
     const container = containerWithMail();
     const key = BindingKeys.build<MailService>({ key: 'services.MailService' });
 
-    expect(container.get({ target: MailService })).toBeInstanceOf(
-      container.get({ key }).constructor,
-    );
+    const byTarget = container.get({ target: MailService });
+    const byKey = container.get({ key });
+
+    expect(byTarget).toBeInstanceOf(MailService);
+    expect(byTarget).toEqual(byKey);
   });
 
   test('an unregistered class throws what @inject({ target }) throws', () => {
