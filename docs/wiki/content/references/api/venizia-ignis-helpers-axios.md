@@ -106,6 +106,8 @@ export interface IAxiosRequestOptions extends Omit<AxiosRequestConfig, TOwnedAxi
     url: string;
     params?: Record<string, unknown>;
     body?: Record<string, unknown>;
+    /** Not accepted: the body is sent from `body`, so an axios `data` would be dropped. Pass `body`. */
+    data?: never;
     /** Whether this call rejects an HTTPS server whose certificate fails verification; `false` turns verification off for this call. */
     rejectUnauthorized?: boolean;
 }

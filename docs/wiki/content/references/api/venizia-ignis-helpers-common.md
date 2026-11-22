@@ -1703,7 +1703,7 @@ Reads one value by binding `key` from the container; the caller supplies `T`.
 
 ```ts
 export type TInjectionGetter = <T>(opts: {
-    key: string | symbol;
+    key: TBindingKey<T>;
 }) => T;
 ```
 
