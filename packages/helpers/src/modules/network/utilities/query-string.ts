@@ -32,15 +32,14 @@ export class QueryStringUtility {
    *
    * Not `new URLSearchParams(params).toString()`, which differs on four counts measured against the
    * original: an array becomes `a=1%2C2` instead of `a=1&a=2`, `undefined` and `null` become the
-   * STRINGS "undefined" and "null" instead of an empty value, and a space encodes as `+` rather than
-   * `%20`. The first changes what a server parses; the second is the same coercion that sends a header
-   * reading "undefined".
+   * STRINGS "undefined" and "null", and a space encodes as `+` rather than `%20`. The first changes
+   * what a server parses; the second is the same coercion that sends a header reading "undefined".
    *
-   * Diffed against `node:querystring` across 22 shapes with zero mismatches.
-   *
-   * `nullish: 'skip'` leaves a null or undefined pair out. `nested: 'json'` sends an object or an
-   * array as ONE JSON parameter instead (an array does not repeat its key), so a filter object survives
-   * the trip. Without them the behavior is the one above.
+   * Matches `node:querystring` (diffed across 22 shapes) except where this says otherwise: by default a
+   * null or undefined pair is LEFT OUT (`nullish: 'skip'`; `'empty'` writes `a=`, what `node:querystring`
+   * does), and an empty array writes nothing. `nested: 'json'` sends an object or an array as ONE JSON
+   * parameter instead (an array does not repeat its key), so a filter object survives the trip. An
+   * empty string is a value and is kept (`a=`).
    */
   static toQueryString(opts: { params: Record<string, unknown> } & IQueryStringOptions): string {
     const { params, nullish = 'skip', nested = 'drop' } = opts;

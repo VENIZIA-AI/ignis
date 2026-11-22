@@ -269,6 +269,10 @@ describe('LOW fixes: a bare % in a path, a quoted-pair in a filename', () => {
     expect(UrlBuilder.toText({ baseUrl: 'http://x.test/api', paths: ['50%/off?x=100%'] })).toBe(
       'http://x.test/api/50%25/off?x=100%',
     );
+    // A path after one that opened the query is already in the query.
+    expect(UrlBuilder.toText({ baseUrl: 'http://x.test/api', paths: ['a?x', '100%'] })).toBe(
+      'http://x.test/api/a?x/100%',
+    );
   });
 
   test('a ? and a # in a segment still start the query and the fragment', () => {

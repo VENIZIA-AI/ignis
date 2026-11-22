@@ -484,7 +484,7 @@ A caller's `Content-Type`, in any case, replaces the default. Set `timeout` in `
 QueryStringUtility.toQueryString(opts: { params: Record<string, unknown>; nullish?: 'empty' | 'skip'; nested?: 'drop' | 'json' }): string
 ```
 
-Writes `params` as a query string without `node:querystring`, so it works in a browser. The defaults match `node:querystring`: an array repeats its key (`a=1&a=2`), `null`, `undefined` and an empty array leave the pair out (`nullish: 'empty'` writes `a=` for a `null` or `undefined` instead), an object gives an empty value, a space is `%20`.
+Writes `params` as a query string without `node:querystring`, so it works in a browser. It matches `node:querystring` except for the empty values: an array repeats its key (`a=1&a=2`), `null`, `undefined` and an empty array leave the pair out (`nullish: 'empty'` writes `a=` for a `null` or `undefined` instead), an object gives an empty value, a space is `%20`.
 
 | Option | Value | Effect |
 |---|---|---|

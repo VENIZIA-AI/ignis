@@ -78,11 +78,11 @@ export class UrlBuilder {
     const { baseUrl, paths } = opts;
     const base = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
 
-    // A `%` that is not an escape (`100%`) would corrupt the url: it becomes `%25`. `?` and `#` stay as they are, they start the query.
-    const encode = (path: string) =>
-      path.replace(/^[^?#]*/, (head) => head.replace(/%(?![0-9a-f]{2})/gi, '%25'));
+    const text = paths.map((path) => (path.startsWith('/') ? path : `/${path}`)).join('');
 
-    return `${base}${paths.map((path) => encode(path.startsWith('/') ? path : `/${path}`)).join('')}`;
+    // A `%` that is not an escape (`100%`) would corrupt the url: it becomes `%25`, in the path part only (before the first
+    // `?` or `#`, which start the query and the fragment as they always did).
+    return `${base}${text.replace(/^[^?#]*/, (head) => head.replace(/%(?![0-9a-f]{2})/gi, '%25'))}`;
   }
 
   /**
