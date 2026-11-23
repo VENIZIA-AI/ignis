@@ -17,9 +17,11 @@ export class FakeReservedSql {
   readonly releases: IReleaseCall[] = [];
 
   private readonly failOn?: string;
+  private readonly command?: string;
 
-  constructor(opts?: { failOn?: string }) {
+  constructor(opts?: { failOn?: string; command?: string }) {
     this.failOn = opts?.failOn;
+    this.command = opts?.command;
   }
 
   async unsafe(statement: string): Promise<unknown> {
@@ -30,7 +32,7 @@ export class FakeReservedSql {
     }
 
     // Faithful to postgres-js: a RowList is an ARRAY carrying a `count` property.
-    return Object.assign([], { count: 0 });
+    return Object.assign([], { count: 0, command: this.command });
   }
 
   release(): void {
@@ -45,13 +47,15 @@ export class FakeSql {
   ended = false;
 
   private readonly failOn?: string;
+  private readonly command?: string;
 
-  constructor(opts?: { failOn?: string }) {
+  constructor(opts?: { failOn?: string; command?: string }) {
     this.failOn = opts?.failOn;
+    this.command = opts?.command;
   }
 
   async reserve(): Promise<FakeReservedSql> {
-    const connection = new FakeReservedSql({ failOn: this.failOn });
+    const connection = new FakeReservedSql({ failOn: this.failOn, command: this.command });
     this.reserved.push(connection);
 
     return connection;
@@ -71,7 +75,7 @@ const isSql = (value: unknown): value is Sql =>
   DuckTypingUtility.hasMembers({ value, members: { reserve: 'function', unsafe: 'function' } });
 
 /** A fake client the driver accepts as a real `Sql`. */
-export const createFakeSql = (opts?: { failOn?: string }): FakeSql & Sql => {
+export const createFakeSql = (opts?: { failOn?: string; command?: string }): FakeSql & Sql => {
   const sql = new FakeSql(opts);
 
   if (!isSql(sql)) {

@@ -325,11 +325,13 @@ export class BullMQHelper<
       .debug('Building queue options | Queue: %s | ID: %s', opts.queueName, this.identifier);
 
     return {
+      ...this.queueOptions,
+      // Merged key by key: a project's `{ attempts, backoff }` must not drop the clean-up defaults and let jobs pile up in Redis.
       defaultJobOptions: {
         removeOnComplete: true,
         removeOnFail: true,
+        ...this.queueOptions?.defaultJobOptions,
       },
-      ...this.queueOptions,
       ...(this.prefix === undefined ? {} : { prefix: this.prefix }),
       connection: this.createConnection(),
     };

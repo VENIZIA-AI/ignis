@@ -237,6 +237,11 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
   private classify(opts: { error: TThrown; dbError: TDatabaseClientError }): TApplicationErrorType {
     const { error, dbError } = opts;
 
+    // A typed application error already says what happened and with which status; the Postgres error in its `cause` is the reason, not the answer.
+    if (this.isTypedApplicationError({ error })) {
+      return ApplicationErrorTypes.INTENTIONAL;
+    }
+
     if (dbError.isClientError) {
       return ApplicationErrorTypes.DATABASE_CLIENT;
     }
@@ -254,6 +259,11 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     }
 
     return ApplicationErrorTypes.UNEXPECTED;
+  }
+
+  /** An error a throw site chose a status for (`getError`), as opposed to one wrapped from a foreign value. */
+  private isTypedApplicationError(opts: { error: TThrown }): boolean {
+    return 'statusCode' in opts.error && !(UNEXPECTED_ERROR_MARKER in opts.error);
   }
 
   /** Hono's `HTTPException` carries `status`, not `statusCode`. Only a 4xx is the caller's fault; a 5xx stays unexpected, so its message is sanitized. */

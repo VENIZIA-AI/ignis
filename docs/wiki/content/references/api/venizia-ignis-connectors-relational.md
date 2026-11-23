@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/relational, from the bui
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-79 exports, 79 with TSDoc.
+80 exports, 80 with TSDoc.
 
 ## `AbstractRelationalDataSource`
 
@@ -969,6 +969,8 @@ Neutral result of a raw statement. Each driver maps its native shape (pg `rowCou
 export interface IStatementResult {
     /** Rows affected - the same `count` the repository verbs return; `0` for control statements (BEGIN / COMMIT / SET LOCAL). */
     count: number;
+    /** The command tag the server answered with (`COMMIT`, `ROLLBACK`), where the driver reports one. A `COMMIT` answered `ROLLBACK` means the server aborted the transaction. */
+    command?: string;
 }
 ```
 
@@ -2609,6 +2611,29 @@ export type TPrimaryKey<T extends TColumnDefinition> = IsPrimaryKey<NotNull<T>>;
 ```
 
 Source: `packages/connectors/src/relational/core/models/common/types.ts`
+
+## `TransactionErrors`
+
+*const*
+
+Codes a caller branches on when a transaction did not end the way it asked. A 500, not a 409: the client sent nothing it can
+correct, the cause is a statement the application let fail and went on past, and a 4xx would hide that server bug.
+
+```ts
+export declare const TransactionErrors: {
+    /** `COMMIT` was answered with `ROLLBACK`: an earlier statement failed, so the server aborted the transaction and kept none of its writes. */
+    readonly COMMIT_ROLLED_BACK: {
+        readonly message: {
+            readonly text: "The transaction was rolled back and nothing was saved";
+            readonly code: "core.database.commit_rolled_back";
+        };
+        readonly statusCode: 500;
+        readonly category: "system";
+    };
+};
+```
+
+Source: `packages/connectors/src/relational/core/datasources/errors.ts`
 
 ## `TRecursiveTreeDirection`
 

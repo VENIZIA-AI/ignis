@@ -1397,6 +1397,8 @@ export declare class BaseAppErrorMiddleware extends BaseHelper implements IProvi
     /** Fail-closed: an unset or unrecognized env is production. */
     private isProduction;
     private classify;
+    /** An error a throw site chose a status for (`getError`), as opposed to one wrapped from a foreign value. */
+    private isTypedApplicationError;
     /** Hono's `HTTPException` carries `status`, not `statusCode`. Only a 4xx is the caller's fault; a 5xx stays unexpected, so its message is sanitized. */
     private readClientErrorStatus;
     /** `getError` sets `statusCode`, and it wins when a foreign error carries both. Neither usable is a 500. */

@@ -233,7 +233,7 @@ defaultJobOptions: {
 }
 ```
 
-BullMQ does not retain job records after they finish (success or failure).
+BullMQ does not retain job records after they finish (success or failure). Your `queueOptions.defaultJobOptions` merge over these key by key: `{ attempts: 3 }` adds retries and keeps both clean-up defaults, and `removeOnFail: false` turns one off.
 
 ### Redis Cluster setup
 

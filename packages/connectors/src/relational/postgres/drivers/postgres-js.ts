@@ -56,7 +56,7 @@ export class PostgresJsDriver<
       execute: async (executeOpts: { statement: string }) => {
         const result = await reserved.unsafe(executeOpts.statement);
 
-        return { count: result.count ?? 0 };
+        return { count: result.count ?? 0, command: result.command };
       },
       query: async <R>(queryOpts: { statement: string }) => {
         // postgres-js resolves an array-like result; spreading it gives the plain rows.

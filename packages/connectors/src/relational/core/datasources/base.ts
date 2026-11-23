@@ -17,6 +17,7 @@ import type {
   IRelationalTransaction,
   TRelationalTransactionOptions,
 } from './common';
+import { TransactionErrors } from './errors';
 import { RelationPairing } from './relation-pairing';
 import type { ITransactionEnd } from './transaction-lifecycle';
 import { TransactionLifecycle } from './transaction-lifecycle';
@@ -43,8 +44,20 @@ class ConnectionTransaction<TConnector>
     this.connector = opts.connection.connector;
   }
 
-  protected override executeEnd(opts: { end: ITransactionEnd }): Promise<unknown> {
-    return this.#connection.execute({ statement: opts.end.statement });
+  protected override async executeEnd(opts: { end: ITransactionEnd }): Promise<unknown> {
+    const { end } = opts;
+    const result = await this.#connection.execute({ statement: end.statement });
+
+    // An earlier statement failed and the application went on: the server aborts the transaction and answers COMMIT with ROLLBACK, as a success.
+    if (end.verb === 'commit' && result.command?.toUpperCase() === 'ROLLBACK') {
+      throw getError({
+        error: TransactionErrors.COMMIT_ROLLED_BACK,
+        message:
+          '[Transaction][commit] COMMIT was answered with ROLLBACK | An earlier statement in the transaction failed, so the server kept none of its writes',
+      });
+    }
+
+    return result;
   }
 
   protected override onEnded(): void {
