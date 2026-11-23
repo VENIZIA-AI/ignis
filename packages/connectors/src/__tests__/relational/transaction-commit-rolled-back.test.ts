@@ -60,7 +60,7 @@ describe('COMMIT answered with ROLLBACK', () => {
       const error = await RejectionUtility.rejectionOf({ task: transaction.commit() });
 
       expect(error).toMatchObject({
-        message: expect.stringMatching(/COMMIT was answered with ROLLBACK/),
+        message: TransactionErrors.COMMIT_ROLLED_BACK.message.text,
         statusCode: 500,
         normalized: { code: TransactionErrors.COMMIT_ROLLED_BACK.message.code },
       });

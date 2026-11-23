@@ -74,6 +74,15 @@ describe('a typed application error and a Postgres error', () => {
     expect(result.body.message).toBe('Unique constraint violation');
   });
 
+  test('a driver error that merely carries a statusCode (http-errors) is still the Postgres answer', async () => {
+    const result = await answer({
+      thrown: Object.assign(new Error('users_email_key'), UNIQUE, { statusCode: 500 }),
+    });
+
+    expect(result.status).toBe(400);
+    expect(result.body.message).toBe('Unique constraint violation');
+  });
+
   test('a bare unique violation, and one inside an ORM wrapper, are still a 400', async () => {
     for (const thrown of [UNIQUE, new Error('Failed query', { cause: UNIQUE })]) {
       const result = await answer({ thrown });

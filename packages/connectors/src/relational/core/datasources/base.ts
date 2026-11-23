@@ -17,10 +17,10 @@ import type {
   IRelationalTransaction,
   TRelationalTransactionOptions,
 } from './common';
-import { TransactionErrors } from './errors';
+import { CommitOutcomes } from './errors';
 import { RelationPairing } from './relation-pairing';
 import type { ITransactionEnd } from './transaction-lifecycle';
-import { TransactionLifecycle } from './transaction-lifecycle';
+import { TransactionLifecycle, TransactionStates } from './transaction-lifecycle';
 
 /** The handle `beginTransaction()` returns: the shared end rules over one acquired connection. On a failed end the connection is discarded rather than pooled - the next borrower would inherit an open transaction - and the error rethrown: a caller must never believe a failed COMMIT succeeded. */
 class ConnectionTransaction<TConnector>
@@ -48,13 +48,8 @@ class ConnectionTransaction<TConnector>
     const { end } = opts;
     const result = await this.#connection.execute({ statement: end.statement });
 
-    // An earlier statement failed and the application went on: the server aborts the transaction and answers COMMIT with ROLLBACK, as a success.
-    if (end.verb === 'commit' && result.command?.toUpperCase() === 'ROLLBACK') {
-      throw getError({
-        error: TransactionErrors.COMMIT_ROLLED_BACK,
-        message:
-          '[Transaction][commit] COMMIT was answered with ROLLBACK | An earlier statement in the transaction failed, so the server kept none of its writes',
-      });
+    if (end.endedState === TransactionStates.COMMITTED) {
+      CommitOutcomes.assertCommitted({ result });
     }
 
     return result;

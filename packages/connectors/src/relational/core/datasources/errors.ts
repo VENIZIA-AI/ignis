@@ -1,5 +1,6 @@
 import type { TErrorDefinition, TRegisterErrors } from '@venizia/ignis-helpers/core';
-import { ErrorScopes } from '@venizia/ignis-helpers/core';
+import type { IStatementResult } from '@/relational/core/drivers';
+import { ErrorScopes, getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 
 /**
@@ -17,6 +18,16 @@ export const TransactionErrors = {
     category: ErrorScopes.SYSTEM,
   },
 } as const satisfies Record<string, TErrorDefinition>;
+
+/** What a `COMMIT` may have answered. */
+export class CommitOutcomes {
+  /** Throws {@link TransactionErrors.COMMIT_ROLLED_BACK} when `result`, the answer to a `COMMIT`, carries the tag `ROLLBACK`: the server aborted the transaction after an earlier statement failed, and kept none of its writes. */
+  static assertCommitted(opts: { result: IStatementResult }): void {
+    if (opts.result.command?.toUpperCase() === 'ROLLBACK') {
+      throw getError({ error: TransactionErrors.COMMIT_ROLLED_BACK });
+    }
+  }
+}
 
 /** Registers these codes with the shared key registry so a consumer gets autocomplete on `messageCode`. */
 import type {} from '@venizia/ignis-helpers';

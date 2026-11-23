@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/relational, from the bui
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-80 exports, 80 with TSDoc.
+81 exports, 81 with TSDoc.
 
 ## `AbstractRelationalDataSource`
 
@@ -118,6 +118,23 @@ export declare class BaseRelationalEntity<Schema extends TTableSchemaWithId = TT
 ```
 
 Source: `packages/connectors/src/relational/core/models/base.ts`
+
+## `CommitOutcomes`
+
+*class*
+
+What a `COMMIT` may have answered.
+
+```ts
+export declare class CommitOutcomes {
+    /** Throws {@link TransactionErrors.COMMIT_ROLLED_BACK} when `result`, the answer to a `COMMIT`, carries the tag `ROLLBACK`: the server aborted the transaction after an earlier statement failed, and kept none of its writes. */
+    static assertCommitted(opts: {
+        result: IStatementResult;
+    }): void;
+}
+```
+
+Source: `packages/connectors/src/relational/core/datasources/errors.ts`
 
 ## `DefaultRelationalRepository`
 

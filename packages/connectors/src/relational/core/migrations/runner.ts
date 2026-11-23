@@ -1,4 +1,5 @@
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import { CommitOutcomes } from '../datasources/errors';
 import { RelationalDialects } from '../drivers';
 import type { IRelationalDriver } from '../drivers';
 
@@ -277,7 +278,8 @@ export class RelationalMigrationRunner extends BaseHelper {
 
     try {
       await work();
-      await connection.execute({ statement: 'COMMIT' });
+      const committed = await connection.execute({ statement: 'COMMIT' });
+      CommitOutcomes.assertCommitted({ result: committed });
     } catch (error) {
       this.logger
         .for(this.transact.name)
