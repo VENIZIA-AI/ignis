@@ -17,9 +17,10 @@ import type {
   IRelationalTransaction,
   TRelationalTransactionOptions,
 } from './common';
+import { CommitOutcomes } from './errors';
 import { RelationPairing } from './relation-pairing';
 import type { ITransactionEnd } from './transaction-lifecycle';
-import { TransactionLifecycle } from './transaction-lifecycle';
+import { TransactionLifecycle, TransactionStates } from './transaction-lifecycle';
 
 /** The handle `beginTransaction()` returns: the shared end rules over one acquired connection. On a failed end the connection is discarded rather than pooled - the next borrower would inherit an open transaction - and the error rethrown: a caller must never believe a failed COMMIT succeeded. */
 class ConnectionTransaction<TConnector>
@@ -43,8 +44,15 @@ class ConnectionTransaction<TConnector>
     this.connector = opts.connection.connector;
   }
 
-  protected override executeEnd(opts: { end: ITransactionEnd }): Promise<unknown> {
-    return this.#connection.execute({ statement: opts.end.statement });
+  protected override async executeEnd(opts: { end: ITransactionEnd }): Promise<unknown> {
+    const { end } = opts;
+    const result = await this.#connection.execute({ statement: end.statement });
+
+    if (end.endedState === TransactionStates.COMMITTED) {
+      CommitOutcomes.assertCommitted({ result });
+    }
+
+    return result;
   }
 
   protected override onEnded(): void {

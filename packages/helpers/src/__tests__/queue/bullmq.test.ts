@@ -389,10 +389,26 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
       redisConnection: buildRedisConnection({ client }),
       queueOptions: { defaultJobOptions: { removeOnComplete: false, attempts: 1 } },
     });
-    // The user's defaultJobOptions REPLACES the framework default wholesale (shallow merge) - it does not deep-merge with removeOnFail.
+    // The user's defaultJobOptions merge key by key: their keys win, the clean-up defaults they did not name stay.
     expect(withUserOptions.exposeQueueOptions({ queueName: 'mail' })).toEqual({
-      defaultJobOptions: { removeOnComplete: false, attempts: 1 },
+      defaultJobOptions: { removeOnComplete: false, removeOnFail: true, attempts: 1 },
       connection: client,
+    });
+
+    const withRetries = new TestBullMQHelper({
+      queueName: 'mail',
+      identifier: 'queue-options-retries',
+      role: 'queue',
+      redisConnection: buildRedisConnection({ client }),
+      queueOptions: {
+        defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 1000 } },
+      },
+    });
+    expect(withRetries.exposeQueueOptions({ queueName: 'mail' }).defaultJobOptions).toEqual({
+      removeOnComplete: true,
+      removeOnFail: true,
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 1000 },
     });
   });
 

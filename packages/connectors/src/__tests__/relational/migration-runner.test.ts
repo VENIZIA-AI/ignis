@@ -11,6 +11,8 @@ import type { IRelationalDriver, TRelationalDialect } from '@/relational/core/dr
 const buildFakeDriver = (opts?: {
   applied?: Array<string>;
   failOn?: RegExp;
+  /** The command tag the server answers a COMMIT with. */
+  commitCommand?: string;
   dialect?: TRelationalDialect;
   /** Schemas that already exist: the answer to the lookup of `pg_namespace`. */
   schemas?: Array<string>;
@@ -33,7 +35,9 @@ const buildFakeDriver = (opts?: {
           throw new Error(`boom: ${executeOpts.statement}`);
         }
 
-        return { count: 0 };
+        const command = executeOpts.statement === 'COMMIT' ? opts?.commitCommand : undefined;
+
+        return { count: 0, command };
       },
       query: async <R>(queryOpts: { statement: string }) => {
         statements.push(queryOpts.statement);
@@ -63,6 +67,17 @@ const MIGRATIONS: ReadonlyArray<IMigration> = [
 ];
 
 describe('RelationalMigrationRunner', () => {
+  test('a COMMIT the server answers with ROLLBACK is a failed migration, not an applied one', async () => {
+    const { driver } = buildFakeDriver({ commitCommand: 'ROLLBACK' });
+
+    const runner = new RelationalMigrationRunner({ driver });
+
+    await RejectionUtility.expectRejection({
+      task: runner.run({ migrations: MIGRATIONS }),
+      message: /rolled back and nothing was saved/,
+    });
+  });
+
   test('creates the ledger, reads it, then applies each pending migration in a transaction', async () => {
     const { driver, statements, releaseCount } = buildFakeDriver();
 

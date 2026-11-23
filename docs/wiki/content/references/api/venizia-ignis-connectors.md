@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors, from the built declarat
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-3 exports, 3 with TSDoc. 134 more are re-exported from other entries (listed at the end).
+3 exports, 3 with TSDoc. 136 more are re-exported from other entries (listed at the end).
 
 ## `AbstractDriverDataSource`
 
@@ -158,6 +158,7 @@ Source: `packages/connectors/src/common/scope-filter.ts`
 - `BaseSearchConnector` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
 - `BaseSearchDataSource` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
 - `BaseSearchEntity` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
+- `CommitOutcomes` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `DefaultRelationalRepository` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `DefaultSearchRepository` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
 - `field` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
@@ -256,6 +257,7 @@ Source: `packages/connectors/src/common/scope-filter.ts`
 - `TMultiSearchEntry` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
 - `TMultiSearchInput` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
 - `TPrimaryKey` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
+- `TransactionErrors` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TRecursiveTreeDirection` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TRelationalConnectorOf` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TRelationalDialect` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)

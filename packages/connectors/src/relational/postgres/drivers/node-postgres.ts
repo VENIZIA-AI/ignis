@@ -63,7 +63,7 @@ export class NodePostgresDriver<
       execute: async (executeOpts: { statement: string }) => {
         const result = await client.query(executeOpts.statement);
 
-        return { count: result.rowCount ?? 0 };
+        return { count: result.rowCount ?? 0, command: result.command };
       },
       query: async <R>(queryOpts: { statement: string }) => {
         const result = await client.query(queryOpts.statement);

@@ -15,6 +15,9 @@ export type TRelationalDialect = TConstValue<typeof RelationalDialects>;
 export interface IStatementResult {
   /** Rows affected - the same `count` the repository verbs return; `0` for control statements (BEGIN / COMMIT / SET LOCAL). */
   count: number;
+
+  /** The command tag the server answered with (`COMMIT`, `ROLLBACK`), where the driver reports one. A `COMMIT` answered `ROLLBACK` means the server aborted the transaction. */
+  command?: string;
 }
 
 /** One dedicated physical connection, held for the lifetime of a single explicit transaction. */

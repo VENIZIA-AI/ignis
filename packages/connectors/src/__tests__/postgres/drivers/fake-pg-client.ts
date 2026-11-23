@@ -11,9 +11,11 @@ export class FakePoolClient {
   readonly releases: IReleaseCall[] = [];
 
   private readonly failOn?: string;
+  private readonly command?: string;
 
-  constructor(opts?: { failOn?: string }) {
+  constructor(opts?: { failOn?: string; command?: string }) {
     this.failOn = opts?.failOn;
+    this.command = opts?.command;
   }
 
   async query(statement: string): Promise<unknown> {
@@ -23,7 +25,7 @@ export class FakePoolClient {
       throw new Error(`${this.failOn} exploded`);
     }
 
-    return { rows: [], rowCount: 0 };
+    return { rows: [], rowCount: 0, command: this.command };
   }
 
   /** `pg` destroys the connection when the argument is truthy, instead of returning it to the pool. */
@@ -41,13 +43,15 @@ export class FakePool {
   totalCount = 0;
 
   private readonly failOn?: string;
+  private readonly command?: string;
 
-  constructor(opts?: { failOn?: string }) {
+  constructor(opts?: { failOn?: string; command?: string }) {
     this.failOn = opts?.failOn;
+    this.command = opts?.command;
   }
 
   async connect(): Promise<FakePoolClient> {
-    const client = new FakePoolClient({ failOn: this.failOn });
+    const client = new FakePoolClient({ failOn: this.failOn, command: this.command });
     this.clients.push(client);
 
     return client;
@@ -66,7 +70,7 @@ export const isPool = (value: unknown): value is Pool =>
   });
 
 /** A fake pool the driver accepts as a real `Pool`. */
-export const createFakePool = (opts?: { failOn?: string }): FakePool & Pool => {
+export const createFakePool = (opts?: { failOn?: string; command?: string }): FakePool & Pool => {
   const pool = new FakePool(opts);
 
   if (!isPool(pool)) {
