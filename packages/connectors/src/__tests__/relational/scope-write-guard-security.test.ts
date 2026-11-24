@@ -19,35 +19,34 @@ const apply = (opts: {
     operation: opts.operation ?? ScopeOperations.CREATE,
   });
 
-describe('a scope key in bracket spelling is a nested path, like the dot spelling', () => {
+describe('a scope key that is not one member of a JSON column is refused, in either spelling', () => {
   test.each([
-    ['dot', { 'metadata.merchantId': 'm-a' }],
-    ['bracket', { 'metadata[merchantId]': 'm-a' }],
+    ['dot, two members', { 'metadata.merchant.id': 'm-a' }],
+    ['bracket, two members', { 'metadata[merchant][id]': 'm-a' }],
+    ['a numeric part', { 'metadata[0]': 'm-a' }],
+    ['a prototype key', { 'metadata.__proto__': 'm-a' }],
+    ['a constructor key', { 'metadata[constructor]': 'm-a' }],
   ])('%s: the write is refused as unverifiable, on a create and on an update', (_label, scope) => {
     const operations: Array<TScopeOperation> = [ScopeOperations.CREATE, ScopeOperations.UPDATE];
 
     for (const operation of operations) {
       expect(() =>
         apply({ scope, rows: [{ metadata: { merchantId: 'm-b' } }], operation }),
-      ).toThrow(/cannot be verified.*nested path/s);
+      ).toThrow(/cannot be verified.*(depth 1|plain member)/s);
     }
   });
 
   test('inside an and, and inside an or branch, too', () => {
     expect(() =>
-      apply({ scope: { and: [{ merchantId: 'm-a' }, { 'meta[merchant]': 'm-a' }] }, rows: [{}] }),
-    ).toThrow(/nested path/);
+      apply({ scope: { and: [{ merchantId: 'm-a' }, { 'meta[a][b]': 'm-a' }] }, rows: [{}] }),
+    ).toThrow(/depth 1/);
     expect(() =>
-      apply({
-        scope: { or: [{ 'meta[merchant]': 'm-a' }, { 'meta[merchant]': 'm-b' }] },
-        rows: [{}],
-      }),
+      apply({ scope: { or: [{ 'meta[a][b]': 'm-a' }, { 'meta[a][b]': 'm-b' }] }, rows: [{}] }),
     ).toThrow(/cannot be checked on a write/);
   });
 
   test('the narrowing for an update or a delete refuses it as well', () => {
-    const scopeWhere = { 'metadata[merchantId]': 'm-a' };
-
+    const scopeWhere = { 'metadata[a][b]': 'm-a' };
     const operations: Array<TScopeOperation> = [ScopeOperations.UPDATE, ScopeOperations.DELETE];
 
     for (const operation of operations) {
@@ -58,7 +57,7 @@ describe('a scope key in bracket spelling is a nested path, like the dot spellin
           operation,
           scopeWhere,
         }),
-      ).toThrow(/nested path/);
+      ).toThrow(/depth 1/);
     }
   });
 });

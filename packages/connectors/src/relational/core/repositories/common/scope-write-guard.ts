@@ -16,6 +16,8 @@ import type {
 } from '@venizia/ignis-kernel';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { ScopeFilterDenial, ScopeResolution } from './scope-filter';
+import { ScopeJsonKey } from './scope-write-json';
+import type { TScopeJsonRead } from './scope-write-json';
 
 type TScalar = string | number | bigint | boolean | Date | null;
 
@@ -125,8 +127,10 @@ export class ScopeWriteGuard {
         continue;
       }
 
-      if (FilterKeys.isJsonPath({ key })) {
-        return `the nested path '${key}' cannot be checked on a write`;
+      const named = ScopeWriteGuard.constraintKey({ key });
+
+      if ('reason' in named) {
+        return named.reason;
       }
 
       const allowed = ScopeWriteGuard.allowedValues({ value });
@@ -135,8 +139,11 @@ export class ScopeWriteGuard {
         return `column '${key}': ${allowed}`;
       }
 
-      const existing = constraints.get(key);
-      constraints.set(key, existing ? intersect({ left: existing, right: allowed }) : allowed);
+      const existing = constraints.get(named.constraint);
+      constraints.set(
+        named.constraint,
+        existing ? intersect({ left: existing, right: allowed }) : allowed,
+      );
     }
 
     return undefined;
@@ -169,15 +176,21 @@ export class ScopeWriteGuard {
 
       const [key, value] = entries[0];
 
-      if (key === 'and' || key === 'or' || FilterKeys.isJsonPath({ key })) {
+      if (key === 'and' || key === 'or') {
         return `an 'or' branch over '${key}' cannot be checked on a write`;
       }
 
-      if (column !== undefined && column !== key) {
+      const named = ScopeWriteGuard.constraintKey({ key });
+
+      if ('reason' in named) {
+        return `an 'or' branch over '${key}' cannot be checked on a write | ${named.reason}`;
+      }
+
+      if (column !== undefined && column !== named.constraint) {
         return "an 'or' over different columns cannot be checked on a write";
       }
 
-      column = key;
+      column = named.constraint;
       const values = ScopeWriteGuard.allowedValues({ value });
 
       if (typeof values === 'string') {
@@ -188,6 +201,22 @@ export class ScopeWriteGuard {
     }
 
     return { column: column as string, allowed };
+  }
+
+  /**
+   * The key a constraint is held under: the column, or for a member of a JSON column the one canonical spelling (`metadata.merchantId`
+   * for `metadata[merchantId]` too). A path the guard cannot hold a payload to is a reason, and the write is refused.
+   */
+  private static constraintKey(opts: { key: string }): { constraint: string } | { reason: string } {
+    const { key } = opts;
+
+    if (!FilterKeys.isJsonPath({ key })) {
+      return { constraint: key };
+    }
+
+    const parsed = ScopeJsonKey.parse({ key });
+
+    return 'reason' in parsed ? parsed : { constraint: ScopeJsonKey.canonical(parsed) };
   }
 
   /** The values one column's condition allows, or a string naming why it cannot be checked. */
@@ -318,11 +347,11 @@ export class ScopeWriteGuard {
         continue;
       }
 
-      if (FilterKeys.isJsonPath({ key })) {
-        return {
-          kind: 'unverifiable',
-          reason: `the nested path '${key}' cannot be checked on a write`,
-        };
+      // The key stays as written: the mutation `where` is built from it by the same dialect as a read, so a JSON member is compared the way a read compares it.
+      const named = ScopeWriteGuard.constraintKey({ key });
+
+      if ('reason' in named) {
+        return { kind: 'unverifiable', reason: named.reason };
       }
 
       const narrowed = ScopeWriteGuard.conditionWithoutNull({ value });
@@ -457,13 +486,17 @@ export class ScopeWriteGuard {
     const declared = settings.columns;
 
     if (declared) {
-      const undeclared = [...constraints.keys()].find((column) => !declared.includes(column));
+      // A member of a JSON column is declared by its column.
+      const undeclared = [...constraints.keys()].find(
+        (constraint) =>
+          !declared.includes(ScopeJsonKey.split({ constraint })?.column ?? constraint),
+      );
 
       if (undeclared !== undefined) {
         throw ScopeWriteGuard.denied({
           model,
           operation,
-          detail: `the resolved scope constrains column '${undeclared}', which access.columns does not declare`,
+          detail: `the resolved scope constrains column '${ScopeJsonKey.split({ constraint: undeclared })?.column ?? undeclared}', which access.columns does not declare`,
         });
       }
     }
@@ -472,56 +505,129 @@ export class ScopeWriteGuard {
       settings.write?.mode === ScopeWriteGuards.ASSIGN && operation === ScopeOperations.CREATE;
     const sharedRows = settings.write?.sharedRows === true;
 
-    return rows.map((row) => {
-      let result = row;
+    return rows.map((row) =>
+      ScopeWriteGuard.holdRow({ row, constraints, model, operation, isAssign, sharedRows }),
+    );
+  }
 
-      for (const [column, allowed] of constraints) {
-        const value = (row as Record<string, unknown>)[column];
+  /**
+   * One payload row held to every constraint: the row as it will be written (a copy with the scope stamped in for `assign`,
+   * or the same object), or a thrown refusal. A plain column and a member of a JSON column are read differently
+   * (`readConstraint`) and judged the same way.
+   */
+  private static holdRow<Row extends Record<string, unknown>>(opts: {
+    row: Row;
+    constraints: TConstraints;
+    model: string;
+    operation: TScopeOperation;
+    isAssign: boolean;
+    sharedRows: boolean;
+  }): Row {
+    const { row, constraints, model, operation, isAssign, sharedRows } = opts;
+    let result = row;
 
-        if (value === undefined) {
-          if (operation !== ScopeOperations.CREATE) {
-            continue;
+    for (const [constraint, allowed] of constraints) {
+      const json = ScopeJsonKey.split({ constraint });
+      const column = json?.column ?? constraint;
+
+      for (const read of ScopeWriteGuard.readConstraint({ row, constraint, operation })) {
+        switch (read.type) {
+          case 'denied': {
+            throw ScopeWriteGuard.denied({ model, operation, column, detail: read.detail });
           }
 
-          // `assign` first: stamping gives the row an owner, which is safer than leaving it shared.
-          const [only] = allowed.size === 1 ? [...allowed] : [];
+          case 'absent': {
+            // `assign` first, on a create: stamping gives the row an owner, which is safer than leaving it shared.
+            const [only] = isAssign && allowed.size === 1 ? [...allowed] : [];
 
-          // The value as the scope wrote it, not its normalised text: a number stays a number.
-          if (isAssign && only !== undefined && only[0] !== null) {
-            result = { ...result, [column]: only[1] };
-            continue;
+            // The value as the scope wrote it, not its normalised text: a number stays a number.
+            if (only !== undefined && only[0] !== null) {
+              result = ScopeWriteGuard.stamped({ row: result, constraint, value: only[1] });
+              break;
+            }
+
+            // Absent means the database default, usually `null`, so it is held to the `null` rule.
+            if (sharedRows) {
+              break;
+            }
+
+            throw ScopeWriteGuard.denied({
+              model,
+              operation,
+              column,
+              detail: json ? 'the scope key is missing' : 'the scope column is missing',
+            });
           }
 
-          // Absent means the database default, usually `null`, so it is held to the `null` rule.
-          if (sharedRows) {
-            continue;
+          default: {
+            const normalised = isScalar(read.value) ? normalise(read.value) : undefined;
+            // A `null` branch in the scope lets this caller READ shared rows. Writing one (or moving a
+            // row into the shared set) is a separate permission: only `sharedRows` grants it.
+            const isOutside =
+              normalised === null ? !sharedRows : !allowed.has(normalised as string);
+
+            if (normalised === undefined || isOutside) {
+              throw ScopeWriteGuard.denied({
+                model,
+                operation,
+                column,
+                detail: 'the value is outside the resolved scope',
+              });
+            }
           }
-
-          throw ScopeWriteGuard.denied({
-            model,
-            operation,
-            column,
-            detail: 'the scope column is missing',
-          });
-        }
-
-        const normalised = isScalar(value) ? normalise(value) : undefined;
-        // A `null` branch in the scope lets this caller READ shared rows. Writing one (or moving a
-        // row into the shared set) is a separate permission: only `sharedRows` grants it.
-        const isOutside = normalised === null ? !sharedRows : !allowed.has(normalised as string);
-
-        if (normalised === undefined || isOutside) {
-          throw ScopeWriteGuard.denied({
-            model,
-            operation,
-            column,
-            detail: 'the value is outside the resolved scope',
-          });
         }
       }
+    }
 
-      return result;
-    });
+    return result;
+  }
+
+  /** What the payload says about one constraint: a plain column's value, or the statements it makes about a JSON member. */
+  private static readConstraint(opts: {
+    row: Record<string, unknown>;
+    constraint: string;
+    operation: TScopeOperation;
+  }): Array<TScopeJsonRead> {
+    const { row, constraint, operation } = opts;
+    const json = ScopeJsonKey.split({ constraint });
+
+    if (json) {
+      return ScopeJsonKey.reads({ row, ...json, operation });
+    }
+
+    switch (operation) {
+      case ScopeOperations.CREATE: {
+        return [
+          row[constraint] === undefined
+            ? { type: 'absent' }
+            : { type: 'value', value: row[constraint] },
+        ];
+      }
+
+      default: {
+        // An update that does not name the column leaves the value as it is: the row was chosen through the scoped `where`.
+        return row[constraint] === undefined ? [] : [{ type: 'value', value: row[constraint] }];
+      }
+    }
+  }
+
+  /** `row` with the scope value stamped in: a copy, never the caller's object, and for a JSON member a copy of the column object too. */
+  private static stamped<Row extends Record<string, unknown>>(opts: {
+    row: Row;
+    constraint: string;
+    value: TScalar;
+  }): Row {
+    const { row, constraint, value } = opts;
+    const json = ScopeJsonKey.split({ constraint });
+
+    if (!json) {
+      return { ...row, [constraint]: value };
+    }
+
+    const current = row[json.column];
+    const base = RecordUtility.isPlainObject(current) ? current : {};
+
+    return { ...row, [json.column]: { ...base, [json.member]: value } };
   }
 
   /**
