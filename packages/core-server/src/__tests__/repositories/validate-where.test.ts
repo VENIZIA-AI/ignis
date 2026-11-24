@@ -36,7 +36,12 @@ class TestRepository extends PersistableRepository<any> {
   }
 
   callValidateWhere(where: any, force?: boolean) {
-    return this.validateWhereCondition({ where, force, operationName: '_update' });
+    return this.validateWhereCondition({
+      where,
+      callerWhere: where,
+      force,
+      operationName: '_update',
+    });
   }
 }
 

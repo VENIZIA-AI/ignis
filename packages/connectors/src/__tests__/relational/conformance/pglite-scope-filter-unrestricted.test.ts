@@ -191,7 +191,7 @@ describe('scopeFilter - UNRESTRICTED applies no scope for this call', () => {
     await repository.updateBy({
       data: { name: 'updated-everywhere' },
       where: {},
-      options: { shouldReturn: false },
+      options: { force: true, shouldReturn: false },
     });
 
     const row1 = await rawRow(1);
@@ -203,7 +203,7 @@ describe('scopeFilter - UNRESTRICTED applies no scope for this call', () => {
   test('deleteBy (soft) reaches every tenant', async () => {
     currentTenant = ScopeFilters.UNRESTRICTED;
 
-    await repository.deleteBy({ where: {}, options: { shouldReturn: false } });
+    await repository.deleteBy({ where: {}, options: { force: true, shouldReturn: false } });
 
     const row1 = await rawRow(1);
     const row3 = await rawRow(3);

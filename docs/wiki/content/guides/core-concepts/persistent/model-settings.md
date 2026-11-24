@@ -491,6 +491,34 @@ export class Product extends ModelFactory.defineEntity({ table: productTable }) 
 
 Declaring `columns` moves a failure from write time to boot. The application refuses to start if a listed name is not a property of the model (`columns: ['merchentId']` is caught on the first boot, not on the first write). A scope that constrains a column that is not listed is refused as unverifiable.
 
+### A member of a JSON column
+
+A scope can name one member of a JSON column: `{ 'metadata.merchantId': 'm-1' }` (the `metadata[merchantId]` spelling means the same). A real column is indexable and simpler, so prefer it when you can add one. The member form is for a column you cannot change.
+
+#### Read
+
+The member compiles like any other `where` key, for `eq`, `inq`, `null` and `or`: the rows whose `metadata.merchantId` matches. Nothing about reads changes.
+
+#### Write
+
+The guard judges the payload before the database runs. It holds one level only (`column.member`) and denies everything it cannot prove is inside the scope:
+
+| Payload | Result |
+|---|---|
+| Create, column not an object (string, array, number) | Denied |
+| Create, member missing, null (without `sharedRows`) or foreign | Denied |
+| Create, member present with an allowed value | Allowed |
+| `assign` mode, column or member absent | Member stamped into a copy; your object is not changed |
+| `assign` mode, member present | Judged, never overwritten |
+| Update by path (`'metadata.merchantId': 'm-b'`), either spelling | Value judged: foreign or null (without `sharedRows`) is denied |
+| Update replacing the whole column | New object must hold the member with an allowed value |
+| Whole column and a path of it in one update | Denied: the path would win and the whole be dropped |
+| Path under the member (`metadata.merchantId.id`) | Denied |
+| Another path of the column (`metadata.tag`) | Not judged: it cannot leave the scope |
+| Scope member deeper than one level, numeric, `__proto__` or `constructor` | Refused as unverifiable |
+
+An `UPDATE` or `DELETE` reaches only the rows whose member is in the scope: the mutation `where` carries it. The guard compares values as text, and an engine may not (SQLite does not match `'7'` with `7`), so write the scope value as the type the column holds.
+
 ### What the guard does not cover
 
 - **An update that does not name the scope column.** `updateById(id, { name: 'Lamp' })` is not checked. The row was already selected through the scoped `where`, so it stays inside the scope.
@@ -506,7 +534,15 @@ Give each table ONE model class, and decorate that class. A relation to a table,
 
 ### An empty where on a scoped model
 
-`updateBy` and `deleteBy` with an empty `where` need `options.force` on a model without `access`. On a scoped model the scope joins the `where` BEFORE that check, so `deleteBy({ where: {} })` is not refused: it reaches the caller's own rows and no others (and `force` does not widen it). If a caller-built request can reach `deleteBy`, validate its `where` in the service or the route: an empty one then means "all my rows", not an error.
+`updateBy`, `deleteBy` (soft delete included), `restoreBy` and every other bulk update or delete refuse an empty caller `where` unless `options.force` is `true`, on every model, scoped or not. The check reads the `where` the caller wrote, BEFORE the scope and the default filter join it, so a scope never turns "no where" into an accepted call. With `force: true` the call touches every row the caller's WRITE scope allows (the `UPDATE` or `DELETE` scope): on a model with `access` that is the caller's own rows, never another merchant's; on a model without one it is every row. `force` never lifts or widens the scope.
+
+```typescript
+// Refused: the empty where needs force, though the scope would narrow it to the caller's rows
+await orderRepository.deleteBy({ where: {} });
+
+// Every order the caller may delete; other merchants' orders are untouched
+await orderRepository.deleteBy({ where: {}, options: { force: true } });
+```
 
 ### Scope a child through its parent
 

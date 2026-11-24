@@ -3,7 +3,7 @@
  * scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
  *
  * The colours of the wiki that come from the project's resolved theme: the neutral palette and the accent.
- * `vulcan sync` writes the resolved set into the committed `.agents/atlas.manifest.json` (`theme`); `config.mts` reads it
+ * `vulcan project sync` writes the resolved set into the committed `.agents/atlas.manifest.json` (`theme`); `config.mts` reads it
  * here and puts it in the head of every page as `:root` and `.dark` custom properties. Everything else the
  * wiki draws with (type, spacing, the code windows) stays in tokens.css.
  */
@@ -56,7 +56,7 @@ export class WikiTheme {
 
     if (tokens?.light === undefined || tokens.dark === undefined) {
       throw new Error(
-        `${opts.manifest} has no theme: run \`vulcan sync\` with @venizia/vulcan 0.4.10-3 or later`,
+        `${opts.manifest} has no theme: run \`vulcan project sync\` with @venizia/vulcan 0.4.10-3 or later`,
       );
     }
 

@@ -298,7 +298,7 @@ describe('access.resolve on SQLite - write verbs are scoped', () => {
     await buildSoft(SoftItem).updateBy({
       data: { name: 'renamed' },
       where: {},
-      options: { shouldReturn: false },
+      options: { force: true, shouldReturn: false },
     });
 
     const result = await names();
@@ -306,7 +306,10 @@ describe('access.resolve on SQLite - write verbs are scoped', () => {
   });
 
   test("a soft deleteBy only soft-deletes the current merchant's active row", async () => {
-    await buildSoft(SoftItem).deleteBy({ where: {}, options: { shouldReturn: false } });
+    await buildSoft(SoftItem).deleteBy({
+      where: {},
+      options: { force: true, shouldReturn: false },
+    });
 
     const result = await allRows();
     expect(result.map((row) => row.deletedAt !== null)).toEqual([true, true, false, true]);
@@ -337,7 +340,10 @@ describe('access.resolve on SQLite - write verbs are scoped', () => {
   });
 
   test('restoreBy only reaches the current merchant', async () => {
-    await buildSoft(SoftItem).restoreBy({ where: {}, options: { shouldReturn: false } });
+    await buildSoft(SoftItem).restoreBy({
+      where: {},
+      options: { force: true, shouldReturn: false },
+    });
 
     const result = await allRows();
     expect(result.map((row) => row.deletedAt !== null)).toEqual([false, false, false, true]);
@@ -803,8 +809,10 @@ describe('access.resolve on SQLite - a scope that cannot be verified, more shape
       { or: [{ merchantId: 'm-a', name: 'one' }] },
       /several conditions/,
     ],
-    ['a nested path', { 'meta.merchant': 'm-a' }, /nested path/],
-    ['a bracket path', { 'meta[merchant]': 'm-a' }, /nested path/],
+    ['a path deeper than one member', { 'meta.merchant.id': 'm-a' }, /depth 1/],
+    ['the same, in bracket spelling', { 'meta[merchant][id]': 'm-a' }, /depth 1/],
+    ['a numeric part', { 'meta[0]': 'm-a' }, /plain member/],
+    ['a member that reaches the prototype', { 'meta.__proto__': 'm-a' }, /plain member/],
   ])(
     '%s refuses the write with its own message, never a skip',
     async (_label, resolved, pattern) => {

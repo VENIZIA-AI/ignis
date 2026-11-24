@@ -463,8 +463,11 @@ naming the entity and the column, never a value, and writes nothing (all of `cre
 on `access`: `access.write.mode` `reject` (default) or `assign` (fills an ABSENT column from an
 equality scope; a present, disagreeing value is still refused), `access.write.sharedRows` (the only way a restricted caller may write `null`, omit the scope column, or update or delete a shared row; a null branch in an `or` scope grants READING shared rows, never writing them: `ScopeWriteGuard.mutationWhere` removes the null branch from the scope that `_update` and `_delete` merge in, and refuses a scope shape it cannot read),
 `access.columns` (validated at boot against the model, and a resolved scope that constrains any other
-column is refused). A scope shape it cannot check (an `or` over several columns, ranges, `like`, nested paths) is refused
-with its own "cannot be verified" message, never skipped. `ScopeFilters.UNRESTRICTED` bypasses the
+column is refused). A scope shape it cannot check (an `or` over several columns, ranges, `like`, a path deeper than one member) is refused
+with its own "cannot be verified" message, never skipped. One member of a JSON column (`{ 'meta.merchantId': 'm-1' }`, either spelling) is held on the write
+path by `ScopeJsonKey` (`scope-write-json.ts`): a create reads the column object, an update judges every payload key that
+reaches the column (whole column and a path of it in one payload, or a path under the member, is denied), assign stamps a copy.
+`ScopeFilters.UNRESTRICTED` bypasses the
 guard too - the deliberate hatch for system scope and admin roles; an unresolved scope refuses a
 create under `deny` and leaves an update to the scoped `where`. NOT covered: an update that does not
 name the scope column (already confined by the scoped `where`), raw drizzle statements, and
