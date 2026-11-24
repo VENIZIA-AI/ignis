@@ -408,7 +408,8 @@ describe('scopeFilter write guard', () => {
         message: /Empty where condition/,
       });
 
-      expect(await rows()).toEqual(untouched);
+      const after1 = await rows();
+      expect(after1).toEqual(untouched);
     });
 
     test('a soft-deleting model refuses it too, whether the default filter joined the where', async () => {
@@ -424,7 +425,8 @@ describe('scopeFilter write guard', () => {
         message: /Empty where condition/,
       });
 
-      expect(await rows()).toEqual(untouched);
+      const after2 = await rows();
+      expect(after2).toEqual(untouched);
     });
 
     test('with force the scope still holds: only the caller rows change, the other merchant is untouched', async () => {
@@ -436,14 +438,16 @@ describe('scopeFilter write guard', () => {
         options: { force: true },
       });
 
-      expect(await rows()).toEqual([
+      const after3 = await rows();
+      expect(after3).toEqual([
         { merchantId: 'm-a', name: 'renamed' },
         { merchantId: 'm-b', name: 'theirs' },
       ]);
 
       await build(RejectItem).deleteBy({ where: {}, options: { force: true } });
 
-      expect(await rows()).toEqual([{ merchantId: 'm-b', name: 'theirs' }]);
+      const after4 = await rows();
+      expect(after4).toEqual([{ merchantId: 'm-b', name: 'theirs' }]);
     });
 
     test('force does not reach another merchant row, even when the caller where names it', async () => {
@@ -451,7 +455,8 @@ describe('scopeFilter write guard', () => {
 
       await build(RejectItem).deleteBy({ where: { name: 'theirs' }, options: { force: true } });
 
-      expect(await rows()).toEqual(untouched);
+      const after5 = await rows();
+      expect(after5).toEqual(untouched);
     });
 
     test('a where the caller wrote needs no force: the scope joining it is not what makes it non-empty', async () => {
@@ -459,7 +464,8 @@ describe('scopeFilter write guard', () => {
 
       await build(RejectItem).deleteBy({ where: { name: 'mine' } });
 
-      expect(await rows()).toEqual([{ merchantId: 'm-b', name: 'theirs' }]);
+      const after6 = await rows();
+      expect(after6).toEqual([{ merchantId: 'm-b', name: 'theirs' }]);
     });
 
     test('a model without access is unchanged: refused without force, every row with it', async () => {
@@ -470,11 +476,13 @@ describe('scopeFilter write guard', () => {
         task: repository.deleteBy({ where: {} }),
         message: /Empty where condition/,
       });
-      expect(await rows()).toEqual(untouched);
+      const after7 = await rows();
+      expect(after7).toEqual(untouched);
 
       await repository.deleteBy({ where: {}, options: { force: true } });
 
-      expect(await rows()).toEqual([]);
+      const after8 = await rows();
+      expect(after8).toEqual([]);
     });
   });
 
