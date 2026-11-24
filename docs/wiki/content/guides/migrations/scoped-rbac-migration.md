@@ -188,6 +188,8 @@ const adapter = new ApplicationCasbinAdapter({
 });
 ```
 
+`Role.AUTHORIZATION_SUBJECT` is a `string` now (no `!`): a model that declared no `authorize.principal` used to give `undefined` here and now gives its class name, which a minified build renames. Give `authorize.principal` to `Role` and `Permission` so the adapter's `principalType` is the same in development and production.
+
 Everything else in the registration (`CASBIN_RBAC_MODEL`, `domainMatching`, `normalizePayloadFn`)
 stays. **Result: behavior identical, compiles on new ignis, zero data migration.**
 

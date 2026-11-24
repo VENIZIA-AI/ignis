@@ -57,13 +57,14 @@ export const model = (input: IModelMetadata = {}): ClassDecorator => {
       });
     }
 
-    // Every model has an authorization subject: the principal it declares, else its own name. A subject the class declares
-    // itself is kept. The value is DEFINED on the class, not assigned: an entity base answers a fallback through a getter,
-    // and an assignment to a getter-only inherited property does nothing.
-    if (!Object.hasOwn(target, 'AUTHORIZATION_SUBJECT')) {
-      const subject = settings?.authorize?.principal || target.name;
+    // The principal a model declares becomes its authorization subject; a subject the class declares itself is kept. A model
+    // with no principal is left alone: it inherits its parent's subject, or the entity base answers the class name. The value
+    // is DEFINED, not assigned, so it goes over the getter the base answers (an assignment is the base setter's business).
+    const principal = settings?.authorize?.principal;
+
+    if (principal && !Object.hasOwn(target, 'AUTHORIZATION_SUBJECT')) {
       const isDefined = Reflect.defineProperty(target, 'AUTHORIZATION_SUBJECT', {
-        value: subject,
+        value: principal,
         writable: true,
         enumerable: true,
         configurable: true,

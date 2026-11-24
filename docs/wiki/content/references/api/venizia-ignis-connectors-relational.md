@@ -102,11 +102,18 @@ export declare class BaseRelationalEntity<Schema extends TTableSchemaWithId = TT
     readonly $inferPersist?: TTableInsert<Schema>;
     static TABLE_NAME?: string;
     /**
-     * What an authorization rule names this model by: the `authorize.principal` of `@model`, else the model's name. `@model`
-     * defines it on the class; this answers the class's own name for a class that is not decorated, so it is never
-     * `undefined` and `Model.AUTHORIZATION_SUBJECT` needs no `!`.
+     * What an authorization rule names this model by: the `authorize.principal` of `@model`, else the model's name (the class
+     * name, which a minified build changes: give the principal to any model a rule names). `@model` defines the principal on
+     * the class; a class that is not decorated, or has no principal, answers its name, so the value is never `undefined` and
+     * `Model.AUTHORIZATION_SUBJECT` needs no `!`.
      */
     static get AUTHORIZATION_SUBJECT(): string;
+    /**
+     * A subclass that declares `static readonly AUTHORIZATION_SUBJECT = '...'` is compiled by `tsc` (with
+     * `useDefineForClassFields: false`, which IGNIS needs) to an assignment: this setter turns it into the class's own value,
+     * as a field declaration would be under Bun.
+     */
+    static set AUTHORIZATION_SUBJECT(value: string);
     /** A carrier, deliberately widened to `Table`: a factory-built entity knows its table precisely, and a narrower static would reject that precise type. The CONTRACT stays on the instance, typed `Schema`. */
     static schema: Table;
     static relations?: TValueOrResolver<Array<TRelationConfig>>;

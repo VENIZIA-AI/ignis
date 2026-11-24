@@ -699,7 +699,7 @@ import { productTable } from './product.table';
 export class Product extends ModelFactory.defineEntity({ table: productTable }) {}
 ```
 
-The decorator sets `Product.AUTHORIZATION_SUBJECT` to `'Product'`, so a route can read the resource name from the model instead of repeating the string. The value is always a `string`: a model with no principal gets its own name, so no `!` and no `??` is needed:
+The decorator sets `Product.AUTHORIZATION_SUBJECT` to `'Product'`, so a route can read the resource name from the model instead of repeating the string. The value is always a `string`: a model with no principal answers its class name, so no `!` and no `??` is needed (name the principal of any model a rule uses: a minified build renames classes):
 
 ```typescript
 // src/controllers/product.controller.ts

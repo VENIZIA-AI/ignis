@@ -1445,12 +1445,13 @@ Source -> [`builders/grant.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob
 
 `@model({ settings: { authorize: { principal } } })` (see [Persistent Models](/guides/core-concepts/persistent/models#authorization-settings)) drives two things:
 
-**1. `AUTHORIZATION_SUBJECT` static.** The `@model` decorator (`base/metadata/persistents/model.ts`) defines `AUTHORIZATION_SUBJECT` on the class: `settings.authorize.principal`, else the class name, unless the class already declares its own:
+**1. `AUTHORIZATION_SUBJECT` static.** The `@model` decorator (`base/metadata/persistents/model.ts`) defines `AUTHORIZATION_SUBJECT` on the class from `settings.authorize.principal`, unless the class already declares its own; with no principal it does nothing:
 
 ```typescript
-if (!Object.hasOwn(target, 'AUTHORIZATION_SUBJECT')) {
+const principal = metadata.settings?.authorize?.principal;
+if (principal && !Object.hasOwn(target, 'AUTHORIZATION_SUBJECT')) {
   Reflect.defineProperty(target, 'AUTHORIZATION_SUBJECT', {
-    value: metadata.settings?.authorize?.principal || target.name,
+    value: principal,
     writable: true,
     enumerable: true,
     configurable: true,
@@ -1458,7 +1459,7 @@ if (!Object.hasOwn(target, 'AUTHORIZATION_SUBJECT')) {
 }
 ```
 
-Declared on both entity bases as `static get AUTHORIZATION_SUBJECT(): string`, which answers the class name for a class that is not decorated, so the value is always a `string`.
+Declared on both entity bases as `static get AUTHORIZATION_SUBJECT(): string`, which answers the class name for a class with no principal, so the value is always a `string`. The matching setter defines an own value, so a subclass's `static readonly AUTHORIZATION_SUBJECT = '...'`, which `tsc` compiles to an assignment, works too. A class name is renamed by a minified build: give `authorize.principal` to any model a rule names.
 
 **2. `IModelAuthorizeSettings`.**
 

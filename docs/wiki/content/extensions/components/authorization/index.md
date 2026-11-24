@@ -135,7 +135,7 @@ const ownerVoter: TAuthorizationVoter = async ({ user, context }) => {
 authorize: { action: 'read', resource: 'Order', domain: { from: 'param', key: 'merchantId', type: 'Merchant' } }
 ```
 
-**Reference a model instead of a hardcoded string.** `@model` always sets `Model.AUTHORIZATION_SUBJECT`, a `string`: `authorize.principal` when given, else the model's name.
+**Reference a model instead of a hardcoded string.** `Model.AUTHORIZATION_SUBJECT` is a `string`: `@model` sets it from `authorize.principal`, and a model without one answers its class name. Give `authorize.principal` to any model a rule names: a minified build renames classes, so the class name differs between development and production.
 
 ```typescript
 authorize: { action: AuthorizationActions.READ, resource: Article.AUTHORIZATION_SUBJECT }

@@ -21,7 +21,7 @@ describe('AUTHORIZATION_SUBJECT is always a string', () => {
     expect(subject).toBe('billing-invoice');
   });
 
-  test('a decorated entity without a principal gets its own name', () => {
+  test('a decorated entity without a principal answers its own name', () => {
     @model({})
     class Receipt extends ModelFactory.defineEntity({ table: receipts }) {}
 
@@ -48,6 +48,47 @@ describe('AUTHORIZATION_SUBJECT is always a string', () => {
 
     expect(Own.AUTHORIZATION_SUBJECT).toBe('own-subject');
     expect(Declared.AUTHORIZATION_SUBJECT).toBe('declared-subject');
+  });
+
+  test('a tsc-shaped static block assignment (useDefineForClassFields: false) sets the own value, on both bases', () => {
+    class Assigned extends ModelFactory.defineEntity({ table: notes }) {
+      static {
+        this.AUTHORIZATION_SUBJECT = 'assigned-subject';
+      }
+    }
+
+    class AssignedSearch extends BaseSearchEntity {
+      static override schema = collection('subject-assigned');
+
+      static {
+        this.AUTHORIZATION_SUBJECT = 'assigned-search';
+      }
+    }
+
+    expect(Assigned.AUTHORIZATION_SUBJECT).toBe('assigned-subject');
+    expect(Object.hasOwn(Assigned, 'AUTHORIZATION_SUBJECT')).toBe(true);
+    expect(AssignedSearch.AUTHORIZATION_SUBJECT).toBe('assigned-search');
+  });
+
+  test('a decorated child of a parent with a principal inherits the parent subject; a plain parent gives the child its name', () => {
+    @model({ settings: { authorize: { principal: 'parent-subject' } } })
+    class Parent extends ModelFactory.defineEntity({ table: invoices }) {}
+
+    @model({})
+    class Child extends Parent {}
+
+    class Plain extends ModelFactory.defineEntity({ table: receipts }) {}
+
+    class PlainChild extends Plain {}
+
+    expect(Child.AUTHORIZATION_SUBJECT).toBe('parent-subject');
+    expect(PlainChild.AUTHORIZATION_SUBJECT).toBe('PlainChild');
+  });
+
+  test('a factory-built class used directly answers DefinedEntity', () => {
+    const Direct = ModelFactory.defineEntity({ table: notes });
+
+    expect(Direct.AUTHORIZATION_SUBJECT).toBe('DefinedEntity');
   });
 
   test('the type is string: not undefined, not another type', () => {
