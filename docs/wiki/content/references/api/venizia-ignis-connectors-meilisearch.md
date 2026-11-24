@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis-connectors/meilisearch, from the bu
 
 # `@venizia/ignis-connectors/meilisearch`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 17 exports, 17 with TSDoc.
 

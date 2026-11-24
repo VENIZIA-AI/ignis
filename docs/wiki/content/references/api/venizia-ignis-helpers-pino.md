@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis-helpers/pino, from the built declar
 
 # `@venizia/ignis-helpers/pino`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 10 exports, 10 with TSDoc.
 

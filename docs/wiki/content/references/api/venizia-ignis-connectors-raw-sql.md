@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis-connectors/raw-sql, from the built 
 
 # `@venizia/ignis-connectors/raw-sql`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 8 exports, 8 with TSDoc.
 

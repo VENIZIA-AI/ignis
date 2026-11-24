@@ -172,12 +172,12 @@ jobs:
         with:
           bun-version: 1.4.5
 
-      # The action runs the project's installed atlas (`vulcan x atlas index publish`).
+      # The action runs the project's installed atlas (`vulcan atlas index publish`).
       - name: Install
         run: bun install
 
       - name: Publish the atlas index
-        uses: VENIZIA-AI/vulcan/.github/actions/atlas-index@8d65b9c4567d430dc0aa54f4c67e8275818f6dc0 # vulcan-v0.5.0-6
+        uses: VENIZIA-AI/vulcan/.github/actions/atlas-index@1849dafcfa739f56f2feeb2516885c3f1079e955 # vulcan-v0.5.0-7
         with:
           ref: ${{ inputs.ref }}
         env:

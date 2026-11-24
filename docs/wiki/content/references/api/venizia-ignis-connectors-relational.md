@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis-connectors/relational, from the bui
 
 # `@venizia/ignis-connectors/relational`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 81 exports, 81 with TSDoc.
 
@@ -1219,9 +1219,11 @@ export declare class PersistableRelationalRepository<EntitySchema extends TTable
         id: unknown;
         operationName: string;
     }): void;
-    /** Prevents accidental table-wide updates/deletes by requiring an explicit force flag; returns the built where SQL so callers reuse it instead of rebuilding on identical input. */
+    /** Prevents accidental table-wide updates/deletes by requiring an explicit force flag, checked on the caller's own `where` (a scope or a default filter that joins it does not make it non-empty); returns the built where SQL so callers reuse it instead of rebuilding on identical input. */
     protected validateWhereCondition(opts: {
         where: TWhere<DataObject>;
+        /** The `where` the caller wrote, before the default filter and the access scope joined it. Empty means "every row" and needs `force`, however narrow the merged `where` is. A subclass that passes only `where` keeps the old reading of it. */
+        callerWhere?: TWhere<DataObject>;
         force?: boolean;
         operationName: string;
     }): {

@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis-helpers/bun-s3, from the built decl
 
 # `@venizia/ignis-helpers/bun-s3`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 2 exports, 2 with TSDoc.
 

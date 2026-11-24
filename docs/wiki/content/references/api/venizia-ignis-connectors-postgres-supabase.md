@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis-connectors/postgres/supabase, from 
 
 # `@venizia/ignis-connectors/postgres/supabase`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 14 exports, 14 with TSDoc.
 

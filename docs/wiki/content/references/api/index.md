@@ -5,7 +5,7 @@ description: Every export of every package entry, from the built declarations (g
 
 # API reference
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 | Entry | Exports | With TSDoc |
 |---|---|---|

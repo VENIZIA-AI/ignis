@@ -11,7 +11,7 @@ Build a working IGNIS API in one command: monorepo layout, one controller, one r
 Run the initializer:
 
 ```bash
-bun x @venizia/vulcan init --preset ignis
+bun x @venizia/vulcan project init --preset ignis
 ```
 
 In a terminal it asks four names:
@@ -32,7 +32,7 @@ The command runs these steps in order:
 - Runs `git init -b develop`.
 - Sets up the agent files.
 - Runs the app's checks (typecheck, lint, test).
-- Runs `vulcan doctor` and the knowledge-bundle check.
+- Runs `vulcan project doctor` and the knowledge-bundle check.
 
 ## 2. Run it
 
@@ -167,11 +167,11 @@ The project needs a first commit: `git add -A && git commit -m init`. See [Docke
 Each new app or package comes from a preset, never by hand. From the project root, add a frontend that calls `core-api`, and a library other IGNIS apps import:
 
 ```bash
-bun node_modules/.bin/vulcan add --preset ardor --app web --frontend-dir apps --api core-api
-bun node_modules/.bin/vulcan add --preset ignis --lib billing --dir libs
+bun node_modules/.bin/vulcan package add --preset ardor --app web --frontend-dir apps --api core-api
+bun node_modules/.bin/vulcan package add --preset ignis --lib billing --dir libs
 ```
 
-A frontend needs `--api <app>` (the backend it calls) or `--no-api`. Run `vulcan add` with neither `--app` nor `--lib` in a terminal and it asks what to create.
+A frontend needs `--api <app>` (the backend it calls) or `--no-api`. Run `vulcan package add` with neither `--app` nor `--lib` in a terminal and it asks what to create.
 
 ## Next steps
 

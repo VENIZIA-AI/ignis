@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis-inversion, from the built declarati
 
 # `@venizia/ignis-inversion`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 74 exports, 74 with TSDoc.
 

@@ -4,7 +4,7 @@ The standards behind how the IGNIS documentation site looks: type, spacing, cont
 
 > The site is the shared Venizia theme in `site/.vitepress/theme/shared/`, a copy of VULCAN's folder
 > that is never edited here. It owns the fonts, header, doc pages and footer. The neutrals and the
-> accent come from the `theme` in `.configs/vulcan.config.mts`, which `vulcan sync` resolves into
+> accent come from the `theme` in `.configs/vulcan.config.mts`, which `vulcan project sync` resolves into
 > `.agents/vulcan.manifest.json`; `site/.vitepress/config.mts` reads them. The `--ig-*` brand colours in
 > [`design-tokens.css`](./site/.vitepress/theme/design-tokens.css) are a reference copy of those accent
 > values; no page reads them.

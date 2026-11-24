@@ -34,10 +34,10 @@ describe('ReleaseNotes.hasBlocks', () => {
   });
 });
 
-/** `vulcan changelog notes`, the command VULCAN runs over the same two files: this copy must agree with it. */
+/** `vulcan migrate notes`, the command VULCAN runs over the same two files: this copy must agree with it. */
 const command = (opts: { args: string[] }): string => {
   const child = Bun.spawnSync(
-    ['bun', resolve(ROOT, 'node_modules', '.bin', 'vulcan'), 'changelog', 'notes', ...opts.args],
+    ['bun', resolve(ROOT, 'node_modules', '.bin', 'vulcan'), 'migrate', 'notes', ...opts.args],
     {
       cwd: ROOT,
       stdout: 'pipe',
@@ -46,13 +46,13 @@ const command = (opts: { args: string[] }): string => {
   );
 
   if (child.exitCode !== 0) {
-    throw new Error(`vulcan changelog notes ${opts.args.join(' ')}: ${child.stderr.toString()}`);
+    throw new Error(`vulcan migrate notes ${opts.args.join(' ')}: ${child.stderr.toString()}`);
   }
 
   return child.stdout.toString();
 };
 
-describe('ReleaseNotes against `vulcan changelog notes`, on every version folder of this repository', () => {
+describe('ReleaseNotes against `vulcan migrate notes`, on every version folder of this repository', () => {
   const versions = readdirSync(CHANGELOGS).filter((name) => /^\d+\.\d+\.\d+$/.test(name));
 
   test('there are folders to compare', () => {

@@ -21,7 +21,7 @@ tags: [process, docs, wiki]
    from markdown under `content/`. It lives at top-level `docs/wiki/` (sibling of `packages/`,
    package name `@venizia/ignis-docs`), not inside `packages/`. The MCP server that reads this same
    content is VULCAN's atlas (`@venizia/vulcan-atlas`, run in this repo as
-   `bun node_modules/.bin/vulcan x atlas mcp --root .`, registered as `atlas` in the per-machine `.mcp.json` that `vulcan sync` writes) - `docs/wiki`
+   `bun node_modules/.bin/vulcan atlas mcp --root .`, registered as `atlas` in the per-machine `.mcp.json` that `vulcan project sync` writes) - `docs/wiki`
    no longer ships one itself. This `.agents/knowledge/` bundle
    (what this file is part of) is a separate, agent-facing artifact - editing one does not update
    the other.
@@ -91,7 +91,7 @@ tags: [process, docs, wiki]
    VitePress piece the shared CSS overrides is gone. `.gitattributes` marks the folder `-text` so git
    converts no byte. Keep `bun fmt` off it: `make lint-wiki` still checks it. What stays ours:
    `home-content.ts`, `design-tokens.css`, `theme/index.ts`, `config.mts`. The wiki's colours are the
-   `theme` of `.configs/vulcan.config.mts`: `vulcan sync` writes the resolved tokens into
+   `theme` of `.configs/vulcan.config.mts`: `vulcan project sync` writes the resolved tokens into
    `.agents/vulcan.manifest.json`, and `config.mts` puts them in the head of every page
    (`WikiTheme.head`).
 
@@ -117,12 +117,12 @@ An entry is short and says the user's benefit first: one plain sentence, what ch
 do about it, and the upgrade step of a breaking change. Several changes to one topic are one entry. The template is
 `docs/wiki/content/changelogs/template.md`.
 
-An entry is attached to the first release made on or after its date (`vulcan x atlas releases`), so date it on or
+An entry is attached to the first release made on or after its date (`vulcan atlas releases`), so date it on or
 after the day the release that carries it is made.
 
 ## The migration block
 
-A Breaking Change entry (badge text `Breaking Change`; `Breaking` is read as breaking too but reported on entries after the cutover) dated on or after `knowledge.migrationFrom` carries `migration:` in its frontmatter: how an app moves across the change, in both directions. `make changelog-check` (`vulcan changelog check`, a CI step) fails when it is missing or invalid; entries before the cutover are never read.
+A Breaking Change entry (badge text `Breaking Change`; `Breaking` is read as breaking too but reported on entries after the cutover) dated on or after `knowledge.migrationFrom` carries `migration:` in its frontmatter: how an app moves across the change, in both directions. `make changelog-check` (`vulcan check changelog`, a CI step) fails when it is missing or invalid; entries before the cutover are never read.
 
 ```yaml
 migration:

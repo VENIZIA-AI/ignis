@@ -44,7 +44,7 @@ Error responses are fail-closed: an unset or unrecognized `NODE_ENV` is treated 
 
 ### Docker Deployment (Recommended)
 
-An app created by `vulcan add --preset ignis --app <name>` already has its Dockerfile, in `.configs/builders/Dockerfile`. Build it from the project root, and pass the commit:
+An app created by `vulcan package add --preset ignis --app <name>` already has its Dockerfile, in `.configs/builders/Dockerfile`. Build it from the project root, and pass the commit:
 
 ```bash
 docker build -f services/api/.configs/builders/Dockerfile -t api \
@@ -78,9 +78,9 @@ The commit is required: the root `.dockerignore` leaves `.git` out, so the [buil
 > !**/.env.example
 > ```
 >
-> `vulcan init` writes these lines from VULCAN 0.3.7 on, and `vulcan doctor` warns when they are missing. The Dockerfile also refuses a context that still holds a `.env` file and names it. Pass a private registry through `BUN_CONFIG_REGISTRY`; never copy a token file such as `.npmrc` into the image.
+> `vulcan project init` writes these lines from VULCAN 0.3.7 on, and `vulcan project doctor` warns when they are missing. The Dockerfile also refuses a context that still holds a `.env` file and names it. Pass a private registry through `BUN_CONFIG_REGISTRY`; never copy a token file such as `.npmrc` into the image.
 
-The build context is the whole project, trimmed by the root `.dockerignore` that `vulcan init` writes, because the preset cannot know which workspace packages the app imports. For better layer caching, copy only the `package.json` files and folders the app needs, then install.
+The build context is the whole project, trimmed by the root `.dockerignore` that `vulcan project init` writes, because the preset cannot know which workspace packages the app imports. For better layer caching, copy only the `package.json` files and folders the app needs, then install.
 
 ### Docker Compose (Full Stack)
 

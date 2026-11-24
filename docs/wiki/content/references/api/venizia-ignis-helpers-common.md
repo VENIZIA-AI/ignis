@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis-helpers/common, from the built decl
 
 # `@venizia/ignis-helpers/common`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 50 exports, 50 with TSDoc. 14 more are re-exported from other entries (listed at the end).
 

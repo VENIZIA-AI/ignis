@@ -5,7 +5,7 @@ description: "Every export of @venizia/dev-configs/linters, from the built decla
 
 # `@venizia/dev-configs/linters`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 41 exports, 41 with TSDoc. 30 more are re-exported from other entries (listed at the end).
 

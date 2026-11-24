@@ -23,8 +23,8 @@ re-deriving the project from the source each session.
 **The code is ground truth.** These concepts are curated prose over the code. When the two disagree,
 the code wins and the concept is a bug - fix it.
 
-Served over MCP by `atlas`, which `vulcan sync` registers in each machine's `.mcp.json`; it runs VULCAN's atlas
-(`bun node_modules/.bin/vulcan x atlas mcp --root .`). `search` with `corpus: "knowledge"` finds a concept,
+Served over MCP by `atlas`, which `vulcan project sync` registers in each machine's `.mcp.json`; it runs VULCAN's atlas
+(`bun node_modules/.bin/vulcan atlas mcp --root .`). `search` with `corpus: "knowledge"` finds a concept,
 `get` reads one by the id a search hit returned. Outside this repo the same server is `@venizia/vulcan-atlas`.
 
 ## Start here

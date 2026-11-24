@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis-helpers/temporal, from the built de
 
 # `@venizia/ignis-helpers/temporal`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 35 exports, 35 with TSDoc.
 

@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis-boot/bun, from the built declaratio
 
 # `@venizia/ignis-boot/bun`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 6 exports, 6 with TSDoc.
 
