@@ -239,10 +239,12 @@ declare module 'hono' {
 export const loadEnrollments: MiddlewareHandler = async (context, next) => {
   const user = context.get(Authentication.CURRENT_USER);
 
-  context.set(
-    ENROLLED_COURSE_IDS,
-    user ? await enrollmentService.courseIdsOf({ userId: user.userId }) : [],
-  );
+  context.set(ENROLLED_COURSE_IDS, []);
+
+  if (user) {
+    context.set(ENROLLED_COURSE_IDS, await enrollmentService.courseIdsOf({ userId: user.userId }));
+  }
+
   await next();
 };
 ```
@@ -293,9 +295,16 @@ import { orderTable } from './order.table';
           return null;
         }
 
-        return ScopeOperations.includes({ group: ScopeOperations.WRITE, operation })
-          ? { merchantId }
-          : { or: [{ merchantId }, { counterpartMerchantId: merchantId }] };
+        switch (operation) {
+          case ScopeOperations.READ: {
+            return { or: [{ merchantId }, { counterpartMerchantId: merchantId }] };
+          }
+
+          default: {
+            // CREATE, UPDATE, DELETE, and any operation added later: the narrow scope.
+            return { merchantId };
+          }
+        }
       },
     },
   },
@@ -303,9 +312,9 @@ import { orderTable } from './order.table';
 export class Order extends ModelFactory.defineEntity({ table: orderTable }) {}
 ```
 
-A read sees both columns. A create, an update and a delete are held to `merchantId` alone, and an update or delete reaches only the caller's own rows.
+A read sees both columns. A create, an update and a delete are held to `merchantId` alone, and an update or delete reaches only the caller's own rows. Write the branch as a `switch` with the wide scope on the named read case and the narrow scope in `default`: an operation added later then falls to the narrow scope, never the wide one.
 
-The same shape fits "owned OR enrolled": a read returns `{ or: [{ ownerId }, { courseId: { in: currentCourseIds() } }] }`, every write operation returns `{ ownerId }`. An enrolled row is then readable but not updatable or deletable: the update's `where` is the narrow scope, so it matches no enrolled row, and a create is held to `ownerId`. There is no separate read and write resolver: `operation` is that switch.
+The same shape fits "owned OR enrolled": a read returns `{ or: [{ ownerId }, { courseId: { in: currentCourseIds() } }] }`, every other operation (the `default` of the same `switch`) returns `{ ownerId }`. An enrolled row is then readable but not updatable or deletable: the update's `where` is the narrow scope, so it matches no enrolled row, and a create is held to `ownerId`. There is no separate read and write resolver: `operation` is that switch.
 
 `operation` is always one of four values. Every repository call passes one:
 
