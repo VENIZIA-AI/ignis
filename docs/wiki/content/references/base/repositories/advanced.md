@@ -447,6 +447,8 @@ await repository.deleteBy({ where: {}, options: { force: true } });
 | Empty `where` | Throws | Logs a warning, proceeds |
 | Valid `where` | Executes normally | Executes normally |
 
+The check reads the `where` you wrote. On a model with [`access`](/guides/core-concepts/persistent/model-settings) or a default filter, what joins it does not make an empty `where` acceptable: it is refused too, and with `force: true` it touches only the rows the caller's write scope allows.
+
 > [!NOTE]
 > `updateById` and `deleteById` always have a non-empty where (`{ id }`), so this guard never applies to them.
 

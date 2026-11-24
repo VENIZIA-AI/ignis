@@ -430,7 +430,7 @@ describe('a write to a through model must name a parent the caller may reach', (
     await variants.updateBy({
       where: {},
       data: { name: 'renamed' },
-      options: { shouldReturn: false },
+      options: { force: true, shouldReturn: false },
     });
 
     const afterUpdate = await variantNames();

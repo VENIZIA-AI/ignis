@@ -218,7 +218,7 @@ describe('without write.sharedRows a child of a shared parent cannot be written'
     await variants.updateBy({
       where: {},
       data: { name: 'renamed' },
-      options: { shouldReturn: false },
+      options: { force: true, shouldReturn: false },
     });
 
     const result = await tableNames(VARIANT_TABLE);
@@ -271,7 +271,7 @@ describe('without write.sharedRows a child of a shared parent cannot be written'
     await options.updateBy({
       where: {},
       data: { name: 'renamed' },
-      options: { shouldReturn: false },
+      options: { force: true, shouldReturn: false },
     });
     const result7 = await tableNames(OPTION_TABLE);
     expect(result7).toEqual(['renamed', 'o2', 'o3']);
@@ -291,7 +291,7 @@ describe('with write.sharedRows on the parent the same writes are allowed', () =
     await variants.updateBy({
       where: {},
       data: { name: 'renamed' },
-      options: { shouldReturn: false },
+      options: { force: true, shouldReturn: false },
     });
     const result = await tableNames(VARIANT_TABLE);
     expect(result).toEqual(['renamed', 'renamed', 'v3']);
@@ -312,7 +312,7 @@ describe('with write.sharedRows on the parent the same writes are allowed', () =
     await options.updateBy({
       where: {},
       data: { name: 'renamed' },
-      options: { shouldReturn: false },
+      options: { force: true, shouldReturn: false },
     });
     const foreign = await refusal(() => options.create({ data: { variantId: 3, name: 'x' } }));
 
@@ -331,7 +331,7 @@ describe('other shapes of the parent scope', () => {
       variants.updateBy({
         where: {},
         data: { name: 'renamed' },
-        options: { shouldReturn: false },
+        options: { force: true, shouldReturn: false },
       }),
     );
     const listed = await variants.find({ filter: {} });
@@ -351,7 +351,7 @@ describe('other shapes of the parent scope', () => {
     await variants.updateBy({
       where: {},
       data: { name: 'renamed' },
-      options: { shouldReturn: false },
+      options: { force: true, shouldReturn: false },
     });
 
     expect(shared).toContain('write refused by the access scope');
@@ -366,7 +366,7 @@ describe('other shapes of the parent scope', () => {
     await variants.updateBy({
       where: {},
       data: { name: 'renamed' },
-      options: { shouldReturn: false },
+      options: { force: true, shouldReturn: false },
     });
 
     expect(created).toContain('write refused by the access scope');
@@ -377,7 +377,7 @@ describe('other shapes of the parent scope', () => {
     await variants.updateBy({
       where: {},
       data: { name: 'renamed' },
-      options: { shouldReturn: false },
+      options: { force: true, shouldReturn: false },
     });
 
     const result4 = await tableNames(VARIANT_TABLE);

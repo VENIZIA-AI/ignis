@@ -281,7 +281,7 @@ describe('a write to a through model on SQLite', () => {
     await variants.updateBy({
       where: {},
       data: { name: 'renamed' },
-      options: { shouldReturn: false },
+      options: { force: true, shouldReturn: false },
     });
     const afterUpdate = await variantNames();
 

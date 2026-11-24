@@ -1219,9 +1219,11 @@ export declare class PersistableRelationalRepository<EntitySchema extends TTable
         id: unknown;
         operationName: string;
     }): void;
-    /** Prevents accidental table-wide updates/deletes by requiring an explicit force flag; returns the built where SQL so callers reuse it instead of rebuilding on identical input. */
+    /** Prevents accidental table-wide updates/deletes by requiring an explicit force flag, checked on the caller's own `where` (a scope or a default filter that joins it does not make it non-empty); returns the built where SQL so callers reuse it instead of rebuilding on identical input. */
     protected validateWhereCondition(opts: {
         where: TWhere<DataObject>;
+        /** The `where` the caller wrote, before the default filter and the access scope joined it. Empty means "every row" and needs `force`, however narrow the merged `where` is. Required: a subclass that calls this must say which `where` the caller wrote. */
+        callerWhere: TWhere<DataObject>;
         force?: boolean;
         operationName: string;
     }): {

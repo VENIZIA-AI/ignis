@@ -245,7 +245,7 @@ All repository operations accept an `options` parameter with these fields:
 | `shouldReturn` | `boolean` | Write methods only - whether to return created/updated data (default: `true`) |
 | `shouldQueryRange` | `boolean` | `find` only - return `{ data, range: { start, end, total } }` for pagination |
 | `shouldSkipDefaultFilter` | `boolean` | Bypass the model's default filter (e.g., soft delete) |
-| `force` | `boolean` | `updateBy`/`deleteBy` only - allow an empty `where` (table-wide operation) |
+| `force` | `boolean` | `updateBy`/`deleteBy`/`restoreBy` only - allow an empty `where` (every row; on a model with `access`, every row the caller's write scope allows) |
 | `lock` | `TLockOptions` | Row-level locking for reads (`{ strength: 'update' }`, ...) |
 | `log` | `TRepositoryLogOptions` | Per-operation logging (`{ use: true, level?: 'info' }`) |
 
