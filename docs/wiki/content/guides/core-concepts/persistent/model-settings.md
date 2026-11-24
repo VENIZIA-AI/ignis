@@ -88,20 +88,20 @@ import { DefaultCRUDRepository, repository } from '@venizia/ignis';
 export class ProductRepository extends DefaultCRUDRepository<typeof Product.schema> {}
 ```
 
-| Setting                   | Default                                                           | What it does                                                                                                       |
-| ------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `properties.hidden`       | none                                                              | Property names removed from every result, in SQL                                                                   |
-| `properties.stamped`      | `createdBy`, `modifiedBy`, `createdAt`, `modifiedAt`, `deletedAt` | Property names the server fills; the generated create and update bodies leave them out                             |
-| `query.filter`            | none                                                              | A filter merged into every query for the model, usually a soft-delete `where`                                      |
-| `query.limit.default`     | `10`                                                              | Row limit for a query that names none                                                                              |
-| `query.limit.max`         | `1000`                                                            | Largest `limit` a caller may ask for                                                                               |
-| `access.resolve`          | required unless `through`                                         | Returns the row scope of the current caller, per query                                                             |
-| `access.through`          | none                                                              | Scopes a child by its parent's `access`; see [Scope a child through its parent](#scope-a-child-through-its-parent) |
-| `access.onMissing`        | `'deny'`                                                          | What happens when `resolve()` returns `null` or `undefined`                                                        |
-| `access.columns`          | none                                                              | Names the columns the write guard checks; validated at boot                                                        |
-| `access.write.mode`       | `'reject'`                                                        | What a create or update does with a row outside the scope                                                          |
-| `access.write.sharedRows` | `false`                                                           | Lets a restricted caller create, change and delete rows with no owner (`null` scope column)                        |
-| `authorize.principal`     | none                                                              | The authorization subject name of the model                                                                        |
+| Setting | Default | What it does |
+|---|---|---|
+| `properties.hidden` | none | Property names removed from every result, in SQL |
+| `properties.stamped` | `createdBy`, `modifiedBy`, `createdAt`, `modifiedAt`, `deletedAt` | Property names the server fills; the generated create and update bodies leave them out |
+| `query.filter` | none | A filter merged into every query for the model, usually a soft-delete `where` |
+| `query.limit.default` | `10` | Row limit for a query that names none |
+| `query.limit.max` | `1000` | Largest `limit` a caller may ask for |
+| `access.resolve` | required unless `through` | Returns the row scope of the current caller, per query |
+| `access.through` | none | Scopes a child by its parent's `access`; see [Scope a child through its parent](#scope-a-child-through-its-parent) |
+| `access.onMissing` | `'deny'` | What happens when `resolve()` returns `null` or `undefined` |
+| `access.columns` | none | Names the columns the write guard checks; validated at boot |
+| `access.write.mode` | `'reject'` | What a create or update does with a row outside the scope |
+| `access.write.sharedRows` | `false` | Lets a restricted caller create, change and delete rows with no owner (`null` scope column) |
+| `authorize.principal` | none | The authorization subject name of the model |
 
 Settings are grouped by what they do. `query` shapes what a query returns. `access` decides who may read and write rows. `properties` names the properties that are hidden or stamped, and `authorize` stands alone. The old flat names (`hiddenProperties`, `defaultFilter`, `defaultLimit`, `maxLimit`, `scopeFilter`) are removed; the [changelog](/changelogs/2026-11-03-old-model-settings-keys-are-removed) maps each to its new key.
 
@@ -183,12 +183,12 @@ export const findIncludingDeleted = (opts: { repository: ProductRepository }) =>
 
 `resolve()` runs on every query and returns the scope for the current caller. It reads the current request from the ambient request context (`asyncContext.enable` is on by default in a `BaseApplication`). Its one argument, `{ operation }`, says what the call does: `ScopeOperations.READ`, `CREATE`, `UPDATE` or `DELETE`. A resolver that ignores the operation takes no parameter. It returns one of three outcomes:
 
-| `resolve()` returns                              | The query                                            |
-| ------------------------------------------------ | ---------------------------------------------------- |
-| A scope `where`, such as `{ merchantId: 'm-1' }` | Runs with that `where` ANDed in                      |
-| `ScopeFilters.UNRESTRICTED`                      | Runs with no scope, for this call only               |
-| `null` or `undefined`                            | Follows `onMissing`: by default it matches zero rows |
-| Anything else that is not a usable `where`       | The same as `null`: the scope was not resolved       |
+| `resolve()` returns | The query |
+|---|---|
+| A scope `where`, such as `{ merchantId: 'm-1' }` | Runs with that `where` ANDed in |
+| `ScopeFilters.UNRESTRICTED` | Runs with no scope, for this call only |
+| `null` or `undefined` | Follows `onMissing`: by default it matches zero rows |
+| Anything else that is not a usable `where` | The same as `null`: the scope was not resolved |
 
 Not usable means `false`, `0`, `''`, a list, `{}`, an object with an `undefined` value (`{ merchantId: user.merchantId }` for a user without one), or an empty `and`. An empty `or` matches nothing.
 
@@ -309,12 +309,12 @@ The same shape fits "owned OR enrolled": a read returns `{ or: [{ ownerId }, { c
 
 `operation` is always one of four values. Every repository call passes one:
 
-| Call                                                                                          | `operation` |
-| --------------------------------------------------------------------------------------------- | ----------- |
-| `find`, `findOne`, `findById`, `count`, `existsWith`, and a relation loaded through `include` | `READ`      |
-| `create`, `createAll`                                                                         | `CREATE`    |
-| `updateById`, `updateBy`, and `restore`                                                       | `UPDATE`    |
-| `deleteById`, `deleteBy`, a soft delete included                                              | `DELETE`    |
+| Call | `operation` |
+|---|---|
+| `find`, `findOne`, `findById`, `count`, `existsWith`, and a relation loaded through `include` | `READ` |
+| `create`, `createAll` | `CREATE` |
+| `updateById`, `updateBy`, and `restore` | `UPDATE` |
+| `deleteById`, `deleteBy`, a soft delete included | `DELETE` |
 
 A soft delete is stored as an update of the row, but the resolver sees `DELETE`: a caller who may update a row is not thereby allowed to delete it. The soft-delete flag (`deletedAt`) is an ordinary column, though. Where nothing refuses it, an `updateBy` that writes it soft-deletes the row under the `UPDATE` scope, not the `DELETE` one. The generated create and update routes leave that column out of their bodies, and a `SoftDeletableRepository` refuses an update or upsert that carries it, so the column changes only through the delete and restore calls. A soft delete that also writes other columns (`deleteById({ id, data })`) is checked against the `DELETE` scope. A repository that does not soft delete, or a route with its own body, can still write the column: do not let callers write it, or check it in the service. A read with a row `lock` (`findOne` with `lock`) still passes `READ`, so it can lock rows the caller may only read.
 
@@ -326,10 +326,10 @@ Returning the `or` for a write operation is still refused, with the same "cannot
 
 `onMissing` decides what `null` or `undefined` means.
 
-| `onMissing`        | A query with no scope                                               |
-| ------------------ | ------------------------------------------------------------------- |
+| `onMissing` | A query with no scope |
+|---|---|
 | `'deny'` (default) | Matches zero rows. "I do not know who is asking" reads as "nothing" |
-| `'allow'`          | Runs unscoped                                                       |
+| `'allow'` | Runs unscoped |
 
 The two values are also `ScopeFilterMissingBehaviors.DENY` and `ScopeFilterMissingBehaviors.ALLOW`, exported by `@venizia/ignis`.
 
@@ -376,15 +376,15 @@ A scope on reads is not enough: a `create` has no `where` to AND into, so withou
 
 The scope is `{ merchantId: 'm-1' }` for every row of this table:
 
-| The write                                                                   | `'reject'`               | `'assign'`                        |
-| --------------------------------------------------------------------------- | ------------------------ | --------------------------------- |
-| `create({ merchantId: 'm-1' })`, the caller's own merchant                  | Written                  | Written                           |
-| `create({ merchantId: 'm-2' })`, another merchant                           | Refused                  | Refused                           |
-| `create({})`, no `merchantId`                                               | Refused                  | Written with `merchantId: 'm-1'`  |
-| `updateById(id, { merchantId: 'm-2' })`, moving a row                       | Refused                  | Refused                           |
-| `updateById(id, { name: 'Lamp' })`, not naming the column                   | Written                  | Written                           |
-| `createAll([own, own, other])`, one bad row                                 | Refused, nothing written | Refused, nothing written          |
-| Any of the above under `ScopeFilters.UNRESTRICTED` (an admin, a system job) | Written as given         | Written as given, nothing stamped |
+| The write | `'reject'` | `'assign'` |
+|---|---|---|
+| `create({ merchantId: 'm-1' })`, the caller's own merchant | Written | Written |
+| `create({ merchantId: 'm-2' })`, another merchant | Refused | Refused |
+| `create({})`, no `merchantId` | Refused | Written with `merchantId: 'm-1'` |
+| `updateById(id, { merchantId: 'm-2' })`, moving a row | Refused | Refused |
+| `updateById(id, { name: 'Lamp' })`, not naming the column | Written | Written |
+| `createAll([own, own, other])`, one bad row | Refused, nothing written | Refused, nothing written |
+| Any of the above under `ScopeFilters.UNRESTRICTED` (an admin, a system job) | Written as given | Written as given, nothing stamped |
 
 The guard reads the allowed values from the resolved `where`: an equality, `eq`, `inq` or `in`, an array, `and` of those, and an `or` whose branches all constrain the same column. Any other shape (an `or` over two columns, a range, `like`) cannot be checked, so the write is refused with a message that says so. It is never skipped. To read two columns and write one, [return the narrow scope for a write operation](#read-wider-than-you-write).
 
@@ -447,12 +447,12 @@ export class TaxType extends ModelFactory.defineEntity({ table: taxTypeTable }) 
 
 The `null` branch lets the caller read shared rows. Changing a shared row is a different permission, and `sharedRows` grants it:
 
-| Operation                                                 | A merchant's own rows | Shared rows (`merchantId` is `null`)                                 |
-| --------------------------------------------------------- | --------------------- | -------------------------------------------------------------------- |
-| Read, scope has the `null` branch                         | Yes                   | Yes                                                                  |
-| Create, `sharedRows: false` (default)                     | Yes                   | No: `null` and a missing column are refused                          |
-| Update, delete, soft delete, restore, `sharedRows: false` | Yes                   | No: the row does not match, so the count is 0 and it stays as it was |
-| Any write, `sharedRows: true`                             | Yes                   | Yes                                                                  |
+| Operation | A merchant's own rows | Shared rows (`merchantId` is `null`) |
+|---|---|---|
+| Read, scope has the `null` branch | Yes | Yes |
+| Create, `sharedRows: false` (default) | Yes | No: `null` and a missing column are refused |
+| Update, delete, soft delete, restore, `sharedRows: false` | Yes | No: the row does not match, so the count is 0 and it stays as it was |
+| Any write, `sharedRows: true` | Yes | Yes |
 
 If your resolver lists `null`, restricted callers still cannot create, change or delete shared rows unless `sharedRows` is `true`. That is true for `updateById`, `updateBy`, `deleteById`, `deleteBy`, soft delete and restore alike: the scope they run under has the `null` branch removed. Set `sharedRows` only on a model where every merchant may write platform-wide rows that all merchants then see. Platform-defined data (a fare policy, a tax type, a promotion) stays `false`; platform staff who manage it use `ScopeFilters.UNRESTRICTED`.
 
@@ -580,12 +580,12 @@ SELECT parent.pk FROM parent WHERE parent.pk IN (<the keys the rows name>) AND <
 
 Measured on Postgres 17 with 372,000 parents, 389,000 children and 200 tenants of very uneven size (warm cache, medians):
 
-| Case                                                                | `through`                                                        | Copied column                                                        |
-| ------------------------------------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Reads, updates and deletes by id                                    | +0.01 to +0.3 ms per 100 ids                                     | none                                                                 |
-| The query already joins the parent                                  | +1.3 ms on a small tenant, +3 to +4 ms (+7 to 9%) on the largest | +0.3 ms or less                                                      |
-| A page sorted by a child column, or a count, for the largest tenant | about 70 ms and 68 ms                                            | 0.02 ms and 15 ms, with a `(tenant, created_at desc, id desc)` index |
-| The same for a small tenant                                         | about 2 ms                                                       | under 0.1 ms                                                         |
+| Case | `through` | Copied column |
+|---|---|---|
+| Reads, updates and deletes by id | +0.01 to +0.3 ms per 100 ids | none |
+| The query already joins the parent | +1.3 ms on a small tenant, +3 to +4 ms (+7 to 9%) on the largest | +0.3 ms or less |
+| A page sorted by a child column, or a count, for the largest tenant | about 70 ms and 68 ms | 0.02 ms and 15 ms, with a `(tenant, created_at desc, id desc)` index |
+| The same for a small tenant | about 2 ms | under 0.1 ms |
 
 Use `through` for the many child tables where this cost does not show and one source of truth matters. Copy the column only for a hot list, sorted or counted, under a very large tenant. Both need the child foreign key indexed.
 
@@ -645,14 +645,10 @@ import { ProductRepository, VariantRepository } from '../repositories';
 @service()
 export class VariantService extends BaseService {
   constructor(
-    @inject({
-      key: BindingKeys.build<ProductRepository>({ key: 'repositories.ProductRepository' }),
-    })
+    @inject({ key: BindingKeys.build<ProductRepository>({ key: 'repositories.ProductRepository' }) })
     private productRepository: ProductRepository,
 
-    @inject({
-      key: BindingKeys.build<VariantRepository>({ key: 'repositories.VariantRepository' }),
-    })
+    @inject({ key: BindingKeys.build<VariantRepository>({ key: 'repositories.VariantRepository' }) })
     private variantRepository: VariantRepository,
   ) {
     super({ scope: VariantService.name });
@@ -702,12 +698,12 @@ This is a check in your code, not a scope: nothing stops another code path from 
 
 A refused write is an `ApplicationError` with HTTP status `403` and the code `core.repository.scope_write_denied`, held by `RepositoryErrorCodes.SCOPE_WRITE_DENIED` for code that matches on it. The message names the entity and the column, never a value, because the caller may be a request.
 
-| Message (after the leading `[create]` or `[update]`)                                                                    | Cause                                                                                     |
-| ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `write refused by the access scope \| entity: Product \| column: merchantId \| the value is outside the resolved scope` | A row names another merchant, or `null` without `sharedRows`                              |
-| `... \| column: merchantId \| the scope column is missing`                                                              | A created row has no scope column and the mode is `reject`                                |
-| `... \| the resolved scope cannot be verified on a write \| column 'merchantId': ...`                                   | The scope is an `or` over several columns, a range or another shape the guard cannot read |
-| `... \| no scope could be resolved for this caller`                                                                     | `resolve()` returned `null` and `onMissing` is `'deny'`, on a create                      |
+| Message (after the leading `[create]` or `[update]`) | Cause |
+|---|---|
+| `write refused by the access scope \| entity: Product \| column: merchantId \| the value is outside the resolved scope` | A row names another merchant, or `null` without `sharedRows` |
+| `... \| column: merchantId \| the scope column is missing` | A created row has no scope column and the mode is `reject` |
+| `... \| the resolved scope cannot be verified on a write \| column 'merchantId': ...` | The scope is an `or` over several columns, a range or another shape the guard cannot read |
+| `... \| no scope could be resolved for this caller` | `resolve()` returned `null` and `onMissing` is `'deny'`, on a create |
 
 The tail of the "cannot be verified" message names the column and the operator, for example `column 'merchantId': the operator 'gt' cannot be checked on a write`.
 
@@ -738,10 +734,10 @@ export class Product extends ModelFactory.defineEntity({ table: productTable }) 
 
 `limit.default` applies when a query names no `limit`. `limit.max` is the largest `limit` a caller may ask for. Both must be positive integers; the decorator throws at boot otherwise.
 
-| Request                              | Result                                   |
-| ------------------------------------ | ---------------------------------------- |
-| `GET /products`                      | 20 rows, the model default               |
-| `GET /products?filter={"limit":50}`  | 50 rows                                  |
+| Request | Result |
+|---|---|
+| `GET /products` | 20 rows, the model default |
+| `GET /products?filter={"limit":50}` | 50 rows |
 | `GET /products?filter={"limit":500}` | Refused: 500 is above the ceiling of 200 |
 
 Without `query.limit` the framework defaults apply: 10 rows by default and a ceiling of 1000. Raise the ceiling on purpose: reaching it should mean the caller is doing something unusual.
@@ -834,19 +830,19 @@ export class Product extends ModelFactory.defineEntity({ table: productTable }) 
 
 ### Which setting do I need?
 
-| I want to ...                                           | Use                                         |
-| ------------------------------------------------------- | ------------------------------------------- |
-| Never return a column                                   | `properties.hidden`                         |
-| Hide soft-deleted rows from ordinary queries            | `query.filter`                              |
-| Make a rule hold for every caller                       | `access` (not `query.filter`)               |
-| Show each merchant only its own rows                    | `access.resolve` returning a `where`        |
-| Let an admin or a job see every merchant                | `ScopeFilters.UNRESTRICTED` from `resolve`  |
-| Stop a merchant creating rows for another merchant      | The default `write.mode: 'reject'`          |
-| Fill the merchant on create so callers need not send it | `write.mode: 'assign'`                      |
-| Let merchants create shared rows                        | `write.sharedRows: true`                    |
-| Catch a misspelled scope column at boot                 | `access.columns`                            |
-| Smaller or larger pages                                 | `query.limit.default` and `query.limit.max` |
-| Name the model for authorization                        | `authorize.principal`                       |
+| I want to ... | Use |
+|---|---|
+| Never return a column | `properties.hidden` |
+| Hide soft-deleted rows from ordinary queries | `query.filter` |
+| Make a rule hold for every caller | `access` (not `query.filter`) |
+| Show each merchant only its own rows | `access.resolve` returning a `where` |
+| Let an admin or a job see every merchant | `ScopeFilters.UNRESTRICTED` from `resolve` |
+| Stop a merchant creating rows for another merchant | The default `write.mode: 'reject'` |
+| Fill the merchant on create so callers need not send it | `write.mode: 'assign'` |
+| Let merchants create shared rows | `write.sharedRows: true` |
+| Catch a misspelled scope column at boot | `access.columns` |
+| Smaller or larger pages | `query.limit.default` and `query.limit.max` |
+| Name the model for authorization | `authorize.principal` |
 
 ## See also
 
