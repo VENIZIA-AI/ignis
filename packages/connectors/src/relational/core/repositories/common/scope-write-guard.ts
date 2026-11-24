@@ -184,7 +184,7 @@ export class ScopeWriteGuard {
         return `column '${key}': ${values}`;
       }
 
-      values.forEach((entry, key) => allowed.set(key, entry));
+      values.forEach((entry, normalised) => allowed.set(normalised, entry));
     }
 
     return { column: column as string, allowed };
