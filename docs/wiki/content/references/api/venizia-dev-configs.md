@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-0 exports, 0 with TSDoc. 62 more are re-exported from other entries (listed at the end).
+0 exports, 0 with TSDoc. 64 more are re-exported from other entries (listed at the end).
 
 ## Re-exported
 
@@ -21,6 +21,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 - `EqeqeqModes` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `EqeqeqRule` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `eslintConfigs` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
+- `FrameworkExports` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `FrameworkRuleApis` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `HookSupport` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `HOUSE_PLUGIN_NAMESPACE` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
@@ -46,6 +47,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 - `NoRestrictedImportsRule` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `NoRestrictedPropertiesRule` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `NoReturnAwaitRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
+- `NoShadowFrameworkTypeRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `NoSilentCatchRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `NoUnbracedCaseRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `NoUnusedVarsRule` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)

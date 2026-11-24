@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs/linters, from the built decla
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-31 exports, 31 with TSDoc. 30 more are re-exported from other entries (listed at the end).
+33 exports, 33 with TSDoc. 30 more are re-exported from other entries (listed at the end).
 
 ## `AstNode`
 
@@ -49,6 +49,7 @@ export declare class AstNodeTypes {
     static readonly EXPORT_NAMED_DECLARATION = "ExportNamedDeclaration";
     static readonly EXPORT_ALL_DECLARATION = "ExportAllDeclaration";
     static readonly IMPORT_DECLARATION = "ImportDeclaration";
+    static readonly IMPORT_SPECIFIER = "ImportSpecifier";
     static readonly IMPORT_EXPRESSION = "ImportExpression";
     static readonly CLASS_DECLARATION = "ClassDeclaration";
     static readonly INTERFACE_DECLARATION = "TSInterfaceDeclaration";
@@ -250,13 +251,55 @@ export declare const eslintConfigs: Linter.Config[];
 
 Source: `packages/dev-configs/src/linters/eslint.ts`
 
+## `FrameworkExports`
+
+*class*
+
+What the installed `@venizia/*` packages export, read from their published `.d.ts` files: the names a project must
+import, not write again. A declaration scan only (the TypeScript parser, no program, no type check), memoized per
+package for the life of the process, so a lint run reads each package once.
+
+```ts
+export declare class FrameworkExports {
+    static readonly SCOPE = "@venizia/";
+    private static readonly manifests;
+    private static readonly packages;
+    private static loaded;
+    /** TypeScript, from the project being linted; `undefined` when it is not installed there (the rule then reports nothing). */
+    private static loadTypeScript;
+    /** The nearest package.json at or above `directory`. */
+    static manifestFor(opts: {
+        directory: string;
+    }): IPackageManifest | undefined;
+    /** The folder of the installed package `name`, looked up from `directory` upwards. */
+    private static locate;
+    /** Every `.d.ts` path an `exports` value names, with the subpath it is reached by. */
+    private static entriesOf;
+    /** The declaration file a relative specifier points at (`./x.js` is `./x.d.ts`). */
+    private static resolveRelative;
+    /** The names `file` exports, following `export *` into relative files. */
+    private static namesOf;
+    /** Name to the specifier that exports it (`@venizia/ignis-helpers/common`), for one installed package. */
+    private static readPackage;
+    /**
+     * The names the `@venizia/*` packages that `directory`'s project depends on export, each with the specifier to import it
+     * from. The project's own package is left out: it may declare what it exports.
+     */
+    static of(opts: {
+        directory: string;
+    }): Map<string, string>;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/framework-exports.ts`
+
 ## `FrameworkRuleApis`
 
 *class*
 
 The framework API of each house rule that points at one, keyed by the rule's name (`venizia/prefer-tnullable`). Tools that
 read a project's installed `@venizia/dev-configs` (VULCAN's write-time hook) use it to tell an author which API to use, so
-a rule that steers toward the framework has an entry here; `house-framework-rule-apis.test.ts` fails when one does not.
+a rule that steers toward the framework has an entry here; `house-framework-rules.test.ts` fails when one does not.
 
 ```ts
 export declare class FrameworkRuleApis {
@@ -395,7 +438,12 @@ export declare class ImportSupport {
         context: Rule.RuleContext;
         name: string;
     }): boolean;
-    /** Whether `name` is imported or declared at the top level of the file. */
+    /** The name the file binds the import `name` to (`TNullable as N` answers `N`), or `undefined` when it does not import it. */
+    static importedAs(opts: {
+        context: Rule.RuleContext;
+        name: string;
+    }): string | undefined;
+    /** Whether `name` is imported (under its own name or an alias) or declared at the top level of the file. */
     static isInScope(opts: {
         context: Rule.RuleContext;
         name: string;
@@ -686,6 +734,33 @@ export declare class NoReturnAwaitRule {
 ```
 
 Source: `packages/dev-configs/src/linters/house/no-return-await.rule.ts`
+
+## `NoShadowFrameworkTypeRule`
+
+*class*
+
+`venizia/no-shadow-framework-type`. A type alias or interface written in your project under the name a `@venizia/*`
+package already exports (`ValueOrPromise`, `TNullable`, `TConstValue`) is a copy of the framework's: import it.
+
+The names come from the installed packages' `.d.ts` files (see `FrameworkExports`), for the packages your nearest
+`package.json` depends on. Not reported: a name the file imports, a name shorter than `minLength` (default 4, so a
+generic `T` never matches), a name in `allow`, anything inside `declare module` or `declare global` (an augmentation),
+a declaration file, and a package's own declarations of what it exports. There is no fix: a copy may differ from the
+original, so the replacement is the author's to check.
+
+```ts
+export declare class NoShadowFrameworkTypeRule {
+    static readonly NAME = "venizia/no-shadow-framework-type";
+    static readonly DEFAULT_MIN_LENGTH = 4;
+    static readonly RULE: Rule.RuleModule;
+    static build(opts?: {
+        severity?: TRuleSeverity;
+        allow?: Array<string>;
+    }): Linter.RuleEntry;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/no-shadow-framework-type.rule.ts`
 
 ## `NoSilentCatchRule`
 

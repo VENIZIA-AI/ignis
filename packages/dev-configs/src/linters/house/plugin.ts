@@ -10,6 +10,7 @@ import { NoInlineAwaitRule } from './no-inline-await.rule';
 import { NoLeakedRenderRule } from './no-leaked-render.rule';
 import { NoNewErrorRule } from './no-new-error.rule';
 import { NoParentImportRule } from './no-parent-import.rule';
+import { NoShadowFrameworkTypeRule } from './no-shadow-framework-type.rule';
 import { NoReturnAwaitRule } from './no-return-await.rule';
 import { NoSilentCatchRule } from './no-silent-catch.rule';
 import { NoUnbracedCaseRule } from './no-unbraced-case.rule';
@@ -30,6 +31,7 @@ export const houseEslintPlugin: ESLint.Plugin = {
     'no-leaked-render': NoLeakedRenderRule.RULE,
     'no-new-error': NoNewErrorRule.RULE,
     'no-parent-import': NoParentImportRule.RULE,
+    'no-shadow-framework-type': NoShadowFrameworkTypeRule.RULE,
     'no-return-await': NoReturnAwaitRule.RULE,
     'no-silent-catch': NoSilentCatchRule.RULE,
     'no-unbraced-case': NoUnbracedCaseRule.RULE,

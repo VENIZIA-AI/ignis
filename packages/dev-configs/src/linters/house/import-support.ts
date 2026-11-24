@@ -65,9 +65,46 @@ export class ImportSupport {
     );
   }
 
-  /** Whether `name` is imported or declared at the top level of the file. */
+  /** The name the file binds the import `name` to (`TNullable as N` answers `N`), or `undefined` when it does not import it. */
+  static importedAs(opts: { context: Rule.RuleContext; name: string }): string | undefined {
+    const { context, name } = opts;
+
+    for (const statement of context.sourceCode.ast.body) {
+      const specifiers: unknown = AstNode.readField({ node: statement, key: 'specifiers' });
+
+      if (
+        AstNode.getType({ node: statement }) !== AstNodeTypes.IMPORT_DECLARATION ||
+        !Array.isArray(specifiers)
+      ) {
+        continue;
+      }
+
+      for (const specifier of specifiers) {
+        const imported = AstNode.readField({
+          node: AstNode.readField({ node: specifier, key: 'imported' }),
+          key: 'name',
+        });
+        const local = AstNode.readField({
+          node: AstNode.readField({ node: specifier, key: 'local' }),
+          key: 'name',
+        });
+
+        if (imported === name && typeof local === 'string') {
+          return local;
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  /** Whether `name` is imported (under its own name or an alias) or declared at the top level of the file. */
   static isInScope(opts: { context: Rule.RuleContext; name: string }): boolean {
-    return ImportSupport.isImported(opts) || ImportSupport.isDeclared(opts);
+    return (
+      ImportSupport.isImported(opts) ||
+      ImportSupport.importedAs(opts) !== undefined ||
+      ImportSupport.isDeclared(opts)
+    );
   }
 
   /**
@@ -168,7 +205,7 @@ export class ImportSupport {
 
     for (const statement of context.sourceCode.ast.body) {
       const specifiers: unknown = AstNode.readField({ node: statement, key: 'specifiers' });
-      const kind = AstNode.readField({ node: statement, key: 'importKind' });
+      const importKind = AstNode.readField({ node: statement, key: 'importKind' });
       const from = AstNode.readField({
         node: AstNode.readField({ node: statement, key: 'source' }),
         key: 'value',
@@ -179,12 +216,14 @@ export class ImportSupport {
         from !== source ||
         !Array.isArray(specifiers) ||
         specifiers.length === 0 ||
-        !specifiers.every((item) => AstNode.getType({ node: item }) === 'ImportSpecifier')
+        !specifiers.every(
+          (item) => AstNode.getType({ node: item }) === AstNodeTypes.IMPORT_SPECIFIER,
+        )
       ) {
         continue;
       }
 
-      const isTypeImport = kind === 'type';
+      const isTypeImport = importKind === 'type';
 
       if (!isType && isTypeImport) {
         continue;
