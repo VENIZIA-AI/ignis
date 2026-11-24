@@ -392,6 +392,7 @@ describe('scopeFilter write guard', () => {
       ['a range', { merchantId: { gt: 'm' } }, /operator 'gt'/],
       ['two operators', { merchantId: { eq: 'm-a', neq: 'm-b' } }, /2 operators/],
       ['a nested path', { 'meta.merchant': 'm-a' }, /nested path/],
+      ['a bracket path', { 'meta[merchant]': 'm-a' }, /nested path/],
     ])(
       '%s refuses the write with its own message, never a skip',
       async (_label, resolved, pattern) => {

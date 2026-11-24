@@ -40,6 +40,20 @@ export class ScopeResolution {
         return false;
       }
 
+      // An operator object is read one level in: `{ in: undefined }` is a resolver that built nothing, not a condition.
+      if (
+        key !== QueryOperators.AND &&
+        key !== QueryOperators.OR &&
+        typeof entry === 'object' &&
+        entry !== null &&
+        !Array.isArray(entry) &&
+        !(entry instanceof Date) &&
+        Object.getPrototypeOf(entry) === Object.prototype &&
+        Object.values(entry).some((operand) => operand === undefined)
+      ) {
+        return false;
+      }
+
       // An empty `and` is "all of nothing", true for every row, so it restricts nothing. An empty `or` matches nothing and stays.
       if (key === QueryOperators.AND) {
         return (

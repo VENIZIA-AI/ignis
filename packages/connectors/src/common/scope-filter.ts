@@ -88,12 +88,20 @@ export class ScopeFilterUtility {
   }): void {
     const models = MetadataRegistry.getInstance().getAllModels();
 
+    const sharedTables: string[] = [];
+    const unfoundByTable: string[] = [];
     const searchBacked: string[] = [];
     const withoutAmbientContext: string[] = [];
     const invalidWriteGuard: string[] = [];
     const invalidThrough: string[] = [];
 
     for (const [name, entry] of models) {
+      // The registry keeps one model per table, and an `include` or a `through` finds a model by its table: two classes on a
+      // table with an `access` among them leave that lookup with the wrong one, or none, and the relation reads every row.
+      if (entry.sharesAccess) {
+        sharedTables.push(name);
+      }
+
       if (!entry.metadata?.settings?.access) {
         continue;
       }
@@ -103,6 +111,17 @@ export class ScopeFilterUtility {
       if (modelClass === BaseSearchEntity || modelClass.prototype instanceof BaseSearchEntity) {
         searchBacked.push(name);
         continue;
+      }
+
+      // The model an `include` or a `through` finds for this model's table must be this model. Two classes on one drizzle table
+      // under different registry names leave no mark on the registry, yet the lookup by table name answers the other one.
+      const entrySchema = entry.schema;
+
+      if (
+        is(entrySchema, Table) &&
+        ScopeThroughLink.entryOf({ schema: entrySchema })?.target !== entry.target
+      ) {
+        unfoundByTable.push(`${name} (table ${getTableName(entrySchema)})`);
       }
 
       if (!opts.asyncContextEnabled) {
@@ -158,6 +177,26 @@ export class ScopeFilterUtility {
           );
         }
       }
+    }
+
+    if (unfoundByTable.length > 0) {
+      throw getError({
+        message: [
+          `[assertScopeFilterSupported] a model with settings.access is not the model its table resolves to | models: ${unfoundByTable.join(', ')}`,
+          'A relation to the table, and a through, find the model by its table. Another model class is registered for the same table, so the lookup answers that one and the relation reads EVERY row, scoped or not.',
+          'Give each table one model class, and decorate that class (pass it as the repository entityClass).',
+        ].join(' | '),
+      });
+    }
+
+    if (sharedTables.length > 0) {
+      throw getError({
+        message: [
+          `[assertScopeFilterSupported] two model classes share a table, and one has settings.access | tables: ${sharedTables.join(', ')}`,
+          'A relation to the table, and a through, find the model by its table. With two models there the lookup finds the wrong one or none, and the relation returns EVERY row, scoped or not.',
+          'Give each table one model class, and decorate that class (pass it as the repository entityClass).',
+        ].join(' | '),
+      });
     }
 
     if (searchBacked.length > 0) {

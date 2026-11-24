@@ -255,7 +255,7 @@ Put it in the route config's `middleware`, which runs after `authenticate` and `
 {
   method: 'get',
   path: '/lessons',
-  authenticate: { strategies: ['jwt'] },
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   middleware: loadEnrollments,
   // ...
 }
@@ -320,9 +320,9 @@ The same shape fits "owned OR enrolled": a read returns `{ or: [{ ownerId }, { c
 
 | Call | `operation` |
 |---|---|
-| `find`, `findOne`, `findById`, `count`, `existsWith`, and a relation loaded through `include` | `READ` |
-| `create`, `createAll` | `CREATE` |
-| `updateById`, `updateBy`, and `restore` | `UPDATE` |
+| `find`, `findOne`, `findById`, `count`, `existsWith`, `findEvery` (each page), and a relation loaded through `include` | `READ` |
+| `create`, `createAll`, and the insert of an `upsert` | `CREATE` |
+| `updateById`, `updateBy`, `updateEach` (each row), `restore`, and the update an `upsert` does on a conflict | `UPDATE` |
 | `deleteById`, `deleteBy`, a soft delete included | `DELETE` |
 
 A soft delete is stored as an update of the row, but the resolver sees `DELETE`: a caller who may update a row is not thereby allowed to delete it. The soft-delete flag (`deletedAt`) is an ordinary column, though. Where nothing refuses it, an `updateBy` that writes it soft-deletes the row under the `UPDATE` scope, not the `DELETE` one. The generated create and update routes leave that column out of their bodies, and a `SoftDeletableRepository` refuses an update or upsert that carries it, so the column changes only through the delete and restore calls. A soft delete that also writes other columns (`deleteById({ id, data })`) is checked against the `DELETE` scope. A repository that does not soft delete, or a route with its own body, can still write the column: do not let callers write it, or check it in the service. A read with a row `lock` (`findOne` with `lock`) still passes `READ`, so it can lock rows the caller may only read.
@@ -496,7 +496,17 @@ Declaring `columns` moves a failure from write time to boot. The application ref
 - **An update that does not name the scope column.** `updateById(id, { name: 'Lamp' })` is not checked. The row was already selected through the scoped `where`, so it stays inside the scope.
 - **Raw drizzle.** A statement you run through the connector, bypassing the repository, is not scoped and not checked.
 - **Search-backed models.** They never read `access`.
+- **`RecursiveTree.walk`.** It takes a table, not a model, so it applies neither the soft-delete filter nor the `access` scope: scope the table you give it yourself.
+- **A `through` child and the parent's default filter.** A `through` model keeps the child rows whose key is in the parent keys the parent's `access` allows. The parent's `query.filter` (a soft-delete `where`, say) is not part of that set, so a child of a soft-deleted parent is still visible. Scope the child yourself when that matters.
 - **Ownership that lives elsewhere.** A row owned through another table, or by a `principalType` plus `principalId` pair, cannot be written as a `where`. See [Ownership through a parent](#ownership-through-a-parent).
+
+### One model class per table
+
+Give each table ONE model class, and decorate that class. A relation to a table, and a `through`, find the model by its table. With two `@model` classes on one table the registry cannot tell them apart: the lookup finds the wrong one, or none, and an `include` of the relation would read every row, scoped or not. The application refuses to boot when a model with an `access` is not the model its table resolves to: two classes on one table, under the same registry name or under different ones. The check covers the models registered before boot; a model imported lazily after boot is not checked. Pass the decorated class as the repository's `entityClass`, so the repository and the registry name the same model.
+
+### An empty where on a scoped model
+
+`updateBy` and `deleteBy` with an empty `where` need `options.force` on a model without `access`. On a scoped model the scope joins the `where` BEFORE that check, so `deleteBy({ where: {} })` is not refused: it reaches the caller's own rows and no others (and `force` does not widen it). If a caller-built request can reach `deleteBy`, validate its `where` in the service or the route: an empty one then means "all my rows", not an error.
 
 ### Scope a child through its parent
 

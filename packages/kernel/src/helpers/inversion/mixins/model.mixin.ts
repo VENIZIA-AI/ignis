@@ -62,6 +62,8 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
   return class extends baseClass {
     modelRegistry: Map<string, IModelRegistryEntry>;
     modelsBySchema: WeakMap<object, IModelRegistryEntry>;
+    /** Schemas two model classes have claimed: no model answers for them, and a later class cannot take the claim back. */
+    ambiguousSchemas: WeakSet<object>;
 
     setModelMetadata<Target extends object = object>(opts: {
       target: Target;
@@ -97,11 +99,23 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
       // Resolver, not resolved value - executed lazily in buildSchema() once all models are loaded
       const relationsResolver = modelClass.relations;
 
+      // Another class already holds this table name: the registry keeps only the last one, so it is marked, and a boot check
+      // can refuse an `access` that a lookup by table could not tell from its twin.
+      const previous = this.modelRegistry.get(tableName);
+      const isShared = previous !== undefined && previous.target !== modelClass;
+      const hasAccess = (item: { metadata?: IModelMetadata } | undefined) =>
+        item?.metadata?.settings?.access !== undefined;
+      // One of the classes on the table has an `access`: a lookup of the table that picks another one leaves its rows unscoped.
+      const sharesAccess =
+        isShared &&
+        (hasAccess(previous) || previous?.sharesAccess === true || hasAccess({ metadata }));
       const entry: IModelRegistryEntry = {
         target: modelClass,
         metadata,
         schema: modelClass.schema,
         relationsResolver,
+        ...(isShared ? { isShared: true as const } : {}),
+        ...(sharesAccess ? { sharesAccess: true as const } : {}),
       };
       this.modelRegistry.set(tableName, entry);
 
@@ -110,8 +124,10 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
       if (schema && typeof schema === 'object') {
         const claimed = this.modelsBySchema.get(schema);
 
-        if (claimed && claimed.target !== modelClass) {
+        if ((claimed && claimed.target !== modelClass) || this.ambiguousSchemas.has(schema)) {
+          // Two classes on one schema: neither is the model of it, and a third must not become it.
           this.modelsBySchema.delete(schema);
+          this.ambiguousSchemas.add(schema);
         } else {
           this.modelsBySchema.set(schema, entry);
         }

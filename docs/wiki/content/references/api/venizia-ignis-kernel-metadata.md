@@ -882,6 +882,7 @@ declare const BaseRegistry: {
     new (...args: any[]): {
         modelRegistry: Map<string, IModelRegistryEntry>;
         modelsBySchema: WeakMap<object, IModelRegistryEntry>;
+        ambiguousSchemas: WeakSet<object>;
         setModelMetadata<Target extends object = object>(opts: {
             target: Target;
             metadata: import("./common/index.js").IModelMetadata;

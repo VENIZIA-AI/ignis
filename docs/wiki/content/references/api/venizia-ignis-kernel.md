@@ -4373,6 +4373,10 @@ export interface IModelRegistryEntry<Model extends AbstractEntity = AbstractEnti
     relationsResolver?: TValueOrResolver<Array<unknown>>;
     /** Cache populated on first buildSchema() call. */
     _builtRelations?: unknown;
+    /** Another model class was registered under the same table name; the registry holds only the last one. */
+    isShared?: true;
+    /** `isShared`, and at least one of the model classes on the table declares an `access`. */
+    sharesAccess?: true;
 }
 ```
 
