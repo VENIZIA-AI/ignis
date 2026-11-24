@@ -289,7 +289,7 @@ export const defineScopeCompositionCases = <TTransaction extends ITransaction>(
             const result = await ctx.products.updateBy({
               where: attack.where,
               data: { name: 'renamed' },
-              options: { shouldReturn: false },
+              options: { shouldReturn: false, force: true },
             });
 
             expect(result.count).toBe(expected.length);
@@ -311,7 +311,7 @@ export const defineScopeCompositionCases = <TTransaction extends ITransaction>(
             const expected = expectedNames({ allowed: scopeCase.writes, attack });
             const result = await ctx.products.deleteBy({
               where: attack.where,
-              options: { shouldReturn: false },
+              options: { shouldReturn: false, force: true },
             });
 
             expect(result.count).toBe(expected.length);
@@ -364,11 +364,11 @@ export const defineScopeCompositionCases = <TTransaction extends ITransaction>(
         const updated = await ctx.products.updateBy({
           where: {},
           data: { name: 'renamed' },
-          options: { shouldReturn: false },
+          options: { force: true, shouldReturn: false },
         });
         const deleted = await ctx.products.deleteBy({
           where: {},
-          options: { shouldReturn: false },
+          options: { force: true, shouldReturn: false },
         });
 
         expect(found).toEqual([]);

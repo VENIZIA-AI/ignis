@@ -49,6 +49,12 @@ class DeclaredItem extends BaseRelationalEntity<typeof itemsTable> {
   static override TABLE_NAME = 'write_guard_items';
 }
 
+@model({ type: 'entity' })
+class PlainItem extends BaseRelationalEntity<typeof itemsTable> {
+  static override schema = itemsTable;
+  static override TABLE_NAME = 'write_guard_items';
+}
+
 @model({
   type: 'entity',
   settings: { access: { resolve }, query: { filter: { where: { deletedAt: null } } } },
@@ -369,6 +375,91 @@ describe('scopeFilter write guard', () => {
 
       const result = await rows();
       expect(result).toEqual([{ merchantId: null, name: 'no-owner' }]);
+    });
+  });
+
+  describe('an empty where on updateBy and deleteBy needs force, on every model', () => {
+    const seed = async () => {
+      await client.exec(
+        "INSERT INTO write_guard_items (merchant_id, name) VALUES ('m-a', 'mine'), ('m-b', 'theirs')",
+      );
+    };
+
+    const untouched = [
+      { merchantId: 'm-a', name: 'mine' },
+      { merchantId: 'm-b', name: 'theirs' },
+    ];
+
+    test('a scoped model refuses it without force, though the scope would narrow it', async () => {
+      await seed();
+      const repository = build(RejectItem);
+
+      await expect(repository.deleteBy({ where: {} })).rejects.toThrow(/Empty where condition/);
+      await expect(repository.updateBy({ where: {}, data: { name: 'x' } })).rejects.toThrow(
+        /Empty where condition/,
+      );
+      await expect(
+        repository.updateBy({ where: { and: [] }, data: { name: 'x' } }),
+      ).rejects.toThrow(/Empty where condition/);
+
+      expect(await rows()).toEqual(untouched);
+    });
+
+    test('a soft-deleting model refuses it too, whether the default filter joined the where', async () => {
+      await seed();
+      const repository = buildSoft(SoftItem);
+
+      await expect(repository.deleteBy({ where: {} })).rejects.toThrow(/Empty where condition/);
+      await expect(repository.restoreBy({ where: {} })).rejects.toThrow(/Empty where condition/);
+
+      expect(await rows()).toEqual(untouched);
+    });
+
+    test('with force the scope still holds: only the caller rows change, the other merchant is untouched', async () => {
+      await seed();
+
+      await build(RejectItem).updateBy({
+        where: {},
+        data: { name: 'renamed' },
+        options: { force: true },
+      });
+
+      expect(await rows()).toEqual([
+        { merchantId: 'm-a', name: 'renamed' },
+        { merchantId: 'm-b', name: 'theirs' },
+      ]);
+
+      await build(RejectItem).deleteBy({ where: {}, options: { force: true } });
+
+      expect(await rows()).toEqual([{ merchantId: 'm-b', name: 'theirs' }]);
+    });
+
+    test('force does not reach another merchant row, even when the caller where names it', async () => {
+      await seed();
+
+      await build(RejectItem).deleteBy({ where: { name: 'theirs' }, options: { force: true } });
+
+      expect(await rows()).toEqual(untouched);
+    });
+
+    test('a where the caller wrote needs no force: the scope joining it is not what makes it non-empty', async () => {
+      await seed();
+
+      await build(RejectItem).deleteBy({ where: { name: 'mine' } });
+
+      expect(await rows()).toEqual([{ merchantId: 'm-b', name: 'theirs' }]);
+    });
+
+    test('a model without access is unchanged: refused without force, every row with it', async () => {
+      await seed();
+      const repository = build(PlainItem);
+
+      await expect(repository.deleteBy({ where: {} })).rejects.toThrow(/Empty where condition/);
+      expect(await rows()).toEqual(untouched);
+
+      await repository.deleteBy({ where: {}, options: { force: true } });
+
+      expect(await rows()).toEqual([]);
     });
   });
 
