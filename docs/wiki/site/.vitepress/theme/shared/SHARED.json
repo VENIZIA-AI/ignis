@@ -1,5 +1,5 @@
 {
-  "fingerprint": "26d3d3c6cd43a47679e53a086e7d79d819986fcabd24b4d102452157113bca96",
+  "fingerprint": "97d78e7ac465a2650d36cb751e810c9073c97dadc302df1fda0631d8cbe19312",
   "files": {
     "AtAGlance.vue": "82a497e03e3214a0aabca18d2dcf581bd2e9379c4d13594d0df48ce74f398991",
     "ChangelogCounts.vue": "b30cff5391f2cf098cd0a17fea63eb1b1513cbdaa4d12767820bf705e9c828f5",
@@ -32,7 +32,7 @@
     "changelog-entries.ts": "80661803c7c79c0010697896a6e955e8f52be6aabab4a504af4d044612d96cd6",
     "changelog-feed.ts": "c5819b63963e86e4dc3c12885a53cbda51dbb56afea430eabe9a4db388a91ca6",
     "changelog-guide-counts.data.ts": "22fb3b426c46240c9a7243b0738463544dd9c49321668a4b660434fe172bd20a",
-    "changelog-guides.ts": "3768908d574c905c7f1b94b6c3a5d032710f58000434d90a766248c74dbd5458",
+    "changelog-guides.ts": "a0613defa5ef5d275a3c3f2490ce2031d0b431644b8365df62515fbdaf706a4a",
     "changelog-items.data.ts": "69bfe93986092350571fb1d2a6465f493721e324bfa0c113cc517f5ebe225243",
     "changelog-items.ts": "63d1758a82f416f7db411f9d546729126152e2a2fa1c820c3974d6b3710fc55f",
     "changelog-loader.ts": "482bf4588d53d10e43258a0d071d196300ee875d98ef6207a1d18959e5231ef8",
@@ -73,6 +73,6 @@
     "venizia-logo.ts": "743b2255878053ec1e1c94359da71d7dc819b693507d8bd3c270c372dc4289ff",
     "vitepress-selectors.json": "e797e36f65d8113626814a8652e0736c4572a0eb27248db2162b7ecdbe1e66d5",
     "vp-map.css": "7c1efe72b5134d149040a13fbbe6c508beb4903ed2b9958541c421d840ef72c0",
-    "wiki-theme.ts": "b7ebe151eee654b17e7f5051249fdfeabc070e74e5bd68f4a5828deec43df39f"
+    "wiki-theme.ts": "bddda6c8bc6d191ab0dfbf4bcc9c9778458f02cf9fd654c361377c15b08585e0"
   }
 }
