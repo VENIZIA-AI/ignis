@@ -71,6 +71,17 @@ describe('a create is held to the member', () => {
     refused({ rows: [{ metadata: inherited }] }, /not an object|missing/);
   });
 
+  test('a column inherited from the prototype is judged, with and without sharedRows: the insert takes it too', () => {
+    const foreign = Object.create({ metadata: { merchantId: 'm-b' } });
+    const lacking = Object.create({ metadata: { other: 1 } });
+    const inside = Object.create({ metadata: { merchantId: 'm-a' } });
+
+    refused({ rows: [foreign] }, /outside the resolved scope/);
+    refused({ rows: [foreign], sharedRows: true }, /outside the resolved scope/);
+    refused({ rows: [lacking] }, /the scope key is missing/);
+    expect(() => apply({ rows: [inside] })).not.toThrow();
+  });
+
   test('every row of a batch is held, and one bad row refuses the batch', () => {
     refused(
       { rows: [{ metadata: { merchantId: 'm-a' } }, { metadata: { merchantId: 'm-b' } }] },

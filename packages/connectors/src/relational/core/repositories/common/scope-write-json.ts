@@ -111,11 +111,8 @@ export class ScopeJsonKey {
 
     switch (operation) {
       case ScopeOperations.CREATE: {
-        return [
-          Object.hasOwn(row, column)
-            ? ScopeJsonKey.readColumn({ value: row[column], member })
-            : { type: 'absent' },
-        ];
+        // Not an own-key read: the insert takes an inherited value too, so a column that comes from the prototype is judged like any other.
+        return [ScopeJsonKey.readColumn({ value: row[column], member })];
       }
 
       default: {
