@@ -360,6 +360,7 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
 
     return {
       data,
+      status: response.status,
       count: Number.isFinite(counted)
         ? counted
         : Array.isArray(data)

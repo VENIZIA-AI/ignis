@@ -207,7 +207,42 @@ await productRepository.deleteBy({ where: { id: { inq: staleIds } } });
 - A request path stays under the base path. `paths` on `request`, `read` and `write` is refused with a 400 when a segment is `.` or `..` (plain, `%2e`-encoded, or ended by `?`, `#` or a space), or holds a backslash (`\` or `%5c`) or a control character. Encode a value you put in a path with `encodeURIComponent`: a `?` in it would start the query. An id that really contains a backslash is refused too, because some servers decode `%5c` into a separator.
 - There is no `createAll`: the IGNIS REST contract has no bulk-create route.
 
-For a route the verbs do not cover - a `PUT`, an upload, an action endpoint - call the datasource:
+For a route beside the CRUD ones (`POST auth/sign-up`), a subclass calls `this.execute(...)`: it sends through the datasource, throws the way every repository call does, and types the answer by a zod schema, with no type argument to write:
+
+```typescript
+import { z } from 'zod';
+
+const SignUpAnswer = z.object({ id: z.string(), email: z.string() });
+
+@repository({ type: RepositoryTypes.REMOTE, dataSource: AuthDataSource })
+export class AuthRepository extends HttpRepository {
+  constructor(dataSource: AuthDataSource) {
+    super({ dataSource, resource: 'auth' });
+  }
+
+  // Returns { id: string; email: string }, parsed.
+  signUp(opts: { email: string; password: string }) {
+    return this.execute({ paths: ['auth', 'sign-up'], body: opts, schema: SignUpAnswer });
+  }
+
+  // No schema: the answer is not returned and the call returns void (a body must be empty or JSON).
+  requestReset(opts: { email: string }) {
+    return this.execute({ paths: ['auth', 'forgot-password', 'request'], body: opts });
+  }
+}
+```
+
+| Option | Meaning |
+|---|---|
+| `paths` | The route, in full (`['auth', 'sign-up']`), as `write` takes it |
+| `method` | POST unless given |
+| `body` | Sent as JSON for an object or array; other bodies as they are |
+| `schema` | A zod schema: the call returns `z.output` of it. An answer it refuses throws a `FetchSchemaError` (502) that names paths and rules, never the value |
+| `options` | `headers` and `signal`, as on every repository call |
+
+Without a `schema` the call returns `void`; the body must still be empty or JSON, as for `write`. When the route marks an `x-response-extra` answer, the schema is checked against `body.data`, the rows beside the extra. Use `dataSource.write` when you need the `count` or the `extra` the route answers, or `request` for the raw `Response`.
+
+For a route the verbs and `action` do not cover - a `PUT` with a count, an upload - call the datasource:
 
 ```typescript
 // A plain object or array is sent as JSON; FormData, Blob, a string or binary goes as it is.
@@ -221,7 +256,7 @@ const response = await catalogDataSource.request({
 });
 ```
 
-`write` answers `{ data, count }` and throws on a non-2xx; `request` answers the raw `Response`. Both carry the auth token, and the 401 retry resends the same body.
+`write` answers `{ data, count, status }` and throws on a non-2xx; `request` answers the raw `Response`. Both carry the auth token, and the 401 retry resends the same body.
 
 ### Settings that follow the session
 
