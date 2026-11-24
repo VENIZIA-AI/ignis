@@ -1010,14 +1010,14 @@ export declare class StaticAssetControllerFactory {
             }): Promise<R>;
             normalizeCountData<ResponseSchema, RequestContext extends import("@venizia/ignis-kernel").TRouteContext<import("hono").Env> = import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>, ResponseData extends {
                 count: number;
-                data?: import("@venizia/ignis-helpers").TNullable<ResponseSchema>;
+                data?: import("@venizia/ignis-inversion").TNullable<ResponseSchema>;
             } = {
                 count: number;
-                data?: import("@venizia/ignis-helpers").TNullable<ResponseSchema>;
+                data?: import("@venizia/ignis-inversion").TNullable<ResponseSchema>;
             }>(opts: {
                 context: RequestContext;
                 payload: ResponseData;
-            }): ResponseData | import("@venizia/ignis-helpers").TNullable<ResponseSchema>;
+            }): ResponseData | import("@venizia/ignis-inversion").TNullable<ResponseSchema>;
             getRequestedExtras(opts: {
                 context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
             }): Array<import("@venizia/ignis-kernel").IRequestedExtra>;
@@ -1026,29 +1026,29 @@ export declare class StaticAssetControllerFactory {
                 format: import("@venizia/ignis-kernel").TResponseFormat;
                 payload: {
                     count: number;
-                    data?: import("@venizia/ignis-helpers").TNullable<R>;
+                    data?: import("@venizia/ignis-inversion").TNullable<R>;
                 };
                 range?: import("@venizia/ignis-kernel").TDataRange;
                 extra?: never;
-            }): import("@venizia/ignis-helpers").TNullable<R | {
+            }): import("@venizia/ignis-inversion").TNullable<R | {
                 count: number;
-                data?: import("@venizia/ignis-helpers").TNullable<R>;
+                data?: import("@venizia/ignis-inversion").TNullable<R>;
             }>;
             respond<R, Extra extends Record<string, import("@venizia/ignis-kernel").TResponseExtra>>(opts: {
                 context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
                 format: import("@venizia/ignis-kernel").TResponseFormat;
                 payload: {
                     count: number;
-                    data?: import("@venizia/ignis-helpers").TNullable<R>;
+                    data?: import("@venizia/ignis-inversion").TNullable<R>;
                 };
                 range?: import("@venizia/ignis-kernel").TDataRange;
                 extra: Extra;
-            }): Promise<import("@venizia/ignis-helpers").TNullable<R | {
+            }): Promise<import("@venizia/ignis-inversion").TNullable<R | {
                 count: number;
-                data?: import("@venizia/ignis-helpers").TNullable<R>;
+                data?: import("@venizia/ignis-inversion").TNullable<R>;
             } | {
                 count?: number;
-                data?: import("@venizia/ignis-helpers").TNullable<R>;
+                data?: import("@venizia/ignis-inversion").TNullable<R>;
                 extra: Partial<Record<keyof Extra, unknown>>;
             }>>;
             respond<R>(opts: {
@@ -1056,31 +1056,31 @@ export declare class StaticAssetControllerFactory {
                 format: import("@venizia/ignis-kernel").TResponseFormat;
                 payload: {
                     count: number;
-                    data?: import("@venizia/ignis-helpers").TNullable<R>;
+                    data?: import("@venizia/ignis-inversion").TNullable<R>;
                 };
                 range?: import("@venizia/ignis-kernel").TDataRange;
                 extra?: Record<string, import("@venizia/ignis-kernel").TResponseExtra>;
-            }): ValueOrPromise<import("@venizia/ignis-helpers").TNullable<R | {
+            }): ValueOrPromise<import("@venizia/ignis-inversion").TNullable<R | {
                 count?: number;
-                data?: import("@venizia/ignis-helpers").TNullable<R>;
+                data?: import("@venizia/ignis-inversion").TNullable<R>;
                 extra?: Record<string, unknown>;
             }>>;
             respondWithExtra<R>(opts: {
                 context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
                 payload: {
                     count: number;
-                    data?: import("@venizia/ignis-helpers").TNullable<R>;
+                    data?: import("@venizia/ignis-inversion").TNullable<R>;
                 };
                 extra: Record<string, import("@venizia/ignis-kernel").TResponseExtra>;
             }): Promise<R | {
                 count: number;
-                data?: import("@venizia/ignis-helpers").TNullable<R>;
+                data?: import("@venizia/ignis-inversion").TNullable<R>;
             } | {
                 count: number;
-                data: import("@venizia/ignis-helpers").TNullable<R>;
+                data: import("@venizia/ignis-inversion").TNullable<R>;
                 extra: Record<string, unknown>;
             } | {
-                data: import("@venizia/ignis-helpers").TNullable<R>;
+                data: import("@venizia/ignis-inversion").TNullable<R>;
                 extra: Record<string, unknown>;
                 count?: undefined;
             } | null | undefined>;

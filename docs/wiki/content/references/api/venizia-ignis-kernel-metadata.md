@@ -513,7 +513,7 @@ declare const BaseRegistry: {
             target: Target;
         }) => import("@venizia/ignis-inversion").TMetadataKey[];
         getMethodNames: <T = unknown>(opts: {
-            target: import("@venizia/ignis-inversion").TClass<T>;
+            target: TClass<T>;
         }) => string[];
         clearMetadata: <T extends object = object>(opts: {
             target: T;
@@ -587,7 +587,7 @@ declare const BaseRegistry: {
             target: Target;
         }) => import("@venizia/ignis-inversion").TMetadataKey[];
         getMethodNames: <T = unknown>(opts: {
-            target: import("@venizia/ignis-inversion").TClass<T>;
+            target: TClass<T>;
         }) => string[];
         clearMetadata: <T extends object = object>(opts: {
             target: T;
@@ -661,7 +661,7 @@ declare const BaseRegistry: {
             target: Target;
         }) => import("@venizia/ignis-inversion").TMetadataKey[];
         getMethodNames: <T = unknown>(opts: {
-            target: import("@venizia/ignis-inversion").TClass<T>;
+            target: TClass<T>;
         }) => string[];
         clearMetadata: <T extends object = object>(opts: {
             target: T;
@@ -733,7 +733,7 @@ declare const BaseRegistry: {
             target: Target;
         }) => import("@venizia/ignis-inversion").TMetadataKey[];
         getMethodNames: <T = unknown>(opts: {
-            target: import("@venizia/ignis-inversion").TClass<T>;
+            target: TClass<T>;
         }) => string[];
         clearMetadata: <T extends object = object>(opts: {
             target: T;
@@ -838,7 +838,7 @@ declare const BaseRegistry: {
             target: Target;
         }) => import("@venizia/ignis-inversion").TMetadataKey[];
         getMethodNames: <T = unknown>(opts: {
-            target: import("@venizia/ignis-inversion").TClass<T>;
+            target: TClass<T>;
         }) => string[];
         clearMetadata: <T extends object = object>(opts: {
             target: T;
@@ -943,7 +943,7 @@ declare const BaseRegistry: {
             target: Target;
         }) => import("@venizia/ignis-inversion").TMetadataKey[];
         getMethodNames: <T = unknown>(opts: {
-            target: import("@venizia/ignis-inversion").TClass<T>;
+            target: TClass<T>;
         }) => string[];
         clearMetadata: <T extends object = object>(opts: {
             target: T;
@@ -1009,7 +1009,7 @@ declare const BaseRegistry: {
             target: Target;
         }) => import("@venizia/ignis-inversion").TMetadataKey[];
         getMethodNames: <T = unknown>(opts: {
-            target: import("@venizia/ignis-inversion").TClass<T>;
+            target: TClass<T>;
         }) => string[];
         clearMetadata: <T extends object = object>(opts: {
             target: T;

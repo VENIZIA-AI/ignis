@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/common, from the built decl
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-57 exports, 57 with TSDoc. 7 more are re-exported from other entries (listed at the end).
+50 exports, 50 with TSDoc. 14 more are re-exported from other entries (listed at the end).
 
 ## `ClassResolver`
 
@@ -789,18 +789,6 @@ export type TAbstractClass<T> = TAbstractConstructor<T>;
 
 Source: `packages/helpers/src/common/types/class.ts`
 
-## `TAbstractConstructor`
-
-*type*
-
-An abstract class constructor producing `T`; it cannot be called with `new` directly.
-
-```ts
-export type TAbstractConstructor<T> = abstract new (...args: never[]) => T;
-```
-
-Source: `packages/helpers/src/common/types/class.ts`
-
 ## `TAbstractMixinConstructor`
 
 *type*
@@ -826,42 +814,6 @@ export type TAbstractMixinTarget<T> = TAbstractMixinConstructor<{
 ```
 
 Source: `packages/helpers/src/common/types/class.ts`
-
-## `TClass`
-
-*type*
-
-A concrete class producing `T`. Read its static members through a type that declares them, such as `typeof MyClass`.
-
-```ts
-export type TClass<T> = TConstructor<T>;
-```
-
-Source: `packages/helpers/src/common/types/class.ts`
-
-## `TConstructor`
-
-*type*
-
-A concrete class constructor producing `T`.
-
-```ts
-export type TConstructor<T> = new (...args: never[]) => T;
-```
-
-Source: `packages/helpers/src/common/types/class.ts`
-
-## `TConstValue`
-
-*type*
-
-The string and number values held by the `static readonly` members of const class `T`, as a plain union.
-
-```ts
-export type TConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string | number> & {};
-```
-
-Source: `packages/helpers/src/common/types/const-value.ts`
 
 ## `TContentDispositionType`
 
@@ -1778,18 +1730,6 @@ export type TMixinTarget<T> = TMixinConstructor<{
 
 Source: `packages/helpers/src/common/types/class.ts`
 
-## `TNullable`
-
-*type*
-
-`T`, `undefined` or `null`.
-
-```ts
-export type TNullable<T> = T | undefined | null;
-```
-
-Source: `packages/helpers/src/common/types/utility.ts`
-
 ## `TNumberConstValue`
 
 *type*
@@ -1890,18 +1830,6 @@ export type TStringConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, s
 
 Source: `packages/helpers/src/common/types/const-value.ts`
 
-## `ValueOf`
-
-*type*
-
-The union of the property value types of `T`.
-
-```ts
-export type ValueOf<T> = T[keyof T];
-```
-
-Source: `packages/helpers/src/common/types/utility.ts`
-
 ## `ValueOptional`
 
 *type*
@@ -1926,24 +1854,19 @@ export type ValueOptionalExcept<T, K extends keyof T> = Pick<T, K> & Partial<Omi
 
 Source: `packages/helpers/src/common/types/utility.ts`
 
-## `ValueOrPromise`
-
-*type*
-
-`T` or a promise of `T`; `await` it to get `T` either way.
-
-```ts
-export type ValueOrPromise<T> = T | Promise<T>;
-```
-
-Source: `packages/helpers/src/common/types/utility.ts`
-
 ## Re-exported
 
 - `isClass` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `ObjectUtility` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `ResolverUtility` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `TAbstractConstructor` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TAsyncResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `TClass` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `TConstructor` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `TConstValue` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `TNullable` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TValueOrAsyncResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TValueOrResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `ValueOf` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `ValueOrPromise` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)

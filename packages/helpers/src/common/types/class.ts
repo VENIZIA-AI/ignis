@@ -1,9 +1,9 @@
-/** A concrete class constructor producing `T`. */
-export type TConstructor<T> = new (...args: never[]) => T;
-/** An abstract class constructor producing `T`; it cannot be called with `new` directly. */
-export type TAbstractConstructor<T> = abstract new (...args: never[]) => T;
-/** A concrete class producing `T`. Read its static members through a type that declares them, such as `typeof MyClass`. */
-export type TClass<T> = TConstructor<T>;
+import type { TAbstractConstructor } from '@venizia/ignis-inversion';
+
+// The constructor and class types live in inversion, the lowest layer. One declaration, re-exported here so every
+// `@venizia/ignis-helpers/common` import keeps working.
+export type { TAbstractConstructor, TClass, TConstructor } from '@venizia/ignis-inversion';
+
 /** An abstract class producing `T`. */
 export type TAbstractClass<T> = TAbstractConstructor<T>;
 

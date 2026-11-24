@@ -1,13 +1,9 @@
-/** `T`, `undefined` or `null`. */
-export type TNullable<T> = T | undefined | null;
+// `TNullable`, `ValueOrPromise` and `ValueOf` live in inversion, the lowest layer. One declaration, re-exported here so
+// every `@venizia/ignis-helpers/common` import keeps working.
+export type { TNullable, ValueOf, ValueOrPromise } from '@venizia/ignis-inversion';
 
 /** An options object of shape `T`; empty by default. */
 export type TOptions<T extends object = {}> = T;
-
-/** `T` or a promise of `T`; `await` it to get `T` either way. */
-export type ValueOrPromise<T> = T | Promise<T>;
-/** The union of the property value types of `T`. */
-export type ValueOf<T> = T[keyof T];
 
 /** `T` with the keys `K` made optional. */
 export type ValueOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
