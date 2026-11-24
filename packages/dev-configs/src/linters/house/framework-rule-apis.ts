@@ -38,7 +38,7 @@ export class FrameworkRuleApis {
         'Import `ValueOrPromise`, `TNullable`, `TConstValue` and the other framework types (from `@venizia/ignis-helpers/common`, or the entry the message names) instead of declaring your own.',
     },
     'venizia/prefer-framework-api': {
-      api: 'the ARDOR hook the message names (useMediaQuery, useBreakpoint, useWindowDimensions, useElementSize, ...)',
+      api: 'useMediaQuery, useBreakpoint, useWindowDimensions, useElementSize, useResizeEffect, useIntersection, useOnlineStatus, useDocumentVisibility, useBeforeUnload, useCopyToClipboard, useConfirm',
       source: '@venizia/ardor-react',
       package: '@venizia/ardor-react',
       replacement:

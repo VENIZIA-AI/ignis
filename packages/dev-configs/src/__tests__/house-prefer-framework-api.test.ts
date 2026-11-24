@@ -11,6 +11,9 @@ import {
 
 const NAME = PreferFrameworkApiRule.NAME;
 
+/** `code` as the body of a hook, which is where the rule looks. */
+const inHook = (code: string) => `export const useSubject = async () => {\n${code}\n};\n`;
+
 const lint = (opts: { code: string; options?: Linter.RuleEntry; filename?: string }) => {
   const config: Linter.Config[] = [
     {
@@ -65,8 +68,8 @@ describe('venizia/prefer-framework-api', () => {
     ],
     ['window.confirm', `if (window.confirm('Sure?')) go();`, 'useConfirm'],
     ['a bare confirm', `if (confirm('Sure?')) go();`, 'useConfirm'],
-  ])('%s names its hook', (_name, code, hook) => {
-    const findings = lint({ code });
+  ])('%s, in a hook, names its hook', (_name, code, hook) => {
+    const findings = lint({ code: inHook(code) });
 
     expect(findings).toHaveLength(1);
     expect(findings[0]?.message).toContain(hook);
@@ -74,25 +77,95 @@ describe('venizia/prefer-framework-api', () => {
   });
 
   test('a name the file binds itself, an element listener and an unlisted event are not reported', () => {
-    expect(lint({ code: `const matchMedia = (q: string) => q;\nmatchMedia('x');` })).toHaveLength(
-      0,
-    );
     expect(
-      lint({ code: `export const f = (window: { innerWidth: number }) => window.innerWidth;` }),
+      lint({ code: inHook(`const matchMedia = (q: string) => q;\nmatchMedia('x');`) }),
     ).toHaveLength(0);
-    expect(lint({ code: `import { confirm } from './dialogs';\nconfirm('x');` })).toHaveLength(0);
-    expect(lint({ code: `button.addEventListener('resize', f);` })).toHaveLength(0);
-    expect(lint({ code: `window.addEventListener('scroll', f);` })).toHaveLength(0);
-    expect(lint({ code: `const w = window.outerWidth;` })).toHaveLength(0);
-    expect(lint({ code: `const n = navigator.language;` })).toHaveLength(0);
-    expect(lint({ code: `const o = new MutationObserver(() => {});` })).toHaveLength(0);
+    expect(
+      lint({
+        code: `export const useSubject = (window: { innerWidth: number }) => window.innerWidth;`,
+      }),
+    ).toHaveLength(0);
+    expect(
+      lint({
+        code: `import { confirm } from './dialogs';\nexport const useSubject = () => confirm('x');\n`,
+      }),
+    ).toHaveLength(0);
+    // The same call with the global in scope is reported, so the two cases above are the binding, not a parse failure.
+    expect(lint({ code: `export const useSubject = () => confirm('x');` })).toHaveLength(1);
+    expect(lint({ code: inHook(`button.addEventListener('resize', f);`) })).toHaveLength(0);
+    expect(lint({ code: inHook(`window.addEventListener('scroll', f);`) })).toHaveLength(0);
+    expect(lint({ code: inHook(`const w = window.outerWidth;`) })).toHaveLength(0);
+    expect(lint({ code: inHook(`const n = navigator.language;`) })).toHaveLength(0);
+    expect(lint({ code: inHook(`const o = new MutationObserver(() => {});`) })).toHaveLength(0);
   });
 
   test('ignore switches a pattern off by id', () => {
-    const code = `window.confirm('x');\nnew ResizeObserver(() => {});`;
+    const code = inHook(`window.confirm('x');\nnew ResizeObserver(() => {});`);
 
     expect(lint({ code })).toHaveLength(2);
     expect(lint({ code, options: ['error', { ignore: ['confirm'] }] })).toHaveLength(1);
+  });
+
+  test('a module function, a class and a module-level guard are not in React and are left alone', () => {
+    expect(lint({ code: `export const isMobile = () => window.innerWidth < 768;` })).toHaveLength(
+      0,
+    );
+    expect(
+      lint({
+        code: `export class Tracker { start() { document.addEventListener('visibilitychange', this.onChange); } }`,
+      }),
+    ).toHaveLength(0);
+    expect(
+      lint({
+        code: `export const query = typeof window !== 'undefined' && window.matchMedia('print');`,
+      }),
+    ).toHaveLength(0);
+    expect(
+      lint({
+        code: `export function measure(el: Element) { return new ResizeObserver(() => {}); }`,
+      }),
+    ).toHaveLength(0);
+  });
+
+  test('a component and a hook are reported, whatever their shape', () => {
+    const component = `export function Panel() {\n  const q = window.matchMedia('print');\n  return <div>{String(q)}</div>;\n}\n`;
+    const arrow = `export const Panel = () => {\n  const q = window.matchMedia('print');\n  return <div>{String(q)}</div>;\n};\n`;
+    const wrapped = `export const Panel = memo(() => {\n  const q = window.matchMedia('print');\n  return <div>{String(q)}</div>;\n});\n`;
+    const guarded = `export function Panel() {\n  const q = typeof window !== 'undefined' && window.matchMedia('print');\n  return <div>{String(q)}</div>;\n}\n`;
+    const named = `export function useQuery() {\n  return window.matchMedia('print');\n}\n`;
+
+    for (const code of [component, arrow, wrapped, guarded, named]) {
+      expect(lint({ code, filename: 'src/subject.tsx' })).toHaveLength(1);
+    }
+  });
+
+  test('a PascalCase function that draws no JSX is not a component', () => {
+    expect(
+      lint({ code: `export function Format() { return window.matchMedia('print'); }` }),
+    ).toHaveLength(0);
+  });
+
+  test('a callback handed to a hook is still the hook; a handler inside it is not', () => {
+    const effect = `export const useSubject = () => {\n  useEffect(() => {\n    const q = window.matchMedia('print');\n    return () => q.removeEventListener('change', f);\n  }, []);\n};\n`;
+    const handler = `export function Panel() {\n  const onClick = () => {\n    const w = window.innerWidth;\n    if (window.confirm('Sure?')) go(w);\n  };\n  return <button onClick={onClick} />;\n}\n`;
+    const inlineHandler = `export function Panel() {\n  return <button onClick={() => window.innerWidth} />;\n}\n`;
+
+    expect(lint({ code: effect, filename: 'src/subject.tsx' })).toHaveLength(1);
+    expect(lint({ code: handler, filename: 'src/subject.tsx' })).toHaveLength(0);
+    expect(lint({ code: inlineHandler, filename: 'src/subject.tsx' })).toHaveLength(0);
+  });
+
+  test('a subscription inside a handler of a component is still reported: it belongs in a hook', () => {
+    const code = `export function Panel() {\n  const onClick = () => {\n    window.addEventListener('beforeunload', f);\n    new ResizeObserver(() => {});\n  };\n  return <button onClick={onClick} />;\n}\n`;
+
+    expect(lint({ code, filename: 'src/subject.tsx' })).toHaveLength(2);
+  });
+
+  test("a listener on a socket or an element of the author is not the browser's", () => {
+    expect(lint({ code: inHook(`socket.addEventListener('offline', f);`) })).toHaveLength(0);
+    expect(lint({ code: inHook(`this.target.addEventListener('online', f);`) })).toHaveLength(0);
+    expect(lint({ code: inHook(`self.addEventListener('resize', f);`) })).toHaveLength(1);
+    expect(lint({ code: inHook(`globalThis.addEventListener('online', f);`) })).toHaveLength(1);
   });
 
   test('every row has a unique id, a hook and a written form', () => {
@@ -107,7 +180,7 @@ describe('venizia/prefer-framework-api', () => {
   });
 
   test('reactHouseConfigs turns it on for .ts and .tsx source and off for tests; houseConfigs does not carry it', () => {
-    const code = `const q = window.matchMedia('print');`;
+    const code = inHook(`const q = window.matchMedia('print');`);
     const at = (filename: string, configs: Linter.Config[]) =>
       new Linter().verify(code, configs, { filename }).filter((message) => message.ruleId === NAME)
         .length;

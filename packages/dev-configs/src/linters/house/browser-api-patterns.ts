@@ -1,13 +1,13 @@
 /** How a hand-written browser API shows up in code. */
 export type TBrowserApiMatch =
   /** A property of the global object read or called: `window.matchMedia(...)`, `matchMedia(...)`. */
-  | { kind: 'global'; names: ReadonlyArray<string> }
+  | { type: 'global'; names: ReadonlyArray<string> }
   /** A member path under a global: `navigator.onLine`, `navigator.clipboard.writeText`. */
-  | { kind: 'path'; paths: ReadonlyArray<string> }
+  | { type: 'path'; paths: ReadonlyArray<string> }
   /** `new X(...)` of a global class. */
-  | { kind: 'new'; callees: ReadonlyArray<string> }
-  /** `<object>.addEventListener('<event>', ...)`; `objects` names the objects it counts for (any when absent). */
-  | { kind: 'listener'; events: ReadonlyArray<string>; objects?: ReadonlyArray<string> };
+  | { type: 'new'; callees: ReadonlyArray<string> }
+  /** `<object>.addEventListener('<event>', ...)`; `objects` names the objects it counts for (the globals `window`, `document`, `self` and `globalThis` when absent). */
+  | { type: 'listener'; events: ReadonlyArray<string>; objects?: ReadonlyArray<string> };
 
 /** One browser API the framework already wraps, and what to use instead. */
 export interface IBrowserApiPattern {
@@ -33,73 +33,73 @@ export class BrowserApiPatterns {
   static readonly TABLE: ReadonlyArray<IBrowserApiPattern> = [
     {
       id: 'match-media',
-      match: { kind: 'global', names: ['matchMedia'] },
+      match: { type: 'global', names: ['matchMedia'] },
       hooks: '`useMediaQuery` (a media query) or `useBreakpoint` (a screen size)',
       written: '`window.matchMedia`',
     },
     {
       id: 'window-size',
-      match: { kind: 'global', names: ['innerWidth', 'innerHeight'] },
+      match: { type: 'global', names: ['innerWidth', 'innerHeight'] },
       hooks: '`useWindowDimensions`',
       written: '`window.innerWidth` / `window.innerHeight`',
     },
     {
       id: 'window-resize',
-      match: { kind: 'listener', events: ['resize'], objects: ['window', 'globalThis'] },
+      match: { type: 'listener', events: ['resize'], objects: ['window', 'self', 'globalThis'] },
       hooks: '`useWindowDimensions`',
       written: "a window `addEventListener('resize', ...)`",
     },
     {
       id: 'resize-observer',
-      match: { kind: 'new', callees: ['ResizeObserver'] },
+      match: { type: 'new', callees: ['ResizeObserver'] },
       hooks: '`useElementSize` (measure an element) or `useResizeEffect` (react to its resize)',
       written: '`new ResizeObserver(...)`',
     },
     {
       id: 'intersection-observer',
-      match: { kind: 'new', callees: ['IntersectionObserver'] },
+      match: { type: 'new', callees: ['IntersectionObserver'] },
       hooks: '`useIntersection`',
       written: '`new IntersectionObserver(...)`',
     },
     {
       id: 'online-status',
-      match: { kind: 'path', paths: ['navigator.onLine'] },
+      match: { type: 'path', paths: ['navigator.onLine'] },
       hooks: '`useOnlineStatus`',
       written: '`navigator.onLine`',
     },
     {
       id: 'online-listener',
-      match: { kind: 'listener', events: ['online', 'offline'] },
+      match: { type: 'listener', events: ['online', 'offline'] },
       hooks: '`useOnlineStatus`',
       written: 'an `online` / `offline` `addEventListener`',
     },
     {
       id: 'document-visibility',
-      match: { kind: 'path', paths: ['document.visibilityState', 'document.hidden'] },
+      match: { type: 'path', paths: ['document.visibilityState', 'document.hidden'] },
       hooks: '`useDocumentVisibility`',
       written: '`document.visibilityState`',
     },
     {
       id: 'visibility-listener',
-      match: { kind: 'listener', events: ['visibilitychange'] },
+      match: { type: 'listener', events: ['visibilitychange'] },
       hooks: '`useDocumentVisibility`',
       written: 'a `visibilitychange` `addEventListener`',
     },
     {
       id: 'before-unload',
-      match: { kind: 'listener', events: ['beforeunload'] },
+      match: { type: 'listener', events: ['beforeunload'] },
       hooks: '`useBeforeUnload`',
       written: 'a `beforeunload` `addEventListener`',
     },
     {
       id: 'clipboard-write',
-      match: { kind: 'path', paths: ['navigator.clipboard.writeText'] },
+      match: { type: 'path', paths: ['navigator.clipboard.writeText'] },
       hooks: '`useCopyToClipboard`',
       written: '`navigator.clipboard.writeText`',
     },
     {
       id: 'confirm',
-      match: { kind: 'global', names: ['confirm'] },
+      match: { type: 'global', names: ['confirm'] },
       hooks: '`useConfirm`',
       written: '`window.confirm`',
     },

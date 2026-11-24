@@ -910,8 +910,10 @@ Source: `packages/dev-configs/src/linters/padding.ts`
 used through the hook, which owns the subscribe and cleanup. The rows are `BrowserApiPatterns.TABLE`; the message names
 the hook. The rule is for apps: ardor-react's own source, where the hooks are written, turns it off.
 
-Only a reference to the global is reported: a `window`, `navigator` or `document` the file binds itself is not. Hooks
-the author wants to bypass on purpose take an `eslint-disable-next-line` with the reason, or `ignore` lists pattern ids.
+Only a reference to the global is reported: a `window`, `navigator` or `document` the file binds itself is not. And only
+where a hook can be called: in a component (a PascalCase function that draws JSX) or a hook (`useX`), see `isInReact`. A
+module function, a class and an event handler making a one-off call are left alone. Hooks the author wants to bypass on
+purpose take an `eslint-disable-next-line` with the reason, or `ignore` lists pattern ids.
 
 @useWhen a React app should reach the browser (media queries, sizes, observers, online status, visibility, unload, clipboard, confirm) through the ardor-react hooks
 @insteadOf window.matchMedia, new ResizeObserver, navigator.onLine and the other browser APIs written by hand
@@ -925,6 +927,24 @@ export declare class PreferFrameworkApiRule {
     private static withoutGlobalRoot;
     /** Whether the root identifier of `path` is the global one: no scope of the file binds it. */
     private static isGlobal;
+    private static readonly FUNCTIONS;
+    /** Whether a function has JSX anywhere in it: with a PascalCase name, that is a component. */
+    private static readonly jsxCache;
+    private static containsJsx;
+    /** The name a function is known by: its own, or the variable it is assigned to (through one `memo(...)` / `forwardRef(...)`). */
+    private static nameOf;
+    /** A hook (`useX`), or a component: a PascalCase function that draws JSX. */
+    private static isReactFunction;
+    /** Whether `fn` is an argument of a hook call (`useEffect(() => ...)`): the callback runs for the component or the hook. */
+    private static isHookCallback;
+    /**
+     * Whether `node` is in a component or a hook, which is where a hook can be called. A subscription (a listener, an
+     * observer) counts through any handler or helper on the way up: it belongs in a hook. A plain read (`window.innerWidth`,
+     * `window.confirm`) counts only in the body of the component or the hook, or in a callback it hands to a hook
+     * (`useEffect`, `useMemo`): inside an event handler, or outside every component (a module function, a class), it is a
+     * one-off call a hook cannot make.
+     */
+    private static isInReact;
     static readonly RULE: Rule.RuleModule;
     static build(opts?: {
         severity?: TRuleSeverity;
@@ -1216,22 +1236,22 @@ How a hand-written browser API shows up in code.
 export type TBrowserApiMatch = 
 /** A property of the global object read or called: `window.matchMedia(...)`, `matchMedia(...)`. */
 {
-    kind: 'global';
+    type: 'global';
     names: ReadonlyArray<string>;
 }
 /** A member path under a global: `navigator.onLine`, `navigator.clipboard.writeText`. */
  | {
-    kind: 'path';
+    type: 'path';
     paths: ReadonlyArray<string>;
 }
 /** `new X(...)` of a global class. */
  | {
-    kind: 'new';
+    type: 'new';
     callees: ReadonlyArray<string>;
 }
-/** `<object>.addEventListener('<event>', ...)`; `objects` names the objects it counts for (any when absent). */
+/** `<object>.addEventListener('<event>', ...)`; `objects` names the objects it counts for (the globals `window`, `document`, `self` and `globalThis` when absent). */
  | {
-    kind: 'listener';
+    type: 'listener';
     events: ReadonlyArray<string>;
     objects?: ReadonlyArray<string>;
 };
