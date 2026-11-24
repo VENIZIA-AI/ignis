@@ -20,6 +20,9 @@ export default {
   commit: { message: { agent: { signature: 'deny' } } },
   // A write outside the project is refused with a reason instead of prompting.
   guard: { outside: 'deny' },
+  events: { log: true },
+  project: { key: 'IGNIS' },
+  remove: { 'atlas.sources': ['ignis'] },
   // Values `vulcan doctor` reads as private that are not: placeholders and examples the docs and sources show on purpose.
   doctor: {
     privateValues: {

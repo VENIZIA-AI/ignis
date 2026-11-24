@@ -155,11 +155,6 @@
   },
   "sources": [
     {
-      "name": "ignis",
-      "repo": "VENIZIA-AI/ignis",
-      "ref": "develop"
-    },
-    {
       "name": "ardor",
       "repo": "VENIZIA-AI/ardor",
       "ref": "develop"
@@ -237,5 +232,11 @@
         "signature": "deny"
       }
     }
+  },
+  "events": {
+    "log": true
+  },
+  "project": {
+    "key": "IGNIS"
   }
 }
