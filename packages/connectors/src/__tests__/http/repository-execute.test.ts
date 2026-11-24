@@ -38,7 +38,7 @@ const stubFetch = (spec: { status?: number; body?: unknown }) => {
 
 const SignUpAnswer = z.object({ id: z.string(), email: z.string() });
 
-/** A repository the way an app writes one: its routes beside the CRUD ones call `action`. */
+/** A repository the way an app writes one: its routes beside the CRUD ones call `execute`. */
 class AuthRepository extends HttpRepository {
   constructor() {
     super({
@@ -48,30 +48,30 @@ class AuthRepository extends HttpRepository {
   }
 
   signUp(opts: { email: string }) {
-    return this.action({ paths: ['auth', 'sign-up'], body: opts, schema: SignUpAnswer });
+    return this.execute({ paths: ['auth', 'sign-up'], body: opts, schema: SignUpAnswer });
   }
 
   requestReset(opts: { email: string }) {
-    return this.action({ paths: ['auth', 'forgot-password', 'request'], body: opts });
+    return this.execute({ paths: ['auth', 'forgot-password', 'request'], body: opts });
   }
 
   withMethod() {
-    return this.action({ paths: ['auth', 'session'], method: 'DELETE' });
+    return this.execute({ paths: ['auth', 'session'], method: 'DELETE' });
   }
 
   withOptions(opts: { signal: AbortSignal }) {
-    return this.action({
+    return this.execute({
       paths: ['auth', 'ping'],
       options: { headers: { 'x-trace': 't1' }, signal: opts.signal },
     });
   }
 
   sloppy(opts: { schema: z.ZodType }) {
-    return this.action({ paths: ['auth', 'x'], schema: opts.schema });
+    return this.execute({ paths: ['auth', 'x'], schema: opts.schema });
   }
 
   transformed() {
-    return this.action({
+    return this.execute({
       paths: ['auth', 'count'],
       schema: z.object({ n: z.string() }).transform((value) => Number(value.n)),
     });
@@ -80,7 +80,7 @@ class AuthRepository extends HttpRepository {
 
 const repository = () => new AuthRepository();
 
-describe('HttpRepository.action', () => {
+describe('HttpRepository.execute', () => {
   test('a call with a schema returns the parsed data, typed by the schema', async () => {
     const calls = stubFetch({ body: { id: 'u1', email: 'a@b.com' } });
     const answer = await repository().signUp({ email: 'a@b.com' });

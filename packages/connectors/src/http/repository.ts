@@ -450,21 +450,21 @@ export class HttpRepository<E extends object = object, P extends object = Partia
    * @useWhen a subclass calls a route beside the CRUD routes and needs its answer typed, or no answer at all
    * @insteadOf this.dataSource.write<R>({ paths, method, body }) with the data unwrapped and typed by hand
    */
-  protected async action(opts: {
+  protected async execute(opts: {
     paths: Array<string>;
     method?: THttpMethod;
     body?: THttpBody;
     schema?: undefined;
     options?: THttpRepositoryOptions;
   }): Promise<void>;
-  protected async action<S extends z.ZodType>(opts: {
+  protected async execute<S extends z.ZodType>(opts: {
     paths: Array<string>;
     method?: THttpMethod;
     body?: THttpBody;
     schema: S;
     options?: THttpRepositoryOptions;
   }): Promise<z.output<S>>;
-  protected async action(opts: {
+  protected async execute(opts: {
     paths: Array<string>;
     method?: THttpMethod;
     body?: THttpBody;

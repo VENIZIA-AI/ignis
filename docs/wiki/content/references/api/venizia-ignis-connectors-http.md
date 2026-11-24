@@ -308,14 +308,14 @@ export declare class HttpRepository<E extends object = object, P extends object 
      * @useWhen a subclass calls a route beside the CRUD routes and needs its answer typed, or no answer at all
      * @insteadOf this.dataSource.write<R>({ paths, method, body }) with the data unwrapped and typed by hand
      */
-    protected action(opts: {
+    protected execute(opts: {
         paths: Array<string>;
         method?: THttpMethod;
         body?: THttpBody;
         schema?: undefined;
         options?: THttpRepositoryOptions;
     }): Promise<void>;
-    protected action<S extends z.ZodType>(opts: {
+    protected execute<S extends z.ZodType>(opts: {
         paths: Array<string>;
         method?: THttpMethod;
         body?: THttpBody;

@@ -207,7 +207,7 @@ await productRepository.deleteBy({ where: { id: { inq: staleIds } } });
 - A request path stays under the base path. `paths` on `request`, `read` and `write` is refused with a 400 when a segment is `.` or `..` (plain, `%2e`-encoded, or ended by `?`, `#` or a space), or holds a backslash (`\` or `%5c`) or a control character. Encode a value you put in a path with `encodeURIComponent`: a `?` in it would start the query. An id that really contains a backslash is refused too, because some servers decode `%5c` into a separator.
 - There is no `createAll`: the IGNIS REST contract has no bulk-create route.
 
-For a route beside the CRUD ones (`POST auth/sign-up`), a subclass calls `this.action(...)`: it sends through the datasource, throws the way every repository call does, and types the answer by a zod schema, with no type argument to write:
+For a route beside the CRUD ones (`POST auth/sign-up`), a subclass calls `this.execute(...)`: it sends through the datasource, throws the way every repository call does, and types the answer by a zod schema, with no type argument to write:
 
 ```typescript
 import { z } from 'zod';
@@ -222,12 +222,12 @@ export class AuthRepository extends HttpRepository {
 
   // Returns { id: string; email: string }, parsed.
   signUp(opts: { email: string; password: string }) {
-    return this.action({ paths: ['auth', 'sign-up'], body: opts, schema: SignUpAnswer });
+    return this.execute({ paths: ['auth', 'sign-up'], body: opts, schema: SignUpAnswer });
   }
 
   // No schema: the answer is not returned and the call returns void (a body must be empty or JSON).
   requestReset(opts: { email: string }) {
-    return this.action({ paths: ['auth', 'forgot-password', 'request'], body: opts });
+    return this.execute({ paths: ['auth', 'forgot-password', 'request'], body: opts });
   }
 }
 ```
