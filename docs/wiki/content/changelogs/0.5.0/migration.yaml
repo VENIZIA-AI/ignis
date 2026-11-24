@@ -671,7 +671,7 @@ http-datasource-query-values:
   data: Nothing stored changes.
 
 house-rules-framework-use:
-  symbols: [houseConfigs, PreferTNullableRule, PreferPromiseSleepRule, NoParentImportRule, ImportSupport]
+  symbols: [houseConfigs, PreferTNullableRule, PreferPromiseSleepRule, NoShadowFrameworkTypeRule, NoParentImportRule, ImportSupport]
   upgrade:
     before: |-
       type Name = string | null | undefined;
@@ -687,9 +687,10 @@ house-rules-framework-use:
     steps:
       - "Run eslint --fix on a tree that was lint-clean: it then changes only what prefer-tnullable and prefer-promise-sleep report. Review the diff before you commit it."
       - "An app that does not depend on @venizia/ignis-helpers sets the module the names are imported from, or turns the fix off: { rules: { 'venizia/prefer-tnullable': ['error', { source: '#src/types' }] } } (source: null reports without a fix)."
+      - "no-shadow-framework-type has no fix: replace your own ValueOrPromise, TNullable, TConstValue and the like with the framework's (the message names the module), or list a type that is yours on purpose in { allow: ['Name'] }."
       - "no-parent-import is a warning. It rewrites to #src/... only when package.json maps '#src/*' to the folder that holds the target; otherwise write the import by hand, or turn the rule off after ...houseConfigs."
       - "Keep a hand-written pattern on purpose with an eslint-disable-next-line and the reason, or demote a rule after ...houseConfigs: { rules: { 'venizia/prefer-tnullable': 'warn' } }."
   downgrade:
     steps:
-      - "Pin @venizia/dev-configs to the release before this one, or set the three rules to 'off' after ...houseConfigs."
+      - "Pin @venizia/dev-configs to the release before this one, or set the four rules to 'off' after ...houseConfigs."
   data: Nothing stored changes. The rules read your source and rewrite it only under --fix.

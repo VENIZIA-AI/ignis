@@ -65,9 +65,60 @@ export class ImportSupport {
     );
   }
 
-  /** Whether `name` is imported or declared at the top level of the file. */
+  /** The name the file binds the import `name` to (`TNullable as N` answers `N`), or `undefined` when it does not import it. */
+  static importedAs(opts: {
+    context: Rule.RuleContext;
+    name: string;
+    asValue?: boolean;
+  }): string | undefined {
+    const { context, name, asValue = false } = opts;
+
+    for (const statement of context.sourceCode.ast.body) {
+      const specifiers: unknown = AstNode.readField({ node: statement, key: 'specifiers' });
+
+      if (
+        AstNode.getType({ node: statement }) !== AstNodeTypes.IMPORT_DECLARATION ||
+        !Array.isArray(specifiers)
+      ) {
+        continue;
+      }
+
+      // A type-only import cannot stand where a value is written.
+      const isTypeOnly = AstNode.readField({ node: statement, key: 'importKind' }) === 'type';
+
+      for (const specifier of specifiers) {
+        if (
+          asValue &&
+          (isTypeOnly || AstNode.readField({ node: specifier, key: 'importKind' }) === 'type')
+        ) {
+          continue;
+        }
+
+        const imported = AstNode.readField({
+          node: AstNode.readField({ node: specifier, key: 'imported' }),
+          key: 'name',
+        });
+        const local = AstNode.readField({
+          node: AstNode.readField({ node: specifier, key: 'local' }),
+          key: 'name',
+        });
+
+        if (imported === name && typeof local === 'string') {
+          return local;
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  /** Whether `name` is imported (under its own name or an alias) or declared at the top level of the file. */
   static isInScope(opts: { context: Rule.RuleContext; name: string }): boolean {
-    return ImportSupport.isImported(opts) || ImportSupport.isDeclared(opts);
+    return (
+      ImportSupport.isImported(opts) ||
+      ImportSupport.importedAs(opts) !== undefined ||
+      ImportSupport.isDeclared(opts)
+    );
   }
 
   /**
@@ -115,8 +166,20 @@ export class ImportSupport {
   }): Array<Rule.Fix> | undefined {
     const { context, fixer, name, source, isType } = opts;
 
-    if (ImportSupport.isInScope({ context, name })) {
+    if (
+      isType
+        ? ImportSupport.isInScope({ context, name })
+        : ImportSupport.importedAs({ context, name, asValue: true }) !== undefined
+    ) {
       return [];
+    }
+
+    // A value cannot be added next to a type-only import or a declaration that already holds its name.
+    if (
+      !isType &&
+      (ImportSupport.isImported({ context, name }) || ImportSupport.isDeclared({ context, name }))
+    ) {
+      return undefined;
     }
 
     if (!ImportSupport.canAdd({ context })) {
@@ -168,7 +231,7 @@ export class ImportSupport {
 
     for (const statement of context.sourceCode.ast.body) {
       const specifiers: unknown = AstNode.readField({ node: statement, key: 'specifiers' });
-      const kind = AstNode.readField({ node: statement, key: 'importKind' });
+      const importKind = AstNode.readField({ node: statement, key: 'importKind' });
       const from = AstNode.readField({
         node: AstNode.readField({ node: statement, key: 'source' }),
         key: 'value',
@@ -179,12 +242,14 @@ export class ImportSupport {
         from !== source ||
         !Array.isArray(specifiers) ||
         specifiers.length === 0 ||
-        !specifiers.every((item) => AstNode.getType({ node: item }) === 'ImportSpecifier')
+        !specifiers.every(
+          (item) => AstNode.getType({ node: item }) === AstNodeTypes.IMPORT_SPECIFIER,
+        )
       ) {
         continue;
       }
 
-      const isTypeImport = kind === 'type';
+      const isTypeImport = importKind === 'type';
 
       if (!isType && isTypeImport) {
         continue;

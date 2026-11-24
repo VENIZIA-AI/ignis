@@ -11,6 +11,7 @@ import { NoLeakedRenderRule } from './no-leaked-render.rule';
 import { NoNewErrorRule } from './no-new-error.rule';
 import { NoParentImportRule } from './no-parent-import.rule';
 import { NoReturnAwaitRule } from './no-return-await.rule';
+import { NoShadowFrameworkTypeRule } from './no-shadow-framework-type.rule';
 import { NoSilentCatchRule } from './no-silent-catch.rule';
 import { NoUnbracedCaseRule } from './no-unbraced-case.rule';
 import { PreferPromiseSleepRule } from './prefer-promise-sleep.rule';
@@ -31,6 +32,7 @@ export const houseEslintPlugin: ESLint.Plugin = {
     'no-new-error': NoNewErrorRule.RULE,
     'no-parent-import': NoParentImportRule.RULE,
     'no-return-await': NoReturnAwaitRule.RULE,
+    'no-shadow-framework-type': NoShadowFrameworkTypeRule.RULE,
     'no-silent-catch': NoSilentCatchRule.RULE,
     'no-unbraced-case': NoUnbracedCaseRule.RULE,
     'prefer-promise-sleep': PreferPromiseSleepRule.RULE,

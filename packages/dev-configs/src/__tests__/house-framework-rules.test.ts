@@ -201,6 +201,16 @@ describe('venizia/prefer-tnullable', () => {
     expect(plain.fixed).toContain(`@venizia/ignis-helpers/common';\nexport let x`);
   });
 
+  test('an import under an alias is reused: no second specifier, the alias is written', () => {
+    const { fixed } = run({
+      name: NAME,
+      code: `import type { TNullable as Maybe } from '@venizia/ignis-helpers/common';\nexport let x: string | null | undefined;\n`,
+    });
+
+    expect(fixed).toContain(`export let x: Maybe<string>;`);
+    expect(fixed.match(/TNullable/g)).toHaveLength(1);
+  });
+
   test('the message names the configured source', () => {
     const { findings } = run({
       name: NAME,
@@ -271,6 +281,34 @@ describe('venizia/prefer-promise-sleep', () => {
       `import { getError, PromiseUtility } from '@venizia/ignis-helpers/core';`,
     );
     expect(fixed.match(/import/g)).toHaveLength(1);
+  });
+
+  test('an aliased PromiseUtility import is reused', () => {
+    const { fixed } = run({
+      name: NAME,
+      code: `import { PromiseUtility as Timing } from '@venizia/ignis-helpers/core';\nexport const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));\n`,
+    });
+
+    expect(fixed).toContain(`Timing.sleep({ ms })`);
+    expect(fixed.match(/PromiseUtility/g)).toHaveLength(1);
+  });
+
+  test('a type-only import is not used as a value: a value import is added beside it', () => {
+    const { fixed } = run({
+      name: NAME,
+      code: `import type { PromiseUtility as P } from '@venizia/ignis-helpers/core';\nexport const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));\n`,
+    });
+
+    expect(fixed).toContain(`PromiseUtility.sleep({ ms })`);
+    expect(fixed).toContain(`import { PromiseUtility } from '@venizia/ignis-helpers/core';`);
+
+    const clash = run({
+      name: NAME,
+      code: `import type { PromiseUtility } from '@venizia/ignis-helpers/core';\nexport const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));\n`,
+    });
+
+    expect(clash.findings).toHaveLength(1);
+    expect(clash.fixed).toContain('new Promise');
   });
 
   test('the delay expression is kept as written', () => {

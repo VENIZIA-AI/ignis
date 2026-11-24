@@ -13,7 +13,7 @@ export interface IFrameworkRuleApi {
 /**
  * The framework API of each house rule that points at one, keyed by the rule's name (`venizia/prefer-tnullable`). Tools that
  * read a project's installed `@venizia/dev-configs` (VULCAN's write-time hook) use it to tell an author which API to use, so
- * a rule that steers toward the framework has an entry here; `house-framework-rule-apis.test.ts` fails when one does not.
+ * a rule that steers toward the framework has an entry here; `house-framework-rules.test.ts` fails when one does not.
  */
 export class FrameworkRuleApis {
   static readonly TABLE: Readonly<Record<string, IFrameworkRuleApi>> = {
@@ -29,6 +29,13 @@ export class FrameworkRuleApis {
       package: '@venizia/ignis-helpers',
       replacement:
         'Write `await PromiseUtility.sleep({ ms })`, not `new Promise(resolve => setTimeout(resolve, ms))`.',
+    },
+    'venizia/no-shadow-framework-type': {
+      api: 'the type the framework exports under that name',
+      source: '@venizia/ignis-helpers/common',
+      package: '@venizia/ignis-helpers',
+      replacement:
+        'Import `ValueOrPromise`, `TNullable`, `TConstValue` and the other framework types (from `@venizia/ignis-helpers/common`, or the entry the message names) instead of declaring your own.',
     },
     'venizia/no-parent-import': {
       api: '#src/...',

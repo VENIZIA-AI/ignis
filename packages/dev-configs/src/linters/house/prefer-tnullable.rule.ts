@@ -103,6 +103,7 @@ export class PreferTNullableRule {
               typeOf(member) !== AstNodeTypes.UNDEFINED_KEYWORD,
           );
           // A local TNullable is not known to mean what the framework's does, so it is never written toward.
+          const local = ImportSupport.importedAs({ context, name: 'TNullable' });
           const isLocal = ImportSupport.isDeclared({ context, name: 'TNullable' });
           // A comment inside the union would be lost by the rewrite: the finding stays, the fix does not.
           const hasComments = context.sourceCode.getCommentsInside(node).length > 0;
@@ -121,18 +122,17 @@ export class PreferTNullableRule {
             messageId: 'nullable',
             data: { source: source ?? PreferTNullableRule.DEFAULT_SOURCE },
             fix: (fixer) => {
-              if (
-                hasComments ||
-                isLocal ||
-                (source === undefined && !ImportSupport.isImported({ context, name: 'TNullable' }))
-              ) {
+              if (hasComments || isLocal || (source === undefined && local === undefined)) {
                 return null;
               }
 
               const imports = ensure(fixer);
 
               return imports
-                ? [fixer.replaceText(node, `TNullable<${texts.join(' | ')}>`), ...imports]
+                ? [
+                    fixer.replaceText(node, `${local ?? 'TNullable'}<${texts.join(' | ')}>`),
+                    ...imports,
+                  ]
                 : null;
             },
           });

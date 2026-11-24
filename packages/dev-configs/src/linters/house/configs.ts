@@ -12,6 +12,7 @@ import { NoAsyncHookCallbackRule } from './no-async-hook-callback.rule';
 import { NoLeakedRenderRule } from './no-leaked-render.rule';
 import { NoNewErrorRule } from './no-new-error.rule';
 import { NoParentImportRule } from './no-parent-import.rule';
+import { NoShadowFrameworkTypeRule } from './no-shadow-framework-type.rule';
 import { PreferPromiseSleepRule } from './prefer-promise-sleep.rule';
 import { PreferTNullableRule } from './prefer-tnullable.rule';
 import { houseEslintPlugin } from './plugin';
@@ -41,6 +42,7 @@ const houseRuleConfigs: Linter.Config[] = [
     rules: {
       [MaxParamsOwnRule.NAME]: MaxParamsOwnRule.build(),
       [NoNewErrorRule.NAME]: NoNewErrorRule.build(),
+      [NoShadowFrameworkTypeRule.NAME]: NoShadowFrameworkTypeRule.build(),
       [PreferTNullableRule.NAME]: PreferTNullableRule.build(),
       [PreferPromiseSleepRule.NAME]: PreferPromiseSleepRule.build(),
       [NoParentImportRule.NAME]: NoParentImportRule.build(),
@@ -52,6 +54,7 @@ const houseRuleConfigs: Linter.Config[] = [
     files: TEST_FILES,
     rules: {
       [NoNewErrorRule.NAME]: 'off',
+      [NoShadowFrameworkTypeRule.NAME]: 'off',
       [PreferPromiseSleepRule.NAME]: 'off',
       [NoParentImportRule.NAME]: 'off',
       [ConstClassValuesRule.NAME]: 'off',
