@@ -76,6 +76,14 @@ export class PreferPromiseSleepRule {
     return isResolver && AstNode.isNode(delay) ? delay : undefined;
   }
 
+  /** `PromiseUtility.sleep({ ms })`, with the shorthand when the delay is a variable named `ms`. */
+  private static call(opts: { context: Rule.RuleContext; delay: Rule.Node }): string {
+    const { context, delay } = opts;
+    const text = context.sourceCode.getText(delay);
+
+    return `PromiseUtility.sleep({ ${text === 'ms' ? 'ms' : `ms: ${text}`} })`;
+  }
+
   /** Whether `setTimeout` at `node` resolves to a binding of the file (not the global timer). */
   private static isRebound(opts: { context: Rule.RuleContext; node: Rule.Node }): boolean {
     const { context, node } = opts;
@@ -169,10 +177,7 @@ export class PreferPromiseSleepRule {
 
               return imports
                 ? [
-                    fixer.replaceText(
-                      node,
-                      `PromiseUtility.sleep({ ms: ${context.sourceCode.getText(delay)} })`,
-                    ),
+                    fixer.replaceText(node, PreferPromiseSleepRule.call({ context, delay })),
                     ...imports,
                   ]
                 : null;

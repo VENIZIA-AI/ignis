@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs/linters, from the built decla
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-29 exports, 29 with TSDoc. 30 more are re-exported from other entries (listed at the end).
+31 exports, 31 with TSDoc. 30 more are re-exported from other entries (listed at the end).
 
 ## `AstNode`
 
@@ -250,6 +250,26 @@ export declare const eslintConfigs: Linter.Config[];
 
 Source: `packages/dev-configs/src/linters/eslint.ts`
 
+## `FrameworkRuleApis`
+
+*class*
+
+The framework API of each house rule that points at one, keyed by the rule's name (`venizia/prefer-tnullable`). Tools that
+read a project's installed `@venizia/dev-configs` (VULCAN's write-time hook) use it to tell an author which API to use, so
+a rule that steers toward the framework has an entry here; `house-framework-rule-apis.test.ts` fails when one does not.
+
+```ts
+export declare class FrameworkRuleApis {
+    static readonly TABLE: Readonly<Record<string, IFrameworkRuleApi>>;
+    /** The entry for `rule` (`venizia/prefer-tnullable`), or `undefined` when the rule names no framework API. */
+    static of(opts: {
+        rule: string;
+    }): IFrameworkRuleApi | undefined;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/framework-rule-apis.ts`
+
 ## `HookSupport`
 
 *class*
@@ -332,6 +352,27 @@ export declare const houseEslintPlugin: ESLint.Plugin;
 
 Source: `packages/dev-configs/src/linters/house/plugin.ts`
 
+## `IFrameworkRuleApi`
+
+*interface*
+
+The framework API a rule steers code toward: what to use, where it is imported from, and one line to say it.
+
+```ts
+export interface IFrameworkRuleApi {
+    /** The name to use (`TNullable`, `PromiseUtility.sleep`, `#src/...`). */
+    api: string;
+    /** What to import it from: a module (`@venizia/ignis-helpers/common`) or an import-map alias (`#src`). */
+    source: string;
+    /** The npm package that ships it, or `null` when it is no package (an import-map alias). */
+    package: string | null;
+    /** The replacement, in a short sentence an agent can act on. */
+    replacement: string;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/framework-rule-apis.ts`
+
 ## `ImportSupport`
 
 *class*
@@ -379,6 +420,12 @@ export declare class ImportSupport {
         source: string;
         isType: boolean;
     }): Array<Rule.Fix> | undefined;
+    /**
+     * The fix that adds `name` to an import the file already has from `source`, when that import is a plain named list: a
+     * second `import { ... } from 'same-module'` line is what `no-duplicate-imports` reports. A type goes into an
+     * `import type` list as it is, and into a value list as `type Name`; a value only goes into a value list.
+     */
+    private static mergeInto;
 }
 ```
 
@@ -718,6 +765,8 @@ export declare class PreferPromiseSleepRule {
     static readonly DEFAULT_SOURCE = "@venizia/ignis-helpers/core";
     /** The `setTimeout(<resolve>, <delay>)` call a sleep callback consists of, or `undefined`. */
     private static delayOf;
+    /** `PromiseUtility.sleep({ ms })`, with the shorthand when the delay is a variable named `ms`. */
+    private static call;
     /** Whether `setTimeout` at `node` resolves to a binding of the file (not the global timer). */
     private static isRebound;
     static readonly RULE: Rule.RuleModule;

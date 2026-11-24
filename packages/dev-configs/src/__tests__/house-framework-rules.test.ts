@@ -5,6 +5,7 @@ import { afterAll, describe, expect, test } from 'bun:test';
 import { Linter } from 'eslint';
 import tseslint from 'typescript-eslint';
 import {
+  FrameworkRuleApis,
   houseConfigs,
   houseEslintPlugin,
   NoParentImportRule,
@@ -152,6 +153,54 @@ describe('venizia/prefer-tnullable', () => {
     expect(ambient.fixed).toBe(`declare let x: string | null | undefined;\nexport {};\n`);
   });
 
+  test('a union with a comment is reported and left alone, so the comment is not lost', () => {
+    const code = `export let x: string | /* kept */ null | undefined;\n`;
+    const { findings, fixed } = run({ name: NAME, code });
+
+    expect(findings).toHaveLength(1);
+    expect(fixed).toBe(code);
+  });
+
+  test('the name joins an import the file already has from that module', () => {
+    const typeList = run({
+      name: NAME,
+      code: `import type { TOther } from '@venizia/ignis-helpers/common';\nexport let x: string | null | undefined;\n`,
+    });
+    const valueList = run({
+      name: NAME,
+      code: `import { other } from '@venizia/ignis-helpers/common';\nexport let x: string | null | undefined;\n`,
+    });
+    const namespace = run({
+      name: NAME,
+      code: `import * as helpers from '@venizia/ignis-helpers/common';\nexport let x: string | null | undefined;\n`,
+    });
+
+    expect(typeList.fixed).toContain(
+      `import type { TOther, TNullable } from '@venizia/ignis-helpers/common';`,
+    );
+    expect(typeList.fixed.match(/import/g)).toHaveLength(1);
+    expect(valueList.fixed).toContain(
+      `import { other, type TNullable } from '@venizia/ignis-helpers/common';`,
+    );
+    expect(namespace.fixed.match(/import/g)).toHaveLength(2);
+  });
+
+  test('an inserted import after a directive or a shebang is followed by a blank line', () => {
+    const useClient = run({
+      name: NAME,
+      code: `'use client';\n\nexport let x: string | null | undefined;\n`,
+    });
+    const shebang = run({
+      name: NAME,
+      code: `#!/usr/bin/env bun\nexport let x: string | null | undefined;\n`,
+    });
+    const plain = run({ name: NAME, code: `export let x: string | null | undefined;\n` });
+
+    expect(useClient.fixed).toContain(`@venizia/ignis-helpers/common';\n\nexport let x`);
+    expect(shebang.fixed).toContain(`@venizia/ignis-helpers/common';\n\nexport let x`);
+    expect(plain.fixed).toContain(`@venizia/ignis-helpers/common';\nexport let x`);
+  });
+
   test('the message names the configured source', () => {
     const { findings } = run({
       name: NAME,
@@ -209,6 +258,19 @@ describe('venizia/prefer-promise-sleep', () => {
     expect(fixed).toBe(
       `${IMPORT}\nexport async function f() {\n  await PromiseUtility.sleep({ ms: 50 });\n}\n`,
     );
+  });
+
+  test('a delay variable named ms is written as the shorthand, and the value joins an existing import', () => {
+    const { fixed } = run({
+      name: NAME,
+      code: `import { getError } from '@venizia/ignis-helpers/core';\nexport const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));\n`,
+    });
+
+    expect(fixed).toContain(`PromiseUtility.sleep({ ms })`);
+    expect(fixed).toContain(
+      `import { getError, PromiseUtility } from '@venizia/ignis-helpers/core';`,
+    );
+    expect(fixed.match(/import/g)).toHaveLength(1);
   });
 
   test('the delay expression is kept as written', () => {
@@ -362,5 +424,52 @@ describe('venizia/no-parent-import', () => {
 
     expect(source.find((message) => message.ruleId === NAME)?.severity).toBe(1);
     expect(testFile.filter((message) => message.ruleId === NAME)).toHaveLength(0);
+  });
+});
+
+describe('FrameworkRuleApis', () => {
+  /** House rules that point at no framework API: they enforce a style, not a replacement. */
+  const NOT_FRAMEWORK = [
+    'const-class-values',
+    'effect-cleanup-consistency',
+    'max-params-own',
+    'no-async-hook-callback',
+    'no-await-new-chain',
+    'no-await-promise-chain',
+    'no-inline-await',
+    'no-leaked-render',
+    'no-new-error',
+    'no-return-await',
+    'no-silent-catch',
+    'no-unbraced-case',
+  ];
+
+  test('every rule of the plugin has an entry, or is listed as a style rule: a new rule cannot skip the table', () => {
+    const names = Object.keys(houseEslintPlugin.rules ?? {});
+    const missing = names.filter(
+      (name) =>
+        !NOT_FRAMEWORK.includes(name) &&
+        FrameworkRuleApis.of({ rule: `venizia/${name}` }) === undefined,
+    );
+
+    expect(missing).toEqual([]);
+  });
+
+  test('an entry names an API, where it comes from and a replacement, and only plugin rules have one', () => {
+    const names = Object.keys(houseEslintPlugin.rules ?? {});
+
+    for (const [rule, entry] of Object.entries(FrameworkRuleApis.TABLE)) {
+      expect(names).toContain(rule.replace('venizia/', ''));
+      expect(entry.api.length).toBeGreaterThan(0);
+      expect(entry.source.length).toBeGreaterThan(0);
+      expect(entry.replacement.length).toBeGreaterThan(0);
+    }
+
+    expect(FrameworkRuleApis.of({ rule: 'venizia/prefer-tnullable' })).toMatchObject({
+      api: 'TNullable',
+      source: '@venizia/ignis-helpers/common',
+      package: '@venizia/ignis-helpers',
+    });
+    expect(FrameworkRuleApis.of({ rule: 'venizia/no-new-error' })).toBeUndefined();
   });
 });
