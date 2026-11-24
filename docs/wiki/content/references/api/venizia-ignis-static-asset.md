@@ -1030,10 +1030,10 @@ export declare class StaticAssetControllerFactory {
                 };
                 range?: import("@venizia/ignis-kernel").TDataRange;
                 extra?: never;
-            }): R | {
+            }): import("@venizia/ignis-helpers").TNullable<R | {
                 count: number;
                 data?: import("@venizia/ignis-helpers").TNullable<R>;
-            } | null | undefined;
+            }>;
             respond<R, Extra extends Record<string, import("@venizia/ignis-kernel").TResponseExtra>>(opts: {
                 context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
                 format: import("@venizia/ignis-kernel").TResponseFormat;
@@ -1043,14 +1043,14 @@ export declare class StaticAssetControllerFactory {
                 };
                 range?: import("@venizia/ignis-kernel").TDataRange;
                 extra: Extra;
-            }): Promise<R | {
+            }): Promise<import("@venizia/ignis-helpers").TNullable<R | {
                 count: number;
                 data?: import("@venizia/ignis-helpers").TNullable<R>;
             } | {
                 count?: number;
                 data?: import("@venizia/ignis-helpers").TNullable<R>;
                 extra: Partial<Record<keyof Extra, unknown>>;
-            } | null | undefined>;
+            }>>;
             respond<R>(opts: {
                 context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
                 format: import("@venizia/ignis-kernel").TResponseFormat;
@@ -1060,11 +1060,11 @@ export declare class StaticAssetControllerFactory {
                 };
                 range?: import("@venizia/ignis-kernel").TDataRange;
                 extra?: Record<string, import("@venizia/ignis-kernel").TResponseExtra>;
-            }): ValueOrPromise<R | {
+            }): ValueOrPromise<import("@venizia/ignis-helpers").TNullable<R | {
                 count?: number;
                 data?: import("@venizia/ignis-helpers").TNullable<R>;
                 extra?: Record<string, unknown>;
-            } | null | undefined>;
+            }>>;
             respondWithExtra<R>(opts: {
                 context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
                 payload: {

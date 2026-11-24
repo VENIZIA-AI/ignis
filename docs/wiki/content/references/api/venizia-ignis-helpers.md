@@ -564,7 +564,7 @@ export declare class ApplicationEnvironment extends BaseHelper implements IAppli
      */
     getRequired(key: string): string;
     getRequired<R>(key: string, opts: {
-        transform: (raw: string) => R | null | undefined;
+        transform: (raw: string) => TNullable<R>;
     }): R;
     set(key: string, value: string | undefined): void;
     merge(opts: {
@@ -1712,7 +1712,7 @@ export interface IApplicationEnvironment {
     get<R>(key: string, opts: IApplicationEnvironmentTransformOptions<R>): R;
     getRequired(key: string): string;
     getRequired<R>(key: string, opts: {
-        transform: (raw: string) => R | null | undefined;
+        transform: (raw: string) => TNullable<R>;
     }): R;
     set(key: string, value: string | undefined): void;
 }
@@ -1728,7 +1728,7 @@ A `transform` that may answer null or undefined, with the `defaultValue` that th
 
 ```ts
 export interface IApplicationEnvironmentDefaultedTransformOptions<R> {
-    transform: (raw: string | undefined) => R | null | undefined;
+    transform: (raw: string | undefined) => TNullable<R>;
     defaultValue: R;
 }
 ```
