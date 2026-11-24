@@ -13,10 +13,11 @@ import type { TUidCaseForm } from './common/constants';
 import { UidRandom } from './common/random';
 import { UidSegments } from './common/segments';
 import type { INextOpaqueUidOptions, IOpaqueUidOptions } from './common/types';
+import type { TNullable } from '@/common/types';
 
 /** Local, not `@/utilities/promise.utility`: that module imports the logger BARREL, which reaches `node:module` and would take this browser-pure module with it. */
 const isPromiseLike = (value: unknown): value is PromiseLike<boolean> => {
-  return typeof (value as PromiseLike<boolean> | null | undefined)?.then === 'function';
+  return typeof (value as TNullable<PromiseLike<boolean>>)?.then === 'function';
 };
 
 /**

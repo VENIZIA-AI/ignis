@@ -4,6 +4,7 @@ import type {
   TTemporalInclusivity,
   TTemporalUnit,
 } from './constants';
+import type { TNullable } from '@/common/types';
 
 /** What a date-taking method accepts: a `Date`, epoch milliseconds, or an ISO 8601 string. */
 export type TTemporalInput = Date | number | string;
@@ -137,7 +138,7 @@ export interface ITemporalHelper {
   toDate(opts: { value: TTemporalInput; tz?: string }): Date;
 
   /** `toDate`, answering `null` where `toDate` refuses the value: null, undefined, bad text, NaN. */
-  tryToDate(opts: { value: TTemporalInput | null | undefined; tz?: string }): Date | null;
+  tryToDate(opts: { value: TNullable<TTemporalInput>; tz?: string }): Date | null;
 
   /** The wall clock the value shows in the zone, with its ISO weekday and UTC offset. */
   parts(opts: { value: TTemporalInput; tz?: string }): IZonedTemporalParts;
@@ -153,11 +154,7 @@ export interface ITemporalHelper {
   tryParse(opts: { value: string; pattern?: string; tz?: string }): Date | null;
 
   /** Whether the value names an instant in years 1-9999 - a string read as `parse` reads it. */
-  isValid(opts: {
-    value: TTemporalInput | null | undefined;
-    pattern?: string;
-    tz?: string;
-  }): boolean;
+  isValid(opts: { value: TNullable<TTemporalInput>; pattern?: string; tz?: string }): boolean;
 
   /**
    * Writes the value in the zone. Without a `pattern`: ISO 8601 with the zone's offset. The tokens
@@ -165,7 +162,7 @@ export interface ITemporalHelper {
    * not a date - null included - writes the fallback; without one, it is a 400.
    */
   format(opts: {
-    value: TTemporalInput | null | undefined;
+    value: TNullable<TTemporalInput>;
     pattern?: string;
     tz?: string;
     locale?: string;
@@ -174,7 +171,7 @@ export interface ITemporalHelper {
 
   /** Writes the value with `Intl.DateTimeFormat` options, in the zone - for what the pattern tokens cannot say. */
   formatIntl(opts: {
-    value: TTemporalInput | null | undefined;
+    value: TNullable<TTemporalInput>;
     options?: Omit<Intl.DateTimeFormatOptions, 'timeZone'>;
     tz?: string;
     locale?: string;

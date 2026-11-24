@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs/linters, from the built decla
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-25 exports, 25 with TSDoc. 30 more are re-exported from other entries (listed at the end).
+29 exports, 29 with TSDoc. 30 more are re-exported from other entries (listed at the end).
 
 ## `AstNode`
 
@@ -22,6 +22,8 @@ export declare class AstNode {
         node: unknown;
         key: string;
     }): unknown;
+    /** Whether `value` is an AST node: an object with a string `type`. */
+    static isNode(value: unknown): value is Rule.Node;
     /** The node's `type`, or `undefined` for anything that is not an AST node. */
     static getType(opts: {
         node: unknown;
@@ -45,6 +47,11 @@ export declare class AstNodeTypes {
     static readonly FUNCTION_EXPRESSION = "FunctionExpression";
     static readonly ARROW_FUNCTION_EXPRESSION = "ArrowFunctionExpression";
     static readonly EXPORT_NAMED_DECLARATION = "ExportNamedDeclaration";
+    static readonly EXPORT_ALL_DECLARATION = "ExportAllDeclaration";
+    static readonly IMPORT_DECLARATION = "ImportDeclaration";
+    static readonly IMPORT_EXPRESSION = "ImportExpression";
+    static readonly CLASS_DECLARATION = "ClassDeclaration";
+    static readonly INTERFACE_DECLARATION = "TSInterfaceDeclaration";
     static readonly UNION_TYPE = "TSUnionType";
     static readonly AWAIT_EXPRESSION = "AwaitExpression";
     static readonly RETURN_STATEMENT = "ReturnStatement";
@@ -325,6 +332,58 @@ export declare const houseEslintPlugin: ESLint.Plugin;
 
 Source: `packages/dev-configs/src/linters/house/plugin.ts`
 
+## `ImportSupport`
+
+*class*
+
+Adds the import a rule's autofix needs, once, and not at all when the name is already in scope.
+
+```ts
+export declare class ImportSupport {
+    /** The top-level declaration types that bring a name into the file. */
+    private static readonly DECLARATIONS;
+    /** The name a top-level statement declares, whether or not it is exported. */
+    private static declaredName;
+    /** Whether the file imports `name`. */
+    static isImported(opts: {
+        context: Rule.RuleContext;
+        name: string;
+    }): boolean;
+    /** Whether the file declares `name` itself at the top level (a copy or a stand-in, not an import). */
+    static isDeclared(opts: {
+        context: Rule.RuleContext;
+        name: string;
+    }): boolean;
+    /** Whether `name` is imported or declared at the top level of the file. */
+    static isInScope(opts: {
+        context: Rule.RuleContext;
+        name: string;
+    }): boolean;
+    /**
+     * Whether an import can be added to this file: it is an ES module (it has an import or an export) and not a declaration
+     * file. An import added to a script, or to an ambient `.d.ts`, would turn it into a module and change what it declares.
+     */
+    static canAdd(opts: {
+        context: Rule.RuleContext;
+    }): boolean;
+    /** The statement the new import goes before when the file has no import: the first one after the leading directives (`'use client'`). */
+    private static firstAfterDirectives;
+    /**
+     * The fixes that import `name` from `source`: after the last import, or before the first statement that is not a
+     * directive. None when the name is already in scope; `undefined` when an import cannot be added to this file.
+     */
+    static ensure(opts: {
+        context: Rule.RuleContext;
+        fixer: Rule.RuleFixer;
+        name: string;
+        source: string;
+        isType: boolean;
+    }): Array<Rule.Fix> | undefined;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/import-support.ts`
+
 ## `MaxParamsOwnRule`
 
 *class*
@@ -530,6 +589,37 @@ export declare class NoNewErrorRule {
 
 Source: `packages/dev-configs/src/linters/house/no-new-error.rule.ts`
 
+## `NoParentImportRule`
+
+*class*
+
+`venizia/no-parent-import`. An import that climbs out of its folder (`../x`) is written from the package's import map
+instead (`#src/x`): it keeps its meaning when the file moves, and reads the same from every depth.
+
+The fix is made only when the nearest `package.json` maps `#src/*` to a folder and the import lands inside that folder;
+every other finding is reported and left alone. A same-folder `./x` is never reported.
+
+```ts
+export declare class NoParentImportRule {
+    static readonly NAME = "venizia/no-parent-import";
+    static readonly ALIAS = "#src";
+    /** One scan reads the same package.json for every file of a package. */
+    private static readonly maps;
+    /** The parsed package.json, or `undefined` when it cannot be read: a broken file never stops a lint run, the import is reported without a fix. */
+    private static readManifest;
+    /** The import map of the package that owns `directory`, or `undefined` when it has none for `#src/*`. */
+    private static mapOf;
+    /** `#src/<path>` for the specifier `specifier` written in `filename`, when the map reaches it. */
+    private static aliasFor;
+    static readonly RULE: Rule.RuleModule;
+    static build(opts?: {
+        severity?: TRuleSeverity;
+    }): Linter.RuleEntry;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/no-parent-import.rule.ts`
+
 ## `NoReturnAwaitRule`
 
 *class*
@@ -610,6 +700,65 @@ export declare const paddingConfigs: Linter.Config[];
 ```
 
 Source: `packages/dev-configs/src/linters/padding.ts`
+
+## `PreferPromiseSleepRule`
+
+*class*
+
+`venizia/prefer-promise-sleep`. A sleep written by hand, `new Promise((resolve) => setTimeout(resolve, ms))`, is
+`PromiseUtility.sleep({ ms })` (`@venizia/ignis-helpers/core`). Only that exact shape is reported: a callback that
+does anything else is not a sleep.
+
+The fix replaces the expression and adds the import; `source` is where `PromiseUtility` comes from, `null` turns
+the fix off.
+
+```ts
+export declare class PreferPromiseSleepRule {
+    static readonly NAME = "venizia/prefer-promise-sleep";
+    static readonly DEFAULT_SOURCE = "@venizia/ignis-helpers/core";
+    /** The `setTimeout(<resolve>, <delay>)` call a sleep callback consists of, or `undefined`. */
+    private static delayOf;
+    /** Whether `setTimeout` at `node` resolves to a binding of the file (not the global timer). */
+    private static isRebound;
+    static readonly RULE: Rule.RuleModule;
+    static build(opts?: {
+        severity?: TRuleSeverity;
+        source?: string | null;
+    }): Linter.RuleEntry;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/prefer-promise-sleep.rule.ts`
+
+## `PreferTNullableRule`
+
+*class*
+
+`venizia/prefer-tnullable`. `X | null | undefined` is `TNullable<X>`, the framework's own name for it
+(`@venizia/ignis-helpers/common`). A union with only `null` or only `undefined` is not reported: those say
+something different.
+
+The fix rewrites the union and adds the import. `source` is where `TNullable` comes from (default the helpers
+`common` entry); `null` turns the import, and so the fix, off for a project that has no such package.
+
+```ts
+export declare class PreferTNullableRule {
+    static readonly NAME = "venizia/prefer-tnullable";
+    static readonly DEFAULT_SOURCE = "@venizia/ignis-helpers/common";
+    /**
+     * The source of a union member with the parentheses that belong to it: a function, constructor or conditional type is
+     * written `(...)` inside a union, and the member text alone (`() => void`) would change the type or not parse.
+     */
+    private static textOf;
+    static readonly RULE: Rule.RuleModule;
+    static build(opts?: {
+        severity?: TRuleSeverity;
+        source?: string | null;
+    }): Linter.RuleEntry;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/prefer-tnullable.rule.ts`
 
 ## `PromiseChainSupport`
 

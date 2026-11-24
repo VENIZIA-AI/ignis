@@ -167,7 +167,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     maxStackFrames?: number;
   }): string {
     const { error, messageCode, extra, includeStack = true, maxStackFrames } = opts;
-    const thrown = error as Partial<Error> | null | undefined;
+    const thrown = error as TNullable<Partial<Error>>;
     const lines: Array<string> = [];
 
     if (typeof thrown?.name === 'string') {

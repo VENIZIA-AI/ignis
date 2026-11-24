@@ -93,4 +93,5 @@ const browserPurity = {
 
 // oxlint (.configs/oxlint.config.mts) owns the shared preset; this file adds what oxlint cannot run: the
 // ESQuery selector below, and the naming rule. src/__tests__/browser-purity.test.ts lints with it.
-export default [...houseConfigs, browserPurity];
+// IGNIS writes its own imports through the `@/` path alias, not a `#src` import map.
+export default [...houseConfigs, { rules: { 'venizia/no-parent-import': 'off' } }, browserPurity];

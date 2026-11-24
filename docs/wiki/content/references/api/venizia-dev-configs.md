@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-0 exports, 0 with TSDoc. 56 more are re-exported from other entries (listed at the end).
+0 exports, 0 with TSDoc. 60 more are re-exported from other entries (listed at the end).
 
 ## Re-exported
 
@@ -25,6 +25,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 - `HOUSE_PLUGIN_NAMESPACE` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `houseConfigs` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `houseEslintPlugin` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
+- `ImportSupport` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `IOxlintPresetOptions` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `IRestrictedImportPath` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `IRestrictedProperty` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
@@ -39,6 +40,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 - `NoInlineAwaitRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `NoLeakedRenderRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `NoNewErrorRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
+- `NoParentImportRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `NoRestrictedImportsRule` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `NoRestrictedPropertiesRule` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `NoReturnAwaitRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
@@ -50,6 +52,8 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 - `paddingConfigs` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `PaddingLineBetweenStatementsRule` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `PreferNullishCoalescingRule` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
+- `PreferPromiseSleepRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
+- `PreferTNullableRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `PromiseChainSupport` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `reactHouseConfigs` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `reactNamingConventionConfigs` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)

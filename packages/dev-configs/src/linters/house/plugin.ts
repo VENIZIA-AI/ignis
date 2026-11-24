@@ -9,9 +9,12 @@ import { NoAwaitPromiseChainRule } from './no-await-promise-chain.rule';
 import { NoInlineAwaitRule } from './no-inline-await.rule';
 import { NoLeakedRenderRule } from './no-leaked-render.rule';
 import { NoNewErrorRule } from './no-new-error.rule';
+import { NoParentImportRule } from './no-parent-import.rule';
 import { NoReturnAwaitRule } from './no-return-await.rule';
 import { NoSilentCatchRule } from './no-silent-catch.rule';
 import { NoUnbracedCaseRule } from './no-unbraced-case.rule';
+import { PreferPromiseSleepRule } from './prefer-promise-sleep.rule';
+import { PreferTNullableRule } from './prefer-tnullable.rule';
 
 /** The ESLint plugin that carries the house rules oxlint cannot express, registered as `venizia`. */
 export const houseEslintPlugin: ESLint.Plugin = {
@@ -26,8 +29,11 @@ export const houseEslintPlugin: ESLint.Plugin = {
     'no-inline-await': NoInlineAwaitRule.RULE,
     'no-leaked-render': NoLeakedRenderRule.RULE,
     'no-new-error': NoNewErrorRule.RULE,
+    'no-parent-import': NoParentImportRule.RULE,
     'no-return-await': NoReturnAwaitRule.RULE,
     'no-silent-catch': NoSilentCatchRule.RULE,
     'no-unbraced-case': NoUnbracedCaseRule.RULE,
+    'prefer-promise-sleep': PreferPromiseSleepRule.RULE,
+    'prefer-tnullable': PreferTNullableRule.RULE,
   },
 };

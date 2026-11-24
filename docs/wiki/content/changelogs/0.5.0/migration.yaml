@@ -669,3 +669,27 @@ http-datasource-query-values:
     steps:
       - "Pin @venizia/ignis-connectors to 0.4.8."
   data: Nothing stored changes.
+
+house-rules-framework-use:
+  symbols: [houseConfigs, PreferTNullableRule, PreferPromiseSleepRule, NoParentImportRule, ImportSupport]
+  upgrade:
+    before: |-
+      type Name = string | null | undefined;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      import { load } from '../shared/load';
+    after: |-
+      import type { TNullable } from '@venizia/ignis-helpers/common';
+      import { PromiseUtility } from '@venizia/ignis-helpers/core';
+      import { load } from '#src/shared/load';
+
+      type Name = TNullable<string>;
+      await PromiseUtility.sleep({ ms: 100 });
+    steps:
+      - "Run eslint --fix on a tree that was lint-clean: it then changes only what prefer-tnullable and prefer-promise-sleep report. Review the diff before you commit it."
+      - "An app that does not depend on @venizia/ignis-helpers sets the module the names are imported from, or turns the fix off: { rules: { 'venizia/prefer-tnullable': ['error', { source: '#src/types' }] } } (source: null reports without a fix)."
+      - "no-parent-import is a warning. It rewrites to #src/... only when package.json maps '#src/*' to the folder that holds the target; otherwise write the import by hand, or turn the rule off after ...houseConfigs."
+      - "Keep a hand-written pattern on purpose with an eslint-disable-next-line and the reason, or demote a rule after ...houseConfigs: { rules: { 'venizia/prefer-tnullable': 'warn' } }."
+  downgrade:
+    steps:
+      - "Pin @venizia/dev-configs to the release before this one, or set the three rules to 'off' after ...houseConfigs."
+  data: Nothing stored changes. The rules read your source and rewrite it only under --fix.

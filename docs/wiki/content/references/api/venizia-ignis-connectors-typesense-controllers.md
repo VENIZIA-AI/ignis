@@ -1321,7 +1321,7 @@ export type TSearchScopeResolver<RouteEnv extends Env = Env, TExtra extends obje
     input: TSearchInput & TExtra;
     /** The instances of the classes `inject` declares. */
     injected: TInjected<Inject>;
-}) => ValueOrPromise<TWhere | typeof ScopeFilters.UNRESTRICTED | null | undefined>;
+}) => ValueOrPromise<TNullable<TWhere | typeof ScopeFilters.UNRESTRICTED>>;
 ```
 
 Source: `packages/connectors/src/search/core/controllers/scope.ts`

@@ -17,6 +17,7 @@ import type {
 } from './common/types';
 import { TemporalDuration } from './duration';
 import { TemporalPattern } from './pattern';
+import type { TNullable } from '@/common/types';
 
 /** `2026-09-19`, `2026-09-19T12:00`, `2026-09-19 12:00:00.021+07:00`, `...Z` - an offset only after a time. */
 const ISO_8601 =
@@ -210,11 +211,7 @@ export class TemporalHelper extends AbstractTemporalHelper {
   }
 
   /** Whether the value names an instant in years 1-9999 - a string read as `parse` reads it. */
-  isValid(opts: {
-    value: TTemporalInput | null | undefined;
-    pattern?: string;
-    tz?: string;
-  }): boolean {
+  isValid(opts: { value: TNullable<TTemporalInput>; pattern?: string; tz?: string }): boolean {
     const { value, pattern, tz } = opts;
 
     if (typeof value === 'string') {
@@ -236,7 +233,7 @@ export class TemporalHelper extends AbstractTemporalHelper {
    * not a date - null included - writes the fallback; without one, it is a 400.
    */
   format(opts: {
-    value: TTemporalInput | null | undefined;
+    value: TNullable<TTemporalInput>;
     pattern?: string;
     tz?: string;
     locale?: string;
@@ -261,7 +258,7 @@ export class TemporalHelper extends AbstractTemporalHelper {
 
   /** Writes the value with `Intl.DateTimeFormat` options, in the zone - for what the pattern tokens cannot say. */
   formatIntl(opts: {
-    value: TTemporalInput | null | undefined;
+    value: TNullable<TTemporalInput>;
     options?: Omit<Intl.DateTimeFormatOptions, 'timeZone'>;
     tz?: string;
     locale?: string;

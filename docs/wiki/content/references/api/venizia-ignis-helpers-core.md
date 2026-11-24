@@ -785,11 +785,11 @@ Header maps: merged per header, the call winning, a `null` or `undefined` value 
 export declare class HttpHeaders {
     /** The headers of `layers` in order, later layers over earlier ones, as one `Headers`. */
     static merge(opts: {
-        layers: ReadonlyArray<THttpHeaders | null | undefined>;
+        layers: ReadonlyArray<TNullable<THttpHeaders>>;
     }): Headers;
     /** `merge` under a JSON content type: the layers may replace it (any case) or remove it with `null`. */
     static withJsonDefault(opts: {
-        layers: ReadonlyArray<THttpHeaders | null | undefined>;
+        layers: ReadonlyArray<TNullable<THttpHeaders>>;
     }): Headers;
     /**
      * `headers` for a call with `body`: the JSON default content type is dropped when the runtime describes the body itself,
@@ -970,7 +970,7 @@ export declare class HttpResponseReader {
      * The pair of `RequestUtility.buildContentDispositionHeader`: one writes the header, this one reads it.
      */
     static parseContentDisposition(opts: {
-        header: string | null | undefined;
+        header: TNullable<string>;
     }): {
         type?: string;
         filename?: string;
@@ -3006,7 +3006,7 @@ Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.
 A header map as a call or a default writes it: a `Headers`, `[name, value]` pairs or a record. In a record a `null` or `undefined` value removes that header (a default included); a number is sent as text.
 
 ```ts
-export type THttpHeaders = Headers | Array<[string, string]> | Record<string, string | number | null | undefined>;
+export type THttpHeaders = Headers | Array<[string, string]> | Record<string, TNullable<string | number>>;
 ```
 
 Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`
