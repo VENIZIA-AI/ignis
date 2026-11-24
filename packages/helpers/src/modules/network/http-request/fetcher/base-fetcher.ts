@@ -15,7 +15,7 @@ import { RetryUtility } from '@/utilities/retry.utility';
 import type { z } from 'zod';
 import { type TFetcherVariant } from '../common';
 import { BodyLimit } from './common/body-limit';
-import { FetchSchemaError, type IFetchSchemaIssue } from './common/errors';
+import { FetchSchemaError } from './common/errors';
 import type { IFetchGuard, IFetchGuardHop, IFetchGuardRoute } from './common/guard';
 import { FetchRequestContext } from './common/request-context';
 import type {
@@ -623,12 +623,7 @@ export abstract class AbstractNetworkFetchableHelper<
     const parsed = schema.safeParse(value);
 
     if (!parsed.success) {
-      const issues: IFetchSchemaIssue[] = parsed.error.issues.map((issue) => ({
-        path: issue.path.map((part) => (typeof part === 'symbol' ? String(part) : part)),
-        code: issue.code,
-      }));
-
-      throw new FetchSchemaError({ status: exchange.status, url, issues });
+      throw FetchSchemaError.fromZod({ status: exchange.status, url, error: parsed.error });
     }
 
     return {

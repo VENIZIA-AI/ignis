@@ -689,6 +689,12 @@ export declare class FetchSchemaError extends ApplicationError {
         url: string;
         issues: IFetchSchemaIssue[];
     });
+    /** The error for a value the schema refused: the issues of `error` as paths and rule codes, never the value. */
+    static fromZod(opts: {
+        status: number;
+        url: string;
+        error: z.ZodError;
+    }): FetchSchemaError;
     static is(error: unknown): error is FetchSchemaError;
 }
 ```

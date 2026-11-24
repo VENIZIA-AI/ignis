@@ -1,6 +1,7 @@
 import { HttpReadShapes } from './common/constants';
-import { HTTP } from '@venizia/ignis-helpers/common';
-import { getError } from '@venizia/ignis-helpers/core';
+import { HTTP, type THttpMethod } from '@venizia/ignis-helpers/common';
+import { FetchSchemaError, getError } from '@venizia/ignis-helpers/core';
+import type { z } from 'zod';
 import type {
   IDeletableRepository,
   IReadableRepository,
@@ -20,6 +21,7 @@ import type {
   IHttpCallOptions,
   IHttpSearchResult,
   IHttpWriteResult,
+  THttpBody,
   THttpExtraQuery,
   TExtraRequest,
   TExtraResult,
@@ -434,6 +436,64 @@ export class HttpRepository<E extends object = object, P extends object = Partia
     const { result, options } = opts;
 
     return { count: result.count, data: options?.shouldReturn === false ? null : result.data };
+  }
+
+  /**
+   * A route that is not CRUD (`POST auth/sign-up`, `POST auth/forgot-password/request`), called through the data source and
+   * the repository's error mapping: a status that is not 2xx throws as every repository call does. `method` is POST unless
+   * given; `paths` are written in full, as the data source takes them.
+   *
+   * With a `schema` the answer is parsed and the call returns the parsed data, typed by the schema (`z.output`); an answer the
+   * schema refuses throws a `FetchSchemaError` (502) that names paths and rules, never the value. Without a `schema` the call
+   * returns nothing: the answer is not read, so it is not typed either. There is no type argument to write.
+   *
+   * @useWhen a subclass calls a route beside the CRUD routes and needs its answer typed, or no answer at all
+   * @insteadOf this.dataSource.write<R>({ paths, method, body }) with the data unwrapped and typed by hand
+   */
+  protected async action(opts: {
+    paths: Array<string>;
+    method?: THttpMethod;
+    body?: THttpBody;
+    schema?: undefined;
+    options?: THttpRepositoryOptions;
+  }): Promise<void>;
+  protected async action<S extends z.ZodType>(opts: {
+    paths: Array<string>;
+    method?: THttpMethod;
+    body?: THttpBody;
+    schema: S;
+    options?: THttpRepositoryOptions;
+  }): Promise<z.output<S>>;
+  protected async action(opts: {
+    paths: Array<string>;
+    method?: THttpMethod;
+    body?: THttpBody;
+    schema?: z.ZodType;
+    options?: THttpRepositoryOptions;
+  }): Promise<unknown> {
+    const { paths, method = HTTP.Methods.POST, body, schema, options } = opts;
+    const result = await this.dataSource.write<unknown>({
+      paths,
+      method,
+      body,
+      ...this.toCallOptions({ options }),
+    });
+
+    if (schema === undefined) {
+      return undefined;
+    }
+
+    const parsed = schema.safeParse(result.data);
+
+    if (!parsed.success) {
+      throw FetchSchemaError.fromZod({
+        status: result.status,
+        url: this.dataSource.buildUrl({ paths }),
+        error: parsed.error,
+      });
+    }
+
+    return parsed.data;
   }
 
   /** POST `/<resource>`. */

@@ -296,6 +296,32 @@ export declare class HttpRepository<E extends object = object, P extends object 
     }): TCount & {
         data: R | null;
     };
+    /**
+     * A route that is not CRUD (`POST auth/sign-up`, `POST auth/forgot-password/request`), called through the data source and
+     * the repository's error mapping: a status that is not 2xx throws as every repository call does. `method` is POST unless
+     * given; `paths` are written in full, as the data source takes them.
+     *
+     * With a `schema` the answer is parsed and the call returns the parsed data, typed by the schema (`z.output`); an answer the
+     * schema refuses throws a `FetchSchemaError` (502) that names paths and rules, never the value. Without a `schema` the call
+     * returns nothing: the answer is not read, so it is not typed either. There is no type argument to write.
+     *
+     * @useWhen a subclass calls a route beside the CRUD routes and needs its answer typed, or no answer at all
+     * @insteadOf this.dataSource.write<R>({ paths, method, body }) with the data unwrapped and typed by hand
+     */
+    protected action(opts: {
+        paths: Array<string>;
+        method?: THttpMethod;
+        body?: THttpBody;
+        schema?: undefined;
+        options?: THttpRepositoryOptions;
+    }): Promise<void>;
+    protected action<S extends z.ZodType>(opts: {
+        paths: Array<string>;
+        method?: THttpMethod;
+        body?: THttpBody;
+        schema: S;
+        options?: THttpRepositoryOptions;
+    }): Promise<z.output<S>>;
     /** POST `/<resource>`. */
     create<R = E>(opts: {
         data: P;
@@ -560,6 +586,8 @@ What a write answers: the rows the server returned, and its `x-response-count`.
 export interface IHttpWriteResult<R> {
     data: R;
     count: number;
+    /** The status the route answered with. */
+    status: number;
     /** What the route answered beside the rows, when the server marked it with `x-response-extra`. */
     extra?: Record<string, unknown>;
 }

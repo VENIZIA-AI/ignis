@@ -1,5 +1,6 @@
 import { HTTP } from '@/common/constants';
 import type { TErrorDefinition, TRegisterErrors } from '@venizia/ignis-inversion';
+import type { z } from 'zod';
 import { ApplicationError, ErrorScopes } from '@venizia/ignis-inversion';
 
 /** Errors a fetcher raises that are not a refusal of the url guard. */
@@ -45,6 +46,18 @@ export class FetchSchemaError extends ApplicationError {
     this.status = opts.status;
     this.url = opts.url;
     this.issues = opts.issues;
+  }
+
+  /** The error for a value the schema refused: the issues of `error` as paths and rule codes, never the value. */
+  static fromZod(opts: { status: number; url: string; error: z.ZodError }): FetchSchemaError {
+    return new FetchSchemaError({
+      status: opts.status,
+      url: opts.url,
+      issues: opts.error.issues.map((issue) => ({
+        path: issue.path.map((part) => (typeof part === 'symbol' ? String(part) : part)),
+        code: issue.code,
+      })),
+    });
   }
 
   static is(error: unknown): error is FetchSchemaError {

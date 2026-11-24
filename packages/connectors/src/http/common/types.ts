@@ -95,6 +95,8 @@ export interface IHttpReadResult<R> {
 export interface IHttpWriteResult<R> {
   data: R;
   count: number;
+  /** The status the route answered with. */
+  status: number;
   /** What the route answered beside the rows, when the server marked it with `x-response-extra`. */
   extra?: Record<string, unknown>;
 }

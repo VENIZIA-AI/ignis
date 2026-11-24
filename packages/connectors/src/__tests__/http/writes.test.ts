@@ -177,7 +177,7 @@ describe('HttpDataSource.write - rows, count and the server error', () => {
       body: { where: { id: { inq: ['a', 'b'] } }, status: 'closed' },
     });
 
-    expect(rs).toEqual({ data: [{ id: 'a' }, { id: 'b' }], count: 2 });
+    expect(rs).toEqual({ data: [{ id: 'a' }, { id: 'b' }], count: 2, status: 200 });
   });
 
   test('a non-2xx write throws with the server status, message and message code', async () => {
