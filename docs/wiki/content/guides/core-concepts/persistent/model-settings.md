@@ -502,7 +502,7 @@ Declaring `columns` moves a failure from write time to boot. The application ref
 
 ### One model class per table
 
-Give each table ONE model class, and decorate that class. A relation to a table, and a `through`, find the model by its table. With two `@model` classes on one table the registry cannot tell them apart: the lookup finds the wrong one, or none, and an `include` of the relation would read every row, scoped or not. The application refuses to boot when two classes share a table and one of them has an `access`. Pass the decorated class as the repository's `entityClass`, so the repository and the registry name the same model.
+Give each table ONE model class, and decorate that class. A relation to a table, and a `through`, find the model by its table. With two `@model` classes on one table the registry cannot tell them apart: the lookup finds the wrong one, or none, and an `include` of the relation would read every row, scoped or not. The application refuses to boot when a model with an `access` is not the model its table resolves to: two classes on one table, under the same registry name or under different ones. The check covers the models registered before boot; a model imported lazily after boot is not checked. Pass the decorated class as the repository's `entityClass`, so the repository and the registry name the same model.
 
 ### An empty where on a scoped model
 

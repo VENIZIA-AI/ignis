@@ -112,6 +112,51 @@ describe('two model classes on one table', () => {
     ).not.toThrow();
   });
 
+  describe('two classes on one table under different registry names', () => {
+    const product = pgTable('Product', { id: serial('id').primaryKey(), name: text('name') });
+
+    const declarePlain = () => {
+      @model({ type: 'entity' })
+      class Product extends BaseRelationalEntity<typeof product> {
+        static override schema = product;
+        static override TABLE_NAME = 'Product';
+      }
+
+      return Product;
+    };
+
+    const declareScoped = () => {
+      @model({ type: 'entity', tableName: 'MerchantProduct', settings: scoped })
+      class MerchantProduct extends BaseRelationalEntity<typeof product> {
+        static override schema = product;
+      }
+
+      return MerchantProduct;
+    };
+
+    test.each([
+      ['the plain class first', [declarePlain, declareScoped]],
+      ['the scoped class first', [declareScoped, declarePlain]],
+    ])('the boot refuses it, %s', (_label, order) => {
+      for (const declare of order) {
+        expect(declare().name.length).toBeGreaterThan(0);
+      }
+
+      expect(registry.getModelEntry({ name: 'Product' })?.isShared).toBeUndefined();
+      expect(() =>
+        ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: true }),
+      ).toThrow(/is not the model its table resolves to.*MerchantProduct/s);
+    });
+
+    test('the scoped class alone, under another registry name than its table, is fine', () => {
+      declareScoped();
+
+      expect(() =>
+        ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: true }),
+      ).not.toThrow();
+    });
+  });
+
   test('an abstract entity registered by hand is unaffected', () => {
     registry.getAllModels().set('Manual', {
       target: AbstractEntity as never,
