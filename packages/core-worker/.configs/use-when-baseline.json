@@ -1,0 +1,12 @@
+{
+  "entries": [
+    "src/applications/worker.ts#WorkerApplication",
+    "src/envelope/encode.ts#BFF_SYNTHETIC_ORIGIN",
+    "src/envelope/encode.ts#BffEnvelope",
+    "src/transport/fetch-bridge.ts#BffFetchBridge",
+    "src/transport/in-process.ts#InProcessBffTransport",
+    "src/transport/shared/common/constants.ts#BffRoles",
+    "src/transport/shared/transport.ts#SharedBffTransport",
+    "src/transport/worker.ts#WorkerBffTransport"
+  ]
+}

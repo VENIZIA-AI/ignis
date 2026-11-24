@@ -25,7 +25,7 @@ export class NoParentImportRule {
   /** One scan reads the same package.json for every file of a package. */
   private static readonly maps = new Map<string, IImportMap | null>();
 
-  /** The parsed package.json, or `undefined` when it cannot be read: a broken file never stops a lint run, the import is reported without a fix. */
+  /** A parsed JSON file (a package.json or a tsconfig without comments), or `undefined` when it cannot be read: a broken file never stops a lint run, the import is reported without a fix. */
   private static readManifest(opts: { file: string }): unknown {
     try {
       return JSON.parse(readFileSync(opts.file, 'utf8'));
@@ -54,8 +54,12 @@ export class NoParentImportRule {
       const value =
         typeof mapped === 'string' ? mapped : AstNode.readField({ node: mapped, key: 'default' });
 
-      if (typeof value === 'string' && value.endsWith('/*')) {
-        found = { root: directory, target: resolve(directory, value.slice(0, -2)) };
+      // `./src/*` and the preset's `./src/*.js` both name the source folder.
+      const folder =
+        typeof value === 'string' ? /^(.*)\/\*(?:\.[a-z]+)?$/.exec(value)?.[1] : undefined;
+
+      if (folder !== undefined) {
+        found = { root: directory, target: resolve(directory, folder) };
       }
 
       // A package.json that has no map still ends the walk: the next one up belongs to another package.
@@ -87,7 +91,42 @@ export class NoParentImportRule {
       return undefined;
     }
 
-    return `${NoParentImportRule.ALIAS}/${inside.split(sep).join('/')}`;
+    return `${NoParentImportRule.ALIAS}/${inside.split(sep).join('/')}${NoParentImportRule.indexSuffix({ absolute, map })}`;
+  }
+
+  /**
+   * `/index` when the target is a folder and the package cannot resolve a folder through `#src/*`. A package.json `imports`
+   * map has no directory index, so `#src/folder` only resolves where the tsconfig `paths` entry `#src/*` also lists
+   * `./src/*\/index`; elsewhere the fix writes the file out. A target that is a file, or not on disk, is left as written.
+   */
+  private static indexSuffix(opts: { absolute: string; map: IImportMap }): string {
+    const { absolute, map } = opts;
+    const extensions = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.json'];
+
+    if (extensions.some((extension) => existsSync(`${absolute}${extension}`))) {
+      return '';
+    }
+
+    const isFolder = ['index.ts', 'index.tsx', 'index.js'].some((name) =>
+      existsSync(join(absolute, name)),
+    );
+
+    return isFolder && !NoParentImportRule.pathsResolveFolders({ root: map.root }) ? '/index' : '';
+  }
+
+  /** Whether the package's tsconfig `paths` maps `#src/*` to a folder index as well. */
+  private static pathsResolveFolders(opts: { root: string }): boolean {
+    const config = NoParentImportRule.readManifest({ file: join(opts.root, 'tsconfig.json') });
+    const options = AstNode.readField({ node: config, key: 'compilerOptions' });
+    const paths = AstNode.readField({
+      node: AstNode.readField({ node: options, key: 'paths' }),
+      key: `${NoParentImportRule.ALIAS}/*`,
+    });
+
+    return (
+      Array.isArray(paths) &&
+      paths.some((entry) => typeof entry === 'string' && entry.endsWith('/*/index'))
+    );
   }
 
   static readonly RULE: Rule.RuleModule = {

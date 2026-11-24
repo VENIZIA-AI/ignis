@@ -418,6 +418,50 @@ describe('venizia/no-parent-import', () => {
     );
   });
 
+  test("the preset's './src/*.js' target is a map too", () => {
+    const { filename, cwd } = buildPackage({ imports: { '#src/*': './src/*.js' } });
+    const { fixed } = run({
+      name: NAME,
+      options: ['warn'],
+      filename,
+      cwd,
+      code: `import { a } from '../x';\n`,
+    });
+
+    expect(fixed).toBe(`import { a } from '#src/a/x';\n`);
+  });
+
+  test('a folder target gets /index unless the tsconfig paths resolve folders; a file target never does', () => {
+    const plain = buildPackage({ imports: { '#src/*': './src/*.js' } });
+    const withPaths = buildPackage({ imports: { '#src/*': './src/*.js' } });
+
+    const src = (root: string, path: string, content = 'export {};\n') => {
+      mkdirSync(join(root, 'src', path, '..'), { recursive: true });
+      writeFileSync(join(root, 'src', path), content);
+    };
+
+    for (const { cwd } of [plain, withPaths]) {
+      src(cwd, 'folder/index.ts');
+      src(cwd, 'leaf.ts');
+    }
+
+    writeFileSync(
+      join(withPaths.cwd, 'tsconfig.json'),
+      JSON.stringify({ compilerOptions: { paths: { '#src/*': ['./src/*', './src/*/index'] } } }),
+    );
+
+    const code = `import { a } from '../../folder';\nimport { b } from '../../leaf';\n`;
+    const folderOnly = (opts: { cwd: string; filename: string }) =>
+      run({ name: NAME, options: ['warn'], ...opts, code }).fixed;
+
+    expect(folderOnly(plain)).toBe(
+      `import { a } from '#src/folder/index';\nimport { b } from '#src/leaf';\n`,
+    );
+    expect(folderOnly(withPaths)).toBe(
+      `import { a } from '#src/folder';\nimport { b } from '#src/leaf';\n`,
+    );
+  });
+
   test('without the map, or when the import leaves the mapped folder, it is reported and left alone', () => {
     const unmapped = buildPackage({});
     const mapped = buildPackage({ imports: { '#src/*': './src/*' } });
@@ -480,6 +524,8 @@ describe('FrameworkRuleApis', () => {
     'no-return-await',
     'no-silent-catch',
     'no-unbraced-case',
+    'pending-use-when',
+    'require-use-when',
   ];
 
   test('every rule of the plugin has an entry, or is listed as a style rule: a new rule cannot skip the table', () => {

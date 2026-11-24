@@ -146,6 +146,8 @@ export default houseConfigs;
 
 The warnings never fail `make lint`: oxlint is the one that runs with `--deny-warnings`, and the warning rules run in ESLint. `const-class-values` skips key sets (`Pick`, `Omit`, `Extract`, `Exclude`, `Record` arguments and mapped-type keys). `const-class-values` and the cast rule are off in tests.
 
+A package that other projects install adds `...PublishedPackageConfigs.build({ baseline: '.configs/use-when-baseline.json' })` after `houseConfigs`: `venizia/require-use-when` then wants a `@useWhen` (and, optionally, an `@insteadOf`) in the TSDoc of every public value and of the framework types apps copy, so an author finds the API without knowing it exists. The baseline lists the exports not yet swept; those warn (`venizia/pending-use-when`) and the file may only shrink.
+
 `max-params-own` does not count a signature that belongs to someone else: a callback passed inline to a call (`map`, `sort`, a library handler) or to a JSX prop, a function a declared type fixes, or a constructor whose parameters are all `@inject`. A hook callback (`useCallback(...)`) is yours, so it counts. Tests are exempt from `no-new-error`, because a test throws a plain `Error` to stand in for a driver. For a bootstrap that cannot import `getError`, disable the rule on that line and give the reason.
 
 To change the allowed names, build the rule with extra selectors. An extra selector beats a base selector of the same kind only when it is more specific, so give it a `filter` - `{ selector: 'property', format: ['snake_case'] }` alone changes nothing, because the base `property` selector still wins:
