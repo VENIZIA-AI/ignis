@@ -1,4 +1,5 @@
 export { AwaitSupport } from './await-support';
+export * from './framework-rule-apis';
 export { ImportSupport } from './import-support';
 export * from './common';
 export * from './const-class-values.rule';

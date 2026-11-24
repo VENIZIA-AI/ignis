@@ -123,6 +123,12 @@ export class ImportSupport {
       return undefined;
     }
 
+    const merged = ImportSupport.mergeInto({ context, fixer, name, source, isType });
+
+    if (merged) {
+      return merged;
+    }
+
     const line = `import ${isType ? 'type ' : ''}{ ${name} } from '${source}';`;
     const imports = context.sourceCode.ast.body.filter(
       (statement) => AstNode.getType({ node: statement }) === AstNodeTypes.IMPORT_DECLARATION,
@@ -135,6 +141,61 @@ export class ImportSupport {
 
     const first = ImportSupport.firstAfterDirectives({ context });
 
-    return AstNode.isNode(first) ? [fixer.insertTextBefore(first, `${line}\n`)] : undefined;
+    if (!AstNode.isNode(first)) {
+      return undefined;
+    }
+
+    // After a shebang or a directive the import is a new block: a blank line keeps it apart from the code below.
+    const follows =
+      first !== context.sourceCode.ast.body[0] || context.sourceCode.text.startsWith('#!');
+
+    return [fixer.insertTextBefore(first, follows ? `${line}\n\n` : `${line}\n`)];
+  }
+
+  /**
+   * The fix that adds `name` to an import the file already has from `source`, when that import is a plain named list: a
+   * second `import { ... } from 'same-module'` line is what `no-duplicate-imports` reports. A type goes into an
+   * `import type` list as it is, and into a value list as `type Name`; a value only goes into a value list.
+   */
+  private static mergeInto(opts: {
+    context: Rule.RuleContext;
+    fixer: Rule.RuleFixer;
+    name: string;
+    source: string;
+    isType: boolean;
+  }): Array<Rule.Fix> | undefined {
+    const { context, fixer, name, source, isType } = opts;
+
+    for (const statement of context.sourceCode.ast.body) {
+      const specifiers: unknown = AstNode.readField({ node: statement, key: 'specifiers' });
+      const kind = AstNode.readField({ node: statement, key: 'importKind' });
+      const from = AstNode.readField({
+        node: AstNode.readField({ node: statement, key: 'source' }),
+        key: 'value',
+      });
+
+      if (
+        AstNode.getType({ node: statement }) !== AstNodeTypes.IMPORT_DECLARATION ||
+        from !== source ||
+        !Array.isArray(specifiers) ||
+        specifiers.length === 0 ||
+        !specifiers.every((item) => AstNode.getType({ node: item }) === 'ImportSpecifier')
+      ) {
+        continue;
+      }
+
+      const isTypeImport = kind === 'type';
+
+      if (!isType && isTypeImport) {
+        continue;
+      }
+
+      const last = specifiers[specifiers.length - 1];
+      const text = isType && !isTypeImport ? `type ${name}` : name;
+
+      return [fixer.insertTextAfter(last, `, ${text}`)];
+    }
+
+    return undefined;
   }
 }

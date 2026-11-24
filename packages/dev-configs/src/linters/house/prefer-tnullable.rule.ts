@@ -104,6 +104,8 @@ export class PreferTNullableRule {
           );
           // A local TNullable is not known to mean what the framework's does, so it is never written toward.
           const isLocal = ImportSupport.isDeclared({ context, name: 'TNullable' });
+          // A comment inside the union would be lost by the rewrite: the finding stays, the fix does not.
+          const hasComments = context.sourceCode.getCommentsInside(node).length > 0;
           const texts = rest.map((member) => PreferTNullableRule.textOf({ context, member }));
           const ensure = (fixer: Rule.RuleFixer) =>
             ImportSupport.ensure({
@@ -120,6 +122,7 @@ export class PreferTNullableRule {
             data: { source: source ?? PreferTNullableRule.DEFAULT_SOURCE },
             fix: (fixer) => {
               if (
+                hasComments ||
                 isLocal ||
                 (source === undefined && !ImportSupport.isImported({ context, name: 'TNullable' }))
               ) {
