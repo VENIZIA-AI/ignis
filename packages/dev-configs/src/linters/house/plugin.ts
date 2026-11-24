@@ -14,6 +14,7 @@ import { NoReturnAwaitRule } from './no-return-await.rule';
 import { NoShadowFrameworkTypeRule } from './no-shadow-framework-type.rule';
 import { NoSilentCatchRule } from './no-silent-catch.rule';
 import { NoUnbracedCaseRule } from './no-unbraced-case.rule';
+import { PreferFrameworkApiRule } from './prefer-framework-api.rule';
 import { PreferPromiseSleepRule } from './prefer-promise-sleep.rule';
 import { PreferTNullableRule } from './prefer-tnullable.rule';
 import { RequireUseWhenRule } from './require-use-when.rule';
@@ -37,6 +38,7 @@ export const houseEslintPlugin: ESLint.Plugin = {
     'no-silent-catch': NoSilentCatchRule.RULE,
     'no-unbraced-case': NoUnbracedCaseRule.RULE,
     'pending-use-when': RequireUseWhenRule.PENDING_RULE,
+    'prefer-framework-api': PreferFrameworkApiRule.RULE,
     'prefer-promise-sleep': PreferPromiseSleepRule.RULE,
     'prefer-tnullable': PreferTNullableRule.RULE,
     'require-use-when': RequireUseWhenRule.RULE,

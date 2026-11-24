@@ -1,4 +1,5 @@
 export { AwaitSupport } from './await-support';
+export * from './browser-api-patterns';
 export { FrameworkExports } from './framework-exports';
 export * from './framework-rule-apis';
 export { ImportSupport } from './import-support';
@@ -18,6 +19,7 @@ export * from './no-shadow-framework-type.rule';
 export * from './no-return-await.rule';
 export * from './no-silent-catch.rule';
 export * from './no-unbraced-case.rule';
+export * from './prefer-framework-api.rule';
 export * from './prefer-promise-sleep.rule';
 export * from './prefer-tnullable.rule';
 export { PublicSurface } from './public-surface';

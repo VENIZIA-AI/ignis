@@ -7,13 +7,14 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-0 exports, 0 with TSDoc. 68 more are re-exported from other entries (listed at the end).
+0 exports, 0 with TSDoc. 72 more are re-exported from other entries (listed at the end).
 
 ## Re-exported
 
 - `AstNode` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `AstNodeTypes` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `AwaitSupport` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
+- `BrowserApiPatterns` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `BrowserOxlintConfigs` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `BunCompiler` from [`@venizia/dev-configs/compilers`](/references/api/venizia-dev-configs-compilers)
 - `ConstClassValuesRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
@@ -27,6 +28,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 - `HOUSE_PLUGIN_NAMESPACE` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `houseConfigs` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `houseEslintPlugin` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
+- `IBrowserApiPattern` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `IFrameworkRuleApi` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `ImportSupport` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `IOxlintPresetOptions` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
@@ -55,6 +57,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 - `OxlintConfigs` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `paddingConfigs` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `PaddingLineBetweenStatementsRule` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
+- `PreferFrameworkApiRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `PreferNullishCoalescingRule` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `PreferPromiseSleepRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `PreferTNullableRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
@@ -69,6 +72,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 - `RuleSeverities` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `SwitchCaseBracesModes` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `SwitchCaseBracesRule` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
+- `TBrowserApiMatch` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `TConstValue` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `TEqeqeqMode` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `TNamingSelector` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
