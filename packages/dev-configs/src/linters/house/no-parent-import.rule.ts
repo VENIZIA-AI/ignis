@@ -25,6 +25,16 @@ export class NoParentImportRule {
   /** One scan reads the same package.json for every file of a package. */
   private static readonly maps = new Map<string, IImportMap | null>();
 
+  /** The parsed package.json, or `undefined` when it cannot be read: a broken file never stops a lint run, the import is reported without a fix. */
+  private static readManifest(opts: { file: string }): unknown {
+    try {
+      return JSON.parse(readFileSync(opts.file, 'utf8'));
+      // eslint-disable-next-line venizia/no-silent-catch -- a package.json that does not parse only costs the autofix
+    } catch {
+      return undefined;
+    }
+  }
+
   /** The import map of the package that owns `directory`, or `undefined` when it has none for `#src/*`. */
   private static mapOf(opts: { directory: string }): IImportMap | undefined {
     const { directory } = opts;
@@ -38,7 +48,7 @@ export class NoParentImportRule {
     let found: IImportMap | undefined;
 
     if (existsSync(manifest)) {
-      const parsed: unknown = JSON.parse(readFileSync(manifest, 'utf8'));
+      const parsed = NoParentImportRule.readManifest({ file: manifest });
       const imports = AstNode.readField({ node: parsed, key: 'imports' });
       const mapped = AstNode.readField({ node: imports, key: `${NoParentImportRule.ALIAS}/*` });
       const value =
@@ -91,7 +101,7 @@ export class NoParentImportRule {
       },
     },
     create: (context) => {
-      const check = (node: Rule.Node) => {
+      const check = (node: Rule.Node, opts: { fixable: boolean } = { fixable: true }) => {
         const source = AstNode.readField({ node, key: 'source' });
         const value = AstNode.readField({ node: source, key: 'value' });
 
@@ -109,16 +119,18 @@ export class NoParentImportRule {
           messageId: 'parent',
           data: { specifier: value },
           fix:
-            alias !== undefined && AstNode.isNode(source)
+            opts.fixable && alias !== undefined && AstNode.isNode(source)
               ? (fixer) => fixer.replaceText(source, `'${alias}'`)
               : null,
         });
       };
 
       return {
-        [AstNodeTypes.IMPORT_DECLARATION]: check,
-        [AstNodeTypes.EXPORT_NAMED_DECLARATION]: check,
-        [AstNodeTypes.EXPORT_ALL_DECLARATION]: check,
+        [AstNodeTypes.IMPORT_DECLARATION]: (node: Rule.Node) => check(node),
+        [AstNodeTypes.EXPORT_NAMED_DECLARATION]: (node: Rule.Node) => check(node),
+        [AstNodeTypes.EXPORT_ALL_DECLARATION]: (node: Rule.Node) => check(node),
+        // `import('../x')` is reported and left alone: its argument may be built, and the fix would not keep the laziness reading.
+        [AstNodeTypes.IMPORT_EXPRESSION]: (node: Rule.Node) => check(node, { fixable: false }),
       };
     },
   };

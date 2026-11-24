@@ -16,6 +16,30 @@ export class PreferTNullableRule {
 
   static readonly DEFAULT_SOURCE = '@venizia/ignis-helpers/common';
 
+  /**
+   * The source of a union member with the parentheses that belong to it: a function, constructor or conditional type is
+   * written `(...)` inside a union, and the member text alone (`() => void`) would change the type or not parse.
+   */
+  private static textOf(opts: { context: Rule.RuleContext; member: Rule.Node }): string {
+    const { context, member } = opts;
+    const { text } = context.sourceCode;
+    const [memberStart, memberEnd] = member.range ?? [0, 0];
+    let start = memberStart;
+    let end = memberEnd;
+
+    for (;;) {
+      const before = text.slice(0, start).trimEnd();
+      const after = text.slice(end).trimStart();
+
+      if (!before.endsWith('(') || !after.startsWith(')')) {
+        return text.slice(start, end);
+      }
+
+      start = before.length - 1;
+      end = text.length - after.length + 1;
+    }
+  }
+
   static readonly RULE: Rule.RuleModule = {
     meta: {
       type: 'suggestion',
@@ -28,8 +52,7 @@ export class PreferTNullableRule {
         },
       ],
       messages: {
-        nullable:
-          'Use TNullable<X> (from @venizia/ignis-helpers/common) for `X | null | undefined`.',
+        nullable: 'Use TNullable<X> (from {{source}}) for `X | null | undefined`.',
       },
     },
     create: (context) => {
@@ -79,27 +102,36 @@ export class PreferTNullableRule {
               typeOf(member) !== AstNodeTypes.NULL_KEYWORD &&
               typeOf(member) !== AstNodeTypes.UNDEFINED_KEYWORD,
           );
-          const canFix =
-            source !== undefined || ImportSupport.isInScope({ context, name: 'TNullable' });
+          // A local TNullable is not known to mean what the framework's does, so it is never written toward.
+          const isLocal = ImportSupport.isDeclared({ context, name: 'TNullable' });
+          const texts = rest.map((member) => PreferTNullableRule.textOf({ context, member }));
+          const ensure = (fixer: Rule.RuleFixer) =>
+            ImportSupport.ensure({
+              context,
+              fixer,
+              name: 'TNullable',
+              source: source ?? PreferTNullableRule.DEFAULT_SOURCE,
+              isType: true,
+            });
 
           context.report({
             node,
             messageId: 'nullable',
-            fix: canFix
-              ? (fixer) => [
-                  fixer.replaceText(
-                    node,
-                    `TNullable<${rest.map((member) => context.sourceCode.getText(member)).join(' | ')}>`,
-                  ),
-                  ...ImportSupport.ensure({
-                    context,
-                    fixer,
-                    name: 'TNullable',
-                    source: source ?? PreferTNullableRule.DEFAULT_SOURCE,
-                    isType: true,
-                  }),
-                ]
-              : null,
+            data: { source: source ?? PreferTNullableRule.DEFAULT_SOURCE },
+            fix: (fixer) => {
+              if (
+                isLocal ||
+                (source === undefined && !ImportSupport.isImported({ context, name: 'TNullable' }))
+              ) {
+                return null;
+              }
+
+              const imports = ensure(fixer);
+
+              return imports
+                ? [fixer.replaceText(node, `TNullable<${texts.join(' | ')}>`), ...imports]
+                : null;
+            },
           });
         },
       };

@@ -68,20 +68,98 @@ describe('venizia/prefer-tnullable', () => {
     );
   });
 
-  test('a file that already imports or declares TNullable gets no second import', () => {
-    const imported = run({
+  test('a file that already imports TNullable gets no second import', () => {
+    const { fixed } = run({
       name: NAME,
       code: `import type { TNullable } from '../types';\nlet x: string | null | undefined;\n`,
     });
-    const declared = run({
+
+    expect(fixed).toContain(`let x: TNullable<string>;`);
+    expect(fixed.match(/import/g)).toHaveLength(1);
+  });
+
+  test('a TNullable or interface the file declares itself is reported and never written toward', () => {
+    for (const local of [
+      `type TNullable<T> = T | null | undefined;`,
+      `interface TNullable<T> { value: T }`,
+    ]) {
+      const code = `${local}\nlet x: string | null | undefined;\n`;
+      const { findings, fixed } = run({ name: NAME, code });
+
+      expect(findings.some((finding) => finding.line === 2)).toBe(true);
+      expect(fixed).toBe(code);
+    }
+  });
+
+  test('a function, constructor or conditional member keeps its parentheses', () => {
+    const cases: Array<[string, string]> = [
+      [
+        `let x: string | (() => void) | null | undefined;`,
+        `let x: TNullable<string | (() => void)>;`,
+      ],
+      [`let x: (new () => B) | null | undefined;`, `let x: TNullable<(new () => B)>;`],
+      [
+        `let x: A | (T extends U ? X : Y) | null | undefined;`,
+        `let x: TNullable<A | (T extends U ? X : Y)>;`,
+      ],
+      [`let x: null | A | undefined | B;`, `let x: TNullable<A | B>;`],
+    ];
+
+    for (const [code, expected] of cases) {
+      const { fixed } = run({ name: NAME, code: `export {};\n${code}\n` });
+
+      expect(fixed).toContain(expected);
+      expect(() =>
+        new Linter().verify(fixed, configFor({ name: NAME }), { filename: 'src/a.ts' }),
+      ).not.toThrow();
+      expect(
+        new Linter()
+          .verify(fixed, configFor({ name: NAME }), { filename: 'src/a.ts' })
+          .some((finding) => finding.fatal),
+      ).toBe(false);
+    }
+  });
+
+  test('the import goes after a shebang and the directives, never before them', () => {
+    const useClient = run({
       name: NAME,
-      code: `type TNullable<T> = T | null | undefined;\nlet x: string | null | undefined;\n`,
+      code: `'use client';\n\nexport let x: string | null | undefined;\n`,
+    });
+    const shebang = run({
+      name: NAME,
+      code: `#!/usr/bin/env bun\nexport let x: string | null | undefined;\n`,
     });
 
-    expect(imported.fixed).toContain(`let x: TNullable<string>;`);
-    expect(imported.fixed.match(/import/g)).toHaveLength(1);
-    expect(declared.fixed).toContain(`let x: TNullable<string>;`);
-    expect(declared.fixed).not.toContain('import');
+    expect(useClient.fixed.startsWith(`'use client';\n`)).toBe(true);
+    expect(useClient.fixed).toContain(
+      `import type { TNullable } from '@venizia/ignis-helpers/common';`,
+    );
+    expect(shebang.fixed.startsWith(`#!/usr/bin/env bun\n`)).toBe(true);
+    expect(shebang.fixed).toContain(`import type { TNullable }`);
+  });
+
+  test('a script (no import or export) and a declaration file are reported and left alone', () => {
+    const script = run({ name: NAME, code: `let x: string | null | undefined;\n` });
+    const ambient = run({
+      name: NAME,
+      filename: 'src/globals.d.ts',
+      code: `declare let x: string | null | undefined;\nexport {};\n`,
+    });
+
+    expect(script.findings).toHaveLength(1);
+    expect(script.fixed).toBe(`let x: string | null | undefined;\n`);
+    expect(ambient.findings).toHaveLength(1);
+    expect(ambient.fixed).toBe(`declare let x: string | null | undefined;\nexport {};\n`);
+  });
+
+  test('the message names the configured source', () => {
+    const { findings } = run({
+      name: NAME,
+      options: ['error', { source: '#src/types' }],
+      code: `let a: string | null | undefined;`,
+    });
+
+    expect(findings[0]?.message).toContain('#src/types');
   });
 
   test('only null, only undefined, and the definition of TNullable itself are left alone', () => {
@@ -101,7 +179,7 @@ describe('venizia/prefer-tnullable', () => {
     const other = run({
       name: NAME,
       options: ['error', { source: '#src/types' }],
-      code: `let a: string | null | undefined;\n`,
+      code: `export let a: string | null | undefined;\n`,
     });
 
     expect(noFix.findings).toHaveLength(1);
@@ -124,19 +202,19 @@ describe('venizia/prefer-promise-sleep', () => {
   ])('%s is a sleep: reported and fixed', (_name, statement) => {
     const { findings, fixed } = run({
       name: NAME,
-      code: `async function f() {\n  ${statement}\n}\n`,
+      code: `export async function f() {\n  ${statement}\n}\n`,
     });
 
     expect(findings).toHaveLength(1);
     expect(fixed).toBe(
-      `${IMPORT}\nasync function f() {\n  await PromiseUtility.sleep({ ms: 50 });\n}\n`,
+      `${IMPORT}\nexport async function f() {\n  await PromiseUtility.sleep({ ms: 50 });\n}\n`,
     );
   });
 
   test('the delay expression is kept as written', () => {
     const { fixed } = run({
       name: NAME,
-      code: `const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms * 2));\n`,
+      code: `export const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms * 2));\n`,
     });
 
     expect(fixed).toContain(`PromiseUtility.sleep({ ms: ms * 2 })`);
@@ -158,6 +236,28 @@ describe('venizia/prefer-promise-sleep', () => {
     expect(
       run({ name: NAME, code: `new Promise((resolve) => setTimeout(other, 1));` }).findings,
     ).toHaveLength(0);
+  });
+
+  test('a setTimeout the file binds itself, and a comma-expression delay, are not a sleep', () => {
+    expect(
+      run({
+        name: NAME,
+        code: `export const f = (setTimeout: (r: () => void, n: number) => void) => new Promise((r) => setTimeout(r, 5));`,
+      }).findings,
+    ).toHaveLength(0);
+    expect(
+      run({
+        name: NAME,
+        code: `import { setTimeout } from 'node:timers';\nexport const p = new Promise((r) => setTimeout(r, 5));`,
+      }).findings,
+    ).toHaveLength(0);
+    expect(
+      run({ name: NAME, code: `export const p = new Promise((r) => setTimeout(r, (a(), 5)));` })
+        .findings,
+    ).toHaveLength(0);
+    expect(
+      run({ name: NAME, code: `export const p = new Promise((r) => setTimeout(r, 5));` }).findings,
+    ).toHaveLength(1);
   });
 
   test('houseConfigs turns it on for source and off for tests', () => {
@@ -230,6 +330,27 @@ describe('venizia/no-parent-import', () => {
       1,
     );
     expect(run({ name: NAME, options: ['warn'], ...mapped, code: leaving }).fixed).toBe(leaving);
+  });
+
+  test('a dynamic import is reported without a fix, and a package.json that does not parse never stops the run', () => {
+    const mapped = buildPackage({ imports: { '#src/*': './src/*' } });
+    const dynamic = run({
+      name: NAME,
+      options: ['warn'],
+      ...mapped,
+      code: `export const load = () => import('../x');\n`,
+    });
+
+    expect(dynamic.findings).toHaveLength(1);
+    expect(dynamic.fixed).toBe(`export const load = () => import('../x');\n`);
+
+    const broken = buildPackage({});
+    writeFileSync(join(broken.cwd, 'package.json'), '{ not json');
+    const code = `import { a } from '../x';\n`;
+    const result = run({ name: NAME, options: ['warn'], ...broken, code });
+
+    expect(result.findings).toHaveLength(1);
+    expect(result.fixed).toBe(code);
   });
 
   test('houseConfigs warns in source and stays quiet in tests', () => {

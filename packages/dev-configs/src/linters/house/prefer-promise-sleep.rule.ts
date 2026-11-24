@@ -1,4 +1,4 @@
-import type { Linter, Rule } from 'eslint';
+import type { Linter, Rule, Scope } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
 import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 import { ImportSupport } from './import-support';
@@ -76,6 +76,24 @@ export class PreferPromiseSleepRule {
     return isResolver && AstNode.isNode(delay) ? delay : undefined;
   }
 
+  /** Whether `setTimeout` at `node` resolves to a binding of the file (not the global timer). */
+  private static isRebound(opts: { context: Rule.RuleContext; node: Rule.Node }): boolean {
+    const { context, node } = opts;
+    let scope: Scope.Scope | null = context.sourceCode.getScope(node);
+
+    while (scope) {
+      const variable = scope.set.get('setTimeout');
+
+      if (variable && variable.defs.length > 0) {
+        return true;
+      }
+
+      scope = scope.upper;
+    }
+
+    return false;
+  }
+
   static readonly RULE: Rule.RuleModule = {
     meta: {
       type: 'suggestion',
@@ -121,27 +139,44 @@ export class PreferPromiseSleepRule {
             return;
           }
 
-          const canFix =
-            source !== undefined || ImportSupport.isInScope({ context, name: 'PromiseUtility' });
+          // A `setTimeout` the file binds itself (a parameter, a local, an import) is not the timer, and a comma expression is
+          // not one delay: neither is a sleep.
+          if (
+            PreferPromiseSleepRule.isRebound({ context, node }) ||
+            AstNode.getType({ node: delay }) === AstNodeTypes.SEQUENCE_EXPRESSION
+          ) {
+            return;
+          }
 
           context.report({
             node,
             messageId: 'sleep',
-            fix: canFix
-              ? (fixer) => [
-                  fixer.replaceText(
-                    node,
-                    `PromiseUtility.sleep({ ms: ${context.sourceCode.getText(delay)} })`,
-                  ),
-                  ...ImportSupport.ensure({
-                    context,
-                    fixer,
-                    name: 'PromiseUtility',
-                    source: source ?? PreferPromiseSleepRule.DEFAULT_SOURCE,
-                    isType: false,
-                  }),
-                ]
-              : null,
+            fix: (fixer) => {
+              if (
+                source === undefined &&
+                !ImportSupport.isInScope({ context, name: 'PromiseUtility' })
+              ) {
+                return null;
+              }
+
+              const imports = ImportSupport.ensure({
+                context,
+                fixer,
+                name: 'PromiseUtility',
+                source: source ?? PreferPromiseSleepRule.DEFAULT_SOURCE,
+                isType: false,
+              });
+
+              return imports
+                ? [
+                    fixer.replaceText(
+                      node,
+                      `PromiseUtility.sleep({ ms: ${context.sourceCode.getText(delay)} })`,
+                    ),
+                    ...imports,
+                  ]
+                : null;
+            },
           });
         },
       };

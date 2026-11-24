@@ -10,7 +10,9 @@ export class AstNodeTypes {
   static readonly EXPORT_NAMED_DECLARATION = 'ExportNamedDeclaration';
   static readonly EXPORT_ALL_DECLARATION = 'ExportAllDeclaration';
   static readonly IMPORT_DECLARATION = 'ImportDeclaration';
+  static readonly IMPORT_EXPRESSION = 'ImportExpression';
   static readonly CLASS_DECLARATION = 'ClassDeclaration';
+  static readonly INTERFACE_DECLARATION = 'TSInterfaceDeclaration';
   static readonly UNION_TYPE = 'TSUnionType';
   static readonly AWAIT_EXPRESSION = 'AwaitExpression';
   static readonly RETURN_STATEMENT = 'ReturnStatement';
