@@ -90,7 +90,9 @@ export const wrongData: TData = { id: 'p', title: 1, sequence: 1 };
 
   statics: `${PRELUDE}
 import { BaseRelationalEntity } from '${POSTGRES}';
-export const subject: string | undefined = EntityPolicy.AUTHORIZATION_SUBJECT;
+export const subject: string = EntityPolicy.AUTHORIZATION_SUBJECT;
+// @ts-expect-error the subject is a string, never undefined and never another type
+export const wrongSubject: number = EntityPolicy.AUTHORIZATION_SUBJECT;
 export const table: typeof PolicyTable = EntityPolicy.schema;
 export const asBase: typeof BaseRelationalEntity<typeof PolicyTable> = EntityPolicy;
 `,

@@ -1445,16 +1445,21 @@ Source -> [`builders/grant.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob
 
 `@model({ settings: { authorize: { principal } } })` (see [Persistent Models](/guides/core-concepts/persistent/models#authorization-settings)) drives two things:
 
-**1. `AUTHORIZATION_SUBJECT` static.** The `@model` decorator (`base/metadata/persistents/model.ts`) copies `settings.authorize.principal` onto the class as `AUTHORIZATION_SUBJECT`, unless the class already declares its own:
+**1. `AUTHORIZATION_SUBJECT` static.** The `@model` decorator (`base/metadata/persistents/model.ts`) defines `AUTHORIZATION_SUBJECT` on the class from `settings.authorize.principal`, unless the class already declares its own; with no principal it does nothing:
 
 ```typescript
 const principal = metadata.settings?.authorize?.principal;
 if (principal && !Object.hasOwn(target, 'AUTHORIZATION_SUBJECT')) {
-  target.AUTHORIZATION_SUBJECT = principal;
+  Reflect.defineProperty(target, 'AUTHORIZATION_SUBJECT', {
+    value: principal,
+    writable: true,
+    enumerable: true,
+    configurable: true,
+  });
 }
 ```
 
-Declared on both entity bases: `BasePostgresEntity.AUTHORIZATION_SUBJECT?: string` and `BaseSearchEntity.AUTHORIZATION_SUBJECT?: string`.
+Declared on both entity bases as `static get AUTHORIZATION_SUBJECT(): string`, which answers the class name for a class with no principal, so the value is always a `string`. The matching setter defines an own value, so a subclass's `static readonly AUTHORIZATION_SUBJECT = '...'`, which `tsc` compiles to an assignment, works too. A class name is renamed by a minified build: give `authorize.principal` to any model a rule names.
 
 **2. `IModelAuthorizeSettings`.**
 

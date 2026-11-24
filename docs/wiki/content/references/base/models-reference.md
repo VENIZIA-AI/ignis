@@ -97,7 +97,7 @@ Marks a class as a database entity and configures its behavior.
 | `settings.query.limit.default` | `number` | Default row limit when a query omits `limit`. Falls back to `DEFAULT_LIMIT` (10) |
 | `settings.query.limit.max` | `number` | Largest `limit` a caller may ask for. Falls back to `DEFAULT_MAX_LIMIT` (1000) |
 | `settings.authorize` | `IModelAuthorizeSettings` | Authorization settings: declares the model's authorization principal |
-| `settings.authorize.principal` | `string` | The authorization subject name for this model. Auto-populates the static `AUTHORIZATION_SUBJECT` property |
+| `settings.authorize.principal` | `string` | The authorization subject name for this model. Becomes the static `AUTHORIZATION_SUBJECT`; without it the model inherits its parent's subject, or answers its class name |
 
 Notes on the options:
 
@@ -141,7 +141,7 @@ To write across scopes on purpose (a system job, an admin role), return `ScopeFi
 When the `@model` decorator is applied:
 
 1. If `settings.query.limit.default` or `settings.query.limit.max` is provided, each is validated to be a positive integer - otherwise the decorator throws at decoration (boot) time.
-2. If `settings.authorize.principal` is provided and `AUTHORIZATION_SUBJECT` is not already an own property of the class, it auto-populates `AUTHORIZATION_SUBJECT` with the principal value.
+2. If `settings.authorize.principal` is given and not empty, and `AUTHORIZATION_SUBJECT` is not already an own property of the class, it defines `AUTHORIZATION_SUBJECT` with the principal. It is defined, not assigned, so it goes over the getter an entity base answers. Without a principal it does nothing: the model inherits its parent's value, or the base answers the class name.
 3. The model is registered in the `MetadataRegistry` model registry, keyed by table name (resolved as `metadata.tableName` > static `TABLE_NAME` > class name).
 4. The static `relations` property is stored as a resolver (not immediately resolved) to avoid circular dependency issues between models.
 
@@ -168,7 +168,7 @@ Relational entity class, wrapping a Drizzle ORM schema. Extends the neutral `Abs
 | `schema` | `Table` | The Drizzle table, typed `Table` on the base |
 | `relations` | `TValueOrResolver<Array<TRelationConfig>>` | Relation definitions (can be a function for lazy loading to avoid circular deps) |
 | `TABLE_NAME` | `string \| undefined` | Optional table name (defaults to class name if not set) |
-| `AUTHORIZATION_SUBJECT` | `string \| undefined` | Authorization principal name. Auto-populated from `@model` `settings.authorize.principal` |
+| `AUTHORIZATION_SUBJECT` | `string` | Authorization principal name: `@model` `settings.authorize.principal`; without it the parent's value, else the class name (a getter on the base; a minified build renames classes, so give the principal to any model a rule names). A class may declare its own |
 
 The static `schema` is typed `Table` on the base so a factory-built class can carry its precise table; a subclass that assigns its own keeps the precise type. The instance `schema` is the typed contract.
 
@@ -233,7 +233,11 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
   declare readonly $inferPersist?: TTableInsert<Schema>;
 
   static TABLE_NAME?: string;
-  static AUTHORIZATION_SUBJECT?: string;
+  static get AUTHORIZATION_SUBJECT(): string {
+    return this.name;
+  }
+  // A subclass's `static readonly AUTHORIZATION_SUBJECT = '...'` is compiled by tsc to an assignment: the setter defines it.
+  static set AUTHORIZATION_SUBJECT(value: string) { /* defines an own property */ }
   static schema: Table;
   static relations?: TValueOrResolver<Array<TRelationConfig>>;
 

@@ -57,15 +57,22 @@ export const model = (input: IModelMetadata = {}): ClassDecorator => {
       });
     }
 
-    // Auto-populate AUTHORIZATION_SUBJECT from authorize.principal if not already set
+    // The principal a model declares becomes its authorization subject; a subject the class declares itself is kept. A model
+    // with no principal is left alone: it inherits its parent's subject, or the entity base answers the class name. The value
+    // is DEFINED, not assigned, so it goes over the getter the base answers (an assignment is the base setter's business).
     const principal = settings?.authorize?.principal;
 
     if (principal && !Object.hasOwn(target, 'AUTHORIZATION_SUBJECT')) {
-      // Assigning to a read-only or getter-only inherited property, or on a non-extensible class, threw;
-      // `Reflect.set` only answers false, so keep the throw.
-      if (!Reflect.set(target, 'AUTHORIZATION_SUBJECT', principal)) {
+      const isDefined = Reflect.defineProperty(target, 'AUTHORIZATION_SUBJECT', {
+        value: principal,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
+
+      if (!isDefined) {
         throw getError({
-          message: `[model][${target.name}] Cannot set 'AUTHORIZATION_SUBJECT' | The class has a read-only or getter-only 'AUTHORIZATION_SUBJECT', or is not extensible`,
+          message: `[model][${target.name}] Cannot set 'AUTHORIZATION_SUBJECT' | The class is not extensible`,
         });
       }
     }

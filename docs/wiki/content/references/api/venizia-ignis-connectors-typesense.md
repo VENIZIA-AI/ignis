@@ -169,7 +169,19 @@ export declare class BaseSearchEntity<Schema extends ISearchCollectionDefinition
     readonly $inferData?: TSearchDocument<Schema>;
     readonly $inferPersist?: TSearchDocument<Schema>;
     static COLLECTION_NAME?: string;
-    static AUTHORIZATION_SUBJECT?: string;
+    /**
+     * What an authorization rule names this model by: the `authorize.principal` of `@model`, else the model's name (the class
+     * name, which a minified build changes: give the principal to any model a rule names). `@model` defines the principal on
+     * the class; a class that is not decorated, or has no principal, answers its name, so the value is never `undefined` and
+     * `Model.AUTHORIZATION_SUBJECT` needs no `!`.
+     */
+    static get AUTHORIZATION_SUBJECT(): string;
+    /**
+     * A subclass that declares `static readonly AUTHORIZATION_SUBJECT = '...'` is compiled by `tsc` (with
+     * `useDefineForClassFields: false`, which IGNIS needs) to an assignment: this setter turns it into the class's own value,
+     * as a field declaration would be under Bun.
+     */
+    static set AUTHORIZATION_SUBJECT(value: string);
     static schema: ISearchCollectionDefinition;
     static documentSchema?: z.ZodType;
     private static readonly _schemaCache;

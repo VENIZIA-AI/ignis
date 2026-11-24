@@ -408,7 +408,7 @@ customRole.identifier; // '100-editor'
 
 ## Model-Based Resource References
 
-Instead of hardcoding resource strings, declare `authorize.principal` on the model - `@model` auto-populates the static `AUTHORIZATION_SUBJECT` from it.
+Instead of hardcoding resource strings, declare `authorize.principal` on the model - `@model` sets the static `AUTHORIZATION_SUBJECT` from it (a `string`; a model without a principal answers its class name, which a minified build renames: give `authorize.principal` to any model a rule names).
 
 ```typescript
 import { BasePostgresEntity, model, PostgresIdEnricher } from '@venizia/ignis';
