@@ -7,6 +7,7 @@ import {
   type IApplicationEnvironmentDefaultedTransformOptions,
   type IApplicationEnvironmentTransformOptions,
 } from './common';
+import type { TNullable } from '@/common/types';
 
 /** Adds the `NODE_ENV` reads to {@link EnvironmentNames}. Every name and set is inherited, so `Environment.PRODUCTION`, `Environment.COMMON_ENVS` and `Environment.DEVELOPMENT_ENVS` keep resolving here; only these two members need a `process`. */
 export class Environment extends EnvironmentNames {
@@ -65,7 +66,7 @@ export class ApplicationEnvironment extends BaseHelper implements IApplicationEn
     key: string,
     opts?: {
       defaultValue?: string | R;
-      transform?: (raw: string | undefined) => R | null | undefined;
+      transform?: (raw: string | undefined) => TNullable<R>;
     },
   ): string | R | undefined {
     const raw = this.arguments[key];
@@ -84,11 +85,8 @@ export class ApplicationEnvironment extends BaseHelper implements IApplicationEn
    * A variable the app cannot run without: it is set and not blank (the rule `get` applies to a `defaultValue`), or this throws an error naming the key. The check runs before `transform`, so `transform` receives a `string`; a `transform` that answers null or undefined throws too. A required value has no `defaultValue`.
    */
   getRequired(key: string): string;
-  getRequired<R>(key: string, opts: { transform: (raw: string) => R | null | undefined }): R;
-  getRequired<R>(
-    key: string,
-    opts?: { transform: (raw: string) => R | null | undefined },
-  ): string | R {
+  getRequired<R>(key: string, opts: { transform: (raw: string) => TNullable<R> }): R;
+  getRequired<R>(key: string, opts?: { transform: (raw: string) => TNullable<R> }): string | R {
     const value = this.get(key);
 
     if (typeof value !== 'string' || !value.trim()) {

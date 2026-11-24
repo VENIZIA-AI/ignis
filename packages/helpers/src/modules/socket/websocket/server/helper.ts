@@ -28,6 +28,7 @@ import {
   WebSocketMessageTypes,
 } from '../common';
 import { WebSocketDeliveryHelper } from './delivery';
+import type { TNullable } from '@/common/types';
 
 /** WebSocket server for Bun with authentication, rooms, heartbeats, optional encrypted sessions, and Redis fan-out across instances. Clients must authenticate through `authenticateFn` within `authTimeout`. */
 export class WebSocketServerHelper<
@@ -43,7 +44,7 @@ export class WebSocketServerHelper<
    * inside the message callback and exits the process.
    */
   private static toRoomList(payload: unknown): string[] {
-    const rooms = (payload as { rooms?: unknown } | null | undefined)?.rooms;
+    const rooms = (payload as TNullable<{ rooms?: unknown }>)?.rooms;
 
     return Array.isArray(rooms)
       ? rooms.filter((room): room is string => typeof room === 'string')

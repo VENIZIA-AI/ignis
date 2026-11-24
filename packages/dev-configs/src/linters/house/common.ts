@@ -1,3 +1,5 @@
+import type { Rule } from 'eslint';
+
 /** The estree node types the house rules visit - computed visitor keys, so the names stay PascalCase as ESLint needs them. */
 export class AstNodeTypes {
   static readonly NEW_EXPRESSION = 'NewExpression';
@@ -6,6 +8,9 @@ export class AstNodeTypes {
   static readonly FUNCTION_EXPRESSION = 'FunctionExpression';
   static readonly ARROW_FUNCTION_EXPRESSION = 'ArrowFunctionExpression';
   static readonly EXPORT_NAMED_DECLARATION = 'ExportNamedDeclaration';
+  static readonly EXPORT_ALL_DECLARATION = 'ExportAllDeclaration';
+  static readonly IMPORT_DECLARATION = 'ImportDeclaration';
+  static readonly CLASS_DECLARATION = 'ClassDeclaration';
   static readonly UNION_TYPE = 'TSUnionType';
   static readonly AWAIT_EXPRESSION = 'AwaitExpression';
   static readonly RETURN_STATEMENT = 'ReturnStatement';
@@ -69,6 +74,11 @@ export class AstNode {
     return typeof node === 'object' && node !== null && key in node
       ? Reflect.get(node, key)
       : undefined;
+  }
+
+  /** Whether `value` is an AST node: an object with a string `type`. */
+  static isNode(value: unknown): value is Rule.Node {
+    return AstNode.getType({ node: value }) !== undefined;
   }
 
   /** The node's `type`, or `undefined` for anything that is not an AST node. */

@@ -26,6 +26,7 @@ import {
   MEILISEARCH_DEFAULT_UPDATE_BATCH_SIZE,
   MeilisearchTaskStatuses,
 } from './common';
+import { PromiseUtility } from '@venizia/ignis-helpers/core';
 
 // Re-exported for back-compat: callers and test fakes historically imported the client-shape type from this module rather than from `./common`, its new home.
 export type { IMeilisearchClientLike } from './common';
@@ -190,7 +191,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
         });
       }
 
-      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      await PromiseUtility.sleep({ ms: intervalMs });
       intervalMs = Math.min(intervalMs * 2, MAX_TASK_INTERVAL_MS);
     }
   }

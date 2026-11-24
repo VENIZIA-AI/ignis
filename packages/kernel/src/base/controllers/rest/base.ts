@@ -88,7 +88,7 @@ export abstract class BaseRestController<
     payload: { count: number; data?: TNullable<R> };
     range?: TDataRange;
     extra?: never;
-  }): R | { count: number; data?: TNullable<R> } | null | undefined;
+  }): TNullable<R | { count: number; data?: TNullable<R> }>;
   respond<R, Extra extends Record<string, TResponseExtra>>(opts: {
     context: TRouteContext<RouteEnv>;
     format: TResponseFormat;
@@ -96,15 +96,15 @@ export abstract class BaseRestController<
     range?: TDataRange;
     extra: Extra;
   }): Promise<
-    | R
-    | { count: number; data?: TNullable<R> }
-    | {
-        count?: number;
-        data?: TNullable<R>;
-        extra: Partial<Record<keyof Extra, unknown>>;
-      }
-    | null
-    | undefined
+    TNullable<
+      | R
+      | { count: number; data?: TNullable<R> }
+      | {
+          count?: number;
+          data?: TNullable<R>;
+          extra: Partial<Record<keyof Extra, unknown>>;
+        }
+    >
   >;
   respond<R>(opts: {
     context: TRouteContext<RouteEnv>;
@@ -113,7 +113,7 @@ export abstract class BaseRestController<
     range?: TDataRange;
     extra?: Record<string, TResponseExtra>;
   }): ValueOrPromise<
-    R | { count?: number; data?: TNullable<R>; extra?: Record<string, unknown> } | null | undefined
+    TNullable<R | { count?: number; data?: TNullable<R>; extra?: Record<string, unknown> }>
   >;
   respond<R>(opts: {
     context: TRouteContext<RouteEnv>;

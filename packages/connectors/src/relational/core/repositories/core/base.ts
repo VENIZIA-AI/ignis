@@ -89,7 +89,7 @@ export abstract class RelationalBaseRepository<
   private _hiddenPropertySet: Set<string> | null = null;
 
   /** Memoized Drizzle column-selection map derived from hidden fields. `null` = not yet computed; `undefined` = computed, no hidden fields. */
-  private _visibleColumns: Record<string, AnyColumn> | null | undefined = null;
+  private _visibleColumns: TNullable<Record<string, AnyColumn>> = null;
 
   constructor(
     dataSource?: TDataSource,

@@ -3,6 +3,7 @@ import type { IRetryBackoffOptions, IRetryContext } from '@/modules/retry/common
 import type { IUrlSafetyPolicy } from '@/modules/network/utilities/url-safety/common/types';
 import type { AxiosInstance, AxiosResponse } from 'axios';
 import type { TFetcherVariant } from '../../common';
+import type { TNullable } from '@/common/types';
 
 /** What a fetcher of this variant answers: a `Response` for `'native'`, an `AxiosResponse` for `'axios'`. */
 export type TFetcherResponse<T extends TFetcherVariant> = T extends 'native'
@@ -18,7 +19,7 @@ export type TFetcherWorker<T extends TFetcherVariant> = T extends 'axios'
 export type THttpHeaders =
   | Headers
   | Array<[string, string]>
-  | Record<string, string | number | null | undefined>;
+  | Record<string, TNullable<string | number>>;
 
 /** What a fetcher answers when the call passes a `schema`: the parsed body beside the raw response. */
 export interface IFetchParsed<D, RS> {

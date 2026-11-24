@@ -5,6 +5,7 @@ import {
 } from '@/modules/network/utilities/url-safety/common/errors';
 import { FetchSchemaError } from './errors';
 import type { THttpHeaders } from './types';
+import type { TNullable } from '@/common/types';
 
 /** Tests a body against runtime classes by name. */
 export class HttpBodies {
@@ -33,7 +34,7 @@ export class HttpBodies {
 /** Header maps: merged per header, the call winning, a `null` or `undefined` value removing a header. */
 export class HttpHeaders {
   /** The headers of `layers` in order, later layers over earlier ones, as one `Headers`. */
-  static merge(opts: { layers: ReadonlyArray<THttpHeaders | null | undefined> }): Headers {
+  static merge(opts: { layers: ReadonlyArray<TNullable<THttpHeaders>> }): Headers {
     const merged = new Headers();
 
     for (const layer of opts.layers) {
@@ -59,9 +60,7 @@ export class HttpHeaders {
   }
 
   /** `merge` under a JSON content type: the layers may replace it (any case) or remove it with `null`. */
-  static withJsonDefault(opts: {
-    layers: ReadonlyArray<THttpHeaders | null | undefined>;
-  }): Headers {
+  static withJsonDefault(opts: { layers: ReadonlyArray<TNullable<THttpHeaders>> }): Headers {
     return HttpHeaders.merge({
       layers: [
         { [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON_UTF8 },

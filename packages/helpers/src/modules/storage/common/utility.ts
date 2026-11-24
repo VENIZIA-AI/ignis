@@ -2,6 +2,7 @@ import { DurationMultipliers, type IDuration } from '@/common';
 import { HTTP } from '@/common/constants';
 import { getError } from '@/modules/error';
 import { S3Defaults, StoragePresignLimits } from './constants';
+import type { TNullable } from '@/common/types';
 
 /** Backend-neutral checks shared by storage helpers: recognising a "not found" error and turning an `IDuration` into presign seconds. */
 export class StorageUtility {
@@ -31,7 +32,7 @@ export class StorageUtility {
 
   /** "The expected content is gone", across SDKs: S3 and MinIO answer 412. */
   static isPreconditionFailedError(opts: { error: unknown }): boolean {
-    const source = opts.error as { statusCode?: number; status?: number } | null | undefined;
+    const source = opts.error as TNullable<{ statusCode?: number; status?: number }>;
 
     return (
       source?.statusCode === HTTP.ResultCodes.RS_4.PreconditionFailed ||

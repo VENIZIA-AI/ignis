@@ -25,6 +25,7 @@ import type {
   ITemporalHelper,
 } from './common/types';
 import { TemporalLocale } from './locale';
+import type { TNullable } from '@/common/types';
 
 const DAY_MILLISECONDS = 86_400_000;
 
@@ -174,7 +175,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
    * is not a date answers `null`; without one it is a 400, null included.
    */
   protected readDate(opts: {
-    value: TTemporalInput | null | undefined;
+    value: TNullable<TTemporalInput>;
     tz: string;
     fallback?: string;
   }): Date | null {
@@ -422,7 +423,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
   }
 
   /** `toDate`, answering `null` where `toDate` refuses the value: null, undefined, bad text, NaN. */
-  tryToDate(opts: { value: TTemporalInput | null | undefined; tz?: string }): Date | null {
+  tryToDate(opts: { value: TNullable<TTemporalInput>; tz?: string }): Date | null {
     const { value } = opts;
     // Outside the try: a bad zone is the caller's bug, not an unreadable value.
     const tz = this.resolveTz({ tz: opts.tz });
@@ -504,13 +505,13 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
   abstract tryParse(opts: { value: string; pattern?: string; tz?: string }): Date | null;
 
   abstract isValid(opts: {
-    value: TTemporalInput | null | undefined;
+    value: TNullable<TTemporalInput>;
     pattern?: string;
     tz?: string;
   }): boolean;
 
   abstract format(opts: {
-    value: TTemporalInput | null | undefined;
+    value: TNullable<TTemporalInput>;
     pattern?: string;
     tz?: string;
     locale?: string;
