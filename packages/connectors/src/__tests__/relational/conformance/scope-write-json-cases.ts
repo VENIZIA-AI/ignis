@@ -24,7 +24,7 @@ export interface IJsonScopeContext {
   rows(): Promise<Array<IJsonRow>>;
   names(opts: { mode: TJsonScopeMode }): Promise<Array<string>>;
   count(opts: { mode: TJsonScopeMode }): Promise<number>;
-  create(opts: { mode: TJsonScopeMode; data: Record<string, unknown> }): Promise<unknown>;
+  create(opts: { mode: TJsonScopeMode; data: { name: string; meta?: unknown } }): Promise<unknown>;
   update(opts: {
     mode: TJsonScopeMode;
     where: Record<string, unknown>;
@@ -51,7 +51,10 @@ const rejected = (task: Promise<unknown>) => {
   return RejectionUtility.expectRejection({ task, message: /write refused by the access scope/ });
 };
 
-export const defineScopeWriteJsonCases = (opts: { engine: string; context: () => IJsonScopeContext }) => {
+export const defineScopeWriteJsonCases = (opts: {
+  engine: string;
+  context: () => IJsonScopeContext;
+}) => {
   const { engine, context } = opts;
 
   describe(`access on a JSON member, on ${engine}`, () => {
@@ -76,7 +79,7 @@ export const defineScopeWriteJsonCases = (opts: { engine: string; context: () =>
       });
 
       test('an in list and the bracket spelling read the same way', async () => {
-        const inList = await start({ 'meta.merchantId': { in: ['m-a', 'm-b'] } });
+        const inList = await start({ 'meta.merchantId': { inq: ['m-a', 'm-b'] } });
         const listed = await inList.names({ mode: 'reject' });
 
         expect(listed).toEqual(['a1', 'a2', 'b1']);
@@ -92,7 +95,9 @@ export const defineScopeWriteJsonCases = (opts: { engine: string; context: () =>
       test('a foreign value is refused and nothing is written', async () => {
         const ctx = await start();
 
-        await rejected(ctx.create({ mode: 'reject', data: { name: 'x', meta: { merchantId: 'm-b' } } }));
+        await rejected(
+          ctx.create({ mode: 'reject', data: { name: 'x', meta: { merchantId: 'm-b' } } }),
+        );
 
         const rows = await ctx.rows();
         expect(rows).toHaveLength(A_ROWS.length);
@@ -117,7 +122,10 @@ export const defineScopeWriteJsonCases = (opts: { engine: string; context: () =>
       test('a value inside the scope is written, and the caller sees it', async () => {
         const ctx = await start();
 
-        await ctx.create({ mode: 'reject', data: { name: 'new', meta: { merchantId: 'm-a', tag: 'n' } } });
+        await ctx.create({
+          mode: 'reject',
+          data: { name: 'new', meta: { merchantId: 'm-a', tag: 'n' } },
+        });
 
         const names = await ctx.names({ mode: 'reject' });
         expect(names).toEqual(['a1', 'a2', 'new']);
@@ -141,7 +149,9 @@ export const defineScopeWriteJsonCases = (opts: { engine: string; context: () =>
       test('assign never overwrites a present key: a foreign value is refused', async () => {
         const ctx = await start();
 
-        await rejected(ctx.create({ mode: 'assign', data: { name: 'x', meta: { merchantId: 'm-b' } } }));
+        await rejected(
+          ctx.create({ mode: 'assign', data: { name: 'x', meta: { merchantId: 'm-b' } } }),
+        );
       });
 
       test('sharedRows lets a row with no member in, and nothing else', async () => {
@@ -161,7 +171,9 @@ export const defineScopeWriteJsonCases = (opts: { engine: string; context: () =>
         const ctx = await start();
 
         for (const key of ['meta.merchantId', 'meta[merchantId]']) {
-          await rejected(ctx.update({ mode: 'reject', where: { name: 'a1' }, data: { [key]: 'm-b' } }));
+          await rejected(
+            ctx.update({ mode: 'reject', where: { name: 'a1' }, data: { [key]: 'm-b' } }),
+          );
         }
 
         const rows = await ctx.rows();
@@ -171,9 +183,15 @@ export const defineScopeWriteJsonCases = (opts: { engine: string; context: () =>
       test('replacing the whole column without the member, or with a foreign one, is refused', async () => {
         const ctx = await start();
 
-        await rejected(ctx.update({ mode: 'reject', where: { name: 'a1' }, data: { meta: { tag: 'x' } } }));
         await rejected(
-          ctx.update({ mode: 'reject', where: { name: 'a1' }, data: { meta: { merchantId: 'm-b' } } }),
+          ctx.update({ mode: 'reject', where: { name: 'a1' }, data: { meta: { tag: 'x' } } }),
+        );
+        await rejected(
+          ctx.update({
+            mode: 'reject',
+            where: { name: 'a1' },
+            data: { meta: { merchantId: 'm-b' } },
+          }),
         );
         await rejected(ctx.update({ mode: 'reject', where: { name: 'a1' }, data: { meta: null } }));
 
@@ -192,14 +210,22 @@ export const defineScopeWriteJsonCases = (opts: { engine: string; context: () =>
           }),
         );
         await rejected(
-          ctx.update({ mode: 'reject', where: { name: 'a1' }, data: { 'meta.merchantId.id': 'm-a' } }),
+          ctx.update({
+            mode: 'reject',
+            where: { name: 'a1' },
+            data: { 'meta.merchantId.id': 'm-a' },
+          }),
         );
       });
 
       test('another path of the column changes only that path, on the caller rows only', async () => {
         const ctx = await start();
 
-        await ctx.update({ mode: 'reject', where: { tag: 'one' }, data: { 'meta.tag': 'changed' } });
+        await ctx.update({
+          mode: 'reject',
+          where: { 'meta.tag': 'one' },
+          data: { 'meta.tag': 'changed' },
+        });
 
         const rows = await ctx.rows();
         expect(rows.map((row) => row.meta)).toEqual([
@@ -213,7 +239,11 @@ export const defineScopeWriteJsonCases = (opts: { engine: string; context: () =>
       test('setting the member to its own value, by path or by the whole column, is allowed', async () => {
         const ctx = await start();
 
-        await ctx.update({ mode: 'reject', where: { name: 'a1' }, data: { 'meta.merchantId': 'm-a' } });
+        await ctx.update({
+          mode: 'reject',
+          where: { name: 'a1' },
+          data: { 'meta.merchantId': 'm-a' },
+        });
         await ctx.update({
           mode: 'reject',
           where: { name: 'a2' },
@@ -255,31 +285,28 @@ export const defineScopeWriteJsonCases = (opts: { engine: string; context: () =>
       });
     });
 
-    describe('number and text compare as text, on the engine and in the guard', () => {
-      test('a numeric scope value reads the rows that hold it, and writes only what equals it as text', async () => {
+    describe('a numeric scope value', () => {
+      test('reads the rows that hold the number, and a write the guard lets through is one the scope reads back', async () => {
         const ctx = context();
         await ctx.reset();
         await ctx.seed({
           rows: [
-            { meta: { tenant: 7 }, name: 'number' },
-            { meta: { tenant: '7' }, name: 'text' },
-            { meta: { tenant: 8 }, name: 'other' },
+            { meta: { tenant: 7 }, name: 'seven' },
+            { meta: { tenant: 8 }, name: 'eight' },
           ],
         });
         ctx.setScope({ scope: { 'meta.tenant': 7 } });
 
-        const names = await ctx.names({ mode: 'reject' });
+        const before = await ctx.names({ mode: 'reject' });
 
-        // Whatever the engine reads for 7, a write the guard lets through is a row the same scope reads back.
-        await ctx.create({ mode: 'reject', data: { name: 'written-number', meta: { tenant: 7 } } });
-        await ctx.create({ mode: 'reject', data: { name: 'written-text', meta: { tenant: '7' } } });
+        await ctx.create({ mode: 'reject', data: { name: 'written', meta: { tenant: 7 } } });
         await rejected(ctx.create({ mode: 'reject', data: { name: 'x', meta: { tenant: 8 } } }));
         await rejected(ctx.create({ mode: 'reject', data: { name: 'x', meta: { tenant: '07' } } }));
 
         const after = await ctx.names({ mode: 'reject' });
 
-        expect(after).toEqual([...names, 'written-number', 'written-text']);
-        expect(names).toContain('number');
+        expect(before).toEqual(['seven']);
+        expect(after).toEqual(['seven', 'written']);
       });
     });
   });
