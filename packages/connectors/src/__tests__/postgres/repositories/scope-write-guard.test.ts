@@ -1,4 +1,5 @@
 import { PGlite } from '@electric-sql/pglite';
+import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
@@ -394,13 +395,18 @@ describe('scopeFilter write guard', () => {
       await seed();
       const repository = build(RejectItem);
 
-      await expect(repository.deleteBy({ where: {} })).rejects.toThrow(/Empty where condition/);
-      await expect(repository.updateBy({ where: {}, data: { name: 'x' } })).rejects.toThrow(
-        /Empty where condition/,
-      );
-      await expect(
-        repository.updateBy({ where: { and: [] }, data: { name: 'x' } }),
-      ).rejects.toThrow(/Empty where condition/);
+      await RejectionUtility.expectRejection({
+        task: repository.deleteBy({ where: {} }),
+        message: /Empty where condition/,
+      });
+      await RejectionUtility.expectRejection({
+        task: repository.updateBy({ where: {}, data: { name: 'x' } }),
+        message: /Empty where condition/,
+      });
+      await RejectionUtility.expectRejection({
+        task: repository.updateBy({ where: { and: [] }, data: { name: 'x' } }),
+        message: /Empty where condition/,
+      });
 
       expect(await rows()).toEqual(untouched);
     });
@@ -409,8 +415,14 @@ describe('scopeFilter write guard', () => {
       await seed();
       const repository = buildSoft(SoftItem);
 
-      await expect(repository.deleteBy({ where: {} })).rejects.toThrow(/Empty where condition/);
-      await expect(repository.restoreBy({ where: {} })).rejects.toThrow(/Empty where condition/);
+      await RejectionUtility.expectRejection({
+        task: repository.deleteBy({ where: {} }),
+        message: /Empty where condition/,
+      });
+      await RejectionUtility.expectRejection({
+        task: repository.restoreBy({ where: {} }),
+        message: /Empty where condition/,
+      });
 
       expect(await rows()).toEqual(untouched);
     });
@@ -454,7 +466,10 @@ describe('scopeFilter write guard', () => {
       await seed();
       const repository = build(PlainItem);
 
-      await expect(repository.deleteBy({ where: {} })).rejects.toThrow(/Empty where condition/);
+      await RejectionUtility.expectRejection({
+        task: repository.deleteBy({ where: {} }),
+        message: /Empty where condition/,
+      });
       expect(await rows()).toEqual(untouched);
 
       await repository.deleteBy({ where: {}, options: { force: true } });
