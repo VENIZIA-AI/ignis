@@ -218,6 +218,38 @@ export class Product extends ModelFactory.defineEntity({ table: productTable }) 
 
 `UNRESTRICTED` is a symbol, not a string, so no request body, query string or header can produce it: the decision stays in code you wrote. A resolver that forgets a `return` produces `undefined`, which falls to `onMissing`, never to `UNRESTRICTED`.
 
+### resolve is synchronous
+
+`resolve` returns the scope, not a promise: the repository builds each filter synchronously, an included relation's scope too, so a resolver that awaits (a lookup of the caller's enrollments, a call to another service) cannot be used there. Resolve the async fact BEFORE the repository call, once per request, put it on the request context, and let `resolve` read it:
+
+```typescript
+// src/middlewares/enrollments.middleware.ts - runs after authentication, before the controller
+import { Authentication } from '@venizia/ignis';
+import type { MiddlewareHandler } from 'hono';
+import { enrollmentService } from '@/services/enrollment.service';
+
+export const ENROLLED_COURSE_IDS = 'app.enrolledCourseIds';
+
+export const loadEnrollments: MiddlewareHandler = async (context, next) => {
+  const user = context.get(Authentication.CURRENT_USER);
+
+  context.set(ENROLLED_COURSE_IDS, user ? await enrollmentService.courseIdsOf({ userId: user.userId }) : []);
+  await next();
+};
+```
+
+```typescript
+// src/utilities/enrollments.ts
+import { RequestContextRegistry } from '@venizia/ignis';
+import { ENROLLED_COURSE_IDS } from '@/middlewares/enrollments.middleware';
+
+export const currentCourseIds = (): string[] => {
+  return RequestContextRegistry.resolve()?.get(ENROLLED_COURSE_IDS) ?? [];
+};
+```
+
+`resolve: () => ({ courseId: { in: currentCourseIds() } })` then stays a plain read. A background job has no request: set the same key in the job's own context, or let the resolver return `ScopeFilters.UNRESTRICTED` for it on purpose.
+
 ### Read wider than you write
 
 A marketplace order is visible to its merchant and to the counterpart merchant. Only the merchant may change it. One scope cannot say both, so `resolve` receives the operation and answers each one:
@@ -249,6 +281,8 @@ export class Order extends ModelFactory.defineEntity({ table: orderTable }) {}
 ```
 
 A read sees both columns. A create, an update and a delete are held to `merchantId` alone, and an update or delete reaches only the caller's own rows.
+
+The same shape fits "owned OR enrolled": a read returns `{ or: [{ ownerId }, { enrolledId }] }`, every write operation returns `{ ownerId }`. An enrolled row is then readable but not updatable or deletable: the update's `where` is the narrow scope, so it matches no enrolled row, and a create is held to `ownerId`. There is no separate read and write resolver: `operation` is that switch.
 
 `operation` is always one of four values. Every repository call passes one:
 
