@@ -693,7 +693,7 @@ jobs:
 
       - name: Publish the atlas index of the tag
         if: ${{ steps.tag.outputs.tag != '' }}
-        uses: VENIZIA-AI/vulcan/.github/actions/atlas-index@64cdc7b039151ef72899bf0a0d3a148117ab64ef # vulcan-v0.5.0-0
+        uses: VENIZIA-AI/vulcan/.github/actions/atlas-index@8d65b9c4567d430dc0aa54f4c67e8275818f6dc0 # vulcan-v0.5.0-6
         with:
           ref: ${{ steps.tag.outputs.tag }}
         env:
