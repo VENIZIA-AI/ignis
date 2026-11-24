@@ -252,14 +252,14 @@ export declare class AuthControllerFactory {
             }): Promise<R>;
             normalizeCountData<ResponseSchema, RequestContext extends import("@venizia/ignis-kernel").TRouteContext<import("hono").Env> = import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>, ResponseData extends {
                 count: number;
-                data?: import("@venizia/ignis-helpers").TNullable<ResponseSchema>;
+                data?: import("@venizia/ignis-inversion").TNullable<ResponseSchema>;
             } = {
                 count: number;
-                data?: import("@venizia/ignis-helpers").TNullable<ResponseSchema>;
+                data?: import("@venizia/ignis-inversion").TNullable<ResponseSchema>;
             }>(opts: {
                 context: RequestContext;
                 payload: ResponseData;
-            }): ResponseData | import("@venizia/ignis-helpers").TNullable<ResponseSchema>;
+            }): ResponseData | import("@venizia/ignis-inversion").TNullable<ResponseSchema>;
             getRequestedExtras(opts: {
                 context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
             }): Array<import("@venizia/ignis-kernel").IRequestedExtra>;
@@ -268,29 +268,29 @@ export declare class AuthControllerFactory {
                 format: import("@venizia/ignis-kernel").TResponseFormat;
                 payload: {
                     count: number;
-                    data?: import("@venizia/ignis-helpers").TNullable<R>;
+                    data?: import("@venizia/ignis-inversion").TNullable<R>;
                 };
                 range?: import("@venizia/ignis-kernel").TDataRange;
                 extra?: never;
             }): R | {
                 count: number;
-                data?: import("@venizia/ignis-helpers").TNullable<R>;
+                data?: import("@venizia/ignis-inversion").TNullable<R>;
             } | null | undefined;
             respond<R, Extra extends Record<string, import("@venizia/ignis-kernel").TResponseExtra>>(opts: {
                 context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
                 format: import("@venizia/ignis-kernel").TResponseFormat;
                 payload: {
                     count: number;
-                    data?: import("@venizia/ignis-helpers").TNullable<R>;
+                    data?: import("@venizia/ignis-inversion").TNullable<R>;
                 };
                 range?: import("@venizia/ignis-kernel").TDataRange;
                 extra: Extra;
             }): Promise<R | {
                 count: number;
-                data?: import("@venizia/ignis-helpers").TNullable<R>;
+                data?: import("@venizia/ignis-inversion").TNullable<R>;
             } | {
                 count?: number;
-                data?: import("@venizia/ignis-helpers").TNullable<R>;
+                data?: import("@venizia/ignis-inversion").TNullable<R>;
                 extra: Partial<Record<keyof Extra, unknown>>;
             } | null | undefined>;
             respond<R>(opts: {
@@ -298,31 +298,31 @@ export declare class AuthControllerFactory {
                 format: import("@venizia/ignis-kernel").TResponseFormat;
                 payload: {
                     count: number;
-                    data?: import("@venizia/ignis-helpers").TNullable<R>;
+                    data?: import("@venizia/ignis-inversion").TNullable<R>;
                 };
                 range?: import("@venizia/ignis-kernel").TDataRange;
                 extra?: Record<string, import("@venizia/ignis-kernel").TResponseExtra>;
             }): ValueOrPromise<R | {
                 count?: number;
-                data?: import("@venizia/ignis-helpers").TNullable<R>;
+                data?: import("@venizia/ignis-inversion").TNullable<R>;
                 extra?: Record<string, unknown>;
             } | null | undefined>;
             respondWithExtra<R>(opts: {
                 context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
                 payload: {
                     count: number;
-                    data?: import("@venizia/ignis-helpers").TNullable<R>;
+                    data?: import("@venizia/ignis-inversion").TNullable<R>;
                 };
                 extra: Record<string, import("@venizia/ignis-kernel").TResponseExtra>;
             }): Promise<R | {
                 count: number;
-                data?: import("@venizia/ignis-helpers").TNullable<R>;
+                data?: import("@venizia/ignis-inversion").TNullable<R>;
             } | {
                 count: number;
-                data: import("@venizia/ignis-helpers").TNullable<R>;
+                data: import("@venizia/ignis-inversion").TNullable<R>;
                 extra: Record<string, unknown>;
             } | {
-                data: import("@venizia/ignis-helpers").TNullable<R>;
+                data: import("@venizia/ignis-inversion").TNullable<R>;
                 extra: Record<string, unknown>;
                 count?: undefined;
             } | null | undefined>;
@@ -3935,7 +3935,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `SystemEnvsHelper` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TableColumnCache` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TAbstractClass` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
-- `TAbstractConstructor` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `TAbstractConstructor` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TAbstractMixinConstructor` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TAbstractMixinTarget` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TAESSecret` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -3978,12 +3978,12 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TCasbinEnforcerModelDriver` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TCasbinRuleVariant` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TChangePasswordRequest` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
-- `TClass` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `TClass` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TColumnDefinition` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TColumnDefinitions` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TCompressEncoding` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
-- `TConstructor` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
-- `TConstValue` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `TConstructor` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `TConstValue` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TContentDispositionType` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TContentType` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TContext` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -4108,7 +4108,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TNativeFetchSender` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TNativeRequestInit` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TNodePredicate` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `TNullable` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `TNullable` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TNumberConstValue` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TObjectFromFieldMappings` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TObjectStreamOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -4259,10 +4259,10 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `UuidV4Generator` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UuidV5Generator` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UuidV7Generator` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `ValueOf` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `ValueOf` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `ValueOptional` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `ValueOptionalExcept` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
-- `ValueOrPromise` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `ValueOrPromise` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `VaultAuthMethods` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `WebSocketChannels` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `WebSocketClientStates` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)

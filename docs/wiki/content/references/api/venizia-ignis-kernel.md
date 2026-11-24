@@ -1526,7 +1526,7 @@ export declare abstract class BaseRestController<RouteEnv extends Env = Env, Rou
     }>(opts: {
         context: RequestContext;
         payload: ResponseData;
-    }): TNullable<ResponseSchema> | ResponseData;
+    }): ResponseData | TNullable<ResponseSchema>;
     /** `x-request-extra`, parsed: `name`, `-name` (a default switched off) and `name(key,key)`. */
     getRequestedExtras(opts: {
         context: TRouteContext<RouteEnv>;
@@ -2126,14 +2126,14 @@ export declare class CrudControllerFactory extends BaseHelper {
             }): Promise<R>;
             normalizeCountData<ResponseSchema, RequestContext extends import("../index.js").TRouteContext<RouteEnv> = import("../index.js").TRouteContext<RouteEnv>, ResponseData extends {
                 count: number;
-                data?: import("@venizia/ignis-helpers/common").TNullable<ResponseSchema>;
+                data?: import("@venizia/ignis-inversion").TNullable<ResponseSchema>;
             } = {
                 count: number;
-                data?: import("@venizia/ignis-helpers/common").TNullable<ResponseSchema>;
+                data?: import("@venizia/ignis-inversion").TNullable<ResponseSchema>;
             }>(opts: {
                 context: RequestContext;
                 payload: ResponseData;
-            }): ResponseData | import("@venizia/ignis-helpers/common").TNullable<ResponseSchema>;
+            }): ResponseData | import("@venizia/ignis-inversion").TNullable<ResponseSchema>;
             getRequestedExtras(opts: {
                 context: import("../index.js").TRouteContext<RouteEnv>;
             }): Array<import("../index.js").IRequestedExtra>;
@@ -2142,29 +2142,29 @@ export declare class CrudControllerFactory extends BaseHelper {
                 format: import("../index.js").TResponseFormat;
                 payload: {
                     count: number;
-                    data?: import("@venizia/ignis-helpers/common").TNullable<R>;
+                    data?: import("@venizia/ignis-inversion").TNullable<R>;
                 };
                 range?: import("../../repositories/index.js").TDataRange;
                 extra?: never;
             }): R | {
                 count: number;
-                data?: import("@venizia/ignis-helpers/common").TNullable<R>;
+                data?: import("@venizia/ignis-inversion").TNullable<R>;
             } | null | undefined;
             respond<R, Extra extends Record<string, import("../index.js").TResponseExtra>>(opts: {
                 context: import("../index.js").TRouteContext<RouteEnv>;
                 format: import("../index.js").TResponseFormat;
                 payload: {
                     count: number;
-                    data?: import("@venizia/ignis-helpers/common").TNullable<R>;
+                    data?: import("@venizia/ignis-inversion").TNullable<R>;
                 };
                 range?: import("../../repositories/index.js").TDataRange;
                 extra: Extra;
             }): Promise<R | {
                 count: number;
-                data?: import("@venizia/ignis-helpers/common").TNullable<R>;
+                data?: import("@venizia/ignis-inversion").TNullable<R>;
             } | {
                 count?: number;
-                data?: import("@venizia/ignis-helpers/common").TNullable<R>;
+                data?: import("@venizia/ignis-inversion").TNullable<R>;
                 extra: Partial<Record<keyof Extra, unknown>>;
             } | null | undefined>;
             respond<R>(opts: {
@@ -2172,31 +2172,31 @@ export declare class CrudControllerFactory extends BaseHelper {
                 format: import("../index.js").TResponseFormat;
                 payload: {
                     count: number;
-                    data?: import("@venizia/ignis-helpers/common").TNullable<R>;
+                    data?: import("@venizia/ignis-inversion").TNullable<R>;
                 };
                 range?: import("../../repositories/index.js").TDataRange;
                 extra?: Record<string, import("../index.js").TResponseExtra>;
             }): ValueOrPromise<R | {
                 count?: number;
-                data?: import("@venizia/ignis-helpers/common").TNullable<R>;
+                data?: import("@venizia/ignis-inversion").TNullable<R>;
                 extra?: Record<string, unknown>;
             } | null | undefined>;
             respondWithExtra<R>(opts: {
                 context: import("../index.js").TRouteContext<RouteEnv>;
                 payload: {
                     count: number;
-                    data?: import("@venizia/ignis-helpers/common").TNullable<R>;
+                    data?: import("@venizia/ignis-inversion").TNullable<R>;
                 };
                 extra: Record<string, import("../index.js").TResponseExtra>;
             }): Promise<R | {
                 count: number;
-                data?: import("@venizia/ignis-helpers/common").TNullable<R>;
+                data?: import("@venizia/ignis-inversion").TNullable<R>;
             } | {
                 count: number;
-                data: import("@venizia/ignis-helpers/common").TNullable<R>;
+                data: import("@venizia/ignis-inversion").TNullable<R>;
                 extra: Record<string, unknown>;
             } | {
-                data: import("@venizia/ignis-helpers/common").TNullable<R>;
+                data: import("@venizia/ignis-inversion").TNullable<R>;
                 extra: Record<string, unknown>;
                 count?: undefined;
             } | null | undefined>;
