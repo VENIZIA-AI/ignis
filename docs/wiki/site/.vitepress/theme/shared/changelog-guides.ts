@@ -5,7 +5,7 @@
  * The migration blocks of a version folder (`changelogs/<X.Y.Z>/migration.yaml`) as the upgrade guide shows them. A block is
  * what an app does for one Breaking or Deprecated item: the symbols it is affected through, the code before and after, the
  * ordered steps, a note on data, the way back, and the name of a codemod. The YAML is read here, at build time (the page never
- * loads a parser), and a file that cannot be read gives no blocks: `vulcan check changelog` is what reports it. This file is
+ * loads a parser), and a file that cannot be read gives no blocks: `vulcan changelog check` is what reports it. This file is
  * pure Node (no VitePress import) so a test can run it.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';

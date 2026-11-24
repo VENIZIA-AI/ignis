@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis-connectors/relational, from the bui
 
 # `@venizia/ignis-connectors/relational`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 81 exports, 81 with TSDoc.
 
