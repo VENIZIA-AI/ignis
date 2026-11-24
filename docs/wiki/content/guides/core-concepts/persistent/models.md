@@ -297,7 +297,7 @@ The handle carries the key's columns, typed as the table's properties, and the t
 
 ## Authorization Settings
 
-Declare your model's authorization principal directly in `@model` settings. The decorator auto-populates `AUTHORIZATION_SUBJECT` for type-safe references in route configs:
+Declare your model's authorization principal directly in `@model` settings. The decorator always sets `AUTHORIZATION_SUBJECT`, a `string`: the principal when you give one, the model's name when you do not. Use it for type-safe references in route configs:
 
 ```typescript
 import { AuthorizationActions, model } from '@venizia/ignis';

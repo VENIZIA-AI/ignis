@@ -135,7 +135,7 @@ const ownerVoter: TAuthorizationVoter = async ({ user, context }) => {
 authorize: { action: 'read', resource: 'Order', domain: { from: 'param', key: 'merchantId', type: 'Merchant' } }
 ```
 
-**Reference a model instead of a hardcoded string.** `@model({ settings: { authorize: { principal } } })` auto-populates `Model.AUTHORIZATION_SUBJECT`.
+**Reference a model instead of a hardcoded string.** `@model` always sets `Model.AUTHORIZATION_SUBJECT`, a `string`: `authorize.principal` when given, else the model's name.
 
 ```typescript
 authorize: { action: AuthorizationActions.READ, resource: Article.AUTHORIZATION_SUBJECT }

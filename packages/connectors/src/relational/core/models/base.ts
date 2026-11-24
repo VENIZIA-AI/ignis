@@ -25,7 +25,15 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
   declare readonly $inferPersist?: TTableInsert<Schema>;
 
   static TABLE_NAME?: string;
-  static AUTHORIZATION_SUBJECT?: string;
+
+  /**
+   * What an authorization rule names this model by: the `authorize.principal` of `@model`, else the model's name. `@model`
+   * defines it on the class; this answers the class's own name for a class that is not decorated, so it is never
+   * `undefined` and `Model.AUTHORIZATION_SUBJECT` needs no `!`.
+   */
+  static get AUTHORIZATION_SUBJECT(): string {
+    return this.name;
+  }
 
   /** A carrier, deliberately widened to `Table`: a factory-built entity knows its table precisely, and a narrower static would reject that precise type. The CONTRACT stays on the instance, typed `Schema`. */
   static schema: Table;

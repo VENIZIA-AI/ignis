@@ -17,7 +17,15 @@ export class BaseSearchEntity<
   declare readonly $inferPersist?: TSearchDocument<Schema>;
 
   static COLLECTION_NAME?: string;
-  static AUTHORIZATION_SUBJECT?: string;
+
+  /**
+   * What an authorization rule names this model by: the `authorize.principal` of `@model`, else the model's name. `@model`
+   * defines it on the class; this answers the class's own name for a class that is not decorated, so it is never
+   * `undefined` and `Model.AUTHORIZATION_SUBJECT` needs no `!`.
+   */
+  static get AUTHORIZATION_SUBJECT(): string {
+    return this.name;
+  }
 
   static schema: ISearchCollectionDefinition;
 

@@ -1445,16 +1445,20 @@ Source -> [`builders/grant.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob
 
 `@model({ settings: { authorize: { principal } } })` (see [Persistent Models](/guides/core-concepts/persistent/models#authorization-settings)) drives two things:
 
-**1. `AUTHORIZATION_SUBJECT` static.** The `@model` decorator (`base/metadata/persistents/model.ts`) copies `settings.authorize.principal` onto the class as `AUTHORIZATION_SUBJECT`, unless the class already declares its own:
+**1. `AUTHORIZATION_SUBJECT` static.** The `@model` decorator (`base/metadata/persistents/model.ts`) defines `AUTHORIZATION_SUBJECT` on the class: `settings.authorize.principal`, else the class name, unless the class already declares its own:
 
 ```typescript
-const principal = metadata.settings?.authorize?.principal;
-if (principal && !Object.hasOwn(target, 'AUTHORIZATION_SUBJECT')) {
-  target.AUTHORIZATION_SUBJECT = principal;
+if (!Object.hasOwn(target, 'AUTHORIZATION_SUBJECT')) {
+  Reflect.defineProperty(target, 'AUTHORIZATION_SUBJECT', {
+    value: metadata.settings?.authorize?.principal || target.name,
+    writable: true,
+    enumerable: true,
+    configurable: true,
+  });
 }
 ```
 
-Declared on both entity bases: `BasePostgresEntity.AUTHORIZATION_SUBJECT?: string` and `BaseSearchEntity.AUTHORIZATION_SUBJECT?: string`.
+Declared on both entity bases as `static get AUTHORIZATION_SUBJECT(): string`, which answers the class name for a class that is not decorated, so the value is always a `string`.
 
 **2. `IModelAuthorizeSettings`.**
 

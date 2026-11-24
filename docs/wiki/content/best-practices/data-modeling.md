@@ -432,13 +432,13 @@ export class User extends BaseRelationalEntity<typeof User.schema> {
   });
 }
 
-// User.AUTHORIZATION_SUBJECT === 'user' (auto-populated)
+// User.AUTHORIZATION_SUBJECT === 'user' (a string, set by @model)
 ```
 
 **Key points:**
 
-- `AUTHORIZATION_SUBJECT` is auto-set from `authorize.principal` by the `@model` decorator
-- Use `Model.AUTHORIZATION_SUBJECT` in route configs instead of hardcoded strings
+- `AUTHORIZATION_SUBJECT` is a `string`, always set by the `@model` decorator: `authorize.principal`, else the model's name
+- Use `Model.AUTHORIZATION_SUBJECT` in route configs instead of hardcoded strings; it needs no `!`
 - Explicit `static AUTHORIZATION_SUBJECT = '...'` on the class takes precedence
 - The `authorize` settings are extensible via index signature for custom metadata
 

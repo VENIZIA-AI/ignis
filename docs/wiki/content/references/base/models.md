@@ -157,7 +157,7 @@ See [Pagination](/references/base/filter-system/fields-order-pagination#default-
 
 ### Declare an authorization principal
 
-`settings.authorize.principal` names the model as an authorization subject. The decorator auto-populates the static `AUTHORIZATION_SUBJECT` from it.
+`settings.authorize.principal` names the model as an authorization subject. The decorator always sets the static `AUTHORIZATION_SUBJECT` (a `string`): the principal when given, else the model's name.
 
 ```typescript
 @model({

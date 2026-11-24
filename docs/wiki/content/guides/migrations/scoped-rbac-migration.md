@@ -182,8 +182,8 @@ class declares:
 const adapter = new ApplicationCasbinAdapter({
   dataSource: this.get<PostgresCoreDataSource>({ /* unchanged */ }),
   entities: {
-    role: { principalType: Role.AUTHORIZATION_SUBJECT! },
-    permission: { principalType: Permission.AUTHORIZATION_SUBJECT! },
+    role: { principalType: Role.AUTHORIZATION_SUBJECT },
+    permission: { principalType: Permission.AUTHORIZATION_SUBJECT },
   },
 });
 ```

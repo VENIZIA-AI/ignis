@@ -699,7 +699,7 @@ import { productTable } from './product.table';
 export class Product extends ModelFactory.defineEntity({ table: productTable }) {}
 ```
 
-The decorator sets `Product.AUTHORIZATION_SUBJECT` to `'Product'`, so a route can read the resource name from the model instead of repeating the string (the value is `undefined` for a model with no principal, hence the fallback):
+The decorator sets `Product.AUTHORIZATION_SUBJECT` to `'Product'`, so a route can read the resource name from the model instead of repeating the string. The value is always a `string`: a model with no principal gets its own name, so no `!` and no `??` is needed:
 
 ```typescript
 // src/controllers/product.controller.ts
@@ -707,7 +707,7 @@ import { AuthorizationActions, CrudControllerFactory, CrudRoutes } from '@venizi
 import { Product } from '@/models/product.model';
 import { ProductRepository } from '@/repositories/product.repository';
 
-const resource = Product.AUTHORIZATION_SUBJECT ?? 'Product';
+const resource = Product.AUTHORIZATION_SUBJECT;
 
 export const ProductController = CrudControllerFactory.build({
   repository: ProductRepository,

@@ -180,7 +180,7 @@ export type TUser = TEntityObject<typeof User>;
 - `static TABLE_NAME` - Database table name, read off the table
 - `static schema` - The Drizzle table
 - `static relations` - Relations resolver, built from the `relations` option (`one` and `many`)
-- `static AUTHORIZATION_SUBJECT` - Authorization principal (auto-set from `@model` settings `authorize.principal`)
+- `static AUTHORIZATION_SUBJECT` - Authorization subject, a `string` (`@model` settings `authorize.principal`, else the model's name)
 
 `BaseEntity` is the compatibility class for hand-written models. New code uses `ModelFactory.defineEntity`.
 

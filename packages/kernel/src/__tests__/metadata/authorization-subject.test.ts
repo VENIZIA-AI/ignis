@@ -41,24 +41,68 @@ describe('@model authorize.principal', () => {
     expect(Note.AUTHORIZATION_SUBJECT).toBe('Own');
   });
 
-  test('refuses a class whose inherited AUTHORIZATION_SUBJECT cannot be written, as the assignment did', () => {
-    abstract class Base extends AbstractEntity {
-      static get AUTHORIZATION_SUBJECT() {
-        return 'Base';
+  test('a model with no principal gets its own name', () => {
+    @model({ tableName: tableName() })
+    class Invoice extends AbstractEntity {
+      getSchema<T>(): T {
+        throw getError({ message: 'the schema is not read in this test' });
       }
     }
 
-    const declare = () => {
-      @model({ tableName: tableName(), settings: { authorize: { principal: 'Child' } } })
-      class Child extends Base {
+    expect(Reflect.get(Invoice, 'AUTHORIZATION_SUBJECT')).toBe('Invoice');
+    expect(Object.hasOwn(Invoice, 'AUTHORIZATION_SUBJECT')).toBe(true);
+  });
+
+  test('an empty principal is no principal: the name is used', () => {
+    @model({ tableName: tableName(), settings: { authorize: { principal: '' } } })
+    class Receipt extends AbstractEntity {
+      getSchema<T>(): T {
+        throw getError({ message: 'the schema is not read in this test' });
+      }
+    }
+
+    expect(Reflect.get(Receipt, 'AUTHORIZATION_SUBJECT')).toBe('Receipt');
+  });
+
+  test('the value is defined over a getter the base answers, which an assignment could not do', () => {
+    abstract class Base extends AbstractEntity {
+      static get AUTHORIZATION_SUBJECT(): string {
+        return this.name;
+      }
+    }
+
+    @model({ tableName: tableName(), settings: { authorize: { principal: 'Child' } } })
+    class Entry extends Base {
+      getSchema<T>(): T {
+        throw getError({ message: 'the schema is not read in this test' });
+      }
+    }
+
+    @model({ tableName: tableName() })
+    class Other extends Base {
+      getSchema<T>(): T {
+        throw getError({ message: 'the schema is not read in this test' });
+      }
+    }
+
+    expect(Entry.AUTHORIZATION_SUBJECT).toBe('Child');
+    expect(Other.AUTHORIZATION_SUBJECT).toBe('Other');
+    expect(Base.AUTHORIZATION_SUBJECT).toBe('Base');
+  });
+
+  test('a class that is not extensible is refused, naming the class', () => {
+    const sealed = () => {
+      class Frozen extends AbstractEntity {
         getSchema<T>(): T {
           throw getError({ message: 'the schema is not read in this test' });
         }
       }
 
-      return Child;
+      Object.preventExtensions(Frozen);
+
+      return model({ tableName: tableName() })(Frozen);
     };
 
-    expect(declare).toThrow(/Cannot set 'AUTHORIZATION_SUBJECT'/);
+    expect(sealed).toThrow(/\[model\]\[Frozen\] Cannot set 'AUTHORIZATION_SUBJECT'/);
   });
 });
