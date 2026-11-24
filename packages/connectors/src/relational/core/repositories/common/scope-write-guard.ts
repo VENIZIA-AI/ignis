@@ -1,3 +1,4 @@
+import { FilterKeys } from '@venizia/ignis-filter';
 import { getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import {
   QueryOperators,
@@ -18,8 +19,11 @@ import { ScopeFilterDenial, ScopeResolution } from './scope-filter';
 
 type TScalar = string | number | bigint | boolean | Date | null;
 
-/** The allowed values per scope column, each normalised so `1` and `'1'` and equal dates compare equal. */
-type TConstraints = Map<string, Set<string | null>>;
+/** One column's allowed values: the normalised form (so `1` and `'1'` and equal dates compare equal) and the value as written, which `assign` stamps. */
+type TAllowed = Map<string | null, TScalar>;
+
+/** The allowed values per scope column. */
+type TConstraints = Map<string, TAllowed>;
 
 type TExtraction =
   | { isVerifiable: true; constraints: TConstraints }
@@ -49,8 +53,12 @@ const normalise = (value: TScalar): string | null => {
   return value instanceof Date ? value.toISOString() : String(value);
 };
 
-const intersect = (opts: { left: Set<string | null>; right: Set<string | null> }) => {
-  return new Set([...opts.left].filter((value) => opts.right.has(value)));
+const intersect = (opts: { left: TAllowed; right: TAllowed }): TAllowed => {
+  return new Map([...opts.left].filter(([key]) => opts.right.has(key)));
+};
+
+const allowing = (values: ReadonlyArray<TScalar>): TAllowed => {
+  return new Map(values.map((value) => [normalise(value), value]));
 };
 
 /**
@@ -117,7 +125,7 @@ export class ScopeWriteGuard {
         continue;
       }
 
-      if (key.includes('.')) {
+      if (FilterKeys.isJsonPath({ key })) {
         return `the nested path '${key}' cannot be checked on a write`;
       }
 
@@ -142,7 +150,7 @@ export class ScopeWriteGuard {
    */
   private static unionOfBranches(opts: {
     branches: unknown;
-  }): { column: string; allowed: Set<string | null> } | string {
+  }): { column: string; allowed: TAllowed } | string {
     const { branches } = opts;
 
     if (!Array.isArray(branches) || branches.length === 0) {
@@ -150,7 +158,7 @@ export class ScopeWriteGuard {
     }
 
     let column: string | undefined;
-    const allowed = new Set<string | null>();
+    const allowed: TAllowed = new Map();
 
     for (const branch of branches) {
       const entries = Object.entries((branch ?? {}) as Record<string, unknown>);
@@ -161,7 +169,7 @@ export class ScopeWriteGuard {
 
       const [key, value] = entries[0];
 
-      if (key === 'and' || key === 'or' || key.includes('.')) {
+      if (key === 'and' || key === 'or' || FilterKeys.isJsonPath({ key })) {
         return `an 'or' branch over '${key}' cannot be checked on a write`;
       }
 
@@ -176,24 +184,22 @@ export class ScopeWriteGuard {
         return `column '${key}': ${values}`;
       }
 
-      values.forEach((entry) => allowed.add(entry));
+      values.forEach((entry, key) => allowed.set(key, entry));
     }
 
     return { column: column as string, allowed };
   }
 
   /** The values one column's condition allows, or a string naming why it cannot be checked. */
-  private static allowedValues(opts: { value: unknown }): Set<string | null> | string {
+  private static allowedValues(opts: { value: unknown }): TAllowed | string {
     const { value } = opts;
 
     if (isScalar(value)) {
-      return new Set([normalise(value)]);
+      return allowing([value]);
     }
 
     if (Array.isArray(value)) {
-      return value.every(isScalar)
-        ? new Set(value.map(normalise))
-        : 'a list with a non-scalar entry';
+      return value.every(isScalar) ? allowing(value) : 'a list with a non-scalar entry';
     }
 
     if (typeof value !== 'object' || value === undefined) {
@@ -210,16 +216,14 @@ export class ScopeWriteGuard {
     const operand = (value as Record<string, unknown>)[operator];
 
     if (operator === QueryOperators.EQ && isScalar(operand)) {
-      return new Set([normalise(operand)]);
+      return allowing([operand]);
     }
 
     if (
       (operator === QueryOperators.INQ || operator === QueryOperators.IN) &&
       Array.isArray(operand)
     ) {
-      return operand.every(isScalar)
-        ? new Set(operand.map(normalise))
-        : 'a list with a non-scalar entry';
+      return operand.every(isScalar) ? allowing(operand) : 'a list with a non-scalar entry';
     }
 
     return `the operator '${operator}' cannot be checked on a write`;
@@ -314,7 +318,7 @@ export class ScopeWriteGuard {
         continue;
       }
 
-      if (key.includes('.')) {
+      if (FilterKeys.isJsonPath({ key })) {
         return {
           kind: 'unverifiable',
           reason: `the nested path '${key}' cannot be checked on a write`,
@@ -480,10 +484,11 @@ export class ScopeWriteGuard {
           }
 
           // `assign` first: stamping gives the row an owner, which is safer than leaving it shared.
-          const only = allowed.size === 1 ? [...allowed][0] : undefined;
+          const [only] = allowed.size === 1 ? [...allowed] : [];
 
-          if (isAssign && only !== undefined && only !== null) {
-            result = { ...result, [column]: only };
+          // The value as the scope wrote it, not its normalised text: a number stays a number.
+          if (isAssign && only !== undefined && only[0] !== null) {
+            result = { ...result, [column]: only[1] };
             continue;
           }
 

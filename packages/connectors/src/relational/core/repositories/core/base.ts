@@ -370,8 +370,11 @@ export abstract class RelationalBaseRepository<
       lock: this.queryExecutor.supportsRowLock ? { strength: LockStrengths.SHARE } : undefined,
     });
 
-    // Distinct keys, not rows: a parent column that is not unique can return two rows for one key and hide a missing one.
-    if (new Set(found.map((row) => row.key)).size !== keys.length) {
+    // Every key sent must be among the keys found, compared as text: a count would let two rows for one key stand in for a
+    // missing one, and a key the database coerced (`'1'` for `1`) must still match.
+    const foundKeys = new Set(found.map((row) => String(row.key)));
+
+    if (!keys.every((key) => foundKeys.has(String(key)))) {
       throw denied;
     }
   }

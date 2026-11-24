@@ -88,12 +88,19 @@ export class ScopeFilterUtility {
   }): void {
     const models = MetadataRegistry.getInstance().getAllModels();
 
+    const sharedTables: string[] = [];
     const searchBacked: string[] = [];
     const withoutAmbientContext: string[] = [];
     const invalidWriteGuard: string[] = [];
     const invalidThrough: string[] = [];
 
     for (const [name, entry] of models) {
+      // The registry keeps one model per table, and an `include` or a `through` finds a model by its table: two classes on a
+      // table with an `access` among them leave that lookup with the wrong one, or none, and the relation reads every row.
+      if (entry.sharesAccess) {
+        sharedTables.push(name);
+      }
+
       if (!entry.metadata?.settings?.access) {
         continue;
       }
@@ -158,6 +165,16 @@ export class ScopeFilterUtility {
           );
         }
       }
+    }
+
+    if (sharedTables.length > 0) {
+      throw getError({
+        message: [
+          `[assertScopeFilterSupported] two model classes share a table, and one has settings.access | tables: ${sharedTables.join(', ')}`,
+          'A relation to the table, and a through, find the model by its table. With two models there the lookup finds the wrong one or none, and the relation returns EVERY row, scoped or not.',
+          'Give each table one model class, and decorate that class (pass it as the repository entityClass).',
+        ].join(' | '),
+      });
     }
 
     if (searchBacked.length > 0) {
