@@ -724,14 +724,14 @@ authorization-subject-always-string:
       const subject = Role.AUTHORIZATION_SUBJECT!;
       const name = Order.AUTHORIZATION_SUBJECT ?? 'Order';
 
-      @model({ type: 'entity' })
+      @model({ type: ModelTypes.ENTITY })
       class Order extends OrderBase {}
     after: |-
       const subject = Role.AUTHORIZATION_SUBJECT;
       const name = Order.AUTHORIZATION_SUBJECT;
 
       // A rule names the resource by this value: say it, so a minified build cannot rename it.
-      @model({ type: 'entity', settings: { authorize: { principal: 'Order' } } })
+      @model({ type: ModelTypes.ENTITY, settings: { authorize: { principal: 'Order' } } })
       class Order extends OrderBase {}
     steps:
       - "Remove the `!` after every `AUTHORIZATION_SUBJECT` and every `?? 'Name'` fallback: the value is a string."
@@ -740,49 +740,60 @@ authorization-subject-always-string:
   downgrade:
     steps:
       - "Pin @venizia/ignis-kernel, @venizia/ignis-connectors and @venizia/ignis to the release before this one."
-  data: Nothing stored changes. A rule that named a model with no principal by its class name keeps denying unless some rule names that string.
+  data: Nothing stored changes. A rule that names a model's class name now matches it, where the subject used to be undefined and the rule never matched.
 
 http-write-result-status:
   symbols: [IHttpWriteResult, HttpDataSource.write]
   upgrade:
     before: |-
       class PartnerDataSource extends HttpDataSource {
-        override async write(opts: IHttpWriteOptions) {
-          return { data: await this.post(opts) };
+        override async write<R>(
+          opts: Parameters<HttpDataSource['write']>[0],
+        ): Promise<IHttpWriteResult<R>> {
+          const result = await super.write<R>(opts);
+
+          return { data: result.data, count: result.count };
         }
       }
 
-      const stub = { data: { id: 1 } };
+      const stub: IHttpWriteResult<{ id: number }> = { data: { id: 1 }, count: 1 };
     after: |-
       class PartnerDataSource extends HttpDataSource {
-        override async write(opts: IHttpWriteOptions) {
-          const response = await this.post(opts);
-          return { data: response.data, status: response.status };
+        override async write<R>(
+          opts: Parameters<HttpDataSource['write']>[0],
+        ): Promise<IHttpWriteResult<R>> {
+          const result = await super.write<R>(opts);
+
+          return { ...result };
         }
       }
 
-      const stub = { data: { id: 1 }, status: 200 };
+      const stub: IHttpWriteResult<{ id: number }> = {
+        data: { id: 1 },
+        count: 1,
+        status: HTTP.ResultCodes.RS_2.Ok,
+      };
     steps:
-      - "Add `status` (the number the route answered) to the result of every `HttpDataSource.write` override."
-      - "Add `status: 200` to every stub of an `IHttpWriteResult` in your tests."
+      - "Add `status` (the number the route answered) to the result of every `HttpDataSource.write` override: spread the result of `super.write`, or copy `result.status`."
+      - "Add `status: HTTP.ResultCodes.RS_2.Ok` to every stub of an `IHttpWriteResult` in your tests."
   downgrade:
     steps:
       - "Pin @venizia/ignis-connectors to the release before this one."
   data: Nothing stored changes.
 
 access-scope-hardening:
-  symbols: [IModelAccessSettings, ModelMetadataMixin.registerModel]
+  symbols: [IModelAccessSettings, ModelMetadataMixin.registerModel, ScopeFilterUtility.assertScopeFilterSupported]
   upgrade:
     before: |-
       // Two decorated classes on one table: the app refuses to boot now.
-      @model({ type: 'entity', settings: { access: { resolve } } })
+      @model({ type: ModelTypes.ENTITY, settings: { access: { resolve: () => ({ merchantId: currentMerchantId() }) } } })
       class Order extends OrderBase {}
 
-      @model({ type: 'entity' })
+      @model({ type: ModelTypes.ENTITY })
       class OrderSummary extends OrderBase {}
     after: |-
       // One decorated class per table, passed as the repository's entityClass.
-      @model({ type: 'entity', settings: { access: { resolve } } })
+      @model({ type: ModelTypes.ENTITY, settings: { access: { resolve: () => ({ merchantId: currentMerchantId() }) } } })
       class Order extends OrderBase {}
 
       const repository = new OrderRepository(dataSource, { entityClass: Order });
@@ -790,6 +801,7 @@ access-scope-hardening:
       - "Give every table that has a model with `access` one decorated class, and pass that class as `entityClass`. Two `@model` classes on one table, under the same registry name or different ones, make the application refuse to boot."
       - "A table two classes have claimed stays unclaimed: a third class cannot take it back, so remove the extra decorator rather than adding a class."
       - "A scope key that names a JSON member deeper than one level (`metadata.a.b`) is refused as unverifiable on a write; one level (`metadata.merchantId`) is held. Use a real column or one level."
+      - "A scope whose operator has an `undefined` operand (`{ merchantId: { in: undefined } }`) is an unresolved scope now, as `{ merchantId: undefined }` already was: the query follows `onMissing` (by default it matches nothing). Check a resolver that builds one from a value that may be missing."
       - "`write.mode: 'assign'` stamps the scope value as the resolver wrote it (a number stays a number): check a column that compared the text."
   downgrade:
     steps:
