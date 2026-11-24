@@ -293,6 +293,24 @@ describe('venizia/prefer-promise-sleep', () => {
     expect(fixed.match(/PromiseUtility/g)).toHaveLength(1);
   });
 
+  test('a type-only import is not used as a value: a value import is added beside it', () => {
+    const { fixed } = run({
+      name: NAME,
+      code: `import type { PromiseUtility as P } from '@venizia/ignis-helpers/core';\nexport const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));\n`,
+    });
+
+    expect(fixed).toContain(`PromiseUtility.sleep({ ms })`);
+    expect(fixed).toContain(`import { PromiseUtility } from '@venizia/ignis-helpers/core';`);
+
+    const clash = run({
+      name: NAME,
+      code: `import type { PromiseUtility } from '@venizia/ignis-helpers/core';\nexport const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));\n`,
+    });
+
+    expect(clash.findings).toHaveLength(1);
+    expect(clash.fixed).toContain('new Promise');
+  });
+
   test('the delay expression is kept as written', () => {
     const { fixed } = run({
       name: NAME,

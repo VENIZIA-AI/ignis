@@ -30,7 +30,7 @@ const write = (opts: { root: string; path: string; content: string }) => {
  * A project that depends on a fake `@venizia/fake-helpers`, installed under node_modules with a root entry that re-exports
  * the declarations of `types.d.ts` (`export *`) and a narrow `./common` entry for one of them.
  */
-const buildProject = (opts?: { name?: string; dependsOn?: string }) => {
+const buildProject = (opts?: { name?: string; dependsOn?: string; umbrellaOnly?: boolean }) => {
   const root = mkdtempSync(join(tmpdir(), 'no-shadow-'));
   roots.push(root);
   const installed = join('node_modules', '@venizia', 'fake-helpers');
@@ -40,7 +40,11 @@ const buildProject = (opts?: { name?: string; dependsOn?: string }) => {
     path: 'package.json',
     content: JSON.stringify({
       name: opts?.name ?? 'app',
-      dependencies: { [opts?.dependsOn ?? '@venizia/fake-helpers']: '1.0.0' },
+      dependencies: {
+        [opts?.umbrellaOnly
+          ? '@venizia/fake-umbrella'
+          : (opts?.dependsOn ?? '@venizia/fake-helpers')]: '1.0.0',
+      },
     }),
   });
   write({
@@ -56,13 +60,34 @@ const buildProject = (opts?: { name?: string; dependsOn?: string }) => {
   });
   write({
     root,
+    path: join('node_modules', '@venizia', 'fake-umbrella', 'package.json'),
+    content: JSON.stringify({
+      name: '@venizia/fake-umbrella',
+      exports: {
+        '.': { types: './dist/index.d.ts' },
+        './helpers': { types: './dist/helpers.d.ts' },
+      },
+    }),
+  });
+  write({
+    root,
+    path: join('node_modules', '@venizia', 'fake-umbrella', 'dist', 'index.d.ts'),
+    content: `export declare const umbrella: number;\nexport type TUmbrella = string;\n`,
+  });
+  write({
+    root,
+    path: join('node_modules', '@venizia', 'fake-umbrella', 'dist', 'helpers.d.ts'),
+    content: `export type * from '@venizia/fake-helpers';\n`,
+  });
+  write({
+    root,
     path: join(installed, 'dist', 'index.d.ts'),
     content: `export * from './types.js';\nexport { Runner } from './runner.js';\nexport * as Tools from './tools.js';\nexport declare const VERSION: string;\n`,
   });
   write({
     root,
     path: join(installed, 'dist', 'types.d.ts'),
-    content: `export type TNullable<T> = T | undefined | null;\nexport interface IApplicationInfo { name: string }\nexport type T<X> = X;\nexport type ValueOrPromise<T> = T | Promise<T>;\n`,
+    content: `export type TNullable<T> = T | undefined | null;\nexport interface IApplicationInfo { name: string }\nexport type T<X> = X;\nexport type ValueOrPromise<T> = T | Promise<T>;\nexport declare class Logger {}\nexport declare const HttpStatus: { OK: 200 };\nexport declare enum Mode { A }\n`,
   });
   write({
     root,
@@ -103,15 +128,59 @@ const lint = (opts: {
 };
 
 describe('FrameworkExports', () => {
-  test('reads the names of the installed packages, following export * and naming the narrowest entry', () => {
+  test('reads the type names of the installed packages, following export * and naming the narrowest entry', () => {
     const { root } = buildProject();
     const names = FrameworkExports.of({ directory: join(root, 'src') });
 
     expect(names.get('ValueOrPromise')).toBe('@venizia/fake-helpers');
     expect(names.get('TNullable')).toBe('@venizia/fake-helpers/common');
-    expect(names.get('Runner')).toBe('@venizia/fake-helpers');
-    expect(names.get('Tools')).toBe('@venizia/fake-helpers');
-    expect(names.get('VERSION')).toBe('@venizia/fake-helpers');
+    expect(names.get('IApplicationInfo')).toBe('@venizia/fake-helpers');
+  });
+
+  test('a class, a function, a const, an enum and a namespace are not type names', () => {
+    const { root } = buildProject();
+    const names = FrameworkExports.of({ directory: join(root, 'src') });
+
+    for (const value of ['Runner', 'Tools', 'VERSION', 'Logger', 'HttpStatus', 'Mode']) {
+      expect(names.has(value)).toBe(false);
+    }
+  });
+
+  test('a project that depends only on an umbrella package that re-exports a sibling still sees the sibling types', () => {
+    const { root } = buildProject({ umbrellaOnly: true });
+    const names = FrameworkExports.of({ directory: join(root, 'src') });
+
+    expect(names.get('ValueOrPromise')).toBe('@venizia/fake-umbrella/helpers');
+    expect(names.has('Runner')).toBe(false);
+  });
+
+  test("a package.json that does not parse, the project's or an installed package's, gives no names and no exception", () => {
+    const broken = buildProject();
+    writeFileSync(join(broken.root, 'package.json'), '{ not json');
+    const installed = buildProject();
+    writeFileSync(
+      join(installed.root, 'node_modules', '@venizia', 'fake-helpers', 'package.json'),
+      '{ not json',
+    );
+
+    expect(() => FrameworkExports.of({ directory: join(broken.root, 'src') })).not.toThrow();
+    expect(FrameworkExports.of({ directory: join(installed.root, 'src') }).size).toBe(0);
+  });
+
+  test('a typescript module without the parser API (the native port) is skipped, not called', () => {
+    const { root } = buildProject();
+    write({
+      root,
+      path: join('node_modules', 'typescript', 'package.json'),
+      content: '{"name":"typescript","main":"index.js"}',
+    });
+    write({
+      root,
+      path: join('node_modules', 'typescript', 'index.js'),
+      content: 'module.exports = {};',
+    });
+
+    expect(() => FrameworkExports.of({ directory: join(root, 'src') })).not.toThrow();
   });
 
   test('a project that depends on no @venizia package, or whose package is not installed, has no names', () => {
@@ -161,6 +230,38 @@ describe('venizia/no-shadow-framework-type', () => {
         code: `declare module 'x' { interface IApplicationInfo { id: string } }\ndeclare global { type TNullable<T> = T }\n`,
       }),
     ).toHaveLength(0);
+  });
+
+  test('an interface or alias that shares a name with a framework class or const is not reported', () => {
+    const project = buildProject();
+
+    expect(
+      lint({
+        project,
+        code: `interface Logger { log(): void }\ntype HttpStatus = 200 | 404;\ntype Mode = 'a';\n`,
+      }),
+    ).toHaveLength(0);
+  });
+
+  test('an interface that extends the framework type of the same name is not reported', () => {
+    const project = buildProject();
+    const code = `import type * as H from '@venizia/fake-helpers';\ninterface IApplicationInfo extends H.IApplicationInfo { id: string }\n`;
+
+    expect(lint({ project, code })).toHaveLength(0);
+    expect(
+      lint({
+        project,
+        code: `import type { IApplicationInfo as Base } from '@venizia/fake-helpers';\ninterface IApplicationInfo extends Base { id: string }\n`,
+      }),
+    ).toHaveLength(1);
+  });
+
+  test('a project that depends only on an umbrella package is told to import from it', () => {
+    const project = buildProject({ umbrellaOnly: true });
+    const findings = lint({ project, code: `type ValueOrPromise<T> = T | Promise<T>;\n` });
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.message).toContain('@venizia/fake-umbrella/helpers');
   });
 
   test('allow and minLength narrow it', () => {

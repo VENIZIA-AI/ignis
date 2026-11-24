@@ -692,5 +692,5 @@ house-rules-framework-use:
       - "Keep a hand-written pattern on purpose with an eslint-disable-next-line and the reason, or demote a rule after ...houseConfigs: { rules: { 'venizia/prefer-tnullable': 'warn' } }."
   downgrade:
     steps:
-      - "Pin @venizia/dev-configs to the release before this one, or set the three rules to 'off' after ...houseConfigs."
+      - "Pin @venizia/dev-configs to the release before this one, or set the four rules to 'off' after ...houseConfigs."
   data: Nothing stored changes. The rules read your source and rewrite it only under --fix.

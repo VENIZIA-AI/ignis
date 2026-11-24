@@ -66,8 +66,12 @@ export class ImportSupport {
   }
 
   /** The name the file binds the import `name` to (`TNullable as N` answers `N`), or `undefined` when it does not import it. */
-  static importedAs(opts: { context: Rule.RuleContext; name: string }): string | undefined {
-    const { context, name } = opts;
+  static importedAs(opts: {
+    context: Rule.RuleContext;
+    name: string;
+    asValue?: boolean;
+  }): string | undefined {
+    const { context, name, asValue = false } = opts;
 
     for (const statement of context.sourceCode.ast.body) {
       const specifiers: unknown = AstNode.readField({ node: statement, key: 'specifiers' });
@@ -79,7 +83,17 @@ export class ImportSupport {
         continue;
       }
 
+      // A type-only import cannot stand where a value is written.
+      const isTypeOnly = AstNode.readField({ node: statement, key: 'importKind' }) === 'type';
+
       for (const specifier of specifiers) {
+        if (
+          asValue &&
+          (isTypeOnly || AstNode.readField({ node: specifier, key: 'importKind' }) === 'type')
+        ) {
+          continue;
+        }
+
         const imported = AstNode.readField({
           node: AstNode.readField({ node: specifier, key: 'imported' }),
           key: 'name',
@@ -152,8 +166,20 @@ export class ImportSupport {
   }): Array<Rule.Fix> | undefined {
     const { context, fixer, name, source, isType } = opts;
 
-    if (ImportSupport.isInScope({ context, name })) {
+    if (
+      isType
+        ? ImportSupport.isInScope({ context, name })
+        : ImportSupport.importedAs({ context, name, asValue: true }) !== undefined
+    ) {
       return [];
+    }
+
+    // A value cannot be added next to a type-only import or a declaration that already holds its name.
+    if (
+      !isType &&
+      (ImportSupport.isImported({ context, name }) || ImportSupport.isDeclared({ context, name }))
+    ) {
+      return undefined;
     }
 
     if (!ImportSupport.canAdd({ context })) {

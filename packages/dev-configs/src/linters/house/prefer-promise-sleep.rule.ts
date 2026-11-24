@@ -80,7 +80,8 @@ export class PreferPromiseSleepRule {
   private static call(opts: { context: Rule.RuleContext; delay: Rule.Node }): string {
     const { context, delay } = opts;
     const utility =
-      ImportSupport.importedAs({ context, name: 'PromiseUtility' }) ?? 'PromiseUtility';
+      ImportSupport.importedAs({ context, name: 'PromiseUtility', asValue: true }) ??
+      'PromiseUtility';
     const text = context.sourceCode.getText(delay);
 
     return `${utility}.sleep({ ${text === 'ms' ? 'ms' : `ms: ${text}`} })`;

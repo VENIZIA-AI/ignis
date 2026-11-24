@@ -20,6 +20,24 @@ export class NoShadowFrameworkTypeRule {
 
   static readonly DEFAULT_MIN_LENGTH = 4;
 
+  /** Whether an interface lists `name` (bare or through a namespace import) among the types it extends. */
+  private static extendsSameName(opts: { declaration: unknown; name: string }): boolean {
+    const heritage: unknown = AstNode.readField({ node: opts.declaration, key: 'extends' });
+
+    return (
+      Array.isArray(heritage) &&
+      heritage.some((entry) => {
+        const expression = AstNode.readField({ node: entry, key: 'expression' });
+        const property = AstNode.readField({ node: expression, key: 'property' });
+
+        return (
+          AstNode.readField({ node: expression, key: 'name' }) === opts.name ||
+          AstNode.readField({ node: property, key: 'name' }) === opts.name
+        );
+      })
+    );
+  }
+
   static readonly RULE: Rule.RuleModule = {
     meta: {
       type: 'problem',
@@ -72,6 +90,11 @@ export class NoShadowFrameworkTypeRule {
             const name = AstNode.readField({ node: identifier, key: 'name' });
 
             if (typeof name !== 'string' || name.length < minLength || allow.has(name)) {
+              continue;
+            }
+
+            // `interface X extends X` (or `extends H.X`) is the framework's type being extended on purpose.
+            if (NoShadowFrameworkTypeRule.extendsSameName({ declaration, name })) {
               continue;
             }
 

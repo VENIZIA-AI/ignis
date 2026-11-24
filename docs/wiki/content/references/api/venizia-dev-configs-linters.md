@@ -255,17 +255,31 @@ Source: `packages/dev-configs/src/linters/eslint.ts`
 
 *class*
 
-What the installed `@venizia/*` packages export, read from their published `.d.ts` files: the names a project must
-import, not write again. A declaration scan only (the TypeScript parser, no program, no type check), memoized per
-package for the life of the process, so a lint run reads each package once.
+The type names the installed `@venizia/*` packages export, read from their published `.d.ts` files: the names a project
+must import, not write again. Only interfaces and type aliases count (a class or a const is not a type your own
+`interface Logger` copies). A declaration scan only (the TypeScript parser, no program, no type check), memoized per
+package for the life of the process: after an upgrade an ESLint server must be restarted to read the new names.
+
+It never stops a lint run. TypeScript is looked up from the linted package, the working directory and dev-configs' own
+install, and only a copy that has the parser API is used (the native TypeScript 7 has none); a package.json or a `.d.ts`
+that cannot be read is skipped. Whatever is missing, the answer is fewer names, never an exception.
 
 ```ts
 export declare class FrameworkExports {
     static readonly SCOPE = "@venizia/";
     private static readonly manifests;
     private static readonly packages;
-    private static loaded;
-    /** TypeScript, from the project being linted; `undefined` when it is not installed there (the rule then reports nothing). */
+    private static readonly typescripts;
+    /** `value` as the TypeScript module when it has the parser API this scan uses. */
+    private static isParser;
+    /** The text of a file, or `undefined` when it cannot be read. */
+    private static readText;
+    /** A JSON file, or `undefined` when it cannot be read or does not parse. */
+    private static readJson;
+    /**
+     * TypeScript for the linted package: from its own folder, the working directory, or this package's install, the first that
+     * has the parser API. `undefined` when none does (the rule then reports nothing).
+     */
     private static loadTypeScript;
     /** The nearest package.json at or above `directory`. */
     static manifestFor(opts: {
@@ -277,13 +291,17 @@ export declare class FrameworkExports {
     private static entriesOf;
     /** The declaration file a relative specifier points at (`./x.js` is `./x.d.ts`). */
     private static resolveRelative;
-    /** The names `file` exports, following `export *` into relative files. */
+    /**
+     * The names `file` exports, each with what it is, following `export *` into relative files and into other `@venizia/*`
+     * packages (an umbrella package re-exports its siblings). A name re-exported by `export { X } from` takes the kind it has
+     * where it is declared; `export type { X }` is a type whatever the target says.
+     */
     private static namesOf;
-    /** Name to the specifier that exports it (`@venizia/ignis-helpers/common`), for one installed package. */
+    /** Type name to the specifier that exports it (`@venizia/ignis-helpers/common`), for one installed package. */
     private static readPackage;
     /**
-     * The names the `@venizia/*` packages that `directory`'s project depends on export, each with the specifier to import it
-     * from. The project's own package is left out: it may declare what it exports.
+     * The type names the `@venizia/*` packages that `directory`'s project depends on export, each with the specifier to import
+     * it from. The project's own package is left out: it may declare what it exports.
      */
     static of(opts: {
         directory: string;
@@ -442,6 +460,7 @@ export declare class ImportSupport {
     static importedAs(opts: {
         context: Rule.RuleContext;
         name: string;
+        asValue?: boolean;
     }): string | undefined;
     /** Whether `name` is imported (under its own name or an alias) or declared at the top level of the file. */
     static isInScope(opts: {
@@ -752,6 +771,8 @@ original, so the replacement is the author's to check.
 export declare class NoShadowFrameworkTypeRule {
     static readonly NAME = "venizia/no-shadow-framework-type";
     static readonly DEFAULT_MIN_LENGTH = 4;
+    /** Whether an interface lists `name` (bare or through a namespace import) among the types it extends. */
+    private static extendsSameName;
     static readonly RULE: Rule.RuleModule;
     static build(opts?: {
         severity?: TRuleSeverity;
