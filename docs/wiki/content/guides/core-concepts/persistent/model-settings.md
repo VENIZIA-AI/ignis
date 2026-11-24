@@ -218,6 +218,63 @@ export class Product extends ModelFactory.defineEntity({ table: productTable }) 
 
 `UNRESTRICTED` is a symbol, not a string, so no request body, query string or header can produce it: the decision stays in code you wrote. A resolver that forgets a `return` produces `undefined`, which falls to `onMissing`, never to `UNRESTRICTED`.
 
+### resolve is synchronous
+
+`resolve` returns the scope, not a promise: the repository builds each filter synchronously, an included relation's scope too, so a resolver that awaits (a lookup of the caller's enrollments, a call to another service) cannot be used there. Resolve the async fact BEFORE the repository call, once per request, put it on the request context, and let `resolve` read it. Declare the key once, so `get` and `set` are typed:
+
+```typescript
+// src/middlewares/enrollments.middleware.ts
+import { Authentication } from '@venizia/ignis';
+import type { MiddlewareHandler } from 'hono';
+import { enrollmentService } from '@/services/enrollment.service';
+
+export const ENROLLED_COURSE_IDS = 'app.enrolledCourseIds';
+
+declare module 'hono' {
+  interface ContextVariableMap {
+    [ENROLLED_COURSE_IDS]: string[];
+  }
+}
+
+export const loadEnrollments: MiddlewareHandler = async (context, next) => {
+  const user = context.get(Authentication.CURRENT_USER);
+
+  context.set(ENROLLED_COURSE_IDS, []);
+
+  if (user) {
+    context.set(ENROLLED_COURSE_IDS, await enrollmentService.courseIdsOf({ userId: user.userId }));
+  }
+
+  await next();
+};
+```
+
+Put it in the route config's `middleware`, which runs after `authenticate` and `authorize`:
+
+```typescript
+{
+  method: 'get',
+  path: '/lessons',
+  authenticate: { strategies: ['jwt'] },
+  middleware: loadEnrollments,
+  // ...
+}
+```
+
+An `app.use(loadEnrollments)` runs BEFORE authentication, so `CURRENT_USER` is not set yet and every caller silently gets `[]`.
+
+```typescript
+// src/utilities/enrollments.ts
+import { RequestContextRegistry } from '@venizia/ignis';
+import { ENROLLED_COURSE_IDS } from '@/middlewares/enrollments.middleware';
+
+export const currentCourseIds = (): string[] => {
+  return RequestContextRegistry.resolve()?.get(ENROLLED_COURSE_IDS) ?? [];
+};
+```
+
+`resolve: () => ({ courseId: { in: currentCourseIds() } })` then stays a plain read (this one ignores `operation`: it answers for reads, so return the narrow scope for writes, [see below](#read-wider-than-you-write)). A background job has no request and no context: give it a system scope, as [`onMissing`](#onmissing) shows with `runAsSystem`.
+
 ### Read wider than you write
 
 A marketplace order is visible to its merchant and to the counterpart merchant. Only the merchant may change it. One scope cannot say both, so `resolve` receives the operation and answers each one:
@@ -238,9 +295,16 @@ import { orderTable } from './order.table';
           return null;
         }
 
-        return ScopeOperations.includes({ group: ScopeOperations.WRITE, operation })
-          ? { merchantId }
-          : { or: [{ merchantId }, { counterpartMerchantId: merchantId }] };
+        switch (operation) {
+          case ScopeOperations.READ: {
+            return { or: [{ merchantId }, { counterpartMerchantId: merchantId }] };
+          }
+
+          default: {
+            // CREATE, UPDATE, DELETE, and any operation added later: the narrow scope.
+            return { merchantId };
+          }
+        }
       },
     },
   },
@@ -248,7 +312,9 @@ import { orderTable } from './order.table';
 export class Order extends ModelFactory.defineEntity({ table: orderTable }) {}
 ```
 
-A read sees both columns. A create, an update and a delete are held to `merchantId` alone, and an update or delete reaches only the caller's own rows.
+A read sees both columns. A create, an update and a delete are held to `merchantId` alone, and an update or delete reaches only the caller's own rows. Write the branch as a `switch` with the wide scope on the named read case and the narrow scope in `default`: an operation added later then falls to the narrow scope, never the wide one.
+
+The same shape fits "owned OR enrolled": a read returns `{ or: [{ ownerId }, { courseId: { in: currentCourseIds() } }] }`, every other operation (the `default` of the same `switch`) returns `{ ownerId }`. An enrolled row is then readable but not updatable or deletable: the update's `where` is the narrow scope, so it matches no enrolled row, and a create is held to `ownerId`. There is no separate read and write resolver: `operation` is that switch.
 
 `operation` is always one of four values. Every repository call passes one:
 
