@@ -689,7 +689,9 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
     throw new Error('[preset-smoke] `clean` left dist behind');
   }
 
-  step({ label: 'vulcan package add --lib (from the packed preset): install, sync and its checks' });
+  step({
+    label: 'vulcan package add --lib (from the packed preset): install, sync and its checks',
+  });
   await run({
     command: [
       'bun',
