@@ -809,8 +809,10 @@ describe('access.resolve on SQLite - a scope that cannot be verified, more shape
       { or: [{ merchantId: 'm-a', name: 'one' }] },
       /several conditions/,
     ],
-    ['a nested path', { 'meta.merchant': 'm-a' }, /nested path/],
-    ['a bracket path', { 'meta[merchant]': 'm-a' }, /nested path/],
+    ['a path deeper than one member', { 'meta.merchant.id': 'm-a' }, /depth 1/],
+    ['the same, in bracket spelling', { 'meta[merchant][id]': 'm-a' }, /depth 1/],
+    ['a numeric part', { 'meta[0]': 'm-a' }, /plain member/],
+    ['a member that reaches the prototype', { 'meta.__proto__': 'm-a' }, /plain member/],
   ])(
     '%s refuses the write with its own message, never a skip',
     async (_label, resolved, pattern) => {
