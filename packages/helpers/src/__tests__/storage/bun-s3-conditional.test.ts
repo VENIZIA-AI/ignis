@@ -6,6 +6,7 @@ import { BunS3Helper } from '@/modules/storage/bun-s3';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { TNullable } from '@/common/types';
 
 interface ISeenRequest {
   method: string;
@@ -242,7 +243,7 @@ describe('a helper with no ETag refuses a conditional read', () => {
 });
 
 describe('StorageUtility.realVersionId', () => {
-  const cases: Array<{ value: string | null | undefined; expected: string | undefined }> = [
+  const cases: Array<{ value: TNullable<string>; expected: string | undefined }> = [
     { value: 'v-1', expected: 'v-1' },
     { value: 'null', expected: undefined },
     { value: '', expected: undefined },

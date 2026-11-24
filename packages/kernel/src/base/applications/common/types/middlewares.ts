@@ -1,6 +1,7 @@
 import type { Context } from 'hono';
 import type { IPRestrictionRules as IIPRestrictionRules } from 'hono/ip-restriction';
 import { type SecFetchSiteValues, type TCompressEncoding } from '../constants';
+import type { TNullable } from '@venizia/ignis-helpers/common';
 
 /** Options shared by every configurable middleware. Extra keys are allowed. */
 export interface IBaseMiddlewareOptions {
@@ -24,10 +25,7 @@ export interface ICompressOptions extends IBaseMiddlewareOptions {
 export type TOrigin =
   | string
   | string[]
-  | ((
-      origin: string,
-      c: Context,
-    ) => Promise<string | undefined | null> | string | undefined | null);
+  | ((origin: string, c: Context) => TNullable<Promise<TNullable<string>> | string>);
 /** Options of the CORS middleware the framework installs first. `origin` is required. */
 export interface ICORSOptions extends IBaseMiddlewareOptions {
   origin: TOrigin;

@@ -67,7 +67,7 @@ export declare abstract class AbstractTemporalHelper extends BaseHelper implemen
      * is not a date answers `null`; without one it is a 400, null included.
      */
     protected readDate(opts: {
-        value: TTemporalInput | null | undefined;
+        value: TNullable<TTemporalInput>;
         tz: string;
         fallback?: string;
     }): Date | null;
@@ -148,7 +148,7 @@ export declare abstract class AbstractTemporalHelper extends BaseHelper implemen
     }): import("@venizia/ignis-inversion").ApplicationError;
     /** `toDate`, answering `null` where `toDate` refuses the value: null, undefined, bad text, NaN. */
     tryToDate(opts: {
-        value: TTemporalInput | null | undefined;
+        value: TNullable<TTemporalInput>;
         tz?: string;
     }): Date | null;
     /** The wall clock the value shows in the zone, with its ISO weekday and UTC offset. */
@@ -197,12 +197,12 @@ export declare abstract class AbstractTemporalHelper extends BaseHelper implemen
         tz?: string;
     }): Date | null;
     abstract isValid(opts: {
-        value: TTemporalInput | null | undefined;
+        value: TNullable<TTemporalInput>;
         pattern?: string;
         tz?: string;
     }): boolean;
     abstract format(opts: {
-        value: TTemporalInput | null | undefined;
+        value: TNullable<TTemporalInput>;
         pattern?: string;
         tz?: string;
         locale?: string;
@@ -557,7 +557,7 @@ export interface ITemporalHelper {
     }): Date;
     /** `toDate`, answering `null` where `toDate` refuses the value: null, undefined, bad text, NaN. */
     tryToDate(opts: {
-        value: TTemporalInput | null | undefined;
+        value: TNullable<TTemporalInput>;
         tz?: string;
     }): Date | null;
     /** The wall clock the value shows in the zone, with its ISO weekday and UTC offset. */
@@ -583,7 +583,7 @@ export interface ITemporalHelper {
     }): Date | null;
     /** Whether the value names an instant in years 1-9999 - a string read as `parse` reads it. */
     isValid(opts: {
-        value: TTemporalInput | null | undefined;
+        value: TNullable<TTemporalInput>;
         pattern?: string;
         tz?: string;
     }): boolean;
@@ -593,7 +593,7 @@ export interface ITemporalHelper {
      * not a date - null included - writes the fallback; without one, it is a 400.
      */
     format(opts: {
-        value: TTemporalInput | null | undefined;
+        value: TNullable<TTemporalInput>;
         pattern?: string;
         tz?: string;
         locale?: string;
@@ -601,7 +601,7 @@ export interface ITemporalHelper {
     }): string;
     /** Writes the value with `Intl.DateTimeFormat` options, in the zone - for what the pattern tokens cannot say. */
     formatIntl(opts: {
-        value: TTemporalInput | null | undefined;
+        value: TNullable<TTemporalInput>;
         options?: Omit<Intl.DateTimeFormatOptions, 'timeZone'>;
         tz?: string;
         locale?: string;
@@ -972,7 +972,7 @@ export declare class TemporalHelper extends AbstractTemporalHelper {
     }): Date | null;
     /** Whether the value names an instant in years 1-9999 - a string read as `parse` reads it. */
     isValid(opts: {
-        value: TTemporalInput | null | undefined;
+        value: TNullable<TTemporalInput>;
         pattern?: string;
         tz?: string;
     }): boolean;
@@ -982,7 +982,7 @@ export declare class TemporalHelper extends AbstractTemporalHelper {
      * not a date - null included - writes the fallback; without one, it is a 400.
      */
     format(opts: {
-        value: TTemporalInput | null | undefined;
+        value: TNullable<TTemporalInput>;
         pattern?: string;
         tz?: string;
         locale?: string;
@@ -990,7 +990,7 @@ export declare class TemporalHelper extends AbstractTemporalHelper {
     }): string;
     /** Writes the value with `Intl.DateTimeFormat` options, in the zone - for what the pattern tokens cannot say. */
     formatIntl(opts: {
-        value: TTemporalInput | null | undefined;
+        value: TNullable<TTemporalInput>;
         options?: Omit<Intl.DateTimeFormatOptions, 'timeZone'>;
         tz?: string;
         locale?: string;

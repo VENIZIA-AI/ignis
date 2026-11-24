@@ -1551,10 +1551,10 @@ export declare abstract class BaseRestController<RouteEnv extends Env = Env, Rou
         };
         range?: TDataRange;
         extra?: never;
-    }): R | {
+    }): TNullable<R | {
         count: number;
         data?: TNullable<R>;
-    } | null | undefined;
+    }>;
     respond<R, Extra extends Record<string, TResponseExtra>>(opts: {
         context: TRouteContext<RouteEnv>;
         format: TResponseFormat;
@@ -1564,14 +1564,14 @@ export declare abstract class BaseRestController<RouteEnv extends Env = Env, Rou
         };
         range?: TDataRange;
         extra: Extra;
-    }): Promise<R | {
+    }): Promise<TNullable<R | {
         count: number;
         data?: TNullable<R>;
     } | {
         count?: number;
         data?: TNullable<R>;
         extra: Partial<Record<keyof Extra, unknown>>;
-    } | null | undefined>;
+    }>>;
     respond<R>(opts: {
         context: TRouteContext<RouteEnv>;
         format: TResponseFormat;
@@ -1581,11 +1581,11 @@ export declare abstract class BaseRestController<RouteEnv extends Env = Env, Rou
         };
         range?: TDataRange;
         extra?: Record<string, TResponseExtra>;
-    }): ValueOrPromise<R | {
+    }): ValueOrPromise<TNullable<R | {
         count?: number;
         data?: TNullable<R>;
         extra?: Record<string, unknown>;
-    } | null | undefined>;
+    }>>;
     /** The `extra` half of `respond`: resolves what was asked against what is offered, runs it in parallel. */
     respondWithExtra<R>(opts: {
         context: TRouteContext<RouteEnv>;
@@ -2146,10 +2146,10 @@ export declare class CrudControllerFactory extends BaseHelper {
                 };
                 range?: import("../../repositories/index.js").TDataRange;
                 extra?: never;
-            }): R | {
+            }): import("@venizia/ignis-helpers/common").TNullable<R | {
                 count: number;
                 data?: import("@venizia/ignis-helpers/common").TNullable<R>;
-            } | null | undefined;
+            }>;
             respond<R, Extra extends Record<string, import("../index.js").TResponseExtra>>(opts: {
                 context: import("../index.js").TRouteContext<RouteEnv>;
                 format: import("../index.js").TResponseFormat;
@@ -2159,14 +2159,14 @@ export declare class CrudControllerFactory extends BaseHelper {
                 };
                 range?: import("../../repositories/index.js").TDataRange;
                 extra: Extra;
-            }): Promise<R | {
+            }): Promise<import("@venizia/ignis-helpers/common").TNullable<R | {
                 count: number;
                 data?: import("@venizia/ignis-helpers/common").TNullable<R>;
             } | {
                 count?: number;
                 data?: import("@venizia/ignis-helpers/common").TNullable<R>;
                 extra: Partial<Record<keyof Extra, unknown>>;
-            } | null | undefined>;
+            }>>;
             respond<R>(opts: {
                 context: import("../index.js").TRouteContext<RouteEnv>;
                 format: import("../index.js").TResponseFormat;
@@ -2176,11 +2176,11 @@ export declare class CrudControllerFactory extends BaseHelper {
                 };
                 range?: import("../../repositories/index.js").TDataRange;
                 extra?: Record<string, import("../index.js").TResponseExtra>;
-            }): ValueOrPromise<R | {
+            }): ValueOrPromise<import("@venizia/ignis-helpers/common").TNullable<R | {
                 count?: number;
                 data?: import("@venizia/ignis-helpers/common").TNullable<R>;
                 extra?: Record<string, unknown>;
-            } | null | undefined>;
+            }>>;
             respondWithExtra<R>(opts: {
                 context: import("../index.js").TRouteContext<RouteEnv>;
                 payload: {
@@ -8547,7 +8547,7 @@ Source: `packages/kernel/src/base/repositories/common/scope-through.ts`
 Allowed origin for CORS: one origin, a list of origins, or a function that returns the origin to echo (or nothing to reject). A string or a list entry may be a subdomain wildcard such as `https://*.example.com`, or a pattern with `:*` for any port such as `http://localhost:*` or `https://*.example.com:*`: the scheme is matched exactly, so is the port unless it is `*`, the apex domain is not included by a subdomain wildcard, and the bare `'*'` still means any origin.
 
 ```ts
-export type TOrigin = string | string[] | ((origin: string, c: Context) => Promise<string | undefined | null> | string | undefined | null);
+export type TOrigin = string | string[] | ((origin: string, c: Context) => TNullable<Promise<TNullable<string>> | string>);
 ```
 
 Source: `packages/kernel/src/base/applications/common/types/middlewares.ts`

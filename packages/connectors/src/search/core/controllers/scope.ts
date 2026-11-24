@@ -6,6 +6,7 @@ import type { TInjected, TInjectMap, TRouteContext, TWhere } from '@venizia/igni
 import type { Env } from 'hono';
 import type { TSearchInput } from '@/search/core/repositories/common';
 import { SearchModes } from '@/search/core/repositories/common';
+import type { TNullable } from '@venizia/ignis-helpers/common';
 
 /**
  * A per-request search scope: the filter the caller is allowed to search within (a merchant, a
@@ -22,7 +23,7 @@ export type TSearchScopeResolver<
   input: TSearchInput & TExtra;
   /** The instances of the classes `inject` declares. */
   injected: TInjected<Inject>;
-}) => ValueOrPromise<TWhere | typeof ScopeFilters.UNRESTRICTED | null | undefined>;
+}) => ValueOrPromise<TNullable<TWhere | typeof ScopeFilters.UNRESTRICTED>>;
 
 export class SearchControllerScope {
   private static refuse(opts: { statusCode: number; message: string; cause?: unknown }) {

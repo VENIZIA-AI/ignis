@@ -5,6 +5,7 @@ import type { ApplicationError, TResponsedError } from '@/modules/error';
 import type { UrlFetchError } from '@/modules/network/utilities/url-safety/common/errors';
 import { RecordUtility } from '@/utilities/record.utility';
 import { BodyLimit } from './body-limit';
+import type { TNullable } from '@/common/types';
 
 /**
  * What an IGNIS server answers - `Content-Range`, the error envelope - read once, here, for every
@@ -310,7 +311,7 @@ export class HttpResponseReader {
    *
    * The pair of `RequestUtility.buildContentDispositionHeader`: one writes the header, this one reads it.
    */
-  static parseContentDisposition(opts: { header: string | null | undefined }): {
+  static parseContentDisposition(opts: { header: TNullable<string> }): {
     type?: string;
     filename?: string;
   } {
