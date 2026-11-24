@@ -6,8 +6,8 @@
  * A version page of a line still in progress says which prerelease to install; the tag is the record that the release
  * finished (the commit that bumps a package.json is pushed before its tag, and a release can stop between them).
  *
- * The tag layout and the packages come from the project's manifest (`release.tagPattern`, `release.legacyTagPatterns`,
- * `packages`), the same ones atlas reads, so nothing is named here per repository.
+ * The tag layout and the packages come from the project's committed descriptor, `.agents/atlas.manifest.json`
+ * (`release.tagPattern`, `release.legacyTagPatterns`, `packages`), the same one atlas reads, so nothing is named here per repository.
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
@@ -171,9 +171,15 @@ export class PrereleaseTags {
   static read(opts: { from: string }): IPrereleases {
     try {
       const root = PrereleaseTags.rootOf({ from: opts.from });
-      const manifestPath = root === undefined ? '' : join(root, '.agents', 'vulcan.manifest.json');
+      // The committed descriptor, else the manifest of an earlier release (a wiki that has not moved yet).
+      const manifestPath =
+        root === undefined
+          ? undefined
+          : ['atlas.manifest.json', 'vulcan.manifest.json']
+              .map((name) => join(root, '.agents', name))
+              .find((path) => existsSync(path));
 
-      if (root === undefined || !existsSync(manifestPath)) {
+      if (root === undefined || manifestPath === undefined) {
         return PrereleaseTags.EMPTY;
       }
 
