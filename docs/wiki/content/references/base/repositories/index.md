@@ -225,7 +225,7 @@ export class AuthRepository extends HttpRepository {
     return this.action({ paths: ['auth', 'sign-up'], body: opts, schema: SignUpAnswer });
   }
 
-  // No schema: nothing is read from the answer and the call returns void.
+  // No schema: the answer is not returned and the call returns void (a body must be empty or JSON).
   requestReset(opts: { email: string }) {
     return this.action({ paths: ['auth', 'forgot-password', 'request'], body: opts });
   }
@@ -240,7 +240,7 @@ export class AuthRepository extends HttpRepository {
 | `schema` | A zod schema: the call returns `z.output` of it. An answer it refuses throws a `FetchSchemaError` (502) that names paths and rules, never the value |
 | `options` | `headers` and `signal`, as on every repository call |
 
-Without a `schema` the call returns `void`. Use `dataSource.write` when you need the `count` or the `extra` the route answers, or `request` for the raw `Response`.
+Without a `schema` the call returns `void`; the body must still be empty or JSON, as for `write`. When the route marks an `x-response-extra` answer, the schema is checked against `body.data`, the rows beside the extra. Use `dataSource.write` when you need the `count` or the `extra` the route answers, or `request` for the raw `Response`.
 
 For a route the verbs and `action` do not cover - a `PUT` with a count, an upload - call the datasource:
 

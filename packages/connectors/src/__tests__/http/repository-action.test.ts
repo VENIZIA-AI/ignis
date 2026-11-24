@@ -105,7 +105,7 @@ describe('HttpRepository.action', () => {
     expect(count).toBe(42);
   });
 
-  test('a call without a schema returns nothing and does not read the answer', async () => {
+  test('a call without a schema returns nothing: the answer is not returned', async () => {
     const calls = stubFetch({ body: { anything: true } });
     const answer: void = await repository().requestReset({ email: 'a@b.com' });
 
