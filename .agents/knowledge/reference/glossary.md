@@ -108,8 +108,8 @@ with a Drizzle or document schema via `getSchema()`, plus `@model` settings (`pr
 
 **OKF** - The knowledge-bundle format this directory (`.agents/knowledge/`) is written in:
 frontmattered markdown concept files, generated and gated by VULCAN's okf tooling
-(`vulcan x okf`: `gen`, `check`, `coverage`, `viz`; the `make okf-*` targets). VULCAN's atlas
-(`vulcan x atlas mcp`, `@venizia/vulcan-atlas` outside this repo) serves the same bundle over MCP.
+(`vulcan okf`: `gen`, `check`, `coverage`, `viz`; the `make okf-*` targets). VULCAN's atlas
+(`vulcan atlas mcp`, `@venizia/vulcan-atlas` outside this repo) serves the same bundle over MCP.
 
 **Provider** - `BaseProvider<T>` in `packages/kernel/src/base/providers/base.ts`, implementing
 `IProvider<T>` - a class that produces a bound value (e.g. a middleware handler) rather than being

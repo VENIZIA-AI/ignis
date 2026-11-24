@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis/websocket, from the built declarati
 
 # `@venizia/ignis/websocket`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 2 exports, 2 with TSDoc.
 

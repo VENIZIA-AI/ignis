@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis-worker, from the built declarations
 
 # `@venizia/ignis-worker`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 18 exports, 18 with TSDoc.
 

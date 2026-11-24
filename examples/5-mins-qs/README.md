@@ -2,7 +2,7 @@
 
 The IGNIS hello world: one controller, one route and generated API docs. `src/hello.controller.ts`
 is the controller from the [5-Minute Quickstart](../../docs/wiki/content/guides/get-started/5-minute-quickstart.md)
-page, word for word. The page and the `vulcan init` preset keep it under `src/controllers/`; here
+page, word for word. The page and the `vulcan project init` preset keep it under `src/controllers/`; here
 it sits in `src/`. `src/application.ts` and `src/index.ts` belong to this example
 and differ from the preset's. `artifacts: AutoArtifacts` finds `HelloController`, so nothing
 registers it by hand.

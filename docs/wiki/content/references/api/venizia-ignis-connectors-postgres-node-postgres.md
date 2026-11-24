@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis-connectors/postgres/node-postgres, 
 
 # `@venizia/ignis-connectors/postgres/node-postgres`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 1 exports, 1 with TSDoc.
 

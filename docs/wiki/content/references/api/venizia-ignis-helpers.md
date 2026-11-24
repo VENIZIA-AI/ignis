@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 # `@venizia/ignis-helpers`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 223 exports, 223 with TSDoc. 257 more are re-exported from other entries (listed at the end).
 
@@ -1075,6 +1075,8 @@ Source: `packages/helpers/src/modules/queue/common/constants.ts`
 
 *type*
 
+Kept out of the `./common` barrel because `hono/jsx` types reach DOM-dependent JSX intrinsics; `hono` is an optional peer, so a Worker or hono-less consumer of `./common` must not have this file in its type graph. Re-exported directly from the root barrel (`src/index.ts`) instead, so `Child`/`FC`/`PropsWithChildren` stay publicly reachable from `@venizia/ignis-helpers`.
+
 ```ts
 type Child = string | Promise<string> | number | JSXNode | null | undefined | boolean | Child[]
 ```
@@ -1431,6 +1433,8 @@ Source: `packages/helpers/src/utilities/error.utility.ts`
 ## `FC`
 
 *type*
+
+Kept out of the `./common` barrel because `hono/jsx` types reach DOM-dependent JSX intrinsics; `hono` is an optional peer, so a Worker or hono-less consumer of `./common` must not have this file in its type graph. Re-exported directly from the root barrel (`src/index.ts`) instead, so `Child`/`FC`/`PropsWithChildren` stay publicly reachable from `@venizia/ignis-helpers`.
 
 ```ts
 type FC<P = Props> = { (props: P): FunctionComponentResult; defaultProps?: Partial<P> | undefined; displayName?: string | undefined; }
@@ -4062,6 +4066,8 @@ Source: `packages/helpers/src/modules/slug/common/constants.ts`
 ## `PropsWithChildren`
 
 *type*
+
+Kept out of the `./common` barrel because `hono/jsx` types reach DOM-dependent JSX intrinsics; `hono` is an optional peer, so a Worker or hono-less consumer of `./common` must not have this file in its type graph. Re-exported directly from the root barrel (`src/index.ts`) instead, so `Child`/`FC`/`PropsWithChildren` stay publicly reachable from `@venizia/ignis-helpers`.
 
 ```ts
 type PropsWithChildren<P = unknown> = P & { children?: Child | undefined; }

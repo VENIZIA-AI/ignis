@@ -5,7 +5,7 @@ description: "Every export of @venizia/dev-configs/linters/oxlint, from the buil
 
 # `@venizia/dev-configs/linters/oxlint`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 30 exports, 30 with TSDoc.
 

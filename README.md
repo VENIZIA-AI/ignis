@@ -31,7 +31,7 @@ the same schemas. It is 0.x: a patch release can carry a breaking change, labele
 ## Get started
 
 ```bash
-bun x @venizia/vulcan init --preset ignis   # a project with one controller, tests and API docs
+bun x @venizia/vulcan project init --preset ignis   # a project with one controller, tests and API docs
 cd my-product && make dev                   # http://localhost:3000/api/hello
 ```
 

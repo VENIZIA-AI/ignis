@@ -55,7 +55,7 @@ export const HOME: THomeContent = {
   lede: 'Controllers, services and repositories, connected by dependency injection. Validation and API docs come from the same code.',
   install: {
     label: 'Create a project',
-    lines: ['bun x @venizia/vulcan init --preset ignis', 'cd my-product && make dev'],
+    lines: ['bun x @venizia/vulcan project init --preset ignis', 'cd my-product && make dev'],
   },
   cta: [
     ['5-Minute Quickstart', '/guides/get-started/5-minute-quickstart'],
@@ -146,7 +146,7 @@ export const HOME: THomeContent = {
       title: 'Create',
       text: 'One command writes a monorepo with a first controller, tests and the files of your coding agents.',
       lines: [
-        ['cmd', 'bun x @venizia/vulcan init --preset ignis'],
+        ['cmd', 'bun x @venizia/vulcan project init --preset ignis'],
         ['c', '# it asks four names: the project, the backend folder,'],
         ['c', '# the app and the shared code folder'],
       ],
@@ -162,7 +162,9 @@ export const HOME: THomeContent = {
     {
       title: 'Grow',
       text: 'Add another app or a library to the same monorepo.',
-      lines: [['cmd', 'bun node_modules/.bin/vulcan add --preset ignis --lib billing --dir libs']],
+      lines: [
+        ['cmd', 'bun node_modules/.bin/vulcan package add --preset ignis --lib billing --dir libs'],
+      ],
     },
   ],
   fitUse: [

@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis-helpers/cron, from the built declar
 
 # `@venizia/ignis-helpers/cron`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 2 exports, 2 with TSDoc.
 

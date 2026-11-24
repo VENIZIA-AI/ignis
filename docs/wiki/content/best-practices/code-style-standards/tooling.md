@@ -220,7 +220,7 @@ Bun's defaults already match the rest of the old IGNIS style: `tabWidth` 2, `tra
 
 ## Running the tools
 
-`@venizia/dev-configs` ships a `devz` command that runs all three tools with the paths above. An app or a library created by `vulcan add` calls it from its scripts:
+`@venizia/dev-configs` ships a `devz` command that runs all three tools with the paths above. An app or a library created by `vulcan package add` calls it from its scripts:
 
 ```json
 {
@@ -257,7 +257,7 @@ node_modules/.bin/devz lint
 
 `node_modules/.bin/<bin>` is the strict form: `bun run <name>` falls back to your `$PATH` when no local bin matches, so a global copy of the same name would run. Remove any global copy (`bun pm ls -g`, `npm ls -g`).
 
-Use the same form in a Makefile, a git hook and a workflow; inside a `package.json` script the bare `devz` is the linked bin and is fine. Every `devz ...` command on this page runs as `bun run devz ...`. A scoped package (`bun x @venizia/vulcan init`) is ours; pin its version when a command repeats.
+Use the same form in a Makefile, a git hook and a workflow; inside a `package.json` script the bare `devz` is the linked bin and is fine. Every `devz ...` command on this page runs as `bun run devz ...`. A scoped package (`bun x @venizia/vulcan project init`) is ours; pin its version when a command repeats.
 
 To drop a copy an earlier run cached, delete `~/.bun/install/cache/.bunx-*/{vulcan,devz,ardor,ignis,vulcan-atlas}@*` and `~/.npm/_npx/*/node_modules/{vulcan,devz,ardor,ignis}`. If you find one, assume the foreign code ran: check that machine and rotate the tokens it held.
 

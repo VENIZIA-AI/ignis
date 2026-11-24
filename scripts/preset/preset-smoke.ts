@@ -51,7 +51,7 @@ const LIB = 'billing';
 const LIB_DIR = 'libs';
 const SHARED = 'common';
 const SHARED_DIR = 'libs';
-/** The first VULCAN that has `vulcan add --shared`; the shared-kind step runs from the pinned version on. */
+/** The first VULCAN that has `vulcan package add --shared` (`vulcan add --shared` before 0.5.0-7); the shared-kind step runs from the pinned version on. */
 const SHARED_MIN_VULCAN = '0.4.9-0';
 const LIB_SCRIPTS = ['clean', 'lint', 'lint:fix', 'test', 'typecheck'];
 /** Exported while the app compiles; the stamp keeps 12 characters of a commit, so this is exactly 12. */
@@ -553,7 +553,7 @@ export class PresetSmoke {
     return `bun x @venizia/vulcan@${PresetSmoke.getPinnedVulcanVersion(opts)}`;
   }
 
-  /** True when this VULCAN version has `vulcan add --shared`: at or above `SHARED_MIN_VULCAN`, prereleases ordered by semver. */
+  /** True when this VULCAN version has `vulcan package add --shared`: at or above `SHARED_MIN_VULCAN`, prereleases ordered by semver. */
   static supportsSharedKind(opts: { version: string }): boolean {
     return Bun.semver.order(opts.version, SHARED_MIN_VULCAN) >= 0;
   }
@@ -572,7 +572,7 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
     totalSteps += 1;
   } else {
     console.log(
-      `[preset-smoke] the shared-kind step is skipped: the pinned VULCAN is below ${SHARED_MIN_VULCAN}, the first with \`vulcan add --shared\``,
+      `[preset-smoke] the shared-kind step is skipped: the pinned VULCAN is below ${SHARED_MIN_VULCAN}, the first with \`vulcan package add --shared\``,
     );
   }
   const tarballDir = join(opts.scratch, 'tgz');
@@ -597,10 +597,11 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
   step({ label: 'extract the preset from the @venizia/ignis tarball' });
   await run({ command: ['tar', '-xzf', ignisTarball, '-C', presetDir], cwd: opts.scratch });
 
-  step({ label: 'vulcan init --preset (from the packed preset)' });
+  step({ label: 'vulcan project init --preset (from the packed preset)' });
   await run({
     command: [
       ...vulcan,
+      'project',
       'init',
       '--preset',
       `file:${join(presetDir, 'package')}`,
@@ -641,10 +642,10 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
 
   writeFileSync(manifestFile, `${JSON.stringify({ ...manifest, overrides }, null, 2)}\n`);
 
-  step({ label: 'bun install, vulcan sync' });
+  step({ label: 'bun install, vulcan project sync' });
   await run({ command: ['git', 'init', '-q', '-b', 'develop'], cwd: projectDir });
   await run({ command: ['bun', 'install'], cwd: projectDir });
-  await run({ command: ['bun', 'run', 'vulcan', 'sync'], cwd: projectDir });
+  await run({ command: ['bun', 'run', 'vulcan', 'project', 'sync'], cwd: projectDir });
 
   step({ label: 'the app: typecheck, lint, test, then test again with .env.example as its .env' });
   for (const check of ['typecheck', 'lint', 'test']) {
@@ -663,10 +664,10 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
   });
   assertStampBaked({ binary: join(appDir, BINARY) });
 
-  step({ label: 'the project: vulcan doctor, okf check' });
-  await run({ command: ['bun', 'run', 'vulcan', 'doctor'], cwd: projectDir });
+  step({ label: 'the project: vulcan project doctor, okf check' });
+  await run({ command: ['bun', 'run', 'vulcan', 'project', 'doctor'], cwd: projectDir });
   await run({
-    command: ['bun', 'run', 'vulcan', 'x', 'okf', 'check', '--strict'],
+    command: ['bun', 'run', 'vulcan', 'okf', 'check', '--strict'],
     cwd: projectDir,
   });
 
@@ -688,12 +689,15 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
     throw new Error('[preset-smoke] `clean` left dist behind');
   }
 
-  step({ label: 'vulcan add --lib (from the packed preset): install, sync and its checks' });
+  step({
+    label: 'vulcan package add --lib (from the packed preset): install, sync and its checks',
+  });
   await run({
     command: [
       'bun',
       'x',
       'vulcan',
+      'package',
       'add',
       '--preset',
       `file:${join(presetDir, 'package')}`,
@@ -715,13 +719,14 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
   if (runsShared) {
     step({
       label:
-        'vulcan add --shared (from the packed preset): install, sync, and the shared package checks',
+        'vulcan package add --shared (from the packed preset): install, sync, and the shared package checks',
     });
     await run({
       command: [
         'bun',
         'x',
         'vulcan',
+        'package',
         'add',
         '--preset',
         `file:${join(presetDir, 'package')}`,

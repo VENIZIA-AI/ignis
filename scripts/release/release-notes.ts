@@ -3,7 +3,7 @@
  * nothing, so every script loads it as it is.
  *
  * This is the same logic as `VersionNotes` of VULCAN's atlas (`packages/atlas/src/changelogs/notes.ts`), which the command
- * `vulcan changelog notes` runs: IGNIS cannot import it (it is not a dependency of this repository, and the release
+ * `vulcan migrate notes` runs: IGNIS cannot import it (it is not a dependency of this repository, and the release
  * script spawns nothing but `gh`), so `release-notes.test.ts` checks this copy against that command on every folder.
  */
 export class ReleaseNotes {

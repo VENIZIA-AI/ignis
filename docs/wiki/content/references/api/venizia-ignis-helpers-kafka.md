@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis-helpers/kafka, from the built decla
 
 # `@venizia/ignis-helpers/kafka`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 40 exports, 40 with TSDoc.
 

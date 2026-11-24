@@ -7,13 +7,13 @@
 # The generated API reference (docs/wiki/content/references/api): one page per package entry, read from the built
 # .d.ts. All three need a build (make build-all runs the two gates after it).
 api-gen:
-	@$(VULCAN) x atlas api gen
+	@$(VULCAN) atlas api gen
 
 api-check:
-	@$(VULCAN) x atlas api check
+	@$(VULCAN) atlas api check
 
 api-undocumented:
-	@$(VULCAN) x atlas api undocumented
+	@$(VULCAN) atlas api undocumented
 
 split-report:
 	@$(DEVZ) check split-report --dist dist/esm

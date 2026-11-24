@@ -23,7 +23,7 @@ const UNLISTED = [
   /^changelogs\/upgrade\/\[version\]$/,
   // The author skeleton, reached from no menu.
   /^changelogs\/template$/,
-  // Written by `vulcan x atlas api gen`; the sidebar group in config.mts lists them from the folder.
+  // Written by `vulcan atlas api gen`; the sidebar group in config.mts lists them from the folder.
   /^references\/api\/(?!index$)/,
 ];
 

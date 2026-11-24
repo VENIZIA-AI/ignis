@@ -8,13 +8,13 @@ import { writeChangelogFeed } from './theme/shared/changelog-loader.ts';
 import { venziaCodeTheme } from './theme/shared/code-theme.ts';
 import { WikiTheme } from './theme/shared/wiki-theme.ts';
 
-// The colours of the wiki are the project's resolved theme, as `vulcan sync` wrote it to the manifest.
+// The colours of the wiki are the project's resolved theme, as `vulcan project sync` wrote it to the manifest.
 const THEME = WikiTheme.read({
   manifest: new URL('../../../../.agents/vulcan.manifest.json', import.meta.url).pathname,
 });
 const ACCENT_2 = '#d98e6a';
 
-// ── API reference pages: written by `vulcan x atlas api gen`, one per package entry; none before the first run ──
+// ── API reference pages: written by `vulcan atlas api gen`, one per package entry; none before the first run ──
 const apiReferenceItems = (): DefaultTheme.SidebarItem[] => {
   const directory = join(dirname(fileURLToPath(import.meta.url)), '../../content/references/api');
 

@@ -420,7 +420,7 @@ jobs:
         if: ${{ needs.plan.outputs.kind == 'stable' && needs.plan.outputs.changelog_base != '' }}
         env:
           CHANGELOG_BASE: ${{ needs.plan.outputs.changelog_base }}
-        run: bun node_modules/.bin/vulcan changelog check --history --base "$CHANGELOG_BASE"
+        run: bun node_modules/.bin/vulcan check changelog --history --base "$CHANGELOG_BASE"
 
   # ---------------------------------------------------------------------------------------------
   # APPROVE - the one human stop, for a stable only: the plan says so, and the job is skipped for a prerelease. It
@@ -663,7 +663,7 @@ jobs:
         with:
           bun-version: '1.4.5'
 
-      # The action runs the project's installed atlas (`vulcan x atlas index publish`).
+      # The action runs the project's installed atlas (`vulcan atlas index publish`).
       - name: Install
         run: bun install
 
@@ -693,7 +693,7 @@ jobs:
 
       - name: Publish the atlas index of the tag
         if: ${{ steps.tag.outputs.tag != '' }}
-        uses: VENIZIA-AI/vulcan/.github/actions/atlas-index@8d65b9c4567d430dc0aa54f4c67e8275818f6dc0 # vulcan-v0.5.0-6
+        uses: VENIZIA-AI/vulcan/.github/actions/atlas-index@80b835c0d49d4ae008d2fbef578ae467d0c79261 # vulcan-v0.5.0-8
         with:
           ref: ${{ steps.tag.outputs.tag }}
         env:

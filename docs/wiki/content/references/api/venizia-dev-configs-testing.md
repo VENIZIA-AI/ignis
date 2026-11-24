@@ -5,7 +5,7 @@ description: "Every export of @venizia/dev-configs/testing, from the built decla
 
 # `@venizia/dev-configs/testing`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 5 exports, 5 with TSDoc.
 

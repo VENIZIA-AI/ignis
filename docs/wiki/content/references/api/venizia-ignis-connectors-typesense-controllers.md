@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis-connectors/typesense/controllers, f
 
 # `@venizia/ignis-connectors/typesense/controllers`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 33 exports, 33 with TSDoc.
 

@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis-helpers/socket-io, from the built d
 
 # `@venizia/ignis-helpers/socket-io`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 12 exports, 12 with TSDoc. 5 more are re-exported from other entries (listed at the end).
 

@@ -1,0 +1,179 @@
+{
+  "$generated": "by vulcan project sync from .configs/vulcan.config.* - do not edit",
+  "schemaVersion": 1,
+  "name": "ignis",
+  "packages": [
+    {
+      "name": "@venizia/dev-configs",
+      "dir": "dev-configs",
+      "path": "packages/dev-configs",
+      "aliases": [],
+      "retired": false
+    },
+    {
+      "name": "@venizia/ignis-inversion",
+      "dir": "inversion",
+      "path": "packages/inversion",
+      "aliases": [],
+      "retired": false
+    },
+    {
+      "name": "@venizia/ignis-filter",
+      "dir": "filter",
+      "path": "packages/filter",
+      "aliases": [],
+      "retired": false
+    },
+    {
+      "name": "@venizia/ignis-helpers",
+      "dir": "helpers",
+      "path": "packages/helpers",
+      "aliases": [],
+      "retired": false
+    },
+    {
+      "name": "@venizia/ignis-boot",
+      "dir": "boot",
+      "path": "packages/boot",
+      "aliases": [],
+      "retired": false
+    },
+    {
+      "name": "@venizia/ignis-kernel",
+      "dir": "kernel",
+      "path": "packages/kernel",
+      "aliases": [],
+      "retired": false
+    },
+    {
+      "name": "@venizia/ignis-connectors",
+      "dir": "connectors",
+      "path": "packages/connectors",
+      "aliases": [],
+      "retired": false
+    },
+    {
+      "name": "@venizia/ignis-worker",
+      "dir": "core-worker",
+      "path": "packages/core-worker",
+      "aliases": ["worker", "@venizia/ignis-core-worker"],
+      "retired": false
+    },
+    {
+      "name": "@venizia/ignis",
+      "dir": "core-server",
+      "path": "packages/core-server",
+      "aliases": ["core"],
+      "retired": false
+    },
+    {
+      "name": "@venizia/ignis-docs",
+      "dir": "docs-mcp",
+      "path": "packages/docs-mcp",
+      "aliases": ["docs"],
+      "retired": true
+    },
+    {
+      "name": "@venizia/ignis-atlas",
+      "dir": "atlas",
+      "path": "packages/atlas",
+      "aliases": [],
+      "retired": true
+    }
+  ],
+  "presets": [
+    {
+      "spec": "ignis",
+      "side": "backend",
+      "summary": "IGNIS: a backend app on Bun",
+      "lib": "IGNIS: a shared library"
+    },
+    {
+      "spec": "ardor",
+      "side": "frontend",
+      "summary": "ARDOR: a frontend app on Vite and React",
+      "lib": "ARDOR: a shared feature package"
+    }
+  ],
+  "knowledge": {
+    "bundle": ".agents/knowledge",
+    "wiki": "docs/wiki/content",
+    "changelogs": "docs/wiki/content/changelogs",
+    "migrationFrom": "0.4.5",
+    "datedUntil": "2026-11-15"
+  },
+  "release": {
+    "tagPattern": "<dir>-v<version>",
+    "ignoreTags": []
+  },
+  "sources": [
+    {
+      "name": "ardor",
+      "repo": "VENIZIA-AI/ardor",
+      "ref": "develop"
+    },
+    {
+      "name": "vulcan",
+      "repo": "VENIZIA-AI/vulcan",
+      "ref": "develop"
+    }
+  ],
+  "atlas": {
+    "index": {
+      "keys": ["sdcWZqtQ/X7Rb7IExhpLzX/YFQoPscMPQSEdGcGc77Q="]
+    }
+  },
+  "theme": {
+    "accent": "#af5f5f",
+    "accentDark": "#c98a8a",
+    "accentText": "#a15757",
+    "preset": "venizia",
+    "tokens": {
+      "light": {
+        "ground": "#f6f6f7",
+        "bg": "#ffffff",
+        "line": "#e2e2e3",
+        "line-strong": "#101010",
+        "ink": "#000000",
+        "body": "#4b4b4b",
+        "muted": "#6b6b6b",
+        "ok": "#067647",
+        "ok-soft": "#e7f5ee",
+        "wait": "#8a4b00",
+        "wait-soft": "#fdf1dc",
+        "fail": "#b42318",
+        "fail-soft": "#fdecea",
+        "info": "#175cd3",
+        "info-soft": "#eff8ff",
+        "accent": "#af5f5f",
+        "accent-ink": "#ffffff",
+        "accent-soft": "#f5ecec",
+        "accent-text": "#a15757"
+      },
+      "dark": {
+        "ground": "#1b1b1f",
+        "bg": "#202127",
+        "line": "#2e2e32",
+        "line-strong": "#ffffff4d",
+        "ink": "#ffffff",
+        "body": "#ffffffb3",
+        "muted": "#ffffff8c",
+        "ok": "#47cd89",
+        "ok-soft": "#14291f",
+        "wait": "#fdb022",
+        "wait-soft": "#33270f",
+        "fail": "#f97066",
+        "fail-soft": "#3a1d1a",
+        "info": "#84caff",
+        "info-soft": "#102a43",
+        "accent": "#c98a8a",
+        "accent-ink": "#0e0e0f",
+        "accent-soft": "#30282c",
+        "accent-text": "#c98a8a"
+      }
+    },
+    "font": "'Inter Display', system-ui, -apple-system, 'Segoe UI', sans-serif",
+    "mono": "'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace",
+    "radius": "4px"
+  }
+}

@@ -5,7 +5,7 @@ description: "Every export of @venizia/ignis-helpers/axios, from the built decla
 
 # `@venizia/ignis-helpers/axios`
 
-> Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
+> Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
 4 exports, 4 with TSDoc.
 

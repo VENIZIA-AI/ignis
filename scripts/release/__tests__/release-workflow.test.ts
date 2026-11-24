@@ -1099,9 +1099,9 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.CHANGELOG_HISTORY_FOR_A_STABLE,
       edits: [
         {
-          find: '        run: bun node_modules/.bin/vulcan changelog check --history --base "$CHANGELOG_BASE"\n',
+          find: '        run: bun node_modules/.bin/vulcan check changelog --history --base "$CHANGELOG_BASE"\n',
           replace:
-            '        run: bun node_modules/.bin/vulcan changelog check --base "$CHANGELOG_BASE"\n',
+            '        run: bun node_modules/.bin/vulcan check changelog --base "$CHANGELOG_BASE"\n',
         },
       ],
     },
@@ -1275,9 +1275,9 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
       edits: [
         {
-          find: "      # The action runs the project's installed atlas (`vulcan x atlas index publish`).\n      - name: Install\n        run: bun install\n",
+          find: "      # The action runs the project's installed atlas (`vulcan atlas index publish`).\n      - name: Install\n        run: bun install\n",
           replace:
-            "      # The action runs the project's installed atlas (`vulcan x atlas index publish`).\n      - name: Install\n        env:\n          ATLAS_INDEX_KEY: ${{ secrets.ATLAS_INDEX_KEY }}\n        run: bun install\n",
+            "      # The action runs the project's installed atlas (`vulcan atlas index publish`).\n      - name: Install\n        env:\n          ATLAS_INDEX_KEY: ${{ secrets.ATLAS_INDEX_KEY }}\n        run: bun install\n",
         },
       ],
     },
@@ -1392,9 +1392,9 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
       edits: [
         {
-          find: "      # The action runs the project's installed atlas (`vulcan x atlas index publish`).\n      - name: Install\n        run: bun install\n",
+          find: "      # The action runs the project's installed atlas (`vulcan atlas index publish`).\n      - name: Install\n        run: bun install\n",
           replace:
-            "      # The action runs the project's installed atlas (`vulcan x atlas index publish`).\n      - name: Install\n        env:\n          K: ${{ secrets['ATLAS_INDEX_KEY'] }}\n        run: bun install\n",
+            "      # The action runs the project's installed atlas (`vulcan atlas index publish`).\n      - name: Install\n        env:\n          K: ${{ secrets['ATLAS_INDEX_KEY'] }}\n        run: bun install\n",
         },
       ],
     },
@@ -1402,9 +1402,9 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
       edits: [
         {
-          find: "      # The action runs the project's installed atlas (`vulcan x atlas index publish`).\n      - name: Install\n        run: bun install\n",
+          find: "      # The action runs the project's installed atlas (`vulcan atlas index publish`).\n      - name: Install\n        run: bun install\n",
           replace:
-            "      # The action runs the project's installed atlas (`vulcan x atlas index publish`).\n      - name: Install\n        env:\n          K: ${{ toJSON(secrets) }}\n        run: bun install\n",
+            "      # The action runs the project's installed atlas (`vulcan atlas index publish`).\n      - name: Install\n        env:\n          K: ${{ toJSON(secrets) }}\n        run: bun install\n",
         },
       ],
     },
@@ -1412,9 +1412,9 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
       edits: [
         {
-          find: "      # The action runs the project's installed atlas (`vulcan x atlas index publish`).\n      - name: Install\n        run: bun install\n",
+          find: "      # The action runs the project's installed atlas (`vulcan atlas index publish`).\n      - name: Install\n        run: bun install\n",
           replace:
-            '      # The action runs the project\'s installed atlas (`vulcan x atlas index publish`).\n      - name: Install\n        run: bun install && echo "PATH=/x" >> "$GITHUB_PATH"\n',
+            '      # The action runs the project\'s installed atlas (`vulcan atlas index publish`).\n      - name: Install\n        run: bun install && echo "PATH=/x" >> "$GITHUB_PATH"\n',
         },
       ],
     },

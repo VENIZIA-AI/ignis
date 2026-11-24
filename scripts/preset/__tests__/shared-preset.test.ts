@@ -304,7 +304,7 @@ describe('shared preset - tokens (P4)', () => {
 });
 
 describe('shared preset - VULCAN kind-file rules, a local copy of lib-preset.ts (P5)', () => {
-  // A copy cannot see drift in VULCAN: the real check is `vulcan add --shared` (slice S2).
+  // A copy cannot see drift in VULCAN: the real check is `vulcan package add --shared` (slice S2).
   const ALLOWED_KEYS = [
     'presetVersion',
     'summary',
