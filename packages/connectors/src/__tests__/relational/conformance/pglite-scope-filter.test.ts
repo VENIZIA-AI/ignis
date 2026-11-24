@@ -193,7 +193,7 @@ describe('scopeFilter - write verbs are scoped to the current tenant', () => {
     await repository.updateBy({
       data: { name: 'a-active-updated' },
       where: {},
-      options: { shouldReturn: false },
+      options: { force: true, shouldReturn: false },
     });
 
     const row1 = await rawRow(1);
@@ -203,7 +203,7 @@ describe('scopeFilter - write verbs are scoped to the current tenant', () => {
   });
 
   test("deleteBy (soft) only soft-deletes the current tenant's active row", async () => {
-    await repository.deleteBy({ where: {}, options: { shouldReturn: false } });
+    await repository.deleteBy({ where: {}, options: { force: true, shouldReturn: false } });
 
     const row1 = await rawRow(1);
     const row3 = await rawRow(3);
@@ -246,7 +246,7 @@ describe('scopeFilter - restore() is scoped (the site that would otherwise leak)
   });
 
   test('restoreBy only reaches the current tenant', async () => {
-    await repository.restoreBy({ where: {}, options: { shouldReturn: false } });
+    await repository.restoreBy({ where: {}, options: { force: true, shouldReturn: false } });
 
     const row2 = await rawRow(2);
     const row4 = await rawRow(4);

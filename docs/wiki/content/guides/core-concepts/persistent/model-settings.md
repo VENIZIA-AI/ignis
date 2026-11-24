@@ -506,7 +506,15 @@ Give each table ONE model class, and decorate that class. A relation to a table,
 
 ### An empty where on a scoped model
 
-`updateBy` and `deleteBy` with an empty `where` need `options.force` on a model without `access`. On a scoped model the scope joins the `where` BEFORE that check, so `deleteBy({ where: {} })` is not refused: it reaches the caller's own rows and no others (and `force` does not widen it). If a caller-built request can reach `deleteBy`, validate its `where` in the service or the route: an empty one then means "all my rows", not an error.
+`updateBy`, `deleteBy` (soft delete included), `restoreBy` and every other bulk update or delete refuse an empty caller `where` unless `options.force` is `true`, on every model, scoped or not. The check reads the `where` the caller wrote, BEFORE the scope and the default filter join it, so a scope never turns "no where" into an accepted call. With `force: true` the call touches every row the caller's WRITE scope allows (the `UPDATE` or `DELETE` scope): on a model with `access` that is the caller's own rows, never another merchant's; on a model without one it is every row. `force` never lifts or widens the scope.
+
+```typescript
+// Refused: the empty where needs force, though the scope would narrow it to the caller's rows
+await orderRepository.deleteBy({ where: {} });
+
+// Every order the caller may delete; other merchants' orders are untouched
+await orderRepository.deleteBy({ where: {}, options: { force: true } });
+```
 
 ### Scope a child through its parent
 

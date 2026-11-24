@@ -695,3 +695,24 @@ house-rules-framework-use:
     steps:
       - "Pin @venizia/dev-configs to the release before this one, or set the five rules to 'off' after ...houseConfigs."
   data: Nothing stored changes. The rules read your source and rewrite it only under --fix.
+
+bulk-empty-where-needs-force:
+  symbols: [PersistableRepository.updateBy, PersistableRepository.deleteBy, SoftDeletableRepository.restoreBy]
+  upgrade:
+    before: |-
+      // On a model with `access` or a default filter, the scope or filter made this non-empty: it deleted the caller's rows.
+      await orderRepository.deleteBy({ where: {} });
+      await orderRepository.updateBy({ where: {}, data: { status: 'closed' } });
+    after: |-
+      // The caller's where is empty: say so with force. Still only the rows the caller's write scope allows.
+      await orderRepository.deleteBy({ where: {}, options: { force: true } });
+      await orderRepository.updateBy({ where: {}, data: { status: 'closed' }, options: { force: true } });
+    steps:
+      - "Find updateBy, deleteBy and restoreBy calls with where: {} (or a where that builds to nothing: { and: [] }) on models that declare access or a default filter (settings.query.filter), and add options: { force: true } where you mean every row in the caller's scope."
+      - "Anything that builds the where from a request now fails on an empty one with 'Empty where condition' instead of reaching the caller's rows: that is the intended safety, keep it or validate the where in the route."
+      - "A model with neither access nor a default filter, and a call with a non-empty where, need no change."
+      - "If you subclass PersistableRepository and call validateWhereCondition, pass callerWhere: the where the caller wrote, before any filter or scope joined it."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-connectors to the release before this one."
+  data: Nothing stored changes.

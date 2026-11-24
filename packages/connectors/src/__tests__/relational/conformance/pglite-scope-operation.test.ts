@@ -218,7 +218,8 @@ const METHODS: Array<{
   {
     name: 'updateBy',
     expected: 'update',
-    run: (repo) => repo.updateBy({ where: {}, data: { name: 'renamed-all' } }),
+    run: (repo) =>
+      repo.updateBy({ where: {}, data: { name: 'renamed-all' }, options: { force: true } }),
   },
   {
     name: 'deleteById (hard)',
@@ -228,15 +229,27 @@ const METHODS: Array<{
   {
     name: 'deleteBy (hard)',
     expected: 'delete',
-    run: (repo) => repo.deleteBy({ where: {}, options: { shouldHardDelete: true } }),
+    run: (repo) => repo.deleteBy({ where: {}, options: { force: true, shouldHardDelete: true } }),
   },
   // A soft delete is stored as an update of the row but is a delete to the caller: it passes DELETE.
   { name: 'deleteById (soft)', expected: 'delete', run: (repo) => repo.deleteById({ id: 1 }) },
-  { name: 'deleteBy (soft)', expected: 'delete', run: (repo) => repo.deleteBy({ where: {} }) },
-  { name: 'deleteBy (soft)', expected: 'delete', run: (repo) => repo.deleteBy({ where: {} }) },
+  {
+    name: 'deleteBy (soft)',
+    expected: 'delete',
+    run: (repo) => repo.deleteBy({ where: {}, options: { force: true } }),
+  },
+  {
+    name: 'deleteBy (soft)',
+    expected: 'delete',
+    run: (repo) => repo.deleteBy({ where: {}, options: { force: true } }),
+  },
   // A restore brings a row back: it stays an update.
   { name: 'restoreById', expected: 'update', run: (repo) => repo.restoreById({ id: 4 }) },
-  { name: 'restoreBy', expected: 'update', run: (repo) => repo.restoreBy({ where: {} }) },
+  {
+    name: 'restoreBy',
+    expected: 'update',
+    run: (repo) => repo.restoreBy({ where: {}, options: { force: true } }),
+  },
 ];
 
 beforeEach(async () => {
@@ -282,11 +295,18 @@ describe('a zero-argument resolver is unchanged on every operation', () => {
     expect(found.map((row) => row.name)).toEqual(['mine']);
 
     await zeroArgRepository.create({ data: { merchantId: ME, name: 'created' } });
-    await zeroArgRepository.updateBy({ where: {}, data: { name: 'updated' } });
+    await zeroArgRepository.updateBy({
+      where: {},
+      data: { name: 'updated' },
+      options: { force: true },
+    });
     const result = await rawNames();
     expect(result).toEqual(['updated', 'theirs-with-me', 'unrelated', 'mine-deleted', 'updated']);
 
-    await zeroArgRepository.deleteBy({ where: {}, options: { shouldHardDelete: true } });
+    await zeroArgRepository.deleteBy({
+      where: {},
+      options: { force: true, shouldHardDelete: true },
+    });
     const result2 = await rawNames();
     expect(result2).toEqual(['theirs-with-me', 'unrelated', 'mine-deleted']);
   });
@@ -307,9 +327,12 @@ describe('write.sharedRows keeps the refusal of a scope the guard cannot read', 
     resolver = () => OR_OVER_TWO_COLUMNS;
 
     const writes = [
-      sharedRowsRepository.deleteBy({ where: {}, options: { shouldHardDelete: true } }),
-      sharedRowsRepository.deleteBy({ where: {} }),
-      sharedRowsRepository.updateBy({ where: {}, data: { name: 'x' } }),
+      sharedRowsRepository.deleteBy({
+        where: {},
+        options: { force: true, shouldHardDelete: true },
+      }),
+      sharedRowsRepository.deleteBy({ where: {}, options: { force: true } }),
+      sharedRowsRepository.updateBy({ where: {}, data: { name: 'x' }, options: { force: true } }),
     ];
 
     for (const write of writes) {
@@ -327,7 +350,7 @@ describe('write.sharedRows keeps the refusal of a scope the guard cannot read', 
 
     await sharedRowsRepository.deleteBy({
       where: {},
-      options: { shouldReturn: false, shouldHardDelete: true },
+      options: { force: true, shouldReturn: false, shouldHardDelete: true },
     });
 
     const result3 = await rawNames();
@@ -350,7 +373,7 @@ describe('one model reads wider than it writes', () => {
     await repository.updateBy({
       where: {},
       data: { name: 'renamed' },
-      options: { shouldReturn: false },
+      options: { force: true, shouldReturn: false },
     });
 
     const result = await rawNames();
@@ -360,7 +383,7 @@ describe('one model reads wider than it writes', () => {
   test('a delete reaches only my rows', async () => {
     await repository.deleteBy({
       where: {},
-      options: { shouldReturn: false, shouldHardDelete: true },
+      options: { force: true, shouldReturn: false, shouldHardDelete: true },
     });
 
     const result2 = await rawNames();
@@ -386,8 +409,12 @@ describe('one model reads wider than it writes', () => {
 
     const writes = [
       repository.create({ data: { merchantId: ME, name: 'x' } }),
-      repository.updateBy({ where: {}, data: { name: 'x' }, options: { shouldReturn: false } }),
-      repository.deleteBy({ where: {}, options: { shouldHardDelete: true } }),
+      repository.updateBy({
+        where: {},
+        data: { name: 'x' },
+        options: { force: true, shouldReturn: false },
+      }),
+      repository.deleteBy({ where: {}, options: { force: true, shouldHardDelete: true } }),
     ];
 
     for (const write of writes) {
@@ -404,7 +431,7 @@ describe('one model reads wider than it writes', () => {
         : { merchantId: ME };
     };
 
-    await repository.deleteBy({ where: {}, options: { shouldReturn: false } });
+    await repository.deleteBy({ where: {}, options: { force: true, shouldReturn: false } });
     const { rows: afterSoftDelete } = await client.query<{ name: string; deletedAt: Date | null }>(
       `SELECT name, deleted_at AS "deletedAt" FROM ${TABLE_NAME} ORDER BY id`,
     );
@@ -419,7 +446,7 @@ describe('one model reads wider than it writes', () => {
     await repository.updateBy({
       where: {},
       data: { name: 'touched' },
-      options: { shouldReturn: false },
+      options: { force: true, shouldReturn: false },
     });
     const result6 = await rawNames();
     expect(result6).toEqual(['mine', 'touched', 'unrelated', 'mine-deleted']);
@@ -445,7 +472,7 @@ describe('one model reads wider than it writes', () => {
     await repository.updateBy({
       where: {},
       data: { name: 'renamed' },
-      options: { shouldReturn: false },
+      options: { force: true, shouldReturn: false },
     });
     const result5 = await rawNames();
     expect(result5).toEqual(['renamed', 'theirs-with-me', 'unrelated', 'mine-deleted']);

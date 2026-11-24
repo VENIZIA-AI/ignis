@@ -298,7 +298,7 @@ describe('access.resolve on SQLite - write verbs are scoped', () => {
     await buildSoft(SoftItem).updateBy({
       data: { name: 'renamed' },
       where: {},
-      options: { shouldReturn: false },
+      options: { force: true, shouldReturn: false },
     });
 
     const result = await names();
@@ -306,7 +306,10 @@ describe('access.resolve on SQLite - write verbs are scoped', () => {
   });
 
   test("a soft deleteBy only soft-deletes the current merchant's active row", async () => {
-    await buildSoft(SoftItem).deleteBy({ where: {}, options: { shouldReturn: false } });
+    await buildSoft(SoftItem).deleteBy({
+      where: {},
+      options: { force: true, shouldReturn: false },
+    });
 
     const result = await allRows();
     expect(result.map((row) => row.deletedAt !== null)).toEqual([true, true, false, true]);
@@ -337,7 +340,10 @@ describe('access.resolve on SQLite - write verbs are scoped', () => {
   });
 
   test('restoreBy only reaches the current merchant', async () => {
-    await buildSoft(SoftItem).restoreBy({ where: {}, options: { shouldReturn: false } });
+    await buildSoft(SoftItem).restoreBy({
+      where: {},
+      options: { force: true, shouldReturn: false },
+    });
 
     const result = await allRows();
     expect(result.map((row) => row.deletedAt !== null)).toEqual([false, false, false, true]);

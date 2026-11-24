@@ -70,9 +70,11 @@ export class PersistableRelationalRepository<
     });
   }
 
-  /** Prevents accidental table-wide updates/deletes by requiring an explicit force flag; returns the built where SQL so callers reuse it instead of rebuilding on identical input. */
+  /** Prevents accidental table-wide updates/deletes by requiring an explicit force flag, checked on the caller's own `where` (a scope or a default filter that joins it does not make it non-empty); returns the built where SQL so callers reuse it instead of rebuilding on identical input. */
   protected validateWhereCondition(opts: {
     where: TWhere<DataObject>;
+    /** The `where` the caller wrote, before the default filter and the access scope joined it. Empty means "every row" and needs `force`, however narrow the merged `where` is. Required: a subclass that calls this must say which `where` the caller wrote. */
+    callerWhere: TWhere<DataObject>;
     force?: boolean;
     operationName: string;
   }): { condition: SQL | undefined; isEmptyWhere: boolean } {
@@ -82,14 +84,23 @@ export class PersistableRelationalRepository<
       where: opts.where ?? {},
     });
     const isEmptyWhere = condition === undefined;
+    // Compiled again only when something joined the caller's `where`: an unscoped call keeps its one compilation.
+    const isCallerWhereEmpty =
+      opts.callerWhere === opts.where
+        ? isEmptyWhere
+        : this.queryDialect.toWhere({
+            tableName: this.entity.name,
+            schema: this.entity.schema,
+            where: opts.callerWhere,
+          }) === undefined;
 
-    if (!opts.force && isEmptyWhere) {
+    if (!opts.force && isCallerWhereEmpty) {
       throw getError({
         message: `[${opts.operationName}] Entity: ${this.entity.name} | DENY to perform ${opts.operationName.replace('_', '')} | Empty where condition`,
       });
     }
 
-    return { condition, isEmptyWhere };
+    return { condition, isEmptyWhere: isCallerWhereEmpty };
   }
 
   protected async _create<R = DataObject>(opts: {
@@ -411,6 +422,7 @@ export class PersistableRelationalRepository<
 
     const { condition: where, isEmptyWhere } = this.validateWhereCondition({
       where: mergedWhere,
+      callerWhere: opts.where ?? {},
       force,
       operationName: '_update',
     });
@@ -610,6 +622,7 @@ export class PersistableRelationalRepository<
 
     const { condition: where, isEmptyWhere } = this.validateWhereCondition({
       where: mergedWhere,
+      callerWhere: opts.where ?? {},
       force,
       operationName: '_delete',
     });
