@@ -69,7 +69,7 @@ const allowing = (values: ReadonlyArray<TScalar>): TAllowed => {
  *
  * Only shapes that can be checked are read: a column equal to a scalar or `null`, `{ eq }`, `{ inq }`
  * (or `in`), an array, `and` of those, and an `or` whose branches all constrain the same column. Anything
- * else - an `or` over several columns, ranges, `like`, a nested path - makes
+ * else - an `or` over several columns, ranges, `like`, a path deeper than one member - makes
  * the scope unverifiable, and the write is refused with its own message instead of being skipped.
  */
 export class ScopeWriteGuard {
