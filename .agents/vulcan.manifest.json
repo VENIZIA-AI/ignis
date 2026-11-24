@@ -81,6 +81,20 @@
       "retired": true
     }
   ],
+  "presets": [
+    {
+      "spec": "ignis",
+      "side": "backend",
+      "summary": "IGNIS: a backend app on Bun",
+      "lib": "IGNIS: a shared library"
+    },
+    {
+      "spec": "ardor",
+      "side": "frontend",
+      "summary": "ARDOR: a frontend app on Vite and React",
+      "lib": "ARDOR: a shared feature package"
+    }
+  ],
   "knowledge": {
     "bundle": ".agents/knowledge",
     "wiki": "docs/wiki/content",
@@ -115,7 +129,7 @@
       "V-P-10": "247d60d9",
       "V-P-11": "0e2949fa",
       "V-P-12": "885a5fc5",
-      "V-P-13": "ecbc3a24",
+      "V-P-13": "7f6e707e",
       "V-B-02": "dd299607",
       "V-B-03": "da8e7490",
       "V-B-04": "d845bcc8",
@@ -134,10 +148,28 @@
       "V-B-05": "1ac4fbaa",
       "V-B-09": "7a0bcb27",
       "V-C-07": "d62b8cb5",
-      "V-C-08": "82ce8254",
-      "V-C-20": "ca184ba4"
+      "V-C-08": "1ef42746",
+      "V-C-20": "ca184ba4",
+      "V-C-21": "1a0dd74e"
     }
   },
+  "sources": [
+    {
+      "name": "ignis",
+      "repo": "VENIZIA-AI/ignis",
+      "ref": "develop"
+    },
+    {
+      "name": "ardor",
+      "repo": "VENIZIA-AI/ardor",
+      "ref": "develop"
+    },
+    {
+      "name": "vulcan",
+      "repo": "VENIZIA-AI/vulcan",
+      "ref": "develop"
+    }
+  ],
   "atlas": {
     "index": {
       "keys": ["sdcWZqtQ/X7Rb7IExhpLzX/YFQoPscMPQSEdGcGc77Q="]
