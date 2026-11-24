@@ -65,6 +65,12 @@ class SoftItem extends BaseRelationalEntity<typeof itemsTable> {
   static override TABLE_NAME = 'write_guard_items';
 }
 
+@model({ type: 'entity', settings: { query: { filter: { where: { deletedAt: null } } } } })
+class FilterOnlyItem extends BaseRelationalEntity<typeof itemsTable> {
+  static override schema = itemsTable;
+  static override TABLE_NAME = 'write_guard_items';
+}
+
 @model({
   type: 'entity',
   settings: {
@@ -380,6 +386,9 @@ describe('scopeFilter write guard', () => {
   });
 
   describe('an empty where on updateBy and deleteBy needs force, on every model', () => {
+    // The type asks for a where; a plain JS caller can still leave it out, and that must read as empty. JSON.parse answers `any`, so no cast is needed.
+    const omitted = JSON.parse('{}').where;
+
     const seed = async () => {
       await client.exec(
         "INSERT INTO write_guard_items (merchant_id, name) VALUES ('m-a', 'mine'), ('m-b', 'theirs')",
@@ -427,6 +436,45 @@ describe('scopeFilter write guard', () => {
 
       const after2 = await rows();
       expect(after2).toEqual(untouched);
+    });
+
+    test('where: omitted is an empty where: a scoped model refuses it without force', async () => {
+      await seed();
+      const repository = build(RejectItem);
+
+      await RejectionUtility.expectRejection({
+        task: repository.deleteBy({ where: omitted }),
+        message: /Empty where condition/,
+      });
+      await RejectionUtility.expectRejection({
+        task: repository.updateBy({ where: omitted, data: { name: 'x' } }),
+        message: /Empty where condition/,
+      });
+
+      const afterUndefined = await rows();
+      expect(afterUndefined).toEqual(untouched);
+    });
+
+    test('a model with only a default filter, no access, refuses an empty where too', async () => {
+      await seed();
+      const repository = build(FilterOnlyItem);
+
+      await RejectionUtility.expectRejection({
+        task: repository.deleteBy({ where: {} }),
+        message: /Empty where condition/,
+      });
+      await RejectionUtility.expectRejection({
+        task: repository.updateBy({ where: omitted, data: { name: 'x' } }),
+        message: /Empty where condition/,
+      });
+
+      const afterFilterOnly = await rows();
+      expect(afterFilterOnly).toEqual(untouched);
+
+      await repository.deleteBy({ where: {}, options: { force: true } });
+
+      const afterForce = await rows();
+      expect(afterForce).toEqual([]);
     });
 
     test('with force the scope still holds: only the caller rows change, the other merchant is untouched', async () => {
