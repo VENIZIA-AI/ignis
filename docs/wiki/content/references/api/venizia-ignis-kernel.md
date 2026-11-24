@@ -1526,7 +1526,7 @@ export declare abstract class BaseRestController<RouteEnv extends Env = Env, Rou
     }>(opts: {
         context: RequestContext;
         payload: ResponseData;
-    }): ResponseData | TNullable<ResponseSchema>;
+    }): TNullable<ResponseSchema> | ResponseData;
     /** `x-request-extra`, parsed: `name`, `-name` (a default switched off) and `name(key,key)`. */
     getRequestedExtras(opts: {
         context: TRouteContext<RouteEnv>;
