@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join, relative, resolve, sep } from 'node:path';
+import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import type { Linter, Rule } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
 import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
@@ -8,6 +8,10 @@ import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 interface IImportMap {
   root: string;
   target: string;
+  /** What the `#src/*` target appends to the matched path: `.js` in the preset (`./src/*.js`), nothing in `./src/*`. */
+  suffix: string;
+  /** The extensions that have a `#src/*<ext>` key of their own (`.json`): the only other files `#src/...` can name. */
+  extensions: ReadonlySet<string>;
 }
 
 /**
@@ -25,7 +29,7 @@ export class NoParentImportRule {
   /** One scan reads the same package.json for every file of a package. */
   private static readonly maps = new Map<string, IImportMap | null>();
 
-  /** The parsed package.json, or `undefined` when it cannot be read: a broken file never stops a lint run, the import is reported without a fix. */
+  /** A parsed JSON file (a package.json or a tsconfig without comments), or `undefined` when it cannot be read: a broken file never stops a lint run, the import is reported without a fix. */
   private static readManifest(opts: { file: string }): unknown {
     try {
       return JSON.parse(readFileSync(opts.file, 'utf8'));
@@ -54,8 +58,30 @@ export class NoParentImportRule {
       const value =
         typeof mapped === 'string' ? mapped : AstNode.readField({ node: mapped, key: 'default' });
 
-      if (typeof value === 'string' && value.endsWith('/*')) {
-        found = { root: directory, target: resolve(directory, value.slice(0, -2)) };
+      // `./src/*` and the preset's `./src/*.js` both name the source folder; the suffix decides what a fix may write.
+      const shape = typeof value === 'string' ? /^(.*)\/\*((?:\.[a-z]+)?)$/.exec(value) : null;
+
+      if (shape?.[1] !== undefined) {
+        const extensions = new Set<string>();
+
+        for (const key of Object.keys(
+          typeof imports === 'object' && imports !== null ? imports : {},
+        )) {
+          const extension = new RegExp(`^${NoParentImportRule.ALIAS}/\\*(\\.[a-z0-9]+)$`).exec(
+            key,
+          )?.[1];
+
+          if (extension !== undefined) {
+            extensions.add(extension);
+          }
+        }
+
+        found = {
+          root: directory,
+          target: resolve(directory, shape[1]),
+          suffix: shape[2] ?? '',
+          extensions,
+        };
       }
 
       // A package.json that has no map still ends the walk: the next one up belongs to another package.
@@ -72,7 +98,15 @@ export class NoParentImportRule {
     return inherited;
   }
 
-  /** `#src/<path>` for the specifier `specifier` written in `filename`, when the map reaches it. */
+  /**
+   * `#src/<path>` for the specifier `specifier` written in `filename`, when the map reaches it AND the result resolves.
+   *
+   * What the map appends decides it. With `./src/*.js` (the preset) the written `.js`, `.ts` or `.tsx` goes (the map adds
+   * `.js`, and TypeScript reads that as the source), an extensionless file stays as it is, and a folder gets `/index`; any
+   * other extension is kept only when the map has a `#src/*<ext>` key for it. With a bare `./src/*` the path must keep the
+   * extension it is written with, because TypeScript does not guess one through `imports`; an extensionless specifier is
+   * reported and left alone.
+   */
   private static aliasFor(opts: { filename: string; specifier: string }): string | undefined {
     const map = NoParentImportRule.mapOf({ directory: dirname(opts.filename) });
 
@@ -87,7 +121,60 @@ export class NoParentImportRule {
       return undefined;
     }
 
-    return `${NoParentImportRule.ALIAS}/${inside.split(sep).join('/')}`;
+    const path = inside.split(sep).join('/');
+    const extension = extname(path);
+    const sourceExtensions = ['.js', '.ts', '.tsx'];
+
+    if (extension === '') {
+      return map.suffix === ''
+        ? undefined
+        : `${NoParentImportRule.ALIAS}/${path}${NoParentImportRule.indexSuffix({ absolute, map })}`;
+    }
+
+    if (map.suffix === '.js' && sourceExtensions.includes(extension)) {
+      return `${NoParentImportRule.ALIAS}/${path.slice(0, -extension.length)}`;
+    }
+
+    if (map.suffix === '' || map.extensions.has(extension)) {
+      return `${NoParentImportRule.ALIAS}/${path}`;
+    }
+
+    return undefined;
+  }
+
+  /**
+   * `/index` when the target is a folder and the package cannot resolve a folder through `#src/*`. A package.json `imports`
+   * map has no directory index, so `#src/folder` only resolves where the tsconfig `paths` entry `#src/*` also lists
+   * `./src/*\/index`; elsewhere the fix writes the file out. A target that is a file, or not on disk, is left as written.
+   */
+  private static indexSuffix(opts: { absolute: string; map: IImportMap }): string {
+    const { absolute, map } = opts;
+    const extensions = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.json'];
+
+    if (extensions.some((extension) => existsSync(`${absolute}${extension}`))) {
+      return '';
+    }
+
+    const isFolder = ['index.ts', 'index.tsx', 'index.js'].some((name) =>
+      existsSync(join(absolute, name)),
+    );
+
+    return isFolder && !NoParentImportRule.pathsResolveFolders({ root: map.root }) ? '/index' : '';
+  }
+
+  /** Whether the package's tsconfig `paths` maps `#src/*` to a folder index as well. */
+  private static pathsResolveFolders(opts: { root: string }): boolean {
+    const config = NoParentImportRule.readManifest({ file: join(opts.root, 'tsconfig.json') });
+    const options = AstNode.readField({ node: config, key: 'compilerOptions' });
+    const paths = AstNode.readField({
+      node: AstNode.readField({ node: options, key: 'paths' }),
+      key: `${NoParentImportRule.ALIAS}/*`,
+    });
+
+    return (
+      Array.isArray(paths) &&
+      paths.some((entry) => typeof entry === 'string' && entry.endsWith('/*/index'))
+    );
   }
 
   static readonly RULE: Rule.RuleModule = {

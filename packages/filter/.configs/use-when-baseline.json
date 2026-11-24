@@ -1,0 +1,16 @@
+{
+  "entries": [
+    "src/common/keys.ts#FilterKeys",
+    "src/common/operators.ts#QueryOperators",
+    "src/common/operators.ts#Sorts",
+    "src/schemas/builder.ts#QuerySchemaFactory",
+    "src/schemas/index.ts#FieldsSchema",
+    "src/schemas/index.ts#FilterSchema",
+    "src/schemas/index.ts#InclusionSchema",
+    "src/schemas/index.ts#LimitSchema",
+    "src/schemas/index.ts#OffsetSchema",
+    "src/schemas/index.ts#OrderBySchema",
+    "src/schemas/index.ts#SkipSchema",
+    "src/schemas/index.ts#WhereSchema"
+  ]
+}

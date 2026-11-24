@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs/linters, from the built decla
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-33 exports, 33 with TSDoc. 30 more are re-exported from other entries (listed at the end).
+37 exports, 37 with TSDoc. 30 more are re-exported from other entries (listed at the end).
 
 ## `AstNode`
 
@@ -280,7 +280,9 @@ export declare class FrameworkExports {
      * TypeScript for the linted package: from its own folder, the working directory, or this package's install, the first that
      * has the parser API. `undefined` when none does (the rule then reports nothing).
      */
-    private static loadTypeScript;
+    static loadTypeScript(opts: {
+        directory: string;
+    }): typeof ts | undefined;
     /** The nearest package.json at or above `directory`. */
     static manifestFor(opts: {
         directory: string;
@@ -719,12 +721,28 @@ export declare class NoParentImportRule {
     static readonly ALIAS = "#src";
     /** One scan reads the same package.json for every file of a package. */
     private static readonly maps;
-    /** The parsed package.json, or `undefined` when it cannot be read: a broken file never stops a lint run, the import is reported without a fix. */
+    /** A parsed JSON file (a package.json or a tsconfig without comments), or `undefined` when it cannot be read: a broken file never stops a lint run, the import is reported without a fix. */
     private static readManifest;
     /** The import map of the package that owns `directory`, or `undefined` when it has none for `#src/*`. */
     private static mapOf;
-    /** `#src/<path>` for the specifier `specifier` written in `filename`, when the map reaches it. */
+    /**
+     * `#src/<path>` for the specifier `specifier` written in `filename`, when the map reaches it AND the result resolves.
+     *
+     * What the map appends decides it. With `./src/*.js` (the preset) the written `.js`, `.ts` or `.tsx` goes (the map adds
+     * `.js`, and TypeScript reads that as the source), an extensionless file stays as it is, and a folder gets `/index`; any
+     * other extension is kept only when the map has a `#src/*<ext>` key for it. With a bare `./src/*` the path must keep the
+     * extension it is written with, because TypeScript does not guess one through `imports`; an extensionless specifier is
+     * reported and left alone.
+     */
     private static aliasFor;
+    /**
+     * `/index` when the target is a folder and the package cannot resolve a folder through `#src/*`. A package.json `imports`
+     * map has no directory index, so `#src/folder` only resolves where the tsconfig `paths` entry `#src/*` also lists
+     * `./src/*\/index`; elsewhere the fix writes the file out. A target that is a file, or not on disk, is left as written.
+     */
+    private static indexSuffix;
+    /** Whether the package's tsconfig `paths` maps `#src/*` to a folder index as well. */
+    private static pathsResolveFolders;
     static readonly RULE: Rule.RuleModule;
     static build(opts?: {
         severity?: TRuleSeverity;
@@ -963,6 +981,87 @@ export declare class PromiseChainSupport {
 
 Source: `packages/dev-configs/src/linters/house/promise-chain-support.ts`
 
+## `PublicSurface`
+
+*class*
+
+The public surface of one package: what its entry points export, read with the TypeScript checker over the entry files
+only (own symbols; what a package re-exports from another is that package's to document). Built once per package and
+memoized for the run, so a lint run pays for one program per package.
+
+Entries are the `exports` of package.json mapped back to source (`./dist/esm/x.d.ts` is `src/x.ts`), or the `entries`
+the project names.
+
+```ts
+export declare class PublicSurface {
+    static readonly USE_WHEN = "useWhen";
+    static readonly INSTEAD_OF = "insteadOf";
+    private static readonly surfaces;
+    /** The source file an `exports` declaration path stands for: `./dist/esm/a/index.d.ts` is `src/a/index.ts` (or `.tsx`). */
+    private static sourceOf;
+    /** The strings in an `exports` value that name a declaration or a source file. */
+    private static pathsIn;
+    /** The entry source files of the package at `directory`. */
+    private static entriesOf;
+    /** The compiler options of the nearest tsconfig.json, for `paths` aliases. */
+    private static optionsFor;
+    /** The tag texts of `name` on `symbol`, read through the checker and, for an `export * as X` statement, from the statement. */
+    private static tagsOf;
+    /** Every export of the entries of the package at `directory`, each once, that the package itself declares. */
+    private static scan;
+    /** The exports of the package at `directory`, by the file that declares them. */
+    static of(opts: {
+        directory: string;
+        entries?: ReadonlyArray<string>;
+    }): Map<string, IPublicFile>;
+    /** The package folder of `file`: where the nearest package.json is. */
+    static packageOf(opts: {
+        file: string;
+    }): string | undefined;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/public-surface.ts`
+
+## `publishedPackageConfigs`
+
+*const*
+
+`PublishedPackageConfigs.build()` with no baseline: every gap is an error.
+
+```ts
+export declare const publishedPackageConfigs: Linter.Config[];
+```
+
+Source: `packages/dev-configs/src/linters/house/published-package-configs.ts`
+
+## `PublishedPackageConfigs`
+
+*class*
+
+The lint configs of a package other projects install: its public exports say when to use them (`@useWhen`). Not part of
+`houseConfigs`: an app extending the house rules has no public surface to document.
+
+```js
+// .configs/lints/eslint.config.mjs
+import { houseConfigs, PublishedPackageConfigs } from '@venizia/dev-configs/linters';
+
+export default [...houseConfigs, ...PublishedPackageConfigs.build({ baseline: '.configs/use-when-baseline.json' })];
+```
+
+```ts
+export declare class PublishedPackageConfigs {
+    /** `require-use-when` (error) and `pending-use-when` (warning) over source files, tests exempt. */
+    static build(opts?: {
+        baseline?: string;
+        entries?: ReadonlyArray<string>;
+        types?: ReadonlyArray<string>;
+    }): Linter.Config[];
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/published-package-configs.ts`
+
 ## `reactHouseConfigs`
 
 *const*
@@ -987,6 +1086,52 @@ export declare const reactNamingConventionConfigs: Linter.Config[];
 ```
 
 Source: `packages/dev-configs/src/linters/react-eslint.ts`
+
+## `RequireUseWhenRule`
+
+*class*
+
+`venizia/require-use-when` and `venizia/pending-use-when`. Every export of a package's public entry points that is a
+value (a class, function, const, enum or namespace), and the framework types apps copy (`TNullable`, `ValueOrPromise`,
+`TConstValue`...), carries a non-empty `@useWhen` in its TSDoc: plain words saying when to reach for it, so an author or an
+agent who has never seen the API finds it. `@insteadOf`, when present, names what it replaces and is not empty. Other
+types are optional: they point to their owner with `@see`.
+
+`baseline` is a JSON file (`{ "entries": ["src/a.ts#Name", ...] }`, paths from the package folder) listing the exports not
+yet swept, so a package adopts the rule one folder at a time. Not in the baseline, a missing tag is an error
+(`require-use-when`). In the baseline it is only a warning (`pending-use-when`), and a baseline entry that now has its tag
+is an error: the file can only shrink. When the sweep ends the file is deleted and the option dropped.
+
+The entries are the package's `exports` mapped to source, or the `entries` option. An `export * as X from` statement
+carries its tag on the statement.
+
+```ts
+export declare class RequireUseWhenRule {
+    static readonly NAME = "venizia/require-use-when";
+    static readonly PENDING_NAME = "venizia/pending-use-when";
+    /** The framework types apps shadow, which need the tag although they are types. */
+    static readonly DEFAULT_TYPES: ReadonlyArray<string>;
+    /** Whether an export must carry `@useWhen`: a value, or one of the framework types. */
+    static isRequired(opts: {
+        item: IPublicExport;
+        types?: ReadonlyArray<string>;
+    }): boolean;
+    private static readBaseline;
+    private static strings;
+    private static readonly SCHEMA;
+    private static create;
+    static readonly RULE: Rule.RuleModule;
+    static readonly PENDING_RULE: Rule.RuleModule;
+    static build(opts?: {
+        severity?: TRuleSeverity;
+        baseline?: string;
+        entries?: ReadonlyArray<string>;
+        types?: ReadonlyArray<string>;
+    }): Linter.RuleEntry;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/require-use-when.rule.ts`
 
 ## Re-exported
 

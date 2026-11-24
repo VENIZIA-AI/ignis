@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, test } from 'bun:test';
 import { Linter } from 'eslint';
+import ts from 'typescript';
 import tseslint from 'typescript-eslint';
 import {
   FrameworkRuleApis,
@@ -404,7 +405,7 @@ describe('venizia/no-parent-import', () => {
   });
 
   test('with a #src map the import is rewritten from the map, for import and export forms', () => {
-    const { filename, cwd } = buildPackage({ imports: { '#src/*': './src/*' } });
+    const { filename, cwd } = buildPackage({ imports: { '#src/*': './src/*.js' } });
     const { fixed } = run({
       name: NAME,
       options: ['warn'],
@@ -418,9 +419,142 @@ describe('venizia/no-parent-import', () => {
     );
   });
 
+  /** A package on disk whose files exist, so that every fixed import can be resolved the way a compiler and Bun resolve it. */
+  const resolvable = (opts: { imports: Record<string, string> }) => {
+    const { cwd, filename } = buildPackage({ imports: opts.imports });
+
+    const put = (path: string, content = 'export const value = 1;\n') => {
+      mkdirSync(join(cwd, 'src', path, '..'), { recursive: true });
+      writeFileSync(join(cwd, 'src', path), content);
+    };
+
+    put('x.ts');
+    put('folder/index.ts');
+    put('data.json', '{"a":1}\n');
+    writeFileSync(join(cwd, 'src', 'a', 'b', 'file.ts'), 'export {};\n');
+    writeFileSync(
+      join(cwd, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: { module: 'esnext', moduleResolution: 'bundler', resolveJsonModule: true },
+      }),
+    );
+    put('x.tsx', 'export const view = 1;\n');
+
+    /** Whether TypeScript (bundler resolution) and Bun both find `specifier` from the linted file. */
+    const resolves = (specifier: string): boolean => {
+      const options: ts.CompilerOptions = {
+        module: ts.ModuleKind.ESNext,
+        moduleResolution: ts.ModuleResolutionKind.Bundler,
+        resolveJsonModule: true,
+      };
+      const found = ts.resolveModuleName(specifier, filename, options, ts.sys).resolvedModule;
+
+      let bun = true;
+
+      try {
+        Bun.resolveSync(specifier, join(cwd, 'src', 'a', 'b'));
+        // eslint-disable-next-line venizia/no-silent-catch -- the failure is the answer being asked for
+      } catch {
+        bun = false;
+      }
+
+      return found !== undefined && bun;
+    };
+
+    const fix = (code: string) => run({ name: NAME, options: ['warn'], filename, cwd, code });
+
+    return { fix, resolves };
+  };
+
+  test.each([
+    ['an extensionless file', `import { a } from '../../x';\n`, `'#src/x'`],
+    ['a written .js extension is dropped', `import { a } from '../../x.js';\n`, `'#src/x'`],
+    ['a written .ts extension is dropped', `import { a } from '../../x.ts';\n`, `'#src/x'`],
+    ['a written .tsx extension is dropped', `import { a } from '../../x.tsx';\n`, `'#src/x'`],
+    ['a folder gets /index', `import { a } from '../../folder';\n`, `'#src/folder/index'`],
+    [
+      'a written folder index.js is dropped to index',
+      `import { a } from '../../folder/index.js';\n`,
+      `'#src/folder/index'`,
+    ],
+  ])('with the preset map, %s resolves in TypeScript and Bun', (_name, code, expected) => {
+    const { fix, resolves } = resolvable({ imports: { '#src/*': './src/*.js' } });
+    const { fixed } = fix(code);
+
+    expect(fixed).toContain(expected);
+    expect(resolves(expected.slice(1, -1))).toBe(true);
+  });
+
+  test('a .json import is fixed only where the map has a #src/*.json key', () => {
+    const keyed = resolvable({
+      imports: { '#src/*.json': './src/*.json', '#src/*': './src/*.js' },
+    });
+    const unkeyed = resolvable({ imports: { '#src/*': './src/*.js' } });
+    const code = `import data from '../../data.json';\n`;
+
+    expect(keyed.fix(code).fixed).toContain(`'#src/data.json'`);
+    expect(keyed.resolves('#src/data.json')).toBe(true);
+    expect(unkeyed.fix(code).fixed).toBe(code);
+  });
+
+  test('with a bare ./src/* map the extension stays, and an extensionless import is reported and left alone', () => {
+    const bare = resolvable({ imports: { '#src/*': './src/*' } });
+    const withExtension = bare.fix(`import { a } from '../../x.ts';\n`).fixed;
+    const extensionless = `import { a } from '../../x';\n`;
+    const folder = `import { a } from '../../folder';\n`;
+
+    expect(withExtension).toContain(`'#src/x.ts'`);
+    expect(bare.fix(extensionless).fixed).toBe(extensionless);
+    expect(bare.fix(folder).fixed).toBe(folder);
+  });
+
+  test("the preset's './src/*.js' target is a map too", () => {
+    const { filename, cwd } = buildPackage({ imports: { '#src/*': './src/*.js' } });
+    const { fixed } = run({
+      name: NAME,
+      options: ['warn'],
+      filename,
+      cwd,
+      code: `import { a } from '../x';\n`,
+    });
+
+    expect(fixed).toBe(`import { a } from '#src/a/x';\n`);
+  });
+
+  test('a folder target gets /index unless the tsconfig paths resolve folders; a file target never does', () => {
+    const plain = buildPackage({ imports: { '#src/*': './src/*.js' } });
+    const withPaths = buildPackage({ imports: { '#src/*': './src/*.js' } });
+
+    const src = (root: string, path: string, content = 'export {};\n') => {
+      mkdirSync(join(root, 'src', path, '..'), { recursive: true });
+      writeFileSync(join(root, 'src', path), content);
+    };
+
+    for (const { cwd } of [plain, withPaths]) {
+      src(cwd, 'folder/index.ts');
+      src(cwd, 'leaf.ts');
+    }
+
+    writeFileSync(
+      join(withPaths.cwd, 'tsconfig.json'),
+      JSON.stringify({ compilerOptions: { paths: { '#src/*': ['./src/*', './src/*/index'] } } }),
+    );
+
+    const code = `import { a } from '../../folder';\nimport { b } from '../../leaf';\n`;
+    const folderOnly = (opts: { cwd: string; filename: string }) =>
+      run({ name: NAME, options: ['warn'], ...opts, code }).fixed;
+
+    expect(folderOnly(plain)).toBe(
+      `import { a } from '#src/folder/index';\nimport { b } from '#src/leaf';\n`,
+    );
+    expect(folderOnly(withPaths)).toBe(
+      `import { a } from '#src/folder';\nimport { b } from '#src/leaf';\n`,
+    );
+  });
+
   test('without the map, or when the import leaves the mapped folder, it is reported and left alone', () => {
     const unmapped = buildPackage({});
-    const mapped = buildPackage({ imports: { '#src/*': './src/*' } });
+    const mapped = buildPackage({ imports: { '#src/*': './src/*.js' } });
     const code = `import { a } from '../x';\n`;
     const leaving = `import { a } from '../../../../x';\n`;
 
@@ -433,7 +567,7 @@ describe('venizia/no-parent-import', () => {
   });
 
   test('a dynamic import is reported without a fix, and a package.json that does not parse never stops the run', () => {
-    const mapped = buildPackage({ imports: { '#src/*': './src/*' } });
+    const mapped = buildPackage({ imports: { '#src/*': './src/*.js' } });
     const dynamic = run({
       name: NAME,
       options: ['warn'],
@@ -480,6 +614,8 @@ describe('FrameworkRuleApis', () => {
     'no-return-await',
     'no-silent-catch',
     'no-unbraced-case',
+    'pending-use-when',
+    'require-use-when',
   ];
 
   test('every rule of the plugin has an entry, or is listed as a style rule: a new rule cannot skip the table', () => {
