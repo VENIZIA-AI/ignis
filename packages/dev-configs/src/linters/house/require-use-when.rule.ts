@@ -3,6 +3,7 @@ import { relative, resolve, sep } from 'node:path';
 import type { Linter, Rule } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
 import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
+import type { IPublicExport } from './public-surface';
 import { PublicSurface } from './public-surface';
 
 /** Which of the two rules a rule module is: they read the same surface and the same baseline. */
@@ -37,6 +38,13 @@ export class RequireUseWhenRule {
     'TConstructor',
     'TAbstractConstructor',
   ];
+
+  /** Whether an export must carry `@useWhen`: a value, or one of the framework types. */
+  static isRequired(opts: { item: IPublicExport; types?: ReadonlyArray<string> }): boolean {
+    const { item, types = RequireUseWhenRule.DEFAULT_TYPES } = opts;
+
+    return item.isValue || types.includes(item.name);
+  }
 
   private static readBaseline(opts: { directory: string; baseline: unknown }): Set<string> {
     const { directory, baseline } = opts;
@@ -101,15 +109,41 @@ export class RequireUseWhenRule {
           baseline: AstNode.readField({ node: options, key: 'baseline' }),
         });
         const surface = PublicSurface.of({ directory, entries });
+        const current = surface.get(resolve(context.filename));
 
-        for (const item of surface.get(resolve(context.filename)) ?? []) {
-          const key = `${relative(directory, item.file).split(sep).join('/')}#${item.name}`;
+        // The offsets belong to the text the scan read: an editor buffer that differs, or a file a fix has just changed, is
+        // left alone until it is saved and read again.
+        if (current && current.text !== context.sourceCode.text) {
+          return;
+        }
+
+        const own = relative(directory, resolve(context.filename)).split(sep).join('/');
+
+        // A baseline entry of this file whose export is gone exempts nothing: a future export of that name must not slip in.
+        if (mode === 'require' && surface.size > 0) {
+          const present = new Set((current?.exports ?? []).map((item) => item.name));
+
+          for (const entry of baselined) {
+            const [file, name] = entry.split('#');
+
+            if (file === own && name !== undefined && !present.has(name)) {
+              context.report({
+                loc: { line: 1, column: 0 },
+                messageId: 'staleEntry',
+                data: { name },
+              });
+            }
+          }
+        }
+
+        for (const item of current?.exports ?? []) {
+          const key = `${own}#${item.name}`;
           const isPending = baselined.has(key);
           const loc = {
             start: context.sourceCode.getLocFromIndex(item.start),
             end: context.sourceCode.getLocFromIndex(item.end),
           };
-          const isRequired = item.isValue || types.includes(item.name);
+          const isRequired = RequireUseWhenRule.isRequired({ item, types });
 
           if (mode === 'pending') {
             if (isRequired && !item.hasUseWhen && isPending) {
@@ -146,6 +180,8 @@ export class RequireUseWhenRule {
           '`@insteadOf` on `{{name}}` is empty: name what it replaces, or remove the tag.',
         stale:
           '`{{name}}` has its `@useWhen`: remove it from the baseline file, which may only shrink.',
+        staleEntry:
+          'The baseline lists `{{name}}`, which this file no longer exports: remove the entry, so a future export of that name is not exempt.',
       },
     },
     create: RequireUseWhenRule.create({ mode: 'require' }),

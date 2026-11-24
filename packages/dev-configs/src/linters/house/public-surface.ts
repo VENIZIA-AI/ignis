@@ -21,6 +21,13 @@ export interface IPublicExport {
   hasEmptyInsteadOf: boolean;
 }
 
+/** What one source file contributes to the public surface, with the text the offsets are valid for. */
+export interface IPublicFile {
+  /** The text the scan read: the offsets below mean nothing for any other text of the same file. */
+  text: string;
+  exports: Array<IPublicExport>;
+}
+
 /**
  * The public surface of one package: what its entry points export, read with the TypeScript checker over the entry files
  * only (own symbols; what a package re-exports from another is that package's to document). Built once per package and
@@ -33,7 +40,7 @@ export class PublicSurface {
   static readonly USE_WHEN = 'useWhen';
   static readonly INSTEAD_OF = 'insteadOf';
 
-  private static readonly surfaces = new Map<string, Map<string, Array<IPublicExport>>>();
+  private static readonly surfaces = new Map<string, Map<string, IPublicFile>>();
 
   /** The source file an `exports` declaration path stands for: `./dist/esm/a/index.d.ts` is `src/a/index.ts` (or `.tsx`). */
   private static sourceOf(opts: { directory: string; declaration: string }): string | undefined {
@@ -48,16 +55,16 @@ export class PublicSurface {
       .find((file) => existsSync(file));
   }
 
-  /** The `.d.ts` paths in an `exports` value. */
-  private static declarationsIn(opts: { value: unknown }): Array<string> {
+  /** The strings in an `exports` value that name a declaration or a source file. */
+  private static pathsIn(opts: { value: unknown }): Array<string> {
     const { value } = opts;
 
     if (typeof value === 'string') {
-      return /\.d\.[cm]?ts$/.test(value) ? [value] : [];
+      return /\.(?:d\.[cm]?ts|tsx?)$/.test(value) ? [value] : [];
     }
 
     return typeof value === 'object' && value !== null
-      ? Object.values(value).flatMap((entry) => PublicSurface.declarationsIn({ value: entry }))
+      ? Object.values(value).flatMap((entry) => PublicSurface.pathsIn({ value: entry }))
       : [];
   }
 
@@ -84,10 +91,15 @@ export class PublicSurface {
       manifest = undefined;
     }
 
-    const files = PublicSurface.declarationsIn({
+    // A package that ships its source names `.ts` files in `exports` (`./src/index.ts`); a built one names `.d.ts` files.
+    const files = PublicSurface.pathsIn({
       value: AstNode.readField({ node: manifest, key: 'exports' }),
     })
-      .map((declaration) => PublicSurface.sourceOf({ directory, declaration }))
+      .map((path) =>
+        /\.d\.[cm]?ts$/.test(path)
+          ? PublicSurface.sourceOf({ directory, declaration: path })
+          : [resolve(directory, path)].find((file) => existsSync(file)),
+      )
       .filter((file): file is string => file !== undefined);
 
     return [...new Set(files)];
@@ -147,9 +159,9 @@ export class PublicSurface {
   private static scan(opts: {
     directory: string;
     entries: ReadonlyArray<string> | undefined;
-  }): Map<string, Array<IPublicExport>> {
+  }): Map<string, IPublicFile> {
     const { directory, entries } = opts;
-    const byFile = new Map<string, Array<IPublicExport>>();
+    const byFile = new Map<string, IPublicFile>();
     const typescript = FrameworkExports.loadTypeScript({ directory });
     const roots = PublicSurface.entriesOf({ directory, entries });
 
@@ -207,9 +219,9 @@ export class PublicSurface {
 
         const tags = PublicSurface.tagsOf({ typescript, checker, symbol, target });
         const named = typescript.getNameOfDeclaration(site) ?? site;
-        const list = byFile.get(file) ?? [];
+        const entry = byFile.get(file) ?? { text: site.getSourceFile().text, exports: [] };
 
-        list.push({
+        entry.exports.push({
           name,
           isValue: namespaceExport !== undefined || (target.flags & valueFlags) !== 0,
           file,
@@ -218,7 +230,7 @@ export class PublicSurface {
           hasUseWhen: (tags.get(PublicSurface.USE_WHEN) ?? '').length > 0,
           hasEmptyInsteadOf: tags.get(PublicSurface.INSTEAD_OF) === '',
         });
-        byFile.set(file, list);
+        byFile.set(file, entry);
       }
     }
 
@@ -229,7 +241,7 @@ export class PublicSurface {
   static of(opts: {
     directory: string;
     entries?: ReadonlyArray<string>;
-  }): Map<string, Array<IPublicExport>> {
+  }): Map<string, IPublicFile> {
     const key = `${opts.directory}|${(opts.entries ?? []).join(',')}`;
     const cached = PublicSurface.surfaces.get(key);
 

@@ -725,7 +725,15 @@ export declare class NoParentImportRule {
     private static readManifest;
     /** The import map of the package that owns `directory`, or `undefined` when it has none for `#src/*`. */
     private static mapOf;
-    /** `#src/<path>` for the specifier `specifier` written in `filename`, when the map reaches it. */
+    /**
+     * `#src/<path>` for the specifier `specifier` written in `filename`, when the map reaches it AND the result resolves.
+     *
+     * What the map appends decides it. With `./src/*.js` (the preset) the written `.js`, `.ts` or `.tsx` goes (the map adds
+     * `.js`, and TypeScript reads that as the source), an extensionless file stays as it is, and a folder gets `/index`; any
+     * other extension is kept only when the map has a `#src/*<ext>` key for it. With a bare `./src/*` the path must keep the
+     * extension it is written with, because TypeScript does not guess one through `imports`; an extensionless specifier is
+     * reported and left alone.
+     */
     private static aliasFor;
     /**
      * `/index` when the target is a folder and the package cannot resolve a folder through `#src/*`. A package.json `imports`
@@ -991,8 +999,8 @@ export declare class PublicSurface {
     private static readonly surfaces;
     /** The source file an `exports` declaration path stands for: `./dist/esm/a/index.d.ts` is `src/a/index.ts` (or `.tsx`). */
     private static sourceOf;
-    /** The `.d.ts` paths in an `exports` value. */
-    private static declarationsIn;
+    /** The strings in an `exports` value that name a declaration or a source file. */
+    private static pathsIn;
     /** The entry source files of the package at `directory`. */
     private static entriesOf;
     /** The compiler options of the nearest tsconfig.json, for `paths` aliases. */
@@ -1005,7 +1013,7 @@ export declare class PublicSurface {
     static of(opts: {
         directory: string;
         entries?: ReadonlyArray<string>;
-    }): Map<string, Array<IPublicExport>>;
+    }): Map<string, IPublicFile>;
     /** The package folder of `file`: where the nearest package.json is. */
     static packageOf(opts: {
         file: string;
@@ -1103,6 +1111,11 @@ export declare class RequireUseWhenRule {
     static readonly PENDING_NAME = "venizia/pending-use-when";
     /** The framework types apps shadow, which need the tag although they are types. */
     static readonly DEFAULT_TYPES: ReadonlyArray<string>;
+    /** Whether an export must carry `@useWhen`: a value, or one of the framework types. */
+    static isRequired(opts: {
+        item: IPublicExport;
+        types?: ReadonlyArray<string>;
+    }): boolean;
     private static readBaseline;
     private static strings;
     private static readonly SCHEMA;

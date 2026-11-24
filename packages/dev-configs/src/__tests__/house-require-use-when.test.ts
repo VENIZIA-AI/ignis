@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import { afterAll, describe, expect, test } from 'bun:test';
 import { Linter } from 'eslint';
 import tseslint from 'typescript-eslint';
+import { UseWhenBaseline } from '../checks/use-when-baseline';
 import {
   houseConfigs,
   PublishedPackageConfigs,
@@ -223,5 +224,90 @@ describe('the baseline', () => {
     });
 
     expect(lint({ root, file: 'src/__tests__/a.test.ts' })).toHaveLength(0);
+  });
+});
+
+describe('text that differs from the disk', () => {
+  test('an unsaved buffer or a file a fix has shortened is skipped, not crashed on', () => {
+    const root = buildPackage({
+      files: {
+        'src/index.ts': `export class Long {}\nexport class Longer {}\nexport class Longest {}\n`,
+      },
+    });
+    const config: Linter.Config[] = [
+      { files: ['**/*.ts'], languageOptions: { parser: tseslint.parser as Linter.Parser } },
+      ...publishedPackageConfigs,
+    ];
+    const linter = new Linter({ cwd: root });
+    const filename = join(root, 'src/index.ts');
+
+    expect(linter.verify(`export class Long {}\n`, config, { filename })).toHaveLength(0);
+    expect(linter.verify(`\n`, config, { filename })).toHaveLength(0);
+    expect(linter.verify(readFileSync(filename, 'utf8'), config, { filename })).toHaveLength(3);
+  });
+});
+
+describe('a package that ships its source', () => {
+  test('exports naming .ts files (the lib preset) are the entries', () => {
+    const root = buildPackage({
+      files: { 'src/index.ts': `export class Service {}\n` },
+      exports: { '.': './src/index.ts' },
+    });
+
+    expect(names(lint({ root, file: 'src/index.ts' }))).toEqual(['Service']);
+  });
+});
+
+describe('the baseline file', () => {
+  const files = {
+    'src/index.ts': `export class Kept {}\n/** @useWhen done */\nexport class Done {}\n`,
+  };
+
+  test('an entry whose export is gone is reported, so it cannot exempt a future export', () => {
+    const root = buildPackage({ files });
+    write({
+      root,
+      path: '.configs/use-when-baseline.json',
+      content: JSON.stringify({ entries: ['src/index.ts#Kept', 'src/index.ts#Gone'] }),
+    });
+    const findings = lint({
+      root,
+      file: 'src/index.ts',
+      configs: PublishedPackageConfigs.build({ baseline: '.configs/use-when-baseline.json' }),
+    });
+    const stale = findings.filter((finding) => finding.message.includes('no longer exports'));
+
+    expect(names(stale)).toEqual(['Gone']);
+    expect(stale[0]?.severity).toBe(2);
+    expect(names(findings.filter((finding) => finding.severity === 1))).toEqual(['Kept']);
+  });
+
+  test('UseWhenBaseline lists the exports that lack a tag, sorted, and renders the file', () => {
+    const root = buildPackage({
+      files: {
+        'src/index.ts': `export * from './b';\nexport class Zed {}\n/** @useWhen ok */\nexport class Tagged {}\nexport interface IPlain {}\n`,
+        'src/b.ts': `export const alpha = 1;\n`,
+      },
+    });
+    const entries = UseWhenBaseline.entries({ directory: root });
+
+    expect(entries).toEqual(['src/b.ts#alpha', 'src/index.ts#Zed']);
+    expect(UseWhenBaseline.render({ entries })).toBe(
+      `{\n  "entries": [\n    "src/b.ts#alpha",\n    "src/index.ts#Zed"\n  ]\n}\n`,
+    );
+
+    write({
+      root,
+      path: '.configs/use-when-baseline.json',
+      content: UseWhenBaseline.render({ entries }),
+    });
+
+    const findings = lint({
+      root,
+      file: 'src/index.ts',
+      configs: PublishedPackageConfigs.build({ baseline: UseWhenBaseline.DEFAULT_FILE }),
+    });
+
+    expect(findings.filter((finding) => finding.severity === 2)).toHaveLength(0);
   });
 });

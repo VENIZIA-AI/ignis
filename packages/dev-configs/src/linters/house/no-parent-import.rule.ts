@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join, relative, resolve, sep } from 'node:path';
+import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import type { Linter, Rule } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
 import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
@@ -8,6 +8,10 @@ import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 interface IImportMap {
   root: string;
   target: string;
+  /** What the `#src/*` target appends to the matched path: `.js` in the preset (`./src/*.js`), nothing in `./src/*`. */
+  suffix: string;
+  /** The extensions that have a `#src/*<ext>` key of their own (`.json`): the only other files `#src/...` can name. */
+  extensions: ReadonlySet<string>;
 }
 
 /**
@@ -54,12 +58,30 @@ export class NoParentImportRule {
       const value =
         typeof mapped === 'string' ? mapped : AstNode.readField({ node: mapped, key: 'default' });
 
-      // `./src/*` and the preset's `./src/*.js` both name the source folder.
-      const folder =
-        typeof value === 'string' ? /^(.*)\/\*(?:\.[a-z]+)?$/.exec(value)?.[1] : undefined;
+      // `./src/*` and the preset's `./src/*.js` both name the source folder; the suffix decides what a fix may write.
+      const shape = typeof value === 'string' ? /^(.*)\/\*((?:\.[a-z]+)?)$/.exec(value) : null;
 
-      if (folder !== undefined) {
-        found = { root: directory, target: resolve(directory, folder) };
+      if (shape?.[1] !== undefined) {
+        const extensions = new Set<string>();
+
+        for (const key of Object.keys(
+          typeof imports === 'object' && imports !== null ? imports : {},
+        )) {
+          const extension = new RegExp(`^${NoParentImportRule.ALIAS}/\\*(\\.[a-z0-9]+)$`).exec(
+            key,
+          )?.[1];
+
+          if (extension !== undefined) {
+            extensions.add(extension);
+          }
+        }
+
+        found = {
+          root: directory,
+          target: resolve(directory, shape[1]),
+          suffix: shape[2] ?? '',
+          extensions,
+        };
       }
 
       // A package.json that has no map still ends the walk: the next one up belongs to another package.
@@ -76,7 +98,15 @@ export class NoParentImportRule {
     return inherited;
   }
 
-  /** `#src/<path>` for the specifier `specifier` written in `filename`, when the map reaches it. */
+  /**
+   * `#src/<path>` for the specifier `specifier` written in `filename`, when the map reaches it AND the result resolves.
+   *
+   * What the map appends decides it. With `./src/*.js` (the preset) the written `.js`, `.ts` or `.tsx` goes (the map adds
+   * `.js`, and TypeScript reads that as the source), an extensionless file stays as it is, and a folder gets `/index`; any
+   * other extension is kept only when the map has a `#src/*<ext>` key for it. With a bare `./src/*` the path must keep the
+   * extension it is written with, because TypeScript does not guess one through `imports`; an extensionless specifier is
+   * reported and left alone.
+   */
   private static aliasFor(opts: { filename: string; specifier: string }): string | undefined {
     const map = NoParentImportRule.mapOf({ directory: dirname(opts.filename) });
 
@@ -91,7 +121,25 @@ export class NoParentImportRule {
       return undefined;
     }
 
-    return `${NoParentImportRule.ALIAS}/${inside.split(sep).join('/')}${NoParentImportRule.indexSuffix({ absolute, map })}`;
+    const path = inside.split(sep).join('/');
+    const extension = extname(path);
+    const sourceExtensions = ['.js', '.ts', '.tsx'];
+
+    if (extension === '') {
+      return map.suffix === ''
+        ? undefined
+        : `${NoParentImportRule.ALIAS}/${path}${NoParentImportRule.indexSuffix({ absolute, map })}`;
+    }
+
+    if (map.suffix === '.js' && sourceExtensions.includes(extension)) {
+      return `${NoParentImportRule.ALIAS}/${path.slice(0, -extension.length)}`;
+    }
+
+    if (map.suffix === '' || map.extensions.has(extension)) {
+      return `${NoParentImportRule.ALIAS}/${path}`;
+    }
+
+    return undefined;
   }
 
   /**
