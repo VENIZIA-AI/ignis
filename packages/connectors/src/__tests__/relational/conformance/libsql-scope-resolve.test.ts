@@ -804,7 +804,7 @@ describe('access.resolve on SQLite - a scope that cannot be verified, more shape
       /several conditions/,
     ],
     ['a nested path', { 'meta.merchant': 'm-a' }, /nested path/],
-      ['a bracket path', { 'meta[merchant]': 'm-a' }, /nested path/],
+    ['a bracket path', { 'meta[merchant]': 'm-a' }, /nested path/],
   ])(
     '%s refuses the write with its own message, never a skip',
     async (_label, resolved, pattern) => {
