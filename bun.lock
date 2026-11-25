@@ -7,7 +7,7 @@
       "devDependencies": {
         "@types/bun": "catalog:",
         "@venizia/dev-configs": "workspace:*",
-        "@venizia/vulcan": "0.5.0-8",
+        "@venizia/vulcan": "0.5.0-9",
         "eslint": "catalog:",
         "typescript": "catalog:",
         "typescript-eslint": "catalog:",
@@ -352,7 +352,7 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.5.0-8",
+      "version": "0.5.0-9",
       "bin": {
         "ignis-artifacts": "./dist/esm/clis/artifacts.js",
       },
@@ -375,7 +375,7 @@
     },
     "packages/connectors": {
       "name": "@venizia/ignis-connectors",
-      "version": "0.5.0-10",
+      "version": "0.5.0-11",
       "dependencies": {
         "@venizia/ignis-filter": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
@@ -420,7 +420,7 @@
     },
     "packages/core-server": {
       "name": "@venizia/ignis",
-      "version": "0.5.0-12",
+      "version": "0.5.0-13",
       "dependencies": {
         "@venizia/ignis-connectors": "workspace:*",
         "@venizia/ignis-filter": "workspace:*",
@@ -490,7 +490,7 @@
     },
     "packages/core-worker": {
       "name": "@venizia/ignis-worker",
-      "version": "0.5.0-9",
+      "version": "0.5.0-10",
       "dependencies": {
         "@venizia/ignis-helpers": "workspace:*",
         "@venizia/ignis-inversion": "workspace:*",
@@ -513,7 +513,7 @@
     },
     "packages/dev-configs": {
       "name": "@venizia/dev-configs",
-      "version": "0.5.0-6",
+      "version": "0.5.0-7",
       "bin": {
         "devz": "./dist/cli/index.js",
       },
@@ -561,7 +561,7 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.5.0-8",
+      "version": "0.5.0-9",
       "dependencies": {
         "@venizia/ignis-inversion": "workspace:*",
         "reflect-metadata": "catalog:",
@@ -660,7 +660,7 @@
     },
     "packages/kernel": {
       "name": "@venizia/ignis-kernel",
-      "version": "0.5.0-9",
+      "version": "0.5.0-10",
       "dependencies": {
         "@venizia/ignis-filter": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
@@ -1457,11 +1457,11 @@
 
     "@venizia/ignis-worker": ["@venizia/ignis-worker@workspace:packages/core-worker"],
 
-    "@venizia/vulcan": ["@venizia/vulcan@0.5.0-8", "", { "dependencies": { "@clack/prompts": "1.8.1", "@venizia/vulcan-atlas": "0.5.0-8", "@venizia/vulcan-okf": "0.5.0-8", "zod": "^4.6.7" }, "bin": { "vulcan": "src/cli.ts" } }, "sha512-Szr28s7bcojl+NvRUr4erKKVEX+rIzxnorrW1tdrPNhA8leBdH5ORD/mRf0zskLJi3iiiYE0U1PXGk36/NZ6+Q=="],
+    "@venizia/vulcan": ["@venizia/vulcan@0.5.0-9", "", { "dependencies": { "@clack/prompts": "1.8.1", "@venizia/vulcan-atlas": "0.5.0-9", "@venizia/vulcan-okf": "0.5.0-9", "zod": "^4.6.7" }, "bin": { "vulcan": "src/cli.ts" } }, "sha512-3Ec5Zx+nBgZ8P2ghlOkgc/DZiDyBoy48PMzmuTl6itp/Xywd7/vasm779WeJ63KD2HyS5KBH9tj8jQdECR+xvw=="],
 
-    "@venizia/vulcan-atlas": ["@venizia/vulcan-atlas@0.5.0-8", "", { "dependencies": { "typescript": "^6.0.3", "zod": "^4.6.7" }, "bin": { "vulcan-atlas": "dist/cjs/cli.js" } }, "sha512-x2C2mOP2ROpT5aBOknxeHTCIo1xQKJs+g+zkZWTMtgRRNbEtfcPBuUpumQww3ojBb/WsKq8JuiDB9K9ZINS0Pg=="],
+    "@venizia/vulcan-atlas": ["@venizia/vulcan-atlas@0.5.0-9", "", { "dependencies": { "typescript": "^6.0.3", "zod": "^4.6.7" }, "bin": { "vulcan-atlas": "dist/cjs/cli.js" } }, "sha512-Cgay92I0m+4Fw9TobnjL6ASQSnAerQoFLjG67vuZCAbMv/ulzSxQscBv756Xc0N73aXCy36Y3LfMBEOhEVOqJA=="],
 
-    "@venizia/vulcan-okf": ["@venizia/vulcan-okf@0.5.0-8", "", { "bin": { "vulcan-okf": "src/cli.ts" } }, "sha512-RJh8KnzcqDAzafWiSThyyw//0qTqk3miEgbmCQgxQi2XuvtY0s0rBLPW2FqQ1EpjYOqbki/pBJYeSTZCaeDZow=="],
+    "@venizia/vulcan-okf": ["@venizia/vulcan-okf@0.5.0-9", "", { "bin": { "vulcan-okf": "src/cli.ts" } }, "sha512-7Fvi9E48JihUxka6UaHol+1g5N4nNJAdEeuORj3wmNaUayy+wJPOzBWCfSDOkgUXb7+SKlw2TYk6XJIaUyhcfA=="],
 
     "@vitejs/plugin-react": ["@vitejs/plugin-react@6.1.2", "", { "dependencies": { "@rolldown/pluginutils": "^1.0.1" }, "peerDependencies": { "@rolldown/plugin-babel": "^0.1.7 || ^0.2.0", "babel-plugin-react-compiler": "^1.0.0", "oxc-transform-react": "^0.152.0", "vite": "^8.0.0" }, "optionalPeers": ["@rolldown/plugin-babel", "babel-plugin-react-compiler", "oxc-transform-react"] }, "sha512-fhJNGUdscQa4HkI0xFxwonWyhnVReCPDbXI7FH7jmzpnVCrFQI7PRrhWecO263610vOrs9tr2Y4xcf8uAdFxbw=="],
 
