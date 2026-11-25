@@ -13,7 +13,7 @@ export interface IDeadTestCodeCandidate {
    * `unreferenced`: neither its name nor its path under `__tests__` appears in another file, nor does
    * its folder. `folder-referenced`: only its folder path does, so a scan of that folder may load it.
    */
-  kind: 'unreferenced' | 'folder-referenced';
+  type: 'unreferenced' | 'folder-referenced';
 }
 
 const SUPPORT_EXTENSION = /\.(?:[cm]?[jt]sx?|json|sql|txt)$/;
@@ -75,7 +75,7 @@ export class DeadTestCodeCheck {
       const folderReferenced =
         folder !== '.' && referencedElsewhere({ root: opts.root, needle: folder, self: file });
 
-      candidates.push({ file, kind: folderReferenced ? 'folder-referenced' : 'unreferenced' });
+      candidates.push({ file, type: folderReferenced ? 'folder-referenced' : 'unreferenced' });
     }
 
     return candidates;

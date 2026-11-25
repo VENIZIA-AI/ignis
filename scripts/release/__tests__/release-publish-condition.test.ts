@@ -34,7 +34,7 @@ describe('ReleasePublishCondition', () => {
   test('a condition that is not a boolean is wrong for every case', () => {
     expect(
       ReleasePublishCondition.runs({
-        condition: '${{ needs.plan.outputs.kind }}',
+        condition: '${{ needs.plan.outputs.track }}',
         testCase: ReleasePublishCondition.CASES[0],
       }),
     ).toBeUndefined();

@@ -190,9 +190,9 @@ export class CheckCommand {
 
     const candidates = DeadTestCodeCheck.find({ root: opts.root });
 
-    for (const kind of ['unreferenced', 'folder-referenced'] as const) {
-      const own = candidates.filter((candidate) => candidate.kind === kind);
-      console.log(`${kind}: ${own.length}`);
+    for (const type of ['unreferenced', 'folder-referenced'] as const) {
+      const own = candidates.filter((candidate) => candidate.type === type);
+      console.log(`${type}: ${own.length}`);
 
       for (const candidate of own) {
         console.log(`  ${candidate.file}`);

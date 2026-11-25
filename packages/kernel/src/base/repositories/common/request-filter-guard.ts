@@ -12,7 +12,7 @@ export interface IRequestFilterShape {
 }
 
 /** Which part of a filter a key came from: the refusal reads like the query's own refusal of an unknown column of that part. */
-export type TRequestFilterKeyKind = 'where' | 'order';
+export type TRequestFilterClause = 'where' | 'order';
 
 /** The parts of a request filter a query reads, one at a time, in an order the query decides. */
 export class RequestFilterParts {
@@ -44,7 +44,7 @@ export interface IRequestFilterJudge {
   isHidden(opts: { key: string }): boolean;
 
   /** The error to throw for a key that is hidden: the one an unknown column or field gets, so a caller cannot tell them apart. */
-  refuse(opts: { kind: TRequestFilterKeyKind; key: string; tableName: string }): Error;
+  refuse(opts: { clause: TRequestFilterClause; key: string; tableName: string }): Error;
 
   /** The judge of the model a relation of this model points to; `undefined` when the relation is unknown (the query refuses it). A nested include is judged by the relation judge's own `relation`. */
   relation?(opts: { relation: string }): IRequestFilterJudge | undefined;
@@ -149,7 +149,7 @@ export class RequestFilterGuard {
     const { walk, judge, tableName, key, piece } = opts;
 
     if (judge.isHidden({ key })) {
-      throw walk.refusal ?? judge.refuse({ kind: piece.part, key, tableName });
+      throw walk.refusal ?? judge.refuse({ clause: piece.part, key, tableName });
     }
 
     walk.refusal ??= judge.queryRefusal?.({ ...piece, tableName });

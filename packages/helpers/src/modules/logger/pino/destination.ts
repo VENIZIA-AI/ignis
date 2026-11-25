@@ -9,10 +9,10 @@ import { PinoFrequencies, type TFrequency } from './common';
 
 /** Pure description of where pino should write, derived from env; `PinoDestination.build()` is the impure half that acts on it. */
 export type TDestinationPlan =
-  | { kind: 'stdout' }
-  | { kind: 'pretty' }
+  | { type: 'stdout' }
+  | { type: 'pretty' }
   | {
-      kind: 'roll';
+      type: 'roll';
       options: {
         file: string;
         frequency: TFrequency;
@@ -113,7 +113,7 @@ export class PinoDestination {
       });
 
       return {
-        kind: 'roll',
+        type: 'roll',
         options: {
           file: path.join(folderPath, Defaults.APPLICATION_NAME),
           frequency,
@@ -128,17 +128,17 @@ export class PinoDestination {
 
     // UNSET means NDJSON to stdout, the locked default for this provider; only an EXPLICIT `text` opts into pino-pretty, and falling back to TEXT here (winston's default) would make the documented minimal install (pino only, no pino-pretty) crash on its first log line.
     if (process.env.APP_ENV_LOGGER_FORMAT === LoggerFormats.TEXT) {
-      return { kind: 'pretty' };
+      return { type: 'pretty' };
     }
 
-    return { kind: 'stdout' };
+    return { type: 'stdout' };
   }
 
   /** `pino.transport()` is SYNCHRONOUS - it returns a `ThreadStream` that BUFFERS writes until its worker thread loads, so no async gating is needed; `ModuleUtility.assertInstalled` runs first so a missing optional peer fails loudly here, not as an opaque worker-thread crash. */
   static build(opts: { plan: TDestinationPlan }): ReturnType<typeof pino.transport> | undefined {
     const { plan } = opts;
 
-    switch (plan.kind) {
+    switch (plan.type) {
       case 'stdout': {
         return undefined;
       }

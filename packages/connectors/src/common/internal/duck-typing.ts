@@ -33,8 +33,8 @@ export class DuckTypingUtility {
       return false;
     }
 
-    for (const [name, kind] of Object.entries(members)) {
-      if (typeof Reflect.get(value, name) !== kind) {
+    for (const [name, expected] of Object.entries(members)) {
+      if (typeof Reflect.get(value, name) !== expected) {
         return false;
       }
     }

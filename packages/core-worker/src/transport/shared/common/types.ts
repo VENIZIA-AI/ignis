@@ -4,7 +4,7 @@ import type {
   IBffRequestEnvelope,
   IBffResponseEnvelope,
 } from '@/envelope/common';
-import { type BffRoles, type ChannelMessageKinds } from './constants';
+import { type BffRoles, type ChannelMessageTypes } from './constants';
 
 /** One of the `BffRoles` values: `electing`, `leader` or `follower`. */
 export type TBffRole = TConstValue<typeof BffRoles>;
@@ -17,9 +17,9 @@ export type TBffRole = TConstValue<typeof BffRoles>;
  * timeout is the one honest answer for that window.
  */
 export type TChannelMessage =
-  | { kind: typeof ChannelMessageKinds.REQUEST; envelope: IBffRequestEnvelope }
-  | { kind: typeof ChannelMessageKinds.RESPONSE; envelope: IBffResponseEnvelope }
-  | { kind: typeof ChannelMessageKinds.ERROR; envelope: IBffErrorEnvelope };
+  | { type: typeof ChannelMessageTypes.REQUEST; envelope: IBffRequestEnvelope }
+  | { type: typeof ChannelMessageTypes.RESPONSE; envelope: IBffResponseEnvelope }
+  | { type: typeof ChannelMessageTypes.ERROR; envelope: IBffErrorEnvelope };
 
 export interface IPendingRequest {
   resolve: (response: Response) => void;

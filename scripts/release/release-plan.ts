@@ -28,7 +28,7 @@ export class ReleasePlan {
   /**
    * The npm names a package must be released after: what it ships as `dependencies` or `peerDependencies`, and, when it
    * ships presets, the workspace packages its preset templates name. A project made from a preset reads
-   * `dist/presets/<kind>/preset.json`, which `scripts/preset/vulcan-preset.ts` builds from `presets/<kind>/preset.json`
+   * `dist/presets/<type>/preset.json`, which `scripts/preset/vulcan-preset.ts` builds from `presets/<type>/preset.json`
    * and in which every `workspace:*` becomes the workspace version at build time. A preset package published before a
    * tool its templates name is bumped therefore keeps handing out the old tool (`@venizia/ignis` 0.4.7-3 did, with a
    * boot that threw under Node). `presets` are the parsed templates; a package that ships none depends on its

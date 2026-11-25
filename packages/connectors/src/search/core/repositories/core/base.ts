@@ -73,7 +73,7 @@ export abstract class SearchBaseRepository<
 
     return {
       ...judge,
-      refuse: ({ kind, key }) => this.queryDialect.fieldNotFoundError({ kind, field: key }),
+      refuse: ({ clause, key }) => this.queryDialect.fieldNotFoundError({ clause, field: key }),
       readOrder: () => SEARCH_READ_ORDER,
       filterRefusal: ({ filter }) =>
         filter.include ? this.queryDialect.includeNotSupportedError() : undefined,

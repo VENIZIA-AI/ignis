@@ -6,14 +6,14 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { VulcanPreset } from '../vulcan-preset';
 
 /**
- * The shared kind of the IGNIS preset: a side-neutral package, built from presets/shared. These tests
+ * The shared variant of the IGNIS preset: a side-neutral package, built from presets/shared. These tests
  * read the real preset, built into a temp folder, and each check carries a positive control (a
  * fixture that must fail it), so a green run is not an empty one.
  */
 const ROOT = resolve(import.meta.dir, '..', '..', '..');
-const KINDS = ['app', 'lib', 'shared'];
+const VARIANTS = ['app', 'lib', 'shared'];
 const DEPENDENCY_MAPS = ['dependencies', 'devDependencies', 'peerDependencies', 'peers'];
-/** The one `@venizia/*` name the shared kind may name: the tooling of all three repositories. */
+/** The one `@venizia/*` name the shared variant may name: the tooling of all three repositories. */
 const ALLOWED_PACKAGE = '@venizia/dev-configs';
 const ALLOWED_MAP = 'devDependencies';
 const FORBIDDEN_PREFIX = '@venizia/';
@@ -161,18 +161,18 @@ describe('shared preset - the manifest and the build (P2)', () => {
   const manifest = readJson({ file: join(ROOT, 'packages/core-server/package.json') });
   const presets = (manifest.vulcan as { presets: Record<string, string> }).presets;
 
-  test('vulcan.presets names exactly app, lib and shared, each under dist/presets/<kind>', () => {
-    expect(Object.keys(presets).sort()).toEqual(KINDS);
+  test('vulcan.presets names exactly app, lib and shared, each under dist/presets/<variant>', () => {
+    expect(Object.keys(presets).sort()).toEqual(VARIANTS);
 
-    for (const kind of KINDS) {
-      expect(presets[kind]).toBe(`./dist/presets/${kind}/preset.json`);
+    for (const variant of VARIANTS) {
+      expect(presets[variant]).toBe(`./dist/presets/${variant}/preset.json`);
     }
   });
 
-  test('each kind has its source preset.json, and the build writes each named file', () => {
-    for (const kind of KINDS) {
-      expect(existsSync(join(ROOT, 'presets', kind, 'preset.json'))).toBe(true);
-      expect(existsSync(join(outDir, kind, 'preset.json'))).toBe(true);
+  test('each variant has its source preset.json, and the build writes each named file', () => {
+    for (const variant of VARIANTS) {
+      expect(existsSync(join(ROOT, 'presets', variant, 'preset.json'))).toBe(true);
+      expect(existsSync(join(outDir, variant, 'preset.json'))).toBe(true);
     }
   });
 });
@@ -303,7 +303,7 @@ describe('shared preset - tokens (P4)', () => {
   });
 });
 
-describe('shared preset - VULCAN kind-file rules, a local copy of lib-preset.ts (P5)', () => {
+describe('shared preset - VULCAN variant-file rules, a local copy of lib-preset.ts (P5)', () => {
   // A copy cannot see drift in VULCAN: the real check is `vulcan package add --shared` (slice S2).
   const ALLOWED_KEYS = [
     'presetVersion',
@@ -321,7 +321,7 @@ describe('shared preset - VULCAN kind-file rules, a local copy of lib-preset.ts 
   ];
   const ALLOWED_PACKAGE_FIELDS = ['type', 'sideEffects', 'browser', 'engines'];
 
-  const findKindFileProblems = (opts: { presetDir: string }): string[] => {
+  const findVariantFileProblems = (opts: { presetDir: string }): string[] => {
     const problems: string[] = [];
     const preset = readJson({ file: join(opts.presetDir, 'preset.json') });
 
@@ -380,7 +380,7 @@ describe('shared preset - VULCAN kind-file rules, a local copy of lib-preset.ts 
   };
 
   test('the built shared preset passes, has no app-only key, and an empty atlas', () => {
-    expect(findKindFileProblems({ presetDir: sharedDir })).toEqual([]);
+    expect(findVariantFileProblems({ presetDir: sharedDir })).toEqual([]);
 
     const preset = readJson({ file: join(sharedDir, 'preset.json') });
 
@@ -418,7 +418,7 @@ describe('shared preset - VULCAN kind-file rules, a local copy of lib-preset.ts 
     for (const [change, problem] of broken) {
       const presetDir = makeFixturePreset({ preset: change });
 
-      expect(findKindFileProblems({ presetDir })).toContain(problem);
+      expect(findVariantFileProblems({ presetDir })).toContain(problem);
     }
   });
 });
@@ -541,7 +541,7 @@ describe('shared preset - the rendered package runs (P7)', () => {
   });
 });
 
-describe('lib preset - the word shared names only the shared kind (P9)', () => {
+describe('lib preset - the word shared names only the shared variant (P9)', () => {
   test('the lib summary does not call the lib shared', () => {
     const lib = readJson({ file: join(ROOT, 'presets/lib/preset.json') });
 
@@ -552,24 +552,24 @@ describe('lib preset - the word shared names only the shared kind (P9)', () => {
 
 describe('shared preset - the lint configs (P12, P13)', () => {
   const lintFolder = '.configs/lints';
-  const readBuilt = (opts: { kind: string; path: string }): string =>
-    readFileSync(join(outDir, opts.kind, 'files', opts.path), 'utf8');
+  const readBuilt = (opts: { variant: string; path: string }): string =>
+    readFileSync(join(outDir, opts.variant, 'files', opts.path), 'utf8');
 
-  test('the shared kind gets exactly the lint and format files the lib gets, from the app', () => {
-    const under = (opts: { kind: string }): string[] =>
-      listFiles({ dir: join(outDir, opts.kind, 'files') }).filter(
+  test('the shared variant gets exactly the lint and format files the lib gets, from the app', () => {
+    const under = (opts: { variant: string }): string[] =>
+      listFiles({ dir: join(outDir, opts.variant, 'files') }).filter(
         (path) => path.startsWith(lintFolder) || path.startsWith('.configs/formatters'),
       );
 
-    expect(under({ kind: 'shared' })).toEqual(under({ kind: 'lib' }));
-    expect(under({ kind: 'shared' })).toContain(`${lintFolder}/eslint.config.mjs`);
-    expect(under({ kind: 'shared' })).toContain(`${lintFolder}/oxlint.config.mts`);
+    expect(under({ variant: 'shared' })).toEqual(under({ variant: 'lib' }));
+    expect(under({ variant: 'shared' })).toContain(`${lintFolder}/eslint.config.mjs`);
+    expect(under({ variant: 'shared' })).toContain(`${lintFolder}/oxlint.config.mts`);
 
-    for (const path of under({ kind: 'shared' })) {
-      expect(readBuilt({ kind: 'shared', path })).toBe(readBuilt({ kind: 'app', path }));
+    for (const path of under({ variant: 'shared' })) {
+      expect(readBuilt({ variant: 'shared', path })).toBe(readBuilt({ variant: 'app', path }));
     }
 
-    // The shared kind's own source adds no lint rule: nothing of it sits under .configs/.
+    // The shared variant's own source adds no lint rule: nothing of it sits under .configs/.
     expect(
       listFiles({ dir: join(ROOT, 'presets/shared/files') }).filter((path) =>
         path.startsWith('.configs'),
@@ -579,18 +579,18 @@ describe('shared preset - the lint configs (P12, P13)', () => {
 
   test('the two configs only re-export the base presets of dev-configs', () => {
     const eslintSpecifiers = readSpecifiers({
-      source: readBuilt({ kind: 'shared', path: `${lintFolder}/eslint.config.mjs` }),
+      source: readBuilt({ variant: 'shared', path: `${lintFolder}/eslint.config.mjs` }),
     });
     const oxlintSpecifiers = readSpecifiers({
-      source: readBuilt({ kind: 'shared', path: `${lintFolder}/oxlint.config.mts` }),
+      source: readBuilt({ variant: 'shared', path: `${lintFolder}/oxlint.config.mts` }),
     });
 
     expect(eslintSpecifiers).toEqual([`${ALLOWED_PACKAGE}/linters`]);
     expect(oxlintSpecifiers).toEqual(['oxlint', `${ALLOWED_PACKAGE}/linters/oxlint`]);
-    expect(readBuilt({ kind: 'shared', path: `${lintFolder}/eslint.config.mjs` })).toMatch(
+    expect(readBuilt({ variant: 'shared', path: `${lintFolder}/eslint.config.mjs` })).toMatch(
       /export default houseConfigs;/,
     );
-    expect(readBuilt({ kind: 'shared', path: `${lintFolder}/oxlint.config.mts` })).toMatch(
+    expect(readBuilt({ variant: 'shared', path: `${lintFolder}/oxlint.config.mts` })).toMatch(
       /export default defineConfig\(oxlintConfigs\);/,
     );
   });

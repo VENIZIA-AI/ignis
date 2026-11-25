@@ -282,8 +282,8 @@ describe('ArtifactGroup.pick with custom', () => {
       folder: 'x',
       content: { services: [], custom: { emitter: [OrderEmitter] } },
     });
-    const withCustom = ArtifactGroup.pick({ group, kinds: ['custom'] });
-    const without = ArtifactGroup.pick({ group, kinds: ['services'] });
+    const withCustom = ArtifactGroup.pick({ group, categories: ['custom'] });
+    const without = ArtifactGroup.pick({ group, categories: ['services'] });
 
     const kept = await ArtifactGroup.resolveContent({ group: withCustom });
     const dropped = await ArtifactGroup.resolveContent({ group: without });

@@ -40,18 +40,18 @@ describe('PresetSmoke.getDefaultVulcanCommand - the preset smoke never runs an u
   });
 });
 
-describe('PresetSmoke.supportsSharedKind - the shared-kind step runs from the first VULCAN that has --shared', () => {
+describe('PresetSmoke.supportsShared - the shared-variant step runs from the first VULCAN that has --shared', () => {
   test('orders prereleases and stable versions around the minimum', () => {
-    expect(PresetSmoke.supportsSharedKind({ version: '0.4.8' })).toBe(false);
-    expect(PresetSmoke.supportsSharedKind({ version: '0.4.9-0' })).toBe(true);
-    expect(PresetSmoke.supportsSharedKind({ version: '0.4.9-1' })).toBe(true);
-    expect(PresetSmoke.supportsSharedKind({ version: '0.4.9' })).toBe(true);
-    expect(PresetSmoke.supportsSharedKind({ version: '0.4.10' })).toBe(true);
+    expect(PresetSmoke.supportsShared({ version: '0.4.8' })).toBe(false);
+    expect(PresetSmoke.supportsShared({ version: '0.4.9-0' })).toBe(true);
+    expect(PresetSmoke.supportsShared({ version: '0.4.9-1' })).toBe(true);
+    expect(PresetSmoke.supportsShared({ version: '0.4.9' })).toBe(true);
+    expect(PresetSmoke.supportsShared({ version: '0.4.10' })).toBe(true);
   });
 
   test('the pin of this repository is at or above the minimum, so the step runs and cannot be skipped by a bump', () => {
     const pinned = PresetSmoke.getPinnedVulcanVersion({ root: ROOT });
 
-    expect(PresetSmoke.supportsSharedKind({ version: pinned })).toBe(true);
+    expect(PresetSmoke.supportsShared({ version: pinned })).toBe(true);
   });
 });

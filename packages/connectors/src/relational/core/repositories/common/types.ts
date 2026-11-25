@@ -61,7 +61,7 @@ export interface IRelationalQueryDialect {
     relationConfig: TRelationConfig;
   };
   /** The error the query gives for a `where` key or an `order` field that names no column. */
-  columnNotFoundError(opts: { kind: 'where' | 'order'; key: string; tableName: string }): Error;
+  columnNotFoundError(opts: { clause: 'where' | 'order'; key: string; tableName: string }): Error;
   /** The fields the model of a schema hides. */
   resolveHiddenProperties(opts: { schema: TTableSchemaWithId }): Set<string>;
   /** The engine's update transform; an engine without one leaves it out. */

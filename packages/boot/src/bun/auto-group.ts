@@ -31,7 +31,7 @@ export class AutoArtifactGroup<
     return this.resolver();
   }
 
-  private static unreadKind(): never {
+  private static unreadCategory(): never {
     throw getError({
       message:
         '[@venizia/ignis-boot/auto] The application artifacts are resolved when artifacts are registered | A function that walks configs.artifacts must pass a group through untouched (check `isArtifactGroup`) instead of reading its kinds',
@@ -39,26 +39,26 @@ export class AutoArtifactGroup<
   }
 
   get configurations(): never {
-    return AutoArtifactGroup.unreadKind();
+    return AutoArtifactGroup.unreadCategory();
   }
 
   get dataSources(): never {
-    return AutoArtifactGroup.unreadKind();
+    return AutoArtifactGroup.unreadCategory();
   }
 
   get components(): never {
-    return AutoArtifactGroup.unreadKind();
+    return AutoArtifactGroup.unreadCategory();
   }
 
   get repositories(): never {
-    return AutoArtifactGroup.unreadKind();
+    return AutoArtifactGroup.unreadCategory();
   }
 
   get services(): never {
-    return AutoArtifactGroup.unreadKind();
+    return AutoArtifactGroup.unreadCategory();
   }
 
   get controllers(): never {
-    return AutoArtifactGroup.unreadKind();
+    return AutoArtifactGroup.unreadCategory();
   }
 }

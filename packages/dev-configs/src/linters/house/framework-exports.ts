@@ -12,7 +12,7 @@ export interface IPackageManifest {
 }
 
 /** Whether a declared name is a type (an interface or a type alias) or something with a runtime value (a class, a function, a const, an enum, a namespace). */
-type TDeclarationKind = 'type' | 'value';
+type TDeclarationType = 'type' | 'value';
 
 /**
  * The type names the installed `@venizia/*` packages export, read from their published `.d.ts` files: the names a project
@@ -199,16 +199,16 @@ export class FrameworkExports {
 
   /**
    * The names `file` exports, each with what it is, following `export *` into relative files and into other `@venizia/*`
-   * packages (an umbrella package re-exports its siblings). A name re-exported by `export { X } from` takes the kind it has
+   * packages (an umbrella package re-exports its siblings). A name re-exported by `export { X } from` takes the type it has
    * where it is declared; `export type { X }` is a type whatever the target says.
    */
   private static namesOf(opts: {
     typescript: typeof ts;
     file: string;
     seen: Set<string>;
-  }): Map<string, TDeclarationKind> {
+  }): Map<string, TDeclarationType> {
     const { typescript, file, seen } = opts;
-    const names = new Map<string, TDeclarationKind>();
+    const names = new Map<string, TDeclarationType>();
     const text = FrameworkExports.readText({ file });
 
     if (seen.has(file) || text === undefined) {
@@ -218,7 +218,7 @@ export class FrameworkExports {
     seen.add(file);
 
     const source = typescript.createSourceFile(file, text, typescript.ScriptTarget.Latest, false);
-    const kindOf = (node: ts.Statement): TDeclarationKind =>
+    const typeOf = (node: ts.Statement): TDeclarationType =>
       typescript.isInterfaceDeclaration(node) || typescript.isTypeAliasDeclaration(node)
         ? 'type'
         : 'value';
@@ -229,7 +229,7 @@ export class FrameworkExports {
       );
 
     // What the file declares, exported or not: `declare class X {}` then `export { X }` is a value.
-    const locals = new Map<string, TDeclarationKind>();
+    const locals = new Map<string, TDeclarationType>();
 
     for (const statement of source.statements) {
       if (typescript.isVariableStatement(statement)) {
@@ -251,7 +251,7 @@ export class FrameworkExports {
         // An interface merged with a class or a namespace of the same name has a value too.
         locals.set(
           statement.name.text,
-          locals.get(statement.name.text) === 'value' ? 'value' : kindOf(statement),
+          locals.get(statement.name.text) === 'value' ? 'value' : typeOf(statement),
         );
       }
     }
@@ -275,27 +275,27 @@ export class FrameworkExports {
 
           for (const element of clause.elements) {
             const original = (element.propertyName ?? element.name).text;
-            const kind: TDeclarationKind | undefined =
+            const declared: TDeclarationType | undefined =
               statement.isTypeOnly || element.isTypeOnly
                 ? 'type'
                 : specifier === undefined
                   ? locals.get(original)
                   : there?.get(original);
 
-            if (kind !== undefined) {
-              names.set(element.name.text, kind);
+            if (declared !== undefined) {
+              names.set(element.name.text, declared);
             }
           }
         } else if (!clause && specifier?.startsWith('.') === true) {
           const target = FrameworkExports.resolveRelative({ from: file, specifier });
 
           if (target) {
-            for (const [name, kind] of FrameworkExports.namesOf({
+            for (const [name, declared] of FrameworkExports.namesOf({
               typescript,
               file: target,
               seen,
             })) {
-              names.set(name, kind);
+              names.set(name, declared);
             }
           }
         } else if (!clause && specifier?.startsWith(FrameworkExports.SCOPE) === true) {
@@ -331,7 +331,7 @@ export class FrameworkExports {
         statement.name &&
         typescript.isIdentifier(statement.name)
       ) {
-        names.set(statement.name.text, locals.get(statement.name.text) ?? kindOf(statement));
+        names.set(statement.name.text, locals.get(statement.name.text) ?? typeOf(statement));
       }
     }
 
@@ -369,7 +369,7 @@ export class FrameworkExports {
       }
 
       const declared = FrameworkExports.namesOf({ typescript, file: path, seen: new Set() });
-      const types = [...declared].filter(([, kind]) => kind === 'type').map(([entry]) => entry);
+      const types = [...declared].filter(([, type]) => type === 'type').map(([entry]) => entry);
 
       for (const entry of types) {
         if (types.length < (sizes.get(entry) ?? Number.POSITIVE_INFINITY)) {

@@ -2,7 +2,7 @@
  * The GitHub Release of a publish run: ONE Release for the run of a stable, on the tag of the last package of its
  * plan, and none for a prerelease (the Releases page lists stables only; a prerelease is on npm under `next` and in git).
  *
- *   bun scripts/release/github-release.ts create --targets <dir=version,...> --kind stable|prerelease
+ *   bun scripts/release/github-release.ts create --targets <dir=version,...> --track stable|prerelease
  *   bun scripts/release/github-release.ts backfill --tag <tag> [--yes]
  *
  * A run publishes up to nine packages, each with its own tag `<dir>-v<version>`. The Release is made on the tag of
@@ -18,7 +18,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ReleaseMergeBack } from './merge-back';
 import { ReleaseOrder } from './release-constants';
-import { ReleaseKinds } from './release-kind';
+import { ReleaseTracks } from './release-track';
 import { ReleaseNotes } from './release-notes';
 
 export class GithubReleaseConstants {
@@ -61,7 +61,7 @@ export class GithubReleaseConstants {
   /** The notes of a stable whose changelog says nothing: the changelog records what affects users, and nothing did. */
   static readonly NO_USER_CHANGES = 'No change for users of the packages in this release.';
   static readonly USAGE =
-    'github-release: create --targets <dir=version,...> --kind stable|prerelease | backfill --tag <tag> [--yes]';
+    'github-release: create --targets <dir=version,...> --track stable|prerelease | backfill --tag <tag> [--yes]';
 }
 
 export interface IGithubReleasePackage {
@@ -596,15 +596,15 @@ export class GithubRelease {
   static create(opts: {
     cwd: string;
     targets: IGithubReleaseTarget[];
-    kind: string;
+    track: string;
     gh: TGh;
     scratchRoot: string;
     /** Falls back to commit subjects when no dated entry covers a stable with no folder (a backfill). */
     withSubjectFallback?: boolean;
     dryRun?: boolean;
   }): IGithubReleaseOutcome {
-    if (opts.kind !== ReleaseKinds.STABLE && opts.kind !== ReleaseKinds.PRERELEASE) {
-      return { state: 'refused', message: `the kind '${opts.kind}' is not stable or prerelease` };
+    if (opts.track !== ReleaseTracks.STABLE && opts.track !== ReleaseTracks.PRERELEASE) {
+      return { state: 'refused', message: `the track '${opts.track}' is not stable or prerelease` };
     }
 
     try {
@@ -624,15 +624,15 @@ export class GithubRelease {
         };
       }
 
-      if ((opts.kind === ReleaseKinds.PRERELEASE) !== last.version.includes('-')) {
+      if ((opts.track === ReleaseTracks.PRERELEASE) !== last.version.includes('-')) {
         return {
           state: 'refused',
-          message: `${tag} is version ${last.version}, which is not a ${opts.kind}`,
+          message: `${tag} is version ${last.version}, which is not a ${opts.track}`,
         };
       }
 
       // A prerelease is on npm under `next` and in git; the Releases page lists stables only.
-      if (opts.kind === ReleaseKinds.PRERELEASE) {
+      if (opts.track === ReleaseTracks.PRERELEASE) {
         return {
           state: 'skipped',
           message: `${tag} is a prerelease: only a stable has a GitHub Release`,
@@ -798,13 +798,13 @@ export class GithubRelease {
   }
 
   /**
-   * The targets and kind a `create` or a `backfill` asks for; `undefined` when the flags do not give them. A
-   * `backfill` names one tag: its package and version are the whole run, and its kind is the version's.
+   * The targets and track a `create` or a `backfill` asks for; `undefined` when the flags do not give them. A
+   * `backfill` names one tag: its package and version are the whole run, and its track is the version's.
    */
   static requestOf(opts: {
     args: string[];
     manifest: IGithubReleaseManifest;
-  }): { targets: IGithubReleaseTarget[]; kind: string } | undefined {
+  }): { targets: IGithubReleaseTarget[]; track: string } | undefined {
     if (opts.args[0] === 'backfill') {
       const tag = ReleaseMergeBack.flagValue({ args: opts.args, flag: '--tag' });
       const target =
@@ -814,16 +814,16 @@ export class GithubRelease {
         ? undefined
         : {
             targets: [target],
-            kind: target.version.includes('-') ? ReleaseKinds.PRERELEASE : ReleaseKinds.STABLE,
+            track: target.version.includes('-') ? ReleaseTracks.PRERELEASE : ReleaseTracks.STABLE,
           };
     }
 
     const text = ReleaseMergeBack.flagValue({ args: opts.args, flag: '--targets' });
-    const kind = ReleaseMergeBack.flagValue({ args: opts.args, flag: '--kind' });
+    const track = ReleaseMergeBack.flagValue({ args: opts.args, flag: '--track' });
 
-    return text === undefined || kind === undefined
+    return text === undefined || track === undefined
       ? undefined
-      : { targets: GithubRelease.targetsOf({ text, manifest: opts.manifest }), kind };
+      : { targets: GithubRelease.targetsOf({ text, manifest: opts.manifest }), track };
   }
 
   static main(opts: {

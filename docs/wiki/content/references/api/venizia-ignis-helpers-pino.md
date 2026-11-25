@@ -144,11 +144,11 @@ Pure description of where pino should write, derived from env; `PinoDestination.
 
 ```ts
 export type TDestinationPlan = {
-    kind: 'stdout';
+    type: 'stdout';
 } | {
-    kind: 'pretty';
+    type: 'pretty';
 } | {
-    kind: 'roll';
+    type: 'roll';
     options: {
         file: string;
         frequency: TFrequency;

@@ -170,7 +170,7 @@ export interface IControlEntry {
      *
      * @default 'test'
      */
-    kind?: 'test' | 'file';
+    type?: 'test' | 'file';
     /** A regular expression matched against the TITLES (suite and case) in that file. Not used by `file` entries. */
     titlePattern?: string;
     /**
@@ -230,7 +230,7 @@ export interface IDeadTestCodeCandidate {
      * `unreferenced`: neither its name nor its path under `__tests__` appears in another file, nor does
      * its folder. `folder-referenced`: only its folder path does, so a scan of that folder may load it.
      */
-    kind: 'unreferenced' | 'folder-referenced';
+    type: 'unreferenced' | 'folder-referenced';
 }
 ```
 

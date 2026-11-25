@@ -271,9 +271,10 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
   protected async assertNotServiceAssertion(opts: { token: string }): Promise<void> {
     const { decodeProtectedHeader } = await JoseLoader.load();
     const { typ } = decodeProtectedHeader(opts.token);
-    const kind = typeof typ === 'string' ? typ.toLowerCase().replace(/^application\//, '') : '';
+    const tokenType =
+      typeof typ === 'string' ? typ.toLowerCase().replace(/^application\//, '') : '';
 
-    if (kind === ServiceAssertion.TYP) {
+    if (tokenType === ServiceAssertion.TYP) {
       throw getError({
         error: AuthenticationErrors.TOKEN_INVALID,
         message: '[verify] A service assertion is not a user token',

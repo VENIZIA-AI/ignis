@@ -703,7 +703,7 @@ describe('ConstClasses.convert - a decorated class keeps its decorators', () => 
     const source = [
       '@service()',
       'export class ReportService extends ConstClass {',
-      "  kind: 'monthly' | 'yearly' = 'monthly';",
+      "  plan: 'monthly' | 'yearly' = 'monthly';",
       '',
       "  render(format: 'pdf' | 'html'): string {",
       '    return format;',

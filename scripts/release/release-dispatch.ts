@@ -1,5 +1,5 @@
 import type { TReleaseMode } from './release-constants';
-import { ReleaseKinds } from './release-kind';
+import { ReleaseTracks } from './release-track';
 import { type IPlanEntry, ReleasePlanInput } from './release-plan-input';
 
 export interface IReleaseOutcomeLine {
@@ -17,7 +17,7 @@ export class ReleaseDispatch {
    * default branch, which is `main` once that setting changes. A prerelease runs from `develop`, a stable from `main`.
    */
   static refOf(opts: { mode: TReleaseMode }): 'develop' | 'main' {
-    return ReleaseKinds.branchOf({ kind: ReleaseKinds.ofMode({ mode: opts.mode }) });
+    return ReleaseTracks.branchOf({ track: ReleaseTracks.ofMode({ mode: opts.mode }) });
   }
 
   /**

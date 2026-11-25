@@ -469,7 +469,7 @@ export declare class MeilisearchQueryDialect extends BaseHelper implements ISear
     private jsonPathError;
     includeNotSupportedError(): Error;
     fieldNotFoundError(opts: {
-        kind: 'where' | 'order';
+        clause: 'where' | 'order';
         field: string;
     }): Error;
     /** Each order field must be one the collection declares, as in a `where`: an undeclared one is refused before the engine. */

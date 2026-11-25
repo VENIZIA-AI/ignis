@@ -26,7 +26,7 @@ export type TOneRelationNameOf<Entity extends IEntityWithRelations> = [
  * `{ relation: 'x' }` does not compile and the name is always checked against the entity.
  */
 export class ScopeThrough<RelationName extends string = string> {
-  protected readonly kind = 'scope-through';
+  protected readonly brand = 'scope-through';
 
   private constructor(readonly relation: RelationName) {}
 

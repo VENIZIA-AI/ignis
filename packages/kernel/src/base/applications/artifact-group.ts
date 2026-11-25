@@ -13,21 +13,21 @@ export class ArtifactGroup implements IArtifactGroup {
 
   readonly isArtifactGroup = true as const;
   readonly resolve: (() => Promise<IArtifactIndex>) | undefined;
-  readonly kinds: ReadonlyArray<keyof IArtifactIndex> | undefined;
+  readonly categories: ReadonlyArray<keyof IArtifactIndex> | undefined;
 
   private constructor(opts: {
     folder: string | undefined;
     site: string | undefined;
     content: IArtifactIndex | undefined;
     resolve?: () => Promise<IArtifactIndex>;
-    kinds?: ReadonlyArray<keyof IArtifactIndex>;
+    categories?: ReadonlyArray<keyof IArtifactIndex>;
     ignore?: ReadonlyArray<string>;
   }) {
     this.folder = opts.folder;
     this.site = opts.site;
     this.content = opts.content;
     this.resolve = opts.resolve;
-    this.kinds = opts.kinds;
+    this.categories = opts.categories;
     this.ignore = opts.ignore;
   }
 
@@ -57,15 +57,17 @@ export class ArtifactGroup implements IArtifactGroup {
     });
   }
 
-  /** A group carrying only `kinds` - for a slicer that splits `configs.artifacts` by run mode. `custom` is one kind for every type the application defined: a slice keeps all of them or none. The source group is resolved when artifacts are registered, never here. */
+  /** A group carrying only `categories` - for a slicer that splits `configs.artifacts` by run mode. `custom` is one category for every type the application defined: a slice keeps all of them or none. The source group is resolved when artifacts are registered, never here. */
   static pick(opts: {
     group: IArtifactGroup;
-    kinds: ReadonlyArray<keyof IArtifactIndex>;
+    categories: ReadonlyArray<keyof IArtifactIndex>;
   }): ArtifactGroup {
-    const { group, kinds } = opts;
+    const { group, categories } = opts;
     const slice = (index: IArtifactIndex): IArtifactIndex =>
       Object.fromEntries(
-        kinds.filter((kind) => index[kind] !== undefined).map((kind) => [kind, index[kind]]),
+        categories
+          .filter((category) => index[category] !== undefined)
+          .map((category) => [category, index[category]]),
       );
 
     return new ArtifactGroup({
@@ -77,7 +79,7 @@ export class ArtifactGroup implements IArtifactGroup {
 
         return slice(content);
       },
-      kinds,
+      categories,
       ignore: group.ignore,
     });
   }
@@ -123,39 +125,39 @@ export class ArtifactGroup implements IArtifactGroup {
     return ArtifactGroup.holder().resolve;
   }
 
-  /** The error a walker over `configs.artifacts` gets for reading a kind off a group - loud, never an empty list. */
-  static unreadKindError(opts: { folder: string | undefined }): Error {
+  /** The error a walker over `configs.artifacts` gets for reading a category off a group - loud, never an empty list. */
+  static unreadCategoryError(opts: { folder: string | undefined }): Error {
     return getError({
-      message: `[ArtifactGroup] '${opts.folder ?? '<application>'}' is resolved when artifacts are registered | A function that walks configs.artifacts must pass a group through untouched (ArtifactGroup.isGroup) instead of reading its kinds`,
+      message: `[ArtifactGroup] '${opts.folder ?? '<application>'}' is resolved when artifacts are registered | A function that walks configs.artifacts must pass a group through untouched (ArtifactGroup.isGroup) instead of reading its categories`,
     });
   }
 
   get configurations(): never {
-    throw ArtifactGroup.unreadKindError({ folder: this.folder });
+    throw ArtifactGroup.unreadCategoryError({ folder: this.folder });
   }
 
   get dataSources(): never {
-    throw ArtifactGroup.unreadKindError({ folder: this.folder });
+    throw ArtifactGroup.unreadCategoryError({ folder: this.folder });
   }
 
   get components(): never {
-    throw ArtifactGroup.unreadKindError({ folder: this.folder });
+    throw ArtifactGroup.unreadCategoryError({ folder: this.folder });
   }
 
   get repositories(): never {
-    throw ArtifactGroup.unreadKindError({ folder: this.folder });
+    throw ArtifactGroup.unreadCategoryError({ folder: this.folder });
   }
 
   get services(): never {
-    throw ArtifactGroup.unreadKindError({ folder: this.folder });
+    throw ArtifactGroup.unreadCategoryError({ folder: this.folder });
   }
 
   get controllers(): never {
-    throw ArtifactGroup.unreadKindError({ folder: this.folder });
+    throw ArtifactGroup.unreadCategoryError({ folder: this.folder });
   }
 
   get custom(): never {
-    throw ArtifactGroup.unreadKindError({ folder: this.folder });
+    throw ArtifactGroup.unreadCategoryError({ folder: this.folder });
   }
 
   private static holder(): { resolve: TGroupResolver | undefined } {

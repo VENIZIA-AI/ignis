@@ -124,7 +124,7 @@ export abstract class BaseSearchDataSource<
   /** Reads `static searchCollection`, falling back to shape-guarded `static schema`; honors `@datasource({ autoDiscovery: false })` same as the postgres branch. */
   protected discoverCollections(): TSearchSchema {
     return this.discoverDefinitions<ISearchCollectionDefinition>({
-      kind: 'collection',
+      label: 'collection',
       read: (modelClass) => this.readCollectionDefinition(modelClass),
     });
   }

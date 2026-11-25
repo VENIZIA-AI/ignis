@@ -11,9 +11,9 @@ type TFetch = (
 ) => Promise<{ ok: boolean; status: number; json?: () => Promise<any> }>;
 
 type TPackumentRead =
-  | { kind: 'versions'; versions: string[] }
-  | { kind: 'http'; status: number }
-  | { kind: 'error'; message: string };
+  | { outcome: 'versions'; versions: string[] }
+  | { outcome: 'http'; status: number }
+  | { outcome: 'error'; message: string };
 
 export class ReleaseRegistry {
   /** `https://registry.npmjs.org/@scope/name/-/name-1.2.3.tgz`: the file is named by the unscoped name. */
@@ -30,13 +30,13 @@ export class ReleaseRegistry {
     try {
       const response = await opts.fetchFn(`${REGISTRY}/${opts.packageName}`, { cache: 'no-store' });
       if (!response.ok) {
-        return { kind: 'http', status: response.status };
+        return { outcome: 'http', status: response.status };
       }
 
       const packument = (await response.json?.()) as { versions?: Record<string, unknown> };
-      return { kind: 'versions', versions: Object.keys(packument?.versions ?? {}) };
+      return { outcome: 'versions', versions: Object.keys(packument?.versions ?? {}) };
     } catch (error) {
-      return { kind: 'error', message: error instanceof Error ? error.message : String(error) };
+      return { outcome: 'error', message: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -49,7 +49,7 @@ export class ReleaseRegistry {
     const { packageName, version, fetchFn = fetch as unknown as TFetch } = opts;
 
     const versions = await this.readVersions({ packageName, fetchFn });
-    if (versions.kind === 'versions' && versions.versions.includes(version)) {
+    if (versions.outcome === 'versions' && versions.versions.includes(version)) {
       return true;
     }
 
@@ -83,11 +83,11 @@ export class ReleaseRegistry {
       }
 
       const read = await this.readVersions({ packageName, fetchFn });
-      if (read.kind === 'error') {
+      if (read.outcome === 'error') {
         missing.push(`${packageName}@${range} - could not reach the registry (${read.message})`);
         continue;
       }
-      if (read.kind === 'http') {
+      if (read.outcome === 'http') {
         missing.push(
           `${packageName}@${range} - the package itself is not on the registry (HTTP ${read.status})`,
         );

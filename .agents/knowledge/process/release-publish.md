@@ -24,7 +24,7 @@ tags: [process, release, ci]
 
 ## Two kinds of release
 
-The mode decides the kind (`scripts/release/release-kind.ts`): `prerelease`, `prepatch`, `preminor` and `premajor` are a
+The mode decides the kind (`scripts/release/release-track.ts`): `prerelease`, `prepatch`, `preminor` and `premajor` are a
 prerelease, `patch`, `minor` and `major` are a stable (`npm version patch` over `0.4.9-3` gives the stable `0.4.9`, so a
 run cannot mix kinds).
 
@@ -108,7 +108,7 @@ The workflow takes a `plan` (`name@version,...`: the package folders and the ver
 (default `prerelease`) and an `issue`, and runs seven jobs (the sixth, `atlas-index`, is described under [the prebuilt atlas index](#the-prebuilt-atlas-index-of-this-repository); the seventh, `docs-deploy`, under [the wiki after a release](#the-wiki-after-a-release)). `plan` holds no secret and no environment: it validates the
 input (known names, semver, no duplicate), orders it in dependency order, refuses a ref that is not the branch of the kind
 (`GITHUB_REF`; see [Two kinds of release](#two-kinds-of-release)) and a stable plan that is not the scope of the mode, and
-outputs the plan, the `kind`, the `branch`, a `headline` (`<n> packages, up to <highest target>`), the `targets` and the
+outputs the plan, the `track`, the `branch`, a `headline` (`<n> packages, up to <highest target>`), the `targets` and the
 `changelog_base` (see [Two kinds of release](#two-kinds-of-release)); every
 other job takes that output, never the raw input, and no `run:` step interpolates `${{ }}`. For a stable it also checks out
 the full history and tries the merge of `main` back into `develop` in throwaway worktrees
@@ -147,10 +147,10 @@ mutation in that test, in the same pull request. There are 41. The ones for trus
 packs with `bun pm pack`, publishes with `npm publish` and `--provenance`). The ones for the shape of one run are
 `one-plan-input`, `default-mode-prerelease`, `plan-job-first`, `matrix-over-plan`, `build-once`, `publish-runs-the-loop`,
 `no-interpolation-in-run`, `publish-timeout`, `gates-needed`, `gate-jobs-hold-no-secret` and `write-on-publish-only`. The ones
-for the two kinds are `ref-by-kind` (the plan job, not a literal branch, checks the ref), `approve-for-stable-only` (one job
+for the two kinds are `ref-by-track` (the plan job, not a literal branch, checks the ref), `approve-for-stable-only` (one job
 names `release-approval`, for a stable, after the gates, `permissions: {}`, one echo, the headline in its name),
 `publish-after-approve` (the `if` is evaluated over its cases, `scripts/release/release-publish-condition.ts`),
-`stable-refuses-moved-branches`, `plan-tries-the-merge-back`, `merge-back-from-a-copy`, `target-branch-by-kind` and
+`stable-refuses-moved-branches`, `plan-tries-the-merge-back`, `merge-back-from-a-copy`, `target-branch-by-track` and
 `no-force-or-tag-move` (no force push, no tag moved or deleted, no branch deleted, in the workflow, in the loop or in
 `github-release.ts`). Three hold the GitHub Release of the run (see
 [The GitHub Release of a run](#the-github-release-of-a-run)): `github-release-never-fails-a-publish` pins the step (one
@@ -200,7 +200,7 @@ and `@venizia/ignis-worker` (`core-worker`).
 
 ## The GitHub Release of a run
 
-A **stable** ends with ONE GitHub Release, made by `scripts/release/github-release.ts create --targets "$TARGETS" --kind "$RELEASE_KIND"` in the step "Create the GitHub Release" of the `publish` job (after "Release the plan", before the merge back). A **prerelease makes none**: the Releases page lists stables only, a prerelease is on npm under `next` and in git, and the script reports `skipped` (exit 0) without asking `gh` anything. This covers new releases only; older tags, and every older prerelease, keep what they have.
+A **stable** ends with ONE GitHub Release, made by `scripts/release/github-release.ts create --targets "$TARGETS" --track "$RELEASE_TRACK"` in the step "Create the GitHub Release" of the `publish` job (after "Release the plan", before the merge back). A **prerelease makes none**: the Releases page lists stables only, a prerelease is on npm under `next` and in git, and the script reports `skipped` (exit 0) without asking `gh` anything. This covers new releases only; older tags, and every older prerelease, keep what they have.
 
 - **The tag is the last package's.** A run tags each package `<dir>-v<version>`; the Release goes on the tag of the last package of the plan in release order (`core-server` when it is in the plan), and its title is `IGNIS <version>` when that package is `core-server` and `IGNIS <dir> <version>` otherwise (`IGNIS kernel 0.4.6`), so two titles never collide. The previous tag and the newest stable are read from the tags of that one package, never from another package's.
 - **Latest:** GitHub has one Latest per repository, so `--latest` only when the last package is `core-server` AND no stable `core-server` tag is above it; every other stable gets `--latest=false`.

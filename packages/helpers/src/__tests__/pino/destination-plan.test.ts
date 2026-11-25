@@ -48,7 +48,7 @@ const withConsoleWarn = (): { warnings: Array<string>; restore: () => void } => 
 describe('resolveDestinationPlan', () => {
   afterEach(restoreEnv);
 
-  test('APP_ENV_LOGGER_FOLDER_PATH set -> kind "roll" with mapped options', () => {
+  test('APP_ENV_LOGGER_FOLDER_PATH set -> type "roll" with mapped options', () => {
     process.env.APP_ENV_LOGGER_FOLDER_PATH = './app_data/logs';
     delete process.env.APP_ENV_LOGGER_FILE_FREQUENCY;
     delete process.env.APP_ENV_LOGGER_FILE_MAX_SIZE;
@@ -56,9 +56,9 @@ describe('resolveDestinationPlan', () => {
 
     const plan = PinoDestination.resolvePlan();
 
-    expect(plan.kind).toBe('roll');
+    expect(plan.type).toBe('roll');
 
-    if (plan.kind !== 'roll') {
+    if (plan.type !== 'roll') {
       throw new Error('unreachable');
     }
 
@@ -74,9 +74,9 @@ describe('resolveDestinationPlan', () => {
     process.env.APP_ENV_LOGGER_FILE_FREQUENCY = '1h';
 
     const plan = PinoDestination.resolvePlan();
-    expect(plan.kind).toBe('roll');
+    expect(plan.type).toBe('roll');
 
-    if (plan.kind === 'roll') {
+    if (plan.type === 'roll') {
       expect(plan.options.frequency).toBe('hourly');
     }
   });
@@ -86,9 +86,9 @@ describe('resolveDestinationPlan', () => {
     process.env.APP_ENV_LOGGER_FILE_FREQUENCY = '1d';
 
     const plan = PinoDestination.resolvePlan();
-    expect(plan.kind).toBe('roll');
+    expect(plan.type).toBe('roll');
 
-    if (plan.kind === 'roll') {
+    if (plan.type === 'roll') {
       expect(plan.options.frequency).toBe('daily');
     }
   });
@@ -98,9 +98,9 @@ describe('resolveDestinationPlan', () => {
     process.env.APP_ENV_LOGGER_FILE_FREQUENCY = '24h';
 
     const plan = PinoDestination.resolvePlan();
-    expect(plan.kind).toBe('roll');
+    expect(plan.type).toBe('roll');
 
-    if (plan.kind === 'roll') {
+    if (plan.type === 'roll') {
       expect(plan.options.frequency).toBe('daily');
     }
   });
@@ -113,34 +113,34 @@ describe('resolveDestinationPlan', () => {
     const plan = PinoDestination.resolvePlan();
     restore();
 
-    expect(plan.kind).toBe('roll');
+    expect(plan.type).toBe('roll');
 
-    if (plan.kind === 'roll') {
+    if (plan.type === 'roll') {
       expect(plan.options.frequency).toBe('hourly');
     }
 
     expect(warnings.some((entry) => entry.includes('[mapFrequency]'))).toBe(true);
   });
 
-  test('no FOLDER_PATH + FORMAT=text -> kind "pretty"', () => {
+  test('no FOLDER_PATH + FORMAT=text -> type "pretty"', () => {
     delete process.env.APP_ENV_LOGGER_FOLDER_PATH;
     process.env.APP_ENV_LOGGER_FORMAT = 'text';
 
-    expect(PinoDestination.resolvePlan()).toEqual({ kind: 'pretty' });
+    expect(PinoDestination.resolvePlan()).toEqual({ type: 'pretty' });
   });
 
-  test('no FOLDER_PATH + FORMAT=json -> kind "stdout"', () => {
+  test('no FOLDER_PATH + FORMAT=json -> type "stdout"', () => {
     delete process.env.APP_ENV_LOGGER_FOLDER_PATH;
     process.env.APP_ENV_LOGGER_FORMAT = 'json';
 
-    expect(PinoDestination.resolvePlan()).toEqual({ kind: 'stdout' });
+    expect(PinoDestination.resolvePlan()).toEqual({ type: 'stdout' });
   });
 
-  test('no FOLDER_PATH + FORMAT UNSET -> kind "stdout" (the locked NDJSON default - never pretty)', () => {
+  test('no FOLDER_PATH + FORMAT UNSET -> type "stdout" (the locked NDJSON default - never pretty)', () => {
     delete process.env.APP_ENV_LOGGER_FOLDER_PATH;
     delete process.env.APP_ENV_LOGGER_FORMAT;
 
-    expect(PinoDestination.resolvePlan()).toEqual({ kind: 'stdout' });
+    expect(PinoDestination.resolvePlan()).toEqual({ type: 'stdout' });
   });
 });
 

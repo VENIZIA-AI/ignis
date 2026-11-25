@@ -644,7 +644,7 @@ export abstract class FilterBuilder extends BaseHelper {
     const column = Object.hasOwn(columns, key) ? columns[key] : undefined;
 
     if (!column) {
-      throw this.columnNotFoundError({ kind: 'where', key, tableName });
+      throw this.columnNotFoundError({ clause: 'where', key, tableName });
     }
 
     const operand = DateOperandUtility.isDateColumn({ column })
@@ -774,7 +774,7 @@ export abstract class FilterBuilder extends BaseHelper {
       const column = Object.hasOwn(columns, key) ? columns[key] : undefined;
 
       if (!column) {
-        throw this.columnNotFoundError({ kind: 'order', key, tableName });
+        throw this.columnNotFoundError({ clause: 'order', key, tableName });
       }
 
       namesId ||= column === idColumn;
@@ -1119,14 +1119,14 @@ export abstract class FilterBuilder extends BaseHelper {
    * part, with the JSON method's wording, and any other key by itself. A request guard throws it for a hidden field, so a caller
    * cannot tell a hidden column from one that does not exist.
    */
-  columnNotFoundError(opts: { kind: 'where' | 'order'; key: string; tableName: string }): Error {
-    const { kind, key, tableName } = opts;
+  columnNotFoundError(opts: { clause: 'where' | 'order'; key: string; tableName: string }): Error {
+    const { clause, key, tableName } = opts;
     const isJson = JsonPathUtility.isJsonPath({ key });
     const method = isJson
-      ? kind === 'where'
+      ? clause === 'where'
         ? 'buildJsonWhereCondition'
         : 'buildJsonOrderBy'
-      : kind === 'where'
+      : clause === 'where'
         ? 'toWhere'
         : 'toOrderBy';
 

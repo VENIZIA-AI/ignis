@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { ReleaseChangelog } from '../release-changelog';
-import { ReleaseTargets } from '../release-kind';
+import { ReleaseTargets } from '../release-track';
 import { MergeBackConstants, ReleaseMergeBack } from '../merge-back';
 
 const roots: string[] = [];
@@ -384,7 +384,7 @@ describe('release-run.ts plan, as the plan job runs it', () => {
     const result = planned({ mode: 'patch', files: { 'docs/changelogs/0.4.8/log.md': LOG } });
 
     expect(result.status).toBe(0);
-    expect(result.outputs).toContain('kind=stable\n');
+    expect(result.outputs).toContain('track=stable\n');
     expect(result.outputs).toContain('changelog_base=core-server-v0.4.7\n');
   });
 

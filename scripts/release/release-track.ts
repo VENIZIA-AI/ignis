@@ -5,30 +5,30 @@ import { ReleaseVersion } from './release-version';
 /** How much of a refused value is echoed to the log. */
 const LABEL_ECHO_LIMIT = 200;
 
-export type TReleaseKind = 'prerelease' | 'stable';
+export type TReleaseTrack = 'prerelease' | 'stable';
 
-/** The two kinds of run. The mode decides the kind: `npm version patch|minor|major` always gives a stable version. */
-export class ReleaseKinds {
+/** The two tracks of run. The mode decides the track: `npm version patch|minor|major` always gives a stable version. */
+export class ReleaseTracks {
   static readonly PRERELEASE = 'prerelease' as const;
   static readonly STABLE = 'stable' as const;
 
-  static ofMode(opts: { mode: TReleaseMode }): TReleaseKind {
+  static ofMode(opts: { mode: TReleaseMode }): TReleaseTrack {
     return ReleaseModes.STABLE_SET.has(opts.mode) ? this.STABLE : this.PRERELEASE;
   }
 
-  /** The branch a kind releases from, and the one its release commits go to: `develop` for a prerelease, `main` for a stable. */
-  static branchOf(opts: { kind: TReleaseKind }): 'develop' | 'main' {
-    return opts.kind === this.STABLE ? 'main' : 'develop';
+  /** The branch a track releases from, and the one its release commits go to: `develop` for a prerelease, `main` for a stable. */
+  static branchOf(opts: { track: TReleaseTrack }): 'develop' | 'main' {
+    return opts.track === this.STABLE ? 'main' : 'develop';
   }
 
-  /** What is wrong with the ref the workflow was dispatched on, or `undefined` when it is the branch of the kind. */
-  static checkRef(opts: { kind: TReleaseKind; ref: string | undefined }): string | undefined {
-    const branch = this.branchOf({ kind: opts.kind });
+  /** What is wrong with the ref the workflow was dispatched on, or `undefined` when it is the branch of the track. */
+  static checkRef(opts: { track: TReleaseTrack; ref: string | undefined }): string | undefined {
+    const branch = this.branchOf({ track: opts.track });
     if (opts.ref === `refs/heads/${branch}`) {
       return undefined;
     }
 
-    return `a ${opts.kind} release runs from ${branch}, this run was dispatched on ${opts.ref || 'no ref'}`;
+    return `a ${opts.track} release runs from ${branch}, this run was dispatched on ${opts.ref || 'no ref'}`;
   }
 }
 
@@ -41,7 +41,7 @@ export interface IReleaseTarget {
 }
 
 export interface IReleasePlanSummary {
-  kind: TReleaseKind;
+  track: TReleaseTrack;
   branch: 'develop' | 'main';
   targets: IReleaseTarget[];
   /** `<n> packages, up to <highest target>`: what the approver reads in the name of the approval. */
@@ -101,7 +101,7 @@ export class ReleaseTargets {
     versions: ReadonlyMap<string, string>;
   }): string[] {
     const { mode, entries, versions } = opts;
-    if (ReleaseKinds.ofMode({ mode }) === ReleaseKinds.PRERELEASE) {
+    if (ReleaseTracks.ofMode({ mode }) === ReleaseTracks.PRERELEASE) {
       return [];
     }
 
@@ -168,13 +168,13 @@ export class ReleaseTargets {
 
   /**
    * The run title the dispatcher sends and the plan job checks: `stable · 0.4.6 boot,kernel; 0.4.5 filter · #664 · c84852a`
-   * (the kind, each target version from the highest down with its packages in release order, the issue, the
+   * (the track, each target version from the highest down with its packages in release order, the issue, the
    * seven-character commit). A workflow cannot work these out when it names the run, so `release.ts` says them and
    * `plan` refuses a title that is not what it computes: the title cannot name a version, a package or a commit the
    * run does not release.
    */
   static labelOf(opts: {
-    kind: TReleaseKind;
+    track: TReleaseTrack;
     targets: ReadonlyArray<IReleaseTarget>;
     issue?: string;
     sha?: string;
@@ -191,7 +191,7 @@ export class ReleaseTargets {
     const issue = opts.issue === undefined || opts.issue === '' ? [] : [`#${opts.issue}`];
     const sha = opts.sha === undefined || opts.sha === '' ? [] : [opts.sha.slice(0, 7)];
 
-    return [opts.kind, versions, ...issue, ...sha].join(' · ');
+    return [opts.track, versions, ...issue, ...sha].join(' · ');
   }
 
   /**
@@ -230,9 +230,9 @@ export class ReleaseTargets {
     versions: ReadonlyMap<string, string>;
   }): IReleasePlanSummary {
     const { entries, mode, ref, versions } = opts;
-    const kind = ReleaseKinds.ofMode({ mode });
+    const track = ReleaseTracks.ofMode({ mode });
     const problems = [
-      ReleaseKinds.checkRef({ kind, ref }),
+      ReleaseTracks.checkRef({ track, ref }),
       ...this.checkScope({ mode, entries, versions }),
     ].filter((problem): problem is string => problem !== undefined);
     if (problems.length > 0) {
@@ -241,8 +241,8 @@ export class ReleaseTargets {
 
     const targets = this.of({ entries, mode });
     return {
-      kind,
-      branch: ReleaseKinds.branchOf({ kind }),
+      track,
+      branch: ReleaseTracks.branchOf({ track }),
       targets,
       headline: this.headlineOf({ targets }),
       summary: this.tableOf({ targets }),

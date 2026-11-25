@@ -7109,7 +7109,7 @@ only way to make one: the constructor is private and the class has a member no p
 ````ts
 export declare class ScopeThrough<RelationName extends string = string> {
     readonly relation: RelationName;
-    protected readonly kind = "scope-through";
+    protected readonly brand = "scope-through";
     private constructor();
     /**
      * `entity` is read for its type only: a misspelled relation, a to-many one or a name held in a plain `string` does not compile.
@@ -8754,14 +8754,14 @@ export type TRequestContextResolver = () => Context | undefined;
 
 Source: `packages/kernel/src/base/request-context/common/types.ts`
 
-## `TRequestFilterKeyKind`
+## `TRequestFilterClause`
 
 *type*
 
 Which part of a filter a key came from: the refusal reads like the query's own refusal of an unknown column of that part.
 
 ```ts
-export type TRequestFilterKeyKind = 'where' | 'order';
+export type TRequestFilterClause = 'where' | 'order';
 ```
 
 Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`

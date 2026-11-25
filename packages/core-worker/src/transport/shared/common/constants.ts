@@ -8,7 +8,7 @@ export class BffRoles {
   static readonly FOLLOWER = 'follower';
 }
 
-export class ChannelMessageKinds {
+export class ChannelMessageTypes {
   static readonly REQUEST = 'ignis.bff.request';
   static readonly RESPONSE = 'ignis.bff.response';
   static readonly ERROR = 'ignis.bff.error';

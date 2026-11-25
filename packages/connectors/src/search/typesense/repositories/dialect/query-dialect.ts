@@ -673,11 +673,11 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
     });
   }
 
-  fieldNotFoundError(opts: { kind: 'where' | 'order'; field: string }): Error {
+  fieldNotFoundError(opts: { clause: 'where' | 'order'; field: string }): Error {
     return SearchDialectUtility.fieldNotFoundError({
       field: opts.field,
       engine: ENGINE,
-      method: opts.kind === 'order' ? 'toOrderBy' : 'compileWhere',
+      method: opts.clause === 'order' ? 'toOrderBy' : 'compileWhere',
     });
   }
 

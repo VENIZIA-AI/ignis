@@ -210,7 +210,7 @@ describe('FilterBuilder.mergeFilter - top-key-level where merge', () => {
 describe('FilterBuilder.toInclude - include-scope merge inherits the fix', () => {
   const relationTable = pgTable('relation_items', {
     id: serial('id').primaryKey(),
-    kind: integer('kind'),
+    rank: integer('rank'),
     label: varchar('label', { length: 50 }),
   });
 
@@ -223,11 +223,11 @@ describe('FilterBuilder.toInclude - include-scope merge inherits the fix', () =>
 
     // Force a relation defaultFilter with an inq array, then a scope with a different inq array.
     const originalResolveDefaultFilter = builder.resolveDefaultFilter.bind(builder);
-    builder.resolveDefaultFilter = () => ({ where: { kind: { inq: [1, 2, 3] } } });
+    builder.resolveDefaultFilter = () => ({ where: { rank: { inq: [1, 2, 3] } } });
 
     try {
       const result = builder.toInclude({
-        include: [{ relation: 'items', scope: { where: { kind: { inq: [9] } } } }],
+        include: [{ relation: 'items', scope: { where: { rank: { inq: [9] } } } }],
         relations,
       });
       const scoped = result.items as TDrizzleQueryOptions;

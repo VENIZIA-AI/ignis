@@ -1,5 +1,5 @@
 name: Release
-# The title of the run. `release.ts` sends `label` (`stable · 0.4.6 boot,kernel; 0.4.5 filter · #664 · c84852a`: kind,
+# The title of the run. `release.ts` sends `label` (`stable · 0.4.6 boot,kernel; 0.4.5 filter · #664 · c84852a`: track,
 # versions with their packages, issue, short commit) and the plan job refuses a label that is not what it computed, so
 # the title cannot name a release the run does not make. A dispatch by hand has no label: the title is the mode, the
 # issue and the whole commit (an Actions expression cannot cut it short).
@@ -52,11 +52,11 @@ on:
 # job works on the dispatched commit (`github.sha`), so the plan, the tests, the run name and the publish all name
 # the same code.
 #
-# Two kinds of run, decided by the build_mode. A prerelease (prerelease, prepatch, preminor, premajor) is dispatched
+# Two tracks of run, decided by the build_mode. A prerelease (prerelease, prepatch, preminor, premajor) is dispatched
 # on develop, commits its releases to develop and publishes under `next`; it asks nobody. A stable (patch, minor,
 # major) is dispatched on main, commits its releases to main and publishes under `latest`; it waits for ONE approval,
 # and after the click runs to the end: publish, tag, and the merge of main back into develop. `plan` refuses a ref
-# that is not the kind's branch and a plan that is not the scope of the mode, and for a stable it tries the merge back
+# that is not the track's branch and a plan that is not the scope of the mode, and for a stable it tries the merge back
 # before anyone is asked to approve. `approve` is the one human stop (environment release-approval) and exists for a
 # stable only. `publish` runs after `approve` succeeded, or after it was skipped because the plan says prerelease.
 permissions:
@@ -89,7 +89,7 @@ jobs:
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
       plan: ${{ steps.plan.outputs.plan }}
-      kind: ${{ steps.plan.outputs.kind }}
+      track: ${{ steps.plan.outputs.track }}
       # The branch the release commits go to: main for a stable, develop for a prerelease.
       branch: ${{ steps.plan.outputs.branch }}
       # What the approver reads in the name of the approval, and the versions the merge trial applied.
@@ -129,7 +129,7 @@ jobs:
       # only, so the lockfile is left alone.
       - name: Try the merge back into develop
         id: trial
-        if: ${{ steps.plan.outputs.kind == 'stable' }}
+        if: ${{ steps.plan.outputs.track == 'stable' }}
         env:
           TARGETS: ${{ steps.plan.outputs.targets }}
         run: bun scripts/release/merge-back.ts trial --versions "$TARGETS" --lock keep
@@ -417,7 +417,7 @@ jobs:
       # A stable releases a version folder: no released folder changed since the previous stable, and no dated entry
       # was added or edited. The default check already runs in CI; this one reads the history against the tag.
       - name: Changelog history (a stable)
-        if: ${{ needs.plan.outputs.kind == 'stable' && needs.plan.outputs.changelog_base != '' }}
+        if: ${{ needs.plan.outputs.track == 'stable' && needs.plan.outputs.changelog_base != '' }}
         env:
           CHANGELOG_BASE: ${{ needs.plan.outputs.changelog_base }}
         run: bun node_modules/.bin/vulcan check changelog --history --base "$CHANGELOG_BASE"
@@ -432,7 +432,7 @@ jobs:
   approve:
     name: Approve ${{ needs.plan.outputs.headline }}
     needs: [plan, test, scripts]
-    if: ${{ needs.plan.outputs.kind == 'stable' }}
+    if: ${{ needs.plan.outputs.track == 'stable' }}
     runs-on: ubuntu-26.04
     environment: release-approval
     permissions: {}
@@ -458,7 +458,7 @@ jobs:
       ${{ !cancelled() && needs.plan.result == 'success' && needs.test.result == 'success'
       && needs.scripts.result == 'success'
       && (needs.approve.result == 'success'
-      || (needs.approve.result == 'skipped' && needs.plan.outputs.kind == 'prerelease')) }}
+      || (needs.approve.result == 'skipped' && needs.plan.outputs.track == 'prerelease')) }}
     runs-on: ubuntu-26.04
     # Nine publishes, then up to fifteen minutes of waiting for each tarball, plus the build.
     timeout-minutes: 240
@@ -477,7 +477,7 @@ jobs:
       # SETUP
       # -------------------------------------------------------------------------
       # The dispatched commit, never a branch name: the tests, the run name and the publish see one commit. The
-      # release commits are pushed to the branch of the kind (main for a stable, develop for a prerelease) one at a
+      # release commits are pushed to the branch of the track (main for a stable, develop for a prerelease) one at a
       # time with a plain push; a push that is rejected (the branch moved) stops the run, and dispatching the same plan
       # again records what is missing.
       - name: Checkout
@@ -509,7 +509,7 @@ jobs:
       # merge trial read. Either moving means the approved merge is not the one that would run, so nothing is
       # published; it is checked before the first step that changes a file, writes git or publishes.
       - name: Refuse a stable when a branch moved since the plan
-        if: ${{ needs.plan.outputs.kind == 'stable' }}
+        if: ${{ needs.plan.outputs.track == 'stable' }}
         env:
           PLAN_DEVELOP_SHA: ${{ needs.plan.outputs.develop_sha }}
         run: |
@@ -580,9 +580,9 @@ jobs:
         timeout-minutes: 5
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_KIND: ${{ needs.plan.outputs.kind }}
+          RELEASE_TRACK: ${{ needs.plan.outputs.track }}
           TARGETS: ${{ needs.plan.outputs.targets }}
-        run: bun scripts/release/github-release.ts create --targets "$TARGETS" --kind "$RELEASE_KIND"
+        run: bun scripts/release/github-release.ts create --targets "$TARGETS" --track "$RELEASE_TRACK"
 
       # -------------------------------------------------------------------------
       # MERGE BACK (a stable only)
@@ -595,7 +595,7 @@ jobs:
       # no file of develop (a bunfig.toml, a .env) configures what runs. A merge that is more than versions stops, and
       # the report below says how to finish it.
       - name: Merge main back into develop
-        if: ${{ needs.plan.outputs.kind == 'stable' }}
+        if: ${{ needs.plan.outputs.track == 'stable' }}
         run: |
           RELEASE_SHA="$(git rev-parse HEAD)"
           echo "MERGE_BACK_STARTED=true" >> "$GITHUB_ENV"

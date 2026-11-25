@@ -30,7 +30,7 @@ const entities = (opts: { metadataColumnName?: string } = {}): IScopedCasbinEnti
 // One row per branch (direct, roleEdge, roleGrant), in the order the outer UNION ALL emits them.
 const PRINCIPAL_POLICY_ROWS: TPrincipalPolicyRow[] = [
   {
-    kind: 'direct',
+    edge: 'direct',
     variant: 'assign_role',
     subjectId: 'u1',
     targetType: 'Role',
@@ -43,7 +43,7 @@ const PRINCIPAL_POLICY_ROWS: TPrincipalPolicyRow[] = [
     objectMethod: null,
   },
   {
-    kind: 'roleEdge',
+    edge: 'roleEdge',
     variant: 'role_inherits',
     subjectId: 'r1',
     targetType: 'Role',
@@ -56,7 +56,7 @@ const PRINCIPAL_POLICY_ROWS: TPrincipalPolicyRow[] = [
     objectMethod: null,
   },
   {
-    kind: 'roleGrant',
+    edge: 'roleGrant',
     variant: 'grant',
     subjectId: 'r2',
     targetType: null,
@@ -147,7 +147,7 @@ describe('ScopedCasbinAdapter - queryPrincipalPolicies', () => {
       principal: { type: 'User', id: 'u1' },
     });
 
-    expect(rows.map((row) => row.kind)).toEqual(['direct', 'roleEdge', 'roleGrant']);
+    expect(rows.map((row) => row.edge)).toEqual(['direct', 'roleEdge', 'roleGrant']);
   });
 
   it('omits the metadata column when metadataColumnName is not mapped', async () => {
@@ -218,7 +218,7 @@ describe('ScopedCasbinAdapter - queryPrincipalPolicies domain_closure shape', ()
   it('the domainEdge branch is joined against domain_closure - it cannot select an edge outside the closure', async () => {
     await adapter['queryPrincipalPolicies']({ principal: { type: 'User', id: 'u1' } });
 
-    // The kind discriminant is a bound parameter, so load-scoping is proven by the branch's FROM/JOIN rather than a bare WHERE: no unconditional "FROM policyDefinition WHERE variant = domain_inherits" is left un-joined.
+    // The edge discriminant is a bound parameter, so load-scoping is proven by the branch's FROM/JOIN rather than a bare WHERE: no unconditional "FROM policyDefinition WHERE variant = domain_inherits" is left un-joined.
     expect(capturedStatement).toMatch(
       /JOIN domain_closure ON policyDefinition\.subject_type = domain_closure\.dom_type/,
     );
@@ -252,7 +252,7 @@ describe('ScopedCasbinAdapter - domainEdge rows become g3 lines', () => {
   };
 
   const domainEdgeRow = (opts: { subjectId: string; targetId: string }): TPrincipalPolicyRow => ({
-    kind: 'domainEdge',
+    edge: 'domainEdge',
     variant: 'domain_inherits',
     subjectId: opts.subjectId,
     targetType: null,
@@ -318,7 +318,7 @@ describe('ScopedCasbinAdapter - domainEdge rows become g3 lines', () => {
 // One row per branch the outer UNION ALL can produce for one loadFilteredPolicy call: the principal's own edges, one reachable role_inherits edge, and the role closure's grant. No unreachable role edge - the recursive CTE would never return one.
 const SINGLE_WAVE_ROWS: TPrincipalPolicyRow[] = [
   {
-    kind: 'direct',
+    edge: 'direct',
     variant: 'assign_role',
     subjectId: 'u1',
     targetType: 'Role',
@@ -331,7 +331,7 @@ const SINGLE_WAVE_ROWS: TPrincipalPolicyRow[] = [
     objectMethod: null,
   },
   {
-    kind: 'direct',
+    edge: 'direct',
     variant: 'join_domain',
     subjectId: 'u1',
     targetType: 'Merchant',
@@ -344,7 +344,7 @@ const SINGLE_WAVE_ROWS: TPrincipalPolicyRow[] = [
     objectMethod: null,
   },
   {
-    kind: 'direct',
+    edge: 'direct',
     variant: 'grant',
     subjectId: 'u1',
     targetType: null,
@@ -357,7 +357,7 @@ const SINGLE_WAVE_ROWS: TPrincipalPolicyRow[] = [
     objectMethod: 'find',
   },
   {
-    kind: 'roleEdge',
+    edge: 'roleEdge',
     variant: 'role_inherits',
     subjectId: 'r1',
     targetType: 'Role',
@@ -370,7 +370,7 @@ const SINGLE_WAVE_ROWS: TPrincipalPolicyRow[] = [
     objectMethod: null,
   },
   {
-    kind: 'roleGrant',
+    edge: 'roleGrant',
     variant: 'grant',
     subjectId: 'r2',
     targetType: null,

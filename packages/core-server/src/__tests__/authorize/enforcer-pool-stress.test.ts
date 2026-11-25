@@ -205,22 +205,22 @@ describe('enforcer-pool-stress — cross-user isolation under high concurrency',
       const userIds = Array.from({ length: userCount }, (_, i) => `U${i}`);
 
       // For each user, fire one OWN (must allow) + one CROSS (must deny against a neighbour secret).
-      const tasks: Promise<{ kind: 'own' | 'cross'; uid: string; decision: string }>[] = [];
+      const tasks: Promise<{ source: 'own' | 'cross'; uid: string; decision: string }>[] = [];
 
       for (const uid of userIds) {
         const other = `U${(Number(uid.slice(1)) + 1) % userCount}`;
         tasks.push(
-          decide(e, uid, `${uid}_secret`).then((d) => ({ kind: 'own', uid, decision: d })),
+          decide(e, uid, `${uid}_secret`).then((d) => ({ source: 'own', uid, decision: d })),
         );
         tasks.push(
-          decide(e, uid, `${other}_secret`).then((d) => ({ kind: 'cross', uid, decision: d })),
+          decide(e, uid, `${other}_secret`).then((d) => ({ source: 'cross', uid, decision: d })),
         );
       }
 
       const results = await Promise.all(tasks);
 
       for (const r of results) {
-        if (r.kind === 'own') {
+        if (r.source === 'own') {
           expect(r.decision).toBe('allow');
         } else {
           expect(r.decision).toBe('deny');

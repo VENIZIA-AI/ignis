@@ -3,7 +3,7 @@ import { BffEnvelope } from '@/envelope/encode';
 import type { IBffRequestEnvelope } from '@/envelope/common';
 import type { IBffTransport } from '../common/types';
 import { WorkerBffTransport } from '../worker';
-import { BffRoles, ChannelMessageKinds, DEFAULT_CHANNEL_NAME, DEFAULT_TIMEOUT_MS } from './common';
+import { BffRoles, ChannelMessageTypes, DEFAULT_CHANNEL_NAME, DEFAULT_TIMEOUT_MS } from './common';
 import type {
   IPendingRequest,
   ISharedBffTransportOptions,
@@ -347,7 +347,7 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
       }
 
       this.channel.postMessage({
-        kind: ChannelMessageKinds.REQUEST,
+        type: ChannelMessageTypes.REQUEST,
         envelope,
       } satisfies TChannelMessage);
     });
@@ -395,8 +395,8 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
   private readonly handleChannelMessage = (event: MessageEvent): void => {
     const message = event.data as TChannelMessage | undefined;
 
-    switch (message?.kind) {
-      case ChannelMessageKinds.REQUEST: {
+    switch (message?.type) {
+      case ChannelMessageTypes.REQUEST: {
         if (this.role !== BffRoles.LEADER) {
           return;
         }
@@ -420,7 +420,7 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
       // a secret, and version skew is the realistic trigger: a long-lived tab on v1 and a new tab
       // on v2 share the same channel and lock BY DESIGN. An envelope this build cannot read must
       // fail its caller, never leave the promise unsettled for the full timeout.
-      case ChannelMessageKinds.RESPONSE: {
+      case ChannelMessageTypes.RESPONSE: {
         const pending = this.takePending({ id: message.envelope.id });
 
         if (!pending) {
@@ -448,7 +448,7 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
         return;
       }
 
-      case ChannelMessageKinds.ERROR: {
+      case ChannelMessageTypes.ERROR: {
         const pending = this.takePending({ id: message.envelope.id });
 
         if (!pending) {
@@ -485,7 +485,7 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
 
       const result = await BffEnvelope.encodeResponse({ response, id: envelope.id });
       this.channel.postMessage({
-        kind: ChannelMessageKinds.RESPONSE,
+        type: ChannelMessageTypes.RESPONSE,
         envelope: result,
       } satisfies TChannelMessage);
     } catch (error) {
@@ -496,7 +496,7 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
         .error('Failed to serve a follower request | id: %s | error: %s', envelope.id, error);
 
       this.channel.postMessage({
-        kind: ChannelMessageKinds.ERROR,
+        type: ChannelMessageTypes.ERROR,
         envelope: BffEnvelope.encodeError({ id: envelope.id, error }),
       } satisfies TChannelMessage);
     }
