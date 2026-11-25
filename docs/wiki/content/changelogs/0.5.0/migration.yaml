@@ -809,45 +809,54 @@ access-scope-hardening:
   data: Nothing stored changes.
 
 principal-policy-row-edge:
-  symbols: [TPrincipalPolicyRow.edge, PrincipalPolicyEdges]
+  symbols: [TPrincipalPolicyRow.edge, PrincipalPolicyEdges, ScopedCasbinAdapter.queryPrincipalPolicies]
   upgrade:
     before: |-
-      // A custom scoped-casbin adapter that reads the rows of the principal-policy statement
-      const rows = await this.query<TPrincipalPolicyRow>({
-        sql: sql`
-          SELECT ${PrincipalPolicyEdges.DIRECT}::text AS "kind", ptype, v0, v1, v2, v3
-          FROM policy_definition WHERE subject = ${principal}
-        `,
-      });
+      import { PrincipalPolicyEdges, ScopedCasbinAdapter } from '@venizia/ignis';
 
-      for (const row of rows) {
-        switch (row.kind) {
-          case PrincipalPolicyEdges.DIRECT: {
-            lines.push(this.toLine({ row }));
-            break;
-          }
+      class AppAdapter extends ScopedCasbinAdapter {
+        protected override async queryPrincipalPolicies(
+          opts: Parameters<ScopedCasbinAdapter['queryPrincipalPolicies']>[0],
+        ) {
+          const rows = await super.queryPrincipalPolicies(opts);
+
+          return rows.filter((row) => {
+            switch (row.kind) {
+              case PrincipalPolicyEdges.DOMAIN_EDGE: {
+                return this.isKnownDomain({ id: row.targetId });
+              }
+              default: {
+                return true;
+              }
+            }
+          });
         }
       }
     after: |-
-      const rows = await this.query<TPrincipalPolicyRow>({
-        sql: sql`
-          SELECT ${PrincipalPolicyEdges.DIRECT}::text AS "edge", ptype, v0, v1, v2, v3
-          FROM policy_definition WHERE subject = ${principal}
-        `,
-      });
+      import { PrincipalPolicyEdges, ScopedCasbinAdapter } from '@venizia/ignis';
 
-      for (const row of rows) {
-        switch (row.edge) {
-          case PrincipalPolicyEdges.DIRECT: {
-            lines.push(this.toLine({ row }));
-            break;
-          }
+      class AppAdapter extends ScopedCasbinAdapter {
+        protected override async queryPrincipalPolicies(
+          opts: Parameters<ScopedCasbinAdapter['queryPrincipalPolicies']>[0],
+        ) {
+          const rows = await super.queryPrincipalPolicies(opts);
+
+          return rows.filter((row) => {
+            switch (row.edge) {
+              case PrincipalPolicyEdges.DOMAIN_EDGE: {
+                return this.isKnownDomain({ id: row.targetId });
+              }
+              default: {
+                return true;
+              }
+            }
+          });
         }
       }
     steps:
-      - "Rename the field you read from a TPrincipalPolicyRow from kind to edge: row.kind becomes row.edge."
-      - "In raw SQL that builds these rows, rename the selected alias from \"kind\" to \"edge\"; the values (PrincipalPolicyEdges) are unchanged."
-      - "A fixture or a stub of a TPrincipalPolicyRow in a test uses edge: 'direct' where it used kind: 'direct'."
+      - "Read row.edge where you read row.kind, in every override or subclass of ScopedCasbinAdapter that handles a TPrincipalPolicyRow (the values are the same PrincipalPolicyEdges)."
+      - "If you replace the whole statement of queryPrincipalPolicies, select the discriminant column as \"edge\" (it was \"kind\"): the four branches of the UNION each carry it, and a missing alias leaves row.edge undefined."
+      - "A fixture or a stub of a TPrincipalPolicyRow in a test says edge: 'direct' where it said kind: 'direct'."
   downgrade:
     steps:
       - "Pin @venizia/ignis to the release before this one and rename edge back to kind."
@@ -881,30 +890,6 @@ request-filter-clause:
     steps:
       - "Pin @venizia/ignis-kernel and @venizia/ignis-connectors to the release before this one and rename clause back to kind."
   data: Nothing stored changes.
-
-channel-message-types:
-  symbols: [ChannelMessageKinds, ChannelMessageTypes, TChannelMessage]
-  upgrade:
-    before: |-
-      import { ChannelMessageKinds } from '@venizia/ignis-worker';
-
-      if (message.kind === ChannelMessageKinds.REQUEST) {
-        handle(message.envelope);
-      }
-    after: |-
-      import { ChannelMessageTypes } from '@venizia/ignis-worker';
-
-      if (message.type === ChannelMessageTypes.REQUEST) {
-        handle(message.envelope);
-      }
-    steps:
-      - "Rename ChannelMessageKinds to ChannelMessageTypes; REQUEST, RESPONSE and ERROR keep their values (ignis.bff.request, ignis.bff.response, ignis.bff.error)."
-      - "Read the discriminant of a channel message as message.type, not message.kind: the field on the wire is renamed."
-      - "Deploy every tab and worker of one app together: a tab on the old version and a tab on this one do not understand each other's messages."
-  downgrade:
-    steps:
-      - "Pin @venizia/ignis-worker to the release before this one and rename ChannelMessageTypes and the type field back."
-  data: Nothing stored changes. Messages are in flight between tabs only.
 
 artifact-pick-categories:
   symbols: [ArtifactGroup.pick, IArtifactGroup.categories, IArtifactPickOptions.categories]
@@ -944,7 +929,7 @@ discover-definitions-label:
   data: Nothing stored changes.
 
 test-controls-manifest-type:
-  symbols: [ITestControlEntry.type]
+  symbols: [IControlEntry.type]
   upgrade:
     before: |-
       {

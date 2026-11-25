@@ -34,7 +34,7 @@ export class AutoArtifactGroup<
   private static unreadCategory(): never {
     throw getError({
       message:
-        '[@venizia/ignis-boot/auto] The application artifacts are resolved when artifacts are registered | A function that walks configs.artifacts must pass a group through untouched (check `isArtifactGroup`) instead of reading its kinds',
+        '[@venizia/ignis-boot/auto] The application artifacts are resolved when artifacts are registered | A function that walks configs.artifacts must pass a group through untouched (check `isArtifactGroup`) instead of reading its categories',
     });
   }
 
