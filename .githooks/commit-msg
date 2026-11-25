@@ -1,4 +1,4 @@
 #!/bin/bash
 
-# Refuses an agent signature in the commit message (commit.message in .configs/vulcan.config.mts)
+# Refuses an agent signature in the commit message (commit.message, set in the VULCAN config)
 bun node_modules/.bin/vulcan check commit "$1"

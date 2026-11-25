@@ -4,7 +4,7 @@ The standards behind how the IGNIS documentation site looks: type, spacing, cont
 
 > The site is the shared Venizia theme in `site/.vitepress/theme/shared/`, a copy of VULCAN's folder
 > that is never edited here. It owns the fonts, header, doc pages and footer. The neutrals and the
-> accent come from the `theme` in `.configs/vulcan.config.mts`, which `vulcan project sync` resolves into
+> accent come from the `common.theme` in `.configs/vulcan/common.mts`, which `vulcan project sync` resolves into
 > `.agents/vulcan.manifest.json`; `site/.vitepress/config.mts` reads them. The `--ig-*` brand colours in
 > [`design-tokens.css`](./site/.vitepress/theme/design-tokens.css) are a reference copy of those accent
 > values; no page reads them.
@@ -50,7 +50,7 @@ against the dark background `#0B0A0C`.
 ## Where the values live
 
 The shared theme (`site/.vitepress/theme/shared/`) sets the fonts, type and spacing. The neutrals and
-IGNIS's accent are the `theme` of `.configs/vulcan.config.mts` (`accent`, `accentDark`, `accentText`):
+IGNIS's accent are the `common.theme` of `.configs/vulcan/common.mts` (`accent`, `accentDark`, `accentText`):
 change the accent there, run `make vulcan-sync`, then rebuild. The second gradient colour
 (`--accent-2`) is `ACCENT_2` in `site/.vitepress/config.mts`. Never change them in `design-tokens.css`.
 

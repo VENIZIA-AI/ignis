@@ -78,6 +78,7 @@
     }
   },
   "scripts": {
+    "prepare": "if [ -f node_modules/.bin/vulcan ]; then bun node_modules/.bin/vulcan project sync --quiet < /dev/null || echo 'vulcan: sync did not finish: if the config is in the flat shape run bun node_modules/.bin/vulcan config codemod config-groups . --write, else run bun node_modules/.bin/vulcan project sync'; else echo 'vulcan: not installed yet: run bun install'; fi; exit 0",
     "force-update": "bun run --filter \"@venizia/*\" force-update",
     "docs:dev": "bun run --filter \"@venizia/ignis-docs\" docs:dev",
     "purity": "bun packages/dev-configs/dist/cli/index.js check purity --claims scripts/checks/purity/manifest.ts"

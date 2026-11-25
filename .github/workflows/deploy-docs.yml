@@ -141,8 +141,8 @@ jobs:
 
   # Publishes the signed atlas index of each commit atlas can be asked for (main, develop and the release tags) to
   # the release `atlas-index` of this repository, so a project that reads IGNIS as a source downloads it instead of
-  # building it. The private key is the Actions secret ATLAS_INDEX_KEY; its public half is `atlas.index.keys` in
-  # .configs/vulcan.config.mts. VULCAN's action refuses anything but a push or a manual run, for those refs, and does
+  # building it. The private key is the Actions secret ATLAS_INDEX_KEY; its public half is `knowledge.atlas.index.keys` in
+  # .configs/vulcan/knowledge.mts. VULCAN's action refuses anything but a push or a manual run, for those refs, and does
   # nothing while the secret is empty. It is pinned by commit, the one of the installed VULCAN release.
   #
   # The release workflow pushes its release commits and tags with the Actions token, and GitHub starts no workflow from

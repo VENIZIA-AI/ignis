@@ -59,6 +59,14 @@ The command produces this tree, plus the files of the coding agents on your mach
 ./.agents/rules.md
 ./.agents/vulcan.manifest.json
 ./.configs/vulcan.config.mts
+./.configs/vulcan/agent.mts
+./.configs/vulcan/board.mts
+./.configs/vulcan/check.mts
+./.configs/vulcan/common.mts
+./.configs/vulcan/guard.mts
+./.configs/vulcan/index.mts
+./.configs/vulcan/knowledge.mts
+./.configs/vulcan/project.mts
 ./.dockerignore
 ./.gitignore
 ./AGENTS.md
@@ -90,7 +98,7 @@ Important files:
 - `package.json` - defines workspaces and the catalog of package versions.
 - `Makefile` - the Makefile has `make dev` (starts every app) and VULCAN's shared targets; `make help` lists them.
 - `AGENTS.md` / `.agents/` - stores rules and knowledge for coding agents.
-- `.configs/vulcan.config.mts` - configures VULCAN tooling for the repo.
+- `.configs/vulcan.config.mts` and `.configs/vulcan/` - configure VULCAN tooling for the repo, one file per group (`project`, `agent`, `guard`, `board`, `knowledge`, `check`, `common`).
 - `services/core-api/src/application.ts` - defines the application: `AutoArtifacts` finds decorated classes, and `ApiReferenceComponent` serves the docs.
 - `services/core-api/src/controllers/hello.controller.ts` - defines the sample controller:
 

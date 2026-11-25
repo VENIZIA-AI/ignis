@@ -132,7 +132,7 @@ This `AGENTS.md` is the single source. `make vulcan-sync` (`vulcan project sync`
 pointer to it (`CLAUDE.md` holds `@AGENTS.md`), never a copy, and writes `.claude/`: VULCAN's settings
 and hooks (its session digest and the `guard-writes` check) and the shipped skills - `docs-update`
 (it applies the D rules in `.agents/rules.md`), `docs-writing`. The
-digest names the rules sessions drop most (`digest.oftenDropped` in `.configs/vulcan.config.mts`) and
+digest names the rules sessions drop most (`agent.digest.oftenDropped` in `.configs/vulcan/agent.mts`) and
 prints the minimap shape from `.agents/rules.md`. Re-run `make vulcan-sync` after a pull that touched
-`.configs/vulcan.config.mts` or the pinned VULCAN version; `make vulcan-doctor`
+`.configs/vulcan.config.mts`, `.configs/vulcan/` or the pinned VULCAN version; `make vulcan-doctor`
 says when you need to.
