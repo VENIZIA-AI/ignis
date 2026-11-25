@@ -7,7 +7,6 @@ export const knowledge = {
   // Version folders (changelogs/<X.Y.Z>/log.md and migration.yaml) are the changelog from 0.4.5 on; the dated files up to `datedUntil` are history.
   migrationFrom: '0.4.5',
   datedUntil: '2026-11-15',
-  codemodCommand: ['vulcan', 'config', 'codemod'],
   okf: {
     renderers: [
       'source-map',
