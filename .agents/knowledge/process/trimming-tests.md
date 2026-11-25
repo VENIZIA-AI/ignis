@@ -95,7 +95,7 @@ What the baseline teaches: deleting cheap tests does not speed CI (half the file
 | Suite red without the file | 19 | boot fixtures that the artifact scanner discovers by scanning a folder; `helpers/.../kafka/consumer.manual.ts` and `producer.manual.ts`, loaded by tests |
 | Suite green without the file | 5 | negative fixtures: `PlainService` (undecorated), `IgnoredService` (in a `__tests__` folder), an abstract `GammaService`, a foreign-decorated class, an empty-domain readme |
 
-Nothing was deleted: the 5 are the scanner's positive controls. The negative fixtures named in `scanner.test.ts:39` and the other three are registered as `kind: file` entries. A first name-based scan had suggested 49 candidates; most were fixtures loaded by a path built at run time.
+Nothing was deleted: the 5 are the scanner's positive controls. The negative fixtures named in `scanner.test.ts:39` and the other three are registered as `type: file` entries. A first name-based scan had suggested 49 candidates; most were fixtures loaded by a path built at run time.
 
 ## Result - IGNIS 0.4.5 (2026-10-28)
 
@@ -120,7 +120,7 @@ What was deleted, in the order of the slices: T1 rewrote two flaky tests (a wall
 Lessons for the next repository:
 
 1. **Measure first, and re-time alone.** Half of the files cost 3% of the time; a file that looks slow in a parallel run may only be waiting its turn.
-2. **A test that stays green without its fixture may be a negative fixture.** Register it (`kind: file`), do not delete it.
+2. **A test that stays green without its fixture may be a negative fixture.** Register it (`type: file`), do not delete it.
 3. **A mutant that leaves both tests green is a finding, not a failure of the method.** It showed that no websocket test pinned the index-entry cleanup, and that no scoped-model test pins the "only that domain" term; one gap got a test (#617), one is written in its pull request.
 4. **Identical bodies are not duplicates when the dialect, the driver or the algorithm differs.** The pglite/libsql and Postgres/SQLite pairs reach different branches; the two `recursive-tree` files share only their validation, and only that was deleted.
 5. **A "type-only placeholder" may be a no-throw check.** Read before deleting; five of seven were.

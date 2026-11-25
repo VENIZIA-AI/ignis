@@ -16,7 +16,7 @@
  * is on npm without its commit or tag gets them without a second publish, and a stale plan stops the run.
  * Nothing here rebases: a rejected push stops the run, and the next dispatch records what is missing.
  *
- * The mode decides the kind: a prerelease releases from `develop` and its release commits go to `develop`, a stable
+ * The mode decides the track: a prerelease releases from `develop` and its release commits go to `develop`, a stable
  * (`patch`, `minor`, `major`) from `main` and to `main`. The dist-tag of a package follows its own version.
  *
  * A stable dates its version folder: the release commit of the last package of the plan (the one the GitHub Release is
@@ -27,7 +27,7 @@ import { appendFileSync } from 'node:fs';
 import { GithubReleaseConstants } from './github-release';
 import { ReleaseChangelog } from './release-changelog';
 import { ReleaseModes, ReleaseOrder, type TReleaseMode } from './release-constants';
-import { ReleaseKinds, ReleaseTargets, type TReleaseKind } from './release-kind';
+import { ReleaseTracks, ReleaseTargets, type TReleaseTrack } from './release-track';
 import { type IPlanEntry, ReleasePlanInput } from './release-plan-input';
 import { ReleaseRegistry } from './release-registry';
 import { ReleaseVersion } from './release-version';
@@ -126,9 +126,9 @@ export class ReleaseRun {
     version: string;
     siblings: ReadonlyMap<string, string>;
     pending: ReadonlySet<string>;
-    kind: TReleaseKind;
+    track: TReleaseTrack;
   }): string[] {
-    const { text, version, siblings, pending, kind } = opts;
+    const { text, version, siblings, pending, track } = opts;
     const problems: string[] = [];
 
     if (/"(catalog|workspace):/.test(text)) {
@@ -142,7 +142,7 @@ export class ReleaseRun {
 
     for (const field of [manifest.dependencies, manifest.peerDependencies]) {
       for (const [name, range] of Object.entries(field ?? {})) {
-        if (kind === ReleaseKinds.STABLE && PRERELEASE_IN_RANGE.test(range)) {
+        if (track === ReleaseTracks.STABLE && PRERELEASE_IN_RANGE.test(range)) {
           problems.push(
             `${name} is pinned ${range}: a stable release never ships against a prerelease`,
           );
@@ -166,7 +166,7 @@ export class ReleaseRun {
   static async execute(opts: {
     entries: ReadonlyArray<IPlanEntry>;
     mode: TReleaseMode;
-    /** The branch the release commits go to; it must be the branch of the mode's kind. */
+    /** The branch the release commits go to; it must be the branch of the mode's track. */
     branch: 'develop' | 'main';
     issue?: string;
     tarballs: string;
@@ -176,7 +176,7 @@ export class ReleaseRun {
   }): Promise<IReleaseOutcome[]> {
     const { entries, mode, branch, issue, tarballs, date, ports } = opts;
 
-    const expected = ReleaseKinds.branchOf({ kind: ReleaseKinds.ofMode({ mode }) });
+    const expected = ReleaseTracks.branchOf({ track: ReleaseTracks.ofMode({ mode }) });
     if (branch !== expected) {
       throw new Error(
         `a ${mode} release pushes to ${expected}, not ${branch}: nothing is published`,
@@ -195,7 +195,7 @@ export class ReleaseRun {
     // A stable dates its version folder in the release commit of `core-server`, the package the folders are named for;
     // a stable without it dates nothing.
     const releasePackage =
-      ReleaseKinds.ofMode({ mode }) === ReleaseKinds.STABLE &&
+      ReleaseTracks.ofMode({ mode }) === ReleaseTracks.STABLE &&
       entries.some((entry) => entry.name === GithubReleaseConstants.LEADING_DIR)
         ? GithubReleaseConstants.LEADING_DIR
         : undefined;
@@ -369,7 +369,7 @@ export class ReleaseRun {
       version,
       siblings,
       pending: pendingNames,
-      kind: ReleaseKinds.ofMode({ mode }),
+      track: ReleaseTracks.ofMode({ mode }),
     });
 
     // Every sibling this package ships against is already on npm: one this run published (npm accepted it; the
@@ -724,7 +724,7 @@ const main = async (): Promise<void> => {
     const labelProblems = ReleaseTargets.labelProblems({
       label: process.env.RELEASE_LABEL,
       expected: ReleaseTargets.labelOf({
-        kind: plan.kind,
+        track: plan.track,
         targets: plan.targets,
         issue,
         sha: process.env.GITHUB_SHA,
@@ -737,7 +737,7 @@ const main = async (): Promise<void> => {
     const outputs = [
       `matrix=${JSON.stringify({ package: entries.map((entry) => entry.name) })}`,
       `plan=${ReleasePlanInput.format({ entries })}`,
-      `kind=${plan.kind}`,
+      `track=${plan.track}`,
       `branch=${plan.branch}`,
       `headline=${plan.headline}`,
       `targets=${plan.targets.map((entry) => `${entry.name}=${entry.target}`).join(',')}`,
@@ -754,7 +754,7 @@ const main = async (): Promise<void> => {
     if (process.env.GITHUB_STEP_SUMMARY) {
       appendFileSync(
         process.env.GITHUB_STEP_SUMMARY,
-        `### ${plan.kind} release: ${plan.headline}\n\n${plan.summary.join('\n')}\n`,
+        `### ${plan.track} release: ${plan.headline}\n\n${plan.summary.join('\n')}\n`,
       );
     }
     return;

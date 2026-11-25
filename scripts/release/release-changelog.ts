@@ -1,9 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { GithubRelease, GithubReleaseConstants } from './github-release';
-import { ReleaseKinds } from './release-kind';
+import { ReleaseTracks } from './release-track';
 import { ReleaseStampConstants, ReleaseStampText } from './merge-back';
-import type { IReleasePlanSummary } from './release-kind';
+import type { IReleasePlanSummary } from './release-track';
 
 /**
  * What a stable of a project with version folders (`knowledge.migrationFrom` is a version) needs of its changelog, read
@@ -88,7 +88,7 @@ export class ReleaseChangelog {
       (target) => target.name === GithubReleaseConstants.LEADING_DIR,
     );
 
-    if (opts.plan.kind !== ReleaseKinds.STABLE || leading === undefined) {
+    if (opts.plan.track !== ReleaseTracks.STABLE || leading === undefined) {
       return { problems: [], base: '' };
     }
 

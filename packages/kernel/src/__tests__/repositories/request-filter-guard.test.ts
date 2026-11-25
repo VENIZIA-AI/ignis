@@ -114,7 +114,7 @@ describe('where', () => {
   test('the judge decides how a key is read', () => {
     const judge: IRequestFilterJudge = {
       isHidden: ({ key }) => key.split(/[.[\]]+/).filter(Boolean)[0] === 'secret',
-      refuse: ({ kind, key, tableName }) => new Error(`${kind}|${tableName}|${key}`),
+      refuse: ({ clause, key, tableName }) => new Error(`${clause}|${tableName}|${key}`),
     };
 
     for (const key of ['[secret].path', '.secret.path', '[secret]path']) {
@@ -145,7 +145,7 @@ describe('order', () => {
   test('the refusal says it came from the order', () => {
     const judge: IRequestFilterJudge = {
       isHidden: () => true,
-      refuse: ({ kind }) => new Error(kind),
+      refuse: ({ clause }) => new Error(clause),
     };
 
     expect(() =>

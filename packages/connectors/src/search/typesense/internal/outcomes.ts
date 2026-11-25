@@ -13,9 +13,9 @@ export class EntryOutcomes extends ConstClass {
 export type TEntryOutcome = TConstValue<typeof EntryOutcomes>;
 
 export type TEntryClassification =
-  | { kind: typeof EntryOutcomes.OK }
+  | { outcome: typeof EntryOutcomes.OK }
   | {
-      kind: typeof EntryOutcomes.MISSING_COLLECTION | typeof EntryOutcomes.FAILED;
+      outcome: typeof EntryOutcomes.MISSING_COLLECTION | typeof EntryOutcomes.FAILED;
       message: string;
       code: number;
     };

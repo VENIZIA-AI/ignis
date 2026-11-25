@@ -150,7 +150,7 @@ export class TypesenseInternal {
     const { entry } = opts;
 
     if (!entry || typeof entry !== 'object') {
-      return { kind: EntryOutcomes.FAILED, message: 'Malformed multi_search entry', code: 0 };
+      return { outcome: EntryOutcomes.FAILED, message: 'Malformed multi_search entry', code: 0 };
     }
 
     const candidate = entry as { code?: unknown; error?: unknown };
@@ -158,7 +158,7 @@ export class TypesenseInternal {
     // `error` is what marks a failed entry - a successful one carries neither field, and `code`
     // alone would misread a response that merely echoes a status.
     if (typeof candidate.error !== 'string') {
-      return { kind: EntryOutcomes.OK };
+      return { outcome: EntryOutcomes.OK };
     }
 
     const code = typeof candidate.code === 'number' ? candidate.code : 0;
@@ -170,7 +170,7 @@ export class TypesenseInternal {
       (code === 0 && candidate.error.toLowerCase().includes('not found'));
 
     return {
-      kind: isMissingCollection ? EntryOutcomes.MISSING_COLLECTION : EntryOutcomes.FAILED,
+      outcome: isMissingCollection ? EntryOutcomes.MISSING_COLLECTION : EntryOutcomes.FAILED,
       message: candidate.error,
       code,
     };

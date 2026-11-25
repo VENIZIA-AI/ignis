@@ -15,7 +15,7 @@
  * run as a ready `--plan` value, because planning again from git would drop a package that only cascaded from a
  * sibling the first run released.
  *
- * The mode decides the kind. A prerelease (`prerelease`, `prepatch`, `preminor`, `premajor`) releases from `develop`
+ * The mode decides the track. A prerelease (`prerelease`, `prepatch`, `preminor`, `premajor`) releases from `develop`
  * and plans what changed. A stable (`patch`, `minor`, `major`) releases from `main` and plans the scope the mode
  * defines (a patch promotes every prerelease, a minor or a major moves all nine); no package is named for it.
  */
@@ -23,7 +23,7 @@
 import { ReleaseArgs } from './release-args';
 import { ReleaseDispatch } from './release-dispatch';
 import { ReleaseModes, ReleaseOrder } from './release-constants';
-import { ReleaseKinds, ReleaseTargets } from './release-kind';
+import { ReleaseTracks, ReleaseTargets } from './release-track';
 import { ReleasePlan } from './release-plan';
 import { type IPlanEntry, ReleasePlanInput } from './release-plan-input';
 import { type IPublishedPackage, ReleaseTarballs } from './release-tarballs';
@@ -134,7 +134,7 @@ const countChangedSinceRelease = async (opts: { name: string }): Promise<number>
   return files.size;
 };
 
-/** The parsed `presets/<kind>/preset.json` templates (`scripts/preset/vulcan-preset.ts` builds the shipped presets from them). */
+/** The parsed `presets/<type>/preset.json` templates (`scripts/preset/vulcan-preset.ts` builds the shipped presets from them). */
 const readPresetTemplates = async (): Promise<unknown[]> => {
   const templates: unknown[] = [];
 
@@ -332,9 +332,9 @@ const main = async (): Promise<void> => {
     throw new Error('--plan carries its own packages: do not name packages next to it');
   }
 
-  const kind = ReleaseKinds.ofMode({ mode });
-  const branch = ReleaseKinds.branchOf({ kind });
-  if (kind === ReleaseKinds.STABLE && named.length > 0) {
+  const track = ReleaseTracks.ofMode({ mode });
+  const branch = ReleaseTracks.branchOf({ track });
+  if (track === ReleaseTracks.STABLE && named.length > 0) {
     throw new Error(
       `a ${mode} release has a fixed scope: do not name packages (${named.join(', ')})`,
     );
@@ -367,7 +367,7 @@ const main = async (): Promise<void> => {
       distTag: ReleaseModes.toDistTag({ mode }),
     });
     plan = entries.map((entry) => everyState.find((state) => state.name === entry.name)!);
-  } else if (kind === ReleaseKinds.STABLE) {
+  } else if (track === ReleaseTracks.STABLE) {
     // The scope of the mode, read from the versions in this checkout of main: the workflow works it out again.
     const everyState = await collectState({
       names: ReleaseOrder.NAMES,
@@ -397,14 +397,14 @@ const main = async (): Promise<void> => {
 
   if (plan.length === 0) {
     console.log(
-      kind === ReleaseKinds.STABLE
+      track === ReleaseTracks.STABLE
         ? 'Nothing to release - no package has a prerelease part to promote.'
         : 'Nothing to release - no package has source changes since its last release.',
     );
     return;
   }
 
-  if (kind === ReleaseKinds.STABLE) {
+  if (track === ReleaseTracks.STABLE) {
     const everyState = await collectState({
       names: ReleaseOrder.NAMES,
       distTag: ReleaseModes.toDistTag({ mode }),
@@ -422,7 +422,7 @@ const main = async (): Promise<void> => {
   console.log(`Release plan (${mode}), in dependency order:\n`);
   for (const state of plan) {
     const changed =
-      kind === ReleaseKinds.STABLE
+      track === ReleaseTracks.STABLE
         ? ''
         : state.changedFiles === Number.POSITIVE_INFINITY
           ? 'never released'
@@ -435,7 +435,7 @@ const main = async (): Promise<void> => {
       `  ${state.name.padEnd(13)} ${state.localVersion.padEnd(10)} npm:${(state.publishedVersion ?? '-').padEnd(10)} ${changed}${why}`,
     );
   }
-  console.log(`\nWhat the run gives each package (${kind}, from ${branch}):\n`);
+  console.log(`\nWhat the run gives each package (${track}, from ${branch}):\n`);
   for (const line of ReleaseTargets.tableOf({ targets: ReleaseTargets.of({ entries, mode }) })) {
     console.log(`  ${line}`);
   }
@@ -464,7 +464,7 @@ const main = async (): Promise<void> => {
   });
   const label = ReleaseDispatch.declaresLabel({ workflowText })
     ? ReleaseTargets.labelOf({
-        kind,
+        track,
         targets: ReleaseTargets.of({ entries, mode }),
         issue,
         sha: headSha,

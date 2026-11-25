@@ -30,7 +30,7 @@ const entities = (): IScopedCasbinEntities => ({
 const rowsFor = (opts: { includeTableDomainEdge: boolean }): TPrincipalPolicyRow[] => {
   const rows: TPrincipalPolicyRow[] = [
     {
-      kind: 'direct',
+      edge: 'direct',
       variant: 'assign_role',
       subjectId: 'u1',
       targetType: 'Role',
@@ -43,7 +43,7 @@ const rowsFor = (opts: { includeTableDomainEdge: boolean }): TPrincipalPolicyRow
       objectMethod: null,
     },
     {
-      kind: 'roleGrant',
+      edge: 'roleGrant',
       variant: 'grant',
       subjectId: 'v',
       targetType: null,
@@ -60,7 +60,7 @@ const rowsFor = (opts: { includeTableDomainEdge: boolean }): TPrincipalPolicyRow
   if (opts.includeTableDomainEdge) {
     // A genuine domain_inherits row for the SAME edge the hook also returns - proves the duplicate is harmless.
     rows.push({
-      kind: 'domainEdge',
+      edge: 'domainEdge',
       variant: 'domain_inherits',
       subjectId: 'Merchant_new',
       targetType: null,
@@ -153,7 +153,7 @@ describe('resolveDomainEdges e2e - role axis (g), via the overlay shared across 
     // the assignment from Organizer_A down to Merchant_new - the grant axis plays no part here.
     const rows: TPrincipalPolicyRow[] = [
       {
-        kind: 'direct',
+        edge: 'direct',
         variant: 'assign_role',
         subjectId: 'u1',
         targetType: 'Role',
@@ -166,7 +166,7 @@ describe('resolveDomainEdges e2e - role axis (g), via the overlay shared across 
         objectMethod: null,
       },
       {
-        kind: 'roleGrant',
+        edge: 'roleGrant',
         variant: 'grant',
         subjectId: 'v',
         targetType: null,

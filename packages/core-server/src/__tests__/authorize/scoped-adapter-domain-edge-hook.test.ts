@@ -29,7 +29,7 @@ const entities = (): IScopedCasbinEntities => ({
 // carries that one ancestor edge.
 const ROWS_WITH_CLOSURE: TPrincipalPolicyRow[] = [
   {
-    kind: 'direct',
+    edge: 'direct',
     variant: 'join_domain',
     subjectId: 'u1',
     targetType: 'Merchant',
@@ -42,7 +42,7 @@ const ROWS_WITH_CLOSURE: TPrincipalPolicyRow[] = [
     objectMethod: null,
   },
   {
-    kind: 'direct',
+    edge: 'direct',
     variant: 'grant',
     subjectId: 'u1',
     targetType: null,
@@ -55,7 +55,7 @@ const ROWS_WITH_CLOSURE: TPrincipalPolicyRow[] = [
     objectMethod: 'find',
   },
   {
-    kind: 'domainEdge',
+    edge: 'domainEdge',
     variant: 'domain_inherits',
     subjectId: 'Merchant_9',
     targetType: null,

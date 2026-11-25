@@ -1192,7 +1192,7 @@ export class TypesenseConnector extends BaseSearchConnector {
     for (const entry of results) {
       const classification = TypesenseInternal.classifyEntry({ entry });
 
-      switch (classification.kind) {
+      switch (classification.outcome) {
         // Preserves the tolerance the GET path had: an unprovisioned collection answers empty with
         // a warning rather than a 500.
         case EntryOutcomes.MISSING_COLLECTION: {

@@ -27,7 +27,7 @@ describe('Typesense', () => {
       dialect.compileWhere({ where: { nope: 'x' }, capabilities: { fields: FIELDS } }),
     );
 
-    expect(dialect.fieldNotFoundError({ kind: 'where', field: 'nope' }).message).toBe(own);
+    expect(dialect.fieldNotFoundError({ clause: 'where', field: 'nope' }).message).toBe(own);
   });
 
   test('an order field reads as the undeclared order field does', () => {
@@ -35,7 +35,7 @@ describe('Typesense', () => {
       dialect.build({ filter: { order: ['nope ASC'] }, capabilities: { fields: FIELDS } }),
     );
 
-    expect(dialect.fieldNotFoundError({ kind: 'order', field: 'nope' }).message).toBe(own);
+    expect(dialect.fieldNotFoundError({ clause: 'order', field: 'nope' }).message).toBe(own);
   });
 });
 
@@ -47,7 +47,7 @@ describe('Meilisearch', () => {
       dialect.compileWhere({ where: { nope: 'x' }, capabilities: { fields: FIELDS } }),
     );
 
-    expect(dialect.fieldNotFoundError({ kind: 'where', field: 'nope' }).message).toBe(own);
+    expect(dialect.fieldNotFoundError({ clause: 'where', field: 'nope' }).message).toBe(own);
   });
 
   test('a dotted where field reads as the JSON-path refusal the query gives first', () => {
@@ -55,7 +55,7 @@ describe('Meilisearch', () => {
       dialect.compileWhere({ where: { 'meta.pin': 'x' }, capabilities: { fields: FIELDS } }),
     );
 
-    expect(dialect.fieldNotFoundError({ kind: 'where', field: 'meta.pin' }).message).toBe(own);
+    expect(dialect.fieldNotFoundError({ clause: 'where', field: 'meta.pin' }).message).toBe(own);
   });
 
   test('an order field reads as the undeclared order field does', () => {
@@ -63,7 +63,7 @@ describe('Meilisearch', () => {
       dialect.build({ filter: { order: ['nope ASC'] }, capabilities: { fields: FIELDS } }),
     );
 
-    expect(dialect.fieldNotFoundError({ kind: 'order', field: 'nope' }).message).toBe(own);
+    expect(dialect.fieldNotFoundError({ clause: 'order', field: 'nope' }).message).toBe(own);
   });
 
   test('an order with no declared fields to check against is left to the engine', () => {

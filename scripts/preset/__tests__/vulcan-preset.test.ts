@@ -234,7 +234,7 @@ describe('VulcanPreset.build', () => {
     expect(written).toContain('shared/files/src/index.ts');
   });
 
-  test('the lib and the shared kind each get the lint and format configs of the app, never its builders', () => {
+  test('the lib and the shared variant each get the lint and format configs of the app, never its builders', () => {
     const repository = makeRepository({});
     writeLib({ root: repository.root });
     writeShared({ root: repository.root });
@@ -251,15 +251,15 @@ describe('VulcanPreset.build', () => {
 
     VulcanPreset.build(repository);
 
-    for (const kind of ['lib', 'shared']) {
+    for (const variant of ['lib', 'shared']) {
       expect(
         readFileSync(
-          join(repository.outDir, kind, 'files/.configs/lints/oxlint.config.mts'),
+          join(repository.outDir, variant, 'files/.configs/lints/oxlint.config.mts'),
           'utf8',
         ),
       ).toBe('app lint\n');
-      expect(existsSync(join(repository.outDir, kind, 'files/.configs/builders'))).toBe(false);
-      expect(existsSync(join(repository.outDir, kind, 'files/_env.example'))).toBe(false);
+      expect(existsSync(join(repository.outDir, variant, 'files/.configs/builders'))).toBe(false);
+      expect(existsSync(join(repository.outDir, variant, 'files/_env.example'))).toBe(false);
     }
   });
 

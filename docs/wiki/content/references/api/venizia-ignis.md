@@ -2244,7 +2244,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/policy-lin
 
 *class*
 
-The `kind` values of a `TPrincipalPolicyRow`: which branch of the principal-policy statement produced the row.
+The `edge` values of a `TPrincipalPolicyRow`: which branch of the principal-policy statement produced the row.
 
 ```ts
 export declare class PrincipalPolicyEdges {
@@ -3095,11 +3095,11 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 
 *type*
 
-A row from the single principal-policy statement; `kind` says which branch produced it.
+A row from the single principal-policy statement; `edge` says which branch produced it.
 
 ```ts
 export type TPrincipalPolicyRow = TGrantRow & {
-    kind: TConstValue<typeof PrincipalPolicyEdges>;
+    edge: TConstValue<typeof PrincipalPolicyEdges>;
     variant: string;
     targetType: TNullable<string>;
     targetId: IdType;
@@ -4156,7 +4156,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TRepositoryPersistObject` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TRepositoryType` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TRequestContextResolver` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
-- `TRequestFilterKeyKind` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `TRequestFilterClause` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TRequestFilterPart` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TRequestFilterPiece` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)

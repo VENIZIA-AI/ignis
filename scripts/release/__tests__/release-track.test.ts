@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { ReleaseModes, ReleaseOrder, type TReleaseMode } from '../release-constants';
-import { ReleaseKinds, ReleaseTargets } from '../release-kind';
+import { ReleaseTracks, ReleaseTargets } from '../release-track';
 
 /** `main` right after a Sync: three packages are prereleases, the rest are stable. */
 const mainVersions = (overrides: Record<string, string> = {}): Map<string, string> =>
@@ -16,13 +16,13 @@ const entriesOf = (versions: Map<string, string>, names?: string[]) =>
     .filter(([name]) => !names || names.includes(name))
     .map(([name, from]) => ({ name, from }));
 
-describe('ReleaseKinds', () => {
-  test('the mode decides the kind', () => {
-    const kinds = [...ReleaseModes.SCHEME_SET].map(
-      (mode) => `${mode}:${ReleaseKinds.ofMode({ mode: mode as TReleaseMode })}`,
+describe('ReleaseTracks', () => {
+  test('the mode decides the track', () => {
+    const tracks = [...ReleaseModes.SCHEME_SET].map(
+      (mode) => `${mode}:${ReleaseTracks.ofMode({ mode: mode as TReleaseMode })}`,
     );
 
-    expect(kinds).toEqual([
+    expect(tracks).toEqual([
       'patch:stable',
       'minor:stable',
       'major:stable',
@@ -34,23 +34,23 @@ describe('ReleaseKinds', () => {
   });
 
   test('a prerelease runs from develop and a stable from main', () => {
-    expect(ReleaseKinds.branchOf({ kind: 'prerelease' })).toBe('develop');
-    expect(ReleaseKinds.branchOf({ kind: 'stable' })).toBe('main');
+    expect(ReleaseTracks.branchOf({ track: 'prerelease' })).toBe('develop');
+    expect(ReleaseTracks.branchOf({ track: 'stable' })).toBe('main');
   });
 
-  test('checkRef accepts only the branch of the kind', () => {
-    const cases: Array<[Parameters<typeof ReleaseKinds.checkRef>[0], boolean]> = [
-      [{ kind: 'prerelease', ref: 'refs/heads/develop' }, true],
-      [{ kind: 'prerelease', ref: 'refs/heads/main' }, false],
-      [{ kind: 'stable', ref: 'refs/heads/main' }, true],
-      [{ kind: 'stable', ref: 'refs/heads/develop' }, false],
-      [{ kind: 'stable', ref: 'refs/heads/feature/x' }, false],
-      [{ kind: 'prerelease', ref: 'refs/tags/kernel-v0.4.9' }, false],
-      [{ kind: 'stable', ref: undefined }, false],
+  test('checkRef accepts only the branch of the track', () => {
+    const cases: Array<[Parameters<typeof ReleaseTracks.checkRef>[0], boolean]> = [
+      [{ track: 'prerelease', ref: 'refs/heads/develop' }, true],
+      [{ track: 'prerelease', ref: 'refs/heads/main' }, false],
+      [{ track: 'stable', ref: 'refs/heads/main' }, true],
+      [{ track: 'stable', ref: 'refs/heads/develop' }, false],
+      [{ track: 'stable', ref: 'refs/heads/feature/x' }, false],
+      [{ track: 'prerelease', ref: 'refs/tags/kernel-v0.4.9' }, false],
+      [{ track: 'stable', ref: undefined }, false],
     ];
 
     for (const [input, accepted] of cases) {
-      expect(ReleaseKinds.checkRef(input) === undefined).toBe(accepted);
+      expect(ReleaseTracks.checkRef(input) === undefined).toBe(accepted);
     }
   });
 });
@@ -201,13 +201,13 @@ describe('ReleaseTargets.checkScope: a minor or a major', () => {
 });
 
 describe('ReleaseTargets.plan', () => {
-  test('a stable on main: kind, branch, targets, headline and a table', () => {
+  test('a stable on main: track, branch, targets, headline and a table', () => {
     const versions = mainVersions();
     const entries = ReleaseTargets.scopeOf({ mode: 'patch', versions });
 
     const plan = ReleaseTargets.plan({ entries, mode: 'patch', ref: 'refs/heads/main', versions });
 
-    expect(plan.kind).toBe('stable');
+    expect(plan.track).toBe('stable');
     expect(plan.branch).toBe('main');
     expect(plan.headline).toBe('3 packages, up to 0.4.9');
     expect(plan.summary[2]).toBe('| helpers | 0.4.9-1 | 0.4.9 | latest |');
@@ -223,7 +223,7 @@ describe('ReleaseTargets.plan', () => {
       versions,
     });
 
-    expect(plan.kind).toBe('prerelease');
+    expect(plan.track).toBe('prerelease');
     expect(plan.branch).toBe('develop');
     expect(plan.targets[0].distTag).toBe('next');
   });
@@ -264,9 +264,9 @@ describe('ReleaseTargets.labelOf and labelProblems: the run title', () => {
     mode: 'prerelease',
   });
 
-  test('is the kind, each version from the highest down with its packages, the issue and the short commit', () => {
+  test('is the track, each version from the highest down with its packages, the issue and the short commit', () => {
     expect(
-      ReleaseTargets.labelOf({ kind: 'prerelease', targets: TARGETS, issue: '664', sha: SHA }),
+      ReleaseTargets.labelOf({ track: 'prerelease', targets: TARGETS, issue: '664', sha: SHA }),
     ).toBe('prerelease · 0.4.6-0 helpers,kernel; 0.4.5-0 inversion · #664 · c84852a');
   });
 
@@ -276,7 +276,7 @@ describe('ReleaseTargets.labelOf and labelProblems: the run title', () => {
       { name: 'kernel', from: '0.4.8', target: '0.4.9', distTag: 'latest' as const },
     ];
 
-    expect(ReleaseTargets.labelOf({ kind: 'stable', targets })).toBe(
+    expect(ReleaseTargets.labelOf({ track: 'stable', targets })).toBe(
       'stable · 0.4.10 helpers; 0.4.9 kernel',
     );
   });
@@ -284,14 +284,14 @@ describe('ReleaseTargets.labelOf and labelProblems: the run title', () => {
   test('no issue and no commit leave their parts out', () => {
     const label = 'prerelease · 0.4.6-0 helpers,kernel; 0.4.5-0 inversion';
 
-    expect(ReleaseTargets.labelOf({ kind: 'prerelease', targets: TARGETS })).toBe(label);
+    expect(ReleaseTargets.labelOf({ track: 'prerelease', targets: TARGETS })).toBe(label);
     expect(
-      ReleaseTargets.labelOf({ kind: 'prerelease', targets: TARGETS, issue: '', sha: '' }),
+      ReleaseTargets.labelOf({ track: 'prerelease', targets: TARGETS, issue: '', sha: '' }),
     ).toBe(label);
   });
 
   test('labelProblems accepts the expected label and an empty or absent one, and refuses any other', () => {
-    const expected = ReleaseTargets.labelOf({ kind: 'stable', targets: TARGETS, sha: SHA });
+    const expected = ReleaseTargets.labelOf({ track: 'stable', targets: TARGETS, sha: SHA });
 
     expect(ReleaseTargets.labelProblems({ label: expected, expected })).toEqual([]);
     expect(ReleaseTargets.labelProblems({ label: '', expected })).toEqual([]);

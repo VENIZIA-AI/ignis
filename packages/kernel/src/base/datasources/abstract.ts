@@ -39,9 +39,9 @@ export abstract class AbstractDataSource<
   /** Walks model classes bound to this datasource, reads a connector-specific artifact via `read`, and returns a name-keyed registry - skips undefined reads, throws on duplicate names, honors `autoDiscovery: false`. */
   protected discoverDefinitions<TDefinition extends { name: string }>(opts: {
     read: (modelClass: TClass<unknown>) => TDefinition | undefined;
-    kind: string;
+    label: string;
   }): Record<string, TDefinition> {
-    const { read, kind } = opts;
+    const { read, label } = opts;
     const logger = this.logger.for(this.discoverDefinitions.name);
     const registry = MetadataRegistry.getInstance();
 
@@ -64,7 +64,7 @@ export abstract class AbstractDataSource<
       if (!definition) {
         logger.warn(
           'Model has no %s definition | Skipping | Name: %s | Model: %s',
-          kind,
+          label,
           this.name,
           modelClass.name,
         );
@@ -75,7 +75,7 @@ export abstract class AbstractDataSource<
 
       if (existingOwner !== undefined && existingOwner !== modelClass.name) {
         throw getError({
-          message: `[${this.constructor.name}][discoverDefinitions] Duplicate ${kind} name '${definition.name}' | Name: ${this.name} | Classes: ${existingOwner}, ${modelClass.name}`,
+          message: `[${this.constructor.name}][discoverDefinitions] Duplicate ${label} name '${definition.name}' | Name: ${this.name} | Classes: ${existingOwner}, ${modelClass.name}`,
         });
       }
 
@@ -86,7 +86,7 @@ export abstract class AbstractDataSource<
     const names = Object.keys(definitions);
     logger.debug(
       'Detected %s(s) | Name: %s | Count: %s | Names: %j',
-      kind,
+      label,
       this.name,
       names.length,
       names,

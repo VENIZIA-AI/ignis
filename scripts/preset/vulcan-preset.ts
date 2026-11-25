@@ -4,8 +4,8 @@
  * side import, with no IGNIS or ARDOR dependency). Each template names its dependencies the way
  * package.json does (`workspace:*`, `catalog:`); this resolves each to the exact workspace version
  * and the root catalog range, read from disk at call time, and writes packages/core-server/dist/presets.
- * Each kind is preset.json + files/; the lib and the shared kind also get the lint and format
- * configs of the app, so all kinds lint the same way. The lib and the shared kind are optional:
+ * Each variant is preset.json + files/; the lib and the shared variant also get the lint and format
+ * configs of the app, so all variants lint the same way. The lib and the shared variant are optional:
  * each is written only when its preset.json exists.
  * Usage: bun scripts/preset/vulcan-preset.ts
  */
@@ -14,17 +14,17 @@ import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } fr
 import { join, relative, resolve } from 'node:path';
 
 const TEMPLATE_FOLDER = 'presets';
-const APP_KIND = 'app';
-const LIB_KIND = 'lib';
-const SHARED_KIND = 'shared';
-/** The kinds written after the app, each only when its preset.json exists. */
-const OPTIONAL_KINDS = [LIB_KIND, SHARED_KIND];
+const APP_VARIANT = 'app';
+const LIB_VARIANT = 'lib';
+const SHARED_VARIANT = 'shared';
+/** The variants written after the app, each only when its preset.json exists. */
+const OPTIONAL_VARIANTS = [LIB_VARIANT, SHARED_VARIANT];
 const OUTPUT_FOLDER = 'packages/core-server/dist/presets';
 const DEPENDENCY_BLOCKS = ['dependencies', 'devDependencies', 'peers', 'peerDependencies'];
 const CATALOG_MARKER = 'catalog:';
 const WORKSPACE_MARKER = 'workspace:';
 const FILES_FOLDER = 'files';
-/** Paths of the app files a lib or shared kind takes: the lint and format configs, never the app's builders. */
+/** Paths of the app files a lib or shared variant takes: the lint and format configs, never the app's builders. */
 const LIB_SHARED_PATHS = ['.configs/lints', '.configs/formatters'];
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -166,19 +166,19 @@ const listFiles = (opts: { dir: string; folder: string }): string[] =>
     join(opts.folder, path),
   );
 
-/** Writes one kind: `<outDir>/<kind>/preset.json` and its files, returning what it wrote. */
-const writeKind = (opts: {
+/** Writes one variant: `<outDir>/<variant>/preset.json` and its files, returning what it wrote. */
+const writeVariant = (opts: {
   templateDir: string;
   outDir: string;
-  kind: string;
+  variant: string;
   preset: Record<string, unknown>;
   sharedFrom?: string;
 }): string[] => {
-  const kindDir = join(opts.outDir, opts.kind);
-  const filesDir = join(kindDir, FILES_FOLDER);
+  const variantDir = join(opts.outDir, opts.variant);
+  const filesDir = join(variantDir, FILES_FOLDER);
 
-  mkdirSync(kindDir, { recursive: true });
-  writeFileSync(join(kindDir, 'preset.json'), `${JSON.stringify(opts.preset, null, 2)}\n`);
+  mkdirSync(variantDir, { recursive: true });
+  writeFileSync(join(variantDir, 'preset.json'), `${JSON.stringify(opts.preset, null, 2)}\n`);
 
   if (opts.sharedFrom !== undefined) {
     for (const path of LIB_SHARED_PATHS) {
@@ -190,11 +190,11 @@ const writeKind = (opts: {
     }
   }
 
-  cpSync(join(opts.templateDir, opts.kind, FILES_FOLDER), filesDir, { recursive: true });
+  cpSync(join(opts.templateDir, opts.variant, FILES_FOLDER), filesDir, { recursive: true });
 
   return [
-    join(opts.kind, 'preset.json'),
-    ...listFiles({ dir: kindDir, folder: FILES_FOLDER }).map((path) => join(opts.kind, path)),
+    join(opts.variant, 'preset.json'),
+    ...listFiles({ dir: variantDir, folder: FILES_FOLDER }).map((path) => join(opts.variant, path)),
   ];
 };
 
@@ -207,34 +207,34 @@ export class VulcanPreset {
       versions: readWorkspaceVersions({ root: opts.root, manifest }),
       resolved: [] as string[],
     };
-    const resolveKind = (kind: string): Record<string, unknown> =>
+    const resolveVariant = (variant: string): Record<string, unknown> =>
       resolveTemplate({
         ...context,
-        template: readJson({ file: join(templateDir, kind, 'preset.json') }),
+        template: readJson({ file: join(templateDir, variant, 'preset.json') }),
         filesFolder: FILES_FOLDER,
       });
 
     rmSync(opts.outDir, { recursive: true, force: true });
 
-    const written = writeKind({
+    const written = writeVariant({
       templateDir,
       outDir: opts.outDir,
-      kind: APP_KIND,
-      preset: resolveKind(APP_KIND),
+      variant: APP_VARIANT,
+      preset: resolveVariant(APP_VARIANT),
     });
 
-    for (const kind of OPTIONAL_KINDS) {
-      if (!existsSync(join(templateDir, kind, 'preset.json'))) {
+    for (const variant of OPTIONAL_VARIANTS) {
+      if (!existsSync(join(templateDir, variant, 'preset.json'))) {
         continue;
       }
 
       written.push(
-        ...writeKind({
+        ...writeVariant({
           templateDir,
           outDir: opts.outDir,
-          kind,
-          preset: resolveKind(kind),
-          sharedFrom: APP_KIND,
+          variant,
+          preset: resolveVariant(variant),
+          sharedFrom: APP_VARIANT,
         }),
       );
     }

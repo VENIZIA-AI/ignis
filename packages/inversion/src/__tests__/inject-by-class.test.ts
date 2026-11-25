@@ -218,14 +218,14 @@ describe('@inject({ target: () => Class })', () => {
 
 /** Two classes, one name: a library's own copy records the same derived key as the registered one. */
 const sameName = (): {
-  Registered: new () => { kind: string };
-  Library: new () => { kind: string };
+  Registered: new () => { origin: string };
+  Library: new () => { origin: string };
 } => {
   const registered = class MetaLinkRepository {
-    kind = 'core';
+    origin = 'core';
   };
   const library = class MetaLinkRepository {
-    kind = 'library';
+    origin = 'library';
   };
 
   return { Registered: registered, Library: library };
@@ -248,7 +248,7 @@ describe('@inject({ target }) and a same-name class', () => {
       .toClass(Registered);
 
     class ImageQueue {
-      constructor(@inject({ target: Library }) readonly links: { kind: string }) {}
+      constructor(@inject({ target: Library }) readonly links: { origin: string }) {}
     }
 
     expect(() => container.instantiate(ImageQueue)).toThrow(

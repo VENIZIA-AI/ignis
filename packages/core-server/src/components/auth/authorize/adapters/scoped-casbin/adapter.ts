@@ -69,7 +69,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     const domainClosure = new Set<string>();
 
     for (const row of principalRows) {
-      switch (row.kind) {
+      switch (row.edge) {
         case PrincipalPolicyEdges.ROLE_EDGE: {
           lines.push(
             `${AuthorizationPolicyVariants.ROLE_INHERITS.rule}, ${principals.role}_${row.subjectId}, ${principals.role}_${row.targetId}, *`,
@@ -293,7 +293,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
       )
 
       SELECT
-        ${PrincipalPolicyEdges.DIRECT}::text AS "kind",
+        ${PrincipalPolicyEdges.DIRECT}::text AS "edge",
         policyDefinition.variant,
         policyDefinition.subject_id::text AS "subjectId",
         policyDefinition.target_type AS "targetType",
@@ -322,7 +322,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
       UNION ALL
 
       SELECT
-        ${PrincipalPolicyEdges.ROLE_EDGE}::text AS "kind",
+        ${PrincipalPolicyEdges.ROLE_EDGE}::text AS "edge",
         policyDefinition.variant,
         policyDefinition.subject_id::text AS "subjectId",
         policyDefinition.target_type AS "targetType",
@@ -340,7 +340,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
       UNION ALL
 
       SELECT
-        ${PrincipalPolicyEdges.ROLE_GRANT}::text AS "kind",
+        ${PrincipalPolicyEdges.ROLE_GRANT}::text AS "edge",
         policyDefinition.variant,
         policyDefinition.subject_id::text AS "subjectId",
         policyDefinition.target_type AS "targetType",
@@ -361,7 +361,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
       UNION ALL
 
       SELECT
-        ${PrincipalPolicyEdges.DOMAIN_EDGE}::text AS "kind",
+        ${PrincipalPolicyEdges.DOMAIN_EDGE}::text AS "edge",
         policyDefinition.variant,
         policyDefinition.subject_type || '_' || policyDefinition.subject_id::text AS "subjectId",
         NULL AS "targetType",

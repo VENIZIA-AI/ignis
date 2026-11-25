@@ -208,7 +208,7 @@ describe('test-controls', () => {
 
   test('positive control: a negative fixture entry passes while the file exists and fails when it is gone', async () => {
     const root = makeFolder({ 'fixtures/plain.service.ts': 'export class PlainService {}\n' });
-    const entries = [{ gate: 'scanner', file: 'fixtures/plain.service.ts', kind: 'file' as const }];
+    const entries = [{ gate: 'scanner', file: 'fixtures/plain.service.ts', type: 'file' as const }];
 
     const result = await TestControlsCheck.run({ root, controls: entries });
     expect(result).toEqual({ checked: 1, problems: [] });
@@ -277,7 +277,7 @@ describe('test-dead-code', () => {
     });
 
     expect(DeadTestCodeCheck.find({ root })).toEqual([
-      { file: 'pkg/src/__tests__/groups/one.ts', kind: 'folder-referenced' },
+      { file: 'pkg/src/__tests__/groups/one.ts', type: 'folder-referenced' },
     ]);
   });
 

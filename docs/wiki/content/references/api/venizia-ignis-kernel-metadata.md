@@ -84,7 +84,7 @@ export declare class ArtifactGroup implements IArtifactGroup {
     static readonly SINGLETON_REALM_KEY = "artifact-group-resolver";
     readonly isArtifactGroup: true;
     readonly resolve: (() => Promise<IArtifactIndex>) | undefined;
-    readonly kinds: ReadonlyArray<keyof IArtifactIndex> | undefined;
+    readonly categories: ReadonlyArray<keyof IArtifactIndex> | undefined;
     private constructor();
     readonly folder: string | undefined;
     readonly site: string | undefined;
@@ -100,10 +100,10 @@ export declare class ArtifactGroup implements IArtifactGroup {
         ignore?: ReadonlyArray<string>;
         content?: IArtifactIndex;
     }): ArtifactGroup;
-    /** A group carrying only `kinds` - for a slicer that splits `configs.artifacts` by run mode. `custom` is one kind for every type the application defined: a slice keeps all of them or none. The source group is resolved when artifacts are registered, never here. */
+    /** A group carrying only `categories` - for a slicer that splits `configs.artifacts` by run mode. `custom` is one category for every type the application defined: a slice keeps all of them or none. The source group is resolved when artifacts are registered, never here. */
     static pick(opts: {
         group: IArtifactGroup;
-        kinds: ReadonlyArray<keyof IArtifactIndex>;
+        categories: ReadonlyArray<keyof IArtifactIndex>;
     }): ArtifactGroup;
     /** A group's classes: inlined by a build, else its own `resolve()`, else the resolver `@venizia/ignis-boot/auto` installs. */
     static resolveContent(opts: {
@@ -115,8 +115,8 @@ export declare class ArtifactGroup implements IArtifactGroup {
         resolve: TGroupResolver | undefined;
     }): void;
     static getResolver(): TGroupResolver | undefined;
-    /** The error a walker over `configs.artifacts` gets for reading a kind off a group - loud, never an empty list. */
-    static unreadKindError(opts: {
+    /** The error a walker over `configs.artifacts` gets for reading a category off a group - loud, never an empty list. */
+    static unreadCategoryError(opts: {
         folder: string | undefined;
     }): Error;
     get configurations(): never;
@@ -343,8 +343,8 @@ export interface IArtifactGroup extends Partial<Record<keyof IArtifactIndex, nev
     /** Globs relative to the package `src` whose classes the group leaves out (`ArtifactGroup.application`). */
     readonly ignore?: ReadonlyArray<string>;
     resolve?(): Promise<IArtifactIndex>;
-    /** Set on a slice (`ArtifactGroup.pick`): only these kinds are registered, and an empty slice is not an error. */
-    readonly kinds?: ReadonlyArray<keyof IArtifactIndex>;
+    /** Set on a slice (`ArtifactGroup.pick`): only these categories are registered, and an empty slice is not an error. */
+    readonly categories?: ReadonlyArray<keyof IArtifactIndex>;
 }
 ```
 

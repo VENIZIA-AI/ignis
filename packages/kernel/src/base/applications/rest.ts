@@ -750,7 +750,7 @@ export abstract class RestApplication<
     });
 
     const registry = MetadataRegistry.getInstance();
-    const kinds: Array<[ReadonlyArray<TClass<unknown>>, TBindingNamespace]> = [
+    const categories: Array<[ReadonlyArray<TClass<unknown>>, TBindingNamespace]> = [
       [resolved.configurations, BindingNamespaces.CONFIGURATION],
       [resolved.dataSources, BindingNamespaces.DATASOURCE],
       [resolved.components, BindingNamespaces.COMPONENT],
@@ -772,7 +772,7 @@ export abstract class RestApplication<
     });
     const collisions = ArtifactBindingKeys.findDerivedCollisions({
       entries: [
-        ...kinds.flatMap(([targets, namespace]) =>
+        ...categories.flatMap(([targets, namespace]) =>
           targets.map((target) => ({
             target,
             namespace,

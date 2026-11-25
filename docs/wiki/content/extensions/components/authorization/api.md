@@ -977,7 +977,7 @@ class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicyFilter>
 ```
 
 ```typescript
-/** The `kind` discriminator values in `TPrincipalPolicyRow`, one per UNION ALL branch of `queryPrincipalPolicies`. */
+/** The `edge` discriminator values in `TPrincipalPolicyRow`, one per UNION ALL branch of `queryPrincipalPolicies`. */
 class PrincipalPolicyEdges {
   static readonly DIRECT = 'direct';
   static readonly ROLE_EDGE = 'roleEdge';
@@ -997,9 +997,9 @@ type TGrantRow = {
   metadata?: unknown;
 };
 
-/** A row from the single principal-policy statement; `kind` says which branch produced it. */
+/** A row from the single principal-policy statement; `edge` says which branch produced it. */
 type TPrincipalPolicyRow = TGrantRow & {
-  kind: TConstValue<typeof PrincipalPolicyEdges>;
+  edge: TConstValue<typeof PrincipalPolicyEdges>;
   variant: string;
   targetType: TNullable<string>;
   targetId: IdType;
@@ -1036,9 +1036,9 @@ interface IScopedCasbinPolicyFilter { principal: { type: string; id: IdType }; }
 
 1. `Promise.all` of two statements, neither waiting on the other:
 
-   **`queryPrincipalPolicies`** covers everything scoped to the principal, tagged by `kind`:
+   **`queryPrincipalPolicies`** covers everything scoped to the principal, tagged by `edge`:
 
-   | `kind` | Rows |
+   | `edge` | Rows |
    |---|---|
    | `DIRECT` | The principal's own `assign_role` / `join_domain` / `grant` rows |
    | `ROLE_EDGE` | `role_inherits` edges reachable from its roles |
@@ -1051,7 +1051,7 @@ interface IScopedCasbinPolicyFilter { principal: { type: string; id: IdType }; }
 
 2. **Row routing:**
 
-   | `kind` | Routed to |
+   | `edge` | Routed to |
    |---|---|
    | `direct` | `collectDirectRow` - `g` for `assign_role`, `g2` for `join_domain`, or the direct-grant batch for `grant` |
    | `roleEdge` | `g` lines, inline |

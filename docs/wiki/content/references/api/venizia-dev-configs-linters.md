@@ -314,7 +314,7 @@ export declare class FrameworkExports {
     private static resolveRelative;
     /**
      * The names `file` exports, each with what it is, following `export *` into relative files and into other `@venizia/*`
-     * packages (an umbrella package re-exports its siblings). A name re-exported by `export { X } from` takes the kind it has
+     * packages (an umbrella package re-exports its siblings). A name re-exported by `export { X } from` takes the type it has
      * where it is declared; `export type { X }` is a type whatever the target says.
      */
     private static namesOf;

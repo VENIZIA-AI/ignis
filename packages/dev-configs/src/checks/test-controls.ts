@@ -20,7 +20,7 @@ export interface IControlEntry {
    *
    * @default 'test'
    */
-  kind?: 'test' | 'file';
+  type?: 'test' | 'file';
   /** A regular expression matched against the TITLES (suite and case) in that file. Not used by `file` entries. */
   titlePattern?: string;
   /**
@@ -112,12 +112,12 @@ export class TestControlsCheck {
       if (!existsSync(path)) {
         problems.push({
           entry,
-          message: `the ${entry.kind === 'file' ? 'negative fixture' : 'test file'} ${entry.file} does not exist`,
+          message: `the ${entry.type === 'file' ? 'negative fixture' : 'test file'} ${entry.file} does not exist`,
         });
         continue;
       }
 
-      if (entry.kind === 'file') {
+      if (entry.type === 'file') {
         continue;
       }
 

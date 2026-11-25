@@ -292,7 +292,7 @@ type TArtifactIndexInput =
   | TArtifactIndexInput[];
 ```
 
-`IApplicationConfigs.artifacts?: TArtifactIndexInput` - one index, a conditional entry, a group, or arrays of them nested to any depth. A group (`ArtifactGroup`, `@venizia/ignis-boot/auto`) carries its classes only once artifacts are registered: its kind fields are typed `never`, and reading one throws, so a function that walks the input must pass an entry with `isArtifactGroup: true` through untouched. A conditional entry registers its `index` only when `when` answers true; a false answer drops the whole subtree. Use it for the run-mode gate: `{ when: () => runMode === 'server', index: { controllers: GeneratedArtifacts.controllers } }` keeps a worker's routes out of the container. The field names are the const class `ArtifactIndexFields` (`CONFIGURATIONS`, `DATA_SOURCES`, `COMPONENTS`, `REPOSITORIES`, `SERVICES`, `CONTROLLERS`, with `SCHEME_SET` and `isValid`); `registerArtifacts` reads the index through it, never through a string literal. Field order is registration order; `custom` comes after `services`, before `controllers`. `ArtifactGroup.pick({ group, kinds })` takes `custom` as one kind: a slice keeps every custom type or none.
+`IApplicationConfigs.artifacts?: TArtifactIndexInput` - one index, a conditional entry, a group, or arrays of them nested to any depth. A group (`ArtifactGroup`, `@venizia/ignis-boot/auto`) carries its classes only once artifacts are registered: its category fields are typed `never`, and reading one throws, so a function that walks the input must pass an entry with `isArtifactGroup: true` through untouched. A conditional entry registers its `index` only when `when` answers true; a false answer drops the whole subtree. Use it for the run-mode gate: `{ when: () => runMode === 'server', index: { controllers: GeneratedArtifacts.controllers } }` keeps a worker's routes out of the container. The field names are the const class `ArtifactIndexFields` (`CONFIGURATIONS`, `DATA_SOURCES`, `COMPONENTS`, `REPOSITORIES`, `SERVICES`, `CONTROLLERS`, with `SCHEME_SET` and `isValid`); `registerArtifacts` reads the index through it, never through a string literal. Field order is registration order; `custom` comes after `services`, before `controllers`. `ArtifactGroup.pick({ group, categories })` takes `custom` as one category: a slice keeps every custom type or none.
 
 ```typescript
 artifacts: [InventoryArtifacts, GeneratedArtifacts, { components: [HealthCheckComponent] }],
@@ -320,7 +320,7 @@ class ArtifactGroup implements IArtifactGroup {
 | `isGroup(value)` | Checks the `isArtifactGroup` brand, so two installed copies of the kernel agree |
 | `setResolver({ resolve })` | The resolver for a group with no `content`. `@venizia/ignis-boot/auto` installs it when imported |
 | `application({ ignore?, content? })` | Every decorated class of the calling package's `src` |
-| `pick({ group, kinds })` | A slice of any group carrying only `kinds` |
+| `pick({ group, categories })` | A slice of any group carrying only `categories` |
 | `resolveContent({ group })` | The group's classes: inlined `content`, else its own `resolve()`, else the installed resolver |
 
 `define` looks under the defining package's `src` and records the defining module (`site`) from the call stack.
@@ -362,7 +362,7 @@ Behavior, in order:
 
 1. Flattens nested arrays into a list of `IArtifactIndex`.
 2. For each kind in dependency order - `configurations`, `dataSources`, `components`, `repositories`, `services`, `controllers` - collects the classes across every index.
-3. Evaluates every class's `when` concurrently; a `false` skips the class and logs at debug `Skipped by condition | kind: <field> | class: <Class>`.
+3. Evaluates every class's `when` concurrently; a `false` skips the class and logs at debug `Skipped by condition | field: <field> | class: <Class>`.
 4. Stable-sorts the survivors by `order` (default `0`), then re-sorts configurations topologically by `after`.
 5. Registers each through `configuration()` / `dataSource()` / `component()` / `repository()` / `service()` / `controller()`, which read the class's decorator defaults (`binding`, `scope`, `allowOverride`).
 6. For a configuration and for a component, binds every `@provide` key to a lazy provider.

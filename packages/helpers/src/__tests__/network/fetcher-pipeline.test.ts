@@ -375,12 +375,12 @@ describe('hooks', () => {
   });
 
   test('onError sees a timeout, a network failure and a schema mismatch', async () => {
-    const kinds: string[] = [];
+    const errorNames: string[] = [];
     const fetcher = buildFetcher({
-      name: 'hooks-kinds',
+      name: 'hooks-errorNames',
       hooks: {
         onError: ({ error }) => {
-          kinds.push(
+          errorNames.push(
             error instanceof Error || error instanceof DOMException ? error.name : 'other',
           );
         },
@@ -393,9 +393,9 @@ describe('hooks', () => {
       task: fetcher.get({ url: `${base}/wrong`, schema: User }),
     });
 
-    expect(kinds[0]).toBe('TimeoutError');
-    expect(kinds).toHaveLength(3);
-    expect(kinds[2]).toBe('FetchSchemaError');
+    expect(errorNames[0]).toBe('TimeoutError');
+    expect(errorNames).toHaveLength(3);
+    expect(errorNames[2]).toBe('FetchSchemaError');
   });
 
   test('a hook that throws fails the call, and onError sees that failure', async () => {

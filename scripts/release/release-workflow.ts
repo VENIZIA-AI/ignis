@@ -11,7 +11,7 @@ import { ReleasePublishCondition } from './release-publish-condition';
  * not read from text: `release-run.test.ts` runs it against a fake and mutates it.
  */
 export class ReleaseWorkflowGuards {
-  static readonly REF_BY_KIND = 'ref-by-kind';
+  static readonly REF_BY_TRACK = 'ref-by-track';
   static readonly READ_ONLY_DEFAULT = 'read-only-default';
   static readonly WRITE_ON_PUBLISH_ONLY = 'write-on-publish-only';
   static readonly GATES_NEEDED = 'gates-needed';
@@ -43,7 +43,7 @@ export class ReleaseWorkflowGuards {
   static readonly STABLE_REFUSES_MOVED_BRANCHES = 'stable-refuses-moved-branches';
   static readonly PLAN_TRIES_THE_MERGE_BACK = 'plan-tries-the-merge-back';
   static readonly MERGE_BACK_FROM_A_COPY = 'merge-back-from-a-copy';
-  static readonly TARGET_BRANCH_BY_KIND = 'target-branch-by-kind';
+  static readonly TARGET_BRANCH_BY_TRACK = 'target-branch-by-track';
   static readonly NO_FORCE_OR_TAG_MOVE = 'no-force-or-tag-move';
   static readonly PLAN_CHECKS_THE_LABEL = 'plan-checks-the-label';
   static readonly GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH = 'github-release-never-fails-a-publish';
@@ -54,7 +54,7 @@ export class ReleaseWorkflowGuards {
   static readonly CHANGELOG_HISTORY_FOR_A_STABLE = 'changelog-history-for-a-stable';
 
   static readonly SCHEME_SET = new Set<string>([
-    this.REF_BY_KIND,
+    this.REF_BY_TRACK,
     this.READ_ONLY_DEFAULT,
     this.WRITE_ON_PUBLISH_ONLY,
     this.GATES_NEEDED,
@@ -86,7 +86,7 @@ export class ReleaseWorkflowGuards {
     this.STABLE_REFUSES_MOVED_BRANCHES,
     this.PLAN_TRIES_THE_MERGE_BACK,
     this.MERGE_BACK_FROM_A_COPY,
-    this.TARGET_BRANCH_BY_KIND,
+    this.TARGET_BRANCH_BY_TRACK,
     this.NO_FORCE_OR_TAG_MOVE,
     this.PLAN_CHECKS_THE_LABEL,
     this.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
@@ -191,7 +191,7 @@ const DOCS_JOB_KEYS = [
 const DOCS_STEP_NAME = 'Dispatch the docs deploy';
 const DOCS_COMMAND = 'gh workflow run deploy-docs.yml --ref develop';
 const DOCS_ENV = { GH_TOKEN: '${{ github.token }}', GH_REPO: '${{ github.repository }}' };
-const STABLE_CONDITION = "${{ needs.plan.outputs.kind == 'stable' }}";
+const STABLE_CONDITION = "${{ needs.plan.outputs.track == 'stable' }}";
 const APPROVAL_ENVIRONMENT = 'release-approval';
 const MOVED_BRANCHES_STEP = 'Refuse a stable when a branch moved since the plan';
 const TRIAL_STEP = 'Try the merge back into develop';
@@ -202,16 +202,16 @@ const CHANGELOG_HISTORY_STEP = 'Changelog history (a stable)';
 const CHANGELOG_HISTORY_COMMAND =
   'bun node_modules/.bin/vulcan check changelog --history --base "$CHANGELOG_BASE"';
 const CHANGELOG_HISTORY_CONDITION =
-  "${{ needs.plan.outputs.kind == 'stable' && needs.plan.outputs.changelog_base != '' }}";
+  "${{ needs.plan.outputs.track == 'stable' && needs.plan.outputs.changelog_base != '' }}";
 const STAMP_COMMAND = 'scripts/release/stamp-release.ts';
 /** The variables of the workflow's own `env`, sorted; the one flag a publish step may write to `$GITHUB_ENV`. */
 const WORKFLOW_ENVIRONMENT = ['BUILD_MODE', 'FORCE_JAVASCRIPT_ACTIONS_TO_NODE24', 'TARBALLS'];
 const MERGE_BACK_FLAG_WRITE = 'echo "MERGE_BACK_STARTED=true" >> "$GITHUB_ENV"';
 const GITHUB_RELEASE_COMMAND =
-  'bun scripts/release/github-release.ts create --targets "$TARGETS" --kind "$RELEASE_KIND"';
+  'bun scripts/release/github-release.ts create --targets "$TARGETS" --track "$RELEASE_TRACK"';
 /** The only keys the step has: no `if`, `shell`, `uses`, `with`, `id` or `working-directory` to change what runs or when. */
 const GITHUB_RELEASE_KEYS = ['continue-on-error', 'env', 'name', 'run', 'timeout-minutes'];
-const GITHUB_RELEASE_ENV = ['GH_TOKEN', 'RELEASE_KIND', 'TARGETS'];
+const GITHUB_RELEASE_ENV = ['GH_TOKEN', 'RELEASE_TRACK', 'TARGETS'];
 const MAXIMUM_GITHUB_RELEASE_TIMEOUT = 10;
 /** The `gh` and `git` commands scripts/release/github-release.ts may issue: it views and creates, nothing else. */
 const GITHUB_RELEASE_COMMANDS = ['release view', 'release create', 'tag', 'log', 'show'];
@@ -326,8 +326,8 @@ export class ReleaseWorkflowCheck {
       (publish?.if ?? '').includes('github.ref')
     ) {
       violate(
-        ReleaseWorkflowGuards.REF_BY_KIND,
-        `the ref is checked by the plan job, not by a hard-coded branch: '${PLAN_JOB}' must run \`release-run.ts plan\` with the \`BUILD_MODE\` of the dispatch (the plan reads GITHUB_REF and refuses a ref that is not the branch of the kind), and the '${PUBLISH_JOB}' condition must not name a ref`,
+        ReleaseWorkflowGuards.REF_BY_TRACK,
+        `the ref is checked by the plan job, not by a hard-coded branch: '${PLAN_JOB}' must run \`release-run.ts plan\` with the \`BUILD_MODE\` of the dispatch (the plan reads GITHUB_REF and refuses a ref that is not the branch of the track), and the '${PUBLISH_JOB}' condition must not name a ref`,
       );
     }
 
@@ -709,7 +709,7 @@ export class ReleaseWorkflowCheck {
       plan.environment !== undefined ||
       plan.outputs?.matrix === undefined ||
       plan.outputs?.plan === undefined ||
-      plan.outputs?.kind === undefined ||
+      plan.outputs?.track === undefined ||
       plan.outputs?.branch === undefined ||
       plan.outputs?.headline === undefined ||
       !needsOf(test).includes(PLAN_JOB) ||
@@ -717,7 +717,7 @@ export class ReleaseWorkflowCheck {
     ) {
       violate(
         ReleaseWorkflowGuards.PLAN_JOB_FIRST,
-        `the '${PLAN_JOB}' job must run first with no environment, output \`matrix\`, \`plan\`, \`kind\`, \`branch\` and \`headline\`, and the '${TEST_JOB}' and '${SCRIPTS_JOB}' jobs must \`needs\` it`,
+        `the '${PLAN_JOB}' job must run first with no environment, output \`matrix\`, \`plan\`, \`track\`, \`branch\` and \`headline\`, and the '${TEST_JOB}' and '${SCRIPTS_JOB}' jobs must \`needs\` it`,
       );
     }
 
@@ -770,8 +770,8 @@ export class ReleaseWorkflowCheck {
 
     if (release?.env?.TARGET_BRANCH !== '${{ needs.plan.outputs.branch }}') {
       violate(
-        ReleaseWorkflowGuards.TARGET_BRANCH_BY_KIND,
-        `'${RELEASE_STEP}' must take \`TARGET_BRANCH\` from \`needs.plan.outputs.branch\`: the branch of the kind, never a literal`,
+        ReleaseWorkflowGuards.TARGET_BRANCH_BY_TRACK,
+        `'${RELEASE_STEP}' must take \`TARGET_BRANCH\` from \`needs.plan.outputs.branch\`: the branch of the track, never a literal`,
       );
     }
 
@@ -854,7 +854,7 @@ export class ReleaseWorkflowCheck {
     const planCheckout = stepsOf(plan).find((step) => step.uses?.startsWith('actions/checkout@'));
     if (
       !trial ||
-      trial.if?.trim() !== "${{ steps.plan.outputs.kind == 'stable' }}" ||
+      trial.if?.trim() !== "${{ steps.plan.outputs.track == 'stable' }}" ||
       !commandsOf(trial).includes('scripts/release/merge-back.ts trial') ||
       !commandsOf(trial).includes('--versions "$TARGETS"') ||
       !commandsOf(trial).includes('--lock keep') ||
@@ -896,7 +896,7 @@ export class ReleaseWorkflowCheck {
     }
 
     // The GitHub Release of the run is made once the loop is done and before the merge back, by a step that cannot fail
-    // the run, holds no secret (the job's own token, nothing else) and takes the plan and the kind from the plan job.
+    // the run, holds no secret (the job's own token, nothing else) and takes the plan and the track from the plan job.
     const githubRelease = publishSteps.find((step) => step.name === GITHUB_RELEASE_STEP);
     // The step is pinned, not searched: its one command is exactly the call, it has no key that changes what runs or
     // when (`if`, `shell`, `uses`, `working-directory`), its environment is the three variables and its timeout is short.
@@ -917,7 +917,7 @@ export class ReleaseWorkflowCheck {
       JSON.stringify(Object.keys(githubRelease.env ?? {}).sort()) !==
         JSON.stringify(GITHUB_RELEASE_ENV) ||
       githubRelease.env?.GH_TOKEN !== '${{ github.token }}' ||
-      githubRelease.env?.RELEASE_KIND !== '${{ needs.plan.outputs.kind }}' ||
+      githubRelease.env?.RELEASE_TRACK !== '${{ needs.plan.outputs.track }}' ||
       githubRelease.env?.TARGETS !== '${{ needs.plan.outputs.targets }}' ||
       JSON.stringify(githubRelease).includes(SECRET_REFERENCE) ||
       commandsOf(githubRelease).trim() !== GITHUB_RELEASE_COMMAND

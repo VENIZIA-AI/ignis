@@ -4,9 +4,9 @@ import { eslintConfigs, oxlintConfigs } from '../linters';
 import { NoUnbracedCaseRule } from '../linters/house';
 import { SwitchCaseBracesRule } from '../linters/rules';
 
-const UNBRACED = `switch (kind) {\n  case 'a':\n    run();\n    break;\n  default:\n    stop();\n}\n`;
-const BRACED = `switch (kind) {\n  case 'a': {\n    run();\n    break;\n  }\n  default: {\n    stop();\n  }\n}\n`;
-const STACKED = `switch (kind) {\n  case 'a':\n  case 'b': {\n    run();\n    break;\n  }\n}\n`;
+const UNBRACED = `switch (value) {\n  case 'a':\n    run();\n    break;\n  default:\n    stop();\n}\n`;
+const BRACED = `switch (value) {\n  case 'a': {\n    run();\n    break;\n  }\n  default: {\n    stop();\n  }\n}\n`;
+const STACKED = `switch (value) {\n  case 'a':\n  case 'b': {\n    run();\n    break;\n  }\n}\n`;
 
 /** The `venizia/no-unbraced-case` findings of `code` under the ESLint-only preset. */
 const findings = (code: string) =>

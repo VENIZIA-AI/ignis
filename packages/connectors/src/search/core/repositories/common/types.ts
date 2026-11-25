@@ -102,7 +102,7 @@ export interface ISearchQueryDialect {
   toWhere(opts: { where: TWhere }): string;
 
   /** The error this engine gives for a `where` key or an `order` field that names no field: a request guard throws it for a hidden field, so the two cannot be told apart. */
-  fieldNotFoundError(opts: { kind: 'where' | 'order'; field: string }): Error;
+  fieldNotFoundError(opts: { clause: 'where' | 'order'; field: string }): Error;
 
   /** The error `build` throws for a filter with an `include`: no search query reads relations. */
   includeNotSupportedError(): Error;

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { TReleaseMode } from '../release-constants';
-import { ReleaseKinds } from '../release-kind';
+import { ReleaseTracks } from '../release-track';
 import type { IPlanEntry } from '../release-plan-input';
 import { type IReleasePorts, ReleaseRun } from '../release-run';
 
@@ -326,7 +326,7 @@ const execute = (opts: {
     mode: opts.mode ?? 'patch',
     branch:
       opts.branch ??
-      ReleaseKinds.branchOf({ kind: ReleaseKinds.ofMode({ mode: opts.mode ?? 'patch' }) }),
+      ReleaseTracks.branchOf({ track: ReleaseTracks.ofMode({ mode: opts.mode ?? 'patch' }) }),
     issue: opts.issue ?? '638',
     tarballs: TARBALLS,
     date: DATE,
@@ -999,14 +999,14 @@ describe('ReleaseRun.checkManifest', () => {
   const check = (
     manifest: Record<string, unknown>,
     pending: string[] = [],
-    kind: 'prerelease' | 'stable' = 'prerelease',
+    track: 'prerelease' | 'stable' = 'prerelease',
   ) =>
     ReleaseRun.checkManifest({
       text: JSON.stringify(manifest),
       version: '0.4.6',
       siblings,
       pending: new Set(pending),
-      kind,
+      track,
     });
 
   test('is empty for a manifest that pins its siblings to the workspace and carries the target version', () => {

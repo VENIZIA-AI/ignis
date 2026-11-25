@@ -262,8 +262,8 @@ A group is every decorated class under a directory named `folder` in the package
 > A function that walks `configs.artifacts` and reads `entry.services` throws on a group or on `AutoArtifacts` - their classes exist only when artifacts are registered. To split artifacts by run mode, slice a group with `ArtifactGroup.pick` instead of reading its kinds:
 
 ```typescript
-const slice = (entry: TArtifactIndexInput, kinds: Array<keyof IArtifactIndex>): TArtifactIndexInput =>
-  ArtifactGroup.isGroup(entry) ? ArtifactGroup.pick({ group: entry, kinds }) : /* an index: pick its kinds */ entry;
+const slice = (entry: TArtifactIndexInput, categories: Array<keyof IArtifactIndex>): TArtifactIndexInput =>
+  ArtifactGroup.isGroup(entry) ? ArtifactGroup.pick({ group: entry, categories }) : /* an index: pick its categories */ entry;
 
 artifacts: [
   slice(AutoArtifacts, ['configurations', 'dataSources', 'repositories']),
@@ -289,7 +289,7 @@ Every stereotype accepts the same six options. Use them on the class, never at a
 
 `after` applies to configurations only, and it replaces the `order` sort for that kind. Name an unregistered class and the boot throws; make a cycle and it throws too, naming every class in it.
 
-`when` runs at the `registerArtifacts` boot step, before `preConfigure`, so it may read config and environment and nothing from the container. It may be `async`. A skipped class is logged at debug: `Skipped by condition | kind: components | class: KafkaComponent`.
+`when` runs at the `registerArtifacts` boot step, before `preConfigure`, so it may read config and environment and nothing from the container. It may be `async`. A skipped class is logged at debug: `Skipped by condition | field: components | class: KafkaComponent`.
 
 ```typescript
 @component({ when: () => process.env.KAFKA_BROKERS !== undefined })
@@ -332,7 +332,7 @@ Start with debug logging and read the boot log:
 
 ```
 Boot step 5/16 registerArtifacts
-Skipped by condition | kind: controllers | class: TestController
+Skipped by condition | field: controllers | class: TestController
 ```
 
 Or ask the container from a script, before `start()`:

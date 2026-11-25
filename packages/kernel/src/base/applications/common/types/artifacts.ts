@@ -35,8 +35,8 @@ export interface IArtifactGroup extends Partial<Record<keyof IArtifactIndex, nev
   /** Globs relative to the package `src` whose classes the group leaves out (`ArtifactGroup.application`). */
   readonly ignore?: ReadonlyArray<string>;
   resolve?(): Promise<IArtifactIndex>;
-  /** Set on a slice (`ArtifactGroup.pick`): only these kinds are registered, and an empty slice is not an error. */
-  readonly kinds?: ReadonlyArray<keyof IArtifactIndex>;
+  /** Set on a slice (`ArtifactGroup.pick`): only these categories are registered, and an empty slice is not an error. */
+  readonly categories?: ReadonlyArray<keyof IArtifactIndex>;
 }
 
 /** One index, a conditional entry, a group, or any nesting of arrays of them - a library exports one, an application composes several. */

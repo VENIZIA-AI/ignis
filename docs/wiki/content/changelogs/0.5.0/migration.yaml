@@ -807,3 +807,145 @@ access-scope-hardening:
     steps:
       - "Pin @venizia/ignis-connectors, @venizia/ignis-kernel and @venizia/ignis to the release before this one."
   data: Nothing stored changes.
+
+principal-policy-row-edge:
+  symbols: [TPrincipalPolicyRow.edge, PrincipalPolicyEdges, ScopedCasbinAdapter.queryPrincipalPolicies]
+  upgrade:
+    before: |-
+      import { PrincipalPolicyEdges, ScopedCasbinAdapter } from '@venizia/ignis';
+
+      class AppAdapter extends ScopedCasbinAdapter {
+        protected override async queryPrincipalPolicies(
+          opts: Parameters<ScopedCasbinAdapter['queryPrincipalPolicies']>[0],
+        ) {
+          const rows = await super.queryPrincipalPolicies(opts);
+
+          return rows.filter((row) => {
+            switch (row.kind) {
+              case PrincipalPolicyEdges.DOMAIN_EDGE: {
+                return this.isKnownDomain({ id: row.targetId });
+              }
+              default: {
+                return true;
+              }
+            }
+          });
+        }
+      }
+    after: |-
+      import { PrincipalPolicyEdges, ScopedCasbinAdapter } from '@venizia/ignis';
+
+      class AppAdapter extends ScopedCasbinAdapter {
+        protected override async queryPrincipalPolicies(
+          opts: Parameters<ScopedCasbinAdapter['queryPrincipalPolicies']>[0],
+        ) {
+          const rows = await super.queryPrincipalPolicies(opts);
+
+          return rows.filter((row) => {
+            switch (row.edge) {
+              case PrincipalPolicyEdges.DOMAIN_EDGE: {
+                return this.isKnownDomain({ id: row.targetId });
+              }
+              default: {
+                return true;
+              }
+            }
+          });
+        }
+      }
+    steps:
+      - "Read row.edge where you read row.kind, in every override or subclass of ScopedCasbinAdapter that handles a TPrincipalPolicyRow (the values are the same PrincipalPolicyEdges)."
+      - "If you replace the whole statement of queryPrincipalPolicies, select the discriminant column as \"edge\" (it was \"kind\"): the four branches of the UNION each carry it, and a missing alias leaves row.edge undefined."
+      - "A fixture or a stub of a TPrincipalPolicyRow in a test says edge: 'direct' where it said kind: 'direct'."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis to the release before this one and rename edge back to kind."
+  data: Nothing stored changes. The rows are built by a query at load time; no table has a kind or edge column.
+
+request-filter-clause:
+  symbols: [TRequestFilterKeyKind, TRequestFilterClause, IRequestFilterJudge.refuse, columnNotFoundError, fieldNotFoundError]
+  upgrade:
+    before: |-
+      import type { TRequestFilterKeyKind } from '@venizia/ignis-kernel';
+
+      const judge: IRequestFilterJudge = {
+        ...base,
+        refuse: ({ kind, key, tableName }) => new Error(`${kind}|${tableName}|${key}`),
+      };
+
+      dialect.fieldNotFoundError({ kind: 'where', field: 'nope' });
+    after: |-
+      import type { TRequestFilterClause } from '@venizia/ignis-kernel';
+
+      const judge: IRequestFilterJudge = {
+        ...base,
+        refuse: ({ clause, key, tableName }) => new Error(`${clause}|${tableName}|${key}`),
+      };
+
+      dialect.fieldNotFoundError({ clause: 'where', field: 'nope' });
+    steps:
+      - "Rename the type TRequestFilterKeyKind to TRequestFilterClause."
+      - "In a custom IRequestFilterJudge, read clause (not kind) in refuse, and pass clause to columnNotFoundError and fieldNotFoundError: they take { clause, ... } now. The values stay 'where' and 'order'."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-kernel and @venizia/ignis-connectors to the release before this one and rename clause back to kind."
+  data: Nothing stored changes.
+
+artifact-pick-categories:
+  symbols: [ArtifactGroup.pick, IArtifactGroup.categories, IArtifactPickOptions.categories]
+  upgrade:
+    before: |-
+      const slice = (entry: TArtifactIndexInput, kinds: Array<keyof IArtifactIndex>): TArtifactIndexInput =>
+        ArtifactGroup.isGroup(entry) ? ArtifactGroup.pick({ group: entry, kinds }) : entry;
+    after: |-
+      const slice = (entry: TArtifactIndexInput, categories: Array<keyof IArtifactIndex>): TArtifactIndexInput =>
+        ArtifactGroup.isGroup(entry) ? ArtifactGroup.pick({ group: entry, categories }) : entry;
+    steps:
+      - "Pass categories (not kinds) to ArtifactGroup.pick({ group, categories })."
+      - "A custom group that implements IArtifactGroup names its slice field categories, not kinds."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-kernel and @venizia/ignis-boot to the release before this one and rename categories back to kinds."
+  data: Nothing stored changes.
+
+discover-definitions-label:
+  symbols: [AbstractDataSource.discoverDefinitions]
+  upgrade:
+    before: |-
+      return this.discoverDefinitions<IMyDefinition>({
+        kind: 'view',
+        read: (modelClass) => readView(modelClass),
+      });
+    after: |-
+      return this.discoverDefinitions<IMyDefinition>({
+        label: 'view',
+        read: (modelClass) => readView(modelClass),
+      });
+    steps:
+      - "A datasource that calls discoverDefinitions passes label (the noun used in its log lines and in the duplicate-name error) where it passed kind."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-kernel to the release before this one and rename label back to kind."
+  data: Nothing stored changes.
+
+test-controls-manifest-type:
+  symbols: [IControlEntry.type]
+  upgrade:
+    before: |-
+      {
+        "gate": "scanner",
+        "file": "fixtures/plain.service.ts",
+        "kind": "file"
+      }
+    after: |-
+      {
+        "gate": "scanner",
+        "file": "fixtures/plain.service.ts",
+        "type": "file"
+      }
+    steps:
+      - "In the manifest that devz check test-controls reads (scripts/checks/controls.json in IGNIS), rename the kind key of an entry to type; the values (test, file) are unchanged."
+  downgrade:
+    steps:
+      - "Pin @venizia/dev-configs to the release before this one and rename type back to kind."
+  data: Nothing stored changes.

@@ -468,18 +468,18 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     });
   }
 
-  fieldNotFoundError(opts: { kind: 'where' | 'order'; field: string }): Error {
-    const { kind, field } = opts;
+  fieldNotFoundError(opts: { clause: 'where' | 'order'; field: string }): Error {
+    const { clause, field } = opts;
 
     // A dotted `where` key is refused before the declared fields are looked at, so a hidden one is too.
-    if (kind === 'where' && field.includes('.')) {
+    if (clause === 'where' && field.includes('.')) {
       return this.jsonPathError({ field });
     }
 
     return SearchDialectUtility.fieldNotFoundError({
       field,
       engine: ENGINE,
-      method: kind === 'order' ? 'toOrderBy' : 'compileWhere',
+      method: clause === 'order' ? 'toOrderBy' : 'compileWhere',
     });
   }
 

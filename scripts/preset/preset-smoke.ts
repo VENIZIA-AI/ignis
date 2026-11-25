@@ -31,7 +31,7 @@ const HELLO_BODY = { message: 'Hello from IGNIS!' };
 const SERVER_TIMEOUT_MS = 15_000;
 const POLL_INTERVAL_MS = 100;
 const DOCKER = process.env.SMOKE_DOCKER === '1';
-/** Counts the shared-kind step too once `smoke` finds the pinned VULCAN can run it. */
+/** Counts the shared-variant step too once `smoke` finds the pinned VULCAN can run it. */
 let totalSteps = DOCKER ? 14 : 13;
 const IMAGE = 'ignis-preset-smoke';
 /** Planted in the app's .env before the image builds: it must never reach a layer. */
@@ -51,7 +51,7 @@ const LIB = 'billing';
 const LIB_DIR = 'libs';
 const SHARED = 'common';
 const SHARED_DIR = 'libs';
-/** The first VULCAN that has `vulcan package add --shared` (`vulcan add --shared` before 0.5.0-7); the shared-kind step runs from the pinned version on. */
+/** The first VULCAN that has `vulcan package add --shared` (`vulcan add --shared` before 0.5.0-7); the shared-variant step runs from the pinned version on. */
 const SHARED_MIN_VULCAN = '0.4.9-0';
 const LIB_SCRIPTS = ['clean', 'lint', 'lint:fix', 'test', 'typecheck'];
 /** Exported while the app compiles; the stamp keeps 12 characters of a commit, so this is exactly 12. */
@@ -554,7 +554,7 @@ export class PresetSmoke {
   }
 
   /** True when this VULCAN version has `vulcan package add --shared`: at or above `SHARED_MIN_VULCAN`, prereleases ordered by semver. */
-  static supportsSharedKind(opts: { version: string }): boolean {
+  static supportsShared(opts: { version: string }): boolean {
     return Bun.semver.order(opts.version, SHARED_MIN_VULCAN) >= 0;
   }
 }
@@ -565,14 +565,14 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
   )
     .split(/\s+/)
     .filter(Boolean);
-  const runsShared = PresetSmoke.supportsSharedKind({
+  const runsShared = PresetSmoke.supportsShared({
     version: PresetSmoke.getPinnedVulcanVersion({ root: opts.root }),
   });
   if (runsShared) {
     totalSteps += 1;
   } else {
     console.log(
-      `[preset-smoke] the shared-kind step is skipped: the pinned VULCAN is below ${SHARED_MIN_VULCAN}, the first with \`vulcan package add --shared\``,
+      `[preset-smoke] the shared-variant step is skipped: the pinned VULCAN is below ${SHARED_MIN_VULCAN}, the first with \`vulcan package add --shared\``,
     );
   }
   const tarballDir = join(opts.scratch, 'tgz');

@@ -85,7 +85,7 @@ describe('one mutation per guard: removing the guard from a copy fails the check
     script?: IEdit[];
   }> = [
     {
-      guard: ReleaseWorkflowGuards.REF_BY_KIND,
+      guard: ReleaseWorkflowGuards.REF_BY_TRACK,
       edits: [
         {
           find: '${{ !cancelled() && needs.plan.result',
@@ -94,11 +94,11 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       ],
     },
     {
-      guard: ReleaseWorkflowGuards.REF_BY_KIND,
+      guard: ReleaseWorkflowGuards.REF_BY_TRACK,
       edits: [{ find: '  BUILD_MODE: ${{ github.event.inputs.build_mode }}\n', replace: '' }],
     },
     {
-      guard: ReleaseWorkflowGuards.REF_BY_KIND,
+      guard: ReleaseWorkflowGuards.REF_BY_TRACK,
       edits: [{ find: 'run: bun scripts/release/release-run.ts plan', replace: 'run: echo plan' }],
     },
     {
@@ -496,7 +496,7 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.APPROVE_FOR_STABLE_ONLY,
       edits: [
         {
-          find: "    if: ${{ needs.plan.outputs.kind == 'stable' }}\n    runs-on: ubuntu-26.04\n    environment: release-approval\n",
+          find: "    if: ${{ needs.plan.outputs.track == 'stable' }}\n    runs-on: ubuntu-26.04\n    environment: release-approval\n",
           replace: '    runs-on: ubuntu-26.04\n    environment: release-approval\n',
         },
       ],
@@ -554,7 +554,7 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.PUBLISH_AFTER_APPROVE,
       edits: [
         {
-          find: "      || (needs.approve.result == 'skipped' && needs.plan.outputs.kind == 'prerelease')) }}",
+          find: "      || (needs.approve.result == 'skipped' && needs.plan.outputs.track == 'prerelease')) }}",
           replace: "      || needs.approve.result == 'skipped') }}",
         },
       ],
@@ -581,7 +581,7 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.STABLE_REFUSES_MOVED_BRANCHES,
       edits: [
         {
-          find: "      - name: Refuse a stable when a branch moved since the plan\n        if: ${{ needs.plan.outputs.kind == 'stable' }}\n",
+          find: "      - name: Refuse a stable when a branch moved since the plan\n        if: ${{ needs.plan.outputs.track == 'stable' }}\n",
           replace: '      - name: Refuse a stable when a branch moved since the plan\n',
         },
       ],
@@ -656,7 +656,7 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.PLAN_TRIES_THE_MERGE_BACK,
       edits: [
         {
-          find: "        id: trial\n        if: ${{ steps.plan.outputs.kind == 'stable' }}\n",
+          find: "        id: trial\n        if: ${{ steps.plan.outputs.track == 'stable' }}\n",
           replace: '        id: trial\n',
         },
       ],
@@ -693,13 +693,13 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.MERGE_BACK_FROM_A_COPY,
       edits: [
         {
-          find: "      - name: Merge main back into develop\n        if: ${{ needs.plan.outputs.kind == 'stable' }}\n",
+          find: "      - name: Merge main back into develop\n        if: ${{ needs.plan.outputs.track == 'stable' }}\n",
           replace: '      - name: Merge main back into develop\n',
         },
       ],
     },
     {
-      guard: ReleaseWorkflowGuards.TARGET_BRANCH_BY_KIND,
+      guard: ReleaseWorkflowGuards.TARGET_BRANCH_BY_TRACK,
       edits: [
         {
           find: '          TARGET_BRANCH: ${{ needs.plan.outputs.branch }}\n',
@@ -708,7 +708,7 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       ],
     },
     {
-      guard: ReleaseWorkflowGuards.TARGET_BRANCH_BY_KIND,
+      guard: ReleaseWorkflowGuards.TARGET_BRANCH_BY_TRACK,
       edits: [{ find: '          TARGET_BRANCH: ${{ needs.plan.outputs.branch }}\n', replace: '' }],
     },
     // Nothing is forced, moved or deleted.
@@ -773,8 +773,8 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
       edits: [
         {
-          find: '          GH_TOKEN: ${{ github.token }}\n          RELEASE_KIND:',
-          replace: '          RELEASE_KIND:',
+          find: '          GH_TOKEN: ${{ github.token }}\n          RELEASE_TRACK:',
+          replace: '          RELEASE_TRACK:',
         },
       ],
     },
@@ -782,9 +782,9 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
       edits: [
         {
-          find: '          GH_TOKEN: ${{ github.token }}\n          RELEASE_KIND:',
+          find: '          GH_TOKEN: ${{ github.token }}\n          RELEASE_TRACK:',
           replace:
-            '          GH_TOKEN: ${{ github.token }}\n          LEAK: ${{ secrets.RELEASE_PAT }}\n          RELEASE_KIND:',
+            '          GH_TOKEN: ${{ github.token }}\n          LEAK: ${{ secrets.RELEASE_PAT }}\n          RELEASE_TRACK:',
         },
       ],
     },
@@ -792,8 +792,8 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
       edits: [
         {
-          find: 'github-release.ts create --targets "$TARGETS" --kind',
-          replace: 'github-release.ts create --kind',
+          find: 'github-release.ts create --targets "$TARGETS" --track',
+          replace: 'github-release.ts create --track',
         },
       ],
     },
@@ -801,7 +801,7 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
       edits: [
         {
-          find: 'github-release.ts create --targets "$TARGETS" --kind "$RELEASE_KIND"',
+          find: 'github-release.ts create --targets "$TARGETS" --track "$RELEASE_TRACK"',
           replace: 'github-release.ts create --targets "$TARGETS"',
         },
       ],
@@ -841,8 +841,8 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
       edits: [
         {
-          find: '--kind "$RELEASE_KIND"\n',
-          replace: '--kind "$RELEASE_KIND" && gh release edit atlas-index --notes injected\n',
+          find: '--track "$RELEASE_TRACK"\n',
+          replace: '--track "$RELEASE_TRACK" && gh release edit atlas-index --notes injected\n',
         },
       ],
     },
@@ -850,9 +850,9 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
       edits: [
         {
-          find: '        run: bun scripts/release/github-release.ts create --targets "$TARGETS" --kind "$RELEASE_KIND"\n',
+          find: '        run: bun scripts/release/github-release.ts create --targets "$TARGETS" --track "$RELEASE_TRACK"\n',
           replace:
-            '        run: |\n          bun scripts/release/github-release.ts create --targets "$TARGETS" --kind "$RELEASE_KIND"\n          gh release delete atlas-index --yes\n',
+            '        run: |\n          bun scripts/release/github-release.ts create --targets "$TARGETS" --track "$RELEASE_TRACK"\n          gh release delete atlas-index --yes\n',
         },
       ],
     },
@@ -860,9 +860,9 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
       edits: [
         {
-          find: '--kind "$RELEASE_KIND"\n',
+          find: '--track "$RELEASE_TRACK"\n',
           replace:
-            '--kind "$RELEASE_KIND" || bun scripts/release/github-release.ts backfill --tag core-server-v0.4.6 --yes\n',
+            '--track "$RELEASE_TRACK" || bun scripts/release/github-release.ts backfill --tag core-server-v0.4.6 --yes\n',
         },
       ],
     },
@@ -926,8 +926,8 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
       edits: [
         {
-          find: '          RELEASE_KIND: ${{ needs.plan.outputs.kind }}\n',
-          replace: '          RELEASE_KIND: stable\n',
+          find: '          RELEASE_TRACK: ${{ needs.plan.outputs.track }}\n',
+          replace: '          RELEASE_TRACK: stable\n',
         },
       ],
     },

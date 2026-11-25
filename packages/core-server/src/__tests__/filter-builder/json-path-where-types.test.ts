@@ -37,7 +37,7 @@ type TRow = typeof table.$inferSelect;
 type TOptionalRow = {
   id: number;
   label?: string;
-  payload?: { kind: string };
+  payload?: { label: string };
   extra?: unknown;
 };
 
@@ -104,9 +104,9 @@ describe('TJsonColumnKey<T> and TJsonPathKey<T>', () => {
   });
 
   test('an optional JSON member is a JSON column and adds no undefined.* path', () => {
-    const keys: TJsonPathKey<TOptionalRow>[] = ['payload.kind', 'extra.a'];
+    const keys: TJsonPathKey<TOptionalRow>[] = ['payload.label', 'extra.a'];
     // @ts-expect-error an optional member contributes its name, never the text 'undefined'.
-    const undefinedPath: TJsonPathKey<TOptionalRow> = 'undefined.kind';
+    const undefinedPath: TJsonPathKey<TOptionalRow> = 'undefined.label';
     // @ts-expect-error 'label' is an optional text member.
     const onOptionalText: TJsonPathKey<TOptionalRow> = 'label.a';
     expect([...keys, undefinedPath, onOptionalText]).toHaveLength(4);

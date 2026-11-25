@@ -140,7 +140,7 @@ The `normalized.code` of the 501 resolves to `'core.not_supported'`. The search 
 | Method | Description |
 |---|---|
 | `getBoundModelClasses()` | Returns the model classes bound to this datasource via `@repository` metadata, read from `MetadataRegistry` |
-| `discoverDefinitions({ read, kind })` | Walks the bound model classes and returns a name-keyed registry of what `read` returns |
+| `discoverDefinitions({ read, label })` | Walks the bound model classes and returns a name-keyed registry of what `read` returns |
 
 `discoverDefinitions` skips undefined reads, throws on duplicate names, and honors `autoDiscovery: false`. It is the shared plumbing every connector's own `discoverSchema()`-equivalent builds on.
 

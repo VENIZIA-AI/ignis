@@ -198,7 +198,7 @@ describe('scoped RBAC — full stack (adapter + enforcer + evaluate)', () => {
       if (text.includes('WITH RECURSIVE')) {
         return [
           {
-            kind: 'direct',
+            edge: 'direct',
             variant: 'assign_role',
             subjectId: 'u1',
             targetType: 'Role',
@@ -211,7 +211,7 @@ describe('scoped RBAC — full stack (adapter + enforcer + evaluate)', () => {
             objectMethod: null,
           },
           {
-            kind: 'direct',
+            edge: 'direct',
             variant: 'join_domain',
             subjectId: 'u1',
             targetType: 'Merchant',
@@ -224,7 +224,7 @@ describe('scoped RBAC — full stack (adapter + enforcer + evaluate)', () => {
             objectMethod: null,
           },
           {
-            kind: 'roleGrant',
+            edge: 'roleGrant',
             variant: 'grant',
             subjectId: 'op',
             targetType: null,

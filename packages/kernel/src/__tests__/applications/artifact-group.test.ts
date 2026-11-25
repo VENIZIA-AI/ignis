@@ -126,12 +126,12 @@ describe('ArtifactGroup.siteFromStack', () => {
 });
 
 describe('ArtifactGroup.pick', () => {
-  test('slices an inlined group to the named kinds', async () => {
+  test('slices an inlined group to the named categories', async () => {
     const group = ArtifactGroup.define({
       folder: 'inventory',
       content: { services: [StockService], controllers: [StockController] },
     });
-    const slice = ArtifactGroup.pick({ group, kinds: ['controllers'] });
+    const slice = ArtifactGroup.pick({ group, categories: ['controllers'] });
     const result = await helper.flatten({ input: slice, application });
     expect(result).toEqual([{ controllers: [StockController] }]);
   });
@@ -147,7 +147,7 @@ describe('ArtifactGroup.pick', () => {
     });
     const slice = ArtifactGroup.pick({
       group: ArtifactGroup.define({ folder: 'inventory' }),
-      kinds: ['services'],
+      categories: ['services'],
     });
     expect(calls).toBe(0);
     const result = await helper.flatten({ input: slice, application });
@@ -155,12 +155,12 @@ describe('ArtifactGroup.pick', () => {
     expect(calls).toBe(1);
   });
 
-  test('a slice whose kinds hold no class is an empty index, not an error', async () => {
+  test('a slice whose categories hold no class is an empty index, not an error', async () => {
     const group = ArtifactGroup.define({
       folder: 'inventory',
       content: { services: [StockService] },
     });
-    const slice = ArtifactGroup.pick({ group, kinds: ['controllers'] });
+    const slice = ArtifactGroup.pick({ group, categories: ['controllers'] });
     const result = await helper.flatten({ input: slice, application });
     expect(result).toEqual([{}]);
   });
@@ -173,7 +173,7 @@ describe('ArtifactGroup.pick', () => {
       content: undefined,
       resolve: async () => ({ services: [StockService], controllers: [StockController] }),
     };
-    const slice = ArtifactGroup.pick({ group: auto, kinds: ['services'] });
+    const slice = ArtifactGroup.pick({ group: auto, categories: ['services'] });
     expect(ArtifactGroup.isGroup(slice)).toBe(true);
     const result = await helper.flatten({ input: [slice], application });
     expect(result).toEqual([{ services: [StockService] }]);

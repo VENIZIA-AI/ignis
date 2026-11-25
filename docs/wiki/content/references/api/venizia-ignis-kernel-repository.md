@@ -28,7 +28,7 @@ export declare abstract class AbstractDataSource<Settings extends object = {}, S
         name: string;
     }>(opts: {
         read: (modelClass: TClass<unknown>) => TDefinition | undefined;
-        kind: string;
+        label: string;
     }): Record<string, TDefinition>;
 }
 ```
@@ -756,7 +756,7 @@ export interface IRequestFilterJudge {
     }): boolean;
     /** The error to throw for a key that is hidden: the one an unknown column or field gets, so a caller cannot tell them apart. */
     refuse(opts: {
-        kind: TRequestFilterKeyKind;
+        clause: TRequestFilterClause;
         key: string;
         tableName: string;
     }): Error;

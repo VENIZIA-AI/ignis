@@ -161,7 +161,7 @@ const SERVER_STABLE: IGithubReleaseTarget[] = [
 const make = (opts: {
   root: string;
   targets: IGithubReleaseTarget[];
-  kind: string;
+  track: string;
   stub: IStubGh;
   withSubjectFallback?: boolean;
   dryRun?: boolean;
@@ -169,7 +169,7 @@ const make = (opts: {
   GithubRelease.create({
     cwd: opts.root,
     targets: opts.targets,
-    kind: opts.kind,
+    track: opts.track,
     gh: opts.stub.gh,
     scratchRoot: scratch(),
     withSubjectFallback: opts.withSubjectFallback,
@@ -324,7 +324,7 @@ describe('GithubRelease.stableNotes', () => {
 describe('GithubRelease.create', () => {
   test('a stable that is the newest is marked Latest, titled with the version of the last package, on its tag', () => {
     const stub = stubGh({});
-    const outcome = make({ root: fixture(), targets: SERVER_STABLE, kind: 'stable', stub });
+    const outcome = make({ root: fixture(), targets: SERVER_STABLE, track: 'stable', stub });
     const created = stub.created();
 
     expect(outcome.state).toBe('created');
@@ -347,7 +347,7 @@ describe('GithubRelease.create', () => {
         { dir: 'kernel', version: '0.4.8' },
         { dir: 'core-server', version: '0.4.8' },
       ],
-      kind: 'stable',
+      track: 'stable',
       stub,
     });
 
@@ -374,7 +374,7 @@ describe('GithubRelease.create', () => {
         { dir: 'inversion', version: '0.4.8' },
         { dir: 'kernel', version: '0.4.8' },
       ],
-      kind: 'stable',
+      track: 'stable',
       stub,
     });
 
@@ -390,8 +390,8 @@ describe('GithubRelease.create', () => {
     const older = stubGh({});
 
     // kernel-v0.4.9 is the newest stable kernel tag; core-server-v0.4.8 is the newest of its package.
-    make({ root, targets: [{ dir: 'kernel', version: '0.4.9' }], kind: 'stable', stub: newest });
-    make({ root, targets: [{ dir: 'kernel', version: '0.4.8' }], kind: 'stable', stub: older });
+    make({ root, targets: [{ dir: 'kernel', version: '0.4.9' }], track: 'stable', stub: newest });
+    make({ root, targets: [{ dir: 'kernel', version: '0.4.8' }], track: 'stable', stub: older });
 
     expect(newest.created()).toContain('--latest=false');
     expect(newest.created()).not.toContain('--latest');
@@ -415,7 +415,7 @@ describe('GithubRelease.create', () => {
     const outcome = make({
       root: fixture(),
       targets: [{ dir: 'kernel', version: '0.4.8-1' }],
-      kind: 'prerelease',
+      track: 'prerelease',
       stub,
     });
 
@@ -430,7 +430,7 @@ describe('GithubRelease.create', () => {
     make({
       root: fixture(),
       targets: [{ dir: 'core-server', version: '0.4.7' }],
-      kind: 'stable',
+      track: 'stable',
       stub,
       withSubjectFallback: true,
     });
@@ -447,7 +447,7 @@ describe('GithubRelease.create', () => {
         { dir: 'kernel', version: '0.4.8-1' },
         { dir: 'core-server', version: '0.4.8-1' },
       ],
-      kind: 'prerelease',
+      track: 'prerelease',
       stub,
     });
 
@@ -489,28 +489,28 @@ describe('GithubRelease.create', () => {
 
   test('a tag that has a Release is skipped, and nothing is created', () => {
     const stub = stubGh({ existing: true });
-    const outcome = make({ root: fixture(), targets: SERVER_STABLE, kind: 'stable', stub });
+    const outcome = make({ root: fixture(), targets: SERVER_STABLE, track: 'stable', stub });
 
     expect(outcome.state).toBe('exists');
     expect(stub.calls).toEqual([['release', 'view', 'core-server-v0.4.8', '--json', 'tagName']]);
     expect(stub.created()).toEqual([]);
   });
 
-  test('an unknown kind, a version that is not the kind and no package are refused or failed before gh is asked anything', () => {
+  test('an unknown track, a version that is not the track and no package are refused or failed before gh is asked anything', () => {
     const stub = stubGh({});
     const root = fixture();
 
-    expect(make({ root, targets: SERVER_STABLE, kind: 'latest', stub }).state).toBe('refused');
-    expect(make({ root, targets: SERVER_STABLE, kind: 'prerelease', stub }).state).toBe('refused');
+    expect(make({ root, targets: SERVER_STABLE, track: 'latest', stub }).state).toBe('refused');
+    expect(make({ root, targets: SERVER_STABLE, track: 'prerelease', stub }).state).toBe('refused');
     expect(
       make({
         root,
         targets: [{ dir: 'core-server', version: '0.4.8-1' }],
-        kind: 'stable',
+        track: 'stable',
         stub,
       }).state,
     ).toBe('refused');
-    expect(make({ root, targets: [], kind: 'stable', stub }).state).toBe('failed');
+    expect(make({ root, targets: [], track: 'stable', stub }).state).toBe('failed');
     expect(stub.calls).toEqual([]);
   });
 
@@ -536,7 +536,7 @@ describe('GithubRelease.create', () => {
     const outcome = GithubRelease.create({
       cwd: root,
       targets: [{ dir: 'atlas', version: 'index' }],
-      kind: 'stable',
+      track: 'stable',
       gh: stub.gh,
       scratchRoot: scratch(),
     });
@@ -550,13 +550,13 @@ describe('GithubRelease.create', () => {
     const failing = make({
       root: fixture(),
       targets: SERVER_STABLE,
-      kind: 'stable',
+      track: 'stable',
       stub: stubGh({ createFails: true }),
     });
     const broken = make({
       root: scratch(),
       targets: SERVER_STABLE,
-      kind: 'stable',
+      track: 'stable',
       stub: stubGh({}),
     });
 
@@ -575,11 +575,11 @@ describe('GithubRelease.create', () => {
     const stub = stubGh({});
     const backfill = stubGh({});
 
-    expect(make({ root, targets, kind: 'stable', stub }).state).toBe('created');
+    expect(make({ root, targets, track: 'stable', stub }).state).toBe('created');
     expect(stub.notes()).toContain(GithubReleaseConstants.NO_USER_CHANGES);
     expect(stub.notes()).not.toContain('a change with no entry');
     expect(
-      make({ root, targets, kind: 'stable', stub: backfill, withSubjectFallback: true }).state,
+      make({ root, targets, track: 'stable', stub: backfill, withSubjectFallback: true }).state,
     ).toBe('created');
     expect(backfill.notes()).toContain('[#12] chore(x): a change with no entry');
   });
@@ -595,7 +595,7 @@ describe('GithubRelease.create', () => {
       make({
         root,
         targets: [{ dir: 'core-server', version: '0.4.9' }],
-        kind: 'stable',
+        track: 'stable',
         stub,
         withSubjectFallback: true,
       }).state,
@@ -608,7 +608,7 @@ describe('GithubRelease.create', () => {
     const outcome = make({
       root: fixture(),
       targets: [{ dir: 'core-server', version: '0.4.7' }],
-      kind: 'stable',
+      track: 'stable',
       stub,
       withSubjectFallback: true,
       dryRun: true,
@@ -631,7 +631,7 @@ describe('GithubRelease.create', () => {
     make({
       root,
       targets: [{ dir: 'core-server', version: '0.4.9' }],
-      kind: 'stable',
+      track: 'stable',
       stub: backfill,
       withSubjectFallback: true,
     });
@@ -668,7 +668,7 @@ describe('GithubRelease.create of a stable with a version folder', () => {
 
   test('the notes are the body of log.md as a Release shows it, not the dated entries, with the Packages section after', () => {
     const stub = stubGh({});
-    const outcome = make({ root: folderFixture({}), targets: NINE, kind: 'stable', stub });
+    const outcome = make({ root: folderFixture({}), targets: NINE, track: 'stable', stub });
 
     expect(outcome.state).toBe('created');
     expect(stub.notes()).toStartWith('IGNIS 0.4.9 fixes the bug');
@@ -700,7 +700,7 @@ describe('GithubRelease.create of a stable with a version folder', () => {
     const outcome = GithubRelease.create({
       cwd: folderFixture({ migration: MIGRATION }),
       targets: NINE,
-      kind: 'stable',
+      track: 'stable',
       gh,
       scratchRoot: scratch(),
     });
@@ -717,7 +717,7 @@ describe('GithubRelease.create of a stable with a version folder', () => {
       const stub = stubGh({});
 
       expect(
-        make({ root: folderFixture({ migration }), targets: NINE, kind: 'stable', stub }).state,
+        make({ root: folderFixture({ migration }), targets: NINE, track: 'stable', stub }).state,
       ).toBe('created');
       expect(stub.created()[3]).toBe('--title');
     }
@@ -729,7 +729,7 @@ describe('GithubRelease.create of a stable with a version folder', () => {
     make({
       root: folderFixture({ log: '---\ntitle: 0.4.9\nversion: 0.4.9\n---\n\n' }),
       targets: NINE,
-      kind: 'stable',
+      track: 'stable',
       stub,
       withSubjectFallback: true,
     });
@@ -744,7 +744,7 @@ describe('GithubRelease.create of a stable with a version folder', () => {
     make({
       root,
       targets: [{ dir: 'core-server', version: '0.4.8' }],
-      kind: 'stable',
+      track: 'stable',
       stub,
     });
 
@@ -762,7 +762,7 @@ describe('GithubRelease.create of a stable with a version folder', () => {
 
     const stub = stubGh({});
 
-    make({ root, targets: NINE, kind: 'stable', stub });
+    make({ root, targets: NINE, track: 'stable', stub });
 
     expect(stub.notes()).toContain('IGNIS 0.4.9 fixes the bug');
     expect(stub.notes()).not.toContain('Edited after the tag.');
@@ -772,7 +772,7 @@ describe('GithubRelease.create of a stable with a version folder', () => {
     const outcome = make({
       root: folderFixture({ migration: MIGRATION }),
       targets: NINE,
-      kind: 'stable',
+      track: 'stable',
       stub: stubGh({}),
       dryRun: true,
     });
@@ -796,7 +796,7 @@ describe('GithubRelease.create of a stable with a version folder', () => {
     const outcome = make({
       root,
       targets: [{ dir: 'kernel', version: '0.4.12' }],
-      kind: 'stable',
+      track: 'stable',
       stub,
     });
 
@@ -1054,7 +1054,7 @@ describe('GithubRelease.ghOf refuses at run time what the script must never ask 
     const outcome = GithubRelease.create({
       cwd: fixture(),
       targets: SERVER_STABLE,
-      kind: 'stable',
+      track: 'stable',
       gh: () => {
         throw new Error('gh refused: nope');
       },
@@ -1153,7 +1153,7 @@ describe('GithubRelease.main', () => {
     const summary = join(scratch(), 'summary');
     const crashed = join(scratch(), 'summary');
     const root = fixture();
-    const args = ['create', '--targets', 'kernel=0.4.8,core-server=0.4.8', '--kind', 'stable'];
+    const args = ['create', '--targets', 'kernel=0.4.8,core-server=0.4.8', '--track', 'stable'];
 
     writeFileSync(summary, '');
     writeFileSync(crashed, '');
@@ -1174,7 +1174,13 @@ describe('GithubRelease.main', () => {
 
     expect(
       run({
-        args: ['create', '--targets', 'kernel=0.4.8-1,core-server=0.4.8-1', '--kind', 'prerelease'],
+        args: [
+          'create',
+          '--targets',
+          'kernel=0.4.8-1,core-server=0.4.8-1',
+          '--track',
+          'prerelease',
+        ],
         root: fixture(),
         stub,
         summary,
@@ -1198,7 +1204,7 @@ describe('GithubRelease.main', () => {
     try {
       expect(
         run({
-          args: ['create', '--targets', 'kernel=0.4.8,core-server=0.4.8', '--kind', 'stable'],
+          args: ['create', '--targets', 'kernel=0.4.8,core-server=0.4.8', '--track', 'stable'],
           root: fixture(),
           stub: stubGh({
             createFails: true,
@@ -1237,7 +1243,7 @@ describe('GithubRelease.main', () => {
 
     expect(
       run({
-        args: ['create', '--targets', 'nothing=1.0.0', '--kind', 'stable'],
+        args: ['create', '--targets', 'nothing=1.0.0', '--track', 'stable'],
         root,
         stub: stubGh({}),
         summary,
@@ -1250,10 +1256,10 @@ describe('GithubRelease.main', () => {
     const root = fixture();
     const stub = stubGh({});
 
-    expect(run({ args: ['create', '--kind', 'stable'], root, stub })).toBe(2);
+    expect(run({ args: ['create', '--track', 'stable'], root, stub })).toBe(2);
     expect(run({ args: ['create', '--targets', 'kernel=0.4.8'], root, stub })).toBe(2);
     expect(
-      run({ args: ['create', '--tag', 'x', '--version', '1', '--kind', 'stable'], root, stub }),
+      run({ args: ['create', '--tag', 'x', '--version', '1', '--track', 'stable'], root, stub }),
     ).toBe(2);
     expect(run({ args: ['publish'], root, stub })).toBe(2);
     expect(stub.calls).toEqual([]);

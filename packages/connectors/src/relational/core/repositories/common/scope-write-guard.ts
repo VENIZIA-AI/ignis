@@ -33,9 +33,9 @@ type TExtraction =
 
 /** What the scope becomes for a write: a `where`, no row at all, or a shape that cannot be narrowed. */
 type TNarrowed =
-  | { kind: 'where'; where: TWhere }
-  | { kind: 'none' }
-  | { kind: 'unverifiable'; reason: string };
+  | { outcome: 'where'; where: TWhere }
+  | { outcome: 'none' }
+  | { outcome: 'unverifiable'; reason: string };
 
 const WRITE_DENIED_STATUS = HTTP.ResultCodes.RS_4.Forbidden;
 
@@ -281,7 +281,7 @@ export class ScopeWriteGuard {
     // Checked with `sharedRows` too: it lets the null branch through, not a shape the guard cannot read.
     const narrowed = ScopeWriteGuard.withoutShared({ where: scopeWhere });
 
-    if (narrowed.kind === 'unverifiable') {
+    if (narrowed.outcome === 'unverifiable') {
       throw ScopeWriteGuard.denied({
         model,
         operation,
@@ -293,7 +293,7 @@ export class ScopeWriteGuard {
       return scopeWhere;
     }
 
-    return narrowed.kind === 'none' ? ScopeFilterDenial.where() : narrowed.where;
+    return narrowed.outcome === 'none' ? ScopeFilterDenial.where() : narrowed.where;
   }
 
   /** `where` with every `null` the scope allows removed; `none` when nothing but `null` was allowed. */
@@ -303,7 +303,7 @@ export class ScopeWriteGuard {
     for (const [key, value] of Object.entries(opts.where)) {
       if (key === 'and' || key === 'or') {
         if (!Array.isArray(value) || (key === 'or' && value.length === 0)) {
-          return { kind: 'unverifiable', reason: `'${key}' is not a list` };
+          return { outcome: 'unverifiable', reason: `'${key}' is not a list` };
         }
 
         // An 'or' is read only when every branch constrains the same column, as the guard reads it: a branch over another column
@@ -312,7 +312,7 @@ export class ScopeWriteGuard {
           const union = ScopeWriteGuard.unionOfBranches({ branches: value });
 
           if (typeof union === 'string') {
-            return { kind: 'unverifiable', reason: union };
+            return { outcome: 'unverifiable', reason: union };
           }
         }
 
@@ -323,11 +323,11 @@ export class ScopeWriteGuard {
             where: RecordUtility.isPlainRecord(part) ? part : {},
           });
 
-          if (narrowed.kind === 'unverifiable') {
+          if (narrowed.outcome === 'unverifiable') {
             return narrowed;
           }
 
-          if (narrowed.kind === 'none') {
+          if (narrowed.outcome === 'none') {
             // One impossible 'and' part makes the whole 'and' impossible; an impossible 'or' branch just drops out.
             if (key === 'and') {
               return narrowed;
@@ -340,7 +340,7 @@ export class ScopeWriteGuard {
         }
 
         if (key === 'or' && kept.length === 0) {
-          return { kind: 'none' };
+          return { outcome: 'none' };
         }
 
         result[key] = kept;
@@ -351,46 +351,46 @@ export class ScopeWriteGuard {
       const named = ScopeWriteGuard.constraintKey({ key });
 
       if ('reason' in named) {
-        return { kind: 'unverifiable', reason: named.reason };
+        return { outcome: 'unverifiable', reason: named.reason };
       }
 
       const narrowed = ScopeWriteGuard.conditionWithoutNull({ value });
 
-      if (narrowed.kind !== 'condition') {
-        return narrowed.kind === 'none'
-          ? { kind: 'none' }
-          : { kind: 'unverifiable', reason: `column '${key}': ${narrowed.reason}` };
+      if (narrowed.outcome !== 'condition') {
+        return narrowed.outcome === 'none'
+          ? { outcome: 'none' }
+          : { outcome: 'unverifiable', reason: `column '${key}': ${narrowed.reason}` };
       }
 
       result[key] = narrowed.value;
     }
 
-    return { kind: 'where', where: result };
+    return { outcome: 'where', where: result };
   }
 
   /** One column's condition without its `null` values, reading the same shapes `allowedValues` reads. */
   private static conditionWithoutNull(opts: {
     value: unknown;
   }):
-    | { kind: 'condition'; value: unknown }
-    | { kind: 'none' }
-    | { kind: 'unverifiable'; reason: string } {
+    | { outcome: 'condition'; value: unknown }
+    | { outcome: 'none' }
+    | { outcome: 'unverifiable'; reason: string } {
     const { value } = opts;
 
     const list = (entries: unknown[]) => {
       if (!entries.every(isScalar)) {
-        return { kind: 'unverifiable' as const, reason: 'a list with a non-scalar entry' };
+        return { outcome: 'unverifiable' as const, reason: 'a list with a non-scalar entry' };
       }
 
       const kept = entries.filter((entry) => entry !== null);
 
       return kept.length === 0
-        ? { kind: 'none' as const }
-        : { kind: 'condition' as const, value: kept };
+        ? { outcome: 'none' as const }
+        : { outcome: 'condition' as const, value: kept };
     };
 
     if (isScalar(value)) {
-      return value === null ? { kind: 'none' } : { kind: 'condition', value };
+      return value === null ? { outcome: 'none' } : { outcome: 'condition', value };
     }
 
     if (Array.isArray(value)) {
@@ -398,14 +398,14 @@ export class ScopeWriteGuard {
     }
 
     if (!RecordUtility.isPlainRecord(value)) {
-      return { kind: 'unverifiable', reason: 'an unsupported condition' };
+      return { outcome: 'unverifiable', reason: 'an unsupported condition' };
     }
 
     const operators = Object.keys(value);
 
     if (operators.length !== 1) {
       return {
-        kind: 'unverifiable',
+        outcome: 'unverifiable',
         reason: `a condition with ${operators.length} operators cannot be checked on a write`,
       };
     }
@@ -414,7 +414,7 @@ export class ScopeWriteGuard {
     const operand = value[operator];
 
     if (operator === QueryOperators.EQ && isScalar(operand)) {
-      return operand === null ? { kind: 'none' } : { kind: 'condition', value };
+      return operand === null ? { outcome: 'none' } : { outcome: 'condition', value };
     }
 
     if (
@@ -423,13 +423,13 @@ export class ScopeWriteGuard {
     ) {
       const narrowed = list(operand);
 
-      return narrowed.kind === 'condition'
-        ? { kind: 'condition', value: { [operator]: narrowed.value } }
+      return narrowed.outcome === 'condition'
+        ? { outcome: 'condition', value: { [operator]: narrowed.value } }
         : narrowed;
     }
 
     return {
-      kind: 'unverifiable',
+      outcome: 'unverifiable',
       reason: `the operator '${operator}' cannot be checked on a write`,
     };
   }

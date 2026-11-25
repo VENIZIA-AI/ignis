@@ -70,10 +70,10 @@ type TThrown = Error & { statusCode?: number; normalized?: { code?: string } };
  * always had (`undefined` vs `sql\`false\``) and the search branch previously could not express.
  */
 type TOutcome =
-  | { kind: 'compiled'; rendered: string }
-  | { kind: 'dropped' }
-  | { kind: 'matchNone' }
-  | { kind: 'threw'; error: TThrown };
+  | { outcome: 'compiled'; rendered: string }
+  | { outcome: 'dropped' }
+  | { outcome: 'matchNone' }
+  | { outcome: 'threw'; error: TThrown };
 
 const relationalOutcome = (where: TWhere): TOutcome => {
   try {
@@ -82,12 +82,12 @@ const relationalOutcome = (where: TWhere): TOutcome => {
       | undefined;
 
     if (!condition) {
-      return { kind: 'dropped' };
+      return { outcome: 'dropped' };
     }
 
-    return { kind: 'compiled', rendered: pg.sqlToQuery(condition).sql };
+    return { outcome: 'compiled', rendered: pg.sqlToQuery(condition).sql };
   } catch (error) {
-    return { kind: 'threw', error: error as TThrown };
+    return { outcome: 'threw', error: error as TThrown };
   }
 };
 
@@ -108,17 +108,17 @@ const searchOutcome = (
 
     switch (compiled.outcome) {
       case SearchFilterOutcomes.FILTER: {
-        return { kind: 'compiled', rendered: compiled.filterBy };
+        return { outcome: 'compiled', rendered: compiled.filterBy };
       }
       case SearchFilterOutcomes.MATCH_NONE: {
-        return { kind: 'matchNone' };
+        return { outcome: 'matchNone' };
       }
       default: {
-        return { kind: 'dropped' };
+        return { outcome: 'dropped' };
       }
     }
   } catch (error) {
-    return { kind: 'threw', error: error as TThrown };
+    return { outcome: 'threw', error: error as TThrown };
   }
 };
 
@@ -155,11 +155,11 @@ const DIALECTS: IDialectUnderTest[] = [
 const expectMatchesNothing = (outcome: TOutcome, dialect: string): void => {
   if (dialect === 'relational') {
     expect(
-      outcome.kind,
+      outcome.outcome,
       `[${dialect}] expected a compiled false, got: ${JSON.stringify(outcome)}`,
     ).toBe('compiled');
 
-    if (outcome.kind !== 'compiled') {
+    if (outcome.outcome !== 'compiled') {
       return;
     }
 
@@ -171,7 +171,7 @@ const expectMatchesNothing = (outcome: TOutcome, dialect: string): void => {
   }
 
   expect(
-    outcome.kind,
+    outcome.outcome,
     `[${dialect}] an absorbing clause must compile to matchNone; anything else either widens the query or emits a filter the engine rejects. Got: ${JSON.stringify(outcome)}`,
   ).toBe('matchNone');
 };
@@ -179,8 +179,8 @@ const expectMatchesNothing = (outcome: TOutcome, dialect: string): void => {
 /** The clause is vacuously TRUE, so imposing no constraint is correct. */
 const expectMatchesEverything = (outcome: TOutcome, dialect: string): void => {
   const isVacuous =
-    outcome.kind === 'dropped' ||
-    (outcome.kind === 'compiled' && /^\s*true\s*$/i.test(outcome.rendered));
+    outcome.outcome === 'dropped' ||
+    (outcome.outcome === 'compiled' && /^\s*true\s*$/i.test(outcome.rendered));
 
   expect(
     isVacuous,
@@ -198,11 +198,11 @@ const expectCatalogued = (opts: {
   const { outcome, dialect, code, contains } = opts;
 
   expect(
-    outcome.kind,
+    outcome.outcome,
     `[${dialect}] expected a catalogued rejection, got: ${JSON.stringify(outcome)}`,
   ).toBe('threw');
 
-  if (outcome.kind !== 'threw') {
+  if (outcome.outcome !== 'threw') {
     return;
   }
 
@@ -286,9 +286,9 @@ describe('search <-> relational parity - unknown fields', () => {
   test('relational: an unknown field throws, naming the field', () => {
     const outcome = relationalOutcome({ fieldThatDoesNotExist: 'x' } as TWhere);
 
-    expect(outcome.kind).toBe('threw');
+    expect(outcome.outcome).toBe('threw');
 
-    if (outcome.kind !== 'threw') {
+    if (outcome.outcome !== 'threw') {
       return;
     }
 
@@ -316,7 +316,7 @@ describe('search <-> relational parity - unknown fields', () => {
 
     /** No declared field set means UNVALIDATED, not "no fields" - an entity without one still compiles. */
     test(`${name}: without a declared field set, no field check runs`, () => {
-      expect(searchOutcome(dialect, { anythingAtAll: 'x' } as TWhere, {}).kind).toBe('compiled');
+      expect(searchOutcome(dialect, { anythingAtAll: 'x' } as TWhere, {}).outcome).toBe('compiled');
     });
   }
 });
@@ -357,7 +357,7 @@ describe('search <-> relational parity - operators follow the classification tab
       const outcome = relationalOutcome(where);
 
       expect(
-        outcome.kind,
+        outcome.outcome,
         `relational must express '${operator}', got: ${JSON.stringify(outcome)}`,
       ).toBe('compiled');
     });
@@ -370,7 +370,7 @@ describe('search <-> relational parity - operators follow the classification tab
 
         if (expressible) {
           expect(
-            outcome.kind,
+            outcome.outcome,
             `[${name}] '${operator}' is published as expressible but did not compile: ${JSON.stringify(outcome)}`,
           ).toBe('compiled');
 
@@ -394,9 +394,9 @@ describe('search <-> relational parity - operators follow the classification tab
   test('relational: `is: null` compiles to IS NULL', () => {
     const outcome = relationalOutcome({ status: { is: null } });
 
-    expect(outcome.kind).toBe('compiled');
+    expect(outcome.outcome).toBe('compiled');
 
-    if (outcome.kind !== 'compiled') {
+    if (outcome.outcome !== 'compiled') {
       return;
     }
 
@@ -405,7 +405,7 @@ describe('search <-> relational parity - operators follow the classification tab
 
   test('meilisearch: `is: null` compiles, as relational does', () => {
     expect(searchOutcome(meilisearch, { status: { is: null } })).toEqual({
-      kind: 'compiled',
+      outcome: 'compiled',
       rendered: 'status IS NULL',
     });
   });

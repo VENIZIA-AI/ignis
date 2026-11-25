@@ -10,7 +10,7 @@ const CATCH_NAME = 'error';
 /** What the fix needs, read once from a `const x = await f().catch(h)` that passed every check. */
 interface IFixPlan {
   declaration: Rule.Node;
-  kind: string;
+  keyword: string;
   name: string;
   annotation: string;
   receiverText: string;
@@ -164,7 +164,7 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
   const declaration = AwaitSupport.parentOf({ node: declarator });
   const id = AstNode.readField({ node: declarator, key: 'id' });
   const declarations = AstNode.readField({ node: declaration, key: 'declarations' });
-  const kind = String(AstNode.readField({ node: declaration, key: 'kind' }));
+  const keyword = String(AstNode.readField({ node: declaration, key: 'kind' }));
 
   if (
     AstNode.getType({ node: declarator }) !== AstNodeTypes.VARIABLE_DECLARATOR ||
@@ -175,7 +175,7 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
     !AwaitSupport.isNode(declaration) ||
     !Array.isArray(declarations) ||
     declarations.length !== 1 ||
-    !['const', 'let'].includes(kind) ||
+    !['const', 'let'].includes(keyword) ||
     !STATEMENT_LISTS.has(
       AstNode.getType({ node: AwaitSupport.parentOf({ node: declaration }) }) ?? '',
     )
@@ -307,7 +307,7 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
 
   return {
     declaration,
-    kind,
+    keyword,
     name,
     annotation,
     receiverText: sourceCode.getText(receiver),
@@ -363,7 +363,7 @@ export class NoAwaitPromiseChainRule {
 
           context.report({
             node,
-            messageId: plan?.kind === 'const' ? 'mixedConst' : 'mixed',
+            messageId: plan?.keyword === 'const' ? 'mixedConst' : 'mixed',
             data: { method },
             fix: plan
               ? (fixer) => {

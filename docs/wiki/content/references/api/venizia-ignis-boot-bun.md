@@ -123,7 +123,7 @@ export declare class AutoArtifactGroup<TIndex extends TGeneratedArtifactIndexInp
         resolve?: () => Promise<TIndex>;
     });
     resolve(): Promise<TIndex>;
-    private static unreadKind;
+    private static unreadCategory;
     get configurations(): never;
     get dataSources(): never;
     get components(): never;

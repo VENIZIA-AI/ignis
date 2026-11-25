@@ -274,7 +274,7 @@ export class ArtifactIndexHelper extends BaseHelper {
 
     const { custom = {}, ...lists } = content;
 
-    // One element type for the six kinds, so `.map` is callable on every member of the union.
+    // One element type for the six categories, so `.map` is callable on every member of the union.
     for (const [field, classes] of Object.entries(lists)) {
       this.assertClasses({ field, classes });
     }
@@ -283,13 +283,13 @@ export class ArtifactIndexHelper extends BaseHelper {
       this.assertClasses({ field: `custom.${type}`, classes });
     }
 
-    const kinds: Array<ReadonlyArray<TClass<unknown>> | undefined> = [
+    const categories: Array<ReadonlyArray<TClass<unknown>> | undefined> = [
       ...Object.values(lists),
       ...Object.values(custom),
     ];
-    const names = kinds.flatMap((classes) => (classes ?? []).map((target) => target.name));
+    const names = categories.flatMap((classes) => (classes ?? []).map((target) => target.name));
 
-    if (names.length === 0 && !group.kinds) {
+    if (names.length === 0 && !group.categories) {
       throw getError({
         message: `[ArtifactGroup] '${group.folder ?? '<application>'}' resolved to no class | Defined in ${group.site ?? 'an unknown module'} - check the folder name and that its classes carry a stereotype decorator`,
       });
