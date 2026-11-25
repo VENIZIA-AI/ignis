@@ -515,7 +515,7 @@ The guard judges the payload before the database runs. It holds one level only (
 | Whole column and a path of it in one update | Denied: the path would win and the whole be dropped |
 | Path under the member (`metadata.merchantId.id`) | Denied |
 | Another path of the column (`metadata.tag`) | Not judged: it cannot leave the scope |
-| Scope member deeper than one level, numeric, `__proto__` or `constructor` | Refused as unverifiable |
+| Scope member deeper than one level, numeric, not a plain name, or `__proto__`, `constructor` or `prototype` | Refused as unverifiable |
 
 An `UPDATE` or `DELETE` reaches only the rows whose member is in the scope: the mutation `where` carries it. The guard compares values as text, and an engine may not (SQLite does not match `'7'` with `7`), so write the scope value as the type the column holds.
 

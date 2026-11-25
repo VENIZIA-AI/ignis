@@ -91,7 +91,7 @@ tags: [process, docs, wiki]
    VitePress piece the shared CSS overrides is gone. `.gitattributes` marks the folder `-text` so git
    converts no byte. Keep `bun fmt` off it: `make lint-wiki` still checks it. What stays ours:
    `home-content.ts`, `design-tokens.css`, `theme/index.ts`, `config.mts`. The wiki's colours are the
-   `theme` of `.configs/vulcan.config.mts`: `vulcan project sync` writes the resolved tokens into
+   `common.theme` of `.configs/vulcan/common.mts`: `vulcan project sync` writes the resolved tokens into
    `.agents/vulcan.manifest.json`, and `config.mts` puts them in the head of every page
    (`WikiTheme.head`).
 

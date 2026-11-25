@@ -72,7 +72,7 @@ my-app/
 
 Inside a file in `.configs/builders/`, every path is relative to that folder: `"include": ["../../src"]`. `bun check` follows the references, like `tsc -b`.
 
-A monorepo root also keeps `.configs/vulcan.config.mts`, where VULCAN reads it.
+A monorepo root also keeps `.configs/vulcan.config.mts` and the group files in `.configs/vulcan/`, where VULCAN reads them.
 
 ## Skipping paths: `.ignore`
 
