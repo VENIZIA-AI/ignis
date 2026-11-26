@@ -50,6 +50,7 @@ export class BindingKeys {
 
     keyParts.push(key);
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the one place a plain string gets the binding-key brand
     return keyParts.join('.') as TBindingKey<T>;
   }
 }

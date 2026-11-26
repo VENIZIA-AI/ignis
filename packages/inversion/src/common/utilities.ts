@@ -29,8 +29,13 @@ export class ObjectUtility {
 
     // The types that carry a MEANINGFUL length. Duck-typing on `.length` instead would call
     // `{ length: 0 }` empty, which it is not - it has an own key.
-    if (typeof value === 'string' || Array.isArray(value) || ArrayBuffer.isView(value)) {
-      return (value as { length: number }).length === 0;
+    if (typeof value === 'string' || Array.isArray(value)) {
+      return value.length === 0;
+    }
+
+    // A `DataView` has no `length`: it is not empty.
+    if (ArrayBuffer.isView(value)) {
+      return 'length' in value && value.length === 0;
     }
 
     if (value instanceof Map || value instanceof Set) {
@@ -68,6 +73,7 @@ export class ObjectUtility {
       kept[key] = value;
     }
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- built key by key: no check can prove the omitted shape
     return kept as Omit<T, Extract<K, keyof T>>;
   }
 }

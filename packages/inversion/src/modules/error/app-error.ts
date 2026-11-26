@@ -78,6 +78,7 @@ export class ApplicationError extends Error {
     // `?.message?.` has to guard BOTH: `error` reaches here from an untyped call site as anything at all, and a bare `definition?.message.text` throws on a malformed one.
     const message = override?.text ?? definition?.message?.text ?? '';
     const messageCode = MessageCode.resolve(
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the index signature of `TError` types a read of `messageCode` as unknown
       override?.code ?? definition?.message?.code ?? (opts.messageCode as TNullable<string>),
     );
     const args = override?.args ?? messageArgs ?? definition?.message?.args;
