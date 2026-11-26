@@ -119,10 +119,20 @@ export class PromiseUtility {
     }
 
     Promise.resolve(execution).catch((error: unknown) => {
-      const target = logger ? logger.for(scope) : LoggerFactory.getLogger([scope]);
+      const message = 'Unhandled error in fire-and-forget execution | Error: %s';
 
-      // `%o` prints the whole error, stack included; `%s` would keep only its message.
-      target.error('Unhandled error in fire-and-forget execution | Error: %o', error);
+      if (logger) {
+        logger.for(scope).error(message, error);
+
+        return;
+      }
+
+      // The console logger prints an error given to `%s` as its message alone. A V8 stack starts with the name and
+      // message and carries none of the error's own fields; an engine whose stack has no message gets the error itself.
+      const detail =
+        error instanceof Error && error.stack?.includes(error.message) ? error.stack : error;
+
+      LoggerFactory.getLogger([scope]).error(message, detail);
     });
   }
 }
