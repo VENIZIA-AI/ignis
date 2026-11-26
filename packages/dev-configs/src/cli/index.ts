@@ -10,7 +10,6 @@ Commands:
   lint [--fix] [files]                          oxlint, ESLint and the formatter; --fix writes
   check purity --claims <file> [package] [--json]  probe every entry claimed browser-pure (needs a build)
   check module-cycles | split-report | catalog   shared repository gates; devz check --help lists their options
-  check use-when-baseline [--write]             the exports of this package that still lack a @useWhen (the baseline of require-use-when)
   clean                                         remove dist, node_modules/.cache and *.tsbuildinfo
   codemod drop-redundant-casts [paths...]       remove \`as X\` casts the compiler no longer needs (dry run unless --write)
   codemod const-classes [paths...]              turn a string-literal union into a const class (dry run unless --write)

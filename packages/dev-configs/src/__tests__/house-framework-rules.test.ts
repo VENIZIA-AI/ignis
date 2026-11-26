@@ -219,7 +219,7 @@ describe('venizia/prefer-tnullable', () => {
       code: `let a: string | null | undefined;`,
     });
 
-    expect(findings[0]?.message).toContain('#src/types');
+    expect(findings[0]?.message).toContain(`import type { TNullable } from '#src/types';`);
   });
 
   test('only null, only undefined, and the definition of TNullable itself are left alone', () => {
@@ -282,6 +282,19 @@ describe('venizia/prefer-promise-sleep', () => {
       `import { getError, PromiseUtility } from '@venizia/ignis-helpers/core';`,
     );
     expect(fixed.match(/import/g)).toHaveLength(1);
+  });
+
+  test('the message writes the import line, from the configured source', () => {
+    const code = `export const p = new Promise((r) => setTimeout(r, 5));`;
+    const messageOf = (opts: { source?: string }) =>
+      run({ name: NAME, options: ['error', opts], code }).findings[0]?.message;
+
+    expect(messageOf({})).toContain(
+      `import { PromiseUtility } from '@venizia/ignis-helpers/core';`,
+    );
+    expect(messageOf({ source: '#src/utilities' })).toContain(
+      `import { PromiseUtility } from '#src/utilities';`,
+    );
   });
 
   test('an aliased PromiseUtility import is reused', () => {
@@ -614,8 +627,6 @@ describe('FrameworkRuleApis', () => {
     'no-return-await',
     'no-silent-catch',
     'no-unbraced-case',
-    'pending-use-when',
-    'require-use-when',
   ];
 
   test('every rule of the plugin has an entry, or is listed as a style rule: a new rule cannot skip the table', () => {

@@ -1,10 +1,9 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { basename, isAbsolute, relative, resolve } from 'node:path';
 import { CatalogCheck } from '../checks/catalog';
 import { ModuleCyclesCheck } from '../checks/module-cycles';
 import { PurityCheck } from '../checks/purity/run';
 import { SplitReport } from '../checks/split-report';
-import { UseWhenBaseline } from '../checks/use-when-baseline';
 import { TestControlsCheck } from '../checks/test-controls';
 import type { IControlEntry } from '../checks/test-controls';
 import { DeadTestCodeCheck } from '../checks/test-dead-code';
@@ -25,8 +24,6 @@ Checks:
   test-dead-code                              list support files under __tests__ that no other file refers to (candidates)
   test-mutate <ledger.json>                   replay a mutation ledger: the survivor must go red under each mutant
   test-controls <registry.json>               fail when a registered positive-control test is gone
-  use-when-baseline [--write] [--out <file>] [--entry <file>]...
-                                              list (or write) the exports of the package in this folder that still lack a @useWhen
 
 purity
   --claims <file>   a module that exports PURITY_CLAIMS (the claims) and, optionally, PURITY_OPTIONS
@@ -347,43 +344,6 @@ export class CheckCommand {
     return 1;
   }
 
-  private static runUseWhenBaseline(opts: { root: string; args: string[] }): number {
-    const write = opts.args.includes('--write');
-    const parsed = parseRepeatable({
-      args: opts.args.filter((arg) => arg !== '--write'),
-      repeatable: ['entry'],
-      single: ['out'],
-    });
-
-    if (typeof parsed === 'string' || parsed.positionals.length > 0) {
-      console.error(
-        `devz check use-when-baseline: ${typeof parsed === 'string' ? parsed : `unexpected argument "${parsed.positionals[0]}"`}\n${USAGE}`,
-      );
-
-      return USAGE_ERROR_CODE;
-    }
-
-    const entries = UseWhenBaseline.entries({ directory: opts.root, entries: parsed.values.entry });
-    const target = UseWhenBaseline.pathOf({ root: opts.root, out: parsed.values.out?.[0] });
-
-    if (write) {
-      writeFileSync(target, UseWhenBaseline.render({ entries }));
-      console.log(
-        `use-when-baseline: wrote ${entries.length} entries to ${relative(opts.root, target)}`,
-      );
-
-      return 0;
-    }
-
-    console.log(`use-when-baseline: ${entries.length} exports lack a @useWhen`);
-
-    for (const entry of entries) {
-      console.log(`  ${entry}`);
-    }
-
-    return 0;
-  }
-
   static async run(opts: { root: string; args?: string[] }): Promise<number> {
     const { root, args = [] } = opts;
     const [name, ...rest] = args;
@@ -420,10 +380,6 @@ export class CheckCommand {
 
     if (name === 'test-mutate') {
       return CheckCommand.runTestMutate({ root, args: rest });
-    }
-
-    if (name === 'use-when-baseline') {
-      return CheckCommand.runUseWhenBaseline({ root, args: rest });
     }
 
     if (name === 'test-controls') {

@@ -446,9 +446,6 @@ export class HttpRepository<E extends object = object, P extends object = Partia
    * With a `schema` the answer is parsed and the call returns the parsed data, typed by the schema (`z.output`); an answer the
    * schema refuses throws a `FetchSchemaError` (502) that names paths and rules, never the value. Without a `schema` the call
    * returns nothing: the answer is not returned, so it is not typed either, and a body must be empty or JSON (a non-JSON `OK` is a 502, as for `write`). There is no type argument to write.
-   *
-   * @useWhen a subclass calls a route beside the CRUD routes and needs its answer typed, or no answer at all
-   * @insteadOf this.dataSource.write<R>({ paths, method, body }) with the data unwrapped and typed by hand
    */
   protected async execute(opts: {
     paths: Array<string>;

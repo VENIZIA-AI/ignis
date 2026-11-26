@@ -199,7 +199,9 @@ describe('venizia/no-shadow-framework-type', () => {
     });
 
     expect(findings).toHaveLength(3);
-    expect(findings[0]?.message).toContain('@venizia/fake-helpers/common');
+    expect(findings[0]?.message).toContain(
+      `import type { TNullable } from '@venizia/fake-helpers/common';`,
+    );
     expect(findings[1]?.message).toContain('IApplicationInfo');
   });
 

@@ -52,7 +52,8 @@ export class PreferTNullableRule {
         },
       ],
       messages: {
-        nullable: 'Use TNullable<X> (from {{source}}) for `X | null | undefined`.',
+        nullable:
+          "Use `TNullable<X>` for `X | null | undefined`: `import type { TNullable } from '{{source}}';`",
       },
     },
     create: (context) => {

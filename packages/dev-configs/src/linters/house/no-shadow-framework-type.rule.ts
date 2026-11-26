@@ -52,7 +52,8 @@ export class NoShadowFrameworkTypeRule {
         },
       ],
       messages: {
-        shadow: '`{{name}}` is exported by {{source}}: import it instead of declaring your own.',
+        shadow:
+          "`{{name}}` is a framework type, do not declare your own: `import type { {{name}} } from '{{source}}';`",
       },
     },
     create: (context) => {
