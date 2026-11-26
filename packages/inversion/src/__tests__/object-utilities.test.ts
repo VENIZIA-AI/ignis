@@ -24,6 +24,8 @@ describe('ObjectUtility.isEmpty', () => {
     expect(ObjectUtility.isEmpty({ value: [] })).toBe(true);
     expect(ObjectUtility.isEmpty({ value: [1] })).toBe(false);
     expect(ObjectUtility.isEmpty({ value: new Uint8Array(0) })).toBe(true);
+    // A DataView has no `length`, so even an empty one is not empty.
+    expect(ObjectUtility.isEmpty({ value: new DataView(new ArrayBuffer(0)) })).toBe(false);
     expect(ObjectUtility.isEmpty({ value: Buffer.from('x') })).toBe(false);
   });
 

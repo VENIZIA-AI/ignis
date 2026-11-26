@@ -12,8 +12,8 @@ export class WhereDepthGuard {
     const { value, max } = opts;
     const stack: Array<{ node: unknown; depth: number }> = [{ node: value, depth: 1 }];
 
-    while (stack.length > 0) {
-      const { node, depth } = stack.pop() as { node: unknown; depth: number };
+    for (let item = stack.pop(); item !== undefined; item = stack.pop()) {
+      const { node, depth } = item;
 
       if (typeof node !== 'object' || node === null || Array.isArray(node)) {
         continue;
@@ -24,7 +24,7 @@ export class WhereDepthGuard {
       }
 
       for (const key of ['and', 'or'] as const) {
-        const branches = (node as Record<string, unknown>)[key];
+        const branches: unknown = Reflect.get(node, key);
 
         if (Array.isArray(branches)) {
           for (const branch of branches) {
