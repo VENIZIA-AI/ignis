@@ -219,3 +219,16 @@ describe('getDeepProperty', () => {
     );
   });
 });
+
+describe('PromiseUtility.voidExecution without a logger', () => {
+  test('writes the rejection with its stack to stderr', () => {
+    const script = `import { PromiseUtility } from '@/utilities/promise.utility';
+      PromiseUtility.voidExecution({ scope: 'Fire', execution: Promise.reject(new TypeError('boom')) });`;
+    const run = Bun.spawnSync(['bun', '-e', script], { cwd: `${import.meta.dir}/../../..` });
+    const written = run.stderr.toString();
+
+    expect(written).toContain('Unhandled error in fire-and-forget execution');
+    expect(written).toContain('boom');
+    expect(written).toMatch(/\n\s+at /);
+  });
+});

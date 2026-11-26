@@ -121,7 +121,8 @@ export class PromiseUtility {
     Promise.resolve(execution).catch((error: unknown) => {
       const target = logger ? logger.for(scope) : LoggerFactory.getLogger([scope]);
 
-      target.error('Unhandled error in fire-and-forget execution | Error: %s', error);
+      // `%o` prints the whole error, stack included; `%s` would keep only its message.
+      target.error('Unhandled error in fire-and-forget execution | Error: %o', error);
     });
   }
 }

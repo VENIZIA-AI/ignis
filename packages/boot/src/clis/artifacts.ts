@@ -4,6 +4,7 @@ import { relative } from 'node:path';
 import { parseArgs } from 'node:util';
 import { ArtifactIndexEmitter, ArtifactIndexGenerator } from '../generator';
 import type { IScannedArtifact } from '../generator';
+import { writeLine } from './write-line';
 
 const USAGE =
   'ignis-artifacts <generate|check> [--root src] [--out src/generated/artifacts.ts] [--ignore a,b] [--export GeneratedArtifacts] [--source-module <specifier>]...';
@@ -34,9 +35,10 @@ const options = {
 /** One stderr line per decorated class a user `--ignore` pattern hid; silence when nothing is hidden. */
 const warnIgnored = (opts: { ignored: IScannedArtifact[]; root: string }): void => {
   for (const artifact of opts.ignored) {
-    process.stderr.write(
-      `warning: ${artifact.className} (${artifact.type}) in ${relative(opts.root, artifact.filePath)} matches --ignore and is left out of the index\n`,
-    );
+    writeLine({
+      fd: 2,
+      line: `warning: ${artifact.className} (${artifact.type}) in ${relative(opts.root, artifact.filePath)} matches --ignore and is left out of the index`,
+    });
   }
 };
 
@@ -45,9 +47,10 @@ const run = (): number => {
   switch (positionals[0]) {
     case 'generate': {
       const result = ArtifactIndexGenerator.generate(options);
-      process.stdout.write(
-        `${result.written ? 'wrote' : 'up to date'} ${options.out} | ${result.artifacts.length} artifact(s)\n`,
-      );
+      writeLine({
+        fd: 1,
+        line: `${result.written ? 'wrote' : 'up to date'} ${options.out} | ${result.artifacts.length} artifact(s)`,
+      });
       warnIgnored({ ignored: result.ignored, root: options.root });
 
       return 0;
@@ -57,19 +60,20 @@ const run = (): number => {
       warnIgnored({ ignored: result.ignored, root: options.root });
 
       if (result.isFresh) {
-        process.stdout.write(`fresh ${options.out}\n`);
+        writeLine({ fd: 1, line: `fresh ${options.out}` });
 
         return 0;
       }
 
-      process.stderr.write(
-        `stale ${options.out} - run: ${ArtifactIndexEmitter.renderCommand(options)}\n`,
-      );
+      writeLine({
+        fd: 2,
+        line: `stale ${options.out} - run: ${ArtifactIndexEmitter.renderCommand(options)}`,
+      });
 
       return 1;
     }
     default: {
-      process.stderr.write(`${USAGE}\n`);
+      writeLine({ fd: 2, line: USAGE });
 
       return 2;
     }
