@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-136 exports, 136 with TSDoc. 59 more are re-exported from other entries (listed at the end).
+140 exports, 140 with TSDoc. 59 more are re-exported from other entries (listed at the end).
 
 ## `AbstractCryptoAlgorithm`
 
@@ -1800,13 +1800,13 @@ export interface IQueryStringOptions {
      * `'skip'` leaves the pair out, `'empty'` writes `a=` (what `node:querystring` does).
      * @default 'skip'
      */
-    nullish?: 'empty' | 'skip';
+    nullish?: TQueryStringNullishMode;
     /**
      * What an object or an array value becomes.
      * `'drop'` is an empty value (an array repeats its key: what `node:querystring` does), `'json'` is one JSON-encoded parameter (`filter={"where":{}}`).
      * @default 'drop'
      */
-    nested?: 'drop' | 'json';
+    nested?: TQueryStringNestedMode;
 }
 ```
 
@@ -2620,6 +2620,36 @@ export declare class PromiseUtility {
 
 Source: `packages/helpers/src/utilities/promise.utility.ts`
 
+## `QueryStringNestedModes`
+
+*class*
+
+What `IQueryStringOptions.nested` does with an object or an array value.
+
+```ts
+export declare class QueryStringNestedModes {
+    static readonly DROP = "drop";
+    static readonly JSON = "json";
+}
+```
+
+Source: `packages/helpers/src/modules/network/utilities/query-string.constant.ts`
+
+## `QueryStringNullishModes`
+
+*class*
+
+What `IQueryStringOptions.nullish` does with a nullish value.
+
+```ts
+export declare class QueryStringNullishModes {
+    static readonly EMPTY = "empty";
+    static readonly SKIP = "skip";
+}
+```
+
+Source: `packages/helpers/src/modules/network/utilities/query-string.constant.ts`
+
 ## `QueryStringSeparators`
 
 *class*
@@ -3154,6 +3184,30 @@ export type TOnVisitAsync<T> = (node: ITreeNode<T>, depth: number) => ValueOrPro
 
 Source: `packages/helpers/src/modules/tree/common/types.ts`
 
+## `TQueryStringNestedMode`
+
+*type*
+
+One of `QueryStringNestedModes`.
+
+```ts
+export type TQueryStringNestedMode = TConstValue<typeof QueryStringNestedModes>;
+```
+
+Source: `packages/helpers/src/modules/network/utilities/query-string.constant.ts`
+
+## `TQueryStringNullishMode`
+
+*type*
+
+One of `QueryStringNullishModes`.
+
+```ts
+export type TQueryStringNullishMode = TConstValue<typeof QueryStringNullishModes>;
+```
+
+Source: `packages/helpers/src/modules/network/utilities/query-string.constant.ts`
+
 ## `TreeBuilder`
 
 *class*
@@ -3252,7 +3306,7 @@ Source: `packages/helpers/src/modules/retry/common/constants.ts`
 An origin written the way `new URL(origin).origin` writes it: scheme, host and a non-default port, nothing else.
 
 ```ts
-export type TTrustedOrigin = `${'http' | 'https'}://${string}`;
+export type TTrustedOrigin = `${TConstValue<typeof UrlSchemes>}//${string}`;
 ```
 
 Source: `packages/helpers/src/modules/network/utilities/url-safety/common/types.ts`

@@ -71,6 +71,7 @@ export { RequestFilterParts } from '@/base/repositories/common/request-filter-gu
 export type {
   IRequestFilterJudge,
   IRequestFilterShape,
+  TRequestFilterClause,
   TRequestFilterPart,
   TRequestFilterPiece,
 } from '@/base/repositories/common/request-filter-guard';

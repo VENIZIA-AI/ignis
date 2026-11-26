@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/testing, from the built 
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-12 exports, 12 with TSDoc.
+13 exports, 13 with TSDoc.
 
 ## `IPostgresTransactionDoubleOptions`
 
@@ -160,6 +160,22 @@ export declare class TransactionDouble<TConnector = never> extends TransactionLi
 
 Source: `packages/connectors/src/testing/transaction-double.ts`
 
+## `TransactionDoubleEvents`
+
+*class*
+
+The events `TransactionDouble.events` records.
+
+```ts
+export declare class TransactionDoubleEvents {
+    static readonly BEGIN = "begin";
+    static readonly COMMIT = "commit";
+    static readonly ROLLBACK = "rollback";
+}
+```
+
+Source: `packages/connectors/src/testing/transaction-double.ts`
+
 ## `TransactionStates`
 
 *class*
@@ -196,7 +212,7 @@ Source: `packages/connectors/src/testing/repository-double.ts`
 What `TransactionDouble.events` records: a begin the repository double made, a commit or a rollback that reached the end statement.
 
 ```ts
-export type TTransactionDoubleEvent = 'begin' | 'commit' | 'rollback';
+export type TTransactionDoubleEvent = TConstValue<typeof TransactionDoubleEvents>;
 ```
 
 Source: `packages/connectors/src/testing/transaction-double.ts`

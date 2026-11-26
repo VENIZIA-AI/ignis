@@ -10,7 +10,7 @@ description: Every export of every package entry, from the built declarations (g
 | Entry | Exports | With TSDoc |
 |---|---|---|
 | [`@venizia/dev-configs`](/references/api/venizia-dev-configs) | 0 | 0 |
-| [`@venizia/dev-configs/checks`](/references/api/venizia-dev-configs-checks) | 37 | 37 |
+| [`@venizia/dev-configs/checks`](/references/api/venizia-dev-configs-checks) | 43 | 43 |
 | [`@venizia/dev-configs/compilers`](/references/api/venizia-dev-configs-compilers) | 1 | 1 |
 | [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters) | 35 | 35 |
 | [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint) | 30 | 30 |
@@ -36,8 +36,8 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-connectors/search/controllers`](/references/api/venizia-ignis-connectors-search-controllers) | 0 | 0 |
 | [`@venizia/ignis-connectors/sqlite`](/references/api/venizia-ignis-connectors-sqlite) | 49 | 49 |
 | [`@venizia/ignis-connectors/sqlite/libsql`](/references/api/venizia-ignis-connectors-sqlite-libsql) | 2 | 2 |
-| [`@venizia/ignis-connectors/testing`](/references/api/venizia-ignis-connectors-testing) | 12 | 12 |
-| [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense) | 83 | 83 |
+| [`@venizia/ignis-connectors/testing`](/references/api/venizia-ignis-connectors-testing) | 13 | 13 |
+| [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense) | 85 | 85 |
 | [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers) | 33 | 33 |
 | [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter) | 19 | 19 |
 | [`@venizia/ignis-filter/schemas`](/references/api/venizia-ignis-filter-schemas) | 11 | 11 |
@@ -46,7 +46,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-helpers/bullmq`](/references/api/venizia-ignis-helpers-bullmq) | 3 | 3 |
 | [`@venizia/ignis-helpers/bun-s3`](/references/api/venizia-ignis-helpers-bun-s3) | 2 | 2 |
 | [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common) | 50 | 50 |
-| [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core) | 136 | 136 |
+| [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core) | 140 | 140 |
 | [`@venizia/ignis-helpers/cron`](/references/api/venizia-ignis-helpers-cron) | 2 | 2 |
 | [`@venizia/ignis-helpers/dotenv-vault`](/references/api/venizia-ignis-helpers-dotenv-vault) | 2 | 2 |
 | [`@venizia/ignis-helpers/hashicorp-vault`](/references/api/venizia-ignis-helpers-hashicorp-vault) | 4 | 4 |
@@ -59,9 +59,9 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-helpers/uuid`](/references/api/venizia-ignis-helpers-uuid) | 0 | 0 |
 | [`@venizia/ignis-helpers/winston`](/references/api/venizia-ignis-helpers-winston) | 9 | 9 |
 | [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion) | 74 | 74 |
-| [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel) | 365 | 365 |
+| [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel) | 364 | 364 |
 | [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata) | 21 | 21 |
-| [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository) | 36 | 36 |
+| [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository) | 37 | 37 |
 | [`@venizia/ignis-kernel/statuses`](/references/api/venizia-ignis-kernel-statuses) | 2 | 2 |
 | [`@venizia/ignis-worker`](/references/api/venizia-ignis-worker) | 18 | 18 |
 | [`@venizia/ignis/grpc`](/references/api/venizia-ignis-grpc) | 4 | 4 |

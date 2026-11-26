@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-365 exports, 365 with TSDoc. 88 more are re-exported from other entries (listed at the end).
+364 exports, 364 with TSDoc. 89 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -7794,14 +7794,14 @@ The routes of a CRUD controller: only a listed route exists, as `true` (on, with
 (on, with overrides). `restoreById` and `restoreBy` are listed only for a repository that has both methods.
 
 ```ts
-export type TCrudRoutes<Repository extends object = {
+export type TCrudRoutes<Repository extends object = TRestorableMethods> = {
+    [Key in keyof ICustomizableRoutes]?: Key extends keyof TRestorableMethods ? Repository extends TRestorableMethods ? true | TCustomizableRouteConfig : never : true | TCustomizableRouteConfig;
+};
+
+/** The repository methods the restore routes call. */
+type TRestorableMethods = {
     restoreById: unknown;
     restoreBy: unknown;
-}> = {
-    [Key in keyof ICustomizableRoutes]?: Key extends 'restoreById' | 'restoreBy' ? Repository extends {
-        restoreById: unknown;
-        restoreBy: unknown;
-    } ? true | TCustomizableRouteConfig : never : true | TCustomizableRouteConfig;
 };
 ```
 
@@ -8742,18 +8742,6 @@ export type TRequestContextResolver = () => Context | undefined;
 
 Source: `packages/kernel/src/base/request-context/common/types.ts`
 
-## `TRequestFilterClause`
-
-*type*
-
-Which part of a filter a key came from: the refusal reads like the query's own refusal of an unknown column of that part.
-
-```ts
-export type TRequestFilterClause = 'where' | 'order';
-```
-
-Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
-
 ## `TResponseBodyOf`
 
 *type*
@@ -9277,6 +9265,7 @@ Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`
 - `TOrderEntry` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
 - `TParsedOrderEntry` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
 - `TRepositoryType` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
+- `TRequestFilterClause` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TRequestFilterPart` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TRequestFilterPiece` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TRow` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)

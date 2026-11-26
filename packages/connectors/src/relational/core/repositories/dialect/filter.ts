@@ -1,3 +1,4 @@
+import type { TRequestFilterClause } from '@venizia/ignis-kernel';
 import { EchoUtility } from '@/common/internal';
 import { ScopeThroughLink } from '../common/scope-through';
 import { ScopeWriteGuard } from '../common/scope-write-guard';
@@ -1119,7 +1120,11 @@ export abstract class FilterBuilder extends BaseHelper {
    * part, with the JSON method's wording, and any other key by itself. A request guard throws it for a hidden field, so a caller
    * cannot tell a hidden column from one that does not exist.
    */
-  columnNotFoundError(opts: { clause: 'where' | 'order'; key: string; tableName: string }): Error {
+  columnNotFoundError(opts: {
+    clause: TRequestFilterClause;
+    key: string;
+    tableName: string;
+  }): Error {
     const { clause, key, tableName } = opts;
     const isJson = JsonPathUtility.isJsonPath({ key });
     const method = isJson

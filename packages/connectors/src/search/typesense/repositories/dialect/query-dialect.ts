@@ -1,3 +1,4 @@
+import type { TRequestFilterClause } from '@venizia/ignis-kernel';
 import { SearchErrors } from '@/search/core/common';
 import type {
   ISearchCompileCapabilities,
@@ -673,7 +674,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
     });
   }
 
-  fieldNotFoundError(opts: { clause: 'where' | 'order'; field: string }): Error {
+  fieldNotFoundError(opts: { clause: TRequestFilterClause; field: string }): Error {
     return SearchDialectUtility.fieldNotFoundError({
       field: opts.field,
       engine: ENGINE,

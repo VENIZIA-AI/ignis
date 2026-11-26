@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-108 exports, 108 with TSDoc. 1012 more are re-exported from other entries (listed at the end).
+108 exports, 108 with TSDoc. 1016 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3843,6 +3843,8 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `provide` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `put` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `QueryOperators` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
+- `QueryStringNestedModes` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `QueryStringNullishModes` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `QueryStringSeparators` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `QueryStringUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `QueueStatuses` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -4130,6 +4132,8 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TPrimaryKey` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TPrincipalEnricherOptions` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TQueryOperatorHandlers` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `TQueryStringNestedMode` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `TQueryStringNullishMode` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TQueueElement` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TQueueStatus` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `trackableHeaders` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -4158,7 +4162,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TRepositoryPersistObject` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TRepositoryType` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TRequestContextResolver` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
-- `TRequestFilterClause` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `TRequestFilterClause` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TRequestFilterPart` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TRequestFilterPiece` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)

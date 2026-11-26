@@ -1,7 +1,9 @@
 import type { IDuration } from '@/common/constants/duration';
+import type { TConstValue } from '@/common/types';
+import type { UrlSchemes } from './constants';
 
 /** An origin written the way `new URL(origin).origin` writes it: scheme, host and a non-default port, nothing else. */
-export type TTrustedOrigin = `${'http' | 'https'}://${string}`;
+export type TTrustedOrigin = `${TConstValue<typeof UrlSchemes>}//${string}`;
 
 /** The origins a caller trusts, and whether it trusts nothing else. */
 export interface IUrlTrustedHosts {
