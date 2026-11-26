@@ -1,5 +1,10 @@
 import type { ApplicationError } from '@venizia/ignis-helpers/core';
-import { fromError, getError, isApplicationError } from '@venizia/ignis-helpers/core';
+import {
+  fromError,
+  getError,
+  isApplicationError,
+  RecordUtility,
+} from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { IBffErrorEnvelope, IBffRequestEnvelope, IBffResponseEnvelope } from './common';
 
@@ -135,6 +140,7 @@ export class BffEnvelope {
 
   static decodeError(opts: { envelope: IBffErrorEnvelope }): ApplicationError {
     const { envelope } = opts;
+    const { args } = envelope.error;
 
     return fromError({
       error: {
@@ -142,7 +148,7 @@ export class BffEnvelope {
         normalized: {
           text: envelope.error.text,
           code: envelope.error.code,
-          args: envelope.error.args as Record<string, unknown> | undefined,
+          args: RecordUtility.isPlainRecord(args) ? args : undefined,
         },
       },
     });

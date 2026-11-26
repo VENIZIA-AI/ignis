@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { BffEnvelope } from '@/envelope/encode';
 import type { IBffRequestEnvelope } from '@/envelope/common';
 import { BffRoles, SharedBffTransport } from '@/transport/shared';
+import { ChannelMessageTypes } from '@/transport/shared/common';
 
 /**
  * A `Worker` stand-in that answers envelopes the way `WorkerApplication.listen()` does, so a leader
@@ -319,6 +320,58 @@ describe('SharedBffTransport', () => {
 
     expect(AnsweringWorker.createdCount).toBe(1);
   });
+
+  /** The channel as any other tab sees it: what is posted on it, and what arrives. */
+  const tab = (channelName: string) => {
+    const channel = new BroadcastChannel(channelName);
+    const received: Array<{ type: string; envelope: IBffRequestEnvelope }> = [];
+    channel.onmessage = (event) => received.push(event.data);
+
+    return { channel, received };
+  };
+
+  test('the leader drops a request with no id and answers a malformed one with an error', async () => {
+    installLockManager();
+    const channelName = nextChannelName();
+    open({ channelName });
+    await flush();
+    const { channel, received } = tab(channelName);
+
+    channel.postMessage({ type: ChannelMessageTypes.REQUEST });
+    channel.postMessage({ type: ChannelMessageTypes.REQUEST, envelope: {} });
+    channel.postMessage({ type: ChannelMessageTypes.REQUEST, envelope: { id: 'malformed-1' } });
+    await flush();
+    channel.close();
+
+    expect(received).toHaveLength(1);
+    expect(received[0]?.type).toBe(ChannelMessageTypes.ERROR);
+    expect(received[0]?.envelope.id).toBe('malformed-1');
+    expect(received[0]?.envelope).toHaveProperty('statusCode', 500);
+  });
+
+  for (const type of [ChannelMessageTypes.RESPONSE, ChannelMessageTypes.ERROR]) {
+    test(`a follower fails its request at once on a malformed ${type}`, async () => {
+      installLockManager();
+      const channelName = nextChannelName();
+      open({ channelName, handler: () => new Promise<Response>(() => undefined) });
+      await flush();
+      const follower = open({ channelName, timeoutMs: 5_000 });
+      await flush();
+      const { channel, received } = tab(channelName);
+
+      const task = follower.fetch({ request: new Request('http://example.test/slow') });
+      const outcome = task.then(
+        () => 'resolved',
+        (error: unknown) => String(error),
+      );
+      await flush();
+      channel.postMessage({ type, envelope: { id: received[0]?.envelope.id } });
+
+      const settled = await Promise.race([outcome, flush(500).then(() => 'pending')]);
+      expect(settled).toContain('could not be decoded');
+      channel.close();
+    });
+  }
 
   test("a follower's request is served by the leader", async () => {
     installLockManager();
