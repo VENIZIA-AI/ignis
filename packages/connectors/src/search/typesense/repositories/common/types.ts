@@ -1,10 +1,25 @@
 import type { ISearchQuery } from '@/search/core/repositories/common';
+import type { TConstValue } from '@venizia/ignis-helpers/common';
+
+/** The values of Typesense's `OperationMode`. */
+export class TypesenseOperationModes {
+  static readonly OFF = 'off';
+  static readonly ALWAYS = 'always';
+  static readonly FALLBACK = 'fallback';
+}
 
 /** What `infix` takes per field: Typesense's `OperationMode`. */
-export type TTypesenseOperationMode = 'off' | 'always' | 'fallback';
+export type TTypesenseOperationMode = TConstValue<typeof TypesenseOperationModes>;
+
+/** The values of Typesense's `text_match_type`. */
+export class TypesenseTextMatchTypes {
+  static readonly MAX_SCORE = 'max_score';
+  static readonly MAX_WEIGHT = 'max_weight';
+  static readonly SUM_SCORE = 'sum_score';
+}
 
 /** How Typesense combines the scores of several matching fields: its `text_match_type` values. */
-export type TTypesenseTextMatchType = 'max_score' | 'max_weight' | 'sum_score';
+export type TTypesenseTextMatchType = TConstValue<typeof TypesenseTextMatchTypes>;
 
 /**
  * Typesense tuning params in camelCase, mapped to the wire names by `TypesenseQueryDialect` (`numTypos` -> `num_typos`).

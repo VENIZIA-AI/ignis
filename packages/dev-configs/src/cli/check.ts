@@ -6,7 +6,7 @@ import { PurityCheck } from '../checks/purity/run';
 import { SplitReport } from '../checks/split-report';
 import { TestControlsCheck } from '../checks/test-controls';
 import type { IControlEntry } from '../checks/test-controls';
-import { DeadTestCodeCheck } from '../checks/test-dead-code';
+import { DeadTestCodeCandidateTypes, DeadTestCodeCheck } from '../checks/test-dead-code';
 import { TestMutateCheck } from '../checks/test-mutate';
 import type { ILedger } from '../checks/test-mutate';
 import { TestWeightCheck } from '../checks/test-weight';
@@ -188,7 +188,10 @@ export class CheckCommand {
 
     const candidates = DeadTestCodeCheck.find({ root: opts.root });
 
-    for (const type of ['unreferenced', 'folder-referenced'] as const) {
+    for (const type of [
+      DeadTestCodeCandidateTypes.UNREFERENCED,
+      DeadTestCodeCandidateTypes.FOLDER_REFERENCED,
+    ]) {
       const own = candidates.filter((candidate) => candidate.type === type);
       CliOutput.log(`${type}: ${own.length}`);
 

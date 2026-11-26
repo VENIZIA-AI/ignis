@@ -1,5 +1,12 @@
 import { getError } from '@/modules/error';
-import { AESAlgorithms, type AESAlgorithmType } from './aes.constant';
+import {
+  AesCipherNames,
+  AESAlgorithms,
+  AesKeyUsages,
+  type AESAlgorithmType,
+  type TAesCipherName,
+  type TAesKeyUsage,
+} from './aes.constant';
 
 const IV_BYTES = 16;
 const TAG_BYTES = 16;
@@ -27,7 +34,7 @@ export class AesEngine {
     plain: Uint8Array;
   }): Promise<{ cipherText: Uint8Array; authTag: Uint8Array | null }> {
     const { algorithm, key, iv, plain } = opts;
-    const cryptoKey = await AesEngine.importKey({ algorithm, key, usage: 'encrypt' });
+    const cryptoKey = await AesEngine.importKey({ algorithm, key, usage: AesKeyUsages.ENCRYPT });
     const encrypted = await crypto.subtle.encrypt(
       AesEngine.getParams({ algorithm, iv }),
       cryptoKey,
@@ -54,7 +61,7 @@ export class AesEngine {
     authTag: Uint8Array | null;
   }): Promise<Uint8Array> {
     const { algorithm, key, iv, cipherText, authTag } = opts;
-    const cryptoKey = await AesEngine.importKey({ algorithm, key, usage: 'decrypt' });
+    const cryptoKey = await AesEngine.importKey({ algorithm, key, usage: AesKeyUsages.DECRYPT });
     let input = cipherText;
 
     if (algorithm === AESAlgorithms.AES_256_GCM) {
@@ -82,7 +89,7 @@ export class AesEngine {
   private static async importKey(opts: {
     algorithm: AESAlgorithmType;
     key: Uint8Array;
-    usage: 'encrypt' | 'decrypt';
+    usage: TAesKeyUsage;
   }): Promise<CryptoKey> {
     const { algorithm, key, usage } = opts;
     const expected = Number(algorithm.split('-')[1]) / 8;
@@ -102,8 +109,8 @@ export class AesEngine {
     );
   }
 
-  private static getName(opts: { algorithm: AESAlgorithmType }): 'AES-CBC' | 'AES-GCM' {
-    return opts.algorithm === AESAlgorithms.AES_256_GCM ? 'AES-GCM' : 'AES-CBC';
+  private static getName(opts: { algorithm: AESAlgorithmType }): TAesCipherName {
+    return opts.algorithm === AESAlgorithms.AES_256_GCM ? AesCipherNames.GCM : AesCipherNames.CBC;
   }
 
   private static getParams(opts: { algorithm: AESAlgorithmType; iv: Uint8Array }): TCipherParams {

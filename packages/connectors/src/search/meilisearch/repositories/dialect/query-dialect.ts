@@ -1,3 +1,4 @@
+import type { TRequestFilterClause } from '@venizia/ignis-kernel';
 import { SearchErrors } from '@/search/core/common';
 import type {
   ISearchCompileCapabilities,
@@ -468,7 +469,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     });
   }
 
-  fieldNotFoundError(opts: { clause: 'where' | 'order'; field: string }): Error {
+  fieldNotFoundError(opts: { clause: TRequestFilterClause; field: string }): Error {
     const { clause, field } = opts;
 
     // A dotted `where` key is refused before the declared fields are looked at, so a hidden one is too.

@@ -1,5 +1,14 @@
+import type { TConstValue } from '@venizia/ignis-helpers/common';
+
+/** The `typeof` results a duck-typed member is checked for. */
+export class DuckMemberTypes {
+  static readonly FUNCTION = 'function';
+  static readonly STRING = 'string';
+  static readonly NUMBER = 'number';
+}
+
 /** The `typeof` result a duck-typed member must have. */
-export type TDuckMemberType = 'function' | 'string' | 'number';
+export type TDuckMemberType = TConstValue<typeof DuckMemberTypes>;
 
 export class DuckTypingUtility {
   /** The method `name` of `value`, bound to it, when it is a function; otherwise `undefined`. */

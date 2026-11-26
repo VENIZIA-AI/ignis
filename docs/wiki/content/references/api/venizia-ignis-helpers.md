@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-223 exports, 223 with TSDoc. 257 more are re-exported from other entries (listed at the end).
+223 exports, 223 with TSDoc. 261 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -5705,6 +5705,8 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `ParseUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `PerformanceUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `PromiseUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `QueryStringNestedModes` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `QueryStringNullishModes` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `QueryStringSeparators` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `QueryStringUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `RecordUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -5780,6 +5782,8 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `TOnVisitAsync` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TOptions` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TPrettify` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `TQueryStringNestedMode` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `TQueryStringNullishMode` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TreeBuilder` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TreeWalker` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TRegisterErrors` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)

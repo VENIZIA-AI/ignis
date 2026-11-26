@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/typesense, from the buil
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-83 exports, 83 with TSDoc.
+85 exports, 85 with TSDoc.
 
 ## `AbstractSearchDataSource`
 
@@ -741,7 +741,7 @@ export interface ISearchQueryDialect {
     }): string;
     /** The error this engine gives for a `where` key or an `order` field that names no field: a request guard throws it for a hidden field, so the two cannot be told apart. */
     fieldNotFoundError(opts: {
-        clause: 'where' | 'order';
+        clause: TRequestFilterClause;
         field: string;
     }): Error;
     /** The error `build` throws for a filter with an `include`: no search query reads relations. */
@@ -2247,7 +2247,7 @@ Source: `packages/connectors/src/search/typesense/common/constants.ts`
 What `infix` takes per field: Typesense's `OperationMode`.
 
 ```ts
-export type TTypesenseOperationMode = 'off' | 'always' | 'fallback';
+export type TTypesenseOperationMode = TConstValue<typeof TypesenseOperationModes>;
 ```
 
 Source: `packages/connectors/src/search/typesense/repositories/common/types.ts`
@@ -2259,7 +2259,7 @@ Source: `packages/connectors/src/search/typesense/repositories/common/types.ts`
 How Typesense combines the scores of several matching fields: its `text_match_type` values.
 
 ```ts
-export type TTypesenseTextMatchType = 'max_score' | 'max_weight' | 'sum_score';
+export type TTypesenseTextMatchType = TConstValue<typeof TypesenseTextMatchTypes>;
 ```
 
 Source: `packages/connectors/src/search/typesense/repositories/common/types.ts`
@@ -2723,6 +2723,22 @@ export declare class TypesenseImportActions extends ConstClass {
 
 Source: `packages/connectors/src/search/typesense/common/constants.ts`
 
+## `TypesenseOperationModes`
+
+*class*
+
+The values of Typesense's `OperationMode`.
+
+```ts
+export declare class TypesenseOperationModes {
+    static readonly OFF = "off";
+    static readonly ALWAYS = "always";
+    static readonly FALLBACK = "fallback";
+}
+```
+
+Source: `packages/connectors/src/search/typesense/repositories/common/types.ts`
+
 ## `TypesenseQueryDialect`
 
 *class*
@@ -2772,7 +2788,7 @@ export declare class TypesenseQueryDialect extends BaseHelper implements ISearch
     }): TCompiledWhere;
     includeNotSupportedError(): Error;
     fieldNotFoundError(opts: {
-        clause: 'where' | 'order';
+        clause: TRequestFilterClause;
         field: string;
     }): Error;
     private toOrderBy;
@@ -2794,6 +2810,22 @@ type TTranslatableSearchInput = Exclude<TSearchInput, {
 ```
 
 Source: `packages/connectors/src/search/typesense/repositories/dialect/query-dialect.ts`
+
+## `TypesenseTextMatchTypes`
+
+*class*
+
+The values of Typesense's `text_match_type`.
+
+```ts
+export declare class TypesenseTextMatchTypes {
+    static readonly MAX_SCORE = "max_score";
+    static readonly MAX_WEIGHT = "max_weight";
+    static readonly SUM_SCORE = "sum_score";
+}
+```
+
+Source: `packages/connectors/src/search/typesense/repositories/common/types.ts`
 
 ## `VectorDistances`
 
