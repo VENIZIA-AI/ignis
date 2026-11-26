@@ -115,16 +115,13 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
     }
 
     if (!MailTypeUtility.isTransport(options.config)) {
-      const missingMethods: string[] = [];
-      const config = options.config as Record<string, unknown>;
-
-      if (typeof config.send !== 'function') {
-        missingMethods.push('send');
-      }
-
-      if (typeof config.verify !== 'function') {
-        missingMethods.push('verify');
-      }
+      const config: unknown = options.config;
+      const missingMethods = ['send', 'verify'].filter(
+        (method) =>
+          typeof config !== 'object' ||
+          config === null ||
+          typeof Reflect.get(config, method) !== 'function',
+      );
 
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,

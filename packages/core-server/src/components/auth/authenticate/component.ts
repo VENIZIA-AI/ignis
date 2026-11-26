@@ -171,6 +171,8 @@ export class AuthenticateComponent extends BaseComponent {
   private defineJWKSAuth(opts: { options: TJWKSTokenServiceOptions }): void {
     const { options: jwksOptions } = opts;
 
+    const mode: string = jwksOptions.mode;
+
     switch (jwksOptions.mode) {
       case JWKSModes.ISSUER: {
         const issuerOpts = jwksOptions;
@@ -252,7 +254,7 @@ export class AuthenticateComponent extends BaseComponent {
       default: {
         // Same exhaustive-switch-narrows-to-never situation as the JOSE standard default above.
         throw getError({
-          message: `[defineJWKSAuth] Invalid JWKS mode: ${(jwksOptions as { mode?: unknown }).mode}`,
+          message: `[defineJWKSAuth] Invalid JWKS mode: ${mode}`,
         });
       }
     }

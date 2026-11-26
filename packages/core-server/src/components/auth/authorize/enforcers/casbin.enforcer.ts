@@ -2,11 +2,7 @@ import { type TContext } from '@venizia/ignis-kernel';
 import { inject } from '@venizia/ignis-kernel';
 import { BaseHelper, BasePoolHelper, getError } from '@venizia/ignis-helpers/core';
 import { type TNullable } from '@venizia/ignis-helpers/common';
-import type {
-  Enforcer as CasbinEnforcerType,
-  Helper as CasbinHelperType,
-  RoleManager as CasbinRoleManagerType,
-} from 'casbin';
+import type { Enforcer as CasbinEnforcerType, Helper as CasbinHelperType } from 'casbin';
 import { type Env } from 'hono';
 import { AuthorizationPermissionBuilder } from '@venizia/ignis-kernel';
 import {
@@ -40,11 +36,6 @@ type TNormalizePayloadFn<E extends Env, TAction, TResource> = (opts: {
   resource: TResource;
   context: TContext<E, string>;
 }) => { subject: string; resource: string; action: string; domain?: string };
-
-/** `addDomainHierarchy` lives on casbin's `DefaultRoleManager`, not on the `RoleManager` interface or the `Enforcer` facade - feature-detect it on whatever `getNamedRoleManager` returns. */
-interface ICasbinRoleManagerWithDomainHierarchy {
-  addDomainHierarchy?(rm: CasbinRoleManagerType): Promise<void>;
-}
 
 // Wraps casbin (optional peer dep). Each request borrows its own pooled enforcer; any error during use destroys it (fail-closed). Pooled enforcers carry no adapter - only extractUserLines uses one.
 
@@ -347,14 +338,13 @@ export class CasbinAuthorizationEnforcer<
 
       // addNamedDomainMatchingFunc(G, keyMatchFunc) above must stay: generateTempRoles ORs
       // hasDomainPattern with hasDomainHierarchy, and role_inherits `*` rides the keyMatch path.
-      const gRoleManager = enforcer.getNamedRoleManager(CasbinRuleVariants.G) as
-        | (CasbinRoleManagerType & ICasbinRoleManagerWithDomainHierarchy)
-        | undefined;
+      const gRoleManager = enforcer.getNamedRoleManager(CasbinRuleVariants.G);
 
-      if (!gRoleManager?.addDomainHierarchy) {
+      // `addDomainHierarchy` lives on casbin's `DefaultRoleManager`, not on the `RoleManager` interface.
+      if (!(gRoleManager instanceof casbin.DefaultRoleManager)) {
         throw getError({
           message:
-            '[registerMatchers] The "g" role manager does not expose addDomainHierarchy() - the scoped model requires casbin\'s DefaultRoleManager on the g axis (present in casbin ^5.51.1, this package\'s pinned range). Upgrade casbin, or check that a custom role manager was not substituted for "g".',
+            '[registerMatchers] The scoped model requires casbin\'s DefaultRoleManager on the "g" axis (present in casbin ^5.51.1, this package\'s pinned range). Upgrade casbin, or check that a custom role manager was not substituted for "g".',
         });
       }
 
