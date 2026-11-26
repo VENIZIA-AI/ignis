@@ -1,4 +1,7 @@
-import { describe, expect, test } from 'bun:test';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterAll, describe, expect, test } from 'bun:test';
 import { Linter } from 'eslint';
 import tseslint from 'typescript-eslint';
 import {
@@ -10,6 +13,13 @@ import {
 } from '../linters/house';
 
 const NAME = PreferFrameworkApiRule.NAME;
+const roots: Array<string> = [];
+
+afterAll(() => {
+  for (const root of roots) {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 /** `code` as the body of a hook, which is where the rule looks. */
 const inHook = (code: string) => `export const useSubject = async () => {\n${code}\n};\n`;
@@ -180,6 +190,37 @@ describe('@venizia/prefer-framework-api', () => {
       expect(pattern.hooks).toContain('use');
       expect(pattern.written.length).toBeGreaterThan(0);
     }
+  });
+
+  test('silent in the package that ships the hooks; any other package, none, or one without a name is reported', () => {
+    const lintUnder = (opts: { manifest?: object }) => {
+      const root = mkdtempSync(join(tmpdir(), 'hooks-owner-'));
+      roots.push(root);
+
+      if (opts.manifest) {
+        writeFileSync(join(root, 'package.json'), JSON.stringify(opts.manifest));
+      }
+
+      const config: Linter.Config[] = [
+        {
+          files: ['**/*.ts'],
+          languageOptions: { parser: tseslint.parser as Linter.Parser },
+          plugins: { '@venizia': houseEslintPlugin },
+          rules: { [NAME]: 'error' },
+        },
+      ];
+
+      return new Linter({ cwd: root }).verify(
+        inHook(`const q = window.matchMedia('print');`),
+        config,
+        { filename: join(root, 'src/hooks/use-subject.ts') },
+      ).length;
+    };
+
+    expect(lintUnder({ manifest: { name: BrowserApiPatterns.PACKAGE } })).toBe(0);
+    expect(lintUnder({ manifest: { name: 'an-app' } })).toBe(1);
+    expect(lintUnder({ manifest: { private: true } })).toBe(1);
+    expect(lintUnder({})).toBe(1);
   });
 
   test('reactHouseConfigs turns it on for .ts and .tsx source and off for tests; houseConfigs does not carry it', () => {

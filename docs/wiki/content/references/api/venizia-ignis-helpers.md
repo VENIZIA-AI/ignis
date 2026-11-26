@@ -557,7 +557,9 @@ export declare class ApplicationEnvironment extends BaseHelper implements IAppli
     get(key: string, opts: {
         defaultValue: string;
     }): string;
+    /** A transform that may answer nothing, with the `defaultValue` that then applies: the `defaultValue` fixes `R`. */
     get<R>(key: string, opts: IApplicationEnvironmentDefaultedTransformOptions<R>): R;
+    /** What the transform makes of the raw string: `R` is inferred from the transform. */
     get<R>(key: string, opts: IApplicationEnvironmentTransformOptions<R>): R;
     /**
      * A variable the app cannot run without: it is set and not blank (the rule `get` applies to a `defaultValue`), or this throws an error naming the key. The check runs before `transform`, so `transform` receives a `string`; a `transform` that answers null or undefined throws too. A required value has no `defaultValue`.
@@ -1712,7 +1714,9 @@ export interface IApplicationEnvironment {
     get(key: string, opts: {
         defaultValue: string;
     }): string;
+    /** A transform that may answer nothing, with the `defaultValue` that then applies: the `defaultValue` fixes `R`. */
     get<R>(key: string, opts: IApplicationEnvironmentDefaultedTransformOptions<R>): R;
+    /** What the transform makes of the raw string: `R` is inferred from the transform. */
     get<R>(key: string, opts: IApplicationEnvironmentTransformOptions<R>): R;
     getRequired(key: string): string;
     getRequired<R>(key: string, opts: {

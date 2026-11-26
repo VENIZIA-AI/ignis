@@ -1,8 +1,10 @@
+import { dirname } from 'node:path';
 import type { Linter, Rule, Scope } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
 import type { IBrowserApiPattern } from './browser-api-patterns';
 import { BrowserApiPatterns } from './browser-api-patterns';
 import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
+import { FrameworkExports } from './framework-exports';
 
 /** The objects a global event listener is added to. */
 const GLOBAL_TARGETS: ReadonlyArray<string> = ['window', 'document', 'self', 'globalThis'];
@@ -14,7 +16,8 @@ const GLOBAL_OBJECTS: ReadonlyArray<string> = ['window', 'globalThis', 'self'];
  * `@venizia/prefer-framework-api`. A browser API that `@venizia/ardor-react` wraps in a hook (`window.matchMedia`, a
  * `ResizeObserver`, `navigator.onLine`, a `beforeunload` listener, `navigator.clipboard.writeText`, `window.confirm`...) is
  * used through the hook, which owns the subscribe and cleanup. The rows are `BrowserApiPatterns.TABLE`; the message names
- * the hook. The rule is for apps: ardor-react's own source, where the hooks are written, turns it off.
+ * the hook. The rule is for apps: the package that ships the hooks (the nearest `package.json` is named
+ * `@venizia/ardor-react`) is not reported.
  *
  * Only a reference to the global is reported: a `window`, `navigator` or `document` the file binds itself is not. And only
  * where a hook can be called: in a component (a PascalCase function that draws JSX) or a hook (`useX`), see `isInReact`. A
@@ -232,6 +235,13 @@ export class PreferFrameworkApiRule {
       },
     },
     create: (context) => {
+      // The package that ships the hooks writes them with the browser APIs they wrap.
+      const manifest = FrameworkExports.manifestFor({ directory: dirname(context.filename) });
+
+      if (manifest?.name === BrowserApiPatterns.PACKAGE) {
+        return {};
+      }
+
       const options: unknown = context.options[0];
       const ignored = AstNode.readField({ node: options, key: 'ignore' });
       const ignore = new Set(Array.isArray(ignored) ? ignored : []);

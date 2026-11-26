@@ -66,7 +66,7 @@ const STRICT_RULES: Linter.RulesRecord = {
   'no-caller': 'error',
   '@typescript-eslint/adjacent-overload-signatures': 'error',
   '@typescript-eslint/prefer-for-of': 'error',
-  '@typescript-eslint/unified-signatures': 'error',
+  '@typescript-eslint/unified-signatures': ['error', { ignoreOverloadsWithDifferentJSDoc: true }],
   '@typescript-eslint/no-invalid-this': ['error'],
   '@typescript-eslint/no-use-before-define': 'error',
   '@typescript-eslint/no-shadow': 'error',

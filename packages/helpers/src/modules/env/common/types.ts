@@ -16,8 +16,9 @@ export interface IApplicationEnvironmentDefaultedTransformOptions<R> {
 export interface IApplicationEnvironment {
   get(key: string): string | undefined;
   get(key: string, opts: { defaultValue: string }): string;
+  /** A transform that may answer nothing, with the `defaultValue` that then applies: the `defaultValue` fixes `R`. */
   get<R>(key: string, opts: IApplicationEnvironmentDefaultedTransformOptions<R>): R;
-  // oxlint-disable-next-line typescript/unified-signatures -- one union parameter infers `R` from the transform alone (`number | undefined`); two overloads let the `defaultValue` fix `R`
+  /** What the transform makes of the raw string: `R` is inferred from the transform. */
   get<R>(key: string, opts: IApplicationEnvironmentTransformOptions<R>): R;
   getRequired(key: string): string;
   getRequired<R>(key: string, opts: { transform: (raw: string) => TNullable<R> }): R;
