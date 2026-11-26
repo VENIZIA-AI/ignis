@@ -66,7 +66,6 @@ export class ReadableSearchRepository<
     return count > 0;
   }
 
-  // `TFilter<any, F>`: only `fields` is typed here; the `where` of the untyped model is `any`, see `TFilter`.
   find<R = unknown, const F extends TFields<TDocument> = TFields<TDocument>>(opts: {
     filter: TFilter<any, F>;
     options: TFindRangeOptions<IExtraOptions, TRow<TDocument, R, F>>;
@@ -180,6 +179,7 @@ export class ReadableSearchRepository<
    * hiddenFields/settings.query.filter apply, so a soft-deleted document resolves to null. `where` is spread
    * away last so a projection can never widen the id lookup.
    */
+  // `TByIdFilter<any, F>`: only `fields` is typed here, see `TFilter` for the untyped model.
   findById<R = unknown, const F extends TFields<TDocument> = TFields<TDocument>>(opts: {
     id: IdType;
     filter?: TByIdFilter<any, F>;

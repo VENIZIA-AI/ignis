@@ -132,6 +132,11 @@ export const oxlintConfigs: OxlintConfig = {
     // An overload with TSDoc of its own is one on purpose.
     'typescript/unified-signatures': ['error', { ignoreOverloadsWithDifferentJSDoc: true }],
 
+    // The base code rules: arrows over `function`, a logger over `console`, a `default` in every `switch`.
+    'func-style': ['error', 'expression'],
+    'no-console': 'error',
+    'default-case': 'error',
+
     // typescript-eslint, type-aware
     'typescript/await-thenable': 'error',
     'typescript/no-floating-promises': 'error',
@@ -143,6 +148,11 @@ export const oxlintConfigs: OxlintConfig = {
     'typescript/return-await': 'error',
   },
   overrides: [
+    {
+      // A test writes what it needs to prove its subject.
+      files: ['**/__tests__/**', '**/*.test.{ts,tsx,mts,cts}', '**/*.spec.{ts,tsx,mts,cts}'],
+      rules: { 'func-style': 'off', 'no-console': 'off', 'default-case': 'off' },
+    },
     {
       // TypeScript itself reports these.
       files: TS_FILES,
