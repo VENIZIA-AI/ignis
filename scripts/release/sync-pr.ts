@@ -33,6 +33,8 @@ export interface ISyncCheck {
 }
 
 export class ReleaseSyncPr {
+  /** GitHub refuses a longer pull request body. */
+  static readonly BODY_LIMIT = 65_536;
   static readonly BRANCH_PREFIX = 'sync/';
   static readonly DEVELOP = 'develop';
   static readonly MAIN = 'main';
@@ -142,24 +144,56 @@ export class ReleaseSyncPr {
     return [...new Set(numbers)].sort((first, second) => first - second);
   }
 
+  /** The Sync body. Past `BODY_LIMIT` the oldest subjects are left out and counted; every `Closes` line stays. */
   static bodyOf(opts: {
     tag: string;
     version: string;
     commit: string;
     subjects: string[];
   }): string {
-    const issues = ReleaseSyncPr.issuesOf({ subjects: opts.subjects });
+    const { subjects } = opts;
+    const issues = ReleaseSyncPr.issuesOf({ subjects });
+    const render = (list: { listed: number }): string => {
+      const omitted = subjects.length - list.listed;
 
-    return [
-      `Sync main with the prerelease ${opts.version}: the exact commit of the tag \`${opts.tag}\` (${opts.commit.slice(0, 7)}), not the tip of develop.`,
-      'Merge with a plain merge commit. After the merge the tree of main equals the tree of the tag (`bun scripts/release/sync-pr.ts verify`).',
-      '',
-      `Brings ${opts.subjects.length} commit${opts.subjects.length === 1 ? '' : 's'}:`,
-      '',
-      ...ReleaseSyncPr.fencedLines({ lines: opts.subjects }),
-      ...(issues.length === 0 ? [] : ['', ...issues.map((issue) => `Closes #${issue}`)]),
-      '',
-    ].join('\n');
+      return [
+        `Sync main with the prerelease ${opts.version}: the exact commit of the tag \`${opts.tag}\` (${opts.commit.slice(0, 7)}), not the tip of develop.`,
+        'Merge with a plain merge commit. After the merge the tree of main equals the tree of the tag (`bun scripts/release/sync-pr.ts verify`).',
+        '',
+        `Brings ${subjects.length} commit${subjects.length === 1 ? '' : 's'}:`,
+        '',
+        ...ReleaseSyncPr.fencedLines({ lines: subjects.slice(0, list.listed) }),
+        ...(omitted === 0
+          ? []
+          : [
+              '',
+              `${omitted} older commits are not listed (GitHub limits the body): \`git log ${ReleaseSyncPr.MAIN}..${opts.tag}\` shows all before the merge.`,
+            ]),
+        ...(issues.length === 0 ? [] : ['', ...issues.map((issue) => `Closes #${issue}`)]),
+        '',
+      ].join('\n');
+    };
+    const full = render({ listed: subjects.length });
+
+    if (full.length <= ReleaseSyncPr.BODY_LIMIT) {
+      return full;
+    }
+
+    // Each listed subject adds its length and a newline to the body that lists none.
+    let room = ReleaseSyncPr.BODY_LIMIT - render({ listed: 0 }).length;
+    let listed = 0;
+
+    for (const subject of subjects) {
+      room -= subject.length + 1;
+
+      if (room < 0) {
+        break;
+      }
+
+      listed += 1;
+    }
+
+    return render({ listed });
   }
 
   /** The tree of main against the tree of the tag, after the merge. */

@@ -174,6 +174,35 @@ describe('ReleaseSyncPr.bodyOf', () => {
   });
 });
 
+describe('ReleaseSyncPr.bodyOf size', () => {
+  const subjects = Array.from(
+    { length: 1500 },
+    (_, index) => `[#${index + 1}] fix(kernel): change ${index + 1} of a long release cycle`,
+  );
+  const body = ReleaseSyncPr.bodyOf({
+    tag: 'kernel-v0.4.9-1',
+    version: '0.4.9-1',
+    commit: 'abcdef0123456789',
+    subjects,
+  });
+
+  test('a large Sync stays within the GitHub body limit, newest commits first', () => {
+    expect(body.length).toBeLessThanOrEqual(ReleaseSyncPr.BODY_LIMIT);
+    // The list is cut only as far as needed: one more subject would not fit.
+    expect(body.length).toBeGreaterThan(ReleaseSyncPr.BODY_LIMIT - 100);
+    expect(body).toContain(`\`\`\`text\n${subjects[0]}\n`);
+    expect(body).not.toContain(subjects.at(-1) ?? '');
+  });
+
+  test('it counts what it left out and keeps every Closes line', () => {
+    const listed = body.split('\n').filter((line) => line.startsWith('[#')).length;
+
+    expect(body).toContain('Brings 1500 commits:');
+    expect(body).toContain(`${1500 - listed} older commits are not listed`);
+    expect(body.split('\n').filter((line) => line.startsWith('Closes #'))).toHaveLength(1500);
+  });
+});
+
 describe('ReleaseSyncPr.main', () => {
   /** The fixture with the remote-tracking refs the script reads, as a clone would have them. */
   const cloned = (): string => {
