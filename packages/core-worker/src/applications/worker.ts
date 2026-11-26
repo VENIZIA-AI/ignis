@@ -182,7 +182,8 @@ export abstract class WorkerApplication<
     // `addEventListener` over `Event | MessageEvent`, and a handler narrower than that is not
     // assignable to it.
     const listener = (event: Event): void => {
-      const envelope = (event as MessageEvent).data as IBffRequestEnvelope | undefined;
+      const data: unknown = 'data' in event ? event.data : undefined;
+      const envelope = data as IBffRequestEnvelope | undefined;
 
       // A worker scope receives every `postMessage` sent to it, not only ours - a dev-server ping,
       // a devtools/extension probe, a library's own init handshake. None of those carry an `id`;

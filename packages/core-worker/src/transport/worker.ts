@@ -156,18 +156,15 @@ export class WorkerBffTransport extends BaseHelper implements IBffTransport {
 
   /** `ErrorEvent` carries the useful fields; a plain `Event` does not, so both shapes are handled. */
   private describeErrorEvent(event: Event): string {
-    const candidate = event as Partial<{
-      message: string;
-      filename: string;
-      lineno: number;
-      colno: number;
-    }>;
-
-    if (!candidate.message) {
+    if (!('message' in event) || !event.message) {
       return event.type;
     }
 
-    return `${candidate.message} (${candidate.filename ?? 'unknown'}:${candidate.lineno ?? 0}:${candidate.colno ?? 0})`;
+    const filename = ('filename' in event ? event.filename : undefined) ?? 'unknown';
+    const line = ('lineno' in event ? event.lineno : undefined) ?? 0;
+    const column = ('colno' in event ? event.colno : undefined) ?? 0;
+
+    return `${event.message} (${filename}:${line}:${column})`;
   }
 
   /**
