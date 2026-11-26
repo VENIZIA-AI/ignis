@@ -244,7 +244,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
   /** Maps the neutral query onto Meilisearch wire params. Pagination always uses the exhaustive `page`/`hitsPerPage` mode (exact `totalHits`), never `offset`/`limit`; `engineParams` merges last, verbatim. */
   toWireParams(opts: { query: Partial<ISearchQuery> }): Record<string, unknown> {
     const { query } = opts;
-    const { engineParams, ...rest } = query as Partial<IMeilisearchSearchQuery>;
+    const { engineParams, ...rest } = query;
 
     // `matchNone` is a repository-tier instruction, not a search param - dropped here so it can
     // never reach Meilisearch as an unknown key. `rest` is already a fresh object.

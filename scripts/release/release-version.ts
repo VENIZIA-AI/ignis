@@ -19,24 +19,32 @@ export class ReleaseVersion {
     const core = (parts: number[]) => parts.join('.');
 
     switch (mode) {
-      case 'patch':
+      case 'patch': {
         return core([major, minor, pre.length === 0 ? patch + 1 : patch]);
-      case 'minor':
+      }
+      case 'minor': {
         return core([major, patch !== 0 || pre.length === 0 ? minor + 1 : minor, 0]);
-      case 'major':
+      }
+      case 'major': {
         return core([minor !== 0 || patch !== 0 || pre.length === 0 ? major + 1 : major, 0, 0]);
-      case 'prepatch':
+      }
+      case 'prepatch': {
         return `${core([major, minor, patch + 1])}-0`;
-      case 'preminor':
+      }
+      case 'preminor': {
         return `${core([major, minor + 1, 0])}-0`;
-      case 'premajor':
+      }
+      case 'premajor': {
         return `${core([major + 1, 0, 0])}-0`;
-      case 'prerelease':
+      }
+      case 'prerelease': {
         return pre.length === 0
           ? `${core([major, minor, patch + 1])}-0`
           : `${core([major, minor, patch])}-${this.bumpPre({ pre })}`;
-      default:
+      }
+      default: {
         throw new Error(`'${mode}' is not an npm version mode`);
+      }
     }
   }
 

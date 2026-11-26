@@ -31,7 +31,7 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
     const { connector, table, columns, where, orderBy, limit, offset, lock } = opts;
 
     // Drizzle's `.from()` needs the concrete `PgTable` type, not the generic bound.
-    const pgTable = table as PgTable;
+    const pgTable = table;
 
     let query = columns
       ? connector.select(this.toSelectedFields({ columns })).from(pgTable).$dynamic()
@@ -64,7 +64,7 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
   async count(opts: ICountOptions<TRelationalConnector>): Promise<number> {
     const { connector, table, where } = opts;
 
-    return connector.$count(table as PgTable, where);
+    return connector.$count(table, where);
   }
 
   async findMany<R>(opts: IRelationalQueryOptions<TRelationalConnector>): Promise<Array<R>> {
@@ -90,7 +90,7 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
 
   async insert<R>(opts: IInsertOptions<TRelationalConnector>): Promise<IWriteResult<R>> {
     const { connector, table, values, returning, shouldReturn, onConflict } = opts;
-    const inserted = connector.insert(table as PgTable).values(values);
+    const inserted = connector.insert(table).values(values);
     // `onConflictDoUpdate` returns the same builder; its type only drops the conflict methods, which `inserted` also satisfies.
     const query: ReturnType<typeof inserted.onConflictDoUpdate> = onConflict
       ? inserted.onConflictDoUpdate({
@@ -117,10 +117,7 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
 
   async update<R>(opts: IUpdateOptions<TRelationalConnector>): Promise<IWriteResult<R>> {
     const { connector, table, data, where, returning, shouldReturn } = opts;
-    const query = connector
-      .update(table as PgTable)
-      .set(data)
-      .where(where);
+    const query = connector.update(table).set(data).where(where);
 
     if (!shouldReturn) {
       const result = await query;

@@ -48,7 +48,7 @@ export class BaseSearchEntity<
   private static readonly _schemaCache = new Map<Function, Map<TSchemaType, z.ZodType>>();
 
   constructor(opts?: { name?: string; schema?: Schema }) {
-    const ctor = new.target as typeof BaseSearchEntity;
+    const ctor = new.target;
     const name = opts?.name ?? ctor.COLLECTION_NAME ?? ctor.schema?.name ?? ctor.name;
 
     super({ name });

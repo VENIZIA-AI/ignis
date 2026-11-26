@@ -164,7 +164,7 @@ export class IgnisArtifactsPlugin {
         return;
       }
 
-      const call = node as ts.CallExpression;
+      const call = node;
       const access = call.expression as ts.PropertyAccessExpression;
       const target = access.expression;
       const callee = ts.isIdentifier(target)

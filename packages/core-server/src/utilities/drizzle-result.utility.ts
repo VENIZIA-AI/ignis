@@ -12,7 +12,7 @@ export class DrizzleResultUtility {
 
     // postgres-js: the result IS the row list.
     if (Array.isArray(result)) {
-      return result as TRow[];
+      return result;
     }
 
     if (typeof result !== 'object') {
@@ -25,7 +25,7 @@ export class DrizzleResultUtility {
     const { rows } = result as { rows?: unknown };
 
     if (Array.isArray(rows)) {
-      return rows as TRow[];
+      return rows;
     }
 
     throw getError({

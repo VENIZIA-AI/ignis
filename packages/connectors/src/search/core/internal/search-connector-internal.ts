@@ -132,7 +132,7 @@ export class SearchConnectorInternal {
     });
 
     // Keeps the engine's own code for callers to classify on (tolerating `index_already_exists`); assigned AFTER construction because `cause` via getError() lands in `extra`, which goes on the WIRE, while a plain `cause` is exposed only in development.
-    (wrapped as { cause?: unknown }).cause = error;
+    wrapped.cause = error;
     throw wrapped;
   }
 

@@ -395,7 +395,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
 
         return Object.entries(dictionary).map(([id, synonyms]) => ({
           id,
-          synonyms: Array.isArray(synonyms) ? (synonyms as string[]) : [],
+          synonyms: Array.isArray(synonyms) ? synonyms : [],
         }));
       },
     });

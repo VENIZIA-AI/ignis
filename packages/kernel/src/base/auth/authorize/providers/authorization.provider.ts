@@ -38,7 +38,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
         return next();
       }
 
-      const user = context.get(Authentication.CURRENT_USER) as IAuthUser | undefined;
+      const user = context.get(Authentication.CURRENT_USER);
 
       if (!user) {
         throw getError({

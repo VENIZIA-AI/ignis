@@ -4,9 +4,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { RequestErrors } from '../middlewares/common/errors';
 
 /** Marks a middleware as the body limit of ONE route. A registry symbol, so two installed copies of this package still read each other's marks. */
-const ROUTE_BODY_LIMIT: unique symbol = Symbol.for(
-  '@venizia/ignis-kernel/route-body-limit',
-) as never;
+const ROUTE_BODY_LIMIT: unique symbol = Symbol.for('@venizia/ignis-kernel/route-body-limit');
 
 /**
  * The request body limit: the default every route gets, and the limit one route sets for itself.

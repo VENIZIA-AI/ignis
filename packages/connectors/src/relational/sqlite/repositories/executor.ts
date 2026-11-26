@@ -185,7 +185,7 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
    * boundary is this one cast.
    */
   private asTable(opts: { table: TTableSchemaWithId }): SQLiteTable {
-    return opts.table as SQLiteTable;
+    return opts.table;
   }
 
   /**

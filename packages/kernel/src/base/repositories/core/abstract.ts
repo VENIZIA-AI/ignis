@@ -299,7 +299,7 @@ export abstract class AbstractRepository<
     // union's member - the `@repository` decorator guarantees a class constructor here.
     const ModelClass = ResolverUtility.resolveValue({
       value: binding.model,
-    }) as TClass<AbstractEntity>;
+    });
 
     return new ModelClass();
   }

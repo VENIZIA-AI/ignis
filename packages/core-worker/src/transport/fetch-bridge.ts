@@ -118,7 +118,7 @@ export class BffFetchBridge {
       });
     }
 
-    const networkFetch = previousFetch.bind(carrier) as TFetch;
+    const networkFetch = previousFetch.bind(carrier);
 
     const bridged = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       const url = new URL(BffFetchBridge.resolveRequestUrl(input));

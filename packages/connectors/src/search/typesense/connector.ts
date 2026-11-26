@@ -1162,7 +1162,7 @@ export class TypesenseConnector extends BaseSearchConnector {
     // page the engine would have rejected outright gets rewritten.
     const entries =
       windows.length === 1
-        ? [{ ...body, collection } as { collection: string } & Partial<TSearchParams>]
+        ? [{ ...body, collection }]
         : windows.map((window) => {
             // Each window carries its own offset/limit, so the caller's page keys are left out.
             const rest = Object.fromEntries(
@@ -1175,13 +1175,13 @@ export class TypesenseConnector extends BaseSearchConnector {
               limit: window.limit,
             };
 
-            return entry as { collection: string } & Partial<TSearchParams>;
+            return entry;
           });
 
     const result2 = await this.executeMultiSearch({
       method: this.search.name,
       entries,
-      commonParams: common as Partial<TSearchParams>,
+      commonParams: common,
       options,
     });
     const response = result2 as IMultiSearchResult<T>;

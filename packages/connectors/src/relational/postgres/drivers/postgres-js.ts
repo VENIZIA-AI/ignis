@@ -31,7 +31,7 @@ export class PostgresJsDriver<
   }
 
   createConnector(opts: { schema: Schema }): TRelationalConnector<Schema> {
-    return drizzle({ client: this.client, schema: opts.schema }) as TRelationalConnector<Schema>;
+    return drizzle({ client: this.client, schema: opts.schema });
   }
 
   async acquire(opts: { schema: Schema }): Promise<TRelationalConnection<Schema>> {
@@ -45,7 +45,7 @@ export class PostgresJsDriver<
       connector = drizzle({
         client: reserved,
         schema: opts.schema,
-      }) as TRelationalConnector<Schema>;
+      });
     } catch (error) {
       reserved.release();
       throw error;

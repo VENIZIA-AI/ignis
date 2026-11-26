@@ -43,6 +43,6 @@ export class MemoryStorageHelper<T extends object = Record<string, unknown>> ext
 
   /** A COPY: handing out the live map let a caller mutate this helper's state behind its back. */
   getContainer(): Record<string, unknown> {
-    return Object.fromEntries(this.container as Map<string, unknown>);
+    return Object.fromEntries(this.container);
   }
 }

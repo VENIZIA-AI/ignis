@@ -36,8 +36,6 @@ export abstract class AbstractPostgresDataSource<
   override getQueryExecutor(): IRelationalQueryExecutor<TRelationalConnector<Schema>> {
     AbstractPostgresDataSource.queryExecutor ??= new PostgresQueryExecutor();
 
-    return AbstractPostgresDataSource.queryExecutor as IRelationalQueryExecutor<
-      TRelationalConnector<Schema>
-    >;
+    return AbstractPostgresDataSource.queryExecutor;
   }
 }

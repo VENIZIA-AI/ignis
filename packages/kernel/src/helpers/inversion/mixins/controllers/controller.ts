@@ -44,7 +44,7 @@ export const ControllerMetadataMixin = <BaseClass extends TMixinTarget<_Metadata
         return undefined;
       }
 
-      return metadata as IRestControllerMetadata;
+      return metadata;
     }
 
     getGrpcControllerMetadata<Target extends object = object>(opts: {
@@ -56,7 +56,7 @@ export const ControllerMetadataMixin = <BaseClass extends TMixinTarget<_Metadata
         return undefined;
       }
 
-      return metadata as IGrpcControllerMetadata;
+      return metadata;
     }
   };
 };

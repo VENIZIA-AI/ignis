@@ -466,7 +466,7 @@ export class BunS3Helper extends BaseStorageHelper {
     const key = opts.object.key;
     const source = this.client.file(key, this.callOptions({ bucket: bucketName })).stream();
 
-    return Readable.fromWeb(source as ReadableStream<Uint8Array>, {
+    return Readable.fromWeb(source, {
       // Keeps backpressure meaningful rather than draining S3 into memory.
       objectMode: false,
     });
@@ -484,14 +484,14 @@ export class BunS3Helper extends BaseStorageHelper {
     const file = this.client.file(key, this.callOptions({ bucket: bucketName }));
 
     if (!range) {
-      return file.stream() as ReadableStream<Uint8Array>;
+      return file.stream();
     }
 
     // HTTP ranges include `end`; `slice` excludes it.
     const window =
       range.end === undefined ? file.slice(range.start) : file.slice(range.start, range.end + 1);
 
-    return window.stream() as ReadableStream<Uint8Array>;
+    return window.stream();
   }
 
   /** The ETag with the quotes S3 sends and expects in `If-Match`. */

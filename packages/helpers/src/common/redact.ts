@@ -155,7 +155,7 @@ const deepSanitize = (value: unknown, context: TSanitizeContext): unknown => {
   }
 
   if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) {
-    return `[Binary ${(value as ArrayBufferView).byteLength ?? 0} bytes]`;
+    return `[Binary ${value.byteLength ?? 0} bytes]`;
   }
 
   if (depth <= 0) {

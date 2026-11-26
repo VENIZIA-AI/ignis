@@ -53,7 +53,7 @@ export abstract class BaseSqliteDataSource<
       });
     }
 
-    return beginMode as TSqliteBeginMode;
+    return beginMode;
   }
 
   /**

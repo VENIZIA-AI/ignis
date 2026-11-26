@@ -106,7 +106,7 @@ export class AsyncStyle {
         files: ['**/*.{ts,tsx,mts,cts}'],
         languageOptions: { parser: tseslint.parser },
         linterOptions: { reportUnusedDisableDirectives: 'off' },
-        plugins: { '@typescript-eslint': tseslint.plugin as never },
+        plugins: { '@typescript-eslint': tseslint.plugin },
         rules: {
           '@typescript-eslint/no-redeclare': 'error',
           '@typescript-eslint/no-shadow': 'error',

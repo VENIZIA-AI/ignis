@@ -55,7 +55,7 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
   static relations?: TValueOrResolver<Array<TRelationConfig>>;
 
   constructor(opts?: { name?: string; schema?: Schema }) {
-    const ctor = new.target as typeof BaseRelationalEntity;
+    const ctor = new.target;
     const name = opts?.name ?? ctor.TABLE_NAME ?? ctor.name;
 
     super({ name });

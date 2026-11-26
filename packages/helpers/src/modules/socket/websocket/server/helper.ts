@@ -205,10 +205,10 @@ export class WebSocketServerHelper<
     const logger = this.logger.for(this.configure.name);
     logger.info('Configuring WebSocket Server | id: %s', this.identifier);
 
-    (this.redisPub as EventEmitter).on('error', (error: Error) => {
+    this.redisPub.on('error', (error: Error) => {
       logger.error('Redis pub error | error: %s', error);
     });
-    (this.redisSub as EventEmitter).on('error', (error: Error) => {
+    this.redisSub.on('error', (error: Error) => {
       logger.error('Redis sub error | error: %s', error);
     });
 
@@ -242,7 +242,7 @@ export class WebSocketServerHelper<
       this.redisSub.psubscribe(WebSocketChannels.forUserPattern()),
     ]);
 
-    (this.redisSub as EventEmitter).on('message', (channel: string, raw: string) => {
+    this.redisSub.on('message', (channel: string, raw: string) => {
       this.onRedisMessage({ channel, raw });
     });
 

@@ -254,7 +254,7 @@ export abstract class FilterBuilder extends BaseHelper {
       merged.and = merged.and ? [...merged.and, ...composed] : composed;
     }
 
-    return merged as TWhere<T>;
+    return merged;
   }
 
   /** Two values that are the same scalar: equal primitives (`null` included) or the same instant. Operator objects and lists are never "the same": they compose. */

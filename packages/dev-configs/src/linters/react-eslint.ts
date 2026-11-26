@@ -15,8 +15,8 @@ export const reactNamingConventionConfigs: Linter.Config[] = [
   ...namingConventionConfigs,
   {
     files: JSX_FILES,
-    languageOptions: { parser: tseslint.parser as Linter.Parser },
-    plugins: { '@typescript-eslint': tseslint.plugin as never },
+    languageOptions: { parser: tseslint.parser },
+    plugins: { '@typescript-eslint': tseslint.plugin },
     rules: {
       [NamingConventionRule.NAME]: NamingConventionRule.build({
         extraSelectors: [COMPONENT_FUNCTION_SELECTOR],
