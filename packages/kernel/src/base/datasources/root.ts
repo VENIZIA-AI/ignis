@@ -240,7 +240,7 @@ export abstract class DataSourceRoot<
   private async settleAbandoned(opts: { work: Promise<unknown> }): Promise<void> {
     try {
       await opts.work;
-      // eslint-disable-next-line venizia/no-silent-catch -- the abandoned attempt's own outcome was already reported by the timeout; only its clean-up matters now
+      // eslint-disable-next-line @venizia/no-silent-catch -- the abandoned attempt's own outcome was already reported by the timeout; only its clean-up matters now
     } catch {
       // Falls through to the clean-up.
     }
@@ -252,7 +252,7 @@ export abstract class DataSourceRoot<
   private async discardOpenAttempt(): Promise<void> {
     try {
       await this.discardPartialOpen();
-      // eslint-disable-next-line venizia/no-silent-catch -- the open's own error is what the caller must see: a failed clean-up is logged, never thrown over it
+      // eslint-disable-next-line @venizia/no-silent-catch -- the open's own error is what the caller must see: a failed clean-up is logged, never thrown over it
     } catch (cleanupError) {
       this.logger
         .for(this.ensureOpen.name)
@@ -272,7 +272,7 @@ export abstract class DataSourceRoot<
 
     try {
       await this.opening;
-      // eslint-disable-next-line venizia/no-silent-catch -- the failed open was reported to its own waiters; stopping goes on
+      // eslint-disable-next-line @venizia/no-silent-catch -- the failed open was reported to its own waiters; stopping goes on
     } catch (openError) {
       this.logger
         .for(this.close.name)

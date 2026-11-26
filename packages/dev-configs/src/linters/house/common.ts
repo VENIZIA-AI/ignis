@@ -67,8 +67,8 @@ export class AstNodeTypes {
   static readonly VARIABLE_DECLARATOR = 'VariableDeclarator';
 }
 
-/** The ESLint namespace the house rules live under: `venizia/<rule>`. */
-export const HOUSE_PLUGIN_NAMESPACE = 'venizia';
+/** The ESLint namespace the house rules live under: `@venizia/<rule>`. */
+export const HOUSE_PLUGIN_NAMESPACE = '@venizia';
 
 /** Reads an AST node without trusting its type: TypeScript nodes carry fields estree does not declare. */
 export class AstNode {

@@ -11,7 +11,7 @@ const GLOBAL_TARGETS: ReadonlyArray<string> = ['window', 'document', 'self', 'gl
 const GLOBAL_OBJECTS: ReadonlyArray<string> = ['window', 'globalThis', 'self'];
 
 /**
- * `venizia/prefer-framework-api`. A browser API that `@venizia/ardor-react` wraps in a hook (`window.matchMedia`, a
+ * `@venizia/prefer-framework-api`. A browser API that `@venizia/ardor-react` wraps in a hook (`window.matchMedia`, a
  * `ResizeObserver`, `navigator.onLine`, a `beforeunload` listener, `navigator.clipboard.writeText`, `window.confirm`...) is
  * used through the hook, which owns the subscribe and cleanup. The rows are `BrowserApiPatterns.TABLE`; the message names
  * the hook. The rule is for apps: ardor-react's own source, where the hooks are written, turns it off.

@@ -195,7 +195,7 @@ Source: `packages/dev-configs/src/linters/house/await-support.ts`
 
 *class*
 
-The browser APIs ARDOR (`@venizia/ardor-react`) wraps in a hook, one row each. `venizia/prefer-framework-api` reads this
+The browser APIs ARDOR (`@venizia/ardor-react`) wraps in a hook, one row each. `@venizia/prefer-framework-api` reads this
 table, so adding a pattern is adding a row here. Only forms a rule can tell apart reliably are rows: a hand-rolled
 debounce or a draft-saving timer is not.
 
@@ -212,7 +212,7 @@ Source: `packages/dev-configs/src/linters/house/browser-api-patterns.ts`
 
 *class*
 
-`venizia/const-class-values`. An enumerable string is a const class plus `TConstValue<typeof X>`,
+`@venizia/const-class-values`. An enumerable string is a const class plus `TConstValue<typeof X>`,
 never a union of string literals in an exported declaration: a type alias, an interface member, a
 generic constraint, a parameter or a return type of an exported function or class.
 
@@ -223,7 +223,7 @@ matches it (`(State|Status)$`), for a project that adopts the rule one name at a
 
 ```ts
 export declare class ConstClassValuesRule {
-    static readonly NAME = "venizia/const-class-values";
+    static readonly NAME = "@venizia/const-class-values";
     static readonly RULE: Rule.RuleModule;
     static build(opts?: {
         severity?: TRuleSeverity;
@@ -238,7 +238,7 @@ Source: `packages/dev-configs/src/linters/house/const-class-values.rule.ts`
 
 *class*
 
-`venizia/effect-cleanup-consistency`. The callback of `useEffect`, `useLayoutEffect` and `useInsertionEffect`
+`@venizia/effect-cleanup-consistency`. The callback of `useEffect`, `useLayoutEffect` and `useInsertionEffect`
 returns a cleanup on every path or on none. An early `return;` beside a later `return () => {}` leaves React
 with a cleanup on some runs only; the early exit returns a no-op instead. A bare `return;` and falling off the
 end both mean "no value". It uses ESLint's code path analysis the way `consistent-return` does, so an
@@ -246,7 +246,7 @@ unreachable end of the function is not a path. A nested function's own `return` 
 
 ```ts
 export declare class EffectCleanupConsistencyRule {
-    static readonly NAME = "venizia/effect-cleanup-consistency";
+    static readonly NAME = "@venizia/effect-cleanup-consistency";
     static readonly RULE: Rule.RuleModule;
     static build(opts?: {
         severity?: TRuleSeverity;
@@ -374,10 +374,10 @@ Source: `packages/dev-configs/src/linters/house/hook-support.ts`
 
 *const*
 
-The ESLint namespace the house rules live under: `venizia/<rule>`.
+The ESLint namespace the house rules live under: `@venizia/<rule>`.
 
 ```ts
-export declare const HOUSE_PLUGIN_NAMESPACE = "venizia";
+export declare const HOUSE_PLUGIN_NAMESPACE = "@venizia";
 ```
 
 Source: `packages/dev-configs/src/linters/house/common.ts`
@@ -406,7 +406,7 @@ Source: `packages/dev-configs/src/linters/house/configs.ts`
 
 *const*
 
-The ESLint plugin that carries the house rules oxlint cannot express, registered as `venizia`.
+The ESLint plugin that carries the house rules oxlint cannot express, registered as `@venizia`.
 
 ```ts
 export declare const houseEslintPlugin: ESLint.Plugin;
@@ -502,7 +502,7 @@ Source: `packages/dev-configs/src/linters/house/import-support.ts`
 
 *class*
 
-`venizia/max-params-own`. A function we write takes at most `max` positional parameters;
+`@venizia/max-params-own`. A function we write takes at most `max` positional parameters;
 beyond that it takes one options object. A signature that belongs to someone else is not counted: an
 inline callback handed to a call (map, reduce, sort, a library handler) or to a JSX prop, a function a
 declared type fixes (`const x: TFn = (...)`, a member of a typed or `satisfies` object), and a
@@ -510,7 +510,7 @@ constructor whose every parameter is injected (`@inject`). A hook's callback (`u
 
 ```ts
 export declare class MaxParamsOwnRule {
-    static readonly NAME = "venizia/max-params-own";
+    static readonly NAME = "@venizia/max-params-own";
     static readonly DEFAULT_MAX = 5;
     static readonly RULE: Rule.RuleModule;
     static build(opts?: {
@@ -548,7 +548,7 @@ Source: `packages/dev-configs/src/linters/eslint.ts`
 
 *class*
 
-`venizia/no-async-hook-callback`. A hook never gets an async function: `useEffect(async () => {})` makes the
+`@venizia/no-async-hook-callback`. A hook never gets an async function: `useEffect(async () => {})` makes the
 callback return a promise where React expects a cleanup function or nothing. Pass a sync callback and handle
 the promise inside it with `.then`, `.catch` and `.finally`. Every argument of a `use[A-Z]...` call is checked,
 `React.useX` too: an async function as the argument, as the value of a property of an object literal
@@ -557,7 +557,7 @@ builds an async function inside is not an argument and is left alone.
 
 ```ts
 export declare class NoAsyncHookCallbackRule {
-    static readonly NAME = "venizia/no-async-hook-callback";
+    static readonly NAME = "@venizia/no-async-hook-callback";
     static readonly RULE: Rule.RuleModule;
     static build(opts?: {
         severity?: TRuleSeverity;
@@ -571,7 +571,7 @@ Source: `packages/dev-configs/src/linters/house/no-async-hook-callback.rule.ts`
 
 *class*
 
-`venizia/no-await-new-chain`. A method is never called on a fresh instance inside an `await`:
+`@venizia/no-await-new-chain`. A method is never called on a fresh instance inside an `await`:
 `await new Runner({ ... }).run(...)` and `const text = await new Response(body).text()` declare the instance first,
 then await on its own line (`const runner = new Runner({ ... }); await runner.run(...);`). A builder chain
 (`await new SignJWT(claims).setIssuer(iss).sign(key)`) declares the builder, then awaits its last call.
@@ -584,7 +584,7 @@ finding is reported and left alone.
 
 ```ts
 export declare class NoAwaitNewChainRule {
-    static readonly NAME = "venizia/no-await-new-chain";
+    static readonly NAME = "@venizia/no-await-new-chain";
     /** The expression under any transparent wrapper. */
     private static unwrap;
     /**
@@ -613,7 +613,7 @@ Source: `packages/dev-configs/src/linters/house/no-await-new-chain.rule.ts`
 
 *class*
 
-`venizia/no-await-promise-chain`. One expression uses one async style: `await` (in a try/catch when it can
+`@venizia/no-await-promise-chain`. One expression uses one async style: `await` (in a try/catch when it can
 fail), or a promise chain that is not awaited. An `await` whose operand - after parentheses, `!`, `as`,
 `satisfies` and an optional chain - is a call of `.then`, `.catch` or `.finally` (`?.then(`, `['then'](`, a
 thenable such as a query builder) is reported once, however long the chain. A chain that is returned or stands
@@ -628,7 +628,7 @@ The try also catches a synchronous throw of `f()`, which the chain let through. 
 
 ```ts
 export declare class NoAwaitPromiseChainRule {
-    static readonly NAME = "venizia/no-await-promise-chain";
+    static readonly NAME = "@venizia/no-await-promise-chain";
     static readonly RULE: Rule.RuleModule;
     static build(opts?: {
         severity?: TRuleSeverity;
@@ -642,7 +642,7 @@ Source: `packages/dev-configs/src/linters/house/no-await-promise-chain.rule.ts`
 
 *class*
 
-`venizia/no-inline-await`. `await` stands alone: as a whole statement (`await f();`) or as the whole initializer
+`@venizia/no-inline-await`. `await` stands alone: as a whole statement (`await f();`) or as the whole initializer
 of a declaration (`const result = await f();`). Inside any other expression - a call argument, a spread, an
 array or object, a ternary, a logical operator, a template literal, a member access, an assignment - it is
 reported, and `return g(await f())` is the same report. `return await f()` is `no-return-await`'s.
@@ -653,7 +653,7 @@ test, an unbraced `if` branch or an arrow expression body; those cases are repor
 
 ```ts
 export declare class NoInlineAwaitRule {
-    static readonly NAME = "venizia/no-inline-await";
+    static readonly NAME = "@venizia/no-inline-await";
     static readonly RULE: Rule.RuleModule;
     static build(opts?: {
         severity?: TRuleSeverity;
@@ -667,13 +667,13 @@ Source: `packages/dev-configs/src/linters/house/no-inline-await.rule.ts`
 
 *class*
 
-`venizia/no-leaked-render`. `{count && <X />}` draws `0` when `count` is `0`; draw nothing with
+`@venizia/no-leaked-render`. `{count && <X />}` draws `0` when `count` is `0`; draw nothing with
 `cond ? <X /> : null`. Only a child of JSX is checked. The fix rewrites it to the ternary and keeps
 any comment between `&&` and the drawn part.
 
 ```ts
 export declare class NoLeakedRenderRule {
-    static readonly NAME = "venizia/no-leaked-render";
+    static readonly NAME = "@venizia/no-leaked-render";
     static readonly RULE: Rule.RuleModule;
     static build(opts?: {
         severity?: TRuleSeverity;
@@ -687,13 +687,13 @@ Source: `packages/dev-configs/src/linters/house/no-leaked-render.rule.ts`
 
 *class*
 
-`venizia/no-new-error`. An error is thrown through `getError({ message })` (or an `ApplicationError`),
+`@venizia/no-new-error`. An error is thrown through `getError({ message })` (or an `ApplicationError`),
 never `new Error(...)` or `Error(...)`: only an ApplicationError carries the status, the message code and
 args, and the `extra` every IGNIS layer reads.
 
 ```ts
 export declare class NoNewErrorRule {
-    static readonly NAME = "venizia/no-new-error";
+    static readonly NAME = "@venizia/no-new-error";
     static readonly RULE: Rule.RuleModule;
     static build(opts?: {
         severity?: TRuleSeverity;
@@ -707,18 +707,18 @@ Source: `packages/dev-configs/src/linters/house/no-new-error.rule.ts`
 
 *class*
 
-`venizia/no-parent-import`. An import that climbs out of its folder (`../x`) is written from the package's import map
+`@venizia/no-parent-import`. An import that climbs out of its folder (`../x`) is written from the package's import map
 instead (`#src/x`): it keeps its meaning when the file moves, and reads the same from every depth.
 
 The fix is made only when the nearest `package.json` maps `#src/*` to a folder and the import lands inside that folder;
 every other finding is reported and left alone. A same-folder `./x` is never reported.
 
 No preset turns it on. A project that wants it adds, after the preset:
-`{ files: ['**\/*.{ts,tsx,mts,cts}'], rules: { 'venizia/no-parent-import': 'warn' } }`.
+`{ files: ['**\/*.{ts,tsx,mts,cts}'], rules: { '@venizia/no-parent-import': 'warn' } }`.
 
 ```ts
 export declare class NoParentImportRule {
-    static readonly NAME = "venizia/no-parent-import";
+    static readonly NAME = "@venizia/no-parent-import";
     static readonly ALIAS = "#src";
     /** One scan reads the same package.json for every file of a package. */
     private static readonly maps;
@@ -757,13 +757,13 @@ Source: `packages/dev-configs/src/linters/house/no-parent-import.rule.ts`
 
 *class*
 
-`venizia/no-return-await`. A function returns the promise (`return f()`), never `return await f()`. Where the
+`@venizia/no-return-await`. A function returns the promise (`return f()`), never `return await f()`. Where the
 `await` matters (inside `try`, `catch` or `finally`) it is written on its own line:
 `const result = await f(); return result;`. An arrow whose body is an `await` is the same: `() => f()`.
 
 ```ts
 export declare class NoReturnAwaitRule {
-    static readonly NAME = "venizia/no-return-await";
+    static readonly NAME = "@venizia/no-return-await";
     static readonly RULE: Rule.RuleModule;
     static build(opts?: {
         severity?: TRuleSeverity;
@@ -777,7 +777,7 @@ Source: `packages/dev-configs/src/linters/house/no-return-await.rule.ts`
 
 *class*
 
-`venizia/no-shadow-framework-type`. A type alias or interface written in your project under the name a `@venizia/*`
+`@venizia/no-shadow-framework-type`. A type alias or interface written in your project under the name a `@venizia/*`
 package already exports (`ValueOrPromise`, `TNullable`, `TConstValue`) is a copy of the framework's: import it.
 
 The names come from the installed packages' `.d.ts` files (see `FrameworkExports`), for the packages your nearest
@@ -788,7 +788,7 @@ original, so the replacement is the author's to check.
 
 ```ts
 export declare class NoShadowFrameworkTypeRule {
-    static readonly NAME = "venizia/no-shadow-framework-type";
+    static readonly NAME = "@venizia/no-shadow-framework-type";
     static readonly DEFAULT_MIN_LENGTH = 4;
     /** Whether an interface lists `name` (bare or through a namespace import) among the types it extends. */
     private static extendsSameName;
@@ -806,7 +806,7 @@ Source: `packages/dev-configs/src/linters/house/no-shadow-framework-type.rule.ts
 
 *class*
 
-`venizia/no-silent-catch`. A handled error leaves a trace (V-C-06). Reported: a `.catch(h)` (also `?.catch`,
+`@venizia/no-silent-catch`. A handled error leaves a trace (V-C-06). Reported: a `.catch(h)` (also `?.catch`,
 `['catch']`) whose handler is an arrow or function expression that ignores its parameter and whose body is empty
 or only gives back a constant (`() => null`, `() => undefined`, `() => ({})`, `() => []`, `() => {}`,
 `function () {}`), and a `catch` block that is empty, holds only a comment, or only assigns or returns a constant
@@ -819,7 +819,7 @@ log is a decision. A deliberate silent catch carries an `eslint-disable-next-lin
 
 ```ts
 export declare class NoSilentCatchRule {
-    static readonly NAME = "venizia/no-silent-catch";
+    static readonly NAME = "@venizia/no-silent-catch";
     static readonly RULE: Rule.RuleModule;
     static build(opts?: {
         severity?: TRuleSeverity;
@@ -833,13 +833,13 @@ Source: `packages/dev-configs/src/linters/house/no-silent-catch.rule.ts`
 
 *class*
 
-`venizia/no-unbraced-case`: the statements of a `case` or `default` sit in one block, `case 'a': { ... }`.
+`@venizia/no-unbraced-case`: the statements of a `case` or `default` sit in one block, `case 'a': { ... }`.
 It is the ESLint twin of oxlint's `unicorn/switch-case-braces` (`SwitchCaseBracesRule`, mode `always`).
 Stacked labels with no statements stay as written. The fix wraps the statements in `{ }`.
 
 ```ts
 export declare class NoUnbracedCaseRule {
-    static readonly NAME = "venizia/no-unbraced-case";
+    static readonly NAME = "@venizia/no-unbraced-case";
     static readonly RULE: Rule.RuleModule;
     static build(opts?: {
         severity?: TRuleSeverity;
@@ -867,7 +867,7 @@ Source: `packages/dev-configs/src/linters/padding.ts`
 
 *class*
 
-`venizia/prefer-framework-api`. A browser API that `@venizia/ardor-react` wraps in a hook (`window.matchMedia`, a
+`@venizia/prefer-framework-api`. A browser API that `@venizia/ardor-react` wraps in a hook (`window.matchMedia`, a
 `ResizeObserver`, `navigator.onLine`, a `beforeunload` listener, `navigator.clipboard.writeText`, `window.confirm`...) is
 used through the hook, which owns the subscribe and cleanup. The rows are `BrowserApiPatterns.TABLE`; the message names
 the hook. The rule is for apps: ardor-react's own source, where the hooks are written, turns it off.
@@ -879,7 +879,7 @@ purpose take an `eslint-disable-next-line` with the reason, or `ignore` lists pa
 
 ```ts
 export declare class PreferFrameworkApiRule {
-    static readonly NAME = "venizia/prefer-framework-api";
+    static readonly NAME = "@venizia/prefer-framework-api";
     /** The dotted text of `a.b.c` (identifiers only), or `undefined` for anything else. */
     private static pathOf;
     /** `window.navigator.onLine` is `navigator.onLine`. */
@@ -918,7 +918,7 @@ Source: `packages/dev-configs/src/linters/house/prefer-framework-api.rule.ts`
 
 *class*
 
-`venizia/prefer-promise-sleep`. A sleep written by hand, `new Promise((resolve) => setTimeout(resolve, ms))`, is
+`@venizia/prefer-promise-sleep`. A sleep written by hand, `new Promise((resolve) => setTimeout(resolve, ms))`, is
 `PromiseUtility.sleep({ ms })` (`@venizia/ignis-helpers/core`). Only that exact shape is reported: a callback that
 does anything else is not a sleep.
 
@@ -927,7 +927,7 @@ the fix off.
 
 ```ts
 export declare class PreferPromiseSleepRule {
-    static readonly NAME = "venizia/prefer-promise-sleep";
+    static readonly NAME = "@venizia/prefer-promise-sleep";
     static readonly DEFAULT_SOURCE = "@venizia/ignis-helpers/core";
     /** The `setTimeout(<resolve>, <delay>)` call a sleep callback consists of, or `undefined`. */
     private static delayOf;
@@ -949,7 +949,7 @@ Source: `packages/dev-configs/src/linters/house/prefer-promise-sleep.rule.ts`
 
 *class*
 
-`venizia/prefer-tnullable`. `X | null | undefined` is `TNullable<X>`, the framework's own name for it
+`@venizia/prefer-tnullable`. `X | null | undefined` is `TNullable<X>`, the framework's own name for it
 (`@venizia/ignis-helpers/common`). A union with only `null` or only `undefined` is not reported: those say
 something different.
 
@@ -958,7 +958,7 @@ The fix rewrites the union and adds the import. `source` is where `TNullable` co
 
 ```ts
 export declare class PreferTNullableRule {
-    static readonly NAME = "venizia/prefer-tnullable";
+    static readonly NAME = "@venizia/prefer-tnullable";
     static readonly DEFAULT_SOURCE = "@venizia/ignis-helpers/common";
     /**
      * The source of a union member with the parentheses that belong to it: a function, constructor or conditional type is

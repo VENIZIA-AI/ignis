@@ -68,7 +68,7 @@ describe('devz codemod async-style', () => {
   ].join('\n');
   const RETURN_AWAIT = 'export const run = async () => {\n  return await f();\n};\n';
   const RETURN_AWAIT_FIXED = 'export const run = async () => {\n  return f();\n};\n';
-  // The catch reads the error: `catch { return 0; }` would be a venizia/no-silent-catch finding.
+  // The catch reads the error: `catch { return 0; }` would be a @venizia/no-silent-catch finding.
   const RETURN_IN_TRY = [
     'export const run = async () => {',
     '  try {',
@@ -166,7 +166,7 @@ describe('devz codemod async-style', () => {
     expect(result).toBe(0);
     expect(read('src/a.ts')).toBe(TERNARY);
     expect(warnings.join('\n')).toContain('src/a.ts:2:');
-    expect(warnings.join('\n')).toContain('venizia/no-inline-await');
+    expect(warnings.join('\n')).toContain('@venizia/no-inline-await');
     expect(logs.join('\n')).toContain(
       'devz codemod async-style: 0 file(s) changed, 0 fix(es) applied, 1 left unfixed',
     );
@@ -205,8 +205,8 @@ describe('devz codemod async-style', () => {
     expect(result).toBe(0);
     expect(read('src/a.ts')).toBe(CHAIN_NOT_FIXABLE);
     expect(read('src/b.ts')).toContain('} catch {\n    user = null;\n  }');
-    expect(warnings.join('\n')).toContain('src/a.ts:2:16  venizia/no-await-promise-chain');
-    expect(warnings.join('\n')).toContain('src/b.ts:6:5  venizia/no-silent-catch');
+    expect(warnings.join('\n')).toContain('src/a.ts:2:16  @venizia/no-await-promise-chain');
+    expect(warnings.join('\n')).toContain('src/b.ts:6:5  @venizia/no-silent-catch');
     expect(logs.join('\n')).toContain('1 file(s) changed, 1 fix(es) applied, 2 left unfixed');
   });
 
@@ -218,7 +218,7 @@ describe('devz codemod async-style', () => {
     const result = await code(['--check']);
     expect(result).toBe(1);
     expect(read('src/a.ts')).toBe(source);
-    expect(warnings.join('\n')).toContain('src/a.ts:2:16  venizia/no-silent-catch');
+    expect(warnings.join('\n')).toContain('src/a.ts:2:16  @venizia/no-silent-catch');
   });
 
   test('the chain fix is idempotent, and --check is 0 once nothing is left', async () => {
@@ -384,7 +384,7 @@ describe('devz codemod async-style', () => {
   });
 
   test('a disable directive for another rule is kept, though that rule is not run here', async () => {
-    const directive = '  // eslint-disable-next-line venizia/no-new-error -- a reason';
+    const directive = '  // eslint-disable-next-line @venizia/no-new-error -- a reason';
     const source = [
       'export const run = async () => {',
       directive,

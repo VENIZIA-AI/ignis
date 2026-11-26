@@ -69,7 +69,7 @@ export interface IPurityOptions {
 const DEFAULT_WORKSPACE_SCOPE = '@venizia/';
 
 /** The one place this engine builds an `Error`: `getError` would make dev-configs depend on inversion, which depends on dev-configs. */
-// eslint-disable-next-line venizia/no-new-error -- getError would be a dev-configs -> inversion cycle
+// eslint-disable-next-line @venizia/no-new-error -- getError would be a dev-configs -> inversion cycle
 const purityError = (message: string): Error => new Error(message);
 
 /** `types` describes the entry, it is not a runtime target; `./package.json` is not code. */

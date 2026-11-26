@@ -684,10 +684,10 @@ house-rules-framework-use:
       await PromiseUtility.sleep({ ms: 100 });
     steps:
       - "Run eslint --fix on a tree that was lint-clean: it then changes only what prefer-tnullable and prefer-promise-sleep report. Review the diff before you commit it."
-      - "An app that does not depend on @venizia/ignis-helpers sets the module the names are imported from, or turns the fix off: { rules: { 'venizia/prefer-tnullable': ['error', { source: '#src/types' }] } } (source: null reports without a fix)."
+      - "An app that does not depend on @venizia/ignis-helpers sets the module the names are imported from, or turns the fix off: { rules: { '@venizia/prefer-tnullable': ['error', { source: '#src/types' }] } } (source: null reports without a fix)."
       - "no-shadow-framework-type has no fix: replace your own ValueOrPromise, TNullable, TConstValue and the like with the framework's (the message names the module), or list a type that is yours on purpose in { allow: ['Name'] }."
       - "prefer-framework-api (reactHouseConfigs) has no fix: replace the browser API with the @venizia/ardor-react hook the message names, keep one on purpose with an eslint-disable-next-line and the reason, or list its id in { ignore: ['confirm'] }."
-      - "Keep a hand-written pattern on purpose with an eslint-disable-next-line and the reason, or demote a rule after ...houseConfigs: { rules: { 'venizia/prefer-tnullable': 'warn' } }."
+      - "Keep a hand-written pattern on purpose with an eslint-disable-next-line and the reason, or demote a rule after ...houseConfigs: { rules: { '@venizia/prefer-tnullable': 'warn' } }."
   downgrade:
     steps:
       - "Pin @venizia/dev-configs to the release before this one, or set the four rules to 'off' after ...houseConfigs."

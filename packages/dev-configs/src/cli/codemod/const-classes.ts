@@ -665,7 +665,7 @@ export class ConstClasses {
 const USAGE = `Usage: devz codemod const-classes [paths...] [--write | --check] [--map <file>] [--emit-map <file>] [--import-from <module>] [--include-tests]
 
 Turns a string-literal union in an exported declaration into a const class (it extends ConstClass) plus
-\`TConstValue<typeof X>\`, the shape the venizia/const-class-values lint rule asks for. It handles an
+\`TConstValue<typeof X>\`, the shape the @venizia/const-class-values lint rule asks for. It handles an
 exported type alias and a property of an exported interface or object type. The values stay the same,
 so every existing literal still type-checks and no call site changes.
 

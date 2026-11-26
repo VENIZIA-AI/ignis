@@ -736,7 +736,7 @@ describe('ApplicationBootAssertion.assert - a failing component names the way ou
 
     try {
       await ApplicationBootAssertion.assert({ application });
-      // eslint-disable-next-line venizia/no-silent-catch -- the boot fails on purpose; this test checks only the logged hints, not the error
+      // eslint-disable-next-line @venizia/no-silent-catch -- the boot fails on purpose; this test checks only the logged hints, not the error
     } catch {
       // The rejection is expected.
     }
@@ -750,7 +750,7 @@ describe('ApplicationBootAssertion.assert - a failing component names the way ou
 
     try {
       await ApplicationBootAssertion.assert({ application });
-      // eslint-disable-next-line venizia/no-silent-catch -- the boot fails on purpose; this test checks only the logged hints, not the error
+      // eslint-disable-next-line @venizia/no-silent-catch -- the boot fails on purpose; this test checks only the logged hints, not the error
     } catch {
       // The rejection is expected.
     }
@@ -823,7 +823,7 @@ describe('ApplicationBootAssertion.assert - guards', () => {
 
     try {
       await ApplicationBootAssertion.assert({ application: bad });
-      // eslint-disable-next-line venizia/no-silent-catch -- the first call fails on purpose; the test asserts the second call, not this error
+      // eslint-disable-next-line @venizia/no-silent-catch -- the first call fails on purpose; the test asserts the second call, not this error
     } catch {
       // The rejection is expected.
     }
@@ -847,7 +847,7 @@ describe('ApplicationBootAssertion.assert - guards', () => {
 
     try {
       await application.initialize();
-      // eslint-disable-next-line venizia/no-silent-catch -- this boot only marks the application as booted (it fails at the datasource); the test asserts the helper's refusal, not this error
+      // eslint-disable-next-line @venizia/no-silent-catch -- this boot only marks the application as booted (it fails at the datasource); the test asserts the helper's refusal, not this error
     } catch {
       // The rejection is expected.
     }
@@ -901,7 +901,7 @@ describe('ApplicationBootAssertion.assert - guards', () => {
 
     try {
       await ApplicationBootAssertion.assert({ application: failed });
-      // eslint-disable-next-line venizia/no-silent-catch -- the failing call is on purpose; the test asserts what is restored afterwards, not this error
+      // eslint-disable-next-line @venizia/no-silent-catch -- the failing call is on purpose; the test asserts what is restored afterwards, not this error
     } catch {
       // The rejection is expected.
     }

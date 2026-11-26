@@ -19,7 +19,7 @@ const configFor = (opts: { name: string; options?: Linter.RuleEntry }): Linter.C
   {
     files: ['**/*.ts'],
     languageOptions: { parser: tseslint.parser as Linter.Parser },
-    plugins: { venizia: houseEslintPlugin },
+    plugins: { '@venizia': houseEslintPlugin },
     rules: { [opts.name]: opts.options ?? ['error'] },
   },
 ];
@@ -41,7 +41,7 @@ const run = (opts: {
   };
 };
 
-describe('venizia/prefer-tnullable', () => {
+describe('@venizia/prefer-tnullable', () => {
   const NAME = PreferTNullableRule.NAME;
 
   test('X | null | undefined, in any order, becomes TNullable<X> and the import is added', () => {
@@ -248,7 +248,7 @@ describe('venizia/prefer-tnullable', () => {
   });
 });
 
-describe('venizia/prefer-promise-sleep', () => {
+describe('@venizia/prefer-promise-sleep', () => {
   const NAME = PreferPromiseSleepRule.NAME;
   const IMPORT = `import { PromiseUtility } from '@venizia/ignis-helpers/core';`;
 
@@ -386,7 +386,7 @@ describe('venizia/prefer-promise-sleep', () => {
   });
 });
 
-describe('venizia/no-parent-import', () => {
+describe('@venizia/no-parent-import', () => {
   const NAME = NoParentImportRule.NAME;
   const roots: Array<string> = [];
 
@@ -466,7 +466,7 @@ describe('venizia/no-parent-import', () => {
 
       try {
         Bun.resolveSync(specifier, join(cwd, 'src', 'a', 'b'));
-        // eslint-disable-next-line venizia/no-silent-catch -- the failure is the answer being asked for
+        // eslint-disable-next-line @venizia/no-silent-catch -- the failure is the answer being asked for
       } catch {
         bun = false;
       }
@@ -608,7 +608,7 @@ describe('venizia/no-parent-import', () => {
         .filter((message) => message.ruleId === NAME || message.fatal);
     const optIn: Linter.Config = {
       files: ['**/*.{ts,tsx,mts,cts}'],
-      rules: { 'venizia/no-parent-import': 'warn' },
+      rules: { '@venizia/no-parent-import': 'warn' },
     };
 
     expect(findings(houseConfigs)).toHaveLength(0);

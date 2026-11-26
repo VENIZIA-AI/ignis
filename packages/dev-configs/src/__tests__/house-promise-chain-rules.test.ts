@@ -36,7 +36,7 @@ const CHAIN_ONLY: Linter.Config[] = [
   PADDING_OFF,
   {
     files: ['**/*.ts'],
-    plugins: { venizia: houseEslintPlugin },
+    plugins: { '@venizia': houseEslintPlugin },
     rules: {
       [CHAIN]: 'error',
       [NoInlineAwaitRule.NAME]: 'off',
@@ -86,7 +86,7 @@ const typeErrors = (code: string): string[] => {
     );
 };
 
-describe('venizia/no-await-promise-chain: what is reported', () => {
+describe('@venizia/no-await-promise-chain: what is reported', () => {
   test('each awaited chain shape is reported once', () => {
     const shapes = [
       'await f().catch(h);',
@@ -131,7 +131,7 @@ describe('venizia/no-await-promise-chain: what is reported', () => {
   });
 });
 
-describe('venizia/no-await-promise-chain: what is allowed', () => {
+describe('@venizia/no-await-promise-chain: what is allowed', () => {
   test('a chain that is not awaited, and an await of no chain, are silent', () => {
     const shapes = [
       'return f().then(g);',
@@ -186,7 +186,7 @@ describe('venizia/no-await-promise-chain: what is allowed', () => {
   });
 });
 
-describe('venizia/no-await-promise-chain: the fix', () => {
+describe('@venizia/no-await-promise-chain: the fix', () => {
   test('a const without annotation becomes a let assigned in try and in catch', () => {
     const out = fixChainOnly(wrap('const value = await f().catch(() => null);\n  return value;'));
 
@@ -338,7 +338,7 @@ describe('venizia/no-await-promise-chain: the fix', () => {
   });
 });
 
-describe('venizia/no-await-promise-chain: the fixed code typechecks', () => {
+describe('@venizia/no-await-promise-chain: the fixed code typechecks', () => {
   const shapes = [
     // annotated, read in a nested function
     'const value: string | null = await f().catch(() => null);\nconst read = () => value;\nread();',
@@ -388,7 +388,7 @@ describe('venizia/no-await-promise-chain: the fixed code typechecks', () => {
   });
 });
 
-describe('venizia/no-silent-catch', () => {
+describe('@venizia/no-silent-catch', () => {
   test('each silent handler and catch block is reported once', () => {
     const shapes = [
       'f().catch(() => null);',
@@ -452,7 +452,7 @@ describe('venizia/no-silent-catch', () => {
 
   test('a disable comment with a reason is the way to keep one', () => {
     const code = wrap(
-      'f()\n    // eslint-disable-next-line venizia/no-silent-catch -- a missing cache entry is expected\n    .catch(() => null);',
+      'f()\n    // eslint-disable-next-line @venizia/no-silent-catch -- a missing cache entry is expected\n    .catch(() => null);',
     );
 
     expect(findings({ code, ruleId: SILENT })).toEqual([]);

@@ -135,7 +135,7 @@ describe('SocketIOClientHelper', () => {
     for (const client of activeClients) {
       try {
         client.shutdown();
-        // eslint-disable-next-line venizia/no-silent-catch -- best-effort cleanup between tests: a client that fails to shut down only loses its error text, the next test builds new ones
+        // eslint-disable-next-line @venizia/no-silent-catch -- best-effort cleanup between tests: a client that fails to shut down only loses its error text, the next test builds new ones
       } catch {
         // ignore cleanup errors
       }
@@ -1104,7 +1104,7 @@ describe('SocketIOClientHelper - Edge Cases', () => {
     for (const client of activeClients) {
       try {
         client.shutdown();
-        // eslint-disable-next-line venizia/no-silent-catch -- best-effort cleanup between tests: a client that fails to shut down only loses its error text, the next test builds new ones
+        // eslint-disable-next-line @venizia/no-silent-catch -- best-effort cleanup between tests: a client that fails to shut down only loses its error text, the next test builds new ones
       } catch {
         // ignore cleanup errors
       }

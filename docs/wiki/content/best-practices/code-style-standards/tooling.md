@@ -103,7 +103,7 @@ export default defineConfig(oxlintConfigs);
 
 **Includes:**
 - The ESLint recommended and typescript-eslint rules, ported
-- `unicorn/switch-case-braces: ['error', 'always']` and `curly: ['error', 'all']`; the ESLint-only `eslintConfigs` preset runs the same switch-case check as `venizia/no-unbraced-case`
+- `unicorn/switch-case-braces: ['error', 'always']` and `curly: ['error', 'all']`; the ESLint-only `eslintConfigs` preset runs the same switch-case check as `@venizia/no-unbraced-case`
 - `@typescript-eslint/no-explicit-any` off by default
 
 **Customization:** each rule has a class in `@venizia/dev-configs/linters`. A class exposes the rule's `NAME` and a `build()` that returns its entry with the IGNIS defaults. Pass only what you change:
@@ -133,9 +133,9 @@ The rule classes and their options are in the [package README](https://github.co
 
 ## ESLint Configuration (what oxlint cannot run)
 
-ESLint runs what oxlint cannot express: `@typescript-eslint/naming-convention`, and the house rules - `venizia/max-params-own` (a function we write takes at most 5 positional parameters; beyond that, one options object), `venizia/no-new-error` (throw through `getError`, never `new Error`), `venizia/prefer-tnullable` (`X | null | undefined` is `TNullable<X>`, autofixed with its import), `venizia/prefer-promise-sleep` (a hand-written `new Promise(resolve => setTimeout(resolve, ms))` is `PromiseUtility.sleep({ ms })`, autofixed; off in tests), `venizia/no-shadow-framework-type` (a type or interface named like a type the `@venizia/*` packages you depend on export, such as `TNullable` or `ValueOrPromise`, is imported instead; message only, option `allow`; off in tests; it reads the installed packages once per run, so restart the ESLint server after an upgrade), `venizia/prefer-framework-api` (`reactHouseConfigs`: a browser API that `@venizia/ardor-react` wraps in a hook - `window.matchMedia`, a `ResizeObserver`, `navigator.onLine`, a `beforeunload` listener, `navigator.clipboard.writeText`, `window.confirm` - is used through the hook; message only, and only inside a component or a hook; option `ignore` takes pattern ids; off in tests, and off in ardor-react's own hook sources), and two that only warn: `venizia/const-class-values` (a string-literal union in an exported declaration is a const class plus `TConstValue`) and `@typescript-eslint/consistent-type-assertions` (`as X` casts; `as const` and `satisfies` pass).
+ESLint runs what oxlint cannot express: `@typescript-eslint/naming-convention`, and the house rules - `@venizia/max-params-own` (a function we write takes at most 5 positional parameters; beyond that, one options object), `@venizia/no-new-error` (throw through `getError`, never `new Error`), `@venizia/prefer-tnullable` (`X | null | undefined` is `TNullable<X>`, autofixed with its import), `@venizia/prefer-promise-sleep` (a hand-written `new Promise(resolve => setTimeout(resolve, ms))` is `PromiseUtility.sleep({ ms })`, autofixed; off in tests), `@venizia/no-shadow-framework-type` (a type or interface named like a type the `@venizia/*` packages you depend on export, such as `TNullable` or `ValueOrPromise`, is imported instead; message only, option `allow`; off in tests; it reads the installed packages once per run, so restart the ESLint server after an upgrade), `@venizia/prefer-framework-api` (`reactHouseConfigs`: a browser API that `@venizia/ardor-react` wraps in a hook - `window.matchMedia`, a `ResizeObserver`, `navigator.onLine`, a `beforeunload` listener, `navigator.clipboard.writeText`, `window.confirm` - is used through the hook; message only, and only inside a component or a hook; option `ignore` takes pattern ids; off in tests, and off in ardor-react's own hook sources), and two that only warn: `@venizia/const-class-values` (a string-literal union in an exported declaration is a const class plus `TConstValue`) and `@typescript-eslint/consistent-type-assertions` (`as X` casts; `as const` and `satisfies` pass).
 
-`venizia/no-parent-import` (an import starting with `../` is written `#src/...`; autofixed when `package.json` maps `#src/*`) is off in every preset. Turn it on after the preset: `{ files: ['**/*.{ts,tsx,mts,cts}'], rules: { 'venizia/no-parent-import': 'warn' } }`.
+`@venizia/no-parent-import` (an import starting with `../` is written `#src/...`; autofixed when `package.json` maps `#src/*`) is off in every preset. Turn it on after the preset: `{ files: ['**/*.{ts,tsx,mts,cts}'], rules: { '@venizia/no-parent-import': 'warn' } }`.
 
 **`.configs/lints/eslint.config.mjs`:**
 ```typescript
@@ -325,7 +325,7 @@ Every codemod below is a dry run unless you pass `--write`, and `--check` exits 
 
 **`devz codemod const-classes [paths...] [--write [--all] \| --check]`**
 
-- Turns a string-literal union in an exported type alias, or in a property of an exported interface or object type, into a const class (it extends `ConstClass`) plus `TConstValue<typeof X>`, the shape the `venizia/const-class-values` rule asks for. It also moves an existing class with a `SCHEME_SET` and a plain `isValid` onto `ConstClass` and rewrites `X.SCHEME_SET.has(v)` to `X.isValid(v)` and `[...X.SCHEME_SET]` to `X.values()`; any other use of `SCHEME_SET` on a moved class is listed for you to change.
+- Turns a string-literal union in an exported type alias, or in a property of an exported interface or object type, into a const class (it extends `ConstClass`) plus `TConstValue<typeof X>`, the shape the `@venizia/const-class-values` rule asks for. It also moves an existing class with a `SCHEME_SET` and a plain `isValid` onto `ConstClass` and rewrites `X.SCHEME_SET.has(v)` to `X.isValid(v)` and `[...X.SCHEME_SET]` to `X.values()`; any other use of `SCHEME_SET` on a moved class is listed for you to change.
 - It writes no comment of its own above the class.
 - It proposes the class and member names and prints them; `--emit-map` writes them to a file you edit, `--map` applies your names.
 - `--write` needs a path or `--all` (the whole tree). The values stay the same, so no call site changes.
@@ -450,7 +450,7 @@ The React tier adds these on top of the browser tier:
 | Adds | Setting |
 |---|---|
 | React correctness (`jsx-key`, `no-children-prop`, ... - 13 rules) and `jsx-a11y` (15 rules) | `error`, `.jsx`/`.tsx` |
-| `venizia/no-leaked-render` (ESLint, `reactHouseConfigs`) | `error`; `{count && <X />}` draws `0`, write `count ? <X /> : null` |
+| `@venizia/no-leaked-render` (ESLint, `reactHouseConfigs`) | `error`; `{count && <X />}` draws `0`, write `count ? <X /> : null` |
 | `react/rules-of-hooks`, `react/exhaustive-deps` | `error`, every source file |
 | `typescript/consistent-type-imports` | `['error', { prefer: 'type-imports' }]` |
 | `naming-convention` (ESLint) | the base rule, plus PascalCase functions (`function App()`) on `.jsx`/`.tsx` |

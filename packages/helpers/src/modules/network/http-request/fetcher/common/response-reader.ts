@@ -93,7 +93,7 @@ export class HttpResponseReader {
     try {
       const result = await opts.response.text();
       text = result;
-      // eslint-disable-next-line venizia/no-silent-catch -- an unreadable body is read as no text; the status alone still describes the failure
+      // eslint-disable-next-line @venizia/no-silent-catch -- an unreadable body is read as no text; the status alone still describes the failure
     } catch {
       text = '';
     }
@@ -102,7 +102,7 @@ export class HttpResponseReader {
 
     try {
       body = text ? JSON.parse(text) : undefined;
-      // eslint-disable-next-line venizia/no-silent-catch -- a body that is not JSON yields `{}`; the status alone still describes the failure
+      // eslint-disable-next-line @venizia/no-silent-catch -- a body that is not JSON yields `{}`; the status alone still describes the failure
     } catch {
       return {};
     }
@@ -347,7 +347,7 @@ export class HttpResponseReader {
         if (decoded !== '') {
           return { type, filename: decoded };
         }
-        // eslint-disable-next-line venizia/no-silent-catch -- a malformed `filename*` falls through to the plain `filename` parameter; only the extended name is lost
+        // eslint-disable-next-line @venizia/no-silent-catch -- a malformed `filename*` falls through to the plain `filename` parameter; only the extended name is lost
       } catch {
         // A malformed sequence is not worth failing a download over - fall through to `filename`.
       }

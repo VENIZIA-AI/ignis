@@ -129,7 +129,7 @@ export class RequestUtility {
 
       try {
         fs.rmSync(file.path, { force: true });
-        // eslint-disable-next-line venizia/no-silent-catch -- cleanup of a failed request: one file that will not go must not hide the original error or stop the others
+        // eslint-disable-next-line @venizia/no-silent-catch -- cleanup of a failed request: one file that will not go must not hide the original error or stop the others
       } catch {
         continue;
       }

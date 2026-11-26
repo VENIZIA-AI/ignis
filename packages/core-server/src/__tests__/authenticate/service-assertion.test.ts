@@ -440,7 +440,7 @@ describe('the replay window is wider than the acceptance window', () => {
       ).verify({ token, method: 'GET', path: '/v1/api/x' });
 
       return true;
-      // eslint-disable-next-line venizia/no-silent-catch -- a refused token IS the answer this probe gives (false); the tests assert only accepted or refused, not why
+      // eslint-disable-next-line @venizia/no-silent-catch -- a refused token IS the answer this probe gives (false); the tests assert only accepted or refused, not why
     } catch {
       return false;
     }

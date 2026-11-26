@@ -170,7 +170,7 @@ export class ArtifactGroup implements IArtifactGroup {
   /** The module that declared the group, read from the call stack. */
   private static callSite(): string | undefined {
     // A stack trace, not a failure: reading the call site needs an Error object, and nothing is thrown.
-    // eslint-disable-next-line venizia/no-new-error
+    // eslint-disable-next-line @venizia/no-new-error
     return ArtifactGroup.siteFromStack({ stack: new Error().stack ?? '' });
   }
 

@@ -127,7 +127,7 @@ try {
 }
 ```
 
-A handler or a `catch` block counts as silent when it does nothing, holds only a comment, or only returns or assigns a constant without reading the error. Any call (a log, a cleanup, a fallback), a `throw`, or a read of the error makes it handled. When a silent catch is what you want, keep it with `// eslint-disable-next-line venizia/no-silent-catch -- <the reason>`.
+A handler or a `catch` block counts as silent when it does nothing, holds only a comment, or only returns or assigns a constant without reading the error. Any call (a log, a cleanup, a fallback), a `throw`, or a read of the error makes it handled. When a silent catch is what you want, keep it with `// eslint-disable-next-line @venizia/no-silent-catch -- <the reason>`.
 
 ESLint `no-empty` is different: it reports only an empty block, lets a block with a comment pass, and never sees `.catch(() => null)`. Both report `catch {}`.
 
@@ -165,7 +165,7 @@ import { houseConfigs } from '@venizia/dev-configs/linters';
 export default houseConfigs;
 ```
 
-A project that adds its own entries spreads the array: `[...houseConfigs, { ... }]`. A React project uses `reactHouseConfigs` the same way: it carries the five async rules and the two hook rules (`venizia/no-async-hook-callback`, `venizia/effect-cleanup-consistency`).
+A project that adds its own entries spreads the array: `[...houseConfigs, { ... }]`. A React project uses `reactHouseConfigs` the same way: it carries the five async rules and the two hook rules (`@venizia/no-async-hook-callback`, `@venizia/effect-cleanup-consistency`).
 
 To fix an existing codebase, run the codemod. It applies the safe fixes of `no-inline-await`, `no-return-await`, `no-await-new-chain` and `no-await-promise-chain`, and lists the rest with file, line and rule, including every silent catch, which it never fixes:
 

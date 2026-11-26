@@ -22,7 +22,7 @@ export class SpawnUtility {
     });
 
     if (result.exitedDueToTimeout) {
-      // eslint-disable-next-line venizia/no-new-error -- getError would be a dev-configs -> inversion cycle
+      // eslint-disable-next-line @venizia/no-new-error -- getError would be a dev-configs -> inversion cycle
       throw new Error(
         `[SpawnUtility.spawnSyncBounded] did not exit within ${timeout} ms, killed | cmd: ${opts.cmd.join(' ').slice(0, 200)}`,
       );

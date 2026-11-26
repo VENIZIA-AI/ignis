@@ -4,8 +4,8 @@ import { houseConfigs } from '../linters/house';
 import { PADDING_OFF } from './padding-off';
 
 const CONFIGS = [...houseConfigs, PADDING_OFF];
-const INLINE = 'venizia/no-inline-await';
-const RETURN = 'venizia/no-return-await';
+const INLINE = '@venizia/no-inline-await';
+const RETURN = '@venizia/no-return-await';
 
 /** The findings of `ruleId` on `code`, as if it lived in `filename`. */
 const findings = (opts: { code: string; ruleId: string; filename?: string }) => {
@@ -20,7 +20,7 @@ const findings = (opts: { code: string; ruleId: string; filename?: string }) => 
 const fixed = (opts: { code: string; filename?: string }) =>
   new Linter().verifyAndFix(opts.code, CONFIGS, { filename: opts.filename ?? 'src/subject.ts' });
 
-describe('venizia/no-inline-await: where an await is allowed', () => {
+describe('@venizia/no-inline-await: where an await is allowed', () => {
   test('a whole statement and a whole declaration initializer are silent', () => {
     const code = [
       'async function run() {',
@@ -90,7 +90,7 @@ describe('venizia/no-inline-await: where an await is allowed', () => {
   });
 });
 
-describe('venizia/no-inline-await: the fix', () => {
+describe('@venizia/no-inline-await: the fix', () => {
   const wrap = (body: string) => `async function run() {\n  ${body}\n}`;
 
   test('an expect(await f()) becomes a declaration and a plain expect', () => {
@@ -173,7 +173,7 @@ describe('venizia/no-inline-await: the fix', () => {
   });
 });
 
-describe('venizia/no-return-await', () => {
+describe('@venizia/no-return-await', () => {
   const wrap = (body: string) => `async function run() {\n  ${body}\n}`;
 
   test('return await outside a try is reported and becomes return f()', () => {

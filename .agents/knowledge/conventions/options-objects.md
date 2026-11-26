@@ -15,7 +15,7 @@ repositories, controllers, the container, and internal utilities alike. It is th
 - **A second parameter is allowed only where the first object cannot carry it.** The default is
   still one object. A second parameter needs a reason the first object cannot hold it, not a
   preference.
-- **Never more than 5 parameters.** `venizia/max-params-own` (`houseConfigs` in
+- **Never more than 5 parameters.** `@venizia/max-params-own` (`houseConfigs` in
   `@venizia/dev-configs/linters`, default 5) enforces the cap in lint. It skips signatures that are not
   ours: an inline callback handed to a call or a JSX prop, a function a declared type fixes, and a
   constructor whose every parameter is `@inject`ed - the container fills those positionally

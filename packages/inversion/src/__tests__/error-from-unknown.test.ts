@@ -19,7 +19,7 @@ const isPlainCharacter = (char: string): boolean => {
 
 const throwing = (): never => {
   // The point of the fixture is a value that blows up when touched, so it must be a raw throw.
-  // eslint-disable-next-line venizia/no-new-error -- a foreign failure, not a framework error
+  // eslint-disable-next-line @venizia/no-new-error -- a foreign failure, not a framework error
   throw new Error('touched');
 };
 

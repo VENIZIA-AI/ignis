@@ -74,14 +74,14 @@ export class BodyLimit {
         chunks.push(value.subarray(0, maxBytes - received));
         received += chunks[chunks.length - 1].length;
       }
-      // eslint-disable-next-line venizia/no-silent-catch -- the status is the answer; a body that broke off is reported as the shorter body it was
+      // eslint-disable-next-line @venizia/no-silent-catch -- the status is the answer; a body that broke off is reported as the shorter body it was
     } catch {
       // The chunks that arrived stand.
     }
 
     try {
       await reader.cancel();
-      // eslint-disable-next-line venizia/no-silent-catch -- the stream is released as far as it can be; nothing is left to report
+      // eslint-disable-next-line @venizia/no-silent-catch -- the stream is released as far as it can be; nothing is left to report
     } catch {
       // Already closed or errored.
     }

@@ -16,7 +16,7 @@ const findings = (opts: { code: string; ruleId: string; filename?: string }) => 
     .filter((message) => message.ruleId === ruleId);
 };
 
-describe('venizia/no-async-hook-callback', () => {
+describe('@venizia/no-async-hook-callback', () => {
   const flagged = (code: string) => findings({ code, ruleId: NoAsyncHookCallbackRule.NAME });
 
   test('reports an async arrow passed to a hook', () => {
@@ -92,7 +92,7 @@ describe('venizia/no-async-hook-callback', () => {
   });
 });
 
-describe('venizia/effect-cleanup-consistency', () => {
+describe('@venizia/effect-cleanup-consistency', () => {
   const flagged = (code: string) => findings({ code, ruleId: EffectCleanupConsistencyRule.NAME });
 
   test('passes a callback that returns nothing', () => {

@@ -637,7 +637,7 @@ export abstract class AbstractNetworkFetchableHelper<
   private parseUrl(opts: { url: string }): URL {
     try {
       return new URL(opts.url);
-      // eslint-disable-next-line venizia/no-silent-catch -- rethrown below as a typed refusal that names the url
+      // eslint-disable-next-line @venizia/no-silent-catch -- rethrown below as a typed refusal that names the url
     } catch {
       throw getError({
         error: UrlSafetyErrors.URL_REFUSED,
@@ -657,7 +657,7 @@ export abstract class AbstractNetworkFetchableHelper<
   }): URL {
     try {
       return new URL(opts.location, opts.from);
-      // eslint-disable-next-line venizia/no-silent-catch -- rethrown below as a typed error that carries the raw Location
+      // eslint-disable-next-line @venizia/no-silent-catch -- rethrown below as a typed error that carries the raw Location
     } catch {
       throw new UrlFetchError<RS>({
         message: `[fetch] Redirect location is not a valid url | status: ${opts.status} | url: ${opts.url}`,

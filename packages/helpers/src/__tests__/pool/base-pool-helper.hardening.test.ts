@@ -563,7 +563,7 @@ describe('BasePoolHelper — maxWaitingClients boundaries', () => {
 
     expect(err).toBeDefined();
     expect((err as Error).message).toContain('Too many waiting clients');
-    // eslint-disable-next-line venizia/no-silent-catch -- the waiter's rejection is irrelevant to this test; only an unhandled-rejection warning is lost
+    // eslint-disable-next-line @venizia/no-silent-catch -- the waiter's rejection is irrelevant to this test; only an unhandled-rejection warning is lost
     w1.catch(() => undefined); // avoid unhandled rejection on the still-pending waiter
   });
 });
@@ -733,7 +733,7 @@ describe('BasePoolHelper — mixed-op stress', () => {
           })(),
         );
       } else if (mode === 1) {
-        // eslint-disable-next-line venizia/no-silent-catch -- stress test: a rejected use() is tolerated here, the pool invariants asserted afterwards are the check
+        // eslint-disable-next-line @venizia/no-silent-catch -- stress test: a rejected use() is tolerated here, the pool invariants asserted afterwards are the check
         tasks.push(pool.use({ execution: async (r) => r }).catch(() => undefined));
       } else {
         tasks.push(

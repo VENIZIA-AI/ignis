@@ -3,7 +3,7 @@ import type { TRuleSeverity } from '../rules/common';
 import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 
 /**
- * `venizia/no-new-error`. An error is thrown through `getError({ message })` (or an `ApplicationError`),
+ * `@venizia/no-new-error`. An error is thrown through `getError({ message })` (or an `ApplicationError`),
  * never `new Error(...)` or `Error(...)`: only an ApplicationError carries the status, the message code and
  * args, and the `extra` every IGNIS layer reads.
  */

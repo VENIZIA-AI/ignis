@@ -18,9 +18,9 @@ import { PreferFrameworkApiRule } from './prefer-framework-api.rule';
 import { PreferPromiseSleepRule } from './prefer-promise-sleep.rule';
 import { PreferTNullableRule } from './prefer-tnullable.rule';
 
-/** The ESLint plugin that carries the house rules oxlint cannot express, registered as `venizia`. */
+/** The ESLint plugin that carries the house rules oxlint cannot express, registered as `@venizia`. */
 export const houseEslintPlugin: ESLint.Plugin = {
-  meta: { name: `eslint-plugin-${HOUSE_PLUGIN_NAMESPACE}` },
+  meta: { name: `${HOUSE_PLUGIN_NAMESPACE}/eslint-plugin` },
   rules: {
     'const-class-values': ConstClassValuesRule.RULE,
     'effect-cleanup-consistency': EffectCleanupConsistencyRule.RULE,

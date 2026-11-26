@@ -202,7 +202,7 @@ const retryWhileAbandoned = async <T>(opts: {
       const value = await opts.call();
 
       attempt = { value, isDone: true };
-      // eslint-disable-next-line venizia/no-silent-catch -- only the "still running" refusal is retried; anything else is rethrown below
+      // eslint-disable-next-line @venizia/no-silent-catch -- only the "still running" refusal is retried; anything else is rethrown below
     } catch (error) {
       const message = error instanceof Error ? error.message : '';
 

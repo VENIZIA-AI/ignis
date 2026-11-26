@@ -318,7 +318,7 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
 };
 
 /**
- * `venizia/no-await-promise-chain`. One expression uses one async style: `await` (in a try/catch when it can
+ * `@venizia/no-await-promise-chain`. One expression uses one async style: `await` (in a try/catch when it can
  * fail), or a promise chain that is not awaited. An `await` whose operand - after parentheses, `!`, `as`,
  * `satisfies` and an optional chain - is a call of `.then`, `.catch` or `.finally` (`?.then(`, `['then'](`, a
  * thenable such as a query builder) is reported once, however long the chain. A chain that is returned or stands

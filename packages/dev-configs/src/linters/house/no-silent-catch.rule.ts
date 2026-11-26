@@ -22,7 +22,7 @@ const isPlainParameter = (opts: { parameter: unknown }): boolean =>
   AstNode.getType({ node: opts.parameter }) === AstNodeTypes.IDENTIFIER;
 
 /**
- * `venizia/no-silent-catch`. A handled error leaves a trace (V-C-06). Reported: a `.catch(h)` (also `?.catch`,
+ * `@venizia/no-silent-catch`. A handled error leaves a trace (V-C-06). Reported: a `.catch(h)` (also `?.catch`,
  * `['catch']`) whose handler is an arrow or function expression that ignores its parameter and whose body is empty
  * or only gives back a constant (`() => null`, `() => undefined`, `() => ({})`, `() => []`, `() => {}`,
  * `function () {}`), and a `catch` block that is empty, holds only a comment, or only assigns or returns a constant

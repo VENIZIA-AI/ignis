@@ -33,7 +33,7 @@ export class JWKSUrlPolicy {
 
     try {
       parsed = new URL(url);
-      // eslint-disable-next-line venizia/no-silent-catch -- the refusal below names the key and withholds the URL, which may carry credentials
+      // eslint-disable-next-line @venizia/no-silent-catch -- the refusal below names the key and withholds the URL, which may carry credentials
     } catch {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,

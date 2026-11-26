@@ -21,7 +21,7 @@ export class PromiseUtility {
   private static readonly MAX_TIMER_MS = 2_147_483_647;
 
   static sleep(opts: { ms: number }): Promise<void> {
-    // eslint-disable-next-line venizia/prefer-promise-sleep -- this is the implementation the rule points at
+    // eslint-disable-next-line @venizia/prefer-promise-sleep -- this is the implementation the rule points at
     return new Promise((resolve) => setTimeout(resolve, opts.ms));
   }
 

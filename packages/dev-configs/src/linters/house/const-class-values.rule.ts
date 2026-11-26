@@ -75,7 +75,7 @@ const isNullish = (opts: { member: unknown }): boolean => {
 };
 
 /**
- * `venizia/const-class-values`. An enumerable string is a const class plus `TConstValue<typeof X>`,
+ * `@venizia/const-class-values`. An enumerable string is a const class plus `TConstValue<typeof X>`,
  * never a union of string literals in an exported declaration: a type alias, an interface member, a
  * generic constraint, a parameter or a return type of an exported function or class.
  *
