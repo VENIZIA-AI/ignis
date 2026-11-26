@@ -73,7 +73,6 @@ export class ObjectUtility {
       kept[key] = value;
     }
 
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- built key by key: no check can prove the omitted shape
     return kept as Omit<T, Extract<K, keyof T>>;
   }
 }

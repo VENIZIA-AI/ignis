@@ -244,7 +244,6 @@ export abstract class BaseContainer extends AbstractContainer {
       };
     };
   }): { [K in keyof T]: T[K] | undefined } {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Array.map cannot keep the tuple that the key list describes
     return opts.bindings.map((opt) => this.get({ ...opt, isOptional: true })) as {
       [K in keyof T]: T[K] | undefined;
     };
