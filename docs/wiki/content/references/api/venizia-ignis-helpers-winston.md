@@ -205,7 +205,7 @@ export declare class WinstonFormatFactory {
     }): winston.Logform.Format;
     /** Per-transport assembly formats: console may colorize, a file never does - ANSI bytes in a rotated log file are noise every grep has to strip. */
     static assembly(opts: {
-        format: TLoggerFormat;
+        format: string;
         colorize: boolean;
     }): {
         console: winston.Logform.Format;
@@ -253,8 +253,6 @@ unbound aliases (`WinstonLoggerFactory.method`), so `this` would be `undefined` 
 ```ts
 export declare class WinstonLoggerFactory {
     private static _defaultLogger?;
-    /** The configured format, checked: `APP_ENV_LOGGER_FORMAT` can hold any text. */
-    private static checkFormat;
     static defineCustomLogger(opts: ICustomLoggerOptions): winston.Logger;
     /** Default transports from `APP_ENV_LOGGER_*`, resolved at CALL time. File logging is opt-in - without `APP_ENV_LOGGER_FOLDER_PATH` no rotating file is created. */
     static resolveDefaultTransportOptions(): ICustomLoggerOptions['transports'];

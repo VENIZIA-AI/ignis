@@ -1,4 +1,3 @@
-import { getError } from '@/modules/error';
 import { ParseUtility } from '@/utilities/parse.utility';
 import path from 'node:path';
 import winston from 'winston';
@@ -13,7 +12,7 @@ import {
   LOGGER_FORMAT,
   LOGGER_PREFIX,
 } from './common/constants';
-import { LoggerConfigUtility, LoggerFormats, type TLoggerFormat } from '../common';
+import { LoggerConfigUtility } from '../common';
 import { WinstonFormatFactory } from './formats';
 
 /**
@@ -22,19 +21,6 @@ import { WinstonFormatFactory } from './formats';
  */
 export class WinstonLoggerFactory {
   private static _defaultLogger?: winston.Logger;
-
-  /** The configured format, checked: `APP_ENV_LOGGER_FORMAT` can hold any text. */
-  private static checkFormat(opts: { format: string }): TLoggerFormat {
-    const { format } = opts;
-
-    if (!LoggerFormats.isValid(format)) {
-      throw getError({
-        message: `[defineCustomLogger] Invalid logger format | format: ${format} | valids: ${LoggerFormats.values()}`,
-      });
-    }
-
-    return format;
-  }
 
   static defineCustomLogger(opts: ICustomLoggerOptions) {
     const {
@@ -59,12 +45,7 @@ export class WinstonLoggerFactory {
       transports: { info: infoTransportOptions, error: errorTransportOptions },
     } = opts;
 
-    const assemblyFormats = formatter
-      ? null
-      : WinstonFormatFactory.assembly({
-          format: WinstonLoggerFactory.checkFormat({ format }),
-          colorize,
-        });
+    const assemblyFormats = formatter ? null : WinstonFormatFactory.assembly({ format, colorize });
     const loggerFormat = formatter ?? WinstonFormatFactory.prep({ label: LOGGER_PREFIX });
 
     const consoleLogTransport = new winston.transports.Console({

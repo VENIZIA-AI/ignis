@@ -88,7 +88,7 @@ export class WinstonFormatFactory {
   }
 
   /** Per-transport assembly formats: console may colorize, a file never does - ANSI bytes in a rotated log file are noise every grep has to strip. */
-  static assembly(opts: { format: TLoggerFormat; colorize: boolean }) {
+  static assembly(opts: { format: string; colorize: boolean }) {
     switch (opts.format) {
       case LoggerFormats.JSON: {
         return { console: f.json(), file: f.json() };

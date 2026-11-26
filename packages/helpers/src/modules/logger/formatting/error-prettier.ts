@@ -209,7 +209,7 @@ export class ErrorPrettier {
     if (isRoot && RecordUtility.isRecord(normalized?.args)) {
       const { args } = normalized;
 
-      if (RecordUtility.isRecord(args) && Object.keys(args).length > 0) {
+      if (Object.keys(args).length > 0) {
         summary.args = args;
       }
     }

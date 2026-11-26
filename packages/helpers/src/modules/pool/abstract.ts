@@ -227,8 +227,10 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
     try {
       while (this.waiterQueue.size > 0) {
         // Prefer a warm idle resource (LIFO) over creating a new one.
-        if (this.idle.length > 0) {
-          const resource = await this.takeIdleResource();
+        const idle = this.idle.pop();
+
+        if (idle !== undefined) {
+          const resource = await this.takeIdleResource({ resource: idle });
 
           if (resource === null) {
             continue; // bad idle resource was discarded → try the next one
@@ -257,10 +259,9 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
     }
   }
 
-  /** Pop an idle resource and validate+reset it; on ANY failure destroy it and return null (caller retries). */
-  private async takeIdleResource(): Promise<T | null> {
-    // Called only with an idle resource: a destructured splice is typed as one, where `pop` is not.
-    const [resource] = this.idle.splice(-1);
+  /** Validate and reset a resource just popped from the idle list; on ANY failure destroy it and return null (caller retries). */
+  private async takeIdleResource(opts: { resource: T }): Promise<T | null> {
+    const { resource } = opts;
     const logger = this.logger.for(this.takeIdleResource.name);
 
     let isValid: boolean;
