@@ -979,7 +979,29 @@ middleware-options-unknown:
       }
     steps:
       - "Where an override of setupMiddlewares reads a value out of middlewares, check its type before use."
+      - "Code that read the parsed where or include scope of QuerySchemaFactory as any types it as TWhere or TFilter."
   downgrade:
     steps:
       - "Pin @venizia/ignis-kernel and @venizia/ignis-filter to the release before this one."
+  data: Nothing stored changes.
+
+oxlint-base-rules:
+  symbols: [oxlintConfigs, OxlintConfigs, BrowserOxlintConfigs, ReactOxlintConfigs]
+  upgrade:
+    before: |-
+      export default defineConfig(oxlintConfigs);
+    after: |-
+      export default defineConfig({
+        ...oxlintConfigs,
+        overrides: [
+          ...(oxlintConfigs.overrides ?? []),
+          { files: ['**/src/logging/console-logger.ts'], rules: { 'no-console': 'off' } },
+        ],
+      });
+    steps:
+      - "Write a function as an arrow or a function expression, add a default to each switch, and log through the framework logger instead of console."
+      - "For a file whose job is writing to the console, add an override that names that file, as in the example."
+  downgrade:
+    steps:
+      - "Pin @venizia/dev-configs to the release before this one."
   data: Nothing stored changes.

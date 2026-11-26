@@ -123,6 +123,7 @@ export type TJsonPathKey<T> = `${TJsonColumnKey<T>}.${string}` | `${TJsonColumnK
 /**
  * Query conditions for selecting data - column keys, JSON-path keys on JSON columns, and nested
  * `and` / `or`. A JSON-path value is `unknown` so a `Record<string, unknown>` still assigns.
+ *
  * `any` on purpose: it is a model nobody named, which generic query code passes into and out of typed filters; no other type does both without a cast.
  */
 export type TWhere<T = any> = { [key in keyof T]?: TWhereValue<T[key]> } & {
