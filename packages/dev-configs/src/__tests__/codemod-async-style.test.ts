@@ -4,6 +4,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { join } from 'node:path';
 import { CodemodCommand } from '../cli/codemod';
 import { AsyncStyleCommand } from '../cli/codemod/async-style';
+import { CliOutput } from '../common/cli-output';
 
 describe('devz codemod async-style', () => {
   let root: string;
@@ -20,13 +21,13 @@ describe('devz codemod async-style', () => {
     logs = [];
     warnings = [];
     errors = [];
-    spyOn(console, 'log').mockImplementation((...args) => {
+    spyOn(CliOutput, 'log').mockImplementation((...args) => {
       logs.push(args.join(' '));
     });
-    spyOn(console, 'warn').mockImplementation((...args) => {
+    spyOn(CliOutput, 'warn').mockImplementation((...args) => {
       warnings.push(args.join(' '));
     });
-    spyOn(console, 'error').mockImplementation((...args) => {
+    spyOn(CliOutput, 'error').mockImplementation((...args) => {
       errors.push(args.join(' '));
     });
   });

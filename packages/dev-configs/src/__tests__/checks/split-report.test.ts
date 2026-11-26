@@ -1,4 +1,5 @@
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, test, spyOn } from 'bun:test';
+import { CliOutput } from '../../common/cli-output';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -29,17 +30,18 @@ const typesFile = (opts: { count: number }): string => {
   return `${lines.join('\n')}\n`;
 };
 
-// Captures SplitReport.run's console.log lines instead of parsing a spawned process's stdout -
+// Captures SplitReport.run's printed lines instead of parsing a spawned process's stdout -
 // it is exported and directly callable, so this is the report's programmatic API.
 const runReport = (opts: { packageDir: string }): string[] => {
   const lines: string[] = [];
-  const original = console.log;
-  console.log = (message: string) => lines.push(message);
+  const log = spyOn(CliOutput, 'log').mockImplementation((message) => {
+    lines.push(String(message));
+  });
 
   try {
     SplitReport.run({ packageDir: opts.packageDir });
   } finally {
-    console.log = original;
+    log.mockRestore();
   }
 
   return lines;

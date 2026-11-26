@@ -2609,7 +2609,7 @@ export declare class PromiseUtility {
             result: R;
         }) => ValueOrPromise<void>;
     }): Promise<Awaited<T>[]>;
-    /** Fire-and-forget: routes rejection to `logger` (or console.error), passes sync results through untouched. */
+    /** Fire-and-forget: routes rejection to `logger` (or the framework logger of `scope`), passes sync results through untouched. */
     static voidExecution(opts: {
         logger?: ILogger;
         scope: string;

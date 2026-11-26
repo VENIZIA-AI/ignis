@@ -4,6 +4,7 @@ import type ts from 'typescript';
 import { BindingKeysCommand } from './binding-keys';
 import { ConstClassSets } from './const-class-sets';
 import { CodemodFiles } from './files';
+import { CliOutput } from '../../common/cli-output';
 
 type TTypeScript = typeof ts;
 
@@ -728,7 +729,7 @@ export class ConstClassesCommand {
     const { root, args } = opts;
 
     if (args.includes(ConstClassFlags.HELP) || args.includes(ConstClassFlags.HELP_SHORT)) {
-      console.log(USAGE);
+      CliOutput.log(USAGE);
 
       return 0;
     }
@@ -749,7 +750,7 @@ export class ConstClassesCommand {
         }
 
         if (!value || value.startsWith('-')) {
-          console.error(`devz codemod: ${name} needs a value\n${USAGE}`);
+          CliOutput.error(`devz codemod: ${name} needs a value\n${USAGE}`);
 
           return USAGE_ERROR_CODE;
         }
@@ -768,7 +769,7 @@ export class ConstClassesCommand {
     const unknown = flags.filter((flag) => !ConstClassFlags.isValid(flag));
 
     if (unknown.length > 0) {
-      console.error(
+      CliOutput.error(
         `devz codemod: unknown option ${unknown.map((flag) => `"${flag}"`).join(', ')}\n${USAGE}`,
       );
 
@@ -786,7 +787,7 @@ export class ConstClassesCommand {
     });
 
     if (refusal) {
-      console.error(`${refusal}\n${USAGE}`);
+      CliOutput.error(`${refusal}\n${USAGE}`);
 
       return USAGE_ERROR_CODE;
     }
@@ -794,7 +795,7 @@ export class ConstClassesCommand {
     const includeTests = flags.includes(ConstClassFlags.INCLUDE_TESTS);
 
     if (isWrite && isCheck) {
-      console.error(
+      CliOutput.error(
         `devz codemod: ${ConstClassFlags.WRITE} and ${ConstClassFlags.CHECK} contradict each other\n${USAGE}`,
       );
 
@@ -810,7 +811,7 @@ export class ConstClassesCommand {
       try {
         parsed = JSON.parse(readFileSync(resolve(root, mapPath), 'utf8'));
       } catch (error) {
-        console.error(
+        CliOutput.error(
           `devz codemod: cannot read the mapping file ${mapPath}: ${error instanceof Error ? error.message : String(error)}`,
         );
 
@@ -818,7 +819,7 @@ export class ConstClassesCommand {
       }
 
       if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-        console.error(
+        CliOutput.error(
           `devz codemod: cannot read the mapping file ${mapPath}: the file must hold one JSON object`,
         );
 
@@ -834,7 +835,7 @@ export class ConstClassesCommand {
       const result2 = await import('typescript');
       typescript = result2.default;
     } catch {
-      console.error('devz codemod: the "typescript" package is required to read your sources');
+      CliOutput.error('devz codemod: the "typescript" package is required to read your sources');
 
       return 1;
     }
@@ -861,7 +862,7 @@ export class ConstClassesCommand {
       const files = CodemodFiles.collect({ target });
 
       if (files.length === 0 && paths.length > 0) {
-        console.warn(
+        CliOutput.warn(
           `devz codemod: no source files under "${relative(root, target) || target}" (git ignores the path, or it holds none): nothing was read`,
         );
       }
@@ -890,7 +891,7 @@ export class ConstClassesCommand {
 
         for (const item of result.untouched) {
           untouchedCount += 1;
-          console.warn(`${relativePath}:${item.line}:${item.column}  ${item.reason}`);
+          CliOutput.warn(`${relativePath}:${item.line}:${item.column}  ${item.reason}`);
         }
 
         for (const proposal of result.proposals) {
@@ -900,7 +901,7 @@ export class ConstClassesCommand {
             ...(proposal.id.split('#')[1]?.includes('.') ? { type: proposal.typeName } : {}),
             members: Object.fromEntries(proposal.members.map(({ value, key }) => [value, key])),
           };
-          console.log(
+          CliOutput.log(
             `${isWrite ? 'converted' : 'would convert'}  ${relativePath}:${proposal.line}  ${proposal.typeName} -> class ${proposal.className} { ${proposal.members.map(({ key, value }) => `${key} = '${value}'`).join(', ')} }` +
               `  [${proposal.id}]`,
           );
@@ -930,22 +931,22 @@ export class ConstClassesCommand {
 
     if (emitPath) {
       writeFileSync(resolve(root, emitPath), `${JSON.stringify(emitted, null, 2)}\n`);
-      console.log(
+      CliOutput.log(
         `Wrote ${Object.keys(emitted).length} proposal(s) to ${emitPath}; edit it, then pass --map ${emitPath}.`,
       );
     }
 
-    console.log(
+    CliOutput.log(
       `devz codemod const-classes: ${converted} union(s) ${isWrite ? 'converted' : 'would be converted'} in ${changedFiles} file(s), ${untouchedCount} left untouched`,
     );
 
-    console.log(
+    CliOutput.log(
       `devz codemod const-classes: ${sets.classes} class(es) ${isWrite ? 'moved' : 'would move'} to ConstClass, ${sets.calls} SCHEME_SET call(s) ${isWrite ? 'rewritten' : 'would be rewritten'}, ${sets.manual} manual` +
         (sets.refused > 0 ? `, ${sets.refused} refused` : ''),
     );
 
     if (!isWrite && (changedFiles > 0 || sets.changedFiles > 0)) {
-      console.log(
+      CliOutput.log(
         `Nothing was written. Run again with ${ConstClassFlags.WRITE} to apply (add --map to rename), then run your typecheck and lint.`,
       );
     }
@@ -1010,7 +1011,7 @@ export class ConstClassesCommand {
         // A class in a file with local changes stays, so its callers stay too.
         if (dirty.has(resolve(file))) {
           result.refused += 1;
-          console.warn(
+          CliOutput.warn(
             `refused  ${relative(root, file).split('\\').join('/')}  has local changes (commit, stash or "git add" them, then run again)`,
           );
           break;
@@ -1042,7 +1043,7 @@ export class ConstClassesCommand {
 
       for (const item of rewrite.manual) {
         result.manual += 1;
-        console.warn(`manual  ${shown}:${item.line}  ${item.reason}`);
+        CliOutput.warn(`manual  ${shown}:${item.line}  ${item.reason}`);
       }
 
       if (!rewrite.changed) {
@@ -1051,7 +1052,7 @@ export class ConstClassesCommand {
 
       if (dirty.has(resolve(file))) {
         result.refused += 1;
-        console.warn(
+        CliOutput.warn(
           `refused  ${shown}  has local changes (commit, stash or "git add" them, then run again)`,
         );
         continue;
@@ -1062,7 +1063,7 @@ export class ConstClassesCommand {
       result.calls += rewrite.calls;
 
       for (const item of rewrite.classes) {
-        console.log(
+        CliOutput.log(
           `${isWrite ? 'moved' : 'would move'}  ${shown}:${item.line}  class ${item.name} -> extends ConstClass`,
         );
       }

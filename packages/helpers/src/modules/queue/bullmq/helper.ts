@@ -488,6 +488,10 @@ export class BullMQHelper<
         this.configureWorker();
         break;
       }
+      default: {
+        // `isValid` above refused every other role.
+        break;
+      }
     }
   }
 

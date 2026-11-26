@@ -22,6 +22,7 @@ import { INVERSION_MAPPINGS } from '../cli/codemod/namespace-functions/mappings/
 import { KERNEL_MAPPINGS } from '../cli/codemod/namespace-functions/mappings/kernel';
 import { REPO_TMP_DIRECTORY, RepoTmp } from '../testing/repo-tmp';
 import { SpawnUtility } from '../testing/spawn.utility';
+import { CliOutput } from '../common/cli-output';
 
 /**
  * The example entry, a fixture: `float(input, digit = 2)` of `@venizia/ignis-helpers` as
@@ -588,13 +589,13 @@ describe('devz codemod namespace-functions - the command', () => {
     logs = [];
     warnings = [];
     errors = [];
-    spyOn(console, 'log').mockImplementation((...args) => {
+    spyOn(CliOutput, 'log').mockImplementation((...args) => {
       logs.push(args.join(' '));
     });
-    spyOn(console, 'warn').mockImplementation((...args) => {
+    spyOn(CliOutput, 'warn').mockImplementation((...args) => {
       warnings.push(args.join(' '));
     });
-    spyOn(console, 'error').mockImplementation((...args) => {
+    spyOn(CliOutput, 'error').mockImplementation((...args) => {
       errors.push(args.join(' '));
     });
   });

@@ -1,6 +1,7 @@
 import { mkdir, rm } from 'node:fs/promises';
 import { builtinModules } from 'node:module';
 import { join } from 'node:path';
+import { CliOutput } from '../../common/cli-output';
 
 /** Outcome of probing one entry: `ok` is the verdict, `builtins` and `globals` are what made it fail, `sizeBytes` is the bundle size. */
 export interface IPurityResult {
@@ -248,7 +249,7 @@ const readMetafile = async (path: string): Promise<IMetafile | undefined> => {
     return JSON.parse(result) as IMetafile;
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    console.error(`[purity] Failed to read the build metafile at ${path}: ${reason}`);
+    CliOutput.error(`[purity] Failed to read the build metafile at ${path}: ${reason}`);
 
     return undefined;
   } finally {

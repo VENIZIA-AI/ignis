@@ -2,6 +2,7 @@ import { type ValueOrPromise } from '@/common';
 import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
 import type { ILogger } from '@/modules/logger';
+import { LoggerFactory } from '@/modules/logger/factory';
 
 /** An async task as `executeWithLimit` takes it. */
 export type TTask<T> = (...args: never[]) => Promise<T>;
@@ -105,7 +106,7 @@ export class PromiseUtility {
     return Promise.all(results);
   }
 
-  /** Fire-and-forget: routes rejection to `logger` (or console.error), passes sync results through untouched. */
+  /** Fire-and-forget: routes rejection to `logger` (or the framework logger of `scope`), passes sync results through untouched. */
   static voidExecution(opts: {
     logger?: ILogger;
     scope: string;
@@ -118,13 +119,9 @@ export class PromiseUtility {
     }
 
     Promise.resolve(execution).catch((error: unknown) => {
-      if (logger) {
-        logger.for(scope).error('Unhandled error in fire-and-forget execution | Error: %s', error);
+      const target = logger ? logger.for(scope) : LoggerFactory.getLogger([scope]);
 
-        return;
-      }
-
-      console.error('[%s] Unhandled error in fire-and-forget execution', scope, error);
+      target.error('Unhandled error in fire-and-forget execution | Error: %s', error);
     });
   }
 }

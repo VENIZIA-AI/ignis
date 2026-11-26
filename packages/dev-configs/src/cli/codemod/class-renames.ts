@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { CodemodFiles } from './files';
+import { CliOutput } from '../../common/cli-output';
 
 const USAGE = `Usage: devz codemod class-renames [paths...] [--write [--all] | --check] [--reverse]
 
@@ -253,7 +254,7 @@ export class ClassRenamesCommand {
     const { root, args } = opts;
 
     if (args.includes(ClassRenameFlags.HELP) || args.includes(ClassRenameFlags.HELP_SHORT)) {
-      console.log(USAGE);
+      CliOutput.log(USAGE);
 
       return 0;
     }
@@ -263,7 +264,7 @@ export class ClassRenamesCommand {
     const unknown = flags.filter((flag) => !ClassRenameFlags.isValid(flag));
 
     if (unknown.length > 0) {
-      console.error(
+      CliOutput.error(
         `devz codemod: unknown option ${unknown.map((flag) => `"${flag}"`).join(', ')}\n${USAGE}`,
       );
 
@@ -275,7 +276,7 @@ export class ClassRenamesCommand {
     const isReverse = flags.includes(ClassRenameFlags.REVERSE);
 
     if (isWrite && isCheck) {
-      console.error(
+      CliOutput.error(
         `devz codemod: ${ClassRenameFlags.WRITE} and ${ClassRenameFlags.CHECK} contradict each other\n${USAGE}`,
       );
 
@@ -290,7 +291,7 @@ export class ClassRenamesCommand {
     });
 
     if (refusal) {
-      console.error(`${refusal}\n${USAGE}`);
+      CliOutput.error(`${refusal}\n${USAGE}`);
 
       return USAGE_ERROR_CODE;
     }
@@ -301,7 +302,7 @@ export class ClassRenamesCommand {
       const loaded = await import('typescript');
       typescript = loaded.default;
     } catch {
-      console.error('devz codemod: the "typescript" package is required to read your sources');
+      CliOutput.error('devz codemod: the "typescript" package is required to read your sources');
 
       return 1;
     }
@@ -317,7 +318,7 @@ export class ClassRenamesCommand {
       const dirty = isWrite ? CodemodFiles.dirty({ target }) : undefined;
 
       if (files.length === 0 && paths.length > 0) {
-        console.warn(
+        CliOutput.warn(
           `devz codemod: no source files under "${relative(root, target) || target}" (git ignores the path, or it holds none): nothing was read`,
         );
       }
@@ -344,7 +345,7 @@ export class ClassRenamesCommand {
 
         if (dirty?.has(file)) {
           refusedCount += 1;
-          console.warn(
+          CliOutput.warn(
             `refused  ${shown}  has local changes (commit, stash or "git add" them, then run again)`,
           );
           continue;
@@ -352,7 +353,7 @@ export class ClassRenamesCommand {
 
         changedCount += 1;
         renamedCount += result.rewritten;
-        console.log(
+        CliOutput.log(
           `${isWrite ? 'changed' : 'would change'}  ${shown}  (${result.rewritten} name(s))`,
         );
 
@@ -362,13 +363,13 @@ export class ClassRenamesCommand {
       }
     }
 
-    console.log(
+    CliOutput.log(
       `devz codemod class-renames: ${changedCount} file(s) ${isWrite ? 'changed' : 'would change'}, ${renamedCount} name(s) ${isWrite ? 'renamed' : 'would be renamed'}` +
         (refusedCount > 0 ? `, ${refusedCount} refused` : ''),
     );
 
     if (!isWrite && changedCount > 0) {
-      console.log(
+      CliOutput.log(
         `Nothing was written. Run again with ${ClassRenameFlags.WRITE} to apply, then run your typecheck.`,
       );
     }

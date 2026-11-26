@@ -20,11 +20,11 @@ const MAX_HEADER_HARD_LIMIT = 990;
 const ENCODED_WORD_MAX_LENGTH = 75;
 
 /** `bytes` random bytes as lowercase hex, from the platform CSPRNG. `bytes` is at least 16, the floor of `TokenUidHelper`. */
-function generateRandomHex(opts: { bytes: number }): string {
+const generateRandomHex = (opts: { bytes: number }): string => {
   return new TokenUidHelper({ bytes: opts.bytes, encoding: UidTokenEncodings.HEX }).nextId();
-}
+};
 
-function isAscii(value: string): boolean {
+const isAscii = (value: string): boolean => {
   for (let index = 0; index < value.length; index++) {
     if (value.charCodeAt(index) > 127) {
       return false;
@@ -32,7 +32,7 @@ function isAscii(value: string): boolean {
   }
 
   return true;
-}
+};
 
 /**
  * RFC 2047 §5(3) requires each encoded-word to carry whole characters - a multi-byte UTF-8
@@ -44,7 +44,7 @@ function isAscii(value: string): boolean {
  * consume the whole chunk. Words are joined with a single space - the required separator between
  * adjacent encoded-words, and also a valid header-folding point.
  */
-function encodeWord(text: string): string {
+const encodeWord = (text: string): string => {
   const prefix = '=?UTF-8?B?';
   const suffix = '?=';
   const maxPayloadChars = ENCODED_WORD_MAX_LENGTH - prefix.length - suffix.length;
@@ -66,13 +66,13 @@ function encodeWord(text: string): string {
   }
 
   return words.join(' ');
-}
+};
 
 /** Only non-ASCII values pay for RFC 2047 encoding, so a plain-English subject or custom header
  * stays byte-for-byte readable. */
-function encodeHeaderValue(value: string): string {
+const encodeHeaderValue = (value: string): string => {
   return isAscii(value) ? value : encodeWord(value);
-}
+};
 
 /**
  * Encodes only the *display-name* portion of `"Name" <addr@x.com>` (or bare `Name <addr@x.com>`).
@@ -80,7 +80,7 @@ function encodeHeaderValue(value: string): string {
  * requirements - only the free-text name may become an RFC 2047 encoded-word. A bare address with
  * no display name is returned unchanged.
  */
-function encodeAddress(address: string): string {
+const encodeAddress = (address: string): string => {
   const match = /^(.*)<([^<>]+)>\s*$/.exec(address);
 
   if (!match) {
@@ -95,12 +95,12 @@ function encodeAddress(address: string): string {
   }
 
   return `${encodeWord(name)} <${addr}>`;
-}
+};
 
 /** The body of `MailMimeUtility.formatAddressHeader`, callable from the header builder. */
-function formatAddressList(value: string | string[]): string {
+const formatAddressList = (value: string | string[]): string => {
   return MailAddressUtility.splitList({ value }).map(encodeAddress).join(', ');
-}
+};
 
 /**
  * RFC 5322 §2.2.3 header folding: inserting CRLF immediately before an existing whitespace
@@ -120,7 +120,7 @@ function formatAddressList(value: string | string[]): string {
  * corrupting it. Only a token that would itself violate the real transport limit gets the
  * content-altering hard-wrap - a case that essentially never occurs with real-world input.
  */
-function foldHeaderLine(line: string): string {
+const foldHeaderLine = (line: string): string => {
   const lines: string[] = [];
   let remaining = line;
 
@@ -154,10 +154,10 @@ function foldHeaderLine(line: string): string {
   lines.push(remaining);
 
   return lines.join(CRLF);
-}
+};
 
 /** MIME requires encoded body lines capped well under the RFC 5322 998-byte hard limit. */
-function foldBase64(base64: string): string {
+const foldBase64 = (base64: string): string => {
   const lines: string[] = [];
 
   for (let index = 0; index < base64.length; index += BASE64_LINE_LENGTH) {
@@ -165,25 +165,25 @@ function foldBase64(base64: string): string {
   }
 
   return lines.join(CRLF);
-}
+};
 
 /** UTF-8 text (`text`/`html` bodies) must be encoded before folding - unlike {@link encodeBufferBase64}, which folds bytes that are already final. Two names instead of one so the caller can never feed raw bytes through the wrong path and silently double-encode them. */
-function encodeTextBase64(text: string): string {
+const encodeTextBase64 = (text: string): string => {
   return foldBase64(Buffer.from(text, 'utf-8').toString('base64'));
-}
+};
 
 /** Attachment bytes are already final binary content - only folding applies, no UTF-8 re-encode. */
-function encodeBufferBase64(buffer: Buffer): string {
+const encodeBufferBase64 = (buffer: Buffer): string => {
   return foldBase64(buffer.toString('base64'));
-}
+};
 
-function extractDomain(address: string | undefined): string {
+const extractDomain = (address: string | undefined): string => {
   const match = address ? /@([^@>\s]+)>?\s*$/.exec(address) : null;
 
   return match ? match[1] : 'localhost';
-}
+};
 
-function buildHeaders(message: IMailMessage): string[] {
+const buildHeaders = (message: IMailMessage): string[] => {
   const headers: string[] = [];
 
   if (message.from) {
@@ -219,14 +219,14 @@ function buildHeaders(message: IMailMessage): string[] {
   }
 
   return headers;
-}
+};
 
 /** One text/plain or text/html MIME part. `boundary` omitted only for the single-part, no-attachment case, where the content type belongs on the top-level headers instead of a nested part. */
-function textPart(
+const textPart = (
   boundary: string,
   contentType: 'text/plain' | 'text/html',
   content: string,
-): string {
+): string => {
   return [
     `--${boundary}`,
     `Content-Type: ${contentType}; charset=UTF-8`,
@@ -234,19 +234,19 @@ function textPart(
     '',
     encodeTextBase64(content),
   ].join(CRLF);
-}
+};
 
-function escapeQuotedString(value: string): string {
+const escapeQuotedString = (value: string): string => {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-}
+};
 
 /** RFC 2231 percent-encoding for the `filename*=`/`name*=` extended parameter form. */
-function encodeRfc2231(value: string): string {
+const encodeRfc2231 = (value: string): string => {
   return encodeURIComponent(value).replace(
     /[!'()*]/g,
     (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
   );
-}
+};
 
 /**
  * Builds the `; name="..."`/`; filename="..."` (and, for non-ASCII names, the RFC 2231
@@ -255,7 +255,7 @@ function encodeRfc2231(value: string): string {
  * terminate the quoted string early and let the rest of the value merge into a sibling MIME
  * parameter, corrupting the part header for every downstream reader.
  */
-function attachmentNameParams(attribute: 'name' | 'filename', value: string): string {
+const attachmentNameParams = (attribute: 'name' | 'filename', value: string): string => {
   if (isAscii(value)) {
     return `; ${attribute}="${escapeQuotedString(value)}"`;
   }
@@ -266,9 +266,9 @@ function attachmentNameParams(attribute: 'name' | 'filename', value: string): st
     `; ${attribute}="${escapeQuotedString(asciiFallback)}"` +
     `; ${attribute}*=UTF-8''${encodeRfc2231(value)}`
   );
-}
+};
 
-async function attachmentPart(attachment: IMailAttachment, boundary: string): Promise<string> {
+const attachmentPart = async (attachment: IMailAttachment, boundary: string): Promise<string> => {
   // No root here: a `path` that did not go through `MailAttachmentUtility.resolve` is refused, never read.
   const content = await MailAttachmentUtility.readContent({ attachment });
   const contentType = attachment.contentType ?? 'application/octet-stream';
@@ -302,12 +302,12 @@ async function attachmentPart(attachment: IMailAttachment, boundary: string): Pr
   }
 
   return [...headerLines, '', encodeBufferBase64(content)].join(CRLF);
-}
+};
 
 /** Every boundary is generated the same way - a fixed prefix plus random hex - so no two nested multipart sections in one message can ever collide. */
-function newBoundary(label: string): string {
+const newBoundary = (label: string): string => {
   return `----=_${label}_${generateRandomHex({ bytes: 16 })}`;
-}
+};
 
 /** Builds the MIME pieces the Amazon SES transport sends: the raw message and RFC 5322 address headers. */
 export class MailMimeUtility {

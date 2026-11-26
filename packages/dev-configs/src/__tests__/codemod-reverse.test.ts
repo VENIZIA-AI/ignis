@@ -12,6 +12,7 @@ import {
   NamespaceFunctionsCommand,
   NamespaceFunctionsReverse,
 } from '../cli/codemod/namespace-functions';
+import { CliOutput } from '../common/cli-output';
 
 const FLOAT: INamespaceMapping = {
   modules: ['@venizia/ignis-helpers', '@venizia/ignis'],
@@ -269,11 +270,11 @@ describe('devz codemod --list and --reverse', () => {
     mkdirSync(join(root, 'src'), { recursive: true });
     logs = [];
     errors = [];
-    spyOn(console, 'log').mockImplementation((...args) => {
+    spyOn(CliOutput, 'log').mockImplementation((...args) => {
       logs.push(args.join(' '));
     });
-    spyOn(console, 'warn').mockImplementation(() => {});
-    spyOn(console, 'error').mockImplementation((...args) => {
+    spyOn(CliOutput, 'warn').mockImplementation(() => {});
+    spyOn(CliOutput, 'error').mockImplementation((...args) => {
       errors.push(args.join(' '));
     });
   });

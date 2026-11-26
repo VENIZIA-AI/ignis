@@ -9,6 +9,7 @@ import {
   DropRedundantCastsCommand,
   RedundantCasts,
 } from '../cli/codemod/drop-redundant-casts';
+import { CliOutput } from '../common/cli-output';
 
 const TSCONFIG = JSON.stringify({
   compilerOptions: {
@@ -38,10 +39,10 @@ describe('drop-redundant-casts', () => {
     writeFileSync(join(root, 'tsconfig.json'), TSCONFIG);
     logs = [];
     warnings = [];
-    spyOn(console, 'log').mockImplementation((...args) => {
+    spyOn(CliOutput, 'log').mockImplementation((...args) => {
       logs.push(args.join(' '));
     });
-    spyOn(console, 'warn').mockImplementation((...args) => {
+    spyOn(CliOutput, 'warn').mockImplementation((...args) => {
       warnings.push(args.join(' '));
     });
   });

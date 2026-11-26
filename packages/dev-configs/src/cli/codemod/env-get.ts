@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { CodemodFiles } from './files';
+import { CliOutput } from '../../common/cli-output';
 
 const USAGE = `Usage: devz codemod env-get [paths...] [--write [--all] | --check]
 
@@ -657,7 +658,7 @@ export class EnvGetCommand {
     const { root, args } = opts;
 
     if (args.includes(EnvGetFlags.HELP) || args.includes(EnvGetFlags.HELP_SHORT)) {
-      console.log(USAGE);
+      CliOutput.log(USAGE);
 
       return 0;
     }
@@ -667,7 +668,7 @@ export class EnvGetCommand {
     const unknown = flags.filter((flag) => !EnvGetFlags.isValid(flag));
 
     if (unknown.length > 0) {
-      console.error(
+      CliOutput.error(
         `devz codemod: unknown option ${unknown.map((flag) => `"${flag}"`).join(', ')}\n${USAGE}`,
       );
 
@@ -679,7 +680,7 @@ export class EnvGetCommand {
     const isNumbers = flags.includes(EnvGetFlags.NUMBERS);
 
     if (isWrite && isCheck) {
-      console.error(
+      CliOutput.error(
         `devz codemod: ${EnvGetFlags.WRITE} and ${EnvGetFlags.CHECK} contradict each other\n${USAGE}`,
       );
 
@@ -694,7 +695,7 @@ export class EnvGetCommand {
     });
 
     if (refusal) {
-      console.error(`${refusal}\n${USAGE}`);
+      CliOutput.error(`${refusal}\n${USAGE}`);
 
       return USAGE_ERROR_CODE;
     }
@@ -705,7 +706,7 @@ export class EnvGetCommand {
       const loaded = await import('typescript');
       typescript = loaded.default;
     } catch {
-      console.error('devz codemod: the "typescript" package is required to read your sources');
+      CliOutput.error('devz codemod: the "typescript" package is required to read your sources');
 
       return 1;
     }
@@ -724,7 +725,7 @@ export class EnvGetCommand {
       const dirty = isWrite ? CodemodFiles.dirty({ target }) : undefined;
 
       if (files.length === 0 && paths.length > 0) {
-        console.warn(
+        CliOutput.warn(
           `devz codemod: no source files under "${relative(root, target) || target}" (git ignores the path, or it holds none): nothing was read`,
         );
       }
@@ -747,7 +748,7 @@ export class EnvGetCommand {
         for (const item of result.manual) {
           manualCount += 1;
           manualByType.set(item.type, (manualByType.get(item.type) ?? 0) + 1);
-          console.warn(
+          CliOutput.warn(
             `manual  ${shown}:${item.line}  get<${item.type}>: ${
               item.reason ??
               'a type argument the rewrite cannot place (not string or string | undefined, or two type arguments without an options argument): a number or other conversion goes in a transform, for example get(key, { transform: Number })'
@@ -757,14 +758,14 @@ export class EnvGetCommand {
 
         for (const line of result.numbered) {
           numberedCount += 1;
-          console.log(
+          CliOutput.log(
             `numbers  ${shown}:${line}  get<number> rewritten to a transform: the value is now a real number and a non-numeric value throws at the read`,
           );
         }
 
         for (const call of result.skipped) {
           skippedCount += 1;
-          console.warn(
+          CliOutput.warn(
             `skipped  ${shown}:${call.line}  ${call.receiver}.get<...>(): the receiver is not bound to applicationEnvironment or AppEnvs in this file (a property, a parameter, an optional chain or another object): check it by hand if it is the environment store`,
           );
         }
@@ -775,7 +776,7 @@ export class EnvGetCommand {
 
         if (dirty?.has(file)) {
           refusedCount += 1;
-          console.warn(
+          CliOutput.warn(
             `refused  ${shown}  has local changes (commit, stash or "git add" them, then run again)`,
           );
           continue;
@@ -783,7 +784,7 @@ export class EnvGetCommand {
 
         changedCount += 1;
         callCount += result.rewritten;
-        console.log(
+        CliOutput.log(
           `${isWrite ? 'changed' : 'would change'}  ${shown}  (${result.rewritten} call(s))`,
         );
 
@@ -793,7 +794,7 @@ export class EnvGetCommand {
       }
     }
 
-    console.log(
+    CliOutput.log(
       `devz codemod env-get: ${changedCount} file(s) ${isWrite ? 'changed' : 'would change'}, ${callCount} call(s) ${isWrite ? 'rewritten' : 'would be rewritten'}, ${manualCount} manual, ${skippedCount} skipped` +
         (isNumbers ? `, ${numberedCount} number read(s) rewritten` : '') +
         (refusedCount > 0 ? `, ${refusedCount} refused` : ''),
@@ -805,11 +806,11 @@ export class EnvGetCommand {
         .map(([typeText, count]) => `${typeText} x${count}`)
         .join(', ');
 
-      console.log(`manual by type argument: ${counts}`);
+      CliOutput.log(`manual by type argument: ${counts}`);
     }
 
     if (!isWrite && changedCount > 0) {
-      console.log(
+      CliOutput.log(
         `Nothing was written. Run again with ${EnvGetFlags.WRITE} to apply, then run your typecheck.`,
       );
     }

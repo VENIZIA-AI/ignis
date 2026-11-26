@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import type { Linter } from 'eslint';
 import { CodemodFiles } from './files';
+import { CliOutput } from '../../common/cli-output';
 
 const USAGE = `Usage: devz codemod async-style [paths...] [--write | --check]
 
@@ -222,7 +223,7 @@ export class AsyncStyleCommand {
     const { root, args } = opts;
 
     if (args.includes(AsyncStyleFlags.HELP) || args.includes(AsyncStyleFlags.HELP_SHORT)) {
-      console.log(USAGE);
+      CliOutput.log(USAGE);
 
       return 0;
     }
@@ -233,7 +234,7 @@ export class AsyncStyleCommand {
     const unknown = flags.filter((flag) => !AsyncStyleFlags.isValid(flag));
 
     if (unknown.length > 0) {
-      console.error(
+      CliOutput.error(
         `devz codemod: unknown option ${unknown.map((flag) => `"${flag}"`).join(', ')}\n${USAGE}`,
       );
 
@@ -244,7 +245,7 @@ export class AsyncStyleCommand {
     const isCheck = flags.includes(AsyncStyleFlags.CHECK);
 
     if (isWrite && isCheck) {
-      console.error(
+      CliOutput.error(
         `devz codemod: ${AsyncStyleFlags.WRITE} and ${AsyncStyleFlags.CHECK} contradict each other\n${USAGE}`,
       );
 
@@ -259,7 +260,7 @@ export class AsyncStyleCommand {
     });
 
     if (refusal) {
-      console.error(`${refusal}\n${USAGE}`);
+      CliOutput.error(`${refusal}\n${USAGE}`);
 
       return USAGE_ERROR_CODE;
     }
@@ -270,7 +271,7 @@ export class AsyncStyleCommand {
       const { Linter: EslintLinter } = await import('eslint');
       linter = new EslintLinter({ cwd: root });
     } catch {
-      console.error('devz codemod: the "eslint" package is required to run the lint fixers');
+      CliOutput.error('devz codemod: the "eslint" package is required to run the lint fixers');
 
       return 1;
     }
@@ -288,7 +289,7 @@ export class AsyncStyleCommand {
       const dirty = isWrite ? CodemodFiles.dirty({ target }) : undefined;
 
       if (files.length === 0 && paths.length > 0) {
-        console.warn(
+        CliOutput.warn(
           `devz codemod: no source files under "${relative(root, target) || target}" (git ignores the path, or it holds none): nothing was read`,
         );
       }
@@ -305,7 +306,7 @@ export class AsyncStyleCommand {
 
         for (const report of result.reports) {
           reportCount += 1;
-          console.warn(
+          CliOutput.warn(
             `${shown}:${report.line}:${report.column}  ${report.ruleId ?? 'parse error'}  ${report.message}`,
           );
         }
@@ -316,7 +317,7 @@ export class AsyncStyleCommand {
 
         if (dirty?.has(file)) {
           refusedCount += 1;
-          console.warn(
+          CliOutput.warn(
             `refused  ${shown}  has local changes (commit, stash or "git add" them, then run again)`,
           );
           continue;
@@ -324,7 +325,9 @@ export class AsyncStyleCommand {
 
         changedCount += 1;
         fixCount += result.fixes;
-        console.log(`${isWrite ? 'changed' : 'would change'}  ${shown}  (${result.fixes} fix(es))`);
+        CliOutput.log(
+          `${isWrite ? 'changed' : 'would change'}  ${shown}  (${result.fixes} fix(es))`,
+        );
 
         if (isWrite) {
           writeFileSync(file, result.output);
@@ -332,13 +335,13 @@ export class AsyncStyleCommand {
       }
     }
 
-    console.log(
+    CliOutput.log(
       `devz codemod async-style: ${changedCount} file(s) ${isWrite ? 'changed' : 'would change'}, ${fixCount} fix(es) ${isWrite ? 'applied' : 'would be applied'}, ${reportCount} left unfixed` +
         (refusedCount > 0 ? `, ${refusedCount} refused` : ''),
     );
 
     if (!isWrite && changedCount > 0) {
-      console.log(`Nothing was written. Run again with ${AsyncStyleFlags.WRITE} to apply.`);
+      CliOutput.log(`Nothing was written. Run again with ${AsyncStyleFlags.WRITE} to apply.`);
     }
 
     if (isWrite && refusedCount > 0) {

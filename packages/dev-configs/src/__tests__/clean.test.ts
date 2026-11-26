@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CleanCommand } from '../cli/clean';
+import { CliOutput } from '../common/cli-output';
 
 const touch = (opts: { root: string; path: string }) => {
   const target = join(opts.root, opts.path);
@@ -48,7 +49,7 @@ describe('devz clean', () => {
     touch({ root, path: 'dist/index.js' });
     touch({ root, path: 'tsconfig.tsbuildinfo' });
     const logs: string[] = [];
-    spyOn(console, 'log').mockImplementation((...args) => {
+    spyOn(CliOutput, 'log').mockImplementation((...args) => {
       logs.push(args.join(' '));
     });
 
@@ -64,7 +65,7 @@ describe('devz clean', () => {
   test('an unknown flag or argument exits 2 and deletes nothing', () => {
     touch({ root, path: 'dist/index.js' });
     touch({ root, path: 'tsconfig.tsbuildinfo' });
-    spyOn(console, 'error').mockImplementation(() => {});
+    spyOn(CliOutput, 'error').mockImplementation(() => {});
 
     for (const args of [['--halp'], ['dist'], ['--force', '--help-me']]) {
       expect(CleanCommand.run({ root, args })).toBe(2);

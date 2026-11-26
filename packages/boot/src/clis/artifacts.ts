@@ -34,8 +34,8 @@ const options = {
 /** One stderr line per decorated class a user `--ignore` pattern hid; silence when nothing is hidden. */
 const warnIgnored = (opts: { ignored: IScannedArtifact[]; root: string }): void => {
   for (const artifact of opts.ignored) {
-    console.error(
-      `warning: ${artifact.className} (${artifact.type}) in ${relative(opts.root, artifact.filePath)} matches --ignore and is left out of the index`,
+    process.stderr.write(
+      `warning: ${artifact.className} (${artifact.type}) in ${relative(opts.root, artifact.filePath)} matches --ignore and is left out of the index\n`,
     );
   }
 };
@@ -45,8 +45,8 @@ const run = (): number => {
   switch (positionals[0]) {
     case 'generate': {
       const result = ArtifactIndexGenerator.generate(options);
-      console.log(
-        `${result.written ? 'wrote' : 'up to date'} ${options.out} | ${result.artifacts.length} artifact(s)`,
+      process.stdout.write(
+        `${result.written ? 'wrote' : 'up to date'} ${options.out} | ${result.artifacts.length} artifact(s)\n`,
       );
       warnIgnored({ ignored: result.ignored, root: options.root });
 
@@ -57,17 +57,19 @@ const run = (): number => {
       warnIgnored({ ignored: result.ignored, root: options.root });
 
       if (result.isFresh) {
-        console.log(`fresh ${options.out}`);
+        process.stdout.write(`fresh ${options.out}\n`);
 
         return 0;
       }
 
-      console.error(`stale ${options.out} - run: ${ArtifactIndexEmitter.renderCommand(options)}`);
+      process.stderr.write(
+        `stale ${options.out} - run: ${ArtifactIndexEmitter.renderCommand(options)}\n`,
+      );
 
       return 1;
     }
     default: {
-      console.error(USAGE);
+      process.stderr.write(`${USAGE}\n`);
 
       return 2;
     }

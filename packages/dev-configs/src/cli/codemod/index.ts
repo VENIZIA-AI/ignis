@@ -7,6 +7,7 @@ import { ConstClassesCommand } from './const-classes';
 import { EnvGetCommand } from './env-get';
 import { DropRedundantCastsCommand } from './drop-redundant-casts';
 import { NamespaceFunctionsCommand } from './namespace-functions';
+import { CliOutput } from '../../common/cli-output';
 
 const USAGE = [
   DropRedundantCastsCommand.USAGE,
@@ -54,13 +55,13 @@ export class CodemodCommand {
     const [name, ...rest] = args;
 
     if (name === '--list') {
-      console.log(NAME_LIST.join('\n'));
+      CliOutput.log(NAME_LIST.join('\n'));
 
       return 0;
     }
 
     if (name !== undefined && NOT_REVERSIBLE.has(name) && rest.includes('--reverse')) {
-      console.error(`devz codemod ${name}: not reversible`);
+      CliOutput.error(`devz codemod ${name}: not reversible`);
 
       return USAGE_ERROR_CODE;
     }
@@ -102,12 +103,12 @@ export class CodemodCommand {
     }
 
     if (args.includes('--help') || args.includes('-h')) {
-      console.log(USAGE);
+      CliOutput.log(USAGE);
 
       return 0;
     }
 
-    console.error(
+    CliOutput.error(
       `devz codemod: unknown codemod "${name ?? ''}" | the codemods are: ${NAMES}\n\n${USAGE}`,
     );
 

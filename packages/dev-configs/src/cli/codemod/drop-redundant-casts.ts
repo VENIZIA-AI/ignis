@@ -3,6 +3,7 @@ import { dirname, join, relative, resolve } from 'node:path';
 import type ts from 'typescript';
 import type { TConstValue } from '../../linters/rules/common';
 import { CodemodFiles } from './files';
+import { CliOutput } from '../../common/cli-output';
 
 type TTypeScript = typeof ts;
 
@@ -950,7 +951,7 @@ export class DropRedundantCastsCommand {
     const { root, args } = opts;
 
     if (args.includes(CastFlags.HELP) || args.includes(CastFlags.HELP_SHORT)) {
-      console.log(USAGE);
+      CliOutput.log(USAGE);
 
       return 0;
     }
@@ -967,7 +968,7 @@ export class DropRedundantCastsCommand {
         index += 1;
 
         if (!project || project.startsWith('-')) {
-          console.error(`devz codemod: ${CastFlags.PROJECT} needs a tsconfig path\n${USAGE}`);
+          CliOutput.error(`devz codemod: ${CastFlags.PROJECT} needs a tsconfig path\n${USAGE}`);
 
           return USAGE_ERROR_CODE;
         }
@@ -990,7 +991,7 @@ export class DropRedundantCastsCommand {
     const unknown = flags.filter((flag) => !CastFlags.isValid(flag));
 
     if (unknown.length > 0) {
-      console.error(
+      CliOutput.error(
         `devz codemod: unknown option ${unknown.map((flag) => `"${flag}"`).join(', ')}\n${USAGE}`,
       );
 
@@ -1008,7 +1009,7 @@ export class DropRedundantCastsCommand {
     });
 
     if (refusal) {
-      console.error(`${refusal}\n${USAGE}`);
+      CliOutput.error(`${refusal}\n${USAGE}`);
 
       return USAGE_ERROR_CODE;
     }
@@ -1016,7 +1017,7 @@ export class DropRedundantCastsCommand {
     const includeTests = flags.includes(CastFlags.INCLUDE_TESTS);
 
     if (isWrite && isCheck) {
-      console.error(
+      CliOutput.error(
         `devz codemod: ${CastFlags.WRITE} and ${CastFlags.CHECK} contradict each other\n${USAGE}`,
       );
 
@@ -1029,7 +1030,7 @@ export class DropRedundantCastsCommand {
       const result2 = await import('typescript');
       typescript = result2.default;
     } catch {
-      console.error('devz codemod: the "typescript" package is required to check your sources');
+      CliOutput.error('devz codemod: the "typescript" package is required to check your sources');
 
       return 1;
     }
@@ -1041,7 +1042,7 @@ export class DropRedundantCastsCommand {
       const collected = CodemodFiles.collect({ target });
 
       if (collected.length === 0 && paths.length > 0) {
-        console.warn(
+        CliOutput.warn(
           `devz codemod: no source files under "${relative(root, target) || target}" (git ignores the path, or it holds none): nothing was read`,
         );
       }
@@ -1056,7 +1057,9 @@ export class DropRedundantCastsCommand {
           : RedundantCasts.findTsconfig({ file, root });
 
         if (!tsconfig) {
-          console.warn(`${relative(root, file)}  no tsconfig.json at or above this file; skipped`);
+          CliOutput.warn(
+            `${relative(root, file)}  no tsconfig.json at or above this file; skipped`,
+          );
           continue;
         }
 
@@ -1083,14 +1086,14 @@ export class DropRedundantCastsCommand {
           includeTests,
         });
       } catch (error) {
-        console.error(
+        CliOutput.error(
           `devz codemod: ${relative(root, tsconfig)}: ${error instanceof Error ? error.message : String(error)}`,
         );
 
         return 1;
       }
 
-      console.log(
+      CliOutput.log(
         `${relative(root, tsconfig)}: ${files.length} file(s) read, typechecked ${result.checks} time(s)` +
           (result.baselineErrors > 0
             ? `, ${result.baselineErrors} error(s) were there before and are ignored`
@@ -1116,7 +1119,7 @@ export class DropRedundantCastsCommand {
             (reason) => `${file.kept.filter((entry) => entry.reason === reason).length} ${reason}`,
           )
           .join(', ');
-        console.log(
+        CliOutput.log(
           `${file.removed > 0 ? verb : 'unchanged'}  ${shown}  (${file.removed} removed, ${file.kept.length} kept${detail ? `: ${detail}` : ''}${file.importsRemoved > 0 ? `, ${file.importsRemoved} import(s) dropped` : ''})`,
         );
 
@@ -1130,7 +1133,7 @@ export class DropRedundantCastsCommand {
       }
     }
 
-    console.log(
+    CliOutput.log(
       `devz codemod drop-redundant-casts: ${removed} cast(s) ${isWrite ? 'removed' : 'would be removed'} in ${changedFiles} file(s), ${kept} kept` +
         (reasons.size > 0
           ? ` (${[...reasons].map(([reason, count]) => `${count} ${reason}`).join(', ')})`
@@ -1139,7 +1142,7 @@ export class DropRedundantCastsCommand {
     );
 
     if (!isWrite && changedFiles > 0) {
-      console.log(
+      CliOutput.log(
         `Nothing was written. Run again with ${CastFlags.WRITE} to apply, then run your typecheck.`,
       );
     }

@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CodemodCommand } from '../cli/codemod';
+import { CliOutput } from '../common/cli-output';
 
 /**
  * `--write` with no path used to rewrite every source file under the working directory. For the codemods that
@@ -24,11 +25,11 @@ describe('devz codemod --write without a path', () => {
     mkdirSync(join(root, 'src'), { recursive: true });
     errors = [];
     logs = [];
-    spyOn(console, 'error').mockImplementation((...args) => {
+    spyOn(CliOutput, 'error').mockImplementation((...args) => {
       errors.push(args.join(' '));
     });
-    spyOn(console, 'warn').mockImplementation(() => {});
-    spyOn(console, 'log').mockImplementation((...args) => {
+    spyOn(CliOutput, 'warn').mockImplementation(() => {});
+    spyOn(CliOutput, 'log').mockImplementation((...args) => {
       logs.push(args.join(' '));
     });
   });
