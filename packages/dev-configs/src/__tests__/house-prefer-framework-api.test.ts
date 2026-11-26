@@ -73,9 +73,10 @@ describe('venizia/prefer-framework-api', () => {
 
     expect(findings).toHaveLength(1);
     expect(findings[0]?.message).toContain(hook);
-    expect(findings[0]?.message).toMatch(
-      new RegExp(`import \\{ [^}]*\\b${hook}\\b[^}]*\\} from '@venizia/ardor-react';`),
-    );
+    // A row that suggests two hooks imports the first one only: the second would be an unused import.
+    const first = /`(use\w+)`/.exec(findings[0]?.message ?? '')?.[1];
+
+    expect(findings[0]?.message).toContain(`import { ${first} } from '@venizia/ardor-react';`);
   });
 
   test('a name the file binds itself, an element listener and an unlisted event are not reported', () => {

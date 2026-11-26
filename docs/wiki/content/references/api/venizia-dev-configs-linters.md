@@ -297,7 +297,9 @@ export declare class FrameworkExports {
      * TypeScript for the linted package: from its own folder, the working directory, or this package's install, the first that
      * has the parser API. `undefined` when none does (the rule then reports nothing).
      */
-    private static loadTypeScript;
+    static loadTypeScript(opts: {
+        directory: string;
+    }): typeof ts | undefined;
     /** The nearest package.json at or above `directory`. */
     static manifestFor(opts: {
         directory: string;

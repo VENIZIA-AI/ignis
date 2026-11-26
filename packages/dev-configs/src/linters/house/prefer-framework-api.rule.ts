@@ -228,7 +228,7 @@ export class PreferFrameworkApiRule {
       ],
       messages: {
         framework:
-          "Use {{hooks}} instead of {{written}}, the hook owns the subscribe and the cleanup: `import { {{names}} } from '{{package}}';`",
+          "Use {{hooks}} instead of {{written}}, the hook owns the subscribe and the cleanup: `import { {{name}} } from '{{package}}';`",
       },
     },
     create: (context) => {
@@ -250,10 +250,8 @@ export class PreferFrameworkApiRule {
           messageId: 'framework',
           data: {
             hooks: pattern.hooks,
-            // The hook names are the `useX` words in backticks.
-            names: Array.from(pattern.hooks.matchAll(/`(use\w+)`/g), (found) => found[1]).join(
-              ', ',
-            ),
+            // One import line, for the first hook the row suggests (the `useX` words are in backticks).
+            name: /`(use\w+)`/.exec(pattern.hooks)?.[1],
             package: BrowserApiPatterns.PACKAGE,
             written: pattern.written,
           },
