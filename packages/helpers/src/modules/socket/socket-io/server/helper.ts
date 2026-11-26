@@ -1,3 +1,4 @@
+import { RecordUtility } from '@/utilities/record.utility';
 import { ObjectUtility } from '@venizia/ignis-inversion';
 import { HTTP } from '@/common';
 import { RuntimeModules, type TRuntimeModule } from '@/common/constants';
@@ -8,7 +9,6 @@ import { RedisUtility, type TRedisClient } from '@/modules/redis';
 import { PromiseUtility } from '@/utilities/promise.utility';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { Emitter } from '@socket.io/redis-emitter';
-import { type EventEmitter } from 'node:events';
 import { Server as IOServer, type Socket as IOSocket, type ServerOptions } from 'socket.io';
 import {
   type IHandshake,
@@ -167,7 +167,7 @@ export class SocketIOServerHelper extends BaseHelper {
       logger.error('Redis adapter sub error | error: %s', error);
     });
 
-    (this.redisEmitter as EventEmitter).on('error', (error: Error) => {
+    this.redisEmitter.on('error', (error: Error) => {
       logger.error('Redis emitter error | error: %s', error);
     });
 
@@ -437,10 +437,7 @@ export class SocketIOServerHelper extends BaseHelper {
    * escapes as an uncaught exception and takes the process with it.
    */
   private static toRoomList(payload: unknown): string[] {
-    const rooms =
-      typeof payload === 'object' && payload !== null && 'rooms' in payload
-        ? payload.rooms
-        : undefined;
+    const rooms = RecordUtility.isRecord(payload) ? payload.rooms : undefined;
 
     return Array.isArray(rooms)
       ? rooms.filter((room): room is string => typeof room === 'string')

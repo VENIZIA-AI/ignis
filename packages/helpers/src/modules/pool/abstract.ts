@@ -259,7 +259,8 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
 
   /** Pop an idle resource and validate+reset it; on ANY failure destroy it and return null (caller retries). */
   private async takeIdleResource(): Promise<T | null> {
-    const resource = this.idle.pop() as T;
+    // Called only with an idle resource: a destructured splice is typed as one, where `pop` is not.
+    const [resource] = this.idle.splice(-1);
     const logger = this.logger.for(this.takeIdleResource.name);
 
     let isValid: boolean;

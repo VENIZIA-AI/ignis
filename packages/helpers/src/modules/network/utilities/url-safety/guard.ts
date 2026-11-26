@@ -168,18 +168,16 @@ export class UrlGuard {
 
     signal.throwIfAborted();
 
-    let onAbort: (() => void) | undefined;
-    const aborted = new Promise<never>((_resolve, reject) => {
-      onAbort = () => reject(signal.reason);
-      signal.addEventListener('abort', onAbort, { once: true });
-    });
+    const aborted = Promise.withResolvers<never>();
+    const onAbort = () => aborted.reject(signal.reason);
+    signal.addEventListener('abort', onAbort, { once: true });
 
     try {
-      const settled = await Promise.race([work, aborted]);
+      const settled = await Promise.race([work, aborted.promise]);
 
       return settled;
     } finally {
-      signal.removeEventListener('abort', onAbort as () => void);
+      signal.removeEventListener('abort', onAbort);
       // The lookup that lost keeps running; its late answer or error must not surface as an unhandled rejection. Nothing
       // is left to report: the caller already got the deadline's error.
       // eslint-disable-next-line @venizia/no-silent-catch -- the work lost the race; its outcome is irrelevant by now

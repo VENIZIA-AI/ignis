@@ -1,3 +1,4 @@
+import { RecordUtility } from '@/utilities/record.utility';
 import { HTTP } from '@/common';
 import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
@@ -5,7 +6,6 @@ import { getError } from '@/modules/error';
 import { RedisUtility, type TRedisClient } from '@/modules/redis';
 import { UuidHelper } from '@/modules/uid';
 import { PromiseUtility } from '@/utilities/promise.utility';
-import { type EventEmitter } from 'node:events';
 import {
   type IBunWebSocketConfig,
   type IBunWebSocketHandler,
@@ -43,10 +43,7 @@ export class WebSocketServerHelper<
    * inside the message callback and exits the process.
    */
   private static toRoomList(payload: unknown): string[] {
-    const rooms =
-      typeof payload === 'object' && payload !== null && 'rooms' in payload
-        ? payload.rooms
-        : undefined;
+    const rooms = RecordUtility.isRecord(payload) ? payload.rooms : undefined;
 
     return Array.isArray(rooms)
       ? rooms.filter((room): room is string => typeof room === 'string')
@@ -248,12 +245,9 @@ export class WebSocketServerHelper<
       this.onRedisMessage({ channel, raw });
     });
 
-    (this.redisSub as EventEmitter).on(
-      'pmessage',
-      (_pattern: string, channel: string, raw: string) => {
-        this.onRedisMessage({ channel, raw });
-      },
-    );
+    this.redisSub.on('pmessage', (_pattern: string, channel: string, raw: string) => {
+      this.onRedisMessage({ channel, raw });
+    });
 
     logger.info('Redis subscriptions configured');
   }

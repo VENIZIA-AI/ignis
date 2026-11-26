@@ -40,7 +40,7 @@ export class ECDH extends AbstractCryptoAlgorithm<
 > {
   private static readonly encoder = new TextEncoder();
   private static readonly decoder = new TextDecoder();
-  private readonly hkdfInfo: Uint8Array;
+  private readonly hkdfInfo: Uint8Array<ArrayBuffer>;
 
   constructor(opts?: { algorithm: ECDHAlgorithmType; hkdfInfo?: string }) {
     super({
@@ -91,7 +91,7 @@ export class ECDH extends AbstractCryptoAlgorithm<
         name: 'HKDF',
         hash: 'SHA-256',
         salt,
-        info: this.hkdfInfo as Uint8Array<ArrayBuffer>,
+        info: this.hkdfInfo,
       },
       hkdfKey,
       { name: CIPHER, length: KEY_BITS },

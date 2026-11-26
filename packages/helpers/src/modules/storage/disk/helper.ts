@@ -1,3 +1,4 @@
+import { RecordUtility } from '@/utilities/record.utility';
 import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
 import { ErrorPrettier } from '@/modules/logger';
@@ -39,7 +40,7 @@ export class DiskHelper extends BaseStorageHelper {
   private static errnoCode(opts: { error: unknown }): unknown {
     const { error } = opts;
 
-    return typeof error === 'object' && error !== null && 'code' in error ? error.code : undefined;
+    return RecordUtility.isRecord(error) ? error.code : undefined;
   }
 
   constructor(options: IDiskHelperOptions) {

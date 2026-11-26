@@ -93,10 +93,9 @@ export class PinoDestination {
       );
     }
 
-    return PinoDestination.parseMaxFilesValue(
-      PinoDestination.DEFAULT_MAX_FILES,
-      frequency,
-    ) as number;
+    const days = Number.parseInt(PinoDestination.DEFAULT_MAX_FILES, 10);
+
+    return frequency === 'hourly' ? days * 24 : days;
   }
 
   /** Pure: which destination pino should write to, derived from `APP_ENV_LOGGER_*` at CALL time. `DATE_PATTERN` is deliberately not read - pino-roll has no equivalent. */

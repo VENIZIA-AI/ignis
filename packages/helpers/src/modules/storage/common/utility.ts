@@ -1,3 +1,4 @@
+import { RecordUtility } from '@/utilities/record.utility';
 import { DurationMultipliers, type IDuration } from '@/common';
 import { HTTP } from '@/common/constants';
 import { getError } from '@/modules/error';
@@ -13,13 +14,11 @@ export class StorageUtility {
       return true;
     }
 
-    if (typeof error !== 'object' || error === null) {
+    if (!RecordUtility.isRecord(error)) {
       return false;
     }
 
-    const code = ('code' in error ? error.code : undefined) ?? '';
-    const name = ('name' in error ? error.name : undefined) ?? '';
-    const marker = `${code} ${name}`.toLowerCase();
+    const marker = `${error.code ?? ''} ${error.name ?? ''}`.toLowerCase();
 
     return ['nosuchkey', 'nosuchbucket', 'notfound'].some((needle) => marker.includes(needle));
   }
@@ -42,13 +41,8 @@ export class StorageUtility {
   private static hasStatus(opts: { error: unknown; status: number }): boolean {
     const { error, status } = opts;
 
-    if (typeof error !== 'object' || error === null) {
-      return false;
-    }
-
     return (
-      ('statusCode' in error && error.statusCode === status) ||
-      ('status' in error && error.status === status)
+      RecordUtility.isRecord(error) && (error.statusCode === status || error.status === status)
     );
   }
 
