@@ -5,6 +5,7 @@ import { ClassRenamesCommand } from './class-renames';
 import { ConnectorImportsCommand } from './connector-imports';
 import { ConstClassesCommand } from './const-classes';
 import { EnvGetCommand } from './env-get';
+import { FunctionToArrowCommand } from './function-to-arrow';
 import { DropRedundantCastsCommand } from './drop-redundant-casts';
 import { NamespaceFunctionsCommand } from './namespace-functions';
 import { CliOutput } from '../../common/cli-output';
@@ -19,6 +20,7 @@ const USAGE = [
   AnyAliasesCommand.USAGE,
   BindingKeysCommand.USAGE,
   ClassRenamesCommand.USAGE,
+  FunctionToArrowCommand.USAGE,
 ].join('\n\n');
 
 /** The codemods `devz codemod <name>` runs. */
@@ -32,6 +34,7 @@ const NAME_LIST = [
   'any-aliases',
   'binding-keys',
   'class-renames',
+  'function-to-arrow',
 ];
 const NAMES = NAME_LIST.join(', ');
 
@@ -46,6 +49,7 @@ const NOT_REVERSIBLE = new Set([
   'env-get',
   'any-aliases',
   'binding-keys',
+  'function-to-arrow',
 ]);
 
 /** `devz codemod <name> [args]`: hands the arguments to the codemod called `name`. */
@@ -96,6 +100,10 @@ export class CodemodCommand {
 
     if (name === 'binding-keys') {
       return BindingKeysCommand.run({ root: opts.root, args: rest });
+    }
+
+    if (name === 'function-to-arrow') {
+      return FunctionToArrowCommand.run({ root: opts.root, args: rest });
     }
 
     if (name === 'class-renames') {

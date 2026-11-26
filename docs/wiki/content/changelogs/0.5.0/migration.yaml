@@ -987,6 +987,7 @@ middleware-options-unknown:
 
 oxlint-base-rules:
   symbols: [oxlintConfigs, OxlintConfigs, BrowserOxlintConfigs, ReactOxlintConfigs]
+  codemod: function-to-arrow
   upgrade:
     before: |-
       export default defineConfig(oxlintConfigs);
@@ -999,7 +1000,8 @@ oxlint-base-rules:
         ],
       });
     steps:
-      - "Write a function as an arrow or a function expression, add a default to each switch, and log through the framework logger instead of console."
+      - "Run bun node_modules/.bin/devz codemod function-to-arrow src (a dry run), then again with --write. Rewrite by hand the declarations it lists, then run your typecheck, formatter and tests."
+      - "Write any other function as an arrow or a function expression, add a default to each switch, and log through the framework logger instead of console."
       - "For a file whose job is writing to the console, add an override that names that file, as in the example."
   downgrade:
     steps:
