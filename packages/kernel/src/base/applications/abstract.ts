@@ -40,7 +40,7 @@ export abstract class AbstractApplication extends Container {
   abstract staticConfigure(): void;
 
   abstract setupMiddlewares(opts?: {
-    middlewares?: Record<string | symbol, any>;
+    middlewares?: Record<string | symbol, unknown>;
   }): ValueOrPromise<void>;
 
   abstract initialize(): Promise<void>;

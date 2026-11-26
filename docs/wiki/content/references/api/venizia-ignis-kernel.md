@@ -35,7 +35,7 @@ export declare abstract class AbstractApplication extends Container {
     abstract postConfigure(): ValueOrPromise<void>;
     abstract staticConfigure(): void;
     abstract setupMiddlewares(opts?: {
-        middlewares?: Record<string | symbol, any>;
+        middlewares?: Record<string | symbol, unknown>;
     }): ValueOrPromise<void>;
     abstract initialize(): Promise<void>;
     protected getDefaultAsyncContextEnabled(): boolean;
@@ -2629,22 +2629,22 @@ Extend it rather than rebuilding it when a route takes more than `filter`:
 ```ts
 export declare const FilterQuerySchema: z.ZodObject<{
     filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
-        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
         fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
         include: z.ZodOptional<z.ZodArray<z.ZodObject<{
             relation: z.ZodString;
-            scope: z.ZodOptional<z.ZodLazy<z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>;
+            scope: z.ZodOptional<z.ZodLazy<z.ZodType<import("@venizia/ignis-filter").TFilter | undefined, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TFilter | undefined, unknown>>>>;
         }, z.core.$strip>>>;
         order: z.ZodOptional<z.ZodArray<z.ZodString>>;
         limit: z.ZodOptional<z.ZodNumber>;
         offset: z.ZodOptional<z.ZodNumber>;
         skip: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strip>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
-        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
         fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
         include: z.ZodOptional<z.ZodArray<z.ZodObject<{
             relation: z.ZodString;
-            scope: z.ZodOptional<z.ZodLazy<z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>;
+            scope: z.ZodOptional<z.ZodLazy<z.ZodType<import("@venizia/ignis-filter").TFilter | undefined, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TFilter | undefined, unknown>>>>;
         }, z.core.$strip>>>;
         order: z.ZodOptional<z.ZodArray<z.ZodString>>;
         limit: z.ZodOptional<z.ZodNumber>;
@@ -2664,22 +2664,22 @@ The whole `filter` query: an object of where, fields, include, order, limit, off
 
 ```ts
 export declare const FilterSchema: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
-    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
     include: z.ZodOptional<z.ZodArray<z.ZodObject<{
         relation: z.ZodString;
-        scope: z.ZodOptional<z.ZodLazy<z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>;
+        scope: z.ZodOptional<z.ZodLazy<z.ZodType<import("@venizia/ignis-filter").TFilter | undefined, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TFilter | undefined, unknown>>>>;
     }, z.core.$strip>>>;
     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
     limit: z.ZodOptional<z.ZodNumber>;
     offset: z.ZodOptional<z.ZodNumber>;
     skip: z.ZodOptional<z.ZodNumber>;
 }, z.core.$strip>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
-    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
     include: z.ZodOptional<z.ZodArray<z.ZodObject<{
         relation: z.ZodString;
-        scope: z.ZodOptional<z.ZodLazy<z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>;
+        scope: z.ZodOptional<z.ZodLazy<z.ZodType<import("@venizia/ignis-filter").TFilter | undefined, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TFilter | undefined, unknown>>>>;
     }, z.core.$strip>>>;
     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
     limit: z.ZodOptional<z.ZodNumber>;
@@ -4443,7 +4443,7 @@ Relations to include: an array of `{ relation, scope? }` where `scope` is a nest
 ```ts
 export declare const InclusionSchema: z.ZodOptional<z.ZodArray<z.ZodObject<{
     relation: z.ZodString;
-    scope: z.ZodOptional<z.ZodLazy<z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>;
+    scope: z.ZodOptional<z.ZodLazy<z.ZodType<import("@venizia/ignis-filter").TFilter | undefined, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TFilter | undefined, unknown>>>>;
 }, z.core.$strip>>>;
 ```
 
@@ -6294,7 +6294,7 @@ export declare class RouteConfigResolver {
     }): {
         request: {
             query: TAnyObjectSchema | z.ZodObject<{
-                where: z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]> | z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+                where: z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]> | z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
             }, z.core.$strip>;
             headers: TAnyObjectSchema | z.ZodObject<{
                 "x-request-id": z.ZodOptional<z.ZodString>;
@@ -6317,22 +6317,22 @@ export declare class RouteConfigResolver {
         request: {
             query: TAnyObjectSchema | z.ZodObject<{
                 filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
-                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                     include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                         relation: z.ZodString;
-                        scope: z.ZodOptional<z.ZodLazy<z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>;
+                        scope: z.ZodOptional<z.ZodLazy<z.ZodType<import("@venizia/ignis-filter").TFilter | undefined, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TFilter | undefined, unknown>>>>;
                     }, z.core.$strip>>>;
                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                     limit: z.ZodOptional<z.ZodNumber>;
                     offset: z.ZodOptional<z.ZodNumber>;
                     skip: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
-                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                     include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                         relation: z.ZodString;
-                        scope: z.ZodOptional<z.ZodLazy<z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>;
+                        scope: z.ZodOptional<z.ZodLazy<z.ZodType<import("@venizia/ignis-filter").TFilter | undefined, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TFilter | undefined, unknown>>>>;
                     }, z.core.$strip>>>;
                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                     limit: z.ZodOptional<z.ZodNumber>;
@@ -6369,22 +6369,22 @@ export declare class RouteConfigResolver {
             }, z.core.$strip>;
             query: TAnyObjectSchema | z.ZodObject<{
                 filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
-                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                     include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                         relation: z.ZodString;
-                        scope: z.ZodOptional<z.ZodLazy<z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>;
+                        scope: z.ZodOptional<z.ZodLazy<z.ZodType<import("@venizia/ignis-filter").TFilter | undefined, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TFilter | undefined, unknown>>>>;
                     }, z.core.$strip>>>;
                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                     limit: z.ZodOptional<z.ZodNumber>;
                     offset: z.ZodOptional<z.ZodNumber>;
                     skip: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
-                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                     include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                         relation: z.ZodString;
-                        scope: z.ZodOptional<z.ZodLazy<z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>;
+                        scope: z.ZodOptional<z.ZodLazy<z.ZodType<import("@venizia/ignis-filter").TFilter | undefined, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TFilter | undefined, unknown>>>>;
                     }, z.core.$strip>>>;
                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                     limit: z.ZodOptional<z.ZodNumber>;
@@ -6415,22 +6415,22 @@ export declare class RouteConfigResolver {
         request: {
             query: TAnyObjectSchema | z.ZodObject<{
                 filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
-                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                     include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                         relation: z.ZodString;
-                        scope: z.ZodOptional<z.ZodLazy<z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>;
+                        scope: z.ZodOptional<z.ZodLazy<z.ZodType<import("@venizia/ignis-filter").TFilter | undefined, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TFilter | undefined, unknown>>>>;
                     }, z.core.$strip>>>;
                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                     limit: z.ZodOptional<z.ZodNumber>;
                     offset: z.ZodOptional<z.ZodNumber>;
                     skip: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
-                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                     include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                         relation: z.ZodString;
-                        scope: z.ZodOptional<z.ZodLazy<z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>;
+                        scope: z.ZodOptional<z.ZodLazy<z.ZodType<import("@venizia/ignis-filter").TFilter | undefined, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TFilter | undefined, unknown>>>>;
                     }, z.core.$strip>>>;
                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                     limit: z.ZodOptional<z.ZodNumber>;
@@ -6536,7 +6536,7 @@ export declare class RouteConfigResolver {
             authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
             request: {
                 query: TAnyObjectSchema | z.ZodObject<{
-                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
                 }, z.core.$strip>;
                 headers: TAnyObjectSchema | z.ZodObject<{
                     "x-request-id": z.ZodOptional<z.ZodString>;
@@ -6727,7 +6727,7 @@ export declare class RouteConfigResolver {
                     required: boolean | undefined;
                 } | undefined;
                 query: TAnyObjectSchema | z.ZodObject<{
-                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
                 }, z.core.$strip>;
             };
             responses: {
@@ -6897,7 +6897,7 @@ export declare class RouteConfigResolver {
             authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
             request: {
                 query: TAnyObjectSchema | z.ZodObject<{
-                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
                 }, z.core.$strip>;
                 body: {
                     description: string;
@@ -6960,54 +6960,6 @@ export declare class RouteConfigResolver {
                     description: string;
                     content: {
                         "application/json": {
-                            schema: z.ZodUnion<readonly [z.ZodObject<{
-                                count: z.ZodDefault<z.ZodNumber>;
-                                data: z.ZodArray<SelectSchema>;
-                            }, z.core.$strip>, z.ZodArray<SelectSchema>]>;
-                        };
-                    };
-                    required: boolean | undefined;
-                } | {
-                    headers: import("../index.js").TResponseHeaders;
-                    description: string;
-                    content: {
-                        "application/json": {
-                            schema: z.ZodUnion<readonly [z.ZodObject<{
-                                count: z.ZodDefault<z.ZodNumber>;
-                                data: z.ZodArray<SelectSchema>;
-                            }, z.core.$strip>, z.ZodArray<SelectSchema>]>;
-                        };
-                    };
-                    required: boolean | undefined;
-                };
-            };
-        } | undefined;
-        readonly UPDATE_BY_ID?: {
-            method: "patch";
-            path: string;
-            description: string;
-            authenticate: {
-                strategies?: TAuthStrategy[];
-                mode?: TAuthMode;
-            };
-            authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
-            request: {
-                params: z.ZodObject<{
-                    id: z.ZodString;
-                }, z.core.$strip> | TAnyObjectSchema | z.ZodObject<{
-                    id: z.ZodCoercedNumber<unknown>;
-                }, z.core.$strip>;
-                body: {
-                    description: string;
-                    content: {
-                        "application/json": {
-                            schema: TAnyObjectSchema;
-                        };
-                    };
-                    required: boolean | undefined;
-                };
-                headers: TAnyObjectSchema | z.ZodObject<{
-                    "x-request-id": z.ZodOptional<z.ZodString>;
 // ... cut
 ```
 
@@ -9227,7 +9179,7 @@ place - a missing one there rewrites or deletes every row in the table.
 
 ```ts
 export declare const WhereQuerySchema: z.ZodObject<{
-    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
 }, z.core.$strip>;
 ```
 
@@ -9240,7 +9192,7 @@ Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`
 Query conditions, with nested AND/OR.
 
 ```ts
-export declare const WhereSchema: z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>;
+export declare const WhereSchema: z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>;
 ```
 
 Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`

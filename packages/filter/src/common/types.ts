@@ -3,7 +3,11 @@
 import type { TConstValue } from '@venizia/ignis-inversion';
 import type { Sorts } from './operators';
 
-/** Fields selection - an array of field names to include, or an object keyed by field name; only a `true` entry selects (a `false` is ignored by the query layer). `any` for an untyped model. */
+/**
+ * Fields selection - an array of field names to include, or an object keyed by field name; only a `true` entry selects (a `false` is ignored by the query layer). `any` for an untyped model.
+ *
+ * `any` on purpose: it is a model nobody named, which generic query code passes into and out of typed filters; no other type does both without a cast.
+ */
 export type TFields<T = any> = 0 extends 1 & T
   ? any
   : Partial<{ [K in keyof T]: boolean }> | ReadonlyArray<keyof T>;
@@ -29,7 +33,11 @@ type TSelectedKeys<T, F> =
 /** The keys a model declares optional (`items?: ...`): relations, which an `include` adds beside the selected columns. */
 type TOptionalKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? K : never }[keyof T];
 
-/** The row `fields` leaves: `Pick` of the selected keys, the whole row when nothing narrows it. A model with no known keys (`any`, `object`) stays `any`: there is nothing to pick from. */
+/**
+ * The row `fields` leaves: `Pick` of the selected keys, the whole row when nothing narrows it. A model with no known keys (`any`, `object`) stays `any`: there is nothing to pick from.
+ *
+ * `any` on purpose: generic code returns this row where it promises the model, which only `any` allows without a cast.
+ */
 export type TSelectedRow<T, F> = [keyof T] extends [never]
   ? any
   : [TSelectedKeys<T, F>] extends [never]
@@ -115,6 +123,7 @@ export type TJsonPathKey<T> = `${TJsonColumnKey<T>}.${string}` | `${TJsonColumnK
 /**
  * Query conditions for selecting data - column keys, JSON-path keys on JSON columns, and nested
  * `and` / `or`. A JSON-path value is `unknown` so a `Record<string, unknown>` still assigns.
+ * `any` on purpose: it is a model nobody named, which generic query code passes into and out of typed filters; no other type does both without a cast.
  */
 export type TWhere<T = any> = { [key in keyof T]?: TWhereValue<T[key]> } & {
   [key in TJsonPathKey<T>]?: unknown;
@@ -145,7 +154,11 @@ type TOrderKey<T> = (keyof T & string) | TJsonPathKey<T>;
 /** One typed order entry, opt-in through `satisfies TOrderEntry<T>[]` - `TFilter.order` stays `string[]`. */
 export type TOrderEntry<T> = TOrderKey<T> | `${TOrderKey<T>} ${TOrderDirection}`;
 
-/** Comprehensive filter configuration used across all repository query methods. */
+/**
+ * Comprehensive filter configuration used across all repository query methods.
+ *
+ * `any` on purpose: it is a model nobody named, which generic query code passes into and out of typed filters; no other type does both without a cast.
+ */
 export type TFilter<T = any, F extends TFields<T> = TFields<T>> = {
   where?: TWhere<T>;
   fields?: F;
@@ -156,7 +169,11 @@ export type TFilter<T = any, F extends TFields<T> = TFields<T>> = {
   skip?: number;
 };
 
-/** The filter of a read by id: no `where` (the id is the `where`), `fields` typed like `TFilter`. */
+/**
+ * The filter of a read by id: no `where` (the id is the `where`), `fields` typed like `TFilter`.
+ *
+ * `any` on purpose: it is a model nobody named, which generic query code passes into and out of typed filters; no other type does both without a cast.
+ */
 export type TByIdFilter<T = any, F extends TFields<T> = TFields<T>> = Omit<
   TFilter<T>,
   'where' | 'fields'

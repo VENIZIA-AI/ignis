@@ -126,6 +126,8 @@ Source: `packages/filter/src/common/operators.ts`
 
 The filter of a read by id: no `where` (the id is the `where`), `fields` typed like `TFilter`.
 
+`any` on purpose: it is a model nobody named, which generic query code passes into and out of typed filters; no other type does both without a cast.
+
 ```ts
 export type TByIdFilter<T = any, F extends TFields<T> = TFields<T>> = Omit<TFilter<T>, 'where' | 'fields'> & {
     fields?: F;
@@ -140,6 +142,8 @@ Source: `packages/filter/src/common/types.ts`
 
 Fields selection - an array of field names to include, or an object keyed by field name; only a `true` entry selects (a `false` is ignored by the query layer). `any` for an untyped model.
 
+`any` on purpose: it is a model nobody named, which generic query code passes into and out of typed filters; no other type does both without a cast.
+
 ```ts
 export type TFields<T = any> = 0 extends 1 & T ? any : Partial<{
     [K in keyof T]: boolean;
@@ -153,6 +157,8 @@ Source: `packages/filter/src/common/types.ts`
 *type*
 
 Comprehensive filter configuration used across all repository query methods.
+
+`any` on purpose: it is a model nobody named, which generic query code passes into and out of typed filters; no other type does both without a cast.
 
 ```ts
 export type TFilter<T = any, F extends TFields<T> = TFields<T>> = {
@@ -281,6 +287,8 @@ Source: `packages/filter/src/common/types.ts`
 
 The row `fields` leaves: `Pick` of the selected keys, the whole row when nothing narrows it. A model with no known keys (`any`, `object`) stays `any`: there is nothing to pick from.
 
+`any` on purpose: generic code returns this row where it promises the model, which only `any` allows without a cast.
+
 ```ts
 export type TSelectedRow<T, F> = [keyof T] extends [never] ? any : [TSelectedKeys<T, F>] extends [never] ? T : [keyof T] extends [TSelectedKeys<T, F>] ? T : Pick<T, TSelectedKeys<T, F> | TOptionalKeys<T>>;
 
@@ -334,6 +342,7 @@ Source: `packages/filter/src/common/types.ts`
 
 Query conditions for selecting data - column keys, JSON-path keys on JSON columns, and nested
 `and` / `or`. A JSON-path value is `unknown` so a `Record<string, unknown>` still assigns.
+`any` on purpose: it is a model nobody named, which generic query code passes into and out of typed filters; no other type does both without a cast.
 
 ```ts
 export type TWhere<T = any> = {
