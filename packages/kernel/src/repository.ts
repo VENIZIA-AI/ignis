@@ -43,7 +43,7 @@ export {
   RepositoryTypes,
 } from '@/base/repositories/common/constants';
 export type { TRepositoryType } from '@/base/repositories/common/constants';
-export { CoreErrorCodes, SearchErrorCodes } from '@/common/error-codes';
+export { CoreErrorCodes, DatabaseErrorCodes, SearchErrorCodes } from '@/common/error-codes';
 export { NotSupportedUtility } from '@/utilities/not-supported.utility';
 export type { TCount, TDataRange, TDataWithRange } from '@/base/repositories/common/types/results';
 

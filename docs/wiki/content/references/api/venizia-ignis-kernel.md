@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-363 exports, 363 with TSDoc. 88 more are re-exported from other entries (listed at the end).
+364 exports, 364 with TSDoc. 89 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -7868,6 +7868,18 @@ export type TCustomizableRouteConfig = TRouteAuthConfig & {
 
 Source: `packages/kernel/src/base/controllers/common/types/route.ts`
 
+## `TDatabaseErrorCode`
+
+*type*
+
+Valid `DatabaseErrorCodes` values.
+
+```ts
+export type TDatabaseErrorCode = TConstValue<typeof DatabaseErrorCodes>;
+```
+
+Source: `packages/kernel/src/common/error-codes.ts`
+
 ## `TDataSourceDriver`
 
 *type*
@@ -9227,6 +9239,7 @@ Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`
 - `component` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `configuration` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `CoreErrorCodes` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
+- `DatabaseErrorCodes` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `DataRangeUtility` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `datasource` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `DataSourceRoot` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)

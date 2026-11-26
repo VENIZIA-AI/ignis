@@ -345,6 +345,22 @@ z.string().refine(isEmail, {
 
 Database errors in SQLSTATE class `22` (data exception), `23` (integrity constraint), and `44` (WITH CHECK OPTION violation) are detected by class. They return HTTP `400 Bad Request`. A known code uses its specific message; any other in-class code uses `"Invalid database request"` as a fallback.
 
+`normalized.code` tells a client what went wrong, so it can show its own translated text:
+
+| SQLSTATE | `normalized.code` |
+|---|---|
+| `22001` | `core.database.string_too_long` |
+| `22003` | `core.database.numeric_out_of_range` |
+| `22P02` | `core.database.invalid_text_representation` |
+| `23502` | `core.database.not_null_violation` |
+| `23503` | `core.database.foreign_key_violation` |
+| `23505` | `core.database.unique_violation` |
+| `23514` | `core.database.check_violation` |
+| any other class `22` | `core.database.invalid_input` |
+| any other class `23`, and class `44` | `core.database.constraint_violation` |
+
+Compare with `DatabaseErrorCodes` from `@venizia/ignis`. The code names no table, column or value. A typed error you throw with the driver error as `cause` keeps your own code.
+
 Codes with a specific message, by class:
 
 **Class `23` - Integrity**

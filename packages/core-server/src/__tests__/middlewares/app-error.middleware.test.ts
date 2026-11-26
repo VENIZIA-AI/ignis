@@ -830,3 +830,50 @@ describe('AppErrorMiddleware - the logged error is summarized, not dumped raw', 
     expect(block).toContain(' at ');
   });
 });
+
+describe('database client errors - the message code', () => {
+  test('production: a unique violation answers its code and none of the driver data', async () => {
+    const res = await mount({
+      thrower: () => {
+        throw new Error('Failed query: insert into "users"', {
+          cause: Object.assign(new Error('duplicate key value'), {
+            code: '23505',
+            detail: 'Key (email)=(someone@example.com) already exists.',
+            table: 'users',
+            column: 'email',
+            constraint: 'users_email_key',
+          }),
+        });
+      },
+    }).request('/x', undefined, { NODE_ENV: 'production' });
+
+    expect(res.status).toBe(400);
+    const text = await res.text();
+    expect(JSON.parse(text).normalized).toEqual({
+      text: 'Unique constraint violation',
+      code: 'core.database.unique_violation',
+      args: {},
+    });
+
+    for (const secret of ['someone@example.com', 'users', 'email', 'insert into']) {
+      expect(text.replace('http://localhost/x', '')).not.toContain(secret);
+    }
+  });
+
+  test('a typed application error over a driver error keeps its own code', async () => {
+    const res = await mount({
+      thrower: () => {
+        throw getError({
+          statusCode: HTTP.ResultCodes.RS_4.Conflict,
+          message: 'Taken',
+          messageCode: 'app.user.email_taken',
+          cause: Object.assign(new Error('d'), { code: '23505' }),
+        });
+      },
+    }).request('/x');
+
+    expect(res.status).toBe(409);
+    const body = await readJson(res);
+    expect(body.normalized.code).toBe('app.user.email_taken');
+  });
+});

@@ -180,7 +180,9 @@ falls back to `error`. Then it is routed:
   `ECONNRESET` or a gRPC numeric code never hides it and never crashes this last-resort handler.
   The helper folds the driver spellings into one `IPostgresError` (`constraint`/`constraint_name`,
   `table`/`table_name`, `column`/`column_name`, `schema`/`schema_name`; node-postgres and PGlite use
-  the first, postgres-js the second).
+  the first, postgres-js the second). Its `normalized.code` is a `DatabaseErrorCodes` value (kernel
+  `common/error-codes.ts`, `core.database.*`): one per common SQLSTATE, else `invalid_input`
+  (class `22`) or `constraint_violation` (`23`, `44`). The retryable branch keeps `database.conflict`.
 - **Transient DB conflict** -> 409. `DatabaseErrorHandler.isRetryableDatabaseError` matches SQLSTATE `40001`
   (serialization failure) and `40P01` (deadlock), found with the same `PostgresErrors.find` walk; the response gets a fixed safe message and a
   retryable message code, since the client can retry the request unchanged.

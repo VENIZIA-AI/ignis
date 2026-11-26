@@ -219,7 +219,7 @@ The global middleware already converts constraint violations for you (see [Choos
   "statusCode": 400,
   "normalized": {
     "text": "Unique constraint violation\nDetail: Key (email)=(test@example.com) already exists.\nTable: User\nConstraint: UQ_User_email",
-    "code": "core.system_error",
+    "code": "core.database.unique_violation",
     "args": {}
   },
   "requestId": "abc123",
@@ -238,7 +238,7 @@ In production the message is the **base message only**. `Detail:` (which echoes 
 {
   "message": "Unique constraint violation",
   "statusCode": 400,
-  "normalized": { "text": "Unique constraint violation", "code": "core.system_error", "args": {} },
+  "normalized": { "text": "Unique constraint violation", "code": "core.database.unique_violation", "args": {} },
   "requestId": "abc123",
   "details": { "url": "http://localhost:3000/users", "path": "/users" }
 }
