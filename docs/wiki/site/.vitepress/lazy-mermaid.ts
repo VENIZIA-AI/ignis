@@ -45,9 +45,10 @@ export const lazyMermaid = (): Plugin => {
 export const init = async (...args) => (await load()).init(...args);
 export const render = async (...args) => (await load()).render(...args);`;
     },
-    buildEnd() {
-      // A new plugin release that imports mermaid another way would silently load it on every page.
-      if (this.meta.watchMode === false && !target) {
+    buildEnd(error) {
+      // Only the replaced import is checked: a release of the plugin that imports mermaid another way
+      // would load it on every page. A build that already failed reports its own error.
+      if (!error && this.meta.watchMode === false && !target) {
         this.error(
           'lazy-mermaid: the import it replaces was not found in vitepress-plugin-mermaid',
         );

@@ -471,9 +471,9 @@ const config = defineConfig({
     optimizeDeps: { include: ['mermaid', 'dayjs'] },
     build: {
       target: 'es2022',
-      // Above the largest chunks, mermaid's parser and the generated API reference pages, so the
-      // warning only fires for unexpected growth.
-      chunkSizeWarningLimit: 3500,
+      // Above the largest chunk, a generated API reference page, so the warning only fires for
+      // unexpected growth.
+      chunkSizeWarningLimit: 2000,
       rollupOptions: {
         output: {
           manualChunks: (id) => {

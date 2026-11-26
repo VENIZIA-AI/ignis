@@ -1,5 +1,5 @@
 {
-  "fingerprint": "6acac9097882c96e7057d0bb9de09da63008a293318722dcfbe1ed4cbcf86bad",
+  "fingerprint": "4f9f2c36cbf25be2ca142f91c06795494c3c0174b6b28a52323549d8a97d7fd2",
   "files": {
     "AtAGlance.vue": "82a497e03e3214a0aabca18d2dcf581bd2e9379c4d13594d0df48ce74f398991",
     "ChangelogCounts.vue": "b30cff5391f2cf098cd0a17fea63eb1b1513cbdaa4d12767820bf705e9c828f5",
@@ -62,7 +62,7 @@
     "home-types.ts": "610944ab017cbc1a56fb3166b11ffde7a4c1118ea83d95b831a464e2972e8d78",
     "home.css": "325356909f8ca67cb4a3d07bf42a4619131ef2ce411befc1aef2e5af0ec4a4fb",
     "index.ts": "b31d0aae6a5b519e83beb3f516c903a7fbee2e511c8e123f526091b48f02854a",
-    "search-index.ts": "6f72d14bd2b790d25944582c6c4e616531d68b243035e2746cd1eb99e9116485",
+    "search-index.ts": "49f76281c3a01ecb7c4b9ab628fab55c93628abdd0b42f52112cda6af03944f3",
     "search.css": "202ebc578ff253be8fab90be6f99816c0e2f44a06341dd63c816e2dc27950a2b",
     "search.ts": "32271f2a4f89569175b35a0f102516f9785619234d15db2cf97dd94dc5db6496",
     "theme-switch.css": "cbf2c2b3a7be26b5e7cfa632a9cd005f01efa36242be8f7684f0460d4c0285f7",
