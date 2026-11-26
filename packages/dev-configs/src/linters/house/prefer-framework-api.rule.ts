@@ -1,10 +1,10 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname } from 'node:path';
 import type { Linter, Rule, Scope } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
 import type { IBrowserApiPattern } from './browser-api-patterns';
 import { BrowserApiPatterns } from './browser-api-patterns';
 import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
+import { FrameworkExports } from './framework-exports';
 
 /** The objects a global event listener is added to. */
 const GLOBAL_TARGETS: ReadonlyArray<string> = ['window', 'document', 'self', 'globalThis'];
@@ -16,9 +16,8 @@ const GLOBAL_OBJECTS: ReadonlyArray<string> = ['window', 'globalThis', 'self'];
  * `@venizia/prefer-framework-api`. A browser API that `@venizia/ardor-react` wraps in a hook (`window.matchMedia`, a
  * `ResizeObserver`, `navigator.onLine`, a `beforeunload` listener, `navigator.clipboard.writeText`, `window.confirm`...) is
  * used through the hook, which owns the subscribe and cleanup. The rows are `BrowserApiPatterns.TABLE`; the message names
- * the hook. The rule is for apps: ardor-react's own source, where the hooks are written, turns it off.
- *
- * The package that ships the hooks (the nearest `package.json` is named `@venizia/ardor-react`) is not reported.
+ * the hook. The rule is for apps: the package that ships the hooks (the nearest `package.json` is named
+ * `@venizia/ardor-react`) is not reported.
  *
  * Only a reference to the global is reported: a `window`, `navigator` or `document` the file binds itself is not. And only
  * where a hook can be called: in a component (a PascalCase function that draws JSX) or a hook (`useX`), see `isInReact`. A
@@ -220,32 +219,6 @@ export class PreferFrameworkApiRule {
     return false;
   }
 
-  /** The `name` of the nearest `package.json` above `directory`, or `undefined` when none can be read. */
-  private static packageNameOf(opts: { directory: string }): string | undefined {
-    const { directory } = opts;
-    const manifest = join(directory, 'package.json');
-
-    if (!existsSync(manifest)) {
-      const parent = dirname(directory);
-
-      return parent === directory
-        ? undefined
-        : PreferFrameworkApiRule.packageNameOf({ directory: parent });
-    }
-
-    try {
-      const name = AstNode.readField({
-        node: JSON.parse(readFileSync(manifest, 'utf8')),
-        key: 'name',
-      });
-
-      return typeof name === 'string' ? name : undefined;
-      // eslint-disable-next-line @venizia/no-silent-catch -- a package.json that does not parse names no package, and the rule reports as anywhere else
-    } catch {
-      return undefined;
-    }
-  }
-
   static readonly RULE: Rule.RuleModule = {
     meta: {
       type: 'suggestion',
@@ -263,11 +236,9 @@ export class PreferFrameworkApiRule {
     },
     create: (context) => {
       // The package that ships the hooks writes them with the browser APIs they wrap.
-      const packageName = PreferFrameworkApiRule.packageNameOf({
-        directory: dirname(context.filename),
-      });
+      const manifest = FrameworkExports.manifestFor({ directory: dirname(context.filename) });
 
-      if (packageName === BrowserApiPatterns.PACKAGE) {
+      if (manifest?.name === BrowserApiPatterns.PACKAGE) {
         return {};
       }
 

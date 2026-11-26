@@ -870,9 +870,8 @@ Source: `packages/dev-configs/src/linters/padding.ts`
 `@venizia/prefer-framework-api`. A browser API that `@venizia/ardor-react` wraps in a hook (`window.matchMedia`, a
 `ResizeObserver`, `navigator.onLine`, a `beforeunload` listener, `navigator.clipboard.writeText`, `window.confirm`...) is
 used through the hook, which owns the subscribe and cleanup. The rows are `BrowserApiPatterns.TABLE`; the message names
-the hook. The rule is for apps: ardor-react's own source, where the hooks are written, turns it off.
-
-The package that ships the hooks (the nearest `package.json` is named `@venizia/ardor-react`) is not reported.
+the hook. The rule is for apps: the package that ships the hooks (the nearest `package.json` is named
+`@venizia/ardor-react`) is not reported.
 
 Only a reference to the global is reported: a `window`, `navigator` or `document` the file binds itself is not. And only
 where a hook can be called: in a component (a PascalCase function that draws JSX) or a hook (`useX`), see `isInReact`. A
@@ -906,8 +905,6 @@ export declare class PreferFrameworkApiRule {
      * one-off call a hook cannot make.
      */
     private static isInReact;
-    /** The `name` of the nearest `package.json` above `directory`, or `undefined` when none can be read. */
-    private static packageNameOf;
     static readonly RULE: Rule.RuleModule;
     static build(opts?: {
         severity?: TRuleSeverity;
