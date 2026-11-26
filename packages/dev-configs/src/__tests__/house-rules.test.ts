@@ -52,6 +52,17 @@ describe('venizia/const-class-values', () => {
     expect(flagged(`export type TId = string | number;`)).toHaveLength(0);
   });
 
+  test('ignores a key set in a heritage clause; another generic there still warns', () => {
+    const keys = [
+      `export interface IA extends Pick<IBase, 'a' | 'b'> {}`,
+      `export interface IB extends Omit<IBase, 'a' | 'b'> {}`,
+      `export class C implements Pick<IBase, 'a' | 'b'> {}`,
+    ];
+
+    expect(keys.map((code) => flagged(code).length)).toEqual([0, 0, 0]);
+    expect(flagged(`export interface ID extends IBase<'a' | 'b'> {}`)).toHaveLength(1);
+  });
+
   test('ignores key sets: Pick, Omit, Extract, Exclude, Record and mapped types', () => {
     const code = [
       `export type TA = Pick<{ a: 1; b: 2; c: 3 }, 'a' | 'b'>;`,

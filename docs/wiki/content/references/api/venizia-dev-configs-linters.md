@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs/linters, from the built decla
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-37 exports, 37 with TSDoc. 30 more are re-exported from other entries (listed at the end).
+35 exports, 35 with TSDoc. 30 more are re-exported from other entries (listed at the end).
 
 ## `AstNode`
 
@@ -98,6 +98,8 @@ export declare class AstNodeTypes {
     static readonly TYPE_PARAMETER_INSTANTIATION = "TSTypeParameterInstantiation";
     static readonly TYPE_QUERY = "TSTypeQuery";
     static readonly TYPE_REFERENCE = "TSTypeReference";
+    static readonly INTERFACE_HERITAGE = "TSInterfaceHeritage";
+    static readonly CLASS_IMPLEMENTS = "TSClassImplements";
     static readonly UNARY_EXPRESSION = "UnaryExpression";
     static readonly UNDEFINED_KEYWORD = "TSUndefinedKeyword";
     static readonly VARIABLE_DECLARATION = "VariableDeclaration";
@@ -330,26 +332,6 @@ export declare class FrameworkExports {
 
 Source: `packages/dev-configs/src/linters/house/framework-exports.ts`
 
-## `FrameworkRuleApis`
-
-*class*
-
-The framework API of each house rule that points at one, keyed by the rule's name (`venizia/prefer-tnullable`). Tools that
-read a project's installed `@venizia/dev-configs` (VULCAN's write-time hook) use it to tell an author which API to use, so
-a rule that steers toward the framework has an entry here; `house-framework-rules.test.ts` fails when one does not.
-
-```ts
-export declare class FrameworkRuleApis {
-    static readonly TABLE: Readonly<Record<string, IFrameworkRuleApi>>;
-    /** The entry for `rule` (`venizia/prefer-tnullable`), or `undefined` when the rule names no framework API. */
-    static of(opts: {
-        rule: string;
-    }): IFrameworkRuleApi | undefined;
-}
-```
-
-Source: `packages/dev-configs/src/linters/house/framework-rule-apis.ts`
-
 ## `HookSupport`
 
 *class*
@@ -451,27 +433,6 @@ export interface IBrowserApiPattern {
 ```
 
 Source: `packages/dev-configs/src/linters/house/browser-api-patterns.ts`
-
-## `IFrameworkRuleApi`
-
-*interface*
-
-The framework API a rule steers code toward: what to use, where it is imported from, and one line to say it.
-
-```ts
-export interface IFrameworkRuleApi {
-    /** The name to use (`TNullable`, `PromiseUtility.sleep`, `#src/...`). */
-    api: string;
-    /** What to import it from: a module (`@venizia/ignis-helpers/common`) or an import-map alias (`#src`). */
-    source: string;
-    /** The npm package that ships it, or `null` when it is no package (an import-map alias). */
-    package: string | null;
-    /** The replacement, in a short sentence an agent can act on. */
-    replacement: string;
-}
-```
-
-Source: `packages/dev-configs/src/linters/house/framework-rule-apis.ts`
 
 ## `ImportSupport`
 

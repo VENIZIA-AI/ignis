@@ -5,6 +5,13 @@ import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 /** Utility types whose type argument is a set of keys, not an enumerable value: `Pick<T, 'a' | 'b'>`. */
 const KEY_SET_TYPES = new Set(['Pick', 'Omit', 'Extract', 'Exclude', 'Record']);
 
+/** The node types that take type arguments, each with the field that holds the type's name. */
+const TYPE_NAME_KEYS: ReadonlyMap<string, string> = new Map([
+  [AstNodeTypes.TYPE_REFERENCE, 'typeName'],
+  [AstNodeTypes.INTERFACE_HERITAGE, 'expression'],
+  [AstNodeTypes.CLASS_IMPLEMENTS, 'expression'],
+]);
+
 /** The union is a type argument of a key-set utility type, or the key range of a mapped type. */
 const isKeySet = (opts: { node: unknown }): boolean => {
   const parent = AstNode.readField({ node: opts.node, key: 'parent' });
@@ -18,15 +25,19 @@ const isKeySet = (opts: { node: unknown }): boolean => {
   }
 
   const reference = AstNode.readField({ node: parent, key: 'parent' });
+  // A type reference names its type in `typeName`; `extends` and `implements` clauses name it in `expression`.
+  const key = TYPE_NAME_KEYS.get(String(AstNode.getType({ node: reference })));
+
+  if (key === undefined) {
+    return false;
+  }
+
   const name = AstNode.readField({
-    node: AstNode.readField({ node: reference, key: 'typeName' }),
+    node: AstNode.readField({ node: reference, key }),
     key: 'name',
   });
 
-  return (
-    AstNode.getType({ node: reference }) === AstNodeTypes.TYPE_REFERENCE &&
-    KEY_SET_TYPES.has(String(name))
-  );
+  return KEY_SET_TYPES.has(String(name));
 };
 
 /** The statement of the module that holds the node: the node's last ancestor before `Program`. */
