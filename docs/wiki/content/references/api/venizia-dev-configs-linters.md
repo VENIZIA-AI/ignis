@@ -64,12 +64,14 @@ export declare class AstNodeTypes {
     static readonly ASSIGNMENT_EXPRESSION = "AssignmentExpression";
     static readonly BINARY_EXPRESSION = "BinaryExpression";
     static readonly CHAIN_EXPRESSION = "ChainExpression";
+    static readonly CLASS_IMPLEMENTS = "TSClassImplements";
     static readonly CONDITIONAL_EXPRESSION = "ConditionalExpression";
     static readonly EMPTY_STATEMENT = "EmptyStatement";
     static readonly EXPORT_DEFAULT_DECLARATION = "ExportDefaultDeclaration";
     static readonly EXPORT_SPECIFIER = "ExportSpecifier";
     static readonly EXPRESSION_STATEMENT = "ExpressionStatement";
     static readonly IDENTIFIER = "Identifier";
+    static readonly INTERFACE_HERITAGE = "TSInterfaceHeritage";
     static readonly JSX_ATTRIBUTE = "JSXAttribute";
     static readonly JSX_ELEMENT = "JSXElement";
     static readonly JSX_EXPRESSION_CONTAINER = "JSXExpressionContainer";
@@ -98,8 +100,6 @@ export declare class AstNodeTypes {
     static readonly TYPE_PARAMETER_INSTANTIATION = "TSTypeParameterInstantiation";
     static readonly TYPE_QUERY = "TSTypeQuery";
     static readonly TYPE_REFERENCE = "TSTypeReference";
-    static readonly INTERFACE_HERITAGE = "TSInterfaceHeritage";
-    static readonly CLASS_IMPLEMENTS = "TSClassImplements";
     static readonly UNARY_EXPRESSION = "UnaryExpression";
     static readonly UNDEFINED_KEYWORD = "TSUndefinedKeyword";
     static readonly VARIABLE_DECLARATION = "VariableDeclaration";

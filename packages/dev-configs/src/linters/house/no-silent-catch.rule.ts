@@ -42,9 +42,9 @@ export class NoSilentCatchRule {
       schema: [],
       messages: {
         silentHandler:
-          'This `.catch` handler swallows the error with no trace: log it, rethrow it or wrap it (V-C-06), or keep it with an `eslint-disable-next-line` and the reason.',
+          "This `.catch` handler swallows the error with no trace: rethrow it, wrap it or log it (V-C-06), as in `LoggerFactory.getLogger(['scope']).error('Failed | Error: %o', error)`: `import { LoggerFactory } from '@venizia/ignis-helpers/core';`",
         silentBlock:
-          'This `catch` block swallows the error with no trace: log it, rethrow it or wrap it (V-C-06), or keep it with an `eslint-disable-next-line` and the reason.',
+          "This `catch` block swallows the error with no trace: rethrow it, wrap it or log it (V-C-06), as in `LoggerFactory.getLogger(['scope']).error('Failed | Error: %o', error)`: `import { LoggerFactory } from '@venizia/ignis-helpers/core';`",
       },
     },
     create: (context) => {
