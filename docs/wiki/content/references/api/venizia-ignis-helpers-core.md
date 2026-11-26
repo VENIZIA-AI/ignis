@@ -237,7 +237,7 @@ export declare class AESAlgorithms extends ConstClass {
 }
 ```
 
-Source: `packages/helpers/src/modules/crypto/algorithms/aes.constants.ts`
+Source: `packages/helpers/src/modules/crypto/algorithms/aes.constant.ts`
 
 ## `AESAlgorithmType`
 
@@ -249,7 +249,7 @@ Valid AES algorithm values.
 export type AESAlgorithmType = TConstValue<typeof AESAlgorithms>;
 ```
 
-Source: `packages/helpers/src/modules/crypto/algorithms/aes.constants.ts`
+Source: `packages/helpers/src/modules/crypto/algorithms/aes.constant.ts`
 
 ## `BaseHelper`
 

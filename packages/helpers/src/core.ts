@@ -84,6 +84,6 @@ export type {
 // Type-only: erased at compile time, so re-exporting these carries no runtime/bundle cost even
 // though the concrete classes they describe (the other crypto algorithms, the ioredis-backed helper) are not
 // themselves part of this pure surface.
-export { AESAlgorithms } from './modules/crypto/algorithms/aes.constants';
-export type { AESAlgorithmType } from './modules/crypto/algorithms/aes.constants';
+export { AESAlgorithms } from './modules/crypto/algorithms/aes.constant';
+export type { AESAlgorithmType } from './modules/crypto/algorithms/aes.constant';
 export type { IRedisHelper } from './modules/redis/common/interfaces';

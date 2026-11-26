@@ -1,4 +1,4 @@
-import { AESAlgorithms, type AESAlgorithmType } from './aes.constants';
+import { AESAlgorithms, type AESAlgorithmType } from './aes.constant';
 import { ObjectUtility } from '@venizia/ignis-inversion';
 import fs from 'node:fs';
 import { getError } from '@/modules/error';

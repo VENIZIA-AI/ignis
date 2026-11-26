@@ -1,5 +1,5 @@
 import { getError } from '@/modules/error';
-import { AESAlgorithms, type AESAlgorithmType } from './aes.constants';
+import { AESAlgorithms, type AESAlgorithmType } from './aes.constant';
 
 const IV_BYTES = 16;
 const TAG_BYTES = 16;
