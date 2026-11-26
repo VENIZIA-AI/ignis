@@ -24,7 +24,8 @@
  *     component, a folder with a migration block has no upgrade page at `/changelogs/<X.Y.Z>/upgrade` or that page did not
  *     render, or an item of a version page is in the script every page loads (`chunks/theme.*.js`: the two pages mount
  *     their components as async components);
- *   - the built changelog index has no `class="cl"` root: the page did not render `ChangelogIndex`.
+ *   - the built changelog index has no `class="cl"` root: the page did not render `ChangelogIndex`;
+ *   - there is no Pagefind index (`pagefind/pagefind.js`), or the build still wrote the local search index of VitePress.
  *
  * A hydration warning itself appears only in a browser; the server HTML checked here is its cause.
  * It reads only the built site and, when given one, the log of its build, so it runs the same in each wiki:
@@ -208,6 +209,29 @@ export class BuildCheck {
     return problems;
   }
 
+  /** The search of a built wiki: the Pagefind index is there, and the local search of VitePress is not. */
+  static scanSearch(opts: { dist: string }): string[] {
+    const problems: string[] = [];
+    const chunks = join(opts.dist, 'assets', 'chunks');
+
+    if (!existsSync(join(opts.dist, 'pagefind', 'pagefind.js'))) {
+      problems.push(
+        'the built wiki has no search index: run `bun site/.vitepress/theme/shared/search-index.ts` after `vitepress build` in docs:build',
+      );
+    }
+
+    if (
+      existsSync(chunks) &&
+      readdirSync(chunks).some((file) => file.startsWith('@localSearchIndex'))
+    ) {
+      problems.push(
+        "the build wrote the local search index of VitePress: remove `search: { provider: 'local' }` from the site config",
+      );
+    }
+
+    return problems;
+  }
+
   /** The text of every built style sheet. */
   static stylesOf(opts: { dist: string }): string {
     const assets = join(opts.dist, 'assets');
@@ -343,6 +367,7 @@ export class BuildCheck {
 
     problems.push(...BuildCheck.scanHome({ html: readFileSync(home, 'utf8') }));
     problems.push(...BuildCheck.scanStyles({ css: BuildCheck.stylesOf({ dist: opts.dist }) }));
+    problems.push(...BuildCheck.scanSearch({ dist: opts.dist }));
 
     if (opts.changelogs !== undefined) {
       problems.push(

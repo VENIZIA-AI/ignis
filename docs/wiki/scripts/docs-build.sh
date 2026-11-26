@@ -22,6 +22,9 @@ if [ "$status" -ne 0 ]; then
   exit "$status"
 fi
 
+# The search index of the built pages (Pagefind), read by the shared theme's search box.
+bun site/.vitepress/theme/shared/search-index.ts
+
 # After vitepress: the shared build check reads the output and the built pages (a server render error
 # in the log; the home page's hero, footer, canvases and top bar; the style sheets; an inner page with
 # no footer). Only `--check --log` here: without `--check` it would build again.

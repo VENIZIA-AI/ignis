@@ -487,11 +487,6 @@ const config = defineConfig({
                 return 'mermaid';
               }
 
-              // Split search functionality
-              if (id.includes('minisearch') || id.includes('mark.js')) {
-                return 'search';
-              }
-
               // Split Vue core
               if (id.includes('@vue/')) {
                 return 'vue-vendor';
@@ -506,10 +501,6 @@ const config = defineConfig({
     // The guide to moving an app between releases is VULCAN's (`vulcan migrate plan`): one home, linked from here.
     migrateGuide: 'https://vulcan.venizia.ai/guides/core-concepts/migrate-between-releases',
     logo: '/logo.svg',
-    search: {
-      provider: 'local',
-    },
-
     nav: [
       { text: 'Guide', link: '/guides/' },
       { text: 'Core API', link: '/references/' },
