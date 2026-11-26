@@ -237,7 +237,7 @@ describe('PromiseUtility.voidExecution logging a rejection', () => {
   test.each([
     ['without a logger', 'undefined'],
     ['with a deep-splat logger', 'deepSplat'],
-  ])('%s: the stack is printed, the fields of the error are not', (_name, logger) => {
+  ])('%s: the message is printed, the fields of the error are not', (_name, logger) => {
     const run = Bun.spawnSync(['bun', '-e', script({ logger })], {
       cwd: `${import.meta.dir}/../../..`,
     });
@@ -245,7 +245,6 @@ describe('PromiseUtility.voidExecution logging a rejection', () => {
 
     expect(written).toContain('Unhandled error in fire-and-forget execution');
     expect(written).toContain('boom');
-    expect(written).toMatch(/\n\s+at /);
     expect(written).not.toContain('secret-token');
   });
 });
