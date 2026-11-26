@@ -70,6 +70,11 @@ export class WorkerBffTransport extends BaseHelper implements IBffTransport {
     // A worker posts to this page for its own reasons too (a dev-server ping, a library handshake),
     // and none of those carry an `id` this transport is waiting on.
     const data: unknown = event.data;
+
+    if (!RecordUtility.isRecord(data)) {
+      return;
+    }
+
     const id = BffEnvelopeGuard.readId(data);
 
     if (id === undefined) {
@@ -82,7 +87,7 @@ export class WorkerBffTransport extends BaseHelper implements IBffTransport {
       return;
     }
 
-    if (RecordUtility.isRecord(data) && 'error' in data) {
+    if ('error' in data) {
       pending.reject(
         BffEnvelopeGuard.isError(data)
           ? BffEnvelope.decodeError({ envelope: data })

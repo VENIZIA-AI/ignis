@@ -402,6 +402,7 @@ describe('WorkerApplication - a malformed request', () => {
     const errorEnvelope = scope.posted[0] as IBffErrorEnvelope;
     expect(errorEnvelope.id).toBe('malformed-1');
     expect(errorEnvelope.error.text).toContain('malformed request envelope');
+    expect(errorEnvelope.statusCode).toBe(HTTP.ResultCodes.RS_5.InternalServerError);
   });
 
   test('one with no readable id is ignored', async () => {

@@ -4,6 +4,7 @@ import {
   RequestIdGenerator,
   RecordUtility,
 } from '@venizia/ignis-helpers/core';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { BffEnvelope } from '@/envelope/encode';
 import { BffEnvelopeGuard } from '@/envelope/guard';
 import type { IBffRequestEnvelope } from '@/envelope/common';
@@ -421,6 +422,7 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
 
         if (!BffEnvelopeGuard.isRequest(envelope)) {
           const error = getError({
+            statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
             message: `[SharedBffTransport] Refused a malformed request envelope | id: ${id}`,
           });
           this.logger.for(this.handleChannelMessage.name).warn(error.message);

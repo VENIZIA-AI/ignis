@@ -346,6 +346,7 @@ describe('SharedBffTransport', () => {
     expect(received).toHaveLength(1);
     expect(received[0]?.type).toBe(ChannelMessageTypes.ERROR);
     expect(received[0]?.envelope.id).toBe('malformed-1');
+    expect(received[0]?.envelope).toHaveProperty('statusCode', 500);
   });
 
   for (const type of [ChannelMessageTypes.RESPONSE, ChannelMessageTypes.ERROR]) {
@@ -366,8 +367,8 @@ describe('SharedBffTransport', () => {
       await flush();
       channel.postMessage({ type, envelope: { id: received[0]?.envelope.id } });
 
-      const result2 = await Promise.race([outcome, flush(500).then(() => 'pending')]);
-      expect(result2).toContain('could not be decoded');
+      const settled = await Promise.race([outcome, flush(500).then(() => 'pending')]);
+      expect(settled).toContain('could not be decoded');
       channel.close();
     });
   }
