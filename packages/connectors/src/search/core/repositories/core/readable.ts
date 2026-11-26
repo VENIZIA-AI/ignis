@@ -66,6 +66,7 @@ export class ReadableSearchRepository<
     return count > 0;
   }
 
+  // `TFilter<any, F>`: only `fields` is typed here; the `where` of the untyped model is `any`, see `TFilter`.
   find<R = unknown, const F extends TFields<TDocument> = TFields<TDocument>>(opts: {
     filter: TFilter<any, F>;
     options: TFindRangeOptions<IExtraOptions, TRow<TDocument, R, F>>;
@@ -151,6 +152,7 @@ export class ReadableSearchRepository<
     };
   }
 
+  // `TFilter<any, F>`: only `fields` is typed here; the `where` of the untyped model is `any`, see `TFilter`.
   async findOne<R = unknown, const F extends TFields<TDocument> = TFields<TDocument>>(opts: {
     filter: TFilter<any, F>;
     options?: TFindOneOptions<IExtraOptions, TRow<TDocument, R, F>>;
@@ -172,6 +174,7 @@ export class ReadableSearchRepository<
     return results[0] ?? null;
   }
 
+  // `TFilter<any, F>`: only `fields` is typed here; the `where` of the untyped model is `any`, see `TFilter`.
   /**
    * Delegates to findOne with id in where - routing through buildQuery is what makes
    * hiddenFields/settings.query.filter apply, so a soft-deleted document resolves to null. `where` is spread

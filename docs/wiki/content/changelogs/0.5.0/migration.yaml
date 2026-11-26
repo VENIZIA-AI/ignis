@@ -964,3 +964,22 @@ lint-rule-namespace:
     steps:
       - "Pin @venizia/dev-configs to the release before this one and replace @venizia/<rule> with venizia/<rule> in your ESLint configs and eslint-disable comments."
   data: Nothing stored changes.
+
+middleware-options-unknown:
+  symbols: [AbstractApplication.setupMiddlewares, QuerySchemaFactory.build]
+  upgrade:
+    before: |-
+      override setupMiddlewares(opts?: { middlewares?: Record<string | symbol, any> }) {
+        const name: string = opts?.middlewares?.name;
+      }
+    after: |-
+      override setupMiddlewares(opts?: { middlewares?: Record<string | symbol, unknown> }) {
+        const value = opts?.middlewares?.name;
+        const name = typeof value === 'string' ? value : undefined;
+      }
+    steps:
+      - "Where an override of setupMiddlewares reads a value out of middlewares, check its type before use."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-kernel and @venizia/ignis-filter to the release before this one."
+  data: Nothing stored changes.

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import type { TFilter, TWhere } from '../common/types';
 import type { TSchemaDecorator } from './common';
 import { DEFAULT_MAX_WHERE_DEPTH, WhereDepthGuard } from './where-depth';
 
@@ -63,7 +64,7 @@ export class QuerySchemaFactory {
     );
 
     /** @internal Recursive schema for where clause validation with nested AND/OR. */
-    const RecursiveWhereSchema: z.ZodType<any> = z.lazy(() =>
+    const RecursiveWhereSchema: z.ZodType<TWhere> = z.lazy(() =>
       z.record(z.string(), z.any()).and(
         z.object({
           and: z.array(RecursiveWhereSchema).optional(),
@@ -123,7 +124,7 @@ export class QuerySchemaFactory {
             relation: decorate(z.string(), { description: 'Model relation name' }),
             scope: decorate(
               z
-                .lazy((): z.ZodType<any> => FilterSchema) // eslint-disable-line @typescript-eslint/no-use-before-define
+                .lazy((): z.ZodType<TFilter | undefined> => FilterSchema) // eslint-disable-line @typescript-eslint/no-use-before-define
                 .optional(),
               { description: 'Model relation filter' },
             ),
