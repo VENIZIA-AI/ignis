@@ -16,6 +16,7 @@ export class AesKeyUsages {
   static readonly DECRYPT = 'decrypt';
 }
 
+/** One of `AesKeyUsages`. */
 export type TAesKeyUsage = TConstValue<typeof AesKeyUsages>;
 
 /** The Web Crypto names of the two AES modes. */
@@ -24,4 +25,5 @@ export class AesCipherNames {
   static readonly GCM = 'AES-GCM';
 }
 
+/** One of `AesCipherNames`. */
 export type TAesCipherName = TConstValue<typeof AesCipherNames>;

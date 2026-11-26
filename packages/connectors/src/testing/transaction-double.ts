@@ -121,7 +121,7 @@ export class TransactionDouble<TConnector = never>
 
   /** Records a begin. `RepositoryDouble.withTransactions` calls it when `beginTransaction` hands this handle out; a test that builds its own `beginTransaction` stub calls it the same way. */
   recordBegin(): void {
-    this.#events.push('begin');
+    this.#events.push(TransactionDoubleEvents.BEGIN);
   }
 
   get connector(): TConnector {
@@ -138,7 +138,7 @@ export class TransactionDouble<TConnector = never>
   protected override async executeEnd(opts: { end: ITransactionEnd }): Promise<void> {
     if (opts.end.endedState === TransactionStates.COMMITTED) {
       this.#commitCount++;
-      this.#events.push('commit');
+      this.#events.push(TransactionDoubleEvents.COMMIT);
       await this.#onCommit?.();
 
       if (this.#commitError) {
@@ -149,7 +149,7 @@ export class TransactionDouble<TConnector = never>
     }
 
     this.#rollbackCount++;
-    this.#events.push('rollback');
+    this.#events.push(TransactionDoubleEvents.ROLLBACK);
     await this.#onRollback?.();
 
     if (this.#rollbackError) {

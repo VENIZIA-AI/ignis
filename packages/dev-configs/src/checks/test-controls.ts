@@ -123,12 +123,12 @@ export class TestControlsCheck {
       if (!existsSync(path)) {
         problems.push({
           entry,
-          message: `the ${entry.type === 'file' ? 'negative fixture' : 'test file'} ${entry.file} does not exist`,
+          message: `the ${entry.type === ControlEntryTypes.FILE ? 'negative fixture' : 'test file'} ${entry.file} does not exist`,
         });
         continue;
       }
 
-      if (entry.type === 'file') {
+      if (entry.type === ControlEntryTypes.FILE) {
         continue;
       }
 

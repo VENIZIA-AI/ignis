@@ -86,7 +86,12 @@ export class DeadTestCodeCheck {
       const folderReferenced =
         folder !== '.' && referencedElsewhere({ root: opts.root, needle: folder, self: file });
 
-      candidates.push({ file, type: folderReferenced ? 'folder-referenced' : 'unreferenced' });
+      candidates.push({
+        file,
+        type: folderReferenced
+          ? DeadTestCodeCandidateTypes.FOLDER_REFERENCED
+          : DeadTestCodeCandidateTypes.UNREFERENCED,
+      });
     }
 
     return candidates;

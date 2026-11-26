@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-364 exports, 364 with TSDoc. 90 more are re-exported from other entries (listed at the end).
+364 exports, 364 with TSDoc. 89 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -9238,7 +9238,6 @@ Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`
 - `repository` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `RepositoryOperationScopes` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `RepositoryTypes` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
-- `RequestFilterClauses` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `RequestFilterParts` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `ResolverUtility` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `SchemaTypes` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)

@@ -1,7 +1,8 @@
-import type { TConstValue } from '../linters/rules/common';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+
+import type { TConstValue } from '../linters/rules/common';
 
 /** What a ledger line expects of the candidate test under the mutant. */
 export class CandidateExpectations {
@@ -238,17 +239,17 @@ export class TestMutateCheck {
         }),
       });
       const result: ILedgerResult = { id: line.id, survivorRed, candidateRed, ok: true };
-      const expectation = line.expectCandidate ?? 'red';
+      const expectation = line.expectCandidate ?? CandidateExpectations.RED;
 
       if (!survivorRed) {
         result.ok = false;
         result.problem =
           'the survivor stayed green under the mutant: it does not cover the behaviour';
-      } else if (expectation === 'red' && !candidateRed) {
+      } else if (expectation === CandidateExpectations.RED && !candidateRed) {
         result.ok = false;
         result.problem =
           'the candidate stayed green under the mutant: record it as vacuous with a second mutant, or pick a mutant it checks';
-      } else if (expectation === 'vacuous') {
+      } else if (expectation === CandidateExpectations.VACUOUS) {
         if (!line.secondMutant) {
           result.ok = false;
           result.problem = 'a vacuous line needs a secondMutant';
