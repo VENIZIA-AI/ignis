@@ -298,6 +298,7 @@ describe('devz codemod --list and --reverse', () => {
         'any-aliases',
         'binding-keys',
         'class-renames',
+        'function-to-arrow',
       ].join('\n'),
     ]);
     expect(errors).toEqual([]);
