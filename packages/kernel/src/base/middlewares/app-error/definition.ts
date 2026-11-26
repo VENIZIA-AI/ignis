@@ -1,4 +1,10 @@
 import { CoreErrorCodes } from '@/common/error-codes';
+import type { TConstValue } from '@venizia/ignis-helpers/common';
+import { MessageCode } from '@venizia/ignis-helpers/core';
+
+const buildCode = (parts: Array<string>): string => {
+  return MessageCode.build({ parts });
+};
 
 /** PostgreSQL SQLSTATE codes representing a CLIENT error (HTTP 400) - caused by the request/data, not a server fault. @see https://www.postgresql.org/docs/current/errcodes-appendix.html */
 export const PostgresErrorCodes = {
@@ -82,6 +88,35 @@ export const POSTGRES_RETRYABLE_ERROR_CODES: readonly string[] = [
 export const DATABASE_RETRYABLE_ERROR_MESSAGE =
   'The request conflicted with a concurrent operation; please retry.';
 export const DATABASE_RETRYABLE_ERROR_CODE = CoreErrorCodes.DATABASE_CONFLICT;
+
+/**
+ * The `normalized.code` of a database error the request caused (HTTP 400): one per common SQLSTATE, then one per class.
+ *
+ * @useWhen Telling apart the database errors a user's input caused, to translate them or branch on them.
+ */
+export class DatabaseErrorCodes {
+  static readonly STRING_TOO_LONG = buildCode(['core', 'database', 'string_too_long']);
+  static readonly NUMERIC_OUT_OF_RANGE = buildCode(['core', 'database', 'numeric_out_of_range']);
+  static readonly INVALID_TEXT_REPRESENTATION = buildCode([
+    'core',
+    'database',
+    'invalid_text_representation',
+  ]);
+
+  static readonly NOT_NULL_VIOLATION = buildCode(['core', 'database', 'not_null_violation']);
+  static readonly FOREIGN_KEY_VIOLATION = buildCode(['core', 'database', 'foreign_key_violation']);
+  static readonly UNIQUE_VIOLATION = buildCode(['core', 'database', 'unique_violation']);
+  static readonly CHECK_VIOLATION = buildCode(['core', 'database', 'check_violation']);
+
+  /** Any other class `22` (data exception). */
+  static readonly INVALID_INPUT = buildCode(['core', 'database', 'invalid_input']);
+
+  /** Any other class `23` (integrity constraint) or `44` (view check option). */
+  static readonly CONSTRAINT_VIOLATION = buildCode(['core', 'database', 'constraint_violation']);
+}
+
+/** Valid `DatabaseErrorCodes` values. */
+export type TDatabaseErrorCode = TConstValue<typeof DatabaseErrorCodes>;
 
 /** The branch a thrown value takes through the handler. */
 export class ApplicationErrorTypes {

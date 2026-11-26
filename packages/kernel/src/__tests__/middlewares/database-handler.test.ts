@@ -42,7 +42,11 @@ describe('DatabaseErrorHandler.isDatabaseClientError - a Postgres error inside a
       isProduction: true,
     });
 
-    expect(result).toEqual({ isClientError: true, message: 'Unique constraint violation' });
+    expect(result).toEqual({
+      isClientError: true,
+      message: 'Unique constraint violation',
+      messageCode: 'core.database.unique_violation',
+    });
   });
 
   test('an outer non-SQLSTATE code does not hide the Postgres error below it', () => {
@@ -84,6 +88,31 @@ describe('DatabaseErrorHandler.isDatabaseClientError - a Postgres error inside a
     });
 
     expect(result.isClientError).toBe(false);
+  });
+});
+
+describe('DatabaseErrorHandler.isDatabaseClientError - the message code per SQLSTATE', () => {
+  test.each([
+    ['22001', 'core.database.string_too_long'],
+    ['22003', 'core.database.numeric_out_of_range'],
+    ['22P02', 'core.database.invalid_text_representation'],
+    ['23502', 'core.database.not_null_violation'],
+    ['23503', 'core.database.foreign_key_violation'],
+    ['23505', 'core.database.unique_violation'],
+    ['23514', 'core.database.check_violation'],
+    ['22000', 'core.database.invalid_input'],
+    ['22007', 'core.database.invalid_input'],
+    ['22999', 'core.database.invalid_input'],
+    ['23000', 'core.database.constraint_violation'],
+    ['23P01', 'core.database.constraint_violation'],
+    ['44000', 'core.database.constraint_violation'],
+  ])('SQLSTATE %s is %s', (code, messageCode) => {
+    const result = DatabaseErrorHandler.isDatabaseClientError({
+      error: wrapped({ driver: { code }, levels: 2 }),
+      isProduction: true,
+    });
+
+    expect(result.messageCode).toBe(messageCode);
   });
 });
 

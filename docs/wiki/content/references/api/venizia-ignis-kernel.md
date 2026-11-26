@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-363 exports, 363 with TSDoc. 88 more are re-exported from other entries (listed at the end).
+365 exports, 365 with TSDoc. 88 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -2314,6 +2314,32 @@ export declare const DATA_SOURCE_BRAND: unique symbol;
 ```
 
 Source: `packages/kernel/src/base/datasources/root.ts`
+
+## `DatabaseErrorCodes`
+
+*class*
+
+The `normalized.code` of a database error the request caused (HTTP 400): one per common SQLSTATE, then one per class.
+
+@useWhen Telling apart the database errors a user's input caused, to translate them or branch on them.
+
+```ts
+export declare class DatabaseErrorCodes {
+    static readonly STRING_TOO_LONG: string;
+    static readonly NUMERIC_OUT_OF_RANGE: string;
+    static readonly INVALID_TEXT_REPRESENTATION: string;
+    static readonly NOT_NULL_VIOLATION: string;
+    static readonly FOREIGN_KEY_VIOLATION: string;
+    static readonly UNIQUE_VIOLATION: string;
+    static readonly CHECK_VIOLATION: string;
+    /** Any other class `22` (data exception). */
+    static readonly INVALID_INPUT: string;
+    /** Any other class `23` (integrity constraint) or `44` (view check option). */
+    static readonly CONSTRAINT_VIOLATION: string;
+}
+```
+
+Source: `packages/kernel/src/base/middlewares/app-error/definition.ts`
 
 ## `DataSourceDrivers`
 
@@ -7867,6 +7893,18 @@ export type TCustomizableRouteConfig = TRouteAuthConfig & {
 ```
 
 Source: `packages/kernel/src/base/controllers/common/types/route.ts`
+
+## `TDatabaseErrorCode`
+
+*type*
+
+Valid `DatabaseErrorCodes` values.
+
+```ts
+export type TDatabaseErrorCode = TConstValue<typeof DatabaseErrorCodes>;
+```
+
+Source: `packages/kernel/src/base/middlewares/app-error/definition.ts`
 
 ## `TDataSourceDriver`
 

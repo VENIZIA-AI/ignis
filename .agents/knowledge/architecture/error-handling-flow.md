@@ -180,7 +180,9 @@ falls back to `error`. Then it is routed:
   `ECONNRESET` or a gRPC numeric code never hides it and never crashes this last-resort handler.
   The helper folds the driver spellings into one `IPostgresError` (`constraint`/`constraint_name`,
   `table`/`table_name`, `column`/`column_name`, `schema`/`schema_name`; node-postgres and PGlite use
-  the first, postgres-js the second).
+  the first, postgres-js the second). Its `normalized.code` is a `DatabaseErrorCodes` value (kernel
+  `base/middlewares/app-error/definition.ts`, `core.database.*`): one per common SQLSTATE, else `invalid_input`
+  (class `22`) or `constraint_violation` (`23`, `44`). The retryable branch keeps `database.conflict`.
 - **Transient DB conflict** -> 409. `DatabaseErrorHandler.isRetryableDatabaseError` matches SQLSTATE `40001`
   (serialization failure) and `40P01` (deadlock), found with the same `PostgresErrors.find` walk; the response gets a fixed safe message and a
   retryable message code, since the client can retry the request unchanged.
@@ -260,10 +262,9 @@ from `message`.
 
 `extra` is NOT gated that way. The handler copies it off the RAW thrown value whenever that value
 has an `extra` property, whatever branch classification chose. Usually that means only intentional
-errors carry one, since a raw driver error has no `extra` - but `classify` tests the DB branches
-BEFORE `statusCode`, so an `ApplicationError` raised as `getError({ extra, cause: driverError })`
-whose cause bears a client or retryable SQLSTATE lands on a DB branch and still reports its `extra`
-next to the replaced message. Keep out of `extra` anything the message must not say.
+errors carry one, since a raw driver error has no `extra`. `classify` tests an `ApplicationError`
+first, so `getError({ extra, cause: driverError })` keeps its own status, message and code.
+Keep out of `extra` anything the response must not say.
 
 `configs.error.rootKey`, when set, nests this under that key. `requestId` is the join key between the
 response a client saw and the fully detailed server log line.

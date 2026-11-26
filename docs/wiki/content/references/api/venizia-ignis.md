@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-108 exports, 108 with TSDoc. 1010 more are re-exported from other entries (listed at the end).
+108 exports, 108 with TSDoc. 1012 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3396,6 +3396,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `CrudRoutes` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `D_STROKE_REPLACEMENTS` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `DATA_SOURCE_BRAND` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `DatabaseErrorCodes` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `DataRangeUtility` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `datasource` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `DataSourceDrivers` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -3998,6 +3999,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TCrudRoutes` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TCustomGrantMetadata` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TCustomizableRouteConfig` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `TDatabaseErrorCode` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TDataRange` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TDataSourceDriver` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TDataSourceDriverClass` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)

@@ -326,6 +326,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
           statusCode: HTTP.ResultCodes.RS_4.BadRequest,
           // The fallback is unreachable today; it keeps the driver's raw text from ever surfacing.
           message: dbError.message ?? DEFAULT_INTERNAL_ERROR_MESSAGE,
+          messageCode: dbError.messageCode,
         });
       }
 
