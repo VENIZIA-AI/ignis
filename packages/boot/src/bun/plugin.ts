@@ -88,7 +88,8 @@ export class IgnisArtifactsPlugin {
     const imports: string[] = [];
     let counter = 0;
 
-    const refuse = (node: ts.Node, reason: string): never => {
+    // Annotated: only a declared `never` narrows the code after a call.
+    const refuse: (node: ts.Node, reason: string) => never = (node, reason) => {
       const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
       throw getError({
         message: `[IgnisArtifactsPlugin] An ArtifactGroup call at ${filePath}:${line + 1} cannot be rewritten | ${reason} - write ArtifactGroup.define({ folder: '<name>' }) or ArtifactGroup.application() with the class imported under its own name`,
@@ -151,25 +152,24 @@ export class IgnisArtifactsPlugin {
     };
 
     const visit = (node: ts.Node): void => {
-      const isGroupCall =
-        ts.isCallExpression(node) &&
-        ts.isPropertyAccessExpression(node.expression) &&
-        (ts.isIdentifier(node.expression.expression) ||
-          ts.isPropertyAccessExpression(node.expression.expression)) &&
-        (node.expression.name.text === 'define' || node.expression.name.text === 'application');
-
-      if (!isGroupCall) {
+      if (
+        !ts.isCallExpression(node) ||
+        !ts.isPropertyAccessExpression(node.expression) ||
+        !(
+          ts.isIdentifier(node.expression.expression) ||
+          ts.isPropertyAccessExpression(node.expression.expression)
+        ) ||
+        !(node.expression.name.text === 'define' || node.expression.name.text === 'application')
+      ) {
         ts.forEachChild(node, visit);
 
         return;
       }
 
       const call = node;
-      const access = call.expression as ts.PropertyAccessExpression;
-      const target = access.expression;
-      const callee = ts.isIdentifier(target)
-        ? target.text
-        : (target as ts.PropertyAccessExpression).name.text;
+      const access = node.expression;
+      const target = node.expression.expression;
+      const callee = ts.isIdentifier(target) ? target.text : target.name.text;
       const isApplication = access.name.text === 'application';
 
       if (ts.isIdentifier(target) && aliases.has(callee)) {
@@ -194,9 +194,8 @@ export class IgnisArtifactsPlugin {
         refuse(call, 'the argument is not an object literal');
       }
 
-      const literal = argument as ts.ObjectLiteralExpression;
       const named = (name: string): ts.ObjectLiteralElementLike | undefined =>
-        literal.properties.find(
+        argument.properties.find(
           (entry) =>
             entry.name !== undefined && ts.isIdentifier(entry.name) && entry.name.text === name,
         );
@@ -223,21 +222,24 @@ export class IgnisArtifactsPlugin {
       }
 
       const ignoreProperty = named('ignore');
-      const ignoreList =
+      const ignored =
         ignoreProperty &&
         ts.isPropertyAssignment(ignoreProperty) &&
-        ts.isArrayLiteralExpression(ignoreProperty.initializer) &&
-        ignoreProperty.initializer.elements.every((element) => ts.isStringLiteral(element))
-          ? ignoreProperty.initializer.elements.map((element) => (element as ts.StringLiteral).text)
+        ts.isArrayLiteralExpression(ignoreProperty.initializer)
+          ? ignoreProperty.initializer.elements
           : undefined;
+      const names = ignored?.flatMap((element) =>
+        ts.isStringLiteral(element) ? [element.text] : [],
+      );
+      const ignoreList = names?.length === ignored?.length ? names : undefined;
 
       if (ignoreProperty && ignoreList === undefined) {
         refuse(call, 'ignore is not an array of string literals');
       }
 
-      const last = literal.properties[literal.properties.length - 1];
+      const last = argument.properties[argument.properties.length - 1];
       edits.push({
-        at: last ? last.getEnd() : literal.getStart() + 1,
+        at: last ? last.getEnd() : argument.getStart() + 1,
         text: `${last ? ', ' : ''}content: ${contentLiteral(folderLiteral, ignoreList)}`,
       });
     };
