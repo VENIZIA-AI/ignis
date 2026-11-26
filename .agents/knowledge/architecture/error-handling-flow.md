@@ -262,10 +262,9 @@ from `message`.
 
 `extra` is NOT gated that way. The handler copies it off the RAW thrown value whenever that value
 has an `extra` property, whatever branch classification chose. Usually that means only intentional
-errors carry one, since a raw driver error has no `extra` - but `classify` tests the DB branches
-BEFORE `statusCode`, so an `ApplicationError` raised as `getError({ extra, cause: driverError })`
-whose cause bears a client or retryable SQLSTATE lands on a DB branch and still reports its `extra`
-next to the replaced message. Keep out of `extra` anything the message must not say.
+errors carry one, since a raw driver error has no `extra`. `classify` tests an `ApplicationError`
+first, so `getError({ extra, cause: driverError })` keeps its own status, message and code.
+Keep out of `extra` anything the response must not say.
 
 `configs.error.rootKey`, when set, nests this under that key. `requestId` is the join key between the
 response a client saw and the fully detailed server log line.

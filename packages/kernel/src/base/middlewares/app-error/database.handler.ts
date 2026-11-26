@@ -58,8 +58,8 @@ export class DatabaseErrorHandler {
     };
   }
 
-  /** The code of a client-class SQLSTATE; the caller has already narrowed it to class 22, 23 or 44. */
-  private static resolveMessageCode(opts: { code: string }): TDatabaseErrorCode {
+  /** The code of a client-class SQLSTATE; `undefined` for any other, which then answers the default code. */
+  private static resolveMessageCode(opts: { code: string }): TDatabaseErrorCode | undefined {
     switch (opts.code) {
       case PostgresErrorCodes.STRING_DATA_TOO_LONG: {
         return DatabaseErrorCodes.STRING_TOO_LONG;
@@ -90,9 +90,28 @@ export class DatabaseErrorHandler {
       }
 
       default: {
-        return opts.code.startsWith('22')
-          ? DatabaseErrorCodes.INVALID_INPUT
-          : DatabaseErrorCodes.CONSTRAINT_VIOLATION;
+        return DatabaseErrorHandler.resolveClassMessageCode({
+          sqlStateClass: opts.code.slice(0, 2),
+        });
+      }
+    }
+  }
+
+  private static resolveClassMessageCode(opts: {
+    sqlStateClass: string;
+  }): TDatabaseErrorCode | undefined {
+    switch (opts.sqlStateClass) {
+      case '22': {
+        return DatabaseErrorCodes.INVALID_INPUT;
+      }
+
+      case '23':
+      case '44': {
+        return DatabaseErrorCodes.CONSTRAINT_VIOLATION;
+      }
+
+      default: {
+        return undefined;
       }
     }
   }
