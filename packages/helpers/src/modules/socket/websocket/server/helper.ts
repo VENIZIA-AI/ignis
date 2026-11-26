@@ -28,7 +28,6 @@ import {
   WebSocketMessageTypes,
 } from '../common';
 import { WebSocketDeliveryHelper } from './delivery';
-import type { TNullable } from '@/common/types';
 
 /** WebSocket server for Bun with authentication, rooms, heartbeats, optional encrypted sessions, and Redis fan-out across instances. Clients must authenticate through `authenticateFn` within `authTimeout`. */
 export class WebSocketServerHelper<
@@ -44,7 +43,10 @@ export class WebSocketServerHelper<
    * inside the message callback and exits the process.
    */
   private static toRoomList(payload: unknown): string[] {
-    const rooms = (payload as TNullable<{ rooms?: unknown }>)?.rooms;
+    const rooms =
+      typeof payload === 'object' && payload !== null && 'rooms' in payload
+        ? payload.rooms
+        : undefined;
 
     return Array.isArray(rooms)
       ? rooms.filter((room): room is string => typeof room === 'string')
@@ -273,8 +275,10 @@ export class WebSocketServerHelper<
     if (
       !parsed ||
       typeof parsed !== 'object' ||
-      typeof (parsed as IRedisSocketMessage).serverId !== 'string' ||
-      typeof (parsed as IRedisSocketMessage).event !== 'string'
+      !('serverId' in parsed) ||
+      typeof parsed.serverId !== 'string' ||
+      !('event' in parsed) ||
+      typeof parsed.event !== 'string'
     ) {
       logger.error('Invalid Redis message shape | channel: %s', channel);
 

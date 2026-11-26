@@ -21,7 +21,6 @@ import {
   type TSocketIOServerOptions,
   type TSocketIOValidateRoomFn,
 } from '../common';
-import type { TNullable } from '@/common/types';
 
 const CLIENT_AUTHENTICATE_TIMEOUT = 10_000;
 const CLIENT_PING_INTERVAL = 30_000;
@@ -438,7 +437,10 @@ export class SocketIOServerHelper extends BaseHelper {
    * escapes as an uncaught exception and takes the process with it.
    */
   private static toRoomList(payload: unknown): string[] {
-    const rooms = (payload as TNullable<{ rooms?: unknown }>)?.rooms;
+    const rooms =
+      typeof payload === 'object' && payload !== null && 'rooms' in payload
+        ? payload.rooms
+        : undefined;
 
     return Array.isArray(rooms)
       ? rooms.filter((room): room is string => typeof room === 'string')

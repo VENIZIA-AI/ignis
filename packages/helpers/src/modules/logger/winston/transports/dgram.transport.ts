@@ -36,7 +36,9 @@ export class DgramTransport extends Transport {
       return null;
     }
 
-    return new DgramTransport(opts as IDgramTransportOptions);
+    const { label, host, port, levels, socketOptions } = opts;
+
+    return new DgramTransport({ ...opts, label, host, port, levels, socketOptions });
   }
 
   private establish(opts: { socketOptions: dgram.SocketOptions }) {

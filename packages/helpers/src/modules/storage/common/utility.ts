@@ -2,23 +2,24 @@ import { DurationMultipliers, type IDuration } from '@/common';
 import { HTTP } from '@/common/constants';
 import { getError } from '@/modules/error';
 import { S3Defaults, StoragePresignLimits } from './constants';
-import type { TNullable } from '@/common/types';
 
 /** Backend-neutral checks shared by storage helpers: recognising a "not found" error and turning an `IDuration` into presign seconds. */
 export class StorageUtility {
   /** "Not there", across SDKs. Both minio and Bun report `S3Error` in `name`, so `code` and status decide. */
   static isNotFoundError(opts: { error: unknown }): boolean {
     const { error } = opts;
-    const source = error as { statusCode?: number; status?: number; code?: string; name?: string };
 
-    if (
-      source?.statusCode === HTTP.ResultCodes.RS_4.NotFound ||
-      source?.status === HTTP.ResultCodes.RS_4.NotFound
-    ) {
+    if (StorageUtility.hasStatus({ error, status: HTTP.ResultCodes.RS_4.NotFound })) {
       return true;
     }
 
-    const marker = `${source?.code ?? ''} ${source?.name ?? ''}`.toLowerCase();
+    if (typeof error !== 'object' || error === null) {
+      return false;
+    }
+
+    const code = ('code' in error ? error.code : undefined) ?? '';
+    const name = ('name' in error ? error.name : undefined) ?? '';
+    const marker = `${code} ${name}`.toLowerCase();
 
     return ['nosuchkey', 'nosuchbucket', 'notfound'].some((needle) => marker.includes(needle));
   }
@@ -32,11 +33,22 @@ export class StorageUtility {
 
   /** "The expected content is gone", across SDKs: S3 and MinIO answer 412. */
   static isPreconditionFailedError(opts: { error: unknown }): boolean {
-    const source = opts.error as TNullable<{ statusCode?: number; status?: number }>;
+    return StorageUtility.hasStatus({
+      error: opts.error,
+      status: HTTP.ResultCodes.RS_4.PreconditionFailed,
+    });
+  }
+
+  private static hasStatus(opts: { error: unknown; status: number }): boolean {
+    const { error, status } = opts;
+
+    if (typeof error !== 'object' || error === null) {
+      return false;
+    }
 
     return (
-      source?.statusCode === HTTP.ResultCodes.RS_4.PreconditionFailed ||
-      source?.status === HTTP.ResultCodes.RS_4.PreconditionFailed
+      ('statusCode' in error && error.statusCode === status) ||
+      ('status' in error && error.status === status)
     );
   }
 
