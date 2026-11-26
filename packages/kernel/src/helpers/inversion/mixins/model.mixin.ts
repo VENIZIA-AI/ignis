@@ -91,10 +91,12 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
       // Decorator target is always a class constructor at runtime
       const modelClass = target as TModelClass<Model>;
 
-      // Table name precedence: explicit metadata > static TABLE_NAME > class name. TABLE_NAME is deliberately outside IEntityStatics (not part of the neutral contract) but still honored here via a local cast.
-      const tableName =
-        [metadata.tableName, (modelClass as { TABLE_NAME?: string }).TABLE_NAME].find(Boolean) ??
-        modelClass.name;
+      // Table name precedence: explicit metadata > static TABLE_NAME > class name. TABLE_NAME is deliberately outside IEntityStatics (not part of the neutral contract) but still honored here.
+      const staticName =
+        'TABLE_NAME' in modelClass && typeof modelClass.TABLE_NAME === 'string'
+          ? modelClass.TABLE_NAME
+          : undefined;
+      const tableName = [metadata.tableName, staticName].find(Boolean) ?? modelClass.name;
 
       // Resolver, not resolved value - executed lazily in buildSchema() once all models are loaded
       const relationsResolver = modelClass.relations;

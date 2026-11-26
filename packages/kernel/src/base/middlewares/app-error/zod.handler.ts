@@ -1,10 +1,21 @@
-import { MessageCode } from '@venizia/ignis-helpers/core';
+import { MessageCode, RecordUtility } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { HTTPResponseError } from 'hono/types';
 import type { IZodIssueLike } from './common';
 
 export class ZodErrorHandler {
   private static readonly DEFAULT_VALIDATION_MESSAGE = 'ValidationError';
+
+  /** Type guard, so it keeps its positional `value`. */
+  private static isIssue(value: unknown): value is IZodIssueLike {
+    return (
+      RecordUtility.isRecord(value) &&
+      Array.isArray(value.path) &&
+      typeof value.message === 'string' &&
+      (value.code === undefined || typeof value.code === 'string') &&
+      (value.params === undefined || RecordUtility.isRecord(value.params))
+    );
+  }
 
   /** Returns a schema-author-supplied code (`issue.params.code`) when it is a non-empty string. */
   private static extractIssueCode(opts: { issue: IZodIssueLike }) {
@@ -36,7 +47,9 @@ export class ZodErrorHandler {
       validationErrors = error;
     }
 
-    const issues = Array.isArray(validationErrors) ? (validationErrors as IZodIssueLike[]) : null;
+    const issues = Array.isArray(validationErrors)
+      ? validationErrors.filter((entry) => ZodErrorHandler.isIssue(entry))
+      : null;
 
     // Prefer the first issue with a custom `params.code`, else its raw Zod code.
     let messageCode: string | undefined;

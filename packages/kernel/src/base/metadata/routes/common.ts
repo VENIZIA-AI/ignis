@@ -1,3 +1,5 @@
+import { RecordUtility } from '@venizia/ignis-helpers/core';
+
 /** Records the route/rpc decorators this runtime dropped, and warns about them once. Importing a module must stay side-effect free, so the drop is recorded at decoration time and reported later, at configure(). */
 export class DroppedRouteDecorators {
   private static readonly dropped: Array<string> = [];
@@ -14,7 +16,9 @@ export class DroppedRouteDecorators {
       return true;
     }
 
-    const methodName = (propertyKey as { name?: string })?.name ?? 'unknown';
+    // Under TC39 semantics the second argument is the decorator context, whose `name` may be a symbol.
+    const name = RecordUtility.isRecord(propertyKey) ? propertyKey.name : undefined;
+    const methodName = String(name ?? 'unknown');
     DroppedRouteDecorators.dropped.push(`@${decorator} ${methodName}`);
 
     return false;

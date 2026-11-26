@@ -128,7 +128,7 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
     }
 
     // Read before the `switch` narrows `handler` to `never` for the message of an unknown type.
-    const type: string = handler.type;
+    const type: unknown = handler.type;
 
     switch (handler.type) {
       case EventHandlerTypes.BINDING_KEY: {

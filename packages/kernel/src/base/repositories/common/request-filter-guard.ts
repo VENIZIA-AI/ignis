@@ -287,13 +287,13 @@ export class RequestFilterGuard {
         tableName,
       });
 
-      if (typeof entry !== 'object' || entry === null) {
+      if (!RecordUtility.isRecord(entry)) {
         continue;
       }
 
-      const { relation, scope } = entry as { relation?: unknown; scope?: IRequestFilterShape };
+      const { relation, scope } = entry;
 
-      if (typeof relation !== 'string' || scope === undefined) {
+      if (typeof relation !== 'string' || !RecordUtility.isRecord(scope)) {
         continue;
       }
 
