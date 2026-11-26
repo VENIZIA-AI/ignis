@@ -20,6 +20,9 @@ interface IImportMap {
  *
  * The fix is made only when the nearest `package.json` maps `#src/*` to a folder and the import lands inside that folder;
  * every other finding is reported and left alone. A same-folder `./x` is never reported.
+ *
+ * No preset turns it on. A project that wants it adds, after the preset:
+ * `{ files: ['**\/*.{ts,tsx,mts,cts}'], rules: { 'venizia/no-parent-import': 'warn' } }`.
  */
 export class NoParentImportRule {
   static readonly NAME = `${HOUSE_PLUGIN_NAMESPACE}/no-parent-import`;

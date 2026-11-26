@@ -750,6 +750,9 @@ instead (`#src/x`): it keeps its meaning when the file moves, and reads the same
 The fix is made only when the nearest `package.json` maps `#src/*` to a folder and the import lands inside that folder;
 every other finding is reported and left alone. A same-folder `./x` is never reported.
 
+No preset turns it on. A project that wants it adds, after the preset:
+`{ files: ['**\/*.{ts,tsx,mts,cts}'], rules: { 'venizia/no-parent-import': 'warn' } }`.
+
 ```ts
 export declare class NoParentImportRule {
     static readonly NAME = "venizia/no-parent-import";

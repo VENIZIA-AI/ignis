@@ -12,6 +12,7 @@ import {
   NoParentImportRule,
   PreferPromiseSleepRule,
   PreferTNullableRule,
+  reactHouseConfigs,
 } from '../linters/house';
 
 /** One house rule on its own, so a finding or a fix is that rule's and no other's. */
@@ -600,15 +601,20 @@ describe('venizia/no-parent-import', () => {
     expect(result.fixed).toBe(code);
   });
 
-  test('houseConfigs warns in source and stays quiet in tests', () => {
+  test('off in both presets; one config line turns it on', () => {
     const code = `import { a } from '../x';`;
-    const source = new Linter().verify(code, houseConfigs, { filename: 'src/b/a.ts' });
-    const testFile = new Linter().verify(code, houseConfigs, {
-      filename: 'src/b/__tests__/a.test.ts',
-    });
+    const findings = (configs: Linter.Config[], filename = 'src/b/a.ts') =>
+      new Linter()
+        .verify(code, configs, { filename })
+        .filter((message) => message.ruleId === NAME || message.fatal);
+    const optIn: Linter.Config = {
+      files: ['**/*.{ts,tsx,mts,cts}'],
+      rules: { 'venizia/no-parent-import': 'warn' },
+    };
 
-    expect(source.find((message) => message.ruleId === NAME)?.severity).toBe(1);
-    expect(testFile.filter((message) => message.ruleId === NAME)).toHaveLength(0);
+    expect(findings(houseConfigs)).toHaveLength(0);
+    expect(findings(reactHouseConfigs, 'src/b/a.tsx')).toHaveLength(0);
+    expect(findings([...houseConfigs, optIn]).map((message) => message.severity)).toEqual([1]);
   });
 });
 

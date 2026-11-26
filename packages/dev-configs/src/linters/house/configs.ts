@@ -11,7 +11,6 @@ import { MaxParamsOwnRule } from './max-params-own.rule';
 import { NoAsyncHookCallbackRule } from './no-async-hook-callback.rule';
 import { NoLeakedRenderRule } from './no-leaked-render.rule';
 import { NoNewErrorRule } from './no-new-error.rule';
-import { NoParentImportRule } from './no-parent-import.rule';
 import { NoShadowFrameworkTypeRule } from './no-shadow-framework-type.rule';
 import { PreferFrameworkApiRule } from './prefer-framework-api.rule';
 import { PreferPromiseSleepRule } from './prefer-promise-sleep.rule';
@@ -46,7 +45,6 @@ const houseRuleConfigs: Linter.Config[] = [
       [NoShadowFrameworkTypeRule.NAME]: NoShadowFrameworkTypeRule.build(),
       [PreferTNullableRule.NAME]: PreferTNullableRule.build(),
       [PreferPromiseSleepRule.NAME]: PreferPromiseSleepRule.build(),
-      [NoParentImportRule.NAME]: NoParentImportRule.build(),
       [ConstClassValuesRule.NAME]: ConstClassValuesRule.build({ severity: 'warn' }),
       [NO_CAST_RULE]: ['warn', { assertionStyle: 'never' }],
     },
@@ -57,7 +55,6 @@ const houseRuleConfigs: Linter.Config[] = [
       [NoNewErrorRule.NAME]: 'off',
       [NoShadowFrameworkTypeRule.NAME]: 'off',
       [PreferPromiseSleepRule.NAME]: 'off',
-      [NoParentImportRule.NAME]: 'off',
       [ConstClassValuesRule.NAME]: 'off',
       [NO_CAST_RULE]: 'off',
     },
