@@ -6,6 +6,7 @@
  * The changelog entries are not in a menu: `content/changelogs/index.md` mounts the index component,
  * which lists every dated entry from the files themselves, so an entry cannot be missed.
  */
+import { writeSync } from 'node:fs';
 import { Glob } from 'bun';
 
 const WIKI = new URL('..', import.meta.url).pathname;
@@ -66,9 +67,15 @@ if (dead.length > 0) {
 }
 
 if (problems.length > 0) {
-  console.error(`sidebar check FAILED\n\n${problems.join('\n\n')}\n`);
-  console.error('Add the entry to site/.vitepress/config.mts, or to UNLISTED if it is a template.');
+  // Written synchronously: output still queued on a pipe is lost at `process.exit`.
+  writeSync(
+    2,
+    `sidebar check FAILED\n\n${problems.join('\n\n')}\n\nAdd the entry to site/.vitepress/config.mts, or to UNLISTED if it is a template.\n`,
+  );
   process.exit(1);
 }
 
-console.log(`sidebar OK - ${pages.length} pages, ${linked.size} links, no orphan and no dead link`);
+writeSync(
+  1,
+  `sidebar OK - ${pages.length} pages, ${linked.size} links, no orphan and no dead link\n`,
+);

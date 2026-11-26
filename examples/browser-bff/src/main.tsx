@@ -5,7 +5,7 @@ import { createRoot } from 'react-dom/client';
 import './styles.css';
 import { App } from './app/App';
 import { BrowserBffRaApplication } from './app/application';
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, LoggerFactory } from '@venizia/ignis-helpers/core';
 import { BffFetchBridge } from '@venizia/ignis-worker';
 import { BFF_BASE_PATH, bff } from './bff';
 
@@ -32,7 +32,7 @@ application
   })
   .catch((error: unknown) => {
     // Never a blank page: a container that failed to bind looks identical to a Worker that never answered.
-    console.error('[main] application failed to start | error:', error);
+    LoggerFactory.getLogger(['main']).error('Application start failed | Error: %o', error);
     root.render(
       <main>
         <h1>Failed to start</h1>
