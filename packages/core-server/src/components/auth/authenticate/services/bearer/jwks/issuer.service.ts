@@ -1,5 +1,5 @@
 import { HTTP, type TNullable, type ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import {
   AuthenticateBindingKeys,
   type IJWKSIssuerOptions,
@@ -160,8 +160,8 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
       case JWKSKeyFormats.JWK: {
         try {
           const parsed = {
-            priv: JSON.parse(raw.priv) as JWK,
-            pub: JSON.parse(raw.pub) as JWK,
+            priv: this.parseJWK({ json: raw.priv }),
+            pub: this.parseJWK({ json: raw.pub }),
           };
 
           this.assertPublicJWK({ jwk: parsed.pub });
@@ -187,6 +187,16 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
         });
       }
     }
+  }
+
+  private parseJWK(opts: { json: string }): Record<string, unknown> {
+    const key: unknown = JSON.parse(opts.json);
+
+    if (!RecordUtility.isPlainRecord(key)) {
+      throw getError({ message: '[JWKSIssuerTokenService] A JWK must be a JSON object' });
+    }
+
+    return key;
   }
 
   protected override async doVerify(token: string): Promise<IJWTTokenPayload> {

@@ -1990,6 +1990,7 @@ export declare class JWKSIssuerTokenService<E extends Env = Env> extends Abstrac
         priv: import("node:crypto").webcrypto.CryptoKey | Uint8Array<ArrayBufferLike>;
         pub: import("node:crypto").webcrypto.CryptoKey | Uint8Array<ArrayBufferLike>;
     }>;
+    private parseJWK;
     protected doVerify(token: string): Promise<IJWTTokenPayload>;
     getSigner(opts: {
         payload: IJWTTokenPayload;
