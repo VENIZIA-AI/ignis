@@ -3396,7 +3396,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `CrudRoutes` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `D_STROKE_REPLACEMENTS` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `DATA_SOURCE_BRAND` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
-- `DatabaseErrorCodes` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
+- `DatabaseErrorCodes` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `DataRangeUtility` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `datasource` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `DataSourceDrivers` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)

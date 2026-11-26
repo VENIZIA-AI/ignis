@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-364 exports, 364 with TSDoc. 89 more are re-exported from other entries (listed at the end).
+365 exports, 365 with TSDoc. 88 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -2314,6 +2314,32 @@ export declare const DATA_SOURCE_BRAND: unique symbol;
 ```
 
 Source: `packages/kernel/src/base/datasources/root.ts`
+
+## `DatabaseErrorCodes`
+
+*class*
+
+The `normalized.code` of a database error the request caused (HTTP 400): one per common SQLSTATE, then one per class.
+
+@useWhen Telling apart the database errors a user's input caused, to translate them or branch on them.
+
+```ts
+export declare class DatabaseErrorCodes {
+    static readonly STRING_TOO_LONG: string;
+    static readonly NUMERIC_OUT_OF_RANGE: string;
+    static readonly INVALID_TEXT_REPRESENTATION: string;
+    static readonly NOT_NULL_VIOLATION: string;
+    static readonly FOREIGN_KEY_VIOLATION: string;
+    static readonly UNIQUE_VIOLATION: string;
+    static readonly CHECK_VIOLATION: string;
+    /** Any other class `22` (data exception). */
+    static readonly INVALID_INPUT: string;
+    /** Any other class `23` (integrity constraint) or `44` (view check option). */
+    static readonly CONSTRAINT_VIOLATION: string;
+}
+```
+
+Source: `packages/kernel/src/base/middlewares/app-error/definition.ts`
 
 ## `DataSourceDrivers`
 
@@ -7878,7 +7904,7 @@ Valid `DatabaseErrorCodes` values.
 export type TDatabaseErrorCode = TConstValue<typeof DatabaseErrorCodes>;
 ```
 
-Source: `packages/kernel/src/common/error-codes.ts`
+Source: `packages/kernel/src/base/middlewares/app-error/definition.ts`
 
 ## `TDataSourceDriver`
 
@@ -9239,7 +9265,6 @@ Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`
 - `component` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `configuration` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `CoreErrorCodes` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
-- `DatabaseErrorCodes` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `DataRangeUtility` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `datasource` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `DataSourceRoot` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)

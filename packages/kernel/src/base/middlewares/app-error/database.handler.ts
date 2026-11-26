@@ -1,11 +1,12 @@
 import {
   DATABASE_CLIENT_ERROR_FALLBACK_MESSAGE,
   DATABASE_CLIENT_ERROR_MESSAGES,
+  DatabaseErrorCodes,
   POSTGRES_CLIENT_ERROR_CLASSES,
   POSTGRES_RETRYABLE_ERROR_CODES,
   PostgresErrorCodes,
+  type TDatabaseErrorCode,
 } from './definition';
-import { DatabaseErrorCodes, type TDatabaseErrorCode } from '@/common/error-codes';
 import { PostgresErrors } from './postgres-errors';
 
 export class DatabaseErrorHandler {

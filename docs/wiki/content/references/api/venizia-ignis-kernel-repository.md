@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel/repository, from the built d
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-37 exports, 37 with TSDoc. 7 more are re-exported from other entries (listed at the end).
+36 exports, 36 with TSDoc. 7 more are re-exported from other entries (listed at the end).
 
 ## `AbstractDataSource`
 
@@ -352,32 +352,6 @@ Framework-level failures that are not specific to one connector or component.
 export declare class CoreErrorCodes {
     static readonly NOT_SUPPORTED: string;
     static readonly DATABASE_CONFLICT: string;
-}
-```
-
-Source: `packages/kernel/src/common/error-codes.ts`
-
-## `DatabaseErrorCodes`
-
-*class*
-
-The `normalized.code` of a database error the request caused (HTTP 400): one per common SQLSTATE, then one per class.
-
-@useWhen Telling apart the database errors a user's input caused, to translate them or branch on them.
-
-```ts
-export declare class DatabaseErrorCodes {
-    static readonly STRING_TOO_LONG: string;
-    static readonly NUMERIC_OUT_OF_RANGE: string;
-    static readonly INVALID_TEXT_REPRESENTATION: string;
-    static readonly NOT_NULL_VIOLATION: string;
-    static readonly FOREIGN_KEY_VIOLATION: string;
-    static readonly UNIQUE_VIOLATION: string;
-    static readonly CHECK_VIOLATION: string;
-    /** Any other class `22` (data exception). */
-    static readonly INVALID_INPUT: string;
-    /** Any other class `23` (integrity constraint) or `44` (view check option). */
-    static readonly CONSTRAINT_VIOLATION: string;
 }
 ```
 
