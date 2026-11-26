@@ -38,6 +38,14 @@ const buildAggregateError = (memberCount: number) => {
 };
 
 describe('ErrorPrettier.summarize', () => {
+  test('summarizes a ZodError message whatever shape its issues have', () => {
+    const error = Object.assign(new Error('[null, 7, {"message":"bad"}]'), { name: 'ZodError' });
+
+    expect(ErrorPrettier.summarize({ error }).message).toBe(
+      '(root): invalid\n(root): invalid\n(root): bad',
+    );
+  });
+
   test('keeps name, message and code; drops query and params', () => {
     const summary = ErrorPrettier.summarize({ error: buildDrizzleError() });
 

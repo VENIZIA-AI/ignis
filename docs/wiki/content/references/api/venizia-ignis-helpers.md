@@ -1272,6 +1272,8 @@ Storage backed by the local filesystem: each bucket is a directory under `basePa
 export declare class DiskHelper extends BaseStorageHelper {
     readonly storageType = "disk";
     private basePath;
+    /** The `code` a file-system error carries, such as `ENOENT`. */
+    private static errnoCode;
     constructor(options: IDiskHelperOptions);
     private getBucketPath;
     /**
@@ -4664,6 +4666,7 @@ export declare class StorageUtility {
     static isPreconditionFailedError(opts: {
         error: unknown;
     }): boolean;
+    private static hasStatus;
     /** S3 presigns in whole seconds. An unknown unit is refused; `null` would read as "no expiry". */
     static toExpirySeconds(opts: {
         expiresIn: IDuration;

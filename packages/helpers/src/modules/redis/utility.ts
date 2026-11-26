@@ -2,7 +2,6 @@ import { HTTP } from '@/common';
 import { getError } from '@/modules/error';
 import type { ILogger } from '@/modules/logger';
 import { PromiseUtility } from '@/utilities/promise.utility';
-import { type EventEmitter } from 'node:events';
 import type { TRedisClient } from './common';
 
 const REDIS_READY_TIMEOUT = 30_000;
@@ -20,7 +19,7 @@ export class RedisUtility {
         return;
       }
 
-      const emitter = client as EventEmitter;
+      const emitter = client;
 
       /** Run by every terminal branch: clients are long-lived and re-`configure()`d, so an unbound listener leaks (EventEmitter warns) and could fire on an already-settled promise. */
       const cleanups: Array<() => void> = [];
