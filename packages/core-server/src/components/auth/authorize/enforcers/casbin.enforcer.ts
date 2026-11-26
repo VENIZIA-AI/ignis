@@ -340,11 +340,16 @@ export class CasbinAuthorizationEnforcer<
       // hasDomainPattern with hasDomainHierarchy, and role_inherits `*` rides the keyMatch path.
       const gRoleManager = enforcer.getNamedRoleManager(CasbinRuleVariants.G);
 
-      // `addDomainHierarchy` lives on casbin's `DefaultRoleManager`, not on the `RoleManager` interface.
-      if (!(gRoleManager instanceof casbin.DefaultRoleManager)) {
+      // `addDomainHierarchy` lives on casbin's `DefaultRoleManager`, not on the `RoleManager` interface
+      // or the `Enforcer` facade: it is detected on whatever `getNamedRoleManager` returns.
+      if (
+        !gRoleManager ||
+        !('addDomainHierarchy' in gRoleManager) ||
+        typeof gRoleManager.addDomainHierarchy !== 'function'
+      ) {
         throw getError({
           message:
-            '[registerMatchers] The scoped model requires casbin\'s DefaultRoleManager on the "g" axis (present in casbin ^5.51.1, this package\'s pinned range). Upgrade casbin, or check that a custom role manager was not substituted for "g".',
+            '[registerMatchers] The "g" role manager does not expose addDomainHierarchy() - the scoped model requires casbin\'s DefaultRoleManager on the g axis (present in casbin ^5.51.1, this package\'s pinned range). Upgrade casbin, or check that a custom role manager was not substituted for "g".',
         });
       }
 
