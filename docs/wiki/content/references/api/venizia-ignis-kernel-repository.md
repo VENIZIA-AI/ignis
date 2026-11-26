@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel/repository, from the built d
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-36 exports, 36 with TSDoc. 7 more are re-exported from other entries (listed at the end).
+38 exports, 38 with TSDoc. 7 more are re-exported from other entries (listed at the end).
 
 ## `AbstractDataSource`
 
@@ -903,6 +903,21 @@ export declare class RepositoryTypes extends ConstClass {
 
 Source: `packages/kernel/src/base/repositories/common/constants.ts`
 
+## `RequestFilterClauses`
+
+*class*
+
+The parts of a request filter a key can come from.
+
+```ts
+export declare class RequestFilterClauses {
+    static readonly WHERE = "where";
+    static readonly ORDER = "order";
+}
+```
+
+Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
+
 ## `RequestFilterParts`
 
 *class*
@@ -1050,6 +1065,18 @@ export type TRepositoryType = TConstValue<typeof RepositoryTypes>;
 ```
 
 Source: `packages/kernel/src/base/repositories/common/constants.ts`
+
+## `TRequestFilterClause`
+
+*type*
+
+Which part of a filter a key came from: the refusal reads like the query's own refusal of an unknown column of that part.
+
+```ts
+export type TRequestFilterClause = TConstValue<typeof RequestFilterClauses>;
+```
+
+Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
 
 ## `TRequestFilterPart`
 

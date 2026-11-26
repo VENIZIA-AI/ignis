@@ -106,15 +106,17 @@ export interface ICustomizableRoutes<
   restoreBy?: RouteConfig;
 }
 
+/** The repository methods the restore routes call. */
+type TRestorableMethods = { restoreById: unknown; restoreBy: unknown };
+
 /**
  * The routes of a CRUD controller: only a listed route exists, as `true` (on, with its defaults) or a config
  * (on, with overrides). `restoreById` and `restoreBy` are listed only for a repository that has both methods.
  */
-export type TCrudRoutes<Repository extends object = { restoreById: unknown; restoreBy: unknown }> =
-  {
-    [Key in keyof ICustomizableRoutes]?: Key extends 'restoreById' | 'restoreBy'
-      ? Repository extends { restoreById: unknown; restoreBy: unknown }
-        ? true | TCustomizableRouteConfig
-        : never
-      : true | TCustomizableRouteConfig;
-  };
+export type TCrudRoutes<Repository extends object = TRestorableMethods> = {
+  [Key in keyof ICustomizableRoutes]?: Key extends keyof TRestorableMethods
+    ? Repository extends TRestorableMethods
+      ? true | TCustomizableRouteConfig
+      : never
+    : true | TCustomizableRouteConfig;
+};

@@ -7,7 +7,22 @@ description: "Every export of @venizia/dev-configs/checks, from the built declar
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-37 exports, 37 with TSDoc.
+43 exports, 43 with TSDoc.
+
+## `CandidateExpectations`
+
+*class*
+
+What a ledger line expects of the candidate test under the mutant.
+
+```ts
+export declare class CandidateExpectations {
+    static readonly RED = "red";
+    static readonly VACUOUS = "vacuous";
+}
+```
+
+Source: `packages/dev-configs/src/checks/test-mutate.ts`
 
 ## `CatalogCheck`
 
@@ -23,6 +38,36 @@ export declare class CatalogCheck {
 ```
 
 Source: `packages/dev-configs/src/checks/catalog.ts`
+
+## `ControlEntryTypes`
+
+*class*
+
+What a registry entry's `file` is: a test file, or a negative fixture a test needs absent from the result.
+
+```ts
+export declare class ControlEntryTypes {
+    static readonly TEST = "test";
+    static readonly FILE = "file";
+}
+```
+
+Source: `packages/dev-configs/src/checks/test-controls.ts`
+
+## `DeadTestCodeCandidateTypes`
+
+*class*
+
+Why a support file is a candidate for deletion.
+
+```ts
+export declare class DeadTestCodeCandidateTypes {
+    static readonly UNREFERENCED = "unreferenced";
+    static readonly FOLDER_REFERENCED = "folder-referenced";
+}
+```
+
+Source: `packages/dev-configs/src/checks/test-dead-code.ts`
 
 ## `DeadTestCodeCheck`
 
@@ -170,7 +215,7 @@ export interface IControlEntry {
      *
      * @default 'test'
      */
-    type?: 'test' | 'file';
+    type?: TControlEntryType;
     /** A regular expression matched against the TITLES (suite and case) in that file. Not used by `file` entries. */
     titlePattern?: string;
     /**
@@ -230,7 +275,7 @@ export interface IDeadTestCodeCandidate {
      * `unreferenced`: neither its name nor its path under `__tests__` appears in another file, nor does
      * its folder. `folder-referenced`: only its folder path does, so a scan of that folder may load it.
      */
-    type: 'unreferenced' | 'folder-referenced';
+    type: TDeadTestCodeCandidateType;
 }
 ```
 
@@ -282,7 +327,7 @@ export interface ILedgerLine {
      *
      * @default 'red'
      */
-    expectCandidate?: 'red' | 'vacuous';
+    expectCandidate?: TCandidateExpectation;
     secondMutant?: IMutant | IMutant[];
 }
 ```
@@ -811,6 +856,42 @@ export declare class SplitReport {
 ```
 
 Source: `packages/dev-configs/src/checks/split-report.ts`
+
+## `TCandidateExpectation`
+
+*type*
+
+One of `CandidateExpectations`.
+
+```ts
+export type TCandidateExpectation = TConstValue<typeof CandidateExpectations>;
+```
+
+Source: `packages/dev-configs/src/checks/test-mutate.ts`
+
+## `TControlEntryType`
+
+*type*
+
+One of `ControlEntryTypes`.
+
+```ts
+export type TControlEntryType = TConstValue<typeof ControlEntryTypes>;
+```
+
+Source: `packages/dev-configs/src/checks/test-controls.ts`
+
+## `TDeadTestCodeCandidateType`
+
+*type*
+
+One of `DeadTestCodeCandidateTypes`.
+
+```ts
+export type TDeadTestCodeCandidateType = TConstValue<typeof DeadTestCodeCandidateTypes>;
+```
+
+Source: `packages/dev-configs/src/checks/test-dead-code.ts`
 
 ## `TestControlsCheck`
 

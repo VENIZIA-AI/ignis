@@ -11,8 +11,14 @@ export interface IRequestFilterShape {
   fields?: unknown;
 }
 
+/** The parts of a request filter a key can come from. */
+export class RequestFilterClauses {
+  static readonly WHERE = 'where';
+  static readonly ORDER = 'order';
+}
+
 /** Which part of a filter a key came from: the refusal reads like the query's own refusal of an unknown column of that part. */
-export type TRequestFilterClause = 'where' | 'order';
+export type TRequestFilterClause = TConstValue<typeof RequestFilterClauses>;
 
 /** The parts of a request filter a query reads, one at a time, in an order the query decides. */
 export class RequestFilterParts {

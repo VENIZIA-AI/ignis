@@ -1,3 +1,5 @@
+import type { TQueryStringNestedMode, TQueryStringNullishMode } from './query-string.constant';
+
 /** The punctuation of a query string, named so a reader sees the role rather than the character. */
 export class QueryStringSeparators {
   /** Between the path and the first pair. */
@@ -15,13 +17,13 @@ export interface IQueryStringOptions {
    * `'skip'` leaves the pair out, `'empty'` writes `a=` (what `node:querystring` does).
    * @default 'skip'
    */
-  nullish?: 'empty' | 'skip';
+  nullish?: TQueryStringNullishMode;
   /**
    * What an object or an array value becomes.
    * `'drop'` is an empty value (an array repeats its key: what `node:querystring` does), `'json'` is one JSON-encoded parameter (`filter={"where":{}}`).
    * @default 'drop'
    */
-  nested?: 'drop' | 'json';
+  nested?: TQueryStringNestedMode;
 }
 
 /** Builds a query string without a node builtin, so the network layer stays browser-safe. */

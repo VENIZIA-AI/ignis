@@ -400,7 +400,7 @@ export declare abstract class FilterBuilder extends BaseHelper {
      * cannot tell a hidden column from one that does not exist.
      */
     columnNotFoundError(opts: {
-        clause: 'where' | 'order';
+        clause: TRequestFilterClause;
         key: string;
         tableName: string;
     }): Error;
@@ -803,7 +803,7 @@ export interface IRelationalQueryDialect {
     };
     /** The error the query gives for a `where` key or an `order` field that names no column. */
     columnNotFoundError(opts: {
-        clause: 'where' | 'order';
+        clause: TRequestFilterClause;
         key: string;
         tableName: string;
     }): Error;

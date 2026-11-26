@@ -12,6 +12,7 @@ import { IsolationLevels } from '@/relational/postgres/datasources/common/types'
 import type { TSqliteBeginMode } from '@/relational/sqlite/datasources/common/types';
 import { SqliteBeginModes } from '@/relational/sqlite/datasources/common/types';
 import { getError } from '@venizia/ignis-helpers/core';
+import type { TConstValue } from '@venizia/ignis-helpers/common';
 
 /**
  * A hook a test passes to see an end statement; it may be async. It reads `state` as the end settles it
@@ -19,8 +20,15 @@ import { getError } from '@venizia/ignis-helpers/core';
  */
 export type TTransactionDoubleHook = () => void | Promise<void>;
 
+/** The events `TransactionDouble.events` records. */
+export class TransactionDoubleEvents {
+  static readonly BEGIN = 'begin';
+  static readonly COMMIT = 'commit';
+  static readonly ROLLBACK = 'rollback';
+}
+
 /** What `TransactionDouble.events` records: a begin the repository double made, a commit or a rollback that reached the end statement. */
-export type TTransactionDoubleEvent = 'begin' | 'commit' | 'rollback';
+export type TTransactionDoubleEvent = TConstValue<typeof TransactionDoubleEvents>;
 
 /** Options shared by the transaction doubles: the `connector` to expose, errors to throw on the first commit or rollback, and hooks to observe them. */
 export interface ITransactionDoubleOptions<TConnector = never> {

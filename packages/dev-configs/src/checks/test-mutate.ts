@@ -1,6 +1,16 @@
+import type { TConstValue } from '../linters/rules/common';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+
+/** What a ledger line expects of the candidate test under the mutant. */
+export class CandidateExpectations {
+  static readonly RED = 'red';
+  static readonly VACUOUS = 'vacuous';
+}
+
+/** One of `CandidateExpectations`. */
+export type TCandidateExpectation = TConstValue<typeof CandidateExpectations>;
 
 /**
  * Replays the mutation proof of the trim-tests method. A ledger line says: "this test (the
@@ -47,7 +57,7 @@ export interface ILedgerLine {
    *
    * @default 'red'
    */
-  expectCandidate?: 'red' | 'vacuous';
+  expectCandidate?: TCandidateExpectation;
   secondMutant?: IMutant | IMutant[];
 }
 

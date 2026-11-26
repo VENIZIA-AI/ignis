@@ -2,6 +2,17 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type ts from 'typescript';
 
+import type { TConstValue } from '../linters/rules/common';
+
+/** What a registry entry's `file` is: a test file, or a negative fixture a test needs absent from the result. */
+export class ControlEntryTypes {
+  static readonly TEST = 'test';
+  static readonly FILE = 'file';
+}
+
+/** One of `ControlEntryTypes`. */
+export type TControlEntryType = TConstValue<typeof ControlEntryTypes>;
+
 /**
  * A positive control is a test that proves a gate can fail: a fixture that must be refused, a broken
  * subject the check must catch. Deleting one makes the gate pass for the wrong reason, so the trim-tests
@@ -20,7 +31,7 @@ export interface IControlEntry {
    *
    * @default 'test'
    */
-  type?: 'test' | 'file';
+  type?: TControlEntryType;
   /** A regular expression matched against the TITLES (suite and case) in that file. Not used by `file` entries. */
   titlePattern?: string;
   /**

@@ -1,6 +1,17 @@
 import { spawnSync } from 'node:child_process';
 import { dirname } from 'node:path';
 
+import type { TConstValue } from '../linters/rules/common';
+
+/** Why a support file is a candidate for deletion. */
+export class DeadTestCodeCandidateTypes {
+  static readonly UNREFERENCED = 'unreferenced';
+  static readonly FOLDER_REFERENCED = 'folder-referenced';
+}
+
+/** One of `DeadTestCodeCandidateTypes`. */
+export type TDeadTestCodeCandidateType = TConstValue<typeof DeadTestCodeCandidateTypes>;
+
 /**
  * Support files of the tests (fixtures, helpers, probes) that no other file refers to. The second
  * step of the trim-tests method. The output is CANDIDATES: a fixture can be loaded by a path built at
@@ -13,7 +24,7 @@ export interface IDeadTestCodeCandidate {
    * `unreferenced`: neither its name nor its path under `__tests__` appears in another file, nor does
    * its folder. `folder-referenced`: only its folder path does, so a scan of that folder may load it.
    */
-  type: 'unreferenced' | 'folder-referenced';
+  type: TDeadTestCodeCandidateType;
 }
 
 const SUPPORT_EXTENSION = /\.(?:[cm]?[jt]sx?|json|sql|txt)$/;

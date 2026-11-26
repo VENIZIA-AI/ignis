@@ -67,7 +67,11 @@ export type {
 } from '@venizia/ignis-filter';
 
 // What a repository on any transport needs to refuse a request filter that names a hidden property.
-export { RequestFilterParts } from '@/base/repositories/common/request-filter-guard';
+export {
+  RequestFilterClauses,
+  RequestFilterParts,
+} from '@/base/repositories/common/request-filter-guard';
+export type { TRequestFilterClause } from '@/base/repositories/common/request-filter-guard';
 export type {
   IRequestFilterJudge,
   IRequestFilterShape,
