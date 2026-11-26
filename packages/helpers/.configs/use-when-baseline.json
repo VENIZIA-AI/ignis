@@ -23,7 +23,7 @@
     "src/modules/cron/helper.ts#CronHelper",
     "src/modules/crypto/algorithms/abstract.algorithm.ts#AbstractCryptoAlgorithm",
     "src/modules/crypto/algorithms/aes.algorithm.ts#AES",
-    "src/modules/crypto/algorithms/aes.constants.ts#AESAlgorithms",
+    "src/modules/crypto/algorithms/aes.constant.ts#AESAlgorithms",
     "src/modules/crypto/algorithms/base.algorithm.ts#BaseCryptoAlgorithm",
     "src/modules/crypto/algorithms/credential.algorithm.ts#CredentialUtility",
     "src/modules/crypto/algorithms/ecdh.algorithm.ts#ECDH",
