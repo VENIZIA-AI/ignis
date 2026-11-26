@@ -1,5 +1,4 @@
 import { ObjectUtility } from '@venizia/ignis-helpers/common';
-import type { TTableSchemaWithId } from '@/relational/core/models/common';
 import type {
   ICountOptions,
   IInsertOptions,
@@ -17,7 +16,6 @@ import type { TNullable } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { AnyColumn } from 'drizzle-orm';
 import { is, SQL } from 'drizzle-orm';
-import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import { SQLiteColumn } from 'drizzle-orm/sqlite-core';
 
 /**
@@ -51,11 +49,9 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
       });
     }
 
-    const sqliteTable = this.asTable({ table });
-
     let query = columns
-      ? connector.select(this.toSelectedFields({ columns })).from(sqliteTable).$dynamic()
-      : connector.select().from(sqliteTable).$dynamic();
+      ? connector.select(this.toSelectedFields({ columns })).from(table).$dynamic()
+      : connector.select().from(table).$dynamic();
 
     if (where) {
       query = query.where(where);
@@ -80,7 +76,7 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
   async count(opts: ICountOptions<TSqliteConnector>): Promise<number> {
     const { connector, table, where } = opts;
 
-    return connector.$count(this.asTable({ table }), where);
+    return connector.$count(table, where);
   }
 
   async findMany<R>(opts: IRelationalQueryOptions<TSqliteConnector>): Promise<Array<R>> {
@@ -106,7 +102,7 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
 
   async insert<R>(opts: IInsertOptions<TSqliteConnector>): Promise<IWriteResult<R>> {
     const { connector, table, values, returning, shouldReturn, onConflict } = opts;
-    const inserted = connector.insert(this.asTable({ table })).values(values);
+    const inserted = connector.insert(table).values(values);
     const query = onConflict
       ? inserted.onConflictDoUpdate({
           target: this.toConflictTarget({ columns: onConflict.target }),
@@ -132,7 +128,7 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
 
   async update<R>(opts: IUpdateOptions<TSqliteConnector>): Promise<IWriteResult<R>> {
     const { connector, table, data, where, returning, shouldReturn } = opts;
-    const query = connector.update(this.asTable({ table })).set(data).where(where);
+    const query = connector.update(table).set(data).where(where);
 
     if (!shouldReturn) {
       const result = await query;
@@ -150,7 +146,7 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
 
   async remove<R>(opts: IRemoveOptions<TSqliteConnector>): Promise<IWriteResult<R>> {
     const { connector, table, where, returning, shouldReturn } = opts;
-    const query = connector.delete(this.asTable({ table })).where(where);
+    const query = connector.delete(table).where(where);
 
     if (!shouldReturn) {
       const result = await query;
@@ -177,15 +173,6 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
     }
 
     return columns;
-  }
-
-  /**
-   * The neutral options carry the dialect-free `Table` bound; every Drizzle SQLite verb wants the
-   * concrete `SQLiteTable`. Knowing your own input belongs in the engine adapter, so the whole
-   * boundary is this one cast.
-   */
-  private asTable(opts: { table: TTableSchemaWithId }): SQLiteTable {
-    return opts.table as SQLiteTable;
   }
 
   /**

@@ -124,9 +124,7 @@ export abstract class RelationalBaseRepository<
 
   /** Every Drizzle call the repository tier makes goes through this port, supplied by the engine branch via the datasource. */
   protected get queryExecutor(): IRelationalQueryExecutor<TRelationalConnectorOf<TDataSource>> {
-    return this.dataSource.getQueryExecutor() as IRelationalQueryExecutor<
-      TRelationalConnectorOf<TDataSource>
-    >;
+    return this.dataSource.getQueryExecutor();
   }
 
   get connector(): TRelationalConnectorOf<TDataSource> {

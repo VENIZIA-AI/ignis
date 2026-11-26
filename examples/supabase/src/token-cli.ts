@@ -1,17 +1,19 @@
-import { writeSync } from 'node:fs';
 import { mintToken } from '@/token';
 
 const subject = process.argv[2];
 
-// The token is this command's result: it goes to stdout alone, written in full before the process ends.
+// The token is this command's result: it goes to stdout alone. `Bun.write` resolves once every byte is written.
 if (!subject) {
-  writeSync(2, 'Usage: bun run token -- <user-uuid> [role]\n');
+  await Bun.write(Bun.stderr, 'Usage: bun run token -- <user-uuid> [role]\n');
   process.exit(1);
 }
 
-mintToken({ subject, role: process.argv[3] })
-  .then((token) => writeSync(1, `${token}\n`))
-  .catch((error: unknown) => {
-    writeSync(2, `[token] Failed to mint token | Error: ${String(error)}\n`);
-    process.exit(1);
-  });
+try {
+  const token = await mintToken({ subject, role: process.argv[3] });
+  await Bun.write(Bun.stdout, `${token}\n`);
+} catch (error) {
+  const detail = error instanceof Error ? (error.stack ?? error.message) : String(error);
+
+  await Bun.write(Bun.stderr, `[token] Failed to mint token | Error: ${detail}\n`);
+  process.exit(1);
+}

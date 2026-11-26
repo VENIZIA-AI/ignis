@@ -137,6 +137,26 @@ describe('drop-redundant-casts', () => {
     ]);
   });
 
+  test('a cast of a value that holds any, or of a bare Function, stays: removing it hides an any', () => {
+    write(
+      'src/a.ts',
+      [
+        'declare const list: unknown;',
+        'declare const handler: Function;',
+        'declare const stream: Map<string, any>;',
+        'export const names: string[] = Array.isArray(list) ? (list as string[]) : [];',
+        'export const call: () => void = (handler as () => void).bind(null);',
+        'export const typed: Map<string, number> = stream as Map<string, number>;',
+        '',
+      ].join('\n'),
+    );
+
+    const result = only(['src/a.ts']);
+
+    expect(result?.removed).toBe(0);
+    expect(reasons(result)).toEqual(['any-expression', 'any-expression', 'any-expression']);
+  });
+
   test('a cast inside another cast is tried in a later round', () => {
     write(
       'src/a.ts',

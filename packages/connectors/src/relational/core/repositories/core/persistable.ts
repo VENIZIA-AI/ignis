@@ -122,11 +122,11 @@ export class PersistableRelationalRepository<
     }
 
     const scoped = await this.guardScopedWrite({
-      rows: opts.data as Array<Record<string, unknown>>,
+      rows: opts.data,
       operation: ScopeOperations.CREATE,
       transaction,
     });
-    const values = scoped as Array<PersistObject>;
+    const values = scoped;
 
     const connector = await this.acquireConnector({ transaction });
 
@@ -408,7 +408,7 @@ export class PersistableRelationalRepository<
     }
 
     await this.guardScopedWrite({
-      rows: [opts.data as Record<string, unknown>],
+      rows: [opts.data],
       operation,
       transaction,
     });

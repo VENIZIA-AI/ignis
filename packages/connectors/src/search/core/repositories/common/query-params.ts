@@ -30,6 +30,6 @@ export class SearchQueryParamsUtility {
         MULTI_SEARCH_LIST_FIELDS.has(key) && Array.isArray(value) ? value.join(',') : value;
     }
 
-    return params as Partial<ISearchQuery>;
+    return params;
   }
 }

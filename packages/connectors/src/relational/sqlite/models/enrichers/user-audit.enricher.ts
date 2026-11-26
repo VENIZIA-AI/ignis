@@ -56,7 +56,7 @@ const buildUserAuditColumn = (opts: {
 
     default: {
       throw getError({
-        message: `[enrichUserAudit] Invalid dataType for '${columnField}' | value: ${(columnOpts as TUserAuditColumnOpts).dataType} | valid: ['number', 'string']`,
+        message: `[enrichUserAudit] Invalid dataType for '${columnField}' | value: ${columnOpts.dataType} | valid: ['number', 'string']`,
       });
     }
   }

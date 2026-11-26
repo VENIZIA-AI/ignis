@@ -70,7 +70,7 @@ export class WinstonFormatFactory {
   }
 
   static log(opts: { label: string; format?: TLoggerFormat }) {
-    const format = opts.format ?? (LOGGER_FORMAT as TLoggerFormat);
+    const format = opts.format ?? LOGGER_FORMAT;
 
     switch (format) {
       case LoggerFormats.JSON: {

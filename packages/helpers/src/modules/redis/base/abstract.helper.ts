@@ -353,7 +353,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     options?: { log?: boolean };
   }): Promise<number> {
     const { key, value, options } = opts;
-    const result = await this.client.hset(key, value as Record<string, string | number | Buffer>);
+    const result = await this.client.hset(key, value);
 
     if (!options?.log) {
       return result;

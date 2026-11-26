@@ -86,6 +86,6 @@ export class ScopeResolution {
       return value;
     }
 
-    return ScopeResolution.isUsableWhere(value) ? (value as TWhere<DataObject>) : null;
+    return ScopeResolution.isUsableWhere(value) ? value : null;
   }
 }

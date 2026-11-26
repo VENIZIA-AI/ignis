@@ -249,8 +249,6 @@ export class SoftDeletableRelationalRepository<
       ...restOptions,
       shouldReturn,
       shouldSkipDefaultFilter: true,
-    } as ExtraOptions & {
-      shouldReturn: boolean;
     };
 
     const rs = await this._update<R>({
@@ -286,9 +284,6 @@ export class SoftDeletableRelationalRepository<
       shouldReturn,
       force,
       shouldSkipDefaultFilter: true,
-    } as ExtraOptions & {
-      shouldReturn: boolean;
-      force?: boolean;
     };
 
     return this._update<R>({

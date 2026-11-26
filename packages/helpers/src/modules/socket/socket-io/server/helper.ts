@@ -160,11 +160,11 @@ export class SocketIOServerHelper extends BaseHelper {
     const logger = this.logger.for(this.configure.name);
     logger.info('Configuring IO Server | id: %s | runtime: %s', this.identifier, this.runtime);
 
-    (this.redisPub as EventEmitter).on('error', (error: Error) => {
+    this.redisPub.on('error', (error: Error) => {
       logger.error('Redis adapter pub error | error: %s', error);
     });
 
-    (this.redisSub as EventEmitter).on('error', (error: Error) => {
+    this.redisSub.on('error', (error: Error) => {
       logger.error('Redis adapter sub error | error: %s', error);
     });
 

@@ -95,6 +95,6 @@ export class SearchControllerScope {
         ...input.filter,
         where: clientWhere ? { and: [scope, clientWhere] } : scope,
       },
-    } as TSearchInput & TExtra;
+    };
   }
 }

@@ -28,7 +28,7 @@ export class TypesenseInternal {
     const { error } = opts;
 
     if (error && typeof error === 'object') {
-      return error as IHttpLikeError;
+      return error;
     }
 
     return {};

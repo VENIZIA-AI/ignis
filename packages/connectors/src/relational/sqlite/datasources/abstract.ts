@@ -37,8 +37,6 @@ export abstract class AbstractSqliteDataSource<
   override getQueryExecutor(): IRelationalQueryExecutor<TSqliteConnector<Schema>> {
     AbstractSqliteDataSource.queryExecutor ??= new SqliteQueryExecutor();
 
-    return AbstractSqliteDataSource.queryExecutor as IRelationalQueryExecutor<
-      TSqliteConnector<Schema>
-    >;
+    return AbstractSqliteDataSource.queryExecutor;
   }
 }

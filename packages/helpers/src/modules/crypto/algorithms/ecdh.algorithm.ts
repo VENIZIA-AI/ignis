@@ -90,7 +90,7 @@ export class ECDH extends AbstractCryptoAlgorithm<
       {
         name: 'HKDF',
         hash: 'SHA-256',
-        salt: salt as Uint8Array<ArrayBuffer>,
+        salt,
         info: this.hkdfInfo as Uint8Array<ArrayBuffer>,
       },
       hkdfKey,

@@ -94,7 +94,7 @@ export class PGliteDriver<
   }
 
   createConnector(opts: { schema: Schema }): TRelationalConnector<Schema> {
-    return drizzle({ client: this.client, schema: opts.schema }) as TRelationalConnector<Schema>;
+    return drizzle({ client: this.client, schema: opts.schema });
   }
 
   async acquire(opts: { schema: Schema }): Promise<TRelationalConnection<Schema>> {
@@ -114,7 +114,7 @@ export class PGliteDriver<
     let connector: TRelationalConnector<Schema>;
 
     try {
-      connector = drizzle({ client, schema: opts.schema }) as TRelationalConnector<Schema>;
+      connector = drizzle({ client, schema: opts.schema });
     } catch (error) {
       this.slot.release({ resource: client });
       throw error;

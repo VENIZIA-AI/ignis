@@ -145,8 +145,8 @@ export const namingConventionConfigs: Linter.Config[] = [
   { ignores: ['**/dist/**', '**/build/**', '**/coverage/**', '**/*.d.ts', '**/*.{js,cjs,mjs}'] },
   {
     files: ['**/*.{ts,tsx,mts,cts}'],
-    languageOptions: { parser: tseslint.parser as Linter.Parser },
-    plugins: { '@typescript-eslint': tseslint.plugin as never },
+    languageOptions: { parser: tseslint.parser },
+    plugins: { '@typescript-eslint': tseslint.plugin },
     // oxlint owns every other rule, so the disable comments for them are not ESLint's to judge.
     linterOptions: { reportUnusedDisableDirectives: 'off' },
     rules: { [NamingConventionRule.NAME]: NamingConventionRule.build() },

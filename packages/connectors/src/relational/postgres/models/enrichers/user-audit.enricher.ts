@@ -51,7 +51,7 @@ const buildUserAuditColumn = (opts: {
 
     default: {
       throw getError({
-        message: `[enrichUserAudit] Invalid dataType for '${columnField}' | value: ${(columnOpts as TUserAuditColumnOpts).dataType} | valid: ['number', 'string']`,
+        message: `[enrichUserAudit] Invalid dataType for '${columnField}' | value: ${columnOpts.dataType} | valid: ['number', 'string']`,
       });
     }
   }
@@ -78,6 +78,6 @@ export class PostgresUserAuditEnricher {
     const { baseSchema, opts: enricherOpts } = opts;
     const defs = PostgresUserAuditEnricher.generateColumnDefs(enricherOpts);
 
-    return { ...baseSchema, ...defs } as TUserAuditEnricherResult<ColumnDefinitions>;
+    return { ...baseSchema, ...defs };
   }
 }

@@ -543,10 +543,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
           messageCode: rs.response.normalized.code,
         });
 
-        return context.json(
-          this.withRootKey(rs.response),
-          rs.statusCode as Parameters<typeof context.json>[1],
-        );
+        return context.json(this.withRootKey(rs.response), rs.statusCode);
       }
 
       const resolved = this.resolve({ error, isProduction });

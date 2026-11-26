@@ -76,7 +76,7 @@ export class ScopeWriteGuard {
   static extractConstraints(opts: { where: TWhere }): TExtraction {
     const constraints: TConstraints = new Map();
     const reason = ScopeWriteGuard.collect({
-      where: opts.where as Record<string, unknown>,
+      where: opts.where,
       constraints,
     });
 
@@ -235,7 +235,7 @@ export class ScopeWriteGuard {
       return 'an unsupported condition';
     }
 
-    const operators = Object.keys(value as object);
+    const operators = Object.keys(value);
 
     if (operators.length !== 1) {
       return `a condition with ${operators.length} operators cannot be checked on a write`;

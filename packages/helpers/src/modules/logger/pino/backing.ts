@@ -24,10 +24,7 @@ export class PinoBackingLogger {
   static get(): TPinoInstance {
     if (!PinoBackingLogger.instance) {
       const destination = PinoDestination.build({ plan: PinoDestination.resolvePlan() });
-      PinoBackingLogger.instance = pino(
-        PinoBackingLogger.buildOptions(),
-        destination,
-      ) as TPinoInstance;
+      PinoBackingLogger.instance = pino(PinoBackingLogger.buildOptions(), destination);
       PinoBackingLogger.transport = destination;
     }
 

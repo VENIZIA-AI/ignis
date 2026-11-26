@@ -445,7 +445,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     const { payload, protectedHeader } = opts.result;
 
     if (!this.aes || !this.applicationSecret) {
-      return payload as IJWTTokenPayload;
+      return payload;
     }
 
     this.logger
