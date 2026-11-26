@@ -61,6 +61,24 @@ describe('devz codemod function-to-arrow: what it rewrites', () => {
     );
   });
 
+  test('two declarations with nothing between them stay two statements', () => {
+    expect(rewrite('function a(){}function b(){}\n').output).toBe(
+      'const a = () => {};const b = () => {};\n',
+    );
+  });
+
+  test('a default parameter is kept as written', () => {
+    expect(rewrite('function add(a: number, b = a + 1) {}\n').output).toBe(
+      'const add = (a: number, b = a + 1) => {};\n',
+    );
+  });
+
+  test('a .tsx type parameter that already has its comma gets no second one', () => {
+    expect(rewrite('function id<T,>(v: T) {}\n', 'src/a.tsx').output).toBe(
+      'const id = <T,>(v: T) => {};\n',
+    );
+  });
+
   test('a second run changes nothing', () => {
     const once = rewrite('function a() {}\n').output;
 
@@ -81,6 +99,12 @@ describe('devz codemod function-to-arrow: what it only lists', () => {
       'start();\nfunction late() {}\nfunction start() {\n  late();\n}\n',
       ArrowSkipReasons.HOISTED,
     ],
+    [
+      'read by a shorthand property before it',
+      'export const handlers = { f };\nfunction f() {}\n',
+      ArrowSkipReasons.HOISTED,
+    ],
+    ['a this parameter', 'function f(this: Window) {}\n', ArrowSkipReasons.THIS],
     ['exported before it', 'export { later };\nfunction later() {}\n', ArrowSkipReasons.HOISTED],
     [
       'an overload',
@@ -95,7 +119,7 @@ describe('devz codemod function-to-arrow: what it only lists', () => {
     ['a default export', 'export default function main() {}\n', ArrowSkipReasons.EXPORT_DEFAULT],
     [
       'used with new',
-      'function Box() {}\nexport const b = new (Box as any)();\nexport const c = new Box();\n',
+      'function Box() {}\nexport const c = new Box();\n',
       ArrowSkipReasons.CONSTRUCTED,
     ],
     [

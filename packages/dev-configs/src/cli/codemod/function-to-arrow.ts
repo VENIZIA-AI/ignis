@@ -77,6 +77,12 @@ export class FunctionToArrow {
   }): TArrowSkipReason | undefined {
     const { typescript, declaration } = opts;
     let found: TArrowSkipReason | undefined;
+    const first = declaration.parameters[0]?.name;
+
+    // A `this` parameter types the `this` an arrow does not have.
+    if (first && typescript.isIdentifier(first) && first.text === 'this') {
+      return ArrowSkipReasons.THIS;
+    }
 
     const visit = (node: ts.Node): void => {
       // A nested `function` or class member binds its own; an arrow does not.
@@ -126,9 +132,12 @@ export class FunctionToArrow {
     const visit = (node: ts.Node): void => {
       if (typescript.isIdentifier(node)) {
         const parent = node.parent;
+        // The name of an export specifier or of a shorthand property stands for the local declaration too.
         const symbol = typescript.isExportSpecifier(parent)
           ? checker.getExportSpecifierLocalTargetSymbol(parent)
-          : checker.getSymbolAtLocation(node);
+          : typescript.isShorthandPropertyAssignment(parent) && parent.name === node
+            ? checker.getShorthandAssignmentValueSymbol(parent)
+            : checker.getSymbolAtLocation(node);
         const isOwnName = typescript.isFunctionDeclaration(parent) && parent.name === node;
 
         if (symbol && !isOwnName) {
@@ -340,7 +349,7 @@ export class FunctionToArrow {
       let signature = source.slice(name.end, node.body.getStart(sourceFile)).trimEnd();
 
       // In a .tsx file `<T>(` opens an element; the comma makes it a type parameter list.
-      if (isTsx && node.typeParameters?.length === 1) {
+      if (isTsx && node.typeParameters?.length === 1 && !node.typeParameters.hasTrailingComma) {
         signature = signature.replace(/>(\s*\()/, ',>$1');
       }
 
@@ -358,7 +367,8 @@ export class FunctionToArrow {
 
     let output = source;
 
-    for (const edit of edits.sort((a, b) => b.start - a.start)) {
+    // From the end; where a header starts at the point a semicolon goes in, the header is replaced first.
+    for (const edit of edits.sort((a, b) => b.start - a.start || b.end - a.end)) {
       output = output.slice(0, edit.start) + edit.text + output.slice(edit.end);
     }
 
