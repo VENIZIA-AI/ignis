@@ -7,6 +7,7 @@ import {
   LogLevels,
   MessageCode,
   MessageTemplate,
+  RecordUtility,
 } from '@venizia/ignis-helpers/core';
 import { HTTP, RedactUtility } from '@venizia/ignis-helpers/common';
 import type { IProvider } from '@venizia/ignis-inversion';
@@ -363,7 +364,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
 
   /** A throw site may set `logLevel` via `getError`; anything unset or malformed logs at `error`. */
   private resolveLogLevel(opts: { error: TThrown }): TLogLevel {
-    const candidate = (opts.error as { logLevel?: unknown }).logLevel;
+    const candidate = 'logLevel' in opts.error ? opts.error.logLevel : undefined;
 
     if (typeof candidate === 'string' && LogLevels.isValid(candidate)) {
       return candidate as TLogLevel;
@@ -479,11 +480,11 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
   private pickCorrelationIds(opts: { extra: unknown }): Record<string, unknown> | undefined {
     const { extra } = opts;
 
-    if (typeof extra !== 'object' || extra === null) {
+    if (!RecordUtility.isRecord(extra)) {
       return undefined;
     }
 
-    const source = extra as Record<string, unknown>;
+    const source = extra;
     const isId = (value: unknown): value is string =>
       typeof value === 'string' && value.length <= 128;
     const picked: Record<string, unknown> = {};

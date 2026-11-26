@@ -1,6 +1,6 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { QueryOperators, Sorts } from '@venizia/ignis-filter';
 
 /** What a request filter holds that a query reads: `where`, `order`, the `include` scopes, and the `fields` that can decide the order it reads them in. */
@@ -198,12 +198,12 @@ export class RequestFilterGuard {
   }): void {
     const { where, judge, tableName, walk } = opts;
 
-    if (typeof where !== 'object' || where === null) {
+    if (!RecordUtility.isRecord(where)) {
       return;
     }
 
     for (const key of Object.keys(where)) {
-      const value = (where as Record<string, unknown>)[key];
+      const value = where[key];
 
       if (QueryOperators.LOGICAL_GROUP_OPERATORS.has(key)) {
         for (const branch of Array.isArray(value) ? value : [value]) {
