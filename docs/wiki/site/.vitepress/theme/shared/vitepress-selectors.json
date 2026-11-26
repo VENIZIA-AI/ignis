@@ -117,11 +117,6 @@
       "needle": ".VPNavBarMenuLink {"
     },
     {
-      "selector": ".DocSearch-Button",
-      "file": "components/VPNavBarSearchButton.vue",
-      "needle": ".DocSearch-Button {"
-    },
-    {
       "selector": ".VPSocialLink",
       "file": "components/VPSocialLink.vue",
       "needle": ".VPSocialLink {"

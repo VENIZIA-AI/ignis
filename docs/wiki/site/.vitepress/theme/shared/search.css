@@ -1,0 +1,181 @@
+/*
+ * Shared by the three wikis (IGNIS, ARDOR, VULCAN): a byte-identical copy in each, kept in step by
+ * scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
+ *
+ * The search button of the top bar and its dialog (SearchBox.vue).
+ */
+.wiki-search {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.search-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 8px;
+  color: var(--text-muted);
+  font: 400 14px var(--font-sans);
+  cursor: pointer;
+}
+
+.search-icon {
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.6'%3E%3Ccircle cx='7' cy='7' r='4.6'/%3E%3Cpath d='M10.5 10.5 14 14'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+.search-label,
+.search-keys {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .search-button {
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    padding: 0 8px 0 12px;
+    transition: border-color 0.18s;
+  }
+
+  .search-button:hover {
+    border-color: var(--stroke-strong);
+  }
+
+  .search-label {
+    display: inline;
+  }
+
+  .search-keys {
+    display: inline-flex;
+    gap: 4px;
+    margin-left: 12px;
+  }
+
+  .search-keys kbd {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 6px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    font: 500 13px/1 var(--font-mono);
+  }
+}
+
+@media (min-width: 960px) {
+  .wiki-search {
+    flex: 0 1 480px;
+    min-width: 200px;
+    margin-left: 0;
+    margin-right: auto;
+  }
+
+  .search-button {
+    width: 100%;
+    height: 38px;
+  }
+
+  .search-keys {
+    margin-left: auto;
+  }
+}
+
+.search-dialog {
+  width: min(640px, calc(100vw - 24px));
+  max-height: min(560px, calc(100dvh - 96px));
+  margin: 64px auto auto;
+  padding: 0;
+  border: 1px solid var(--stroke-strong);
+  border-radius: var(--radius);
+  background: var(--vp-c-bg);
+  color: var(--text-body);
+  /* the dialog sits in the top bar, which keeps its text on one line */
+  white-space: normal;
+}
+
+.search-dialog[open] {
+  display: flex;
+}
+
+.search-dialog::backdrop {
+  background: var(--vp-backdrop-bg-color);
+}
+
+.search-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  padding: 12px;
+}
+
+.search-panel input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  color: var(--text-title);
+  font: 400 16px var(--font-sans);
+}
+
+.search-panel input:focus-visible {
+  border-color: var(--accent-text);
+  outline: none;
+}
+
+.search-note {
+  margin: 8px 4px 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.search-note:empty {
+  margin: 0;
+}
+
+.search-hits {
+  margin: 8px 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.search-hits a {
+  display: block;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: inherit;
+  text-decoration: none;
+}
+
+.search-hits .picked a {
+  border-color: var(--accent-text);
+}
+
+.hit-title {
+  display: block;
+  color: var(--text-title);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.hit-excerpt {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.hit-excerpt mark {
+  background: transparent;
+  color: var(--accent-text);
+  font-weight: 600;
+}

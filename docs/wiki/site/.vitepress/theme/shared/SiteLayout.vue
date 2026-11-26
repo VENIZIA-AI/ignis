@@ -16,6 +16,7 @@ import ChangelogEntryHead from './ChangelogEntryHead.vue';
 import DocEyebrow from './DocEyebrow.vue';
 import DocsHelp from './DocsHelp.vue';
 import type { THomeContent, TSiteInfo } from './home-types';
+import SearchBox from './SearchBox.vue';
 import SiteBrand from './SiteBrand.vue';
 import SiteFooter from './SiteFooter.vue';
 import { provideThemeSwitch } from './toggle-appearance';
@@ -50,6 +51,7 @@ const isHome = computed(() => page.value.relativePath === 'index.md');
   <Layout>
     <template #nav-bar-content-before>
       <SiteBrand :site="site" />
+      <SearchBox />
     </template>
     <template #nav-bar-content-after>
       <VeniziaLink />

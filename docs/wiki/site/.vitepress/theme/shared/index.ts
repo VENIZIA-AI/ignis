@@ -23,6 +23,7 @@ import './topbar.css';
 import './docs-shell.css';
 import './docs-blocks.css';
 import './changelog.css';
+import './search.css';
 import AtAGlance from './AtAGlance.vue';
 import SiteLayout from './SiteLayout.vue';
 import WhereToStart from './WhereToStart.vue';

@@ -156,24 +156,6 @@
     width: 258px;
     margin-right: 20px;
   }
-
-  .VPNavBarSearch {
-    flex: 0 1 480px;
-    min-width: 200px;
-    margin-right: auto;
-    padding-left: 0;
-  }
-
-  .VPNavBarSearch #local-search {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .VPNavBarSearch .DocSearch-Button {
-    width: 100%;
-    max-width: 480px;
-    height: 38px;
-  }
 }
 
 /* ---- the venizia.ai link ----------------------------------------------------------------------- */

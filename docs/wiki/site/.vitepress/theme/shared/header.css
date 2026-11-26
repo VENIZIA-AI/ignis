@@ -56,52 +56,6 @@
   color: var(--accent-text);
 }
 
-/* the search: an outlined 4px button with the shortcut keys in hairline boxes */
-@media (min-width: 768px) {
-  .VPNavBarSearch .DocSearch-Button {
-    height: 36px;
-    border: 1px solid var(--stroke);
-    border-radius: var(--radius);
-    background: transparent;
-  }
-
-  .VPNavBarSearch .DocSearch-Button:hover {
-    border-color: var(--stroke-strong);
-    background: transparent;
-  }
-}
-
-.VPNavBarSearch .DocSearch-Button .DocSearch-Button-Placeholder,
-.VPNavBarSearch .DocSearch-Button .DocSearch-Search-Icon {
-  color: var(--text-muted);
-  font-size: 14px;
-}
-
-/* The two keys are separate boxes on one baseline with a small gap. The default theme joins them into one
-   box (a left half and a right half, the first with its font size at 0 and its text drawn by ::after,
-   a 2px margin on top), which our border and radius turned into two overlapping boxes with the K raised. */
-.VPNavBarSearch .DocSearch-Button .DocSearch-Button-Keys {
-  gap: 4px;
-}
-
-.VPNavBarSearch .DocSearch-Button .DocSearch-Button-Key,
-.VPNavBarSearch .DocSearch-Button .DocSearch-Button-Key + .DocSearch-Button-Key {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 0 6px;
-  height: 22px;
-  border: 1px solid var(--stroke);
-  border-radius: var(--radius);
-  color: var(--text-muted);
-  font: 500 13px/1 var(--font-mono);
-}
-
-.VPNavBarSearch .DocSearch-Button .DocSearch-Button-Key:first-child::after {
-  font: 500 13px/1 var(--font-mono);
-}
-
 .VPSocialLink {
   color: var(--text-body);
   transition: color 0.25s;
