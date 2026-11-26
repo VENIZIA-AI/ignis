@@ -946,3 +946,21 @@ test-controls-manifest-type:
     steps:
       - "Pin @venizia/dev-configs to the release before this one and rename type back to kind."
   data: Nothing stored changes.
+
+lint-rule-namespace:
+  symbols: [HOUSE_PLUGIN_NAMESPACE, houseEslintPlugin, houseConfigs, reactHouseConfigs]
+  upgrade:
+    before: |-
+      export default [...houseConfigs, { rules: { 'venizia/no-new-error': 'off' } }];
+      // eslint-disable-next-line venizia/no-silent-catch -- the reason
+    after: |-
+      export default [...houseConfigs, { rules: { '@venizia/no-new-error': 'off' } }];
+      // eslint-disable-next-line @venizia/no-silent-catch -- the reason
+    steps:
+      - "In your ESLint configs, replace venizia/ with @venizia/ in every rule name. Leave the package names (@venizia/...) as they are."
+      - "In your source, replace venizia/ with @venizia/ in every eslint-disable comment."
+      - "A config that registers houseEslintPlugin itself uses the key '@venizia' in plugins."
+  downgrade:
+    steps:
+      - "Pin @venizia/dev-configs to the release before this one and replace @venizia/<rule> with venizia/<rule> in your ESLint configs and eslint-disable comments."
+  data: Nothing stored changes.
