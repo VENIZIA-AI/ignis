@@ -143,6 +143,8 @@ export class BffFetchBridge {
     Object.defineProperties(bridged, Object.getOwnPropertyDescriptors(previousFetch));
     Object.defineProperty(bridged, BffFetchBridge.BRIDGE_MARKER, { value: true });
 
+    // The cast is for a runtime's own typing of `fetch` (Bun adds `preconnect`), which the copied
+    // descriptors provide and the compiler cannot see.
     carrier.fetch = bridged as TFetch;
 
     return () => {

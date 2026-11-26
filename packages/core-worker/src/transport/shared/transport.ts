@@ -1,5 +1,11 @@
-import { BaseHelper, getError, RequestIdGenerator } from '@venizia/ignis-helpers/core';
+import {
+  BaseHelper,
+  getError,
+  RequestIdGenerator,
+  RecordUtility,
+} from '@venizia/ignis-helpers/core';
 import { BffEnvelope } from '@/envelope/encode';
+import { BffEnvelopeGuard } from '@/envelope/guard';
 import type { IBffRequestEnvelope } from '@/envelope/common';
 import type { IBffTransport } from '../common/types';
 import { WorkerBffTransport } from '../worker';
@@ -393,24 +399,45 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
    * someone else.
    */
   private readonly handleChannelMessage = (event: MessageEvent): void => {
-    const message = event.data as TChannelMessage | undefined;
+    const message: unknown = event.data;
 
-    switch (message?.type) {
+    if (!RecordUtility.isRecord(message)) {
+      return;
+    }
+
+    const { type, envelope } = message;
+    const id = BffEnvelopeGuard.readId(envelope);
+
+    // With no `id` there is no caller to answer.
+    if (id === undefined) {
+      return;
+    }
+
+    switch (type) {
       case ChannelMessageTypes.REQUEST: {
         if (this.role !== BffRoles.LEADER) {
           return;
         }
 
+        if (!BffEnvelopeGuard.isRequest(envelope)) {
+          const error = getError({
+            message: `[SharedBffTransport] Refused a malformed request envelope | id: ${id}`,
+          });
+          this.logger.for(this.handleChannelMessage.name).warn(error.message);
+          this.channel.postMessage({
+            type: ChannelMessageTypes.ERROR,
+            envelope: BffEnvelope.encodeError({ id, error }),
+          } satisfies TChannelMessage);
+
+          return;
+        }
+
         // `serveAsLeader` answers its own failures on the channel; this catch is for the one case
         // it cannot - the channel itself refusing the message, e.g. a body that will not clone.
-        this.serveAsLeader({ envelope: message.envelope }).catch((error: unknown) => {
+        this.serveAsLeader({ envelope }).catch((error: unknown) => {
           this.logger
             .for(this.serveAsLeader.name)
-            .error(
-              'Could not answer a follower at all | id: %s | error: %s',
-              message.envelope.id,
-              error,
-            );
+            .error('Could not answer a follower at all | id: %s | error: %s', id, error);
         });
 
         return;
@@ -421,25 +448,25 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
       // on v2 share the same channel and lock BY DESIGN. An envelope this build cannot read must
       // fail its caller, never leave the promise unsettled for the full timeout.
       case ChannelMessageTypes.RESPONSE: {
-        const pending = this.takePending({ id: message.envelope.id });
+        const pending = this.takePending({ id });
 
         if (!pending) {
           return;
         }
 
         try {
-          pending.resolve(BffEnvelope.decodeResponse({ envelope: message.envelope }));
+          if (!BffEnvelopeGuard.isResponse(envelope)) {
+            throw getError({ message: '[SharedBffTransport] Malformed response envelope' });
+          }
+
+          pending.resolve(BffEnvelope.decodeResponse({ envelope }));
         } catch (error) {
           this.logger
             .for(this.handleChannelMessage.name)
-            .error(
-              'Undecodable response envelope | id: %s | error: %s',
-              message.envelope.id,
-              error,
-            );
+            .error('Undecodable response envelope | id: %s | error: %s', id, error);
           pending.reject(
             getError({
-              message: `[SharedBffTransport] The leader's response could not be decoded | id: ${message.envelope.id}`,
+              message: `[SharedBffTransport] The leader's response could not be decoded | id: ${id}`,
               cause: error,
             }),
           );
@@ -449,18 +476,22 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
       }
 
       case ChannelMessageTypes.ERROR: {
-        const pending = this.takePending({ id: message.envelope.id });
+        const pending = this.takePending({ id });
 
         if (!pending) {
           return;
         }
 
         try {
-          pending.reject(BffEnvelope.decodeError({ envelope: message.envelope }));
+          if (!BffEnvelopeGuard.isError(envelope)) {
+            throw getError({ message: '[SharedBffTransport] Malformed error envelope' });
+          }
+
+          pending.reject(BffEnvelope.decodeError({ envelope }));
         } catch (error) {
           pending.reject(
             getError({
-              message: `[SharedBffTransport] The leader's error envelope could not be decoded | id: ${message.envelope.id}`,
+              message: `[SharedBffTransport] The leader's error envelope could not be decoded | id: ${id}`,
               cause: error,
             }),
           );

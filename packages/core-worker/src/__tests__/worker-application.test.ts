@@ -379,3 +379,39 @@ describe('WorkerApplication - a failure that escapes the HTTP layer', () => {
     expect(errorEnvelope.statusCode).toBe(HTTP.ResultCodes.RS_5.InternalServerError);
   });
 });
+
+describe('WorkerApplication - a malformed request', () => {
+  const listen = async (): Promise<FakeWorkerScope> => {
+    const app = new TestWorkerApplication({
+      scope: 'TestWorkerApplication',
+      config: buildConfigs(),
+    });
+    const scope = new FakeWorkerScope();
+    await app.listen({ scope });
+
+    return scope;
+  };
+
+  test('one with a readable id is answered with an error envelope', async () => {
+    const scope = await listen();
+
+    scope.dispatch({ id: 'malformed-1', method: 'GET' });
+
+    const result = await waitFor({ condition: () => scope.posted.length > 0, timeoutMs: 500 });
+    expect(result).toBe(true);
+    const errorEnvelope = scope.posted[0] as IBffErrorEnvelope;
+    expect(errorEnvelope.id).toBe('malformed-1');
+    expect(errorEnvelope.error.text).toContain('malformed request envelope');
+  });
+
+  test('one with no readable id is ignored', async () => {
+    const scope = await listen();
+
+    for (const data of [undefined, null, 'ping', {}, { id: '' }, { id: 7 }]) {
+      scope.dispatch(data);
+    }
+
+    await sleep(30);
+    expect(scope.posted).toHaveLength(0);
+  });
+});

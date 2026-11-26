@@ -3,6 +3,7 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import { CoreBindings, RestApplication } from '@venizia/ignis-kernel';
 import type { Env, Schema } from 'hono';
 import { BffEnvelope } from '@/envelope/encode';
+import { BffEnvelopeGuard } from '@/envelope/guard';
 import type { IBffRequestEnvelope, IBffResponseEnvelope } from '@/envelope/common';
 import type { IWorkerApplicationConfigs } from './common';
 
@@ -183,15 +184,24 @@ export abstract class WorkerApplication<
     // assignable to it.
     const listener = (event: Event): void => {
       const data: unknown = 'data' in event ? event.data : undefined;
-      const envelope = data as IBffRequestEnvelope | undefined;
+      const id = BffEnvelopeGuard.readId(data);
 
       // A worker scope receives every `postMessage` sent to it, not only ours - a dev-server ping,
-      // a devtools/extension probe, a library's own init handshake. None of those carry an `id`;
-      // silently dropping them (rather than dereferencing `envelope.id` inside `handleMessage`'s
-      // own catch block) is what keeps a foreign message from throwing a bare `TypeError` that
-      // would otherwise escape this listener entirely, unlogged and unposted.
-      if (!envelope?.id) {
-        logger.debug('Ignoring worker message with no request id | data: %j', envelope);
+      // a devtools/extension probe, a library's own init handshake. None of those carry an `id`,
+      // and with no `id` there is no caller to answer.
+      if (id === undefined) {
+        logger.debug('Ignoring worker message with no request id | data: %j', data);
+
+        return;
+      }
+
+      if (!BffEnvelopeGuard.isRequest(data)) {
+        const error = getError({
+          statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+          message: `[WorkerApplication] Refused a malformed request envelope | id: ${id}`,
+        });
+        logger.warn(error.message);
+        this.postErrorEnvelope({ scope, id, error });
 
         return;
       }
@@ -199,7 +209,7 @@ export abstract class WorkerApplication<
       // `dispatchMessage` never rejects - every failure inside it, including a failed post, is
       // caught and handled internally. This `.catch` only guards the sliver of code before its own
       // try block ever runs.
-      this.dispatchMessage({ scope, envelope }).catch((error) => {
+      this.dispatchMessage({ scope, envelope: data }).catch((error) => {
         logger.error('Unexpected failure handling worker message | error: %s', error);
       });
     };

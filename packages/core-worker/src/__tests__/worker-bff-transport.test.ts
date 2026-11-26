@@ -87,8 +87,8 @@ class FakeWorker {
   }
 
   /** Simulates the worker thread itself dying - the `error` event, not a message. */
-  crash(): void {
-    const event = new Event('error');
+  crash(fields: Record<string, unknown> = {}): void {
+    const event = Object.assign(new Event('error'), fields);
     const listenersList = this.listeners.get('error') ?? [];
 
     for (const listener of listenersList) {
@@ -490,5 +490,64 @@ describe('WorkerBffTransport outside a secure context', () => {
 
     expect(report.ids[0]).not.toBe(report.ids[1]);
     expect(report.draws).toBeGreaterThan(0);
+  });
+});
+
+describe('WorkerBffTransport - a malformed answer', () => {
+  const answer = async (opts: {
+    build: (id: string) => unknown;
+  }): Promise<{ task: Promise<Response> }> => {
+    const worker = new FakeWorker();
+    const transport = new WorkerBffTransport({ worker: worker as any, timeoutMs: 5_000 });
+    const task = transport.fetch({ request: new Request('http://example.test/hello') });
+    await flushMicrotasks();
+    const sent = worker.posted[0] as IBffRequestEnvelope;
+    worker.respond(opts.build(sent.id) as IBffResponseEnvelope);
+
+    return { task };
+  };
+
+  test('an error envelope with no error body rejects at once', async () => {
+    const { task } = await answer({ build: (id) => ({ id, statusCode: 500, error: undefined }) });
+
+    await RejectionUtility.expectRejection({
+      task,
+      message: 'Failed to decode the error envelope',
+    });
+  });
+
+  test('a response envelope with no status rejects at once', async () => {
+    const { task } = await answer({ build: (id) => ({ id, headers: [] }) });
+
+    await RejectionUtility.expectRejection({
+      task,
+      message: 'Failed to decode the response envelope',
+    });
+  });
+
+  test('error args that are no record are left out', async () => {
+    const { task } = await answer({
+      build: (id) => ({ id, statusCode: 422, error: { text: 'bad input', args: ['x'] } }),
+    });
+    let caught: unknown;
+
+    try {
+      await task;
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(isApplicationError(caught) && caught.normalized.args).toEqual({});
+    expect(isApplicationError(caught) && caught.statusCode).toBe(422);
+  });
+
+  test('the rejection after a worker error names the message, file, line and column', async () => {
+    const worker = new FakeWorker();
+    const transport = new WorkerBffTransport({ worker: worker as any, timeoutMs: 5_000 });
+    const task = transport.fetch({ request: new Request('http://example.test/hello') });
+    await flushMicrotasks();
+    worker.crash({ message: 'boom', filename: 'w.js', lineno: 3, colno: 7 });
+
+    await RejectionUtility.expectRejection({ task, message: 'boom (w.js:3:7)' });
   });
 });

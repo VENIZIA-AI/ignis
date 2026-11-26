@@ -1,19 +1,13 @@
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
-import { RequestIdGenerator } from '@venizia/ignis-helpers/core';
+import { RecordUtility, RequestIdGenerator } from '@venizia/ignis-helpers/core';
 import { BffEnvelope } from '@/envelope/encode';
-import type { IBffErrorEnvelope, IBffResponseEnvelope } from '@/envelope/common';
+import { BffEnvelopeGuard } from '@/envelope/guard';
 import type { IBffTransport } from './common/types';
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 /** How long a still-serving worker gets to answer after it reports an error - see `handleWorkerError`. */
 const WORKER_ERROR_GRACE_MS = 250;
-
-const isErrorEnvelope = (
-  data: IBffResponseEnvelope | IBffErrorEnvelope,
-): data is IBffErrorEnvelope => {
-  return 'error' in data;
-};
 
 /** One in-flight request: what settles it, and what has to be released the moment it settles. */
 interface IPendingRequest {
@@ -73,23 +67,39 @@ export class WorkerBffTransport extends BaseHelper implements IBffTransport {
   };
 
   private readonly handleMessage = (event: MessageEvent): void => {
-    // `event.data` is untyped (`any`) until narrowed below - a worker posts to this page for its own
-    // reasons too (a dev-server ping, a library handshake), and none of those carry an `id` this
-    // transport is waiting on.
-    const data = event.data as IBffResponseEnvelope | IBffErrorEnvelope | undefined;
+    // A worker posts to this page for its own reasons too (a dev-server ping, a library handshake),
+    // and none of those carry an `id` this transport is waiting on.
+    const data: unknown = event.data;
+    const id = BffEnvelopeGuard.readId(data);
 
-    if (!data?.id) {
+    if (id === undefined) {
       return;
     }
 
-    const pending = this.takePending({ id: data.id });
+    const pending = this.takePending({ id });
 
     if (!pending) {
       return;
     }
 
-    if (isErrorEnvelope(data)) {
-      pending.reject(BffEnvelope.decodeError({ envelope: data }));
+    if (RecordUtility.isRecord(data) && 'error' in data) {
+      pending.reject(
+        BffEnvelopeGuard.isError(data)
+          ? BffEnvelope.decodeError({ envelope: data })
+          : getError({
+              message: `[WorkerBffTransport] Failed to decode the error envelope | id: ${id}`,
+            }),
+      );
+
+      return;
+    }
+
+    if (!BffEnvelopeGuard.isResponse(data)) {
+      pending.reject(
+        getError({
+          message: `[WorkerBffTransport] Failed to decode the response envelope | id: ${id}`,
+        }),
+      );
 
       return;
     }
@@ -103,7 +113,7 @@ export class WorkerBffTransport extends BaseHelper implements IBffTransport {
     } catch (error) {
       pending.reject(
         getError({
-          message: `[WorkerBffTransport] Failed to decode the response envelope | id: ${data.id} | error: ${error}`,
+          message: `[WorkerBffTransport] Failed to decode the response envelope | id: ${id} | error: ${error}`,
         }),
       );
     }
