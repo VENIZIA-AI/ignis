@@ -140,7 +140,7 @@ export abstract class AbstractGrpcController<
 
     for (const [methodName, rpcMetadata] of rpcs) {
       // Dynamic dispatch by decorator-recorded method name - the controller class has no static index signature, so this read cannot be typed narrower than `unknown`.
-      const handler = (this as Record<string | symbol, unknown>)[methodName];
+      const handler: unknown = Reflect.get(this, methodName);
 
       if (typeof handler !== 'function') {
         logger.warn('RPC method "%s" not found on controller', String(methodName));
