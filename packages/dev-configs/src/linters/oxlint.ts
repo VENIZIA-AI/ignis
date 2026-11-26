@@ -129,7 +129,8 @@ export const oxlintConfigs: OxlintConfig = {
     'typescript/triple-slash-reference': 'error',
     'typescript/adjacent-overload-signatures': 'error',
     'typescript/prefer-for-of': 'error',
-    'typescript/unified-signatures': 'error',
+    // An overload with TSDoc of its own is one on purpose.
+    'typescript/unified-signatures': ['error', { ignoreOverloadsWithDifferentJSDoc: true }],
 
     // typescript-eslint, type-aware
     'typescript/await-thenable': 'error',

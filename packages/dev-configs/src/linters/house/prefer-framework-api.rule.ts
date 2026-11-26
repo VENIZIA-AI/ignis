@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import type { Linter, Rule, Scope } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
 import type { IBrowserApiPattern } from './browser-api-patterns';
@@ -15,6 +17,8 @@ const GLOBAL_OBJECTS: ReadonlyArray<string> = ['window', 'globalThis', 'self'];
  * `ResizeObserver`, `navigator.onLine`, a `beforeunload` listener, `navigator.clipboard.writeText`, `window.confirm`...) is
  * used through the hook, which owns the subscribe and cleanup. The rows are `BrowserApiPatterns.TABLE`; the message names
  * the hook. The rule is for apps: ardor-react's own source, where the hooks are written, turns it off.
+ *
+ * The package that ships the hooks (the nearest `package.json` is named `@venizia/ardor-react`) is not reported.
  *
  * Only a reference to the global is reported: a `window`, `navigator` or `document` the file binds itself is not. And only
  * where a hook can be called: in a component (a PascalCase function that draws JSX) or a hook (`useX`), see `isInReact`. A
@@ -216,6 +220,32 @@ export class PreferFrameworkApiRule {
     return false;
   }
 
+  /** The `name` of the nearest `package.json` above `directory`, or `undefined` when none can be read. */
+  private static packageNameOf(opts: { directory: string }): string | undefined {
+    const { directory } = opts;
+    const manifest = join(directory, 'package.json');
+
+    if (!existsSync(manifest)) {
+      const parent = dirname(directory);
+
+      return parent === directory
+        ? undefined
+        : PreferFrameworkApiRule.packageNameOf({ directory: parent });
+    }
+
+    try {
+      const name = AstNode.readField({
+        node: JSON.parse(readFileSync(manifest, 'utf8')),
+        key: 'name',
+      });
+
+      return typeof name === 'string' ? name : undefined;
+      // eslint-disable-next-line @venizia/no-silent-catch -- a package.json that does not parse names no package, and the rule reports as anywhere else
+    } catch {
+      return undefined;
+    }
+  }
+
   static readonly RULE: Rule.RuleModule = {
     meta: {
       type: 'suggestion',
@@ -232,6 +262,15 @@ export class PreferFrameworkApiRule {
       },
     },
     create: (context) => {
+      // The package that ships the hooks writes them with the browser APIs they wrap.
+      const packageName = PreferFrameworkApiRule.packageNameOf({
+        directory: dirname(context.filename),
+      });
+
+      if (packageName === BrowserApiPatterns.PACKAGE) {
+        return {};
+      }
+
       const options: unknown = context.options[0];
       const ignored = AstNode.readField({ node: options, key: 'ignore' });
       const ignore = new Set(Array.isArray(ignored) ? ignored : []);
