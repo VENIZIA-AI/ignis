@@ -1,7 +1,7 @@
 import type { ILogger, TLogLevel } from '@venizia/ignis-helpers/core';
 import { LogLevels } from '@venizia/ignis-helpers/core';
 
-/** The generator's own output goes through `console.log`; framework diagnostics below `warn` are dropped and the rest land on stderr, so a codegen run prints nothing but its result on stdout. */
+/** The generator's own output goes to stdout; framework diagnostics below `warn` are dropped and the rest land on stderr, so a codegen run prints nothing but its result on stdout. */
 export class QuietLogger implements ILogger {
   private static readonly cache = new Map<string, QuietLogger>();
   private readonly prefix: string;

@@ -1,5 +1,6 @@
 import { readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { CliOutput } from '../common/cli-output';
 
 /** What a build and the checks generate, relative to the project root. */
 const GENERATED_PATHS = ['dist', 'node_modules/.cache'];
@@ -26,13 +27,13 @@ export class CleanCommand {
     const { args = [] } = opts;
 
     if (args.includes('--help') || args.includes('-h')) {
-      console.log(USAGE);
+      CliOutput.log(USAGE);
 
       return 0;
     }
 
     if (args.length > 0) {
-      console.error(
+      CliOutput.error(
         `devz clean: unexpected argument ${args.map((arg) => `"${arg}"`).join(', ')}\n${USAGE}`,
       );
 

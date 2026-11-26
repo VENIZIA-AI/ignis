@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { CodemodFiles } from './files';
+import { CliOutput } from '../../common/cli-output';
 
 const USAGE = `Usage: devz codemod connector-imports [paths...] [--write | --check] [--reverse]
 
@@ -215,7 +216,7 @@ export class ConnectorImports {
         try {
           manifest = JSON.parse(readFileSync(candidate, 'utf8'));
         } catch (error) {
-          console.warn(
+          CliOutput.warn(
             `${candidate}  is not valid JSON, so its dependencies were not checked | ${error instanceof Error ? error.message : String(error)}`,
           );
 
@@ -258,7 +259,7 @@ export class ConnectorImportsCommand {
       args.includes(ConnectorImportsFlags.HELP) ||
       args.includes(ConnectorImportsFlags.HELP_SHORT)
     ) {
-      console.log(USAGE);
+      CliOutput.log(USAGE);
 
       return 0;
     }
@@ -269,7 +270,7 @@ export class ConnectorImportsCommand {
     const unknown = flags.filter((flag) => !ConnectorImportsFlags.isValid(flag));
 
     if (unknown.length > 0) {
-      console.error(
+      CliOutput.error(
         `devz codemod: unknown option ${unknown.map((flag) => `"${flag}"`).join(', ')}\n${USAGE}`,
       );
 
@@ -282,7 +283,7 @@ export class ConnectorImportsCommand {
     const marker = isReverse ? `${CONNECTORS_PACKAGE}/` : OLD_PREFIX;
 
     if (isWrite && isCheck) {
-      console.error(
+      CliOutput.error(
         `devz codemod: ${ConnectorImportsFlags.WRITE} and ${ConnectorImportsFlags.CHECK} contradict each other\n${USAGE}`,
       );
 
@@ -295,7 +296,7 @@ export class ConnectorImportsCommand {
       const loaded = await import('typescript');
       typescript = loaded.default;
     } catch {
-      console.error('devz codemod: the "typescript" package is required to read your sources');
+      CliOutput.error('devz codemod: the "typescript" package is required to read your sources');
 
       return 1;
     }
@@ -311,7 +312,7 @@ export class ConnectorImportsCommand {
       const dirty = isWrite ? CodemodFiles.dirty({ target }) : undefined;
 
       if (files.length === 0 && paths.length > 0) {
-        console.warn(
+        CliOutput.warn(
           `devz codemod: no source files under "${relative(root, target) || target}" (git ignores the path, or it holds none): nothing was read`,
         );
       }
@@ -338,7 +339,7 @@ export class ConnectorImportsCommand {
 
         if (dirty?.has(file)) {
           refusedCount += 1;
-          console.warn(
+          CliOutput.warn(
             `refused  ${shown}  has local changes (commit, stash or "git add" them, then run again)`,
           );
           continue;
@@ -346,7 +347,7 @@ export class ConnectorImportsCommand {
 
         changedCount += 1;
         specifierCount += result.rewritten;
-        console.log(
+        CliOutput.log(
           `${isWrite ? 'changed' : 'would change'}  ${shown}  (${result.rewritten} specifier(s))`,
         );
 
@@ -362,19 +363,19 @@ export class ConnectorImportsCommand {
       }
     }
 
-    console.log(
+    CliOutput.log(
       `devz codemod connector-imports: ${changedCount} file(s) ${isWrite ? 'changed' : 'would change'}, ${specifierCount} specifier(s) ${isWrite ? 'moved' : 'would be moved'}` +
         (refusedCount > 0 ? `, ${refusedCount} refused` : ''),
     );
 
     for (const manifestPath of [...missing].sort()) {
-      console.warn(
+      CliOutput.warn(
         `${manifestPath}  does not list ${CONNECTORS_PACKAGE}: add it as a dependency, because the imports now come from it`,
       );
     }
 
     if (!isWrite && changedCount > 0) {
-      console.log(
+      CliOutput.log(
         `Nothing was written. Run again with ${ConnectorImportsFlags.WRITE} to apply, then ${isReverse ? 'remove the dependency if nothing else uses it and ' : 'add the dependency and '}run your typecheck.`,
       );
     }

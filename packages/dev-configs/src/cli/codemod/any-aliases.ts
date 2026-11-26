@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { CodemodFiles } from './files';
+import { CliOutput } from '../../common/cli-output';
 
 const USAGE = `Usage: devz codemod any-aliases [paths...] [--strict] [--write [--all] | --check]
 
@@ -589,7 +590,7 @@ export class AnyAliasesCommand {
     const { root, args } = opts;
 
     if (args.includes(AnyAliasesFlags.HELP) || args.includes(AnyAliasesFlags.HELP_SHORT)) {
-      console.log(USAGE);
+      CliOutput.log(USAGE);
 
       return 0;
     }
@@ -599,7 +600,7 @@ export class AnyAliasesCommand {
     const unknown = flags.filter((flag) => !AnyAliasesFlags.isValid(flag));
 
     if (unknown.length > 0) {
-      console.error(
+      CliOutput.error(
         `devz codemod: unknown option ${unknown.map((flag) => `"${flag}"`).join(', ')}\n${USAGE}`,
       );
 
@@ -611,7 +612,7 @@ export class AnyAliasesCommand {
     const isStrict = flags.includes(AnyAliasesFlags.STRICT);
 
     if (isWrite && isCheck) {
-      console.error(
+      CliOutput.error(
         `devz codemod: ${AnyAliasesFlags.WRITE} and ${AnyAliasesFlags.CHECK} contradict each other\n${USAGE}`,
       );
 
@@ -626,7 +627,7 @@ export class AnyAliasesCommand {
     });
 
     if (refusal) {
-      console.error(`${refusal}\n${USAGE}`);
+      CliOutput.error(`${refusal}\n${USAGE}`);
 
       return USAGE_ERROR_CODE;
     }
@@ -637,7 +638,7 @@ export class AnyAliasesCommand {
       const loaded = await import('typescript');
       typescript = loaded.default;
     } catch {
-      console.error('devz codemod: the "typescript" package is required to read your sources');
+      CliOutput.error('devz codemod: the "typescript" package is required to read your sources');
 
       return 1;
     }
@@ -654,7 +655,7 @@ export class AnyAliasesCommand {
       const dirty = isWrite ? CodemodFiles.dirty({ target }) : undefined;
 
       if (files.length === 0 && paths.length > 0) {
-        console.warn(
+        CliOutput.warn(
           `devz codemod: no source files under "${relative(root, target) || target}" (git ignores the path, or it holds none): nothing was read`,
         );
       }
@@ -671,12 +672,12 @@ export class AnyAliasesCommand {
 
         for (const item of result.manual) {
           manualCount += 1;
-          console.warn(`manual  ${shown}:${item.line}  ${item.reason}`);
+          CliOutput.warn(`manual  ${shown}:${item.line}  ${item.reason}`);
         }
 
         for (const item of result.local) {
           localCount += 1;
-          console.warn(
+          CliOutput.warn(
             `local  ${shown}:${item.line}  ${item.name} is not the IGNIS alias (declared here or imported from elsewhere): left alone`,
           );
         }
@@ -687,7 +688,7 @@ export class AnyAliasesCommand {
 
         if (dirty?.has(file)) {
           refusedCount += 1;
-          console.warn(
+          CliOutput.warn(
             `refused  ${shown}  has local changes (commit, stash or "git add" them, then run again)`,
           );
           continue;
@@ -695,7 +696,7 @@ export class AnyAliasesCommand {
 
         changedCount += 1;
         referenceCount += result.rewritten;
-        console.log(
+        CliOutput.log(
           `${isWrite ? 'changed' : 'would change'}  ${shown}  (${result.rewritten} reference(s))`,
         );
 
@@ -705,13 +706,13 @@ export class AnyAliasesCommand {
       }
     }
 
-    console.log(
+    CliOutput.log(
       `devz codemod any-aliases: ${changedCount} file(s) ${isWrite ? 'changed' : 'would change'}, ${referenceCount} reference(s) ${isWrite ? 'rewritten' : 'would be rewritten'}, ${manualCount} manual, ${localCount} local` +
         (refusedCount > 0 ? `, ${refusedCount} refused` : ''),
     );
 
     if (!isWrite && changedCount > 0) {
-      console.log(
+      CliOutput.log(
         `Nothing was written. Run again with ${AnyAliasesFlags.WRITE} to apply, then run your typecheck${isStrict ? ': a value an alias used to accept may need a type alias, a spread or a narrowing' : ''}.`,
       );
     }

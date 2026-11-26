@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { CodemodFiles } from './files';
+import { CliOutput } from '../../common/cli-output';
 
 const USAGE = `Usage: devz codemod binding-keys [paths...] [--write [--all] | --check] [--import-from <module>]
 
@@ -1024,7 +1025,7 @@ export class BindingKeysCommand {
     const { root, args } = opts;
 
     if (args.includes(BindingKeysFlags.HELP) || args.includes(BindingKeysFlags.HELP_SHORT)) {
-      console.log(USAGE);
+      CliOutput.log(USAGE);
 
       return 0;
     }
@@ -1051,13 +1052,13 @@ export class BindingKeysCommand {
     const unknown = flags.filter((flag) => !BindingKeysFlags.isValid(flag));
 
     if (hasImportFlag && (importFrom === undefined || importFrom.startsWith('-'))) {
-      console.error(`devz codemod: ${BindingKeysFlags.IMPORT_FROM} needs a module\n${USAGE}`);
+      CliOutput.error(`devz codemod: ${BindingKeysFlags.IMPORT_FROM} needs a module\n${USAGE}`);
 
       return USAGE_ERROR_CODE;
     }
 
     if (unknown.length > 0) {
-      console.error(
+      CliOutput.error(
         `devz codemod: unknown option ${unknown.map((flag) => `"${flag}"`).join(', ')}\n${USAGE}`,
       );
 
@@ -1068,7 +1069,7 @@ export class BindingKeysCommand {
     const isCheck = flags.includes(BindingKeysFlags.CHECK);
 
     if (isWrite && isCheck) {
-      console.error(
+      CliOutput.error(
         `devz codemod: ${BindingKeysFlags.WRITE} and ${BindingKeysFlags.CHECK} contradict each other\n${USAGE}`,
       );
 
@@ -1083,7 +1084,7 @@ export class BindingKeysCommand {
     });
 
     if (refusal) {
-      console.error(`${refusal}\n${USAGE}`);
+      CliOutput.error(`${refusal}\n${USAGE}`);
 
       return USAGE_ERROR_CODE;
     }
@@ -1094,7 +1095,7 @@ export class BindingKeysCommand {
       const loaded = await import('typescript');
       typescript = loaded.default;
     } catch {
-      console.error('devz codemod: the "typescript" package is required to read your sources');
+      CliOutput.error('devz codemod: the "typescript" package is required to read your sources');
 
       return 1;
     }
@@ -1151,7 +1152,7 @@ export class BindingKeysCommand {
       const dirty = isWrite ? CodemodFiles.dirty({ target }) : undefined;
 
       if (files.length === 0 && paths.length > 0) {
-        console.warn(
+        CliOutput.warn(
           `devz codemod: no source files under "${relative(root, target) || target}" (git ignores the path, or it holds none): nothing was read`,
         );
       }
@@ -1178,12 +1179,12 @@ export class BindingKeysCommand {
 
         for (const item of result.manual) {
           manualCount += 1;
-          console.warn(`manual  ${shown}:${item.line}  ${item.reason}`);
+          CliOutput.warn(`manual  ${shown}:${item.line}  ${item.reason}`);
         }
 
         for (const line of result.unnamed) {
           unnamedCount += 1;
-          console.warn(
+          CliOutput.warn(
             `type  ${shown}:${line}  BindingKeys.build<unknown>: name the type of the value bound under this key`,
           );
         }
@@ -1194,7 +1195,7 @@ export class BindingKeysCommand {
 
         if (dirty?.has(file)) {
           refusedCount += 1;
-          console.warn(
+          CliOutput.warn(
             `refused  ${shown}  has local changes (commit, stash or "git add" them, then run again)`,
           );
           continue;
@@ -1202,7 +1203,7 @@ export class BindingKeysCommand {
 
         changedCount += 1;
         rewrittenCount += result.rewritten;
-        console.log(
+        CliOutput.log(
           `${isWrite ? 'changed' : 'would change'}  ${shown}  (${result.rewritten} key(s))`,
         );
 
@@ -1212,13 +1213,13 @@ export class BindingKeysCommand {
       }
     }
 
-    console.log(
+    CliOutput.log(
       `devz codemod binding-keys: ${changedCount} file(s) ${isWrite ? 'changed' : 'would change'}, ${rewrittenCount} key(s) ${isWrite ? 'rewritten' : 'would be rewritten'}, ${unnamedCount} to type, ${manualCount} manual` +
         (refusedCount > 0 ? `, ${refusedCount} refused` : ''),
     );
 
     if (!isWrite && changedCount > 0) {
-      console.log(
+      CliOutput.log(
         `Nothing was written. Run again with ${BindingKeysFlags.WRITE} to apply, then name each "type" site and run your typecheck.`,
       );
     }

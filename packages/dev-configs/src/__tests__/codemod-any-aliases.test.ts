@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import ts from 'typescript';
 import { CodemodCommand } from '../cli/codemod';
 import { AnyAliases } from '../cli/codemod/any-aliases';
+import { CliOutput } from '../common/cli-output';
 
 const rewrite = (source: string, fileName = 'file.ts') =>
   AnyAliases.rewrite({ typescript: ts, fileName, source });
@@ -603,13 +604,13 @@ describe('devz codemod any-aliases: the command', () => {
     logs = [];
     warnings = [];
     errors = [];
-    spyOn(console, 'log').mockImplementation((...args) => {
+    spyOn(CliOutput, 'log').mockImplementation((...args) => {
       logs.push(args.join(' '));
     });
-    spyOn(console, 'warn').mockImplementation((...args) => {
+    spyOn(CliOutput, 'warn').mockImplementation((...args) => {
       warnings.push(args.join(' '));
     });
-    spyOn(console, 'error').mockImplementation((...args) => {
+    spyOn(CliOutput, 'error').mockImplementation((...args) => {
       errors.push(args.join(' '));
     });
   });

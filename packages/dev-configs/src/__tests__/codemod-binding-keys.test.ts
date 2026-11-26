@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import ts from 'typescript';
 import { CodemodCommand } from '../cli/codemod';
 import { BindingKeysCodemod } from '../cli/codemod/binding-keys';
+import { CliOutput } from '../common/cli-output';
 
 const CONTAINER_METHODS = `
   get<T>(opts: { key: string | { namespace: string; key: string }; isOptional?: boolean }): T;
@@ -749,9 +750,9 @@ describe('devz codemod binding-keys: the command', () => {
     mkdirSync(scratch, { recursive: true });
     root = mkdtempSync(join(scratch, 'binding-keys-'));
     execFileSync('git', ['init', '-q'], { cwd: root });
-    logs = spyOn(console, 'log').mockImplementation(() => {});
-    warns = spyOn(console, 'warn').mockImplementation(() => {});
-    errors = spyOn(console, 'error').mockImplementation(() => {});
+    logs = spyOn(CliOutput, 'log').mockImplementation(() => {});
+    warns = spyOn(CliOutput, 'warn').mockImplementation(() => {});
+    errors = spyOn(CliOutput, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {

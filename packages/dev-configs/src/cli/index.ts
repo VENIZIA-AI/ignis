@@ -3,6 +3,7 @@ import { CheckCommand } from './check';
 import { CleanCommand } from './clean';
 import { CodemodCommand } from './codemod';
 import { LintCommand } from './lint';
+import { CliOutput } from '../common/cli-output';
 
 const USAGE = `Usage: devz <command> [options]
 
@@ -25,7 +26,7 @@ const main = async (opts: { argv: string[] }): Promise<number> => {
   const [command, ...args] = opts.argv;
 
   if (command === undefined || command === '--help' || command === '-h') {
-    console.log(USAGE);
+    CliOutput.log(USAGE);
 
     return 0;
   }
@@ -46,7 +47,7 @@ const main = async (opts: { argv: string[] }): Promise<number> => {
     return CodemodCommand.run({ root: process.cwd(), args });
   }
 
-  console.error(`devz: unknown command "${command ?? ''}"\n${USAGE}`);
+  CliOutput.error(`devz: unknown command "${command ?? ''}"\n${USAGE}`);
 
   return 1;
 };
@@ -54,7 +55,7 @@ const main = async (opts: { argv: string[] }): Promise<number> => {
 main({ argv: process.argv.slice(2) }).then(
   (exitCode) => process.exit(exitCode),
   (error: unknown) => {
-    console.error(error);
+    CliOutput.error(error);
     process.exit(1);
   },
 );

@@ -219,3 +219,32 @@ describe('getDeepProperty', () => {
     );
   });
 });
+
+describe('PromiseUtility.voidExecution logging a rejection', () => {
+  /** A driver error carries the query it failed on: a log must not print the error's own fields. */
+  const script = (opts: {
+    logger: string;
+  }) => `import { PromiseUtility } from '@/utilities/promise.utility';
+    import { LogFormatUtility } from '@/modules/logger/formatting';
+    const deepSplat = {
+      for: () => ({
+        error: (message, ...args) => console.error(LogFormatUtility.formatMessage({ message, args })),
+      }),
+    };
+    const failure = Object.assign(new TypeError('boom'), { query: 'SELECT secret-token' });
+    PromiseUtility.voidExecution({ scope: 'Fire', logger: ${opts.logger}, execution: Promise.reject(failure) });`;
+
+  test.each([
+    ['without a logger', 'undefined'],
+    ['with a deep-splat logger', 'deepSplat'],
+  ])('%s: the message is printed, the fields of the error are not', (_name, logger) => {
+    const run = Bun.spawnSync(['bun', '-e', script({ logger })], {
+      cwd: `${import.meta.dir}/../../..`,
+    });
+    const written = run.stderr.toString();
+
+    expect(written).toContain('Unhandled error in fire-and-forget execution');
+    expect(written).toContain('boom');
+    expect(written).not.toContain('secret-token');
+  });
+});

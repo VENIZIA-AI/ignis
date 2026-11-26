@@ -7,6 +7,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, join, relative, resolve } from 'node:path';
 import { ModuleGraph } from './module-cycles';
+import { CliOutput } from '../common/cli-output';
 
 const SKIP = new Set(['node_modules', 'dist', '__tests__', 'generated', '.turbo']);
 const SOFT_LINE_MARK = 500;
@@ -29,7 +30,7 @@ interface IFileFacts {
 export class SplitReport {
   /** `distDir` is the built ESM folder inside a package (`dist/esm`, or `dist` where one build is published); `print` takes the report line by line. */
   static run(opts: { packageDir: string; distDir?: string; print?: (line: string) => void }): void {
-    const { distDir = 'dist', print = console.log } = opts;
+    const { distDir = 'dist', print = CliOutput.log } = opts;
     const src = join(opts.packageDir, 'src');
 
     if (!existsSync(src)) {

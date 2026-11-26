@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import ts from 'typescript';
 import { CodemodCommand } from '../cli/codemod';
 import { ClassRenameTable, ClassRenames } from '../cli/codemod/class-renames';
+import { CliOutput } from '../common/cli-output';
 
 const rewrite = (source: string, reverse = false) =>
   ClassRenames.rewrite({
@@ -213,8 +214,8 @@ describe('devz codemod class-renames: the command', () => {
       ],
       { cwd: directory },
     );
-    log = spyOn(console, 'log').mockImplementation(() => {});
-    warn = spyOn(console, 'warn').mockImplementation(() => {});
+    log = spyOn(CliOutput, 'log').mockImplementation(() => {});
+    warn = spyOn(CliOutput, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -275,7 +276,7 @@ describe('devz codemod class-renames: the command', () => {
   });
 
   test('--write with no path is refused', async () => {
-    const error = spyOn(console, 'error').mockImplementation(() => {});
+    const error = spyOn(CliOutput, 'error').mockImplementation(() => {});
 
     const result4 = await CodemodCommand.run({
       root: directory,

@@ -26,8 +26,9 @@ export class ServerLoggerStartup {
         return;
       }
 
-      console.warn(
-        `[ServerLoggerStartup] Winston could not be loaded, so the console stays the logger | cause: ${error instanceof Error ? error.message : String(error)}`,
+      LoggerFactory.getLogger([ServerLoggerStartup.name]).warn(
+        'Winston could not be loaded, so the console stays the logger | cause: %s',
+        error instanceof Error ? error.message : String(error),
       );
     }
   }

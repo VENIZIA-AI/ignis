@@ -6,6 +6,7 @@ import { ALL_MAPPINGS } from './mappings';
 import { LoggerScopeRewriter } from './logger-scope';
 import { NamespaceFunctionsReverse } from './reverse';
 import { NamespaceFunctions } from './rewriter';
+import { CliOutput } from '../../../common/cli-output';
 
 export * from './logger-scope';
 export * from './mapping';
@@ -86,7 +87,7 @@ export class NamespaceFunctionsCommand {
       args.includes(NamespaceFunctionsFlags.HELP) ||
       args.includes(NamespaceFunctionsFlags.HELP_SHORT)
     ) {
-      console.log(USAGE);
+      CliOutput.log(USAGE);
 
       return 0;
     }
@@ -97,7 +98,7 @@ export class NamespaceFunctionsCommand {
     const unknown = flags.filter((flag) => !NamespaceFunctionsFlags.isValid(flag));
 
     if (unknown.length > 0) {
-      console.error(
+      CliOutput.error(
         `devz codemod: unknown option ${unknown.map((flag) => `"${flag}"`).join(', ')}\n${USAGE}`,
       );
 
@@ -109,7 +110,7 @@ export class NamespaceFunctionsCommand {
     const isReverse = flags.includes(NamespaceFunctionsFlags.REVERSE);
 
     if (isWrite && isCheck) {
-      console.error(
+      CliOutput.error(
         `devz codemod: ${NamespaceFunctionsFlags.WRITE} and ${NamespaceFunctionsFlags.CHECK} contradict each other\n${USAGE}`,
       );
 
@@ -119,7 +120,7 @@ export class NamespaceFunctionsCommand {
     const problems = NamespaceMappings.validate({ mappings });
 
     if (problems.length > 0) {
-      console.error(
+      CliOutput.error(
         `devz codemod namespace-functions: the mapping table is broken:\n${problems.map((problem) => `  ${problem}`).join('\n')}`,
       );
 
@@ -127,7 +128,7 @@ export class NamespaceFunctionsCommand {
     }
 
     if (mappings.length === 0) {
-      console.log(
+      CliOutput.log(
         'devz codemod namespace-functions: the mapping table of this version is empty, so there is nothing to rewrite',
       );
 
@@ -140,7 +141,7 @@ export class NamespaceFunctionsCommand {
       const result2 = await import('typescript');
       typescript = result2.default;
     } catch {
-      console.error('devz codemod: the "typescript" package is required to read your sources');
+      CliOutput.error('devz codemod: the "typescript" package is required to read your sources');
 
       return 1;
     }
@@ -160,7 +161,7 @@ export class NamespaceFunctionsCommand {
       const dirty = isWrite ? CodemodFiles.dirty({ target }) : undefined;
 
       if (files.length === 0 && paths.length > 0) {
-        console.warn(
+        CliOutput.warn(
           `devz codemod: no source files under "${relative(root, target) || target}" (git ignores the path, or it holds none): nothing was read`,
         );
       }
@@ -193,7 +194,7 @@ export class NamespaceFunctionsCommand {
 
         for (const report of result.reports) {
           reportCount += 1;
-          console.warn(`${shown}:${report.line}:${report.column}  ${report.reason}`);
+          CliOutput.warn(`${shown}:${report.line}:${report.column}  ${report.reason}`);
         }
 
         if (!result.changed) {
@@ -202,7 +203,7 @@ export class NamespaceFunctionsCommand {
 
         if (dirty?.has(file)) {
           refusedCount += 1;
-          console.warn(
+          CliOutput.warn(
             `refused  ${shown}  has local changes (commit, stash or "git add" them, then run again)`,
           );
           continue;
@@ -210,7 +211,7 @@ export class NamespaceFunctionsCommand {
 
         changedCount += 1;
         callCount += result.rewritten;
-        console.log(
+        CliOutput.log(
           `${isWrite ? 'changed' : 'would change'}  ${shown}  (${result.rewritten} call(s))`,
         );
 
@@ -220,13 +221,13 @@ export class NamespaceFunctionsCommand {
       }
     }
 
-    console.log(
+    CliOutput.log(
       `devz codemod namespace-functions: ${changedCount} file(s) ${isWrite ? 'changed' : 'would change'}, ${callCount} call(s) ${isWrite ? 'rewritten' : 'would be rewritten'}, ${reportCount} left untouched` +
         (refusedCount > 0 ? `, ${refusedCount} refused` : ''),
     );
 
     if (!isWrite && changedCount > 0) {
-      console.log(
+      CliOutput.log(
         `Nothing was written. Run again with ${NamespaceFunctionsFlags.WRITE} to apply, then run your typecheck and formatter.`,
       );
     }
