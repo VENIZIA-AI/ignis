@@ -19,7 +19,7 @@ const isInTry = (node: unknown): boolean => {
 };
 
 /**
- * `venizia/no-return-await`. A function returns the promise (`return f()`), never `return await f()`. Where the
+ * `@venizia/no-return-await`. A function returns the promise (`return f()`), never `return await f()`. Where the
  * `await` matters (inside `try`, `catch` or `finally`) it is written on its own line:
  * `const result = await f(); return result;`. An arrow whose body is an `await` is the same: `() => f()`.
  */

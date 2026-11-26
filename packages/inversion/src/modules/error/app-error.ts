@@ -133,7 +133,7 @@ export class ApplicationError extends Error {
 
     try {
       return Reflect.get(value, key);
-      // eslint-disable-next-line venizia/no-silent-catch -- the contract is "never throws": a throwing getter or Proxy trap reads as absent
+      // eslint-disable-next-line @venizia/no-silent-catch -- the contract is "never throws": a throwing getter or Proxy trap reads as absent
     } catch {
       return undefined;
     }
@@ -216,7 +216,7 @@ export class ApplicationError extends Error {
       if (error instanceof ApplicationError || isApplicationError(error)) {
         return error;
       }
-      // eslint-disable-next-line venizia/no-silent-catch -- a Proxy or hostile getter threw while the shape was checked: it is foreign, so it is wrapped below
+      // eslint-disable-next-line @venizia/no-silent-catch -- a Proxy or hostile getter threw while the shape was checked: it is foreign, so it is wrapped below
     } catch {
       // Falls through to the wrap.
     }

@@ -4,7 +4,7 @@ import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 import { ImportSupport } from './import-support';
 
 /**
- * `venizia/prefer-tnullable`. `X | null | undefined` is `TNullable<X>`, the framework's own name for it
+ * `@venizia/prefer-tnullable`. `X | null | undefined` is `TNullable<X>`, the framework's own name for it
  * (`@venizia/ignis-helpers/common`). A union with only `null` or only `undefined` is not reported: those say
  * something different.
  *

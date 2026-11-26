@@ -76,7 +76,7 @@ Every lint preset (backend, browser and React) lives here, and ARDOR consumes th
 
 ## House rules
 
-`houseEslintPlugin` (namespace `venizia`) carries what oxlint cannot express. One class per rule in `linters/house/`, each with `NAME`, `RULE` and `build()`.
+`houseEslintPlugin` (namespace `@venizia`) carries what oxlint cannot express. One class per rule in `linters/house/`, each with `NAME`, `RULE` and `build()`.
 
 | Rule | In | Notes |
 |---|---|---|
@@ -86,7 +86,7 @@ Every lint preset (backend, browser and React) lives here, and ARDOR consumes th
 | `prefer-promise-sleep` | both; off in tests | the exact `new Promise(r => setTimeout(r, n))` shape is `PromiseUtility.sleep({ ms: n })`; fixer adds the import; option `source` |
 | `no-shadow-framework-type` | both; off in tests | a type alias or interface named like a type exported by a `@venizia/*` dependency (names read from the installed `.d.ts`, memoized per package); message only; options `allow`, `minLength` (4); the package's own declarations are skipped. Kernel allows its `TInjectOptions` wrapper |
 | `prefer-framework-api` | `reactHouseConfigs` only (all source, tests exempt) | a browser API ardor-react wraps (matchMedia, innerWidth/innerHeight, window resize listener, ResizeObserver, IntersectionObserver, navigator.onLine, online/offline, visibilityState, visibilitychange, beforeunload, clipboard.writeText, confirm) names its hook; rows are `BrowserApiPatterns.TABLE`; option `ignore` (ids); a name the file binds itself is skipped; reported only in a component (PascalCase + JSX) or a hook (`useX`), reads not inside an event handler, subscriptions even there; listeners only on window/document/self/globalThis |
-| `no-parent-import` | no preset; a project turns it on, `warn` | `../` import; fixer writes `#src/...` only when the nearest `package.json` maps `#src/*` and the target is inside that folder. Enable: `{ files: ['**/*.{ts,tsx,mts,cts}'], rules: { 'venizia/no-parent-import': 'warn' } }` |
+| `no-parent-import` | no preset; a project turns it on, `warn` | `../` import; fixer writes `#src/...` only when the nearest `package.json` maps `#src/*` and the target is inside that folder. Enable: `{ files: ['**/*.{ts,tsx,mts,cts}'], rules: { '@venizia/no-parent-import': 'warn' } }` |
 | `no-leaked-render` | `reactHouseConfigs` only, `.jsx`/`.tsx` | `cond && <X />` draws `0`; fixer writes `cond ? <X /> : null` |
 | `const-class-values` | both, `warn` | V-C-08: a string-literal union in an exported declaration (alias, interface member, generic constraint, parameter or return type); skips `Pick`/`Omit`/`Extract`/`Exclude`/`Record` arguments and mapped-type keys; off in tests. `namePattern` narrows it to exported aliases with a matching name |
 | `@typescript-eslint/consistent-type-assertions` | both, `warn`, `assertionStyle: never` | V-C-10: `as X` warns, `as const` and `satisfies` do not; off in tests. These two warn only, so `make lint` (oxlint `--deny-warnings` is the oxlint side) still passes |
@@ -133,7 +133,7 @@ oxlint resolves `ignorePatterns` against the config file's folder and rejects `.
 
 ## ESLint - naming convention only
 
-oxlint has no port of `@typescript-eslint/naming-convention`, so ESLint stays for that one rule. `namingConventionConfigs` (a `Linter.Config[]`) is what each project's `.configs/lints/eslint.config.mjs` exports. The legacy `eslintConfigs` still works and is owned here: the legacy rule set (`OFF_RULES`, `STRICT_RULES` in `linters/eslint.ts`) on `@eslint/js`, typescript-eslint recommended, plus the house rule `venizia/no-unbraced-case`, the ESLint twin of oxlint's `unicorn/switch-case-braces` (`SwitchCaseBracesRule`, mode `always`); it has no `n` or `unicorn` plugin, so `unicorn/prefer-node-protocol` runs in `oxlintConfigs` only. `house-case-braces.test.ts` pins `curly: 'all'` and the switch-case check in both presets. It no longer depends on `@minimaltech/eslint-node`; the port resolves to the same config for `.ts`, `.tsx`, `.js`, `.mjs` and `.cjs` files (488 / 485 rules, verified deep-equal with `calculateConfigForFile`).
+oxlint has no port of `@typescript-eslint/naming-convention`, so ESLint stays for that one rule. `namingConventionConfigs` (a `Linter.Config[]`) is what each project's `.configs/lints/eslint.config.mjs` exports. The legacy `eslintConfigs` still works and is owned here: the legacy rule set (`OFF_RULES`, `STRICT_RULES` in `linters/eslint.ts`) on `@eslint/js`, typescript-eslint recommended, plus the house rule `@venizia/no-unbraced-case`, the ESLint twin of oxlint's `unicorn/switch-case-braces` (`SwitchCaseBracesRule`, mode `always`); it has no `n` or `unicorn` plugin, so `unicorn/prefer-node-protocol` runs in `oxlintConfigs` only. `house-case-braces.test.ts` pins `curly: 'all'` and the switch-case check in both presets. It no longer depends on `@minimaltech/eslint-node`; the port resolves to the same config for `.ts`, `.tsx`, `.js`, `.mjs` and `.cjs` files (488 / 485 rules, verified deep-equal with `calculateConfigForFile`).
 
 Notable rules in the oxlint port: `@typescript-eslint/no-explicit-any` is deliberately off (pragmatic, matches the framework's general stance against fighting the type checker at the boundary), while `curly` and `unicorn/switch-case-braces` both require braces on every control structure. `ban-ts-comment` and `no-namespace` are `error`.
 

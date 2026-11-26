@@ -4,5 +4,5 @@ import { houseConfigs } from '@venizia/dev-configs/linters';
 export default [
   ...houseConfigs,
   // TNullable lives in this package, so it is imported from its own source.
-  { rules: { 'venizia/prefer-tnullable': ['error', { source: '@/common/types' }] } },
+  { rules: { '@venizia/prefer-tnullable': ['error', { source: '@/common/types' }] } },
 ];

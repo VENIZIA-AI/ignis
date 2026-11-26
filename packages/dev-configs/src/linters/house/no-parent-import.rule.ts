@@ -15,14 +15,14 @@ interface IImportMap {
 }
 
 /**
- * `venizia/no-parent-import`. An import that climbs out of its folder (`../x`) is written from the package's import map
+ * `@venizia/no-parent-import`. An import that climbs out of its folder (`../x`) is written from the package's import map
  * instead (`#src/x`): it keeps its meaning when the file moves, and reads the same from every depth.
  *
  * The fix is made only when the nearest `package.json` maps `#src/*` to a folder and the import lands inside that folder;
  * every other finding is reported and left alone. A same-folder `./x` is never reported.
  *
  * No preset turns it on. A project that wants it adds, after the preset:
- * `{ files: ['**\/*.{ts,tsx,mts,cts}'], rules: { 'venizia/no-parent-import': 'warn' } }`.
+ * `{ files: ['**\/*.{ts,tsx,mts,cts}'], rules: { '@venizia/no-parent-import': 'warn' } }`.
  */
 export class NoParentImportRule {
   static readonly NAME = `${HOUSE_PLUGIN_NAMESPACE}/no-parent-import`;
@@ -36,7 +36,7 @@ export class NoParentImportRule {
   private static readManifest(opts: { file: string }): unknown {
     try {
       return JSON.parse(readFileSync(opts.file, 'utf8'));
-      // eslint-disable-next-line venizia/no-silent-catch -- a package.json that does not parse only costs the autofix
+      // eslint-disable-next-line @venizia/no-silent-catch -- a package.json that does not parse only costs the autofix
     } catch {
       return undefined;
     }

@@ -133,7 +133,7 @@ export class DiskHelper extends BaseStorageHelper {
       const result = await fsp.lstat(opts.target);
 
       return result;
-      // eslint-disable-next-line venizia/no-silent-catch -- a missing or unreadable entry is the answer here: the containment walk goes on to its parent
+      // eslint-disable-next-line @venizia/no-silent-catch -- a missing or unreadable entry is the answer here: the containment walk goes on to its parent
     } catch {
       return null;
     }

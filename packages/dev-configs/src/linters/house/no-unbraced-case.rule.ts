@@ -3,7 +3,7 @@ import type { TRuleSeverity } from '../rules/common';
 import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 
 /**
- * `venizia/no-unbraced-case`: the statements of a `case` or `default` sit in one block, `case 'a': { ... }`.
+ * `@venizia/no-unbraced-case`: the statements of a `case` or `default` sit in one block, `case 'a': { ... }`.
  * It is the ESLint twin of oxlint's `unicorn/switch-case-braces` (`SwitchCaseBracesRule`, mode `always`).
  * Stacked labels with no statements stay as written. The fix wraps the statements in `{ }`.
  */

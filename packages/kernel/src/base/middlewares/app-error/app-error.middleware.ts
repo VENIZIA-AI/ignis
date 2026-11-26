@@ -80,7 +80,7 @@ const renderValue = (opts: { value: unknown }): string => {
       );
 
       return rendered ?? String(value);
-      // eslint-disable-next-line venizia/no-silent-catch -- the marker returned below is the report; the only thing lost is the unrenderable value's text in the log line
+      // eslint-disable-next-line @venizia/no-silent-catch -- the marker returned below is the report; the only thing lost is the unrenderable value's text in the log line
     } catch {
       // Not a swallowed failure: this marker IS the report, and it lands in the log line the caller
       // is building.
@@ -465,7 +465,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
       });
 
       return text === undefined ? undefined : JSON.parse(text);
-      // eslint-disable-next-line venizia/no-silent-catch -- the marker returned below is the report: the response carries it where the value would have been
+      // eslint-disable-next-line @venizia/no-silent-catch -- the marker returned below is the report: the response carries it where the value would have been
     } catch {
       return '[unrenderable]';
     }

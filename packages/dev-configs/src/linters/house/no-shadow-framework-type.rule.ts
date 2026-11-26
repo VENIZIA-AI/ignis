@@ -6,7 +6,7 @@ import { FrameworkExports } from './framework-exports';
 import { ImportSupport } from './import-support';
 
 /**
- * `venizia/no-shadow-framework-type`. A type alias or interface written in your project under the name a `@venizia/*`
+ * `@venizia/no-shadow-framework-type`. A type alias or interface written in your project under the name a `@venizia/*`
  * package already exports (`ValueOrPromise`, `TNullable`, `TConstValue`) is a copy of the framework's: import it.
  *
  * The names come from the installed packages' `.d.ts` files (see `FrameworkExports`), for the packages your nearest

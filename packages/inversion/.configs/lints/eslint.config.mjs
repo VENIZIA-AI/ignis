@@ -4,5 +4,5 @@ import { houseConfigs } from '@venizia/dev-configs/linters';
 export default [
   ...houseConfigs,
   // TNullable is declared in this package: it is imported from its own source, so the autofix never writes an import into helpers.
-  { rules: { 'venizia/prefer-tnullable': ['error', { source: '@/common/types' }] } },
+  { rules: { '@venizia/prefer-tnullable': ['error', { source: '@/common/types' }] } },
 ];

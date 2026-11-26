@@ -46,7 +46,7 @@ export class FrameworkExports {
   private static readText(opts: { file: string }): string | undefined {
     try {
       return readFileSync(opts.file, 'utf8');
-      // eslint-disable-next-line venizia/no-silent-catch -- an unreadable file only means fewer names
+      // eslint-disable-next-line @venizia/no-silent-catch -- an unreadable file only means fewer names
     } catch {
       return undefined;
     }
@@ -62,7 +62,7 @@ export class FrameworkExports {
 
     try {
       return JSON.parse(text);
-      // eslint-disable-next-line venizia/no-silent-catch -- a package.json that does not parse only means fewer names
+      // eslint-disable-next-line @venizia/no-silent-catch -- a package.json that does not parse only means fewer names
     } catch {
       return undefined;
     }
@@ -99,7 +99,7 @@ export class FrameworkExports {
 
           return loaded;
         }
-        // eslint-disable-next-line venizia/no-silent-catch -- not installed at this start: the next one is tried
+        // eslint-disable-next-line @venizia/no-silent-catch -- not installed at this start: the next one is tried
       } catch {
         continue;
       }

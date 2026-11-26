@@ -13,7 +13,7 @@ interface IFunctionFrame {
 }
 
 /**
- * `venizia/effect-cleanup-consistency`. The callback of `useEffect`, `useLayoutEffect` and `useInsertionEffect`
+ * `@venizia/effect-cleanup-consistency`. The callback of `useEffect`, `useLayoutEffect` and `useInsertionEffect`
  * returns a cleanup on every path or on none. An early `return;` beside a later `return () => {}` leaves React
  * with a cleanup on some runs only; the early exit returns a no-op instead. A bare `return;` and falling off the
  * end both mean "no value". It uses ESLint's code path analysis the way `consistent-return` does, so an

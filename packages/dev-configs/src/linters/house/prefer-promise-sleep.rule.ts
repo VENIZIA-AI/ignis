@@ -4,7 +4,7 @@ import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 import { ImportSupport } from './import-support';
 
 /**
- * `venizia/prefer-promise-sleep`. A sleep written by hand, `new Promise((resolve) => setTimeout(resolve, ms))`, is
+ * `@venizia/prefer-promise-sleep`. A sleep written by hand, `new Promise((resolve) => setTimeout(resolve, ms))`, is
  * `PromiseUtility.sleep({ ms })` (`@venizia/ignis-helpers/core`). Only that exact shape is reported: a callback that
  * does anything else is not a sleep.
  *

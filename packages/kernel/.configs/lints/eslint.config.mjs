@@ -6,6 +6,6 @@ export default [
   // `TInjectOptions` here is inversion's options without `registry` (the kernel supplies it): a wrapper, not a copy.
   {
     ignores: ['**/__tests__/**'],
-    rules: { 'venizia/no-shadow-framework-type': ['error', { allow: ['TInjectOptions'] }] },
+    rules: { '@venizia/no-shadow-framework-type': ['error', { allow: ['TInjectOptions'] }] },
   },
 ];

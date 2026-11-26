@@ -166,19 +166,19 @@ booleans. `BrowserOxlintConfigs.create()` and `ReactOxlintConfigs.create()` take
 `houseConfigs` is `namingConventionConfigs` plus the house rules oxlint cannot express, the four async style rules
 and the blank-line padding rules (`paddingConfigs`, below); `reactHouseConfigs` is the same over
 `reactNamingConventionConfigs`, plus the React rules. The house rules ship as the ESLint plugin
-`houseEslintPlugin`, registered as `venizia`:
+`houseEslintPlugin`, registered as `@venizia`:
 
 | Class | Rule | Default | What it enforces |
 | :--- | :--- | :--- | :--- |
-| `MaxParamsOwnRule` | `venizia/max-params-own` | `build({ max: 5 })` | A function we write takes at most `max` positional parameters. Not counted: an inline callback passed to a call or a JSX prop, a signature a declared type fixes, a constructor whose parameters are all `@inject`. A hook callback counts. |
-| `NoNewErrorRule` | `venizia/no-new-error` | `error` | Throw through `getError` (or an `ApplicationError`), never `new Error(...)` / `Error(...)`. Off in tests. |
-| `NoLeakedRenderRule` | `venizia/no-leaked-render` | `error`, in `reactHouseConfigs` only | A JSX child is drawn with `cond ? <X /> : null`, never `cond && <X />`, which draws `0` when `cond` is `0`. `--fix` rewrites it. `disabled={a && b}` is a value, not a child, and passes. |
-| `ConstClassValuesRule` | `venizia/const-class-values` | `warn` in both presets; `build({ severity, namePattern })` | V-C-08. A union of string literals in an exported declaration (a type alias, an interface member, a generic constraint, a parameter or return type) is a const class plus `TConstValue<typeof X>`. Not counted: `Pick`, `Omit`, `Extract`, `Exclude`, `Record` arguments and mapped-type keys, and a union with a non-string member. `namePattern` narrows it to exported type aliases whose name matches. Off in tests. |
+| `MaxParamsOwnRule` | `@venizia/max-params-own` | `build({ max: 5 })` | A function we write takes at most `max` positional parameters. Not counted: an inline callback passed to a call or a JSX prop, a signature a declared type fixes, a constructor whose parameters are all `@inject`. A hook callback counts. |
+| `NoNewErrorRule` | `@venizia/no-new-error` | `error` | Throw through `getError` (or an `ApplicationError`), never `new Error(...)` / `Error(...)`. Off in tests. |
+| `NoLeakedRenderRule` | `@venizia/no-leaked-render` | `error`, in `reactHouseConfigs` only | A JSX child is drawn with `cond ? <X /> : null`, never `cond && <X />`, which draws `0` when `cond` is `0`. `--fix` rewrites it. `disabled={a && b}` is a value, not a child, and passes. |
+| `ConstClassValuesRule` | `@venizia/const-class-values` | `warn` in both presets; `build({ severity, namePattern })` | V-C-08. A union of string literals in an exported declaration (a type alias, an interface member, a generic constraint, a parameter or return type) is a const class plus `TConstValue<typeof X>`. Not counted: `Pick`, `Omit`, `Extract`, `Exclude`, `Record` arguments and mapped-type keys, and a union with a non-string member. `namePattern` narrows it to exported type aliases whose name matches. Off in tests. |
 | `@typescript-eslint/consistent-type-assertions` | `assertionStyle: never` | `warn` in both presets | V-C-10. `as X`, `as any` and `as unknown as X` warn; `as const` and `satisfies` do not. Off in tests. |
 
 `const-class-values` and the cast rule only warn, so adopting them never fails a lint. Raise one to an error
 with `[ConstClassValuesRule.NAME]: ConstClassValuesRule.build({ severity: 'error' })`. The 5-parameter
-limit (V-C-02) is `venizia/max-params-own`, an error.
+limit (V-C-02) is `@venizia/max-params-own`, an error.
 
 #### Blank-line padding
 
@@ -266,7 +266,7 @@ conventions, `curly`, the padding rules, plus these IGNIS rules (the node-protoc
 | `@typescript-eslint/no-explicit-any` | `off` |
 | `@typescript-eslint/ban-ts-comment` | `error` - `@ts-expect-error` with a description is still allowed |
 | `@typescript-eslint/no-namespace` | `error` |
-| `venizia/no-unbraced-case` | `error` - the ESLint twin of `unicorn/switch-case-braces` (`always`); the fix wraps the statements in `{ }` |
+| `@venizia/no-unbraced-case` | `error` - the ESLint twin of `unicorn/switch-case-braces` (`always`); the fix wraps the statements in `{ }` |
 
 ### BrowserOxlintConfigs
 
@@ -311,9 +311,9 @@ decision (`click-events-have-key-events`, `no-static-element-interactions`,
 
 | Rule | What it enforces |
 | :--- | :--- |
-| `venizia/no-leaked-render` | See the table above. On JSX files |
-| `venizia/no-async-hook-callback` | A hook never gets an async function. On all source files |
-| `venizia/effect-cleanup-consistency` | An effect callback returns a cleanup on every path or on none. On all source files |
+| `@venizia/no-leaked-render` | See the table above. On JSX files |
+| `@venizia/no-async-hook-callback` | A hook never gets an async function. On all source files |
+| `@venizia/effect-cleanup-consistency` | An effect callback returns a cleanup on every path or on none. On all source files |
 
 The presets start strict. An application that wants less overrides the rule after the preset:
 

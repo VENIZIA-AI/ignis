@@ -99,7 +99,7 @@ TypeScript API (`strict`, `noImplicitAny`) for the annotated and the bare shapes
 
 ## No silent catch
 
-`venizia/no-silent-catch` makes V-C-06 a lint. Reported: a `.catch(h)` whose handler ignores its parameter and
+`@venizia/no-silent-catch` makes V-C-06 a lint. Reported: a `.catch(h)` whose handler ignores its parameter and
 is empty or gives back a constant (`() => null`, `() => undefined`, `() => ({})`, `() => []`, `() => {}`,
 `function () {}`), and a `catch` block that is empty, holds only a comment, or only returns or assigns a
 constant without reading the error. Handled: any call, a `throw`, a read of the error or of another variable.

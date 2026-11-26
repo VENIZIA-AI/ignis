@@ -22,7 +22,7 @@ export class PostgresErrors {
   private static read(opts: { target: object; key: string }): unknown {
     try {
       return Reflect.get(opts.target, opts.key);
-      // eslint-disable-next-line venizia/no-silent-catch -- a hostile getter or Proxy is the input this helper exists to survive; the caller treats the property as absent
+      // eslint-disable-next-line @venizia/no-silent-catch -- a hostile getter or Proxy is the input this helper exists to survive; the caller treats the property as absent
     } catch {
       return undefined;
     }

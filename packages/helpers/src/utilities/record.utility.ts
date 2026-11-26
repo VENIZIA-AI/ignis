@@ -27,7 +27,7 @@ export class RecordUtility {
       const prototype = Object.getPrototypeOf(value);
 
       return prototype === null || prototype === Object.prototype;
-      // eslint-disable-next-line venizia/no-silent-catch -- a revoked or hostile Proxy throws from the trap; `false` is the answer of a guard, and the cause is of no use to the caller
+      // eslint-disable-next-line @venizia/no-silent-catch -- a revoked or hostile Proxy throws from the trap; `false` is the answer of a guard, and the cause is of no use to the caller
     } catch {
       return false;
     }

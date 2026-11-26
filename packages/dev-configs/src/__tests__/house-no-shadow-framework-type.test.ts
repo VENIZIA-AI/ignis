@@ -117,7 +117,7 @@ const lint = (opts: {
     {
       files: ['**/*.ts'],
       languageOptions: { parser: tseslint.parser as Linter.Parser },
-      plugins: { venizia: houseEslintPlugin },
+      plugins: { '@venizia': houseEslintPlugin },
       rules: { [NAME]: opts.options ?? ['error'] },
     },
   ];
@@ -190,7 +190,7 @@ describe('FrameworkExports', () => {
   });
 });
 
-describe('venizia/no-shadow-framework-type', () => {
+describe('@venizia/no-shadow-framework-type', () => {
   test('a type alias or interface with a framework name is reported with the module to import it from', () => {
     const project = buildProject();
     const findings = lint({

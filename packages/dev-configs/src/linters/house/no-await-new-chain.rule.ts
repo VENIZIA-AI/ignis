@@ -15,7 +15,7 @@ const TRANSPARENT_TYPES = new Set([
 const EXEMPT_CLASSES = new Set(['Promise']);
 
 /**
- * `venizia/no-await-new-chain`. A method is never called on a fresh instance inside an `await`:
+ * `@venizia/no-await-new-chain`. A method is never called on a fresh instance inside an `await`:
  * `await new Runner({ ... }).run(...)` and `const text = await new Response(body).text()` declare the instance first,
  * then await on its own line (`const runner = new Runner({ ... }); await runner.run(...);`). A builder chain
  * (`await new SignJWT(claims).setIssuer(iss).sign(key)`) declares the builder, then awaits its last call.

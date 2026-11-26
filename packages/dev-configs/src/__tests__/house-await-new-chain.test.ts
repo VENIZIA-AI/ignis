@@ -4,7 +4,7 @@ import { houseConfigs } from '../linters/house';
 import { PADDING_OFF } from './padding-off';
 
 const CONFIGS = [...houseConfigs, PADDING_OFF];
-const RULE = 'venizia/no-await-new-chain';
+const RULE = '@venizia/no-await-new-chain';
 
 /** The findings of the rule on `code`, as if it lived in `filename`. */
 const findings = (code: string, filename = 'src/subject.ts') =>
@@ -17,7 +17,7 @@ const fixed = (code: string) =>
 /** A function body around a statement, so the statement is where real code has it. */
 const inFunction = (statement: string) => `async function run() {\n  ${statement}\n}\n`;
 
-describe('venizia/no-await-new-chain: what it reports', () => {
+describe('@venizia/no-await-new-chain: what it reports', () => {
   test.each([
     ['an awaited method of a new instance', 'await new Runner({ a: 1 }).run({ b: 2 });'],
     ['an initializer', 'const text = await new Response(body).text();'],
@@ -61,7 +61,7 @@ describe('venizia/no-await-new-chain: what it reports', () => {
   });
 });
 
-describe('venizia/no-await-new-chain: what it leaves alone', () => {
+describe('@venizia/no-await-new-chain: what it leaves alone', () => {
   test.each([
     ['a new Promise', 'await new Promise((resolve) => setTimeout(resolve, 1));'],
     ['a new Promise with a type argument', 'await new Promise<void>((resolve) => resolve());'],
@@ -86,7 +86,7 @@ describe('venizia/no-await-new-chain: what it leaves alone', () => {
   });
 });
 
-describe('venizia/no-await-new-chain: the fix', () => {
+describe('@venizia/no-await-new-chain: the fix', () => {
   test.each([
     [
       'a statement',
@@ -168,7 +168,7 @@ describe('venizia/no-await-new-chain: the fix', () => {
   });
 });
 
-describe('venizia/no-await-new-chain: where it is configured', () => {
+describe('@venizia/no-await-new-chain: where it is configured', () => {
   test('the house preset sets it to error', () => {
     const messages = new Linter().verify(inFunction('await new Runner().run();'), CONFIGS, {
       filename: 'src/subject.ts',

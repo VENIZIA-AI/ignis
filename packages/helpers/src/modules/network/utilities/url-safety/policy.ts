@@ -308,7 +308,7 @@ export class UrlPolicy {
 
     try {
       parsed = new URL(entry);
-      // eslint-disable-next-line venizia/no-silent-catch -- an entry the parser refuses is not an origin: the caller refuses it
+      // eslint-disable-next-line @venizia/no-silent-catch -- an entry the parser refuses is not an origin: the caller refuses it
     } catch {
       return false;
     }

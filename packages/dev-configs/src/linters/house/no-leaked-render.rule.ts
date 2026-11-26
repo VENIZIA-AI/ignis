@@ -11,7 +11,7 @@ const LEAKED_RENDER_SELECTOR = [AstNodeTypes.JSX_ELEMENT, AstNodeTypes.JSX_FRAGM
   .join(', ');
 
 /**
- * `venizia/no-leaked-render`. `{count && <X />}` draws `0` when `count` is `0`; draw nothing with
+ * `@venizia/no-leaked-render`. `{count && <X />}` draws `0` when `count` is `0`; draw nothing with
  * `cond ? <X /> : null`. Only a child of JSX is checked. The fix rewrites it to the ternary and keeps
  * any comment between `&&` and the drawn part.
  */

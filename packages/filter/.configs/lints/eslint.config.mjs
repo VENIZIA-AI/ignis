@@ -4,5 +4,5 @@ import { houseConfigs } from '@venizia/dev-configs/linters';
 export default [
   ...houseConfigs,
   // This package has no TNullable and does not depend on helpers: the rule reports and does not fix.
-  { rules: { 'venizia/prefer-tnullable': ['error', { source: null }] } },
+  { rules: { '@venizia/prefer-tnullable': ['error', { source: null }] } },
 ];

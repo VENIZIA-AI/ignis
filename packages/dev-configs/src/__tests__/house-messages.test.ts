@@ -12,22 +12,22 @@ describe('house messages write the framework import line', () => {
 
   test.each([
     [
-      'venizia/no-new-error',
+      '@venizia/no-new-error',
       `export const fail = () => new Error('x');`,
       `import { getError } from '@venizia/ignis-helpers/core';`,
     ],
     [
-      'venizia/const-class-values',
+      '@venizia/const-class-values',
       `export type TMode = 'read' | 'write';`,
       `import { ConstClass, type TConstValue } from '@venizia/ignis-helpers/common';`,
     ],
     [
-      'venizia/no-silent-catch',
+      '@venizia/no-silent-catch',
       `export const f = (g: () => void) => { try { g(); } catch {} };`,
       `import { LoggerFactory } from '@venizia/ignis-helpers/core';`,
     ],
     [
-      'venizia/no-silent-catch',
+      '@venizia/no-silent-catch',
       `export const f = (p: Promise<void>) => p.catch(() => null);`,
       `import { LoggerFactory } from '@venizia/ignis-helpers/core';`,
     ],
@@ -37,7 +37,7 @@ describe('house messages write the framework import line', () => {
 
   test('no-silent-catch does not offer an eslint-disable', () => {
     const message = messageOf({
-      ruleId: 'venizia/no-silent-catch',
+      ruleId: '@venizia/no-silent-catch',
       code: `export const f = (g: () => void) => { try { g(); } catch {} };`,
     });
 

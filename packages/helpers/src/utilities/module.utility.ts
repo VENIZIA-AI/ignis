@@ -89,7 +89,7 @@ export class ModuleUtility {
       const file = Bun.resolveSync(opts.module, this.getProjectRoot());
 
       return path.isAbsolute(file) ? file : undefined;
-      // eslint-disable-next-line venizia/no-silent-catch -- documented contract: an unresolvable module is `undefined` and the caller falls back to a plain `import()`
+      // eslint-disable-next-line @venizia/no-silent-catch -- documented contract: an unresolvable module is `undefined` and the caller falls back to a plain `import()`
     } catch {
       return undefined;
     }

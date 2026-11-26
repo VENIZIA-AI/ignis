@@ -19,7 +19,7 @@ const lint = (opts: { code: string; options?: Linter.RuleEntry; filename?: strin
     {
       files: ['**/*.ts', '**/*.tsx'],
       languageOptions: { parser: tseslint.parser as Linter.Parser },
-      plugins: { venizia: houseEslintPlugin },
+      plugins: { '@venizia': houseEslintPlugin },
       rules: { [NAME]: opts.options ?? ['error'] },
     },
   ];
@@ -27,7 +27,7 @@ const lint = (opts: { code: string; options?: Linter.RuleEntry; filename?: strin
   return new Linter().verify(opts.code, config, { filename: opts.filename ?? 'src/subject.ts' });
 };
 
-describe('venizia/prefer-framework-api', () => {
+describe('@venizia/prefer-framework-api', () => {
   test.each([
     ['window.matchMedia', `const q = window.matchMedia('(min-width: 600px)');`, 'useMediaQuery'],
     ['a bare matchMedia', `const q = matchMedia('(min-width: 600px)');`, 'useBreakpoint'],

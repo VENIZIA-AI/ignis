@@ -21,7 +21,7 @@ export interface IBrowserApiPattern {
 }
 
 /**
- * The browser APIs ARDOR (`@venizia/ardor-react`) wraps in a hook, one row each. `venizia/prefer-framework-api` reads this
+ * The browser APIs ARDOR (`@venizia/ardor-react`) wraps in a hook, one row each. `@venizia/prefer-framework-api` reads this
  * table, so adding a pattern is adding a row here. Only forms a rule can tell apart reliably are rows: a hand-rolled
  * debounce or a draft-saving timer is not.
  */

@@ -109,7 +109,7 @@ export class ArtifactScanCache {
 
     try {
       stored = JSON.parse(readFileSync(file, 'utf8'));
-      // eslint-disable-next-line venizia/no-silent-catch -- a corrupt cache is a miss; the cause is not reported and the only cost is one fresh scan
+      // eslint-disable-next-line @venizia/no-silent-catch -- a corrupt cache is a miss; the cause is not reported and the only cost is one fresh scan
     } catch {
       // A corrupt cache is a miss: the caller scans and rewrites it.
       return undefined;
@@ -142,7 +142,7 @@ export class ArtifactScanCache {
       renameSync(temporary, file);
 
       return true;
-      // eslint-disable-next-line venizia/no-silent-catch -- the `false` returned below is the report; the cause of the failed write is lost and the next start pays one scan
+      // eslint-disable-next-line @venizia/no-silent-catch -- the `false` returned below is the report; the cause of the failed write is lost and the next start pays one scan
     } catch {
       // Caching is an optimisation; reporting `false` lets the caller go on with the scan it already has.
       return false;

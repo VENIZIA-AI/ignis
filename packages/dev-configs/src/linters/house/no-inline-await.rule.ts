@@ -4,7 +4,7 @@ import { AwaitSupport } from './await-support';
 import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 
 /**
- * `venizia/no-inline-await`. `await` stands alone: as a whole statement (`await f();`) or as the whole initializer
+ * `@venizia/no-inline-await`. `await` stands alone: as a whole statement (`await f();`) or as the whole initializer
  * of a declaration (`const result = await f();`). Inside any other expression - a call argument, a spread, an
  * array or object, a ternary, a logical operator, a template literal, a member access, an assignment - it is
  * reported, and `return g(await f())` is the same report. `return await f()` is `no-return-await`'s.

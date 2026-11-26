@@ -70,7 +70,7 @@ export interface ILedgerResult {
 const TEST_TIMEOUT_MILLISECONDS = 300_000;
 
 /** The one place this tool builds an `Error`: `getError` would make dev-configs depend on inversion, which depends on dev-configs. */
-// eslint-disable-next-line venizia/no-new-error -- getError would be a dev-configs -> inversion cycle
+// eslint-disable-next-line @venizia/no-new-error -- getError would be a dev-configs -> inversion cycle
 const replayError = (message: string): Error => new Error(message);
 
 /** The nearest folder at or above the test file that holds a `package.json`: where `bun test` runs. */

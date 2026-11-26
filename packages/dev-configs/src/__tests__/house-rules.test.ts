@@ -3,7 +3,7 @@ import { Linter } from 'eslint';
 import tseslint from 'typescript-eslint';
 import { ConstClassValuesRule, houseConfigs, houseEslintPlugin } from '../linters/house';
 
-const CONST_CLASS_RULE = 'venizia/const-class-values';
+const CONST_CLASS_RULE = '@venizia/const-class-values';
 const CAST_RULE = '@typescript-eslint/consistent-type-assertions';
 
 /** Runs the house configs on `code` as if it lived in `filename`, and returns the findings of `ruleId`. */
@@ -14,7 +14,7 @@ const findings = (opts: { code: string; ruleId: string; filename?: string }) => 
   return messages.filter((message) => message.ruleId === ruleId);
 };
 
-describe('venizia/const-class-values', () => {
+describe('@venizia/const-class-values', () => {
   const flagged = (code: string) => findings({ code, ruleId: CONST_CLASS_RULE });
 
   test('warns on an exported type alias that is a union of string literals', () => {
@@ -88,7 +88,7 @@ describe('venizia/const-class-values', () => {
       {
         files: ['**/*.ts'],
         languageOptions: { parser: tseslint.parser as Linter.Parser },
-        plugins: { venizia: houseEslintPlugin },
+        plugins: { '@venizia': houseEslintPlugin },
         rules: {
           [ConstClassValuesRule.NAME]: ConstClassValuesRule.build({
             severity: 'warn',

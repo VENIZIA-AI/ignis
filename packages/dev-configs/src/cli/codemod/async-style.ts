@@ -7,18 +7,18 @@ const USAGE = `Usage: devz codemod async-style [paths...] [--write | --check]
 
 Applies the fixers of four house lint rules, so a repository can sweep them without a lint pass:
 
-  venizia/no-inline-await         \`expect(await f())\` becomes \`const result = await f(); expect(result)\`
-  venizia/no-return-await         \`return await f()\` becomes \`return f()\` (\`const result = await f(); return result;\` in a try)
-  venizia/no-await-new-chain      \`await new Runner(options).run()\` becomes
+  @venizia/no-inline-await         \`expect(await f())\` becomes \`const result = await f(); expect(result)\`
+  @venizia/no-return-await         \`return await f()\` becomes \`return f()\` (\`const result = await f(); return result;\` in a try)
+  @venizia/no-await-new-chain      \`await new Runner(options).run()\` becomes
                                   \`const runner = new Runner(options); await runner.run();\`
-  venizia/no-await-promise-chain  \`const x = await f().catch(() => null)\` becomes
+  @venizia/no-await-promise-chain  \`const x = await f().catch(() => null)\` becomes
                                   \`let x; try { x = await f(); } catch (error) { x = null; }\`
 
 It changes only what the fixers can change safely, and lists the rest with its file, line and rule:
 an \`await\` inside a ternary or logical operand, a loop test, an unbraced \`if\` branch, or after a call
 that may have effects; an awaited \`.then\` or \`.finally\`, a \`.catch\` whose handler has a block body or
 calls something, and an awaited chain that is not the whole initializer of a \`const\` or \`let\`; and
-every venizia/no-silent-catch finding (a handler or catch block that swallows the error), which it never
+every @venizia/no-silent-catch finding (a handler or catch block that swallows the error), which it never
 fixes: what to log is your decision.
 
   --write    write the changed files (without it, nothing is written)
