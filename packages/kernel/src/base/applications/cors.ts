@@ -1,5 +1,5 @@
 import { getError } from '@venizia/ignis-helpers/core';
-import type { Hono } from 'hono';
+import type { Env, Hono, Schema } from 'hono';
 import { cors } from 'hono/cors';
 import type { ICORSOptions, TOrigin } from './common';
 
@@ -172,7 +172,10 @@ export class CorsUtility {
    * {@link CorsUtility.matchOriginPattern}); an invalid pattern, or the bare `'*'` together with
    * `credentials: true`, throws here and not on the first request.
    */
-  static registerCors(opts: { server: Hono<any, any, any>; options?: ICORSOptions }): void {
+  static registerCors<E extends Env, S extends Schema, BasePath extends string>(opts: {
+    server: Hono<E, S, BasePath>;
+    options?: ICORSOptions;
+  }): void {
     const { server, options } = opts;
 
     if (!options || options.enable === false) {

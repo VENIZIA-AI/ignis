@@ -8,7 +8,7 @@ export const api = <RestRouteConfigType extends IAuthRouteConfig>(opts: {
   configs: RestRouteConfigType;
 }) => {
   return function (
-    target: any,
+    target: object,
     propertyKey: string | symbol,
     _descriptor: PropertyDescriptor,
   ): void {

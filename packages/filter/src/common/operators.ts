@@ -213,7 +213,7 @@ export class QueryOperators {
   ]);
 
   /** Checks if operators contain numeric comparisons (used for JSON path numeric casting). */
-  static hasNumericComparison(opts: { operators: Record<string, any> }): boolean {
+  static hasNumericComparison(opts: { operators: Record<string, unknown> }): boolean {
     const { operators } = opts;
     let hasNumeric = false;
 
