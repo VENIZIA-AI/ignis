@@ -235,7 +235,7 @@ Generic route decorator. Registers route config in metadata registry.
 ```ts
 export declare const api: <RestRouteConfigType extends IAuthRouteConfig>(opts: {
     configs: RestRouteConfigType;
-}) => (target: any, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
+}) => (target: object, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
 ```
 
 Source: `packages/kernel/src/base/metadata/routes/rest.ts`
@@ -1667,7 +1667,7 @@ Bidirectional streaming RPC decorator. Equivalent to @rpc but automatically sets
 ```ts
 export declare const bidiStream: <RpcRouteConfigType extends Omit<IRpcMetadata, "method">>(opts: {
     configs: RpcRouteConfigType;
-}) => (target: any, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
+}) => (target: object, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
 ```
 
 Source: `packages/kernel/src/base/metadata/routes/rpc.ts`
@@ -1867,7 +1867,7 @@ Client streaming RPC decorator. Equivalent to @rpc but automatically sets method
 ```ts
 export declare const clientStream: <RpcRouteConfigType extends Omit<IRpcMetadata, "method">>(opts: {
     configs: RpcRouteConfigType;
-}) => (target: any, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
+}) => (target: object, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
 ```
 
 Source: `packages/kernel/src/base/metadata/routes/rpc.ts`
@@ -2418,7 +2418,7 @@ DELETE route decorator. Equivalent to @api but automatically sets method to 'del
 ```ts
 export declare const del: <RestRouteConfigType extends Omit<IAuthRouteConfig, "method">>(opts: {
     configs: RestRouteConfigType;
-}) => (target: any, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
+}) => (target: object, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
 ```
 
 Source: `packages/kernel/src/base/metadata/routes/rest.ts`
@@ -2711,7 +2711,7 @@ GET route decorator. Equivalent to @api but automatically sets method to 'get'.
 ```ts
 export declare const get: <RestRouteConfigType extends Omit<IAuthRouteConfig, "method">>(opts: {
     configs: RestRouteConfigType;
-}) => (target: any, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
+}) => (target: object, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
 ```
 
 Source: `packages/kernel/src/base/metadata/routes/rest.ts`
@@ -5588,7 +5588,7 @@ PATCH route decorator. Equivalent to @api but automatically sets method to 'patc
 ```ts
 export declare const patch: <RestRouteConfigType extends Omit<IAuthRouteConfig, "method">>(opts: {
     configs: RestRouteConfigType;
-}) => (target: any, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
+}) => (target: object, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
 ```
 
 Source: `packages/kernel/src/base/metadata/routes/rest.ts`
@@ -5651,7 +5651,7 @@ POST route decorator. Equivalent to @api but automatically sets method to 'post'
 ```ts
 export declare const post: <RestRouteConfigType extends Omit<IAuthRouteConfig, "method">>(opts: {
     configs: RestRouteConfigType;
-}) => (target: any, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
+}) => (target: object, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
 ```
 
 Source: `packages/kernel/src/base/metadata/routes/rest.ts`
@@ -5732,7 +5732,7 @@ PUT route decorator. Equivalent to @api but automatically sets method to 'put'.
 ```ts
 export declare const put: <RestRouteConfigType extends Omit<IAuthRouteConfig, "method">>(opts: {
     configs: RestRouteConfigType;
-}) => (target: any, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
+}) => (target: object, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
 ```
 
 Source: `packages/kernel/src/base/metadata/routes/rest.ts`
@@ -7038,7 +7038,7 @@ Generic RPC decorator. Registers RPC config in metadata registry.
 ```ts
 export declare const rpc: <RpcRouteConfigType extends IRpcMetadata>(opts: {
     configs: RpcRouteConfigType;
-}) => (target: any, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
+}) => (target: object, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
 ```
 
 Source: `packages/kernel/src/base/metadata/routes/rpc.ts`
@@ -7209,7 +7209,7 @@ Server streaming RPC decorator. Equivalent to @rpc but automatically sets method
 ```ts
 export declare const serverStream: <RpcRouteConfigType extends Omit<IRpcMetadata, "method">>(opts: {
     configs: RpcRouteConfigType;
-}) => (target: any, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
+}) => (target: object, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
 ```
 
 Source: `packages/kernel/src/base/metadata/routes/rpc.ts`
@@ -9181,7 +9181,7 @@ Unary RPC decorator. Equivalent to @rpc but automatically sets method to 'unary'
 ```ts
 export declare const unary: <RpcRouteConfigType extends Omit<IRpcMetadata, "method">>(opts: {
     configs: RpcRouteConfigType;
-}) => (target: any, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
+}) => (target: object, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
 ```
 
 Source: `packages/kernel/src/base/metadata/routes/rpc.ts`

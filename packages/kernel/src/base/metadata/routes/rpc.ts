@@ -8,7 +8,7 @@ export const rpc = <RpcRouteConfigType extends IRpcMetadata>(opts: {
   configs: RpcRouteConfigType;
 }) => {
   return function (
-    target: any,
+    target: object,
     propertyKey: string | symbol,
     _descriptor: PropertyDescriptor,
   ): void {

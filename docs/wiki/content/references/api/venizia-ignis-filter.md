@@ -81,7 +81,7 @@ export declare class QueryOperators {
     static readonly NUMERIC_COMPARISON_OPERATORS: Set<string>;
     /** Checks if operators contain numeric comparisons (used for JSON path numeric casting). */
     static hasNumericComparison(opts: {
-        operators: Record<string, any>;
+        operators: Record<string, unknown>;
     }): boolean;
     static isValid(orgType: string): boolean;
 }
