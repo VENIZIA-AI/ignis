@@ -180,7 +180,8 @@ export class ServiceAssertionVerifierService extends BaseService {
     } catch (error) {
       // One code out, the reason on `cause`: a wrong audience, clock skew and a rotated key are
       // otherwise the same string to whoever is reading the log at 2am.
-      const reason = (error as { cause?: unknown })?.cause ?? error;
+      const cause = error instanceof Object && 'cause' in error ? error.cause : undefined;
+      const reason = cause ?? error;
       this.logger.for(this.runVerify.name).warn('Rejected | iss: %s | reason: %s', issuer, reason);
 
       throw getError({ error: AuthenticationErrors.ASSERTION_INVALID, cause: error });

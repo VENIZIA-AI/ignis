@@ -20,9 +20,9 @@ export class ServerLoggerStartup {
       const { WinstonLogger } = await import('@venizia/ignis-helpers/winston');
       LoggerFactory.useUnlessChosen({ provider: WinstonLogger });
     } catch (error) {
-      const code = (error as { code?: string } | null)?.code;
+      const code = error instanceof Object && 'code' in error ? error.code : undefined;
 
-      if (code !== undefined && MODULE_NOT_FOUND_CODES.has(code)) {
+      if (typeof code === 'string' && MODULE_NOT_FOUND_CODES.has(code)) {
         return;
       }
 

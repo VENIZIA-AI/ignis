@@ -22,7 +22,7 @@ export class DrizzleResultUtility {
     }
 
     // node-postgres: pg.QueryResult.
-    const { rows } = result as { rows?: unknown };
+    const rows: unknown = 'rows' in result ? result.rows : undefined;
 
     if (Array.isArray(rows)) {
       return rows as TRow[];
