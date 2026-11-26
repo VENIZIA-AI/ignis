@@ -118,7 +118,7 @@ export class PreferPromiseSleepRule {
       ],
       messages: {
         sleep:
-          'Use `await PromiseUtility.sleep({ ms })` (from @venizia/ignis-helpers/core), not a hand-written `new Promise(resolve => setTimeout(resolve, ms))`.',
+          "Use `await PromiseUtility.sleep({ ms })`, not a hand-written `new Promise(resolve => setTimeout(resolve, ms))`: `import { PromiseUtility } from '{{source}}';`",
       },
     },
     create: (context) => {
@@ -162,6 +162,7 @@ export class PreferPromiseSleepRule {
           context.report({
             node,
             messageId: 'sleep',
+            data: { source: source ?? PreferPromiseSleepRule.DEFAULT_SOURCE },
             fix: (fixer) => {
               if (
                 source === undefined &&

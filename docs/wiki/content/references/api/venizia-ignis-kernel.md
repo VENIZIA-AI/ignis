@@ -2321,8 +2321,6 @@ Source: `packages/kernel/src/base/datasources/root.ts`
 
 The `normalized.code` of a database error the request caused (HTTP 400): one per common SQLSTATE, then one per class.
 
-@useWhen Telling apart the database errors a user's input caused, to translate them or branch on them.
-
 ```ts
 export declare class DatabaseErrorCodes {
     static readonly STRING_TOO_LONG: string;

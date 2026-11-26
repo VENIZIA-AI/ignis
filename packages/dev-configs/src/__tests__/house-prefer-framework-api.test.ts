@@ -73,7 +73,9 @@ describe('venizia/prefer-framework-api', () => {
 
     expect(findings).toHaveLength(1);
     expect(findings[0]?.message).toContain(hook);
-    expect(findings[0]?.message).toContain('@venizia/ardor-react');
+    expect(findings[0]?.message).toMatch(
+      new RegExp(`import \\{ [^}]*\\b${hook}\\b[^}]*\\} from '@venizia/ardor-react';`),
+    );
   });
 
   test('a name the file binds itself, an element listener and an unlisted event are not reported', () => {

@@ -20,9 +20,6 @@ const GLOBAL_OBJECTS: ReadonlyArray<string> = ['window', 'globalThis', 'self'];
  * where a hook can be called: in a component (a PascalCase function that draws JSX) or a hook (`useX`), see `isInReact`. A
  * module function, a class and an event handler making a one-off call are left alone. Hooks the author wants to bypass on
  * purpose take an `eslint-disable-next-line` with the reason, or `ignore` lists pattern ids.
- *
- * @useWhen a React app should reach the browser (media queries, sizes, observers, online status, visibility, unload, clipboard, confirm) through the ardor-react hooks
- * @insteadOf window.matchMedia, new ResizeObserver, navigator.onLine and the other browser APIs written by hand
  */
 export class PreferFrameworkApiRule {
   static readonly NAME = `${HOUSE_PLUGIN_NAMESPACE}/prefer-framework-api`;
@@ -231,7 +228,7 @@ export class PreferFrameworkApiRule {
       ],
       messages: {
         framework:
-          'Use {{hooks}} from {{package}} instead of {{written}}: the hook owns the subscribe and the cleanup.',
+          "Use {{hooks}} instead of {{written}}, the hook owns the subscribe and the cleanup: `import { {{names}} } from '{{package}}';`",
       },
     },
     create: (context) => {
@@ -253,6 +250,10 @@ export class PreferFrameworkApiRule {
           messageId: 'framework',
           data: {
             hooks: pattern.hooks,
+            // The hook names are the `useX` words in backticks.
+            names: Array.from(pattern.hooks.matchAll(/`(use\w+)`/g), (found) => found[1]).join(
+              ', ',
+            ),
             package: BrowserApiPatterns.PACKAGE,
             written: pattern.written,
           },

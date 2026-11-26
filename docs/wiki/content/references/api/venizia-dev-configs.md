@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-0 exports, 0 with TSDoc. 72 more are re-exported from other entries (listed at the end).
+0 exports, 0 with TSDoc. 68 more are re-exported from other entries (listed at the end).
 
 ## Re-exported
 
@@ -62,13 +62,9 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 - `PreferPromiseSleepRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `PreferTNullableRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `PromiseChainSupport` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
-- `PublicSurface` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
-- `publishedPackageConfigs` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
-- `PublishedPackageConfigs` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `reactHouseConfigs` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `reactNamingConventionConfigs` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `ReactOxlintConfigs` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
-- `RequireUseWhenRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `RuleSeverities` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `SwitchCaseBracesModes` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `SwitchCaseBracesRule` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)

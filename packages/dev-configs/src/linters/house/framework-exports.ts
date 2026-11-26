@@ -72,7 +72,7 @@ export class FrameworkExports {
    * TypeScript for the linted package: from its own folder, the working directory, or this package's install, the first that
    * has the parser API. `undefined` when none does (the rule then reports nothing).
    */
-  static loadTypeScript(opts: { directory: string }): typeof ts | undefined {
+  private static loadTypeScript(opts: { directory: string }): typeof ts | undefined {
     const { directory } = opts;
     const cached = FrameworkExports.typescripts.get(directory);
 

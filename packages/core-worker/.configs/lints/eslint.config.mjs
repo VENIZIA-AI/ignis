@@ -1,4 +1,4 @@
-import { houseConfigs, PublishedPackageConfigs } from '@venizia/dev-configs/linters';
+import { houseConfigs } from '@venizia/dev-configs/linters';
 import { builtinModules } from 'node:module';
 
 /**
@@ -94,10 +94,4 @@ const browserPurity = {
 // oxlint (.configs/oxlint.config.mts) owns the shared preset; this file adds what oxlint cannot run: the
 // ESQuery selector below, and the naming rule. src/__tests__/browser-purity.test.ts lints with it.
 // IGNIS writes its own imports through the `@/` path alias, not a `#src` import map.
-export default [
-  ...houseConfigs,
-  { rules: { 'venizia/no-parent-import': 'off' } },
-  // Every public export says when to use it (`@useWhen`); the baseline lists the ones not yet swept, and may only shrink.
-  ...PublishedPackageConfigs.build({ baseline: '.configs/use-when-baseline.json' }),
-  browserPurity,
-];
+export default [...houseConfigs, { rules: { 'venizia/no-parent-import': 'off' } }, browserPurity];

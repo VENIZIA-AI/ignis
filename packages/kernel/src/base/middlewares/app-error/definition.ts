@@ -91,8 +91,6 @@ export const DATABASE_RETRYABLE_ERROR_CODE = CoreErrorCodes.DATABASE_CONFLICT;
 
 /**
  * The `normalized.code` of a database error the request caused (HTTP 400): one per common SQLSTATE, then one per class.
- *
- * @useWhen Telling apart the database errors a user's input caused, to translate them or branch on them.
  */
 export class DatabaseErrorCodes {
   static readonly STRING_TOO_LONG = buildCode(['core', 'database', 'string_too_long']);

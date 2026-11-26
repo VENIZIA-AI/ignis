@@ -17,7 +17,6 @@ import { NoUnbracedCaseRule } from './no-unbraced-case.rule';
 import { PreferFrameworkApiRule } from './prefer-framework-api.rule';
 import { PreferPromiseSleepRule } from './prefer-promise-sleep.rule';
 import { PreferTNullableRule } from './prefer-tnullable.rule';
-import { RequireUseWhenRule } from './require-use-when.rule';
 
 /** The ESLint plugin that carries the house rules oxlint cannot express, registered as `venizia`. */
 export const houseEslintPlugin: ESLint.Plugin = {
@@ -37,10 +36,8 @@ export const houseEslintPlugin: ESLint.Plugin = {
     'no-shadow-framework-type': NoShadowFrameworkTypeRule.RULE,
     'no-silent-catch': NoSilentCatchRule.RULE,
     'no-unbraced-case': NoUnbracedCaseRule.RULE,
-    'pending-use-when': RequireUseWhenRule.PENDING_RULE,
     'prefer-framework-api': PreferFrameworkApiRule.RULE,
     'prefer-promise-sleep': PreferPromiseSleepRule.RULE,
     'prefer-tnullable': PreferTNullableRule.RULE,
-    'require-use-when': RequireUseWhenRule.RULE,
   },
 };
