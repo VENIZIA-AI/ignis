@@ -30,12 +30,9 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
   async select<R>(opts: ISelectOptions<TRelationalConnector>): Promise<Array<R>> {
     const { connector, table, columns, where, orderBy, limit, offset, lock } = opts;
 
-    // Drizzle's `.from()` needs the concrete `PgTable` type, not the generic bound.
-    const pgTable = table;
-
     let query = columns
-      ? connector.select(this.toSelectedFields({ columns })).from(pgTable).$dynamic()
-      : connector.select().from(pgTable).$dynamic();
+      ? connector.select(this.toSelectedFields({ columns })).from(table).$dynamic()
+      : connector.select().from(table).$dynamic();
 
     if (where) {
       query = query.where(where);

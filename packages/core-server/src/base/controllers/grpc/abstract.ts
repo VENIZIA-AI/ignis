@@ -150,7 +150,7 @@ export abstract class AbstractGrpcController<
       const configs = this.getRouteConfigs({ configs: rpcMetadata });
 
       this.bindRoute({ configs }).to({
-        handler: handler.bind(this),
+        handler: (handler as TRpcHandler<unknown, unknown, RouteEnv>).bind(this),
       });
 
       logger.debug(

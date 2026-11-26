@@ -115,7 +115,7 @@ export abstract class AbstractRestController<
       }
 
       this.bindRoute({ configs: routeConfigs }).to({
-        handler: handler.bind(this),
+        handler: (handler as TRouteHandler<unknown, RouteEnv>).bind(this),
       });
     }
   }

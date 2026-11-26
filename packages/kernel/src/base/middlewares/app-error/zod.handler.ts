@@ -36,7 +36,7 @@ export class ZodErrorHandler {
       validationErrors = error;
     }
 
-    const issues = Array.isArray(validationErrors) ? validationErrors : null;
+    const issues = Array.isArray(validationErrors) ? (validationErrors as IZodIssueLike[]) : null;
 
     // Prefer the first issue with a custom `params.code`, else its raw Zod code.
     let messageCode: string | undefined;

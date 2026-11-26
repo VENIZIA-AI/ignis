@@ -170,7 +170,9 @@ export class RecursiveTreeSql {
     // A Postgres table declared with `pgSchema('commerce').table(...)` lives outside the search path,
     // so the unqualified name would read the wrong relation or none. SQLite has no schemas.
     const schemaName =
-      engine === RecursiveTreeEngines.POSTGRES ? getTableConfig(table).schema : undefined;
+      engine === RecursiveTreeEngines.POSTGRES
+        ? getTableConfig(table as PgTable).schema
+        : undefined;
 
     if (schemaName !== undefined) {
       RecursiveTreeSql.assertValidIdentifier({ field: 'schema', value: schemaName });

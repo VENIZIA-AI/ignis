@@ -492,12 +492,6 @@ export declare class SqliteQueryExecutor implements IRelationalQueryExecutor<TSq
     /** The conflict target, narrowed to SQLite columns; a column of another engine cannot name a SQLite key. */
     private toConflictTarget;
     /**
-     * The neutral options carry the dialect-free `Table` bound; every Drizzle SQLite verb wants the
-     * concrete `SQLiteTable`. Knowing your own input belongs in the engine adapter, so the whole
-     * boundary is this one cast.
-     */
-    private asTable;
-    /**
      * Gets the Drizzle relational-query interface, validating schema registration. The error wording
      * names the entity and lists the available keys, and a test asserts it word for word.
      */

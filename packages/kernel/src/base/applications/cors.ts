@@ -217,6 +217,6 @@ export class CorsUtility {
       }).filter(([, value]) => value !== undefined),
     );
 
-    server.use(path ?? '*', cors(settings));
+    server.use(path ?? '*', cors(settings as Parameters<typeof cors>[0]));
   }
 }

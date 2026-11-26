@@ -12,7 +12,7 @@ try {
   const token = await mintToken({ subject, role: process.argv[3] });
   await Bun.write(Bun.stdout, `${token}\n`);
 } catch (error) {
-  const detail = error instanceof Error ? error.stack : String(error);
+  const detail = error instanceof Error ? (error.stack ?? error.message) : String(error);
 
   await Bun.write(Bun.stderr, `[token] Failed to mint token | Error: ${detail}\n`);
   process.exit(1);

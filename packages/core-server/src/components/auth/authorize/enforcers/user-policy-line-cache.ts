@@ -124,7 +124,7 @@ export class UserPolicyLineCache extends BaseHelper {
         });
       }
 
-      return parsed;
+      return parsed as string[];
     } catch (error) {
       this.logger
         .for(this.parseLines.name)

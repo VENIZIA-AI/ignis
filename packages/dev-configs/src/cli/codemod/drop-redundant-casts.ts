@@ -464,6 +464,14 @@ export class RedundantCasts {
     return outermost;
   }
 
+  /**
+   * Whether the type is, or names, something the compiler does not check: `any` (alone or inside, `any[]`,
+   * `Map<string, any>`) or the bare `Function` interface. Without its cast such a value is an `any` nobody sees.
+   */
+  private static holdsAny(opts: { type: ts.Type; checker: ts.TypeChecker }): boolean {
+    return /\b(?:any|Function)\b/.test(opts.checker.typeToString(opts.type));
+  }
+
   /** The reason a cast is never tried, or `undefined` when it is worth trying. */
   private static classify(opts: {
     typescript: TTypeScript;
@@ -495,13 +503,13 @@ export class RedundantCasts {
       return CastKeepReasons.DOUBLE_CAST;
     }
 
-    const flags = checker.getTypeAtLocation(node.expression).flags;
+    const type = checker.getTypeAtLocation(node.expression);
 
-    if (flags & typescript.TypeFlags.Any) {
+    if (RedundantCasts.holdsAny({ type, checker })) {
       return CastKeepReasons.ANY_EXPRESSION;
     }
 
-    if (flags & typescript.TypeFlags.Unknown) {
+    if (type.flags & typescript.TypeFlags.Unknown) {
       return CastKeepReasons.UNKNOWN_EXPRESSION;
     }
 
@@ -913,7 +921,7 @@ by halving, so the package is checked a handful of times, not once per cast.
   --help             print this text and exit
 
 A cast stays when its removal breaks the typecheck, and always for \`as const\`, \`as unknown\`,
-\`x as unknown as T\` and a cast of an \`any\` or \`unknown\` expression: the cast is the only type
+\`x as unknown as T\` and a cast of an expression whose type is \`unknown\` or holds \`any\` or \`Function\`: the cast is the only type
 there. The report lists how many casts stayed and why. Run your own typecheck after --write.`;
 
 /** A usage error: nothing was read or written. */

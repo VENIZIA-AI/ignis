@@ -401,7 +401,7 @@ export class DiskHelper extends BaseStorageHelper {
       range ? { start: range.start, end: range.end } : {},
     );
 
-    return Readable.toWeb(source);
+    return Readable.toWeb(source) as ReadableStream<Uint8Array>;
   }
 
   async getStat(opts: IObjectLocation): Promise<IFileStat> {
