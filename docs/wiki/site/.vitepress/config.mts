@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type DefaultTheme } from 'vitepress';
 import { withMermaid } from 'vitepress-plugin-mermaid';
+import { lazyMermaid } from './lazy-mermaid.ts';
 import { changelogPageData } from './theme/shared/changelog-entries.ts';
 import { writeChangelogFeed } from './theme/shared/changelog-loader.ts';
 import { venziaCodeTheme } from './theme/shared/code-theme.ts';
@@ -463,30 +464,20 @@ const config = defineConfig({
     ['meta', { name: 'twitter:image', content: '/og-image.png' }],
   ],
   vite: {
+    plugins: [lazyMermaid()],
     // mermaid pulls in dayjs/esm, whose extensionless imports break Node's native ESM resolver during
     // SSR. Bundle them through Vite (noExternal) so Vite's resolver handles the resolution.
     ssr: { noExternal: ['vitepress-plugin-mermaid', 'mermaid', 'dayjs'] },
     optimizeDeps: { include: ['mermaid', 'dayjs'] },
     build: {
       target: 'es2022',
-      // mermaid is a legitimately large dependency (~3 MB); isolated into its own lazy chunk below.
-      // Keep the warning limit above its size so the advisory only fires for unexpected app bloat.
+      // Above the largest chunks, mermaid's parser and the generated API reference pages, so the
+      // warning only fires for unexpected growth.
       chunkSizeWarningLimit: 3500,
       rollupOptions: {
         output: {
           manualChunks: (id) => {
             if (id.includes('node_modules')) {
-              // Isolate mermaid (+ its heavy deps) - large and only needed on pages with diagrams.
-              if (
-                id.includes('mermaid') ||
-                id.includes('cytoscape') ||
-                id.includes('dagre') ||
-                id.includes('d3') ||
-                id.includes('khroma')
-              ) {
-                return 'mermaid';
-              }
-
               // Split Vue core
               if (id.includes('@vue/')) {
                 return 'vue-vendor';
