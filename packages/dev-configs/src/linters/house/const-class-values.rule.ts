@@ -25,7 +25,6 @@ const isKeySet = (opts: { node: unknown }): boolean => {
   }
 
   const reference = AstNode.readField({ node: parent, key: 'parent' });
-  // A type reference names its type in `typeName`; `extends` and `implements` clauses name it in `expression`.
   const key = TYPE_NAME_KEYS.get(String(AstNode.getType({ node: reference })));
 
   if (key === undefined) {
@@ -94,7 +93,7 @@ export class ConstClassValuesRule {
       schema: [{ type: 'object', properties: { namePattern: { type: 'string' } } }],
       messages: {
         constClass:
-          'An enumerable string is a const class plus TConstValue<typeof X>, not a union of string literals.',
+          "An enumerable string is a class that extends `ConstClass`, typed as `TConstValue<typeof X>`, not a union of string literals: `import { ConstClass, type TConstValue } from '@venizia/ignis-helpers/common';`",
       },
     },
     create: (context) => {

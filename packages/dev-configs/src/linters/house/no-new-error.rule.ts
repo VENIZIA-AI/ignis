@@ -16,7 +16,7 @@ export class NoNewErrorRule {
       schema: [],
       messages: {
         newError:
-          'Throw through getError({ message }) (or an ApplicationError), not `{{form}}`: only an ApplicationError carries the status, code and args.',
+          "Throw through `getError({ message })` (or an ApplicationError), not `{{form}}`: only an ApplicationError carries the status, code and args: `import { getError } from '@venizia/ignis-helpers/core';`",
       },
     },
     create: (context) => {
