@@ -4,7 +4,6 @@ import { getError } from '@/modules/error';
 import { LoggerFactory } from '@/modules/logger';
 import { RetryUtility } from '@/modules/retry';
 import { BaseHelper } from '@/modules/base';
-import { type EventEmitter } from 'node:events';
 import zlib from 'node:zlib';
 import { RedisConcurrency, RedisDefaults } from './../common/constants';
 import { type IRedisHelper } from './../common/interfaces';
@@ -38,7 +37,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     this.client = opts.client;
 
     const { onInitialized, onConnected, onReady, onError } = opts;
-    const emitter = this.client as EventEmitter;
+    const emitter = this.client;
 
     emitter.on('connect', () => {
       this.logger.for('connect').info('Redis CONNECTED | Name: %s', this.name);

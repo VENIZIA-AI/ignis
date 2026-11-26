@@ -210,7 +210,7 @@ export declare abstract class AbstractPoolHelper<T> extends BaseHelper implement
     private safeDispatch;
     /** Pair servable resources with waiting acquirers until the queue drains or the pool is exhausted. Re-entrancy-guarded so only one loop runs at a time. */
     private dispatch;
-    /** Pop an idle resource and validate+reset it; on ANY failure destroy it and return null (caller retries). */
+    /** Validate and reset a resource just popped from the idle list; on ANY failure destroy it and return null (caller retries). */
     private takeIdleResource;
     /** Create a fresh resource and hand it to the next waiter; on create failure, reject that waiter. */
     private createAndHand;

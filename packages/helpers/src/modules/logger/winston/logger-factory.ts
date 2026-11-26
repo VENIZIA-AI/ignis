@@ -12,7 +12,7 @@ import {
   LOGGER_FORMAT,
   LOGGER_PREFIX,
 } from './common/constants';
-import { LoggerConfigUtility, type TLoggerFormat } from '../common';
+import { LoggerConfigUtility } from '../common';
 import { WinstonFormatFactory } from './formats';
 
 /**
@@ -39,7 +39,7 @@ export class WinstonLoggerFactory {
         debug: 'blue',
       },
       formatter,
-      format = LOGGER_FORMAT as TLoggerFormat,
+      format = LOGGER_FORMAT,
       level = LoggerConfigUtility.resolveLevel({ configured: process.env.APP_ENV_LOGGER_LEVEL }),
       colorize = LoggerConfigUtility.resolveColorize() ?? true,
       transports: { info: infoTransportOptions, error: errorTransportOptions },

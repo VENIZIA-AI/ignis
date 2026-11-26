@@ -1,3 +1,4 @@
+import { RecordUtility } from '@/utilities/record.utility';
 import { RedactUtility } from '@/common/redact';
 import { MessageCode } from '@/modules/error';
 import util from 'node:util';
@@ -129,7 +130,7 @@ export class ErrorPrettier {
     }
 
     const lines = issues.slice(0, this.MAX_ZOD_ISSUES).map((issue) => {
-      const entry = issue as { path?: Array<string | number>; message?: string; code?: string };
+      const entry: Record<string, unknown> = RecordUtility.isRecord(issue) ? issue : {};
       const path =
         Array.isArray(entry.path) && entry.path.length > 0 ? entry.path.join('.') : '(root)';
 
@@ -152,7 +153,7 @@ export class ErrorPrettier {
     const { value, depthLeft, seen, isRoot, includeStack, maxStackFrames } = opts;
 
     // A primitive - a string thrown as `cause`, a numeric code - is its own message.
-    if (typeof value !== 'object' || value === null) {
+    if (!RecordUtility.isRecord(value)) {
       return { message: String(value) };
     }
 
@@ -162,7 +163,7 @@ export class ErrorPrettier {
 
     seen.add(value);
 
-    const source = value as Record<string, unknown>;
+    const source = value;
     const summary: IErrorSummary = {};
 
     if (typeof source.name === 'string') {
@@ -180,10 +181,7 @@ export class ErrorPrettier {
       summary.code = source.code;
     }
 
-    const normalized =
-      typeof source.normalized === 'object' && source.normalized !== null
-        ? (source.normalized as { code?: unknown; args?: unknown })
-        : undefined;
+    const normalized = RecordUtility.isRecord(source.normalized) ? source.normalized : undefined;
 
     // `MessageCode.resolve` stamps DEFAULT on every codeless error, so surfacing it blindly would put a meaningless line on every log.
     if (typeof normalized?.code === 'string' && normalized.code !== MessageCode.DEFAULT) {
@@ -208,8 +206,8 @@ export class ErrorPrettier {
     }
 
     // Root only: the args fill the ROOT's message; a cause's belong to a message this block does not print.
-    if (isRoot && typeof normalized?.args === 'object' && normalized.args !== null) {
-      const args = normalized.args as Record<string, unknown>;
+    if (isRoot && RecordUtility.isRecord(normalized?.args)) {
+      const { args } = normalized;
 
       if (Object.keys(args).length > 0) {
         summary.args = args;
@@ -217,8 +215,8 @@ export class ErrorPrettier {
     }
 
     // Root only: `extra` is what a throw site deliberately attached, so a direct log call keeps it.
-    if (isRoot && typeof source.extra === 'object' && source.extra !== null) {
-      const extra = source.extra as Record<string, unknown>;
+    if (isRoot && RecordUtility.isRecord(source.extra)) {
+      const { extra } = source;
 
       if (Object.keys(extra).length > 0) {
         summary.extra = extra;

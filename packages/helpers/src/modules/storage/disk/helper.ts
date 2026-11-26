@@ -1,3 +1,4 @@
+import { RecordUtility } from '@/utilities/record.utility';
 import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
 import { ErrorPrettier } from '@/modules/logger';
@@ -35,6 +36,13 @@ export class DiskHelper extends BaseStorageHelper {
 
   private basePath: string;
 
+  /** The `code` a file-system error carries, such as `ENOENT`. */
+  private static errnoCode(opts: { error: unknown }): unknown {
+    const { error } = opts;
+
+    return RecordUtility.isRecord(error) ? error.code : undefined;
+  }
+
   constructor(options: IDiskHelperOptions) {
     super({
       scope: options.scope ?? DiskHelper.name,
@@ -66,7 +74,7 @@ export class DiskHelper extends BaseStorageHelper {
 
         return real === root || real.startsWith(`${root}${path.sep}`);
       } catch (error) {
-        const code = (error as NodeJS.ErrnoException)?.code;
+        const code = DiskHelper.errnoCode({ error });
 
         // A link loop or a path the system refuses as too long is not a place a name can lead to.
         if (code === 'ELOOP' || code === 'ENAMETOOLONG') {
@@ -111,7 +119,7 @@ export class DiskHelper extends BaseStorageHelper {
    */
   private toRealPathError(opts: { error: unknown }) {
     const { error } = opts;
-    const code = (error as NodeJS.ErrnoException)?.code ?? 'UNKNOWN';
+    const code = DiskHelper.errnoCode({ error }) ?? 'UNKNOWN';
 
     this.logger.error(
       'Cannot resolve the real path of a storage target | code: %s | %s',
@@ -202,7 +210,7 @@ export class DiskHelper extends BaseStorageHelper {
 
       return result;
     } catch (error) {
-      if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+      if (DiskHelper.errnoCode({ error }) !== 'ENOENT') {
         this.logger.warn(
           '[statOrNull] Cannot determine existence, reporting missing | path: %s | %s',
           EchoUtility.toSafeEcho({ value: target }),

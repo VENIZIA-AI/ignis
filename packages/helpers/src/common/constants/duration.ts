@@ -88,7 +88,7 @@ export class DurationAliases {
  */
 const ALIAS_LOOKUP: Map<string, TDurationUnit> = new Map(
   Object.entries(DurationAliases)
-    .filter((entry): entry is [string, TDurationUnit] => DurationUnits.isValid(entry[1] as string))
+    .filter((entry): entry is [string, TDurationUnit] => DurationUnits.isValid(entry[1]))
     .flatMap(([spelling, unit]): Array<[string, TDurationUnit]> => [
       [spelling, unit],
       [spelling.toLowerCase(), unit],

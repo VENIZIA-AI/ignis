@@ -73,11 +73,14 @@ Reads `APP_ENV_LOGGER_*` and turns it into a destination. Warning prefixes name 
 ```ts
 export declare class PinoDestination {
     private static readonly DEFAULT_FREQUENCY;
+    private static readonly DEFAULT_MAX_FILE_DAYS;
     private static readonly DEFAULT_MAX_FILES;
     /** `APP_ENV_LOGGER_FILE_FREQUENCY` -> pino-roll's `frequency`; an unrecognized value warns and falls back rather than throwing, so the app still boots. */
     static mapFrequency(opts: {
         value?: string;
     }): TFrequency;
+    /** The file count that keeps `days` days of logs at this roll frequency. */
+    private static ofDays;
     /** `null` means "not a recognized shape" - the caller decides what default to fall back to. */
     private static parseMaxFilesValue;
     /** `APP_ENV_LOGGER_FILE_MAX_FILES` -> pino-roll's `limit.count`: `'<n>d'` scales by frequency (hourly: days*24), a bare integer is a literal count, unrecognized falls back to `'5d'`. */

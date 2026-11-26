@@ -2,7 +2,6 @@ import { HTTP } from '@/common';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { RedisUtility, type TRedisClient } from '@/modules/redis';
-import { type EventEmitter } from 'node:events';
 import {
   type IRedisSocketMessage,
   type IWebSocketEmitterOptions,
@@ -38,7 +37,7 @@ export class WebSocketEmitter extends BaseHelper {
     const logger = this.logger.for(this.configure.name);
     logger.info('Configuring WebSocket Emitter | id: %s', this.identifier);
 
-    (this.redisPub as EventEmitter).on('error', (error: Error) => {
+    this.redisPub.on('error', (error: Error) => {
       logger.error('Redis pub error | error: %s', error);
     });
 

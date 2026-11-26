@@ -205,7 +205,7 @@ export declare class WinstonFormatFactory {
     }): winston.Logform.Format;
     /** Per-transport assembly formats: console may colorize, a file never does - ANSI bytes in a rotated log file are noise every grep has to strip. */
     static assembly(opts: {
-        format: TLoggerFormat;
+        format: string;
         colorize: boolean;
     }): {
         console: winston.Logform.Format;

@@ -25,7 +25,8 @@ export type TDestinationPlan =
 /** Reads `APP_ENV_LOGGER_*` and turns it into a destination. Warning prefixes name the operation, not the class - the tests and the published API still call these `mapFrequency`/`mapMaxFilesToCount`. */
 export class PinoDestination {
   private static readonly DEFAULT_FREQUENCY: TFrequency = PinoFrequencies.HOURLY;
-  private static readonly DEFAULT_MAX_FILES = '5d';
+  private static readonly DEFAULT_MAX_FILE_DAYS = 5;
+  private static readonly DEFAULT_MAX_FILES = `${PinoDestination.DEFAULT_MAX_FILE_DAYS}d`;
 
   /** `APP_ENV_LOGGER_FILE_FREQUENCY` -> pino-roll's `frequency`; an unrecognized value warns and falls back rather than throwing, so the app still boots. */
   static mapFrequency(opts: { value?: string }): TFrequency {
@@ -52,14 +53,19 @@ export class PinoDestination {
     }
   }
 
+  /** The file count that keeps `days` days of logs at this roll frequency. */
+  private static ofDays(opts: { days: number; frequency: TFrequency }): number {
+    const { days, frequency } = opts;
+
+    return frequency === 'hourly' ? days * 24 : days;
+  }
+
   /** `null` means "not a recognized shape" - the caller decides what default to fall back to. */
   private static parseMaxFilesValue(value: string, frequency: TFrequency): number | null {
     const dayMatch = /^(\d+)d$/i.exec(value);
 
     if (dayMatch) {
-      const days = Number.parseInt(dayMatch[1], 10);
-
-      return frequency === 'hourly' ? days * 24 : days;
+      return PinoDestination.ofDays({ days: Number.parseInt(dayMatch[1], 10), frequency });
     }
 
     const bareMatch = /^\d+$/.exec(value);
@@ -93,10 +99,7 @@ export class PinoDestination {
       );
     }
 
-    return PinoDestination.parseMaxFilesValue(
-      PinoDestination.DEFAULT_MAX_FILES,
-      frequency,
-    ) as number;
+    return PinoDestination.ofDays({ days: PinoDestination.DEFAULT_MAX_FILE_DAYS, frequency });
   }
 
   /** Pure: which destination pino should write to, derived from `APP_ENV_LOGGER_*` at CALL time. `DATE_PATTERN` is deliberately not read - pino-roll has no equivalent. */
