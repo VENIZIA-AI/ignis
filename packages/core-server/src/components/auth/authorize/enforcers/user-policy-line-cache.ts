@@ -116,15 +116,15 @@ export class UserPolicyLineCache extends BaseHelper {
   /** Decode cached policy lines; on any corruption, log and return null so the caller refetches. */
   private parseLines(opts: { raw: string; cacheKey: string }): TNullable<string[]> {
     try {
-      const parsed = JSON.parse(opts.raw);
+      const parsed: unknown = JSON.parse(opts.raw);
 
-      if (!Array.isArray(parsed) || parsed.some((line) => typeof line !== 'string')) {
+      if (!Array.isArray(parsed) || !parsed.every((line) => typeof line === 'string')) {
         throw getError({
           message: '[UserPolicyLineCache] Cached payload is not an array of policy lines.',
         });
       }
 
-      return parsed as string[];
+      return parsed;
     } catch (error) {
       this.logger
         .for(this.parseLines.name)
