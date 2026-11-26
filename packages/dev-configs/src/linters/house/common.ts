@@ -59,6 +59,8 @@ export class AstNodeTypes {
   static readonly TYPE_PARAMETER_INSTANTIATION = 'TSTypeParameterInstantiation';
   static readonly TYPE_QUERY = 'TSTypeQuery';
   static readonly TYPE_REFERENCE = 'TSTypeReference';
+  static readonly INTERFACE_HERITAGE = 'TSInterfaceHeritage';
+  static readonly CLASS_IMPLEMENTS = 'TSClassImplements';
   static readonly UNARY_EXPRESSION = 'UnaryExpression';
   static readonly UNDEFINED_KEYWORD = 'TSUndefinedKeyword';
   static readonly VARIABLE_DECLARATION = 'VariableDeclaration';

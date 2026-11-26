@@ -6,7 +6,6 @@ import { Linter } from 'eslint';
 import ts from 'typescript';
 import tseslint from 'typescript-eslint';
 import {
-  FrameworkRuleApis,
   houseConfigs,
   houseEslintPlugin,
   NoParentImportRule,
@@ -615,52 +614,5 @@ describe('venizia/no-parent-import', () => {
     expect(findings(houseConfigs)).toHaveLength(0);
     expect(findings(reactHouseConfigs, 'src/b/a.tsx')).toHaveLength(0);
     expect(findings([...houseConfigs, optIn]).map((message) => message.severity)).toEqual([1]);
-  });
-});
-
-describe('FrameworkRuleApis', () => {
-  /** House rules that point at no framework API: they enforce a style, not a replacement. */
-  const NOT_FRAMEWORK = [
-    'const-class-values',
-    'effect-cleanup-consistency',
-    'max-params-own',
-    'no-async-hook-callback',
-    'no-await-new-chain',
-    'no-await-promise-chain',
-    'no-inline-await',
-    'no-leaked-render',
-    'no-new-error',
-    'no-return-await',
-    'no-silent-catch',
-    'no-unbraced-case',
-  ];
-
-  test('every rule of the plugin has an entry, or is listed as a style rule: a new rule cannot skip the table', () => {
-    const names = Object.keys(houseEslintPlugin.rules ?? {});
-    const missing = names.filter(
-      (name) =>
-        !NOT_FRAMEWORK.includes(name) &&
-        FrameworkRuleApis.of({ rule: `venizia/${name}` }) === undefined,
-    );
-
-    expect(missing).toEqual([]);
-  });
-
-  test('an entry names an API, where it comes from and a replacement, and only plugin rules have one', () => {
-    const names = Object.keys(houseEslintPlugin.rules ?? {});
-
-    for (const [rule, entry] of Object.entries(FrameworkRuleApis.TABLE)) {
-      expect(names).toContain(rule.replace('venizia/', ''));
-      expect(entry.api.length).toBeGreaterThan(0);
-      expect(entry.source.length).toBeGreaterThan(0);
-      expect(entry.replacement.length).toBeGreaterThan(0);
-    }
-
-    expect(FrameworkRuleApis.of({ rule: 'venizia/prefer-tnullable' })).toMatchObject({
-      api: 'TNullable',
-      source: '@venizia/ignis-helpers/common',
-      package: '@venizia/ignis-helpers',
-    });
-    expect(FrameworkRuleApis.of({ rule: 'venizia/no-new-error' })).toBeUndefined();
   });
 });

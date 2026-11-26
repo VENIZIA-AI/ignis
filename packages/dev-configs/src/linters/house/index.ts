@@ -1,7 +1,6 @@
 export { AwaitSupport } from './await-support';
 export * from './browser-api-patterns';
 export { FrameworkExports } from './framework-exports';
-export * from './framework-rule-apis';
 export { ImportSupport } from './import-support';
 export * from './common';
 export * from './const-class-values.rule';
