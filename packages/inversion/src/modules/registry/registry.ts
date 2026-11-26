@@ -155,7 +155,7 @@ export class MetadataRegistry extends BaseHelper {
     if (current !== undefined && current.key !== key && !current.isProvisional && !isProvisional) {
       Logger.warn(
         '[setBindingKey] Rebound under a different key | target: %s | was: %s | now: %s',
-        (target as { name?: string }).name,
+        'name' in target ? target.name : undefined,
         current.key.toString(),
         key.toString(),
       );
