@@ -7,7 +7,7 @@ import { type ITcpSocketClient } from '@/modules/network/tcp-socket';
 import { type TBullQueueRole } from '@/modules/queue/common';
 import { TemporalNameWidths, TemporalWrittenDateStyles } from '@/modules/temporal/common/constants';
 import { PatternTokens, type TPatternToken } from '@/modules/temporal/pattern/common';
-import { ContentDispositionTypes } from '@/common/constants/http';
+import { ContentDispositionTypes } from '@/common/constants/content-disposition';
 
 /**
  * Each string domain that used to be a raw literal union is a const class now. The values are the
