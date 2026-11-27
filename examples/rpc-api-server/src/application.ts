@@ -16,7 +16,7 @@ import {
   SignInRequestSchema,
   SignUpRequestSchema,
 } from '@venizia/ignis';
-import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
+import { AppEnvs, ParseUtility } from '@venizia/ignis-helpers';
 import appInfo from '../package.json';
 import {
   ChangePasswordResponseSchema,
@@ -39,13 +39,13 @@ export class Application extends BaseApplication {
     this.bind({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
       standard: JOSEStandards.JWS,
       options: {
-        jwtSecret: applicationEnvironment.get('APP_ENV_JWT_SECRET') ?? '',
+        jwtSecret: AppEnvs.get('APP_ENV_JWT_SECRET') ?? '',
         // This server signs and verifies its own tokens: both claims name it.
         claims: { issuer: 'rpc-api-server', audience: 'rpc-api-server' },
         getTokenExpiresFn: () =>
           Number(
             ParseUtility.blankToUndefined({
-              input: applicationEnvironment.get('APP_ENV_JWT_EXPIRES_IN'),
+              input: AppEnvs.get('APP_ENV_JWT_EXPIRES_IN'),
             }) ?? ONE_DAY_IN_SECONDS,
           ),
       },

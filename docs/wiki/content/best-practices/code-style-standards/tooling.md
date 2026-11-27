@@ -353,9 +353,9 @@ Every codemod below is a dry run unless you pass `--write`, and `--check` exits 
 
 **`devz codemod class-renames [paths...] [--write [--all] \| --check] [--reverse]`**
 
-- Renames the classes IGNIS renamed: `RetryHelper`, `SlugHelper` and `CredentialHelper` (`@venizia/ignis-helpers`) to `RetryUtility`, `SlugUtility` and `CredentialUtility`; `RejectionHelper` and `SpawnHelper` (`@venizia/dev-configs/testing`) to `RejectionUtility` and `SpawnUtility`.
+- Renames the exports IGNIS renamed: `applicationEnvironment` to `AppEnvs` (`@venizia/ignis-helpers`); `RetryHelper`, `SlugHelper` and `CredentialHelper` (`@venizia/ignis-helpers`) to `RetryUtility`, `SlugUtility` and `CredentialUtility`; `RejectionHelper` and `SpawnHelper` (`@venizia/dev-configs/testing`) to `RejectionUtility` and `SpawnUtility`.
 - It renames the name in the import (or re-export) from the owning package and every use of it in the file. An aliased import (`Old as Alias`) keeps its alias; a namespace import's member (`ns.Old`) is renamed too. It does not read `import('pkg').Old` or a `.js` file.
-- `--write` refuses a file with local changes and needs a path or `--all`. `--check` exits 1 while a file would change. `--reverse` renames back for a downgrade.
+- `--write` refuses a file with local changes and needs a path or `--all`. `--check` exits 1 while a file would change. `--reverse` renames back for a downgrade, and leaves `AppEnvs`, which the release before exports too.
 - One table, `ClassRenameTable` in `cli/codemod/class-renames.ts`: a later rename adds a row.
 
 **`devz codemod env-get [paths...] [--write [--all] \| --check]`**

@@ -303,7 +303,7 @@ move `isApplicationError` already makes for `ApplicationError`, and `isRedisHelp
 Worker are separate realms and still get one registry each, which is correct - they run separate
 applications.
 
-The same rule holds in helpers, which has no `SingletonRealm`: `LoggerFactory`'s provider and level, `applicationEnvironment`
+The same rule holds in helpers, which has no `SingletonRealm`: `LoggerFactory`'s provider and level, `AppEnvs`
 and `ModuleUtility`'s registry each live in a `globalThis` slot keyed `Symbol.for('ignis:<name>')` (2026-09-06;
 two of the three were bare module instances before, and a consumer's `AppEnvs.set()` in one copy was invisible to
 the other). A new module-level singleton in helpers follows the same shape, and its test loads the module
@@ -439,7 +439,7 @@ pool at import cannot leak into a build.
 it reaches (`BaseHelper`, the logger, `env`) into lazy `__esm` initializers, and the `export *`
 barrel never calls the initializer for `env/app-env` - a bundle of
 `import { Environment } from '@venizia/ignis-helpers'` printed `undefined` for `Environment`,
-`applicationEnvironment` and `LoggerFactory`, and every compiled example crashed at import. Import
+`AppEnvs` and `LoggerFactory`, and every compiled example crashed at import. Import
 our own modules statically; keep optional peers behind `ModuleUtility.load`. Guard:
 `packages/helpers/src/__tests__/env/bundle-safe-reads.test.ts` bundles the barrel with the
 `bun build` CLI in a subprocess and reads the exports back.

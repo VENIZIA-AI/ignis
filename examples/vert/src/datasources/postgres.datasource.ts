@@ -2,7 +2,7 @@ import { EnvironmentKeys } from '@/common';
 import { datasource, type ValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
-import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
+import { AppEnvs, ParseUtility } from '@venizia/ignis-helpers';
 import { Pool } from 'pg';
 
 interface IDataSourceConfigs {
@@ -26,13 +26,13 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     super({
       name: PostgresDataSource.name,
       config: {
-        host: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_POSTGRES_HOST),
+        host: AppEnvs.getRequired(EnvironmentKeys.APP_ENV_POSTGRES_HOST),
         port: ParseUtility.toInt({
-          input: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_POSTGRES_PORT),
+          input: AppEnvs.getRequired(EnvironmentKeys.APP_ENV_POSTGRES_PORT),
         }),
-        database: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_POSTGRES_DATABASE),
-        user: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_POSTGRES_USERNAME),
-        password: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_POSTGRES_PASSWORD),
+        database: AppEnvs.getRequired(EnvironmentKeys.APP_ENV_POSTGRES_DATABASE),
+        user: AppEnvs.getRequired(EnvironmentKeys.APP_ENV_POSTGRES_USERNAME),
+        password: AppEnvs.getRequired(EnvironmentKeys.APP_ENV_POSTGRES_PASSWORD),
         ssl: false,
       },
     });

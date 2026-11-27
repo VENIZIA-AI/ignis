@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-223 exports, 223 with TSDoc. 261 more are re-exported from other entries (listed at the end).
+222 exports, 222 with TSDoc. 261 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -508,22 +508,10 @@ Source: `packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts`
 
 *const*
 
-Alias of `applicationEnvironment`.
-
-```ts
-export declare const AppEnvs: ApplicationEnvironment;
-```
-
-Source: `packages/helpers/src/modules/env/app-env.ts`
-
-## `applicationEnvironment`
-
-*const*
-
 The process-wide environment store, built from `process.env` with the prefix in `APPLICATION_ENV_PREFIX` (`APP_ENV` when unset). One instance is shared by every copy of this module in the process.
 
 ```ts
-export declare const applicationEnvironment: ApplicationEnvironment;
+export declare const AppEnvs: ApplicationEnvironment;
 ```
 
 Source: `packages/helpers/src/modules/env/app-env.ts`
@@ -532,7 +520,7 @@ Source: `packages/helpers/src/modules/env/app-env.ts`
 
 *class*
 
-Key-value store of the environment entries whose key starts with `prefix`; other keys are dropped at construction. `get` applies a default and an optional transform. Use the shared `applicationEnvironment` instance rather than constructing one.
+Key-value store of the environment entries whose key starts with `prefix`; other keys are dropped at construction. `get` applies a default and an optional transform. Use the shared `AppEnvs` instance rather than constructing one.
 
 ```ts
 export declare class ApplicationEnvironment extends BaseHelper implements IApplicationEnvironment {

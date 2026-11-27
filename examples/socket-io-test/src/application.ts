@@ -7,7 +7,7 @@ import {
   type ValueOrPromise,
 } from '@venizia/ignis';
 import { SocketIOBindingKeys, SocketIOComponent } from '@venizia/ignis/socket-io';
-import { applicationEnvironment, RedisSingleHelper } from '@venizia/ignis-helpers';
+import { AppEnvs, RedisSingleHelper } from '@venizia/ignis-helpers';
 import type { TSocketIOAuthenticateFn } from '@venizia/ignis-helpers/socket-io';
 import appInfo from '../package.json';
 
@@ -36,16 +36,16 @@ export class Application extends BaseApplication {
     // race the duplicates.
     this.redisHelper = new RedisSingleHelper({
       name: 'socket-io-redis',
-      host: applicationEnvironment.get('APP_ENV_REDIS_HOST') ?? 'localhost',
-      port: Number(applicationEnvironment.get('APP_ENV_REDIS_PORT') ?? 16380),
-      password: applicationEnvironment.get('APP_ENV_REDIS_PASSWORD') ?? '',
+      host: AppEnvs.get('APP_ENV_REDIS_HOST') ?? 'localhost',
+      port: Number(AppEnvs.get('APP_ENV_REDIS_PORT') ?? 16380),
+      password: AppEnvs.get('APP_ENV_REDIS_PASSWORD') ?? '',
       autoConnect: false,
     });
     this.bind({ key: SocketIOBindingKeys.REDIS_CONNECTION }).toValue(this.redisHelper);
 
     // Every client must send this token as `Bearer <token>` before it can join a room or exchange
     // messages - the handshake IGNIS requires regardless of transport.
-    const expectedToken = applicationEnvironment.get('APP_ENV_AUTH_TOKEN') ?? 'demo-token';
+    const expectedToken = AppEnvs.get('APP_ENV_AUTH_TOKEN') ?? 'demo-token';
     const authenticateFn: TSocketIOAuthenticateFn = (handshake) =>
       handshake.headers.authorization === `Bearer ${expectedToken}`;
     this.bind({ key: SocketIOBindingKeys.AUTHENTICATE_HANDLER }).toValue(authenticateFn);

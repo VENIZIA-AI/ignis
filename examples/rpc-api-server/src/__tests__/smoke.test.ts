@@ -4,7 +4,7 @@ import { z } from '@hono/zod-openapi';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import AutoArtifacts from '@venizia/ignis-boot/auto';
 import { Application } from '../application';
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 
 const HOST = '127.0.0.1';
 
@@ -38,8 +38,8 @@ describe('rpc-api-server', () => {
 
   beforeAll(async () => {
     // Unset means an in-memory database, so the test never touches app_data/.
-    applicationEnvironment.set('APP_ENV_PGLITE_DATA_DIR', undefined);
-    applicationEnvironment.set('APP_ENV_JWT_SECRET', 'smoke-test-secret-not-for-production');
+    AppEnvs.set('APP_ENV_PGLITE_DATA_DIR', undefined);
+    AppEnvs.set('APP_ENV_JWT_SECRET', 'smoke-test-secret-not-for-production');
 
     application = new Application({
       scope: 'SmokeTest',

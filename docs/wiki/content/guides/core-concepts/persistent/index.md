@@ -40,7 +40,7 @@ The persistent layer manages data using [Drizzle ORM](https://orm.drizzle.team/)
 ## Quick Example
 
 ```typescript
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 
 // 1. Define a Model: a Drizzle table, then the model class built from it
 export const userTable = pgTable('User', {
@@ -59,11 +59,11 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     super({
       name: PostgresDataSource.name,
       config: {
-        host: applicationEnvironment.get('APP_ENV_POSTGRES_HOST') ?? 'localhost',
-        port: +(applicationEnvironment.get('APP_ENV_POSTGRES_PORT') ?? 5432),
-        database: applicationEnvironment.get('APP_ENV_POSTGRES_DATABASE') ?? 'mydb',
-        user: applicationEnvironment.get('APP_ENV_POSTGRES_USERNAME') ?? 'postgres',
-        password: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD') ?? '',
+        host: AppEnvs.get('APP_ENV_POSTGRES_HOST') ?? 'localhost',
+        port: +(AppEnvs.get('APP_ENV_POSTGRES_PORT') ?? 5432),
+        database: AppEnvs.get('APP_ENV_POSTGRES_DATABASE') ?? 'mydb',
+        user: AppEnvs.get('APP_ENV_POSTGRES_USERNAME') ?? 'postgres',
+        password: AppEnvs.get('APP_ENV_POSTGRES_PASSWORD', { defaultValue: '' }),
       },
     });
   }

@@ -10,14 +10,14 @@ const loadTwice = () => {
   return { first, second };
 };
 
-describe('applicationEnvironment across module copies', () => {
+describe('AppEnvs across module copies', () => {
   test('two copies of the module resolve one instance, so a value set through one is read through the other', () => {
     const { first, second } = loadTwice();
 
     expect(first.ApplicationEnvironment).not.toBe(second.ApplicationEnvironment);
-    expect(first.applicationEnvironment).toBe(second.applicationEnvironment);
+    expect(first.AppEnvs).toBe(second.AppEnvs);
 
-    first.applicationEnvironment.set('APP_ENV_SHARED_PROBE', 'seen-by-both');
-    expect(second.applicationEnvironment.get('APP_ENV_SHARED_PROBE')).toBe('seen-by-both');
+    first.AppEnvs.set('APP_ENV_SHARED_PROBE', 'seen-by-both');
+    expect(second.AppEnvs.get('APP_ENV_SHARED_PROBE')).toBe('seen-by-both');
   });
 });

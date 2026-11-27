@@ -2,7 +2,7 @@ import { EnvironmentKeys } from '@/common/environments';
 import { getJwtClaims } from '@/common/jwt-claims';
 import { JWSTokenService } from '@venizia/ignis';
 import type { IJWTTokenPayload } from '@venizia/ignis';
-import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
+import { AppEnvs, ParseUtility } from '@venizia/ignis-helpers';
 
 /**
  * Mints a token with IGNIS's own `JWSTokenService` - the exact class `JWSAuthenticationStrategy`
@@ -18,9 +18,9 @@ import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
 export const mintToken = async (opts: { subject: string; role?: string }): Promise<string> => {
   const { subject, role = 'authenticated' } = opts;
 
-  const jwtSecret = applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_JWT_SECRET);
+  const jwtSecret = AppEnvs.getRequired(EnvironmentKeys.APP_ENV_JWT_SECRET);
   const expiresIn = ParseUtility.toInt({
-    input: applicationEnvironment.get(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN, {
+    input: AppEnvs.get(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN, {
       defaultValue: '3600',
     }),
   });

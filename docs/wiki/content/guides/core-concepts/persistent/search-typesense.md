@@ -134,7 +134,7 @@ The fill lives in the engine-neutral repository, so it applies on Meilisearch to
 **Server-side auto-embedding** - Typesense builds the vector from other fields at index time, so your app never computes an embedding. Point `embed.from` at the source fields and name an embedding model:
 
 ```typescript
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 
 // Local built-in model - runs on the Typesense server, no API key, no external calls:
 field.vector('embedding', {
@@ -149,7 +149,7 @@ field.vector('embedding', {
     model: {
       url: 'https://generativelanguage.googleapis.com/v1beta/openai',
       name: 'openai/gemini-embedding-001',
-      apiKey: applicationEnvironment.get('APP_ENV_GOOGLE_API_KEY'),
+      apiKey: AppEnvs.get('APP_ENV_GOOGLE_API_KEY'),
     },
   },
 });
@@ -205,7 +205,7 @@ await connector.linkSynonymSets({ collection: 'articles', synonymSets: ['article
 // src/datasources/search.datasource.ts
 import { datasource } from '@venizia/ignis';
 import { TypesenseDataSource } from '@venizia/ignis-connectors/typesense';
-import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
+import { AppEnvs, ParseUtility } from '@venizia/ignis-helpers';
 
 @datasource()
 export class SearchDataSource extends TypesenseDataSource {
@@ -215,12 +215,12 @@ export class SearchDataSource extends TypesenseDataSource {
       config: {
         nodes: [
           {
-            host: applicationEnvironment.getRequired('APP_ENV_TYPESENSE_HOST'),
-            port: ParseUtility.toInt({ input: applicationEnvironment.get('APP_ENV_TYPESENSE_PORT') }),
-            protocol: applicationEnvironment.get('APP_ENV_TYPESENSE_PROTOCOL'),
+            host: AppEnvs.getRequired('APP_ENV_TYPESENSE_HOST'),
+            port: ParseUtility.toInt({ input: AppEnvs.get('APP_ENV_TYPESENSE_PORT') }),
+            protocol: AppEnvs.get('APP_ENV_TYPESENSE_PROTOCOL'),
           },
         ],
-        apiKey: applicationEnvironment.getRequired('APP_ENV_TYPESENSE_API_KEY'),
+        apiKey: AppEnvs.getRequired('APP_ENV_TYPESENSE_API_KEY'),
       },
       // NO schema property - collections auto-discovered from @repository bindings, same convention as postgres.
     });

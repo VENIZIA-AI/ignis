@@ -37,23 +37,23 @@ APP_ENV_POSTGRES_HOST=localhost
 APP_ENV_POSTGRES_DATABASE=my_database
 ```
 
-Read a value through the `applicationEnvironment` helper:
+Read a value through the `AppEnvs` helper:
 
 ```typescript
 import { EnvironmentKeys } from '@venizia/ignis';
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 
 // 1. By name
-const host = applicationEnvironment.get('APP_ENV_POSTGRES_HOST');
+const host = AppEnvs.get('APP_ENV_POSTGRES_HOST');
 
 // 2. By a key constant (recommended)
-const sameHost = applicationEnvironment.get(EnvironmentKeys.APP_ENV_POSTGRES_HOST);
+const sameHost = AppEnvs.get(EnvironmentKeys.APP_ENV_POSTGRES_HOST);
 ```
 
 ## How it works
 
 - **One prefix, layered files.** Everything IGNIS reads is prefixed `APP_ENV_` (configurable - see the [Environment Variables Reference](./environment-variables.md#custom-environment-prefix)). Layer `.env`, `.env.local`, and `.env.{NODE_ENV}` the same way any dotenv-based tool does.
-- **`applicationEnvironment` snapshots `process.env` once at import.** It's built from whatever is in `process.env` when `@venizia/ignis-helpers` loads.
+- **`AppEnvs` snapshots `process.env` once at import.** It's built from whatever is in `process.env` when `@venizia/ignis-helpers` loads.
 - **Late values need an explicit merge.** A value set programmatically at runtime, after that snapshot, won't appear in `.keys()` unless merged in - secret hydration does this, see below.
 - **Empty values are allowed by default.** The emptiness check is skipped entirely unless you set `ALLOW_EMPTY_ENV_VALUE` to `false` or `0`. The startup banner prints `Empty values: ALLOWED (default)`.
 - **Turn it on and it checks emptiness, not absence.** With the check on, IGNIS iterates every `APP_ENV_*` key that IS set and throws if its value is empty. It never requires a variable to exist at all.
@@ -63,13 +63,13 @@ const sameHost = applicationEnvironment.get(EnvironmentKeys.APP_ENV_POSTGRES_HOS
 ## Common tasks
 
 ### Access a variable in code
-Prefer `applicationEnvironment.get()` over `process.env` directly - it stays in sync when secrets are hydrated from a vault.
+Prefer `AppEnvs.get()` over `process.env` directly - it stays in sync when secrets are hydrated from a vault.
 
 ```typescript
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 import { EnvironmentKeys } from '@venizia/ignis';
 
-const dbHost = applicationEnvironment.get(EnvironmentKeys.APP_ENV_POSTGRES_HOST);
+const dbHost = AppEnvs.get(EnvironmentKeys.APP_ENV_POSTGRES_HOST);
 ```
 
 ### Add a per-environment file
@@ -123,7 +123,7 @@ The logger reads a further set of `APP_ENV_LOGGER_*` names that `EnvironmentKeys
 see [Environment variables](./environment-variables).
 
 `APPLICATION_ENV_PREFIX` and `ALLOW_EMPTY_ENV_VALUE` are deliberately absent from the class. Neither
-carries the `APP_ENV` prefix, so `applicationEnvironment` never holds them - both are bootstrap
+carries the `APP_ENV` prefix, so `AppEnvs` never holds them - both are bootstrap
 variables read straight off `process.env`.
 
 ## See also
@@ -136,6 +136,6 @@ variables read straight off `process.env`.
 **Files:**
 
 - [`packages/core-server/src/common/environments.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/common/environments.ts) - `EnvironmentKeys`
-- [`packages/helpers/src/modules/env/app-env.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/env/app-env.ts) - `applicationEnvironment`, `Environment`, `ApplicationEnvironment`
+- [`packages/helpers/src/modules/env/app-env.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/env/app-env.ts) - `AppEnvs`, `Environment`, `ApplicationEnvironment`
 - [`packages/core-server/src/base/applications/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/applications/base.ts) - `validateEnvs()`
 - [`packages/core-server/src/base/applications/server.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/applications/server.ts) - host/port resolution

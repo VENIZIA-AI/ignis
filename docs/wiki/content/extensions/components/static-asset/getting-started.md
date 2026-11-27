@@ -105,7 +105,7 @@ A user uploads a workbook straight to S3. Your code reads it once, returns cell 
 ```ts
 import { Authentication } from '@venizia/ignis';
 import { z } from '@hono/zod-openapi';
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 import type { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 import { StaticAssetValidation } from '@venizia/ignis/static-asset';
 import type { TStaticAssetComponentOptions } from '@venizia/ignis/static-asset';
@@ -137,7 +137,7 @@ export const buildOrderImport = (opts: {
     routes: { uploadCommit: { use: false } },
     directUpload: {
       use: true,
-      secretKey: applicationEnvironment.getRequired('APP_ENV_UPLOAD_SECRET'),
+      secretKey: AppEnvs.getRequired('APP_ENV_UPLOAD_SECRET'),
       maxBytes: 20 * 1024 * 1024,
       resolvers: {
         owner: ({ context }) => String(context.get(Authentication.CURRENT_USER).userId),

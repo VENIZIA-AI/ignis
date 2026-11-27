@@ -410,16 +410,16 @@ const nearby = await connector.execute(sql`
 ### Environment Variables
 
 ```typescript
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 
 // Use for: secrets, environment-specific values
 const config = {
   database: {
-    host: applicationEnvironment.get('APP_ENV_POSTGRES_HOST'),
-    password: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD'),
+    host: AppEnvs.get('APP_ENV_POSTGRES_HOST'),
+    password: AppEnvs.get('APP_ENV_POSTGRES_PASSWORD'),
   },
   stripe: {
-    secretKey: applicationEnvironment.get('APP_ENV_STRIPE_SECRET_KEY'),
+    secretKey: AppEnvs.get('APP_ENV_STRIPE_SECRET_KEY'),
   },
 };
 ```

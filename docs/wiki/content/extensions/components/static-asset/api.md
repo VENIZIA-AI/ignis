@@ -605,12 +605,12 @@ interface IBunS3HelperOptions {
 Wraps Bun's native `S3Client`, imported from the `bun` builtin module. That module only resolves under the Bun runtime. This is why `BunS3Helper` is exported from the separate `@venizia/ignis-helpers/bun-s3` subpath, not the main entry point.
 
 ```typescript
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 
 const bunS3Helper = new BunS3Helper({
-  accessKey: applicationEnvironment.get('S3_ACCESS_KEY'),
-  secretKey: applicationEnvironment.get('S3_SECRET_KEY'),
+  accessKey: AppEnvs.get('S3_ACCESS_KEY'),
+  secretKey: AppEnvs.get('S3_SECRET_KEY'),
   endpoint: { default: 'https://s3.us-east-1.amazonaws.com' },
 });
 ```

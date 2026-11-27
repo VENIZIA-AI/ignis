@@ -3,7 +3,7 @@ import 'reflect-metadata';
 import { BaseApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications';
 import { ControllerTransports } from '@venizia/ignis-kernel';
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
@@ -36,11 +36,11 @@ const validate = () => {
 
 describe('validateEnvs and the ALLOW_EMPTY_ENV_VALUE default', () => {
   beforeEach(() => {
-    applicationEnvironment.set(EMPTY_KEY, '');
+    AppEnvs.set(EMPTY_KEY, '');
   });
 
   afterEach(() => {
-    applicationEnvironment.set(EMPTY_KEY, undefined);
+    AppEnvs.set(EMPTY_KEY, undefined);
     delete process.env.ALLOW_EMPTY_ENV_VALUE;
   });
 
@@ -76,7 +76,7 @@ describe('validateEnvs and the ALLOW_EMPTY_ENV_VALUE default', () => {
 
   test('a populated value passes even with validation ON - the check is about empties only', () => {
     process.env.ALLOW_EMPTY_ENV_VALUE = 'false';
-    applicationEnvironment.set(EMPTY_KEY, 'a-real-value');
+    AppEnvs.set(EMPTY_KEY, 'a-real-value');
 
     expect(validate()).not.toThrow();
   });

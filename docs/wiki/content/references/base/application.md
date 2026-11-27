@@ -113,7 +113,7 @@ Port `0` survives that scan on purpose - it asks the operating system for an eph
 - **Runtime Guard:** the error reads `IGNIS requires Bun >= 1.4 (running on <runtime>)`, and it fires before `start()` touches a hook, a datasource or a socket.
 - **Core Bindings:** `CoreBindings.APPLICATION_INSTANCE`, `CoreBindings.APPLICATION_SERVER` and `CoreBindings.APPLICATION_ROOT_ROUTER`.
 - **Lifecycle Management:** the abstract methods are `preConfigure`, `postConfigure`, `setupMiddlewares`, `staticConfigure`, `initialize` and `getAppInfo`.
-- **Environment Validation:** set `ALLOW_EMPTY_ENV_VALUE=false` (or `0`) to require every registered `applicationEnvironment` key to be non-empty.
+- **Environment Validation:** set `ALLOW_EMPTY_ENV_VALUE=false` (or `0`) to require every registered `AppEnvs` key to be non-empty.
 
 ### Abstract Methods
 

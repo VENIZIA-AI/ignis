@@ -1,4 +1,4 @@
-import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
+import { AppEnvs, ParseUtility } from '@venizia/ignis-helpers';
 import { defineConfig } from 'drizzle-kit';
 
 /**
@@ -18,7 +18,7 @@ export default defineConfig({
   dbCredentials: {
     url:
       ParseUtility.blankToUndefined({
-        input: applicationEnvironment.get('APP_ENV_SUPABASE_DATABASE_URL'),
+        input: AppEnvs.get('APP_ENV_SUPABASE_DATABASE_URL'),
       }) ?? '',
   },
 });

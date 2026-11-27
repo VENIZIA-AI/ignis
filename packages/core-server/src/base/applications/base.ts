@@ -23,7 +23,7 @@ import { ParseUtility, getError } from '@venizia/ignis-helpers/core';
 import { HTTP, ObjectUtility } from '@venizia/ignis-helpers/common';
 import { DEFAULT_TEMPORAL_TZ } from '@venizia/ignis-helpers/temporal';
 import {
-  applicationEnvironment,
+  AppEnvs,
   SecretsHelperFactory,
   PerformanceUtility,
   Environment,
@@ -288,7 +288,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
       process.env[key] = value;
     }
 
-    applicationEnvironment.merge({ envs: merged });
+    AppEnvs.merge({ envs: merged });
 
     return merged;
   }
@@ -424,10 +424,10 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     });
   }
 
-  /** Lives here rather than on `AbstractApplication` - `applicationEnvironment` reads `process.env` at module load, so a kernel-pure ancestor cannot carry it; this is the layer that already depends on it. */
+  /** Lives here rather than on `AbstractApplication` - `AppEnvs` reads `process.env` at module load, so a kernel-pure ancestor cannot carry it; this is the layer that already depends on it. */
   protected validateEnvs() {
     const t = performance.now();
-    const envKeys = applicationEnvironment.keys();
+    const envKeys = AppEnvs.keys();
 
     // Permissive by DEFAULT: a name a host leaves empty is the host's business, and an empty value
     // already falls back to `defaultValue` at read time, so refusing to boot over one fights the
@@ -457,7 +457,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     }
 
     for (const argKey of envKeys) {
-      const argValue = applicationEnvironment.get(argKey);
+      const argValue = AppEnvs.get(argKey);
 
       if (!ObjectUtility.isEmpty({ value: argValue })) {
         continue;

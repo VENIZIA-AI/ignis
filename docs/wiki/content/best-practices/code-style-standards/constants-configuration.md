@@ -180,7 +180,7 @@ constructor(options: IJWSTokenServiceOptions) {
 
 ## Environment Variables Management
 
-Avoid using `process.env` directly in your business logic. Instead, use the `applicationEnvironment`
+Avoid using `process.env` directly in your business logic. Instead, use the `AppEnvs`
 helper and define your keys as constants.
 
 Two constraints it enforces:
@@ -200,14 +200,14 @@ export class EnvironmentKeys {
 
 **Usage:**
 ```typescript
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 import { EnvironmentKeys } from '@/common/environments';
 
 // Correct usage
-const stripeKey = applicationEnvironment.get(EnvironmentKeys.APP_ENV_STRIPE_KEY);
+const stripeKey = AppEnvs.get(EnvironmentKeys.APP_ENV_STRIPE_KEY);
 
 // Numbers need an explicit transform - the stored value is a string
-const retries = applicationEnvironment.get(EnvironmentKeys.APP_ENV_MAX_RETRIES, {
+const retries = AppEnvs.get(EnvironmentKeys.APP_ENV_MAX_RETRIES, {
   transform: (raw) => (raw === undefined ? undefined : Number(raw)),
   defaultValue: 3,
 });

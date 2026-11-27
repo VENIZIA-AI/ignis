@@ -156,8 +156,8 @@ export class ParseUtility {
    * itself:
    *
    * ```ts
-   * ParseUtility.toInt({ input: applicationEnvironment.get(KEY, { defaultValue: '6379' }) })  // correct
-   * ParseUtility.toInt({ input: applicationEnvironment.get(KEY) }) ?? 6379                    // always 0 when KEY is unset
+   * ParseUtility.toInt({ input: AppEnvs.get(KEY, { defaultValue: '6379' }) })  // correct
+   * ParseUtility.toInt({ input: AppEnvs.get(KEY) }) ?? 6379                    // always 0 when KEY is unset
    * ```
    *
    * The second form is silent: a missing port reads `0` and a missing retry budget reads `0`, which
@@ -212,7 +212,7 @@ export class ParseUtility {
    * @throws ApplicationError `[toNumber] <the value> is not a number`; the value is echoed escaped and cut at 40 characters.
    * @example
    * ```ts
-   * applicationEnvironment.get(KEY, {
+   * AppEnvs.get(KEY, {
    *   transform: (raw) => ParseUtility.toNumber({ input: raw }),
    *   defaultValue: 6379,
    * });
@@ -289,7 +289,7 @@ export class ParseUtility {
     return resultMap;
   }
 
-  /** Splits a delimited string into trimmed, non-empty entries - the transform for list-shaped env values (e.g. `applicationEnvironment.get(KEY, { transform: (input) => ParseUtility.toDelimitedArray({ input }) })`). */
+  /** Splits a delimited string into trimmed, non-empty entries - the transform for list-shaped env values (e.g. `AppEnvs.get(KEY, { transform: (input) => ParseUtility.toDelimitedArray({ input }) })`). */
   static toDelimitedArray(opts: { input: unknown; separator?: string }): string[] {
     const { input, separator = ',' } = opts;
 

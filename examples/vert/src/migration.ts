@@ -1,6 +1,6 @@
 import 'dotenv-flow/config';
 
-import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
+import { AppEnvs, ParseUtility } from '@venizia/ignis-helpers';
 import { defineConfig } from 'drizzle-kit';
 
 // drizzle-kit runs under Node, so dotenv-flow loads the .env files Bun would load by itself.
@@ -11,25 +11,25 @@ export default defineConfig({
   dbCredentials: {
     host:
       ParseUtility.blankToUndefined({
-        input: applicationEnvironment.get('APP_ENV_POSTGRES_HOST'),
+        input: AppEnvs.get('APP_ENV_POSTGRES_HOST'),
       }) ?? '127.0.0.1',
     port: ParseUtility.toInt({
       input:
         ParseUtility.blankToUndefined({
-          input: applicationEnvironment.get('APP_ENV_POSTGRES_PORT'),
+          input: AppEnvs.get('APP_ENV_POSTGRES_PORT'),
         }) ?? '5432',
     }),
     database:
       ParseUtility.blankToUndefined({
-        input: applicationEnvironment.get('APP_ENV_POSTGRES_DATABASE'),
+        input: AppEnvs.get('APP_ENV_POSTGRES_DATABASE'),
       }) ?? 'postgres',
     user:
       ParseUtility.blankToUndefined({
-        input: applicationEnvironment.get('APP_ENV_POSTGRES_USERNAME'),
+        input: AppEnvs.get('APP_ENV_POSTGRES_USERNAME'),
       }) ?? 'postgres',
     password:
       ParseUtility.blankToUndefined({
-        input: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD'),
+        input: AppEnvs.get('APP_ENV_POSTGRES_PASSWORD'),
       }) ?? 'password',
     ssl: false,
   },

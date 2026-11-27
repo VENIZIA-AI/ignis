@@ -77,7 +77,7 @@ describe('@venizia/prefer-framework-api, rows outside React', () => {
       'const a = process.env.APP_ENV_PORT ?? 3000;',
     ]) {
       expect(lint(code)).toEqual([
-        "Read an `APP_ENV_` name with `applicationEnvironment.get(key)`, not `process.env`: `import { applicationEnvironment } from '@venizia/ignis-helpers';`",
+        "Read an `APP_ENV_` name with `AppEnvs.get(key)`, not `process.env`: `import { AppEnvs } from '@venizia/ignis-helpers';`",
       ]);
     }
   });
@@ -115,7 +115,7 @@ describe('@venizia/prefer-framework-api, rows outside React', () => {
       "url ||= 'http://127.0.0.1';",
     ]) {
       expect(lint(code, { root: BARE })).toEqual([
-        "Require the value instead, a `localhost` URL as a fallback is used wherever the setting is missing: `applicationEnvironment.getRequired(key)` (`import { applicationEnvironment } from '@venizia/ignis-helpers';`) or `RuntimeConfig.getRequired({ key })` (`import { RuntimeConfig } from '@venizia/ardor-kernel';`).",
+        "Require the value instead, a `localhost` URL as a fallback is used wherever the setting is missing: `AppEnvs.getRequired(key)` (`import { AppEnvs } from '@venizia/ignis-helpers';`) or `RuntimeConfig.getRequired({ key })` (`import { RuntimeConfig } from '@venizia/ardor-kernel';`).",
       ]);
     }
   });

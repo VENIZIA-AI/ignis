@@ -340,7 +340,7 @@ This means tables and relations never need to be manually merged in the datasour
 import { datasource, ValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
-import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
+import { AppEnvs, ParseUtility } from '@venizia/ignis-helpers';
 import { Pool } from 'pg';
 
 interface IDataSourceConfigs {
@@ -360,11 +360,11 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     super({
       name: PostgresDataSource.name,
       config: {
-        host: applicationEnvironment.getRequired('APP_ENV_POSTGRES_HOST'),
-        port: ParseUtility.toInt({ input: applicationEnvironment.get('APP_ENV_POSTGRES_PORT') }),
-        database: applicationEnvironment.getRequired('APP_ENV_POSTGRES_DATABASE'),
-        user: applicationEnvironment.getRequired('APP_ENV_POSTGRES_USERNAME'),
-        password: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD', { defaultValue: '' }),
+        host: AppEnvs.getRequired('APP_ENV_POSTGRES_HOST'),
+        port: ParseUtility.toInt({ input: AppEnvs.get('APP_ENV_POSTGRES_PORT') }),
+        database: AppEnvs.getRequired('APP_ENV_POSTGRES_DATABASE'),
+        user: AppEnvs.getRequired('APP_ENV_POSTGRES_USERNAME'),
+        password: AppEnvs.get('APP_ENV_POSTGRES_PASSWORD', { defaultValue: '' }),
         ssl: false,
       },
       // NO schema property - auto-discovered from @repository bindings.
@@ -409,7 +409,7 @@ import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-post
 import { Pool } from 'pg';
 import { User, userTable, userRelations } from '@/models/user.model';
 import { Configuration, configurationTable, configurationRelations } from '@/models/configuration.model';
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 
 @datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
@@ -417,11 +417,11 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     super({
       name: PostgresDataSource.name,
       config: {
-        host: applicationEnvironment.get('APP_ENV_POSTGRES_HOST') ?? 'localhost',
-        port: +(applicationEnvironment.get('APP_ENV_POSTGRES_PORT') ?? 5432),
-        database: applicationEnvironment.get('APP_ENV_POSTGRES_DATABASE') ?? 'mydb',
-        user: applicationEnvironment.get('APP_ENV_POSTGRES_USERNAME') ?? 'postgres',
-        password: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD') ?? '',
+        host: AppEnvs.get('APP_ENV_POSTGRES_HOST') ?? 'localhost',
+        port: +(AppEnvs.get('APP_ENV_POSTGRES_PORT') ?? 5432),
+        database: AppEnvs.get('APP_ENV_POSTGRES_DATABASE') ?? 'mydb',
+        user: AppEnvs.get('APP_ENV_POSTGRES_USERNAME') ?? 'postgres',
+        password: AppEnvs.get('APP_ENV_POSTGRES_PASSWORD', { defaultValue: '' }),
       },
       // Manually provide schema using spread syntax.
       schema: {

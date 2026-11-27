@@ -127,7 +127,7 @@ this.component(MailComponent);
 - **Fix.** Use the exact field names `mailgun.js` expects:
 
 ```typescript
-config: { username: 'api', key: applicationEnvironment.get('MAILGUN_API_KEY'), domain: 'mg.example.com' }
+config: { username: 'api', key: AppEnvs.get('MAILGUN_API_KEY'), domain: 'mg.example.com' }
 ```
 
 ### `core.mail.template_not_found` from `sendTemplate()`
