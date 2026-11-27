@@ -574,7 +574,7 @@ Every `@platformatic/kafka` fix needed by `bun build --compile`: a service compi
 
 ```ts
 export declare class PlatformaticKafkaPlugins {
-    /** `@platformatic/kafka` 2.8-2.9 resolves some dependencies through `createRequire(import.meta.url)` at module scope; `bun build --compile` cannot see through that, so the specifier stays unresolved and the binary dies with "Cannot find package" before boot - this plugin hoists those calls to static imports at bundle time. 2.10 removed the module-scope require(), so on >= 2.10 the plugin matches nothing and is inert. */
+    /** `@platformatic/kafka` resolves some dependencies through `createRequire(import.meta.url)` at module scope (2.8-2.9, and 2.17 and later); `bun build --compile` cannot see through that, so the binary dies with "Cannot find module" before boot - this plugin hoists those calls to static imports of the file each `require` would load. A version with no such call is left as it is. */
     static buildRequirePlugin(): BunPlugin;
     /** `@platformatic/wasm-utils`'s default entrypoint reads `native.wasm` from disk at module load and `bun build --compile` embeds JS only, so it resolves against `/$bunfs` and the binary dies with ENOENT - this plugin redirects the import to the `/bundled` entrypoint (wasm inlined). */
     static buildWasmPlugin(): BunPlugin;

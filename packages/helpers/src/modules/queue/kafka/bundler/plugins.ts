@@ -1,5 +1,6 @@
 import { getError } from '@/modules/error';
 import type { BunPlugin } from 'bun';
+import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
 import {
   KafkaBundlerPluginNames,
@@ -9,13 +10,16 @@ import {
 
 /** Every `@platformatic/kafka` fix needed by `bun build --compile`: a service compile script registers `build()` instead of tracking the individual plugins. */
 export class PlatformaticKafkaPlugins {
-  /** `@platformatic/kafka` 2.8-2.9 resolves some dependencies through `createRequire(import.meta.url)` at module scope; `bun build --compile` cannot see through that, so the specifier stays unresolved and the binary dies with "Cannot find package" before boot - this plugin hoists those calls to static imports at bundle time. 2.10 removed the module-scope require(), so on >= 2.10 the plugin matches nothing and is inert. */
+  /** `@platformatic/kafka` resolves some dependencies through `createRequire(import.meta.url)` at module scope (2.8-2.9, and 2.17 and later); `bun build --compile` cannot see through that, so the binary dies with "Cannot find module" before boot - this plugin hoists those calls to static imports of the file each `require` would load. A version with no such call is left as it is. */
   static buildRequirePlugin(): BunPlugin {
     return {
       name: KafkaBundlerPluginNames.PLATFORMATIC_REQUIRE,
       setup(build) {
         build.onLoad({ filter: PlatformaticRequireSpecifiers.MODULE_FILTER }, async (args) => {
           const source = await Bun.file(args.path).text();
+          // The file the `require` would load: an `import` of the bare specifier follows other `exports` conditions, and
+          // a package that exports a sub-path to `require` only (`mnemonist/lru-cache.js`) does not resolve.
+          const { resolve } = createRequire(args.path);
           const imports: string[] = [];
 
           const contents = source.replace(
@@ -26,7 +30,7 @@ export class PlatformaticKafkaPlugins {
               }
 
               const alias = `${PlatformaticRequireSpecifiers.IMPORT_ALIAS_PREFIX}${imports.length}`;
-              imports.push(`import ${alias} from ${JSON.stringify(specifier)};`);
+              imports.push(`import ${alias} from ${JSON.stringify(resolve(specifier))};`);
 
               // No `?.default` unwrap: a default import already yields `module.exports` for CJS, and
               // unwrapping would break JSON payloads carrying their own top-level `default` key - the
