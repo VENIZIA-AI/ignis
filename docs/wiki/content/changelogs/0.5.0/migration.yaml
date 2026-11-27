@@ -1072,9 +1072,12 @@ oxlint-base-rules:
         ],
       });
     steps:
-      - "Run bun node_modules/.bin/devz codemod function-to-arrow src (a dry run), then again with --write. Rewrite by hand the declarations it lists, then run your typecheck, formatter and tests."
-      - "Write any other function as an arrow or a function expression, add a default to each switch, and log through the framework logger instead of console."
-      - "For a file whose job is writing to the console, add an override that names that file, as in the example."
+      - "func-style: oxlint --fix does not rewrite it. Run bun node_modules/.bin/devz codemod function-to-arrow src (a dry run), then again with --write."
+      - "Go through what lint still reports among the declarations the codemod lists with a reason. Used before declared: move it above its first use, then run the codemod again. A generator: write it as a function expression (const read = function* () {}). this, arguments, new.target, new or merged declarations: rewrite by hand. An assertion signature: type the const with the signature, or disable the rule on that line with the reason. The rule does not report export default functions or overloads."
+      - "default-case: edit by hand. Add a default branch, or the comment // no default as the last line of a switch that is meant to have none."
+      - "no-console: edit by hand. Log through the framework logger (LoggerFactory.getLogger(['scope']) from @venizia/ignis-helpers). Do not run oxlint --fix-suggestions or --fix-dangerously for this: they delete the console lines."
+      - "For files whose job is writing to the console (a CLI, a script), turn the rule off for them with an override, as in the example; a glob such as scripts/** covers a folder."
+      - "Run your typecheck, formatter and tests."
   downgrade:
     steps:
       - "Pin @venizia/dev-configs to the release before this one."
@@ -1245,11 +1248,24 @@ light-route-config:
     after: |-
       const route = { method: 'post', path: '/{id}', request: { body }, responses } satisfies IAuthRouteConfig;
       const path = route.path.replace(/\{([^}]+)\}/g, ':$1'); // getRoutingPath() answered '/:id'
+
+      // A test that reads a request part off a value typed IAuthRouteConfig
+      const readQueryKeys = (config: IAuthRouteConfig) => {
+        const query = config.request?.query; // was a zod type, is now { _zod: unknown }
+
+        if (!(query instanceof z.ZodObject)) {
+          throw getError({ message: 'query is not a zod object' });
+        }
+
+        return Object.keys(query.shape);
+      };
     steps:
       - "Run your typecheck. Move requestBody to request.body, and register a query route as post or get."
       - "Remove a member the type does not name, or write it as an x- extension."
       - "Where you called getRoutingPath() on configs, use the path you declared: getRoutingPath() answered it with {id} written as :id."
       - "Where you pass an IAuthRouteConfig to createRoute or another Hono API, convert the type there."
+      - "Where code or a test calls zod on request.query, params, cookies or headers of a value typed IAuthRouteConfig, narrow it first: instanceof z.ZodObject (z from @hono/zod-openapi) for .shape, instanceof z.ZodType for .safeParse. headers may also be a list."
+      - "A route you declare yourself keeps your schema's type when it is written with satisfies IAuthRouteConfig instead of a type annotation: then nothing needs narrowing."
   downgrade:
     steps:
       - "Pin @venizia/ignis-kernel and @venizia/ignis to the release before this one."
