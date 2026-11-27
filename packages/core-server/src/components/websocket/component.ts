@@ -1,4 +1,4 @@
-import { type BaseApplication, type TBunServerInstance } from '@/base/applications';
+import { type BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@venizia/ignis-kernel';
 import { inject } from '@/base/metadata';
 import { CoreBindings } from '@venizia/ignis-kernel';
@@ -9,6 +9,7 @@ import {
   isRedisHelper,
   type TWebSocketValidateRoomFn,
   WebSocketDefaults,
+  type IWebSocketData,
   WebSocketServerHelper,
 } from '@venizia/ignis-helpers';
 import {
@@ -36,6 +37,10 @@ export class WebSocketComponent extends BaseComponent {
 
         [WebSocketBindingKeys.REDIS_CONNECTION]: Binding.bind({
           key: WebSocketBindingKeys.REDIS_CONNECTION,
+        }).toValue(null),
+
+        [WebSocketBindingKeys.AUTH_SCHEMA]: Binding.bind({
+          key: WebSocketBindingKeys.AUTH_SCHEMA,
         }).toValue(null),
 
         [WebSocketBindingKeys.AUTHENTICATE_HANDLER]: Binding.bind({
@@ -100,6 +105,10 @@ export class WebSocketComponent extends BaseComponent {
       });
     }
 
+    const authSchema =
+      this.application.get({
+        key: WebSocketBindingKeys.AUTH_SCHEMA,
+      }) ?? undefined;
     const validateRoomFn =
       this.application.get({
         key: WebSocketBindingKeys.VALIDATE_ROOM_HANDLER,
@@ -127,6 +136,7 @@ export class WebSocketComponent extends BaseComponent {
 
     return {
       redisConnection,
+      authSchema,
       authenticateFn,
       validateRoomFn,
       clientConnectedFn,
@@ -140,6 +150,7 @@ export class WebSocketComponent extends BaseComponent {
   private registerBunHook(opts: IResolvedBindings) {
     const {
       redisConnection,
+      authSchema,
       authenticateFn,
       validateRoomFn,
       clientConnectedFn,
@@ -155,7 +166,7 @@ export class WebSocketComponent extends BaseComponent {
     this.application.registerPostStartHook({
       identifier: 'websocket-initialize',
       hook: async () => {
-        const serverInstance = this.application.getServerInstance<TBunServerInstance>();
+        const serverInstance = this.application.getServerInstance<Bun.Server<IWebSocketData>>();
         const honoServer = this.application.getServer();
 
         if (!serverInstance) {
@@ -173,6 +184,7 @@ export class WebSocketComponent extends BaseComponent {
           heartbeatTimeout: serverOptions.heartbeatTimeout,
           server: serverInstance,
           redisConnection,
+          authSchema,
           authenticateFn,
           validateRoomFn,
           clientConnectedFn,

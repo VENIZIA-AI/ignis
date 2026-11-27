@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-223 exports, 223 with TSDoc. 261 more are re-exported from other entries (listed at the end).
+225 exports, 225 with TSDoc. 261 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -1832,10 +1832,10 @@ Return type for getBunWebSocketHandler - handlers + config spread for server.rel
 
 ```ts
 export interface IBunWebSocketHandler extends IBunWebSocketConfig {
-    open: (socket: IWebSocket) => void;
-    message: (socket: IWebSocket, message: string | Buffer) => void;
-    close: (socket: IWebSocket, code: number, reason: string) => void;
-    drain: (socket: IWebSocket) => void;
+    open: (socket: IWebSocket<IWebSocketData>) => void;
+    message: (socket: IWebSocket<IWebSocketData>, message: string | Buffer) => void;
+    close: (socket: IWebSocket<IWebSocketData>, code: number, reason: string) => void;
+    drain: (socket: IWebSocket<IWebSocketData>) => void;
 }
 ```
 
@@ -3451,14 +3451,14 @@ export interface IWebSocketMessage<DataType = unknown> {
 
 Source: `packages/helpers/src/modules/socket/websocket/common/types/message.ts`
 
-## `IWebSocketServerOptions`
+## `IWebSocketServerBaseOptions`
 
 *interface*
 
-Options for `WebSocketServerHelper`. Timeouts and intervals are milliseconds. `handshakeFn` is required when `requireEncryption` is true.
+The options of `WebSocketServerHelper` that do not concern authentication. Timeouts and intervals are milliseconds.
 
 ```ts
-export interface IWebSocketServerOptions<AuthDataType extends Record<string, unknown> = Record<string, unknown>, MetadataType extends Record<string, unknown> = Record<string, unknown>> {
+export interface IWebSocketServerBaseOptions<MetadataType extends Record<string, unknown> = Record<string, unknown>> {
     identifier: string;
     /** @default '/ws' */
     path?: string;
@@ -3497,13 +3497,11 @@ export interface IWebSocketServerOptions<AuthDataType extends Record<string, unk
      * @default false
      */
     requireEncryption?: boolean;
-    authenticateFn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
     validateRoomFn?: TWebSocketValidateRoomFn;
     clientConnectedFn?: TWebSocketClientConnectedFn<MetadataType>;
     clientDisconnectedFn?: TWebSocketClientDisconnectedFn;
     messageHandler?: TWebSocketMessageHandler;
     outboundTransformer?: TWebSocketOutboundTransformer<unknown, MetadataType>;
-    handshakeFn?: TWebSocketHandshakeFn<AuthDataType>;
 }
 ```
 
@@ -5031,6 +5029,29 @@ export type TWebSocketAuthenticateFn<AuthDataType extends Record<string, unknown
 
 Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
 
+## `TWebSocketAuthOptions`
+
+*type*
+
+How the authentication data is checked, with the hooks that receive it. The server refuses data that is not an object;
+with `authSchema` it also refuses what the schema refuses, and the hooks receive what the schema answers.
+
+```ts
+export type TWebSocketAuthOptions<AuthDataType extends Record<string, unknown> = Record<string, unknown>, MetadataType extends Record<string, unknown> = Record<string, unknown>> = {
+    authSchema: z.ZodType<AuthDataType>;
+    authenticateFn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
+    /** Required when `requireEncryption` is true. */
+    handshakeFn?: TWebSocketHandshakeFn<AuthDataType>;
+} | {
+    authSchema?: undefined;
+    authenticateFn: TWebSocketAuthenticateFn<Record<string, unknown>, MetadataType>;
+    /** Required when `requireEncryption` is true. */
+    handshakeFn?: TWebSocketHandshakeFn;
+};
+```
+
+Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
+
 ## `TWebSocketClientConnectedFn`
 
 *type*
@@ -5151,6 +5172,18 @@ export type TWebSocketOutboundTransformer<DataType = unknown, MetadataType exten
 ```
 
 Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
+
+## `TWebSocketServerOptions`
+
+*type*
+
+Options for `WebSocketServerHelper`. `handshakeFn` is required when `requireEncryption` is true.
+
+```ts
+export type TWebSocketServerOptions<AuthDataType extends Record<string, unknown> = Record<string, unknown>, MetadataType extends Record<string, unknown> = Record<string, unknown>> = IWebSocketServerBaseOptions<MetadataType> & TWebSocketAuthOptions<AuthDataType, MetadataType>;
+```
+
+Source: `packages/helpers/src/modules/socket/websocket/common/types/server.ts`
 
 ## `TWebSocketValidateRoomFn`
 
@@ -5430,12 +5463,12 @@ export declare class WebSocketServerHelper<AuthDataType extends Record<string, u
     private delivery;
     private redisPub;
     private redisSub;
-    private authenticateFn;
+    /** Checks authentication data and binds the hooks to it; `undefined` refuses the client. */
+    private openAuthSession;
     private validateRoomFn?;
     private onClientConnected?;
     private onClientDisconnected?;
     private messageHandler?;
-    private handshakeFn?;
     private defaultRooms;
     private serverOptions;
     private authTimeout;
@@ -5443,7 +5476,9 @@ export declare class WebSocketServerHelper<AuthDataType extends Record<string, u
     private heartbeatTimeout;
     private heartbeatTimer;
     private requireEncryption;
-    constructor(opts: IWebSocketServerOptions<AuthDataType, MetadataType>);
+    /** The two shapes of the options: with a schema the data is what it answers, without one the object as it came. */
+    private static authSessionOf;
+    constructor(opts: TWebSocketServerOptions<AuthDataType, MetadataType>);
     private initRedisClients;
     getClients(opts?: {
         id?: string;

@@ -1079,3 +1079,28 @@ oxlint-base-rules:
     steps:
       - "Pin @venizia/dev-configs to the release before this one."
   data: Nothing stored changes.
+
+websocket-payload-types:
+  symbols: [TWebSocketServerOptions, TWebSocketAuthOptions, IWebSocketServerBaseOptions, IBunWebSocketHandler, WebSocketBindingKeys, WebSocketServerHelper]
+  codemod: class-renames
+  upgrade:
+    before: |-
+      new WebSocketServerHelper<{ token: string }>({
+        ...options,
+        authenticateFn: data => verify(data.token),
+      });
+    after: |-
+      new WebSocketServerHelper({
+        ...options,
+        authSchema: z.object({ token: z.string() }),
+        authenticateFn: data => verify(data.token),
+      });
+    steps:
+      - "Run bun node_modules/.bin/devz codemod class-renames [paths...] --write, then your typecheck."
+      - "Where you named the type of the authentication data, pass authSchema instead, or narrow the Record<string, unknown> the hook receives."
+      - "Make every client send data as an object in its authenticate message; send {} where there is nothing to send."
+      - "Through WebSocketComponent, bind the schema to WebSocketBindingKeys.AUTH_SCHEMA; the hooks bound there keep the Record<string, unknown> type."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-helpers and @venizia/ignis to the release before this one and remove authSchema."
+  data: Nothing stored changes.

@@ -4,7 +4,7 @@ import { getError } from '@/modules/error';
 import { AbstractRedisHelper, type IRedisHelper, type TRedisClient } from '@/modules/redis';
 import {
   type IWebSocketClient,
-  type IWebSocketServerOptions,
+  type TWebSocketServerOptions,
   WebSocketClientStates,
   WebSocketEvents,
   WebSocketServerHelper,
@@ -70,7 +70,7 @@ const createMockSocket = (clientId: string) => {
 
 const helpers: WebSocketServerHelper[] = [];
 
-const createHelper = (opts?: Partial<IWebSocketServerOptions>) => {
+const createHelper = (opts?: Partial<TWebSocketServerOptions>) => {
   const { helper: redisConnection, clients } = createMockRedisHelper();
 
   const helper = new WebSocketServerHelper({
@@ -79,7 +79,7 @@ const createHelper = (opts?: Partial<IWebSocketServerOptions>) => {
     server: { publish: mock(() => 1), pendingWebSockets: 0 },
     authenticateFn: () => ({ userId: 'user-a' }),
     ...opts,
-  } as IWebSocketServerOptions);
+  } as TWebSocketServerOptions);
 
   helpers.push(helper);
 

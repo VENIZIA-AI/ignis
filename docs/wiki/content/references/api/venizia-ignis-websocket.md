@@ -20,6 +20,8 @@ export declare class WebSocketBindingKeys {
     static readonly WEBSOCKET_INSTANCE: import("@venizia/ignis-inversion").TBindingKey<WebSocketServerHelper<Record<string, unknown>, Record<string, unknown>>>;
     static readonly SERVER_OPTIONS: import("@venizia/ignis-inversion").TBindingKey<Partial<IServerOptions>>;
     static readonly REDIS_CONNECTION: import("@venizia/ignis-inversion").TBindingKey<IRedisHelper | null>;
+    /** Checks the authentication data before `AUTHENTICATE_HANDLER` and `HANDSHAKE_HANDLER` receive it. Optional. */
+    static readonly AUTH_SCHEMA: import("@venizia/ignis-inversion").TBindingKey<z.ZodType<Record<string, unknown>, unknown, z.core.$ZodTypeInternals<Record<string, unknown>, unknown>> | null>;
     static readonly AUTHENTICATE_HANDLER: import("@venizia/ignis-inversion").TBindingKey<TWebSocketAuthenticateFn | null>;
     static readonly VALIDATE_ROOM_HANDLER: import("@venizia/ignis-inversion").TBindingKey<TWebSocketValidateRoomFn | null>;
     static readonly CLIENT_CONNECTED_HANDLER: import("@venizia/ignis-inversion").TBindingKey<TWebSocketClientConnectedFn | null>;

@@ -52,7 +52,7 @@ ws.onopen = () => ws.send(JSON.stringify({ event: 'authenticate', data: { token:
 ## How it works
 
 - **Every connection starts unauthenticated.** The WebSocket upgrade always succeeds, and the client starts as `UNAUTHORIZED`. It must send `{ event: 'authenticate' }` within `authTimeout` (5s default) or get closed with code `4001`.
-- **`authenticateFn` decides accept or reject.** On success the client is indexed by `userId`, joins `defaultRooms`, and moves to `AUTHENTICATED`.
+- **`authenticateFn` decides accept or reject.** It receives the message's `data` when that is an object, checked by [`authSchema`](./api#authentication-data) if you give one. On success the client is indexed by `userId`, joins `defaultRooms`, and moves to `AUTHENTICATED`.
 - **Delivery has two tiers** - local-only fan-out on this process, or a Redis Pub/Sub layer that also reaches other server instances:
 
 | Tier | Methods | Reach | Mechanism |

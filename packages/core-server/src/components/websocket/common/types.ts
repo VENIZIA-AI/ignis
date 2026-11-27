@@ -10,6 +10,7 @@ import type {
   TWebSocketValidateRoomFn,
 } from '@venizia/ignis-helpers';
 import { WebSocketDefaults } from '@venizia/ignis-helpers';
+import type { z } from '@hono/zod-openapi';
 
 export interface IServerOptions {
   identifier: string;
@@ -28,6 +29,7 @@ export const DEFAULT_SERVER_OPTIONS: IServerOptions = {
 
 export interface IResolvedBindings {
   redisConnection: IRedisHelper;
+  authSchema?: z.ZodType<Record<string, unknown>>;
   authenticateFn: TWebSocketAuthenticateFn;
   validateRoomFn?: TWebSocketValidateRoomFn;
   clientConnectedFn?: TWebSocketClientConnectedFn;

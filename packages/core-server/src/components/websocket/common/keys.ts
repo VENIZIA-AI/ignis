@@ -10,6 +10,7 @@ import type {
   TWebSocketValidateRoomFn,
   WebSocketServerHelper,
 } from '@venizia/ignis-helpers';
+import type { z } from '@hono/zod-openapi';
 import type { IServerOptions } from './types';
 
 /** Container keys of the WebSocket component: the server instance, its options, the Redis connection and the handlers an application binds. */
@@ -24,6 +25,11 @@ export class WebSocketBindingKeys {
 
   static readonly REDIS_CONNECTION = BindingKeys.build<IRedisHelper | null>({
     key: '@app/websocket/redis-connection',
+  });
+
+  /** Checks the authentication data before `AUTHENTICATE_HANDLER` and `HANDSHAKE_HANDLER` receive it. Optional. */
+  static readonly AUTH_SCHEMA = BindingKeys.build<z.ZodType<Record<string, unknown>> | null>({
+    key: '@app/websocket/auth-schema',
   });
 
   static readonly AUTHENTICATE_HANDLER = BindingKeys.build<TWebSocketAuthenticateFn | null>({

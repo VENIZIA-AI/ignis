@@ -1,10 +1,9 @@
 import { type IRedisHelper } from '@/modules/redis';
-import { type IWebSocket } from './client';
+import { type IWebSocket, type IWebSocketData } from './client';
 import {
-  type TWebSocketAuthenticateFn,
+  type TWebSocketAuthOptions,
   type TWebSocketClientConnectedFn,
   type TWebSocketClientDisconnectedFn,
-  type TWebSocketHandshakeFn,
   type TWebSocketMessageHandler,
   type TWebSocketOutboundTransformer,
   type TWebSocketValidateRoomFn,
@@ -33,15 +32,14 @@ export interface IBunWebSocketConfig {
 
 /** Return type for getBunWebSocketHandler - handlers + config spread for server.reload() */
 export interface IBunWebSocketHandler extends IBunWebSocketConfig {
-  open: (socket: IWebSocket) => void;
-  message: (socket: IWebSocket, message: string | Buffer) => void;
-  close: (socket: IWebSocket, code: number, reason: string) => void;
-  drain: (socket: IWebSocket) => void;
+  open: (socket: IWebSocket<IWebSocketData>) => void;
+  message: (socket: IWebSocket<IWebSocketData>, message: string | Buffer) => void;
+  close: (socket: IWebSocket<IWebSocketData>, code: number, reason: string) => void;
+  drain: (socket: IWebSocket<IWebSocketData>) => void;
 }
 
-/** Options for `WebSocketServerHelper`. Timeouts and intervals are milliseconds. `handshakeFn` is required when `requireEncryption` is true. */
-export interface IWebSocketServerOptions<
-  AuthDataType extends Record<string, unknown> = Record<string, unknown>,
+/** The options of `WebSocketServerHelper` that do not concern authentication. Timeouts and intervals are milliseconds. */
+export interface IWebSocketServerBaseOptions<
   MetadataType extends Record<string, unknown> = Record<string, unknown>,
 > {
   identifier: string;
@@ -83,14 +81,18 @@ export interface IWebSocketServerOptions<
    */
   requireEncryption?: boolean;
 
-  authenticateFn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
   validateRoomFn?: TWebSocketValidateRoomFn;
   clientConnectedFn?: TWebSocketClientConnectedFn<MetadataType>;
   clientDisconnectedFn?: TWebSocketClientDisconnectedFn;
   messageHandler?: TWebSocketMessageHandler;
   outboundTransformer?: TWebSocketOutboundTransformer<unknown, MetadataType>;
-  handshakeFn?: TWebSocketHandshakeFn<AuthDataType>; // Required when requireEncryption is true
 }
+
+/** Options for `WebSocketServerHelper`. `handshakeFn` is required when `requireEncryption` is true. */
+export type TWebSocketServerOptions<
+  AuthDataType extends Record<string, unknown> = Record<string, unknown>,
+  MetadataType extends Record<string, unknown> = Record<string, unknown>,
+> = IWebSocketServerBaseOptions<MetadataType> & TWebSocketAuthOptions<AuthDataType, MetadataType>;
 
 /** Options for `WebSocketEmitter`. */
 export interface IWebSocketEmitterOptions {

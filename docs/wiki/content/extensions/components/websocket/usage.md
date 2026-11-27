@@ -134,7 +134,7 @@ interface IWebSocketMessage<DataType = unknown> {
 | `1001` | Server shutting down | `wsHelper.shutdown()` |
 | `4001` | Authentication timeout | No `authenticate` within `authTimeout`, or `authenticateFn`/`handshakeFn` didn't finish within `authTimeout * 3` |
 | `4002` | Heartbeat timeout | No messages within `heartbeatTimeout` |
-| `4003` | Authentication failed | `authenticateFn` returned `null`/`false` or threw |
+| `4003` | Authentication failed | The data is not an object, the schema refused it, or `authenticateFn` returned `null`/`false` or threw |
 | `4004` | Encryption required | `requireEncryption: true` and no `handshakeFn`, or it returned `null`/`false` |
 
 **Redis Pub/Sub envelope** (cross-instance messages only):

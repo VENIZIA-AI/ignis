@@ -81,6 +81,7 @@ export class ClassRenameTable {
       packages: ['@venizia/ignis-helpers'],
     },
     { oldName: 'ISecretsRegistration', newName: 'TSecretsRegistration', packages: HELPERS },
+    { oldName: 'IWebSocketServerOptions', newName: 'TWebSocketServerOptions', packages: HELPERS },
     {
       oldName: 'IRelationalDataSourceOpening',
       newName: 'TRelationalDataSourceOpening',

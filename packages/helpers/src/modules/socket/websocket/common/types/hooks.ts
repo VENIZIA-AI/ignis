@@ -1,5 +1,6 @@
 import { type ValueOrPromise } from '@/common/types';
 import { type TNullable } from '@venizia/ignis-inversion';
+import type { z } from 'zod';
 import { type IWebSocketClient } from './client';
 import { type IWebSocketMessage } from './message';
 
@@ -10,6 +11,27 @@ export type TWebSocketAuthenticateFn<
 > = (
   opts: AuthDataType,
 ) => ValueOrPromise<{ userId?: string; metadata?: MetadataType } | null | false>;
+
+/**
+ * How the authentication data is checked, with the hooks that receive it. The server refuses data that is not an object;
+ * with `authSchema` it also refuses what the schema refuses, and the hooks receive what the schema answers.
+ */
+export type TWebSocketAuthOptions<
+  AuthDataType extends Record<string, unknown> = Record<string, unknown>,
+  MetadataType extends Record<string, unknown> = Record<string, unknown>,
+> =
+  | {
+      authSchema: z.ZodType<AuthDataType>;
+      authenticateFn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
+      /** Required when `requireEncryption` is true. */
+      handshakeFn?: TWebSocketHandshakeFn<AuthDataType>;
+    }
+  | {
+      authSchema?: undefined;
+      authenticateFn: TWebSocketAuthenticateFn<Record<string, unknown>, MetadataType>;
+      /** Required when `requireEncryption` is true. */
+      handshakeFn?: TWebSocketHandshakeFn;
+    };
 
 /** Produces the server public key and salt for an encrypted session during authentication. Resolves `null` or `false` to refuse the handshake. */
 export type TWebSocketHandshakeFn<

@@ -21,7 +21,7 @@ Exhaustive reference for `WebSocketServerHelper` and `WebSocketEmitter`. For a r
 |---|---|
 | See every class and its role at a glance | [Quick Reference](#quick-reference) |
 | Follow a connection from upgrade to disconnect | [Client connection lifecycle](#client-connection-lifecycle) |
-| Look up every server constructor option | [`IWebSocketServerOptions`](#iwebsocketserveroptions) |
+| Look up every server constructor option | [`TWebSocketServerOptions`](#twebsocketserveroptions) |
 | Send to one client, a user, a room, or everyone (same process) | [Server API](#server-api) |
 | Send to clients on any server instance, or publish from a process with no server of its own | [Server API](#server-api) / [Emitter API](#emitter-api) |
 | Look up a wire type, option type, or callback signature | [Types Reference](#types-reference) |
@@ -41,7 +41,7 @@ Exhaustive reference for `WebSocketServerHelper` and `WebSocketEmitter`. For a r
 import { WebSocketServerHelper, WebSocketEmitter } from '@venizia/ignis-helpers';
 
 import type {
-  IWebSocketServerOptions,
+  TWebSocketServerOptions,
   IWebSocketEmitterOptions,
   IWebSocketClient,
   IWebSocketData,
@@ -179,7 +179,7 @@ Server A                      Redis                     Server B
 ### Constructor
 
 ```typescript
-constructor(opts: IWebSocketServerOptions<AuthDataType, MetadataType>)
+constructor(opts: TWebSocketServerOptions<AuthDataType, MetadataType>)
 ```
 
 On construction:
@@ -194,30 +194,42 @@ Throws `getError({ statusCode: 500, message: '[WebSocketServerHelper] Invalid re
 
 | Type parameter | Types | Default |
 |---|---|---|
-| `AuthDataType` | The payload passed to `authenticateFn`/`handshakeFn` | `Record<string, unknown>` |
+| `AuthDataType` | The data passed to `authenticateFn`/`handshakeFn`; inferred from `authSchema` | `Record<string, unknown>` |
 | `MetadataType` | The value returned as `metadata` and stored on `IWebSocketClient` | `Record<string, unknown>` |
 
 ```typescript
-interface AuthPayload { type: string; token: string; publicKey?: string }
-interface UserMetadata { role: string; permissions: string[] }
+const AuthPayloadSchema = z.object({
+  type: z.string(),
+  token: z.string(),
+  publicKey: z.string().optional(),
+});
+type TAuthPayload = z.infer<typeof AuthPayloadSchema>;
+interface IUserMetadata { role: string; permissions: string[] }
 
-const helper = new WebSocketServerHelper<AuthPayload, UserMetadata>({
+const helper = new WebSocketServerHelper<TAuthPayload, IUserMetadata>({
   identifier: 'typed-ws',
   server: bunServer,
   redisConnection: redis,
+  authSchema: AuthPayloadSchema,
   authenticateFn: async data => {
-    // data is typed as AuthPayload
+    // data is what AuthPayloadSchema answered
     const user = await verifyJWT(data.token);
     return user ? { userId: user.id, metadata: { role: user.role, permissions: user.permissions } } : null;
   },
   clientConnectedFn: ({ metadata }) => {
-    // metadata is typed as UserMetadata | undefined
+    // metadata is typed as IUserMetadata | undefined
     if (metadata?.role === 'admin') console.log('admin connected');
   },
 });
 ```
 
-### `IWebSocketServerOptions`
+#### Authentication data
+
+The server passes the `data` of the `authenticate` message to the hooks only when it is an object. Anything else (a string, a number, a list, `null`, nothing) fails authentication: the client gets an `error` event and close code `4003`.
+
+With `authSchema`, the server also parses the object with it. Data the schema refuses fails authentication the same way; the hooks receive what the schema answers.
+
+### `TWebSocketServerOptions`
 
 | Option | Type | Required | Default | Description |
 |--------|------|----------|---------|-------------|
@@ -232,6 +244,7 @@ const helper = new WebSocketServerHelper<AuthPayload, UserMetadata>({
 | `heartbeatTimeout` | `number` | No | `90000` (90s) | Milliseconds of inactivity before an authenticated client is closed (close code `4002`) |
 | `encryptedBatchLimit` | `number` | No | `10` | Max concurrent `outboundTransformer` invocations during room/broadcast delivery |
 | `requireEncryption` | `boolean` | No | `false` | When `true`, clients must complete the handshake during auth |
+| `authSchema` | `z.ZodType` | No | - | Checks the authentication data; see [Authentication data](#authentication-data) |
 | `authenticateFn` | `TWebSocketAuthenticateFn` | Yes | - | Called on `{ event: 'authenticate' }`; returns `{ userId, metadata }` to accept |
 | `validateRoomFn` | `TWebSocketValidateRoomFn` | No | - | Called on `{ event: 'join' }`; returns the allowed subset of requested rooms |
 | `clientConnectedFn` | `TWebSocketClientConnectedFn` | No | - | Called after successful authentication |
@@ -674,18 +687,17 @@ interface IBunWebSocketConfig {
 
 /** Return type of getBunWebSocketHandler() */
 interface IBunWebSocketHandler extends IBunWebSocketConfig {
-  open: (socket: IWebSocket) => void;
-  message: (socket: IWebSocket, message: string | Buffer) => void;
-  close: (socket: IWebSocket, code: number, reason: string) => void;
-  drain: (socket: IWebSocket) => void;
+  open: (socket: IWebSocket<IWebSocketData>) => void;
+  message: (socket: IWebSocket<IWebSocketData>, message: string | Buffer) => void;
+  close: (socket: IWebSocket<IWebSocketData>, code: number, reason: string) => void;
+  drain: (socket: IWebSocket<IWebSocketData>) => void;
 }
 ```
 
 ### Server and emitter options
 
 ```typescript
-interface IWebSocketServerOptions<
-  AuthDataType extends Record<string, unknown> = Record<string, unknown>,
+interface IWebSocketServerBaseOptions<
   MetadataType extends Record<string, unknown> = Record<string, unknown>,
 > {
   identifier: string;
@@ -700,14 +712,30 @@ interface IWebSocketServerOptions<
   encryptedBatchLimit?: number; // Default: 10
   requireEncryption?: boolean; // Default: false
 
-  authenticateFn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
   validateRoomFn?: TWebSocketValidateRoomFn;
   clientConnectedFn?: TWebSocketClientConnectedFn<MetadataType>;
   clientDisconnectedFn?: TWebSocketClientDisconnectedFn;
   messageHandler?: TWebSocketMessageHandler;
   outboundTransformer?: TWebSocketOutboundTransformer<unknown, MetadataType>;
-  handshakeFn?: TWebSocketHandshakeFn<AuthDataType>; // Required when requireEncryption is true
 }
+
+type TWebSocketServerOptions<
+  AuthDataType extends Record<string, unknown> = Record<string, unknown>,
+  MetadataType extends Record<string, unknown> = Record<string, unknown>,
+> = IWebSocketServerBaseOptions<MetadataType> & TWebSocketAuthOptions<AuthDataType, MetadataType>;
+
+// handshakeFn is required when requireEncryption is true
+type TWebSocketAuthOptions<AuthDataType, MetadataType> =
+  | {
+      authSchema: z.ZodType<AuthDataType>;
+      authenticateFn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
+      handshakeFn?: TWebSocketHandshakeFn<AuthDataType>;
+    }
+  | {
+      authSchema?: undefined;
+      authenticateFn: TWebSocketAuthenticateFn<Record<string, unknown>, MetadataType>;
+      handshakeFn?: TWebSocketHandshakeFn;
+    };
 
 interface IWebSocketEmitterOptions {
   identifier?: string; // Default: 'WebSocketEmitter'
@@ -869,7 +897,7 @@ WebSocketClientStates.values();                 // all valid state strings
 |------|---------|---------|
 | `4001` | Authentication timeout | Client did not authenticate within `authTimeout` (or `authTimeout * 3` once `authenticateFn` started) |
 | `4002` | Heartbeat timeout | No activity for `heartbeatTimeout` |
-| `4003` | Authentication failed | `authenticateFn` returned `null`/`false` or threw |
+| `4003` | Authentication failed | The data is not an object, `authSchema` refused it, or `authenticateFn` returned `null`/`false` or threw |
 | `4004` | Encryption required | `requireEncryption` is `true` and `handshakeFn` is missing or rejected |
 | `1001` | Going away | Server shutting down gracefully (`shutdown()`) |
 

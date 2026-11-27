@@ -15,7 +15,7 @@ registering the component; `src/controllers/chat.controller.ts` is the one REST 
 ## What it demonstrates
 
 - **Every message is a JSON envelope** - `{ "event": "...", "data": {...} }`. A client opens the
-  connection, then sends an `authenticate` message carrying `{ token }`. A match joins it to
+  connection, then sends an `authenticate` message carrying `{ token }`. The data must be an object (`AUTH_SCHEMA` can narrow it further). A match joins it to
   `ws-default` and answers `connected`; a mismatch answers `error` and closes the connection with
   code `4003`.
 - **`autoConnect: false` on the Redis helper** - the component duplicates that connection into two

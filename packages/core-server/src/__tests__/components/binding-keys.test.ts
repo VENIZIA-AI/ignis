@@ -38,6 +38,7 @@ describe('the component binding keys keep their strings', () => {
     [WebSocketBindingKeys.WEBSOCKET_INSTANCE, '@app/websocket/instance'],
     [WebSocketBindingKeys.SERVER_OPTIONS, '@app/websocket/server-options'],
     [WebSocketBindingKeys.REDIS_CONNECTION, '@app/websocket/redis-connection'],
+    [WebSocketBindingKeys.AUTH_SCHEMA, '@app/websocket/auth-schema'],
     [WebSocketBindingKeys.AUTHENTICATE_HANDLER, '@app/websocket/authenticate-handler'],
     [WebSocketBindingKeys.VALIDATE_ROOM_HANDLER, '@app/websocket/validate-room-handler'],
     [WebSocketBindingKeys.CLIENT_CONNECTED_HANDLER, '@app/websocket/client-connected-handler'],

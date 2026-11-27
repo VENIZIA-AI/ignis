@@ -14,8 +14,10 @@ import {
   type IWebSocketClient,
   type IWebSocketData,
   type IWebSocketMessage,
-  type IWebSocketServerOptions,
+  type IWebSocketServerBaseOptions,
   type TWebSocketAuthenticateFn,
+  type TWebSocketAuthOptions,
+  type TWebSocketServerOptions,
   type TWebSocketClientConnectedFn,
   type TWebSocketClientDisconnectedFn,
   type TWebSocketHandshakeFn,
@@ -28,6 +30,12 @@ import {
   WebSocketMessageTypes,
 } from '../common';
 import { WebSocketDeliveryHelper } from './delivery';
+
+/** The hooks of one authentication, bound to its data. */
+interface IAuthSession<MetadataType extends Record<string, unknown>> {
+  authenticate: () => ReturnType<TWebSocketAuthenticateFn<Record<string, unknown>, MetadataType>>;
+  handshake?: (context: { clientId: string; userId?: string }) => ReturnType<TWebSocketHandshakeFn>;
+}
 
 /** WebSocket server for Bun with authentication, rooms, heartbeats, optional encrypted sessions, and Redis fan-out across instances. Clients must authenticate through `authenticateFn` within `authTimeout`. */
 export class WebSocketServerHelper<
@@ -63,12 +71,12 @@ export class WebSocketServerHelper<
   private redisPub: TRedisClient;
   private redisSub: TRedisClient;
 
-  private authenticateFn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
+  /** Checks authentication data and binds the hooks to it; `undefined` refuses the client. */
+  private openAuthSession: (payload: unknown) => Promise<IAuthSession<MetadataType> | undefined>;
   private validateRoomFn?: TWebSocketValidateRoomFn;
   private onClientConnected?: TWebSocketClientConnectedFn<MetadataType>;
   private onClientDisconnected?: TWebSocketClientDisconnectedFn;
   private messageHandler?: TWebSocketMessageHandler;
-  private handshakeFn?: TWebSocketHandshakeFn<AuthDataType>;
 
   private defaultRooms: string[];
   private serverOptions: IBunWebSocketConfig;
@@ -78,19 +86,58 @@ export class WebSocketServerHelper<
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private requireEncryption: boolean;
 
-  constructor(opts: IWebSocketServerOptions<AuthDataType, MetadataType>) {
+  /** The two shapes of the options: with a schema the data is what it answers, without one the object as it came. */
+  private static authSessionOf<
+    AuthDataType extends Record<string, unknown>,
+    MetadataType extends Record<string, unknown>,
+  >(opts: TWebSocketAuthOptions<AuthDataType, MetadataType>) {
+    if (opts.authSchema === undefined) {
+      const { authenticateFn, handshakeFn } = opts;
+
+      return async (payload: unknown): Promise<IAuthSession<MetadataType> | undefined> => {
+        if (!RecordUtility.isPlainRecord(payload)) {
+          return undefined;
+        }
+
+        return {
+          authenticate: () => authenticateFn(payload),
+          handshake: handshakeFn && ((context) => handshakeFn({ ...context, data: payload })),
+        };
+      };
+    }
+
+    const { authSchema, authenticateFn, handshakeFn } = opts;
+
+    return async (payload: unknown): Promise<IAuthSession<MetadataType> | undefined> => {
+      if (!RecordUtility.isPlainRecord(payload)) {
+        return undefined;
+      }
+
+      const parsed = await authSchema.safeParseAsync(payload);
+
+      if (!parsed.success) {
+        return undefined;
+      }
+
+      return {
+        authenticate: () => authenticateFn(parsed.data),
+        handshake: handshakeFn && ((context) => handshakeFn({ ...context, data: parsed.data })),
+      };
+    };
+  }
+
+  constructor(opts: TWebSocketServerOptions<AuthDataType, MetadataType>) {
     super({ scope: opts.identifier });
 
     this.identifier = opts.identifier;
     this.path = opts.path ?? WebSocketDefaults.PATH;
     this.serverId = UuidHelper.getInstance().v4();
 
-    this.authenticateFn = opts.authenticateFn;
+    this.openAuthSession = WebSocketServerHelper.authSessionOf<AuthDataType, MetadataType>(opts);
     this.validateRoomFn = opts.validateRoomFn;
     this.onClientConnected = opts.clientConnectedFn;
     this.onClientDisconnected = opts.clientDisconnectedFn;
     this.messageHandler = opts.messageHandler;
-    this.handshakeFn = opts.handshakeFn;
 
     this.defaultRooms = opts.defaultRooms ?? [
       WebSocketDefaults.ROOM,
@@ -119,9 +166,7 @@ export class WebSocketServerHelper<
     this.initRedisClients(opts.redisConnection);
   }
 
-  private initRedisClients(
-    redisConnection: IWebSocketServerOptions<AuthDataType, MetadataType>['redisConnection'],
-  ) {
+  private initRedisClients(redisConnection: IWebSocketServerBaseOptions['redisConnection']) {
     if (!redisConnection) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
@@ -377,12 +422,12 @@ export class WebSocketServerHelper<
     const config = this.serverOptions;
 
     return {
-      open: (socket: IWebSocket) => {
-        const { clientId } = socket.data as IWebSocketData;
+      open: (socket: IWebSocket<IWebSocketData>) => {
+        const { clientId } = socket.data;
         this.onClientConnect({ clientId, socket });
       },
-      message: (socket: IWebSocket, message: string | Buffer) => {
-        const { clientId } = socket.data as IWebSocketData;
+      message: (socket: IWebSocket<IWebSocketData>, message: string | Buffer) => {
+        const { clientId } = socket.data;
         const client = this.clients.get(clientId);
 
         if (client) {
@@ -394,12 +439,12 @@ export class WebSocketServerHelper<
           raw: typeof message === 'string' ? message : message.toString(),
         });
       },
-      close: (socket: IWebSocket) => {
-        const { clientId } = socket.data as IWebSocketData;
+      close: (socket: IWebSocket<IWebSocketData>) => {
+        const { clientId } = socket.data;
         this.onClientDisconnect({ clientId });
       },
-      drain: (socket: IWebSocket) => {
-        const { clientId } = socket.data as IWebSocketData;
+      drain: (socket: IWebSocket<IWebSocketData>) => {
+        const { clientId } = socket.data;
         const client = this.clients.get(clientId);
 
         if (client) {
@@ -502,7 +547,7 @@ export class WebSocketServerHelper<
     }
 
     if (message.event === WebSocketEvents.AUTHENTICATE) {
-      this.handleAuthenticate({ clientId, payload: message.data ?? {} });
+      this.handleAuthenticate({ clientId, payload: message.data });
 
       return;
     }
@@ -687,9 +732,13 @@ export class WebSocketServerHelper<
       }
     }, this.authTimeout * 3);
 
-    Promise.resolve()
-      .then(() => this.authenticateFn((payload ?? {}) as AuthDataType))
-      .then(async (result) => {
+    this.openAuthSession(payload)
+      .then(async (session) => {
+        const result = await session?.authenticate();
+
+        return { session, result };
+      })
+      .then(async ({ session, result }) => {
         // Re-validate client still exists (may have disconnected during async auth)
         if (!this.clients.has(clientId)) {
           logger.warn('Client disconnected during authentication | id: %s', clientId);
@@ -697,7 +746,7 @@ export class WebSocketServerHelper<
           return;
         }
 
-        if (!result) {
+        if (!session || !result) {
           logger.info('Authentication rejected | id: %s', clientId);
           this.sendToClient({
             clientId,
@@ -713,7 +762,7 @@ export class WebSocketServerHelper<
         client.metadata = result.metadata;
 
         if (this.requireEncryption) {
-          if (!this.handshakeFn) {
+          if (!session.handshake) {
             logger.error(
               'requireEncryption is true but no handshakeFn configured | id: %s',
               clientId,
@@ -723,13 +772,7 @@ export class WebSocketServerHelper<
             return;
           }
 
-          const handshakeResult = await Promise.resolve(
-            this.handshakeFn({
-              clientId,
-              userId: client.userId,
-              data: (payload ?? {}) as AuthDataType,
-            }),
-          );
+          const handshakeResult = await session.handshake({ clientId, userId: client.userId });
 
           // Re-validate client still exists (may have disconnected during async handshake)
           if (!this.clients.has(clientId)) {

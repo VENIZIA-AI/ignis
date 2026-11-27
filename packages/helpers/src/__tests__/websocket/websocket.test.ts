@@ -11,7 +11,7 @@ import {
   WebSocketServerHelper,
   WebSocketEmitter,
 } from '@/modules/socket/websocket';
-import type { IWebSocketServerOptions, IRedisSocketMessage } from '@/modules/socket/websocket';
+import type { TWebSocketServerOptions, IRedisSocketMessage } from '@/modules/socket/websocket';
 import { AbstractRedisHelper, type IRedisHelper, type TRedisClient } from '@/modules/redis';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -372,7 +372,7 @@ describe('WebSocketClientStates', () => {
 
 describe('WebSocketServerHelper', () => {
   let helper: WebSocketServerHelper;
-  let opts: IWebSocketServerOptions;
+  let opts: TWebSocketServerOptions;
   let mockBunServer: ReturnType<typeof createMockBunServer>;
   let mockRedisHelper: IRedisHelper & { mockClient: MockRedisClient };
 
@@ -2123,7 +2123,7 @@ describe('WebSocketServerHelper', () => {
 
 describe('Heartbeat — Application-Level Liveness Check', () => {
   let helper: WebSocketServerHelper;
-  let opts: IWebSocketServerOptions;
+  let opts: TWebSocketServerOptions;
   let mockBunServer: ReturnType<typeof createMockBunServer>;
   let mockRedisHelper: IRedisHelper & { mockClient: MockRedisClient };
 
@@ -2448,7 +2448,7 @@ describe('WebSocketServerHelper - the window of an encryption handshake', () => 
           handshake.resolve = resolve as (value: unknown) => void;
         }) as never,
       messageHandler,
-    } as IWebSocketServerOptions);
+    } as TWebSocketServerOptions);
 
     return { helper, messageHandler };
   };

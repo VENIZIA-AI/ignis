@@ -15,7 +15,7 @@ Every error condition the WebSocket component and helper can raise, plus fixes f
 | `"Invalid message format"` | Client sent non-JSON data | `error` event |
 | `"Already authenticated"` | Client sent `authenticate` while state was not `UNAUTHORIZED` | `error` event |
 | `"Not authenticated"` | Client sent a non-`authenticate`, non-`heartbeat` event while unauthenticated | `error` event |
-| `"Authentication failed"` | `authenticateFn` returned `null`/`false` | `error` event + close `4003` |
+| `"Authentication failed"` | The data is not an object, `AUTH_SCHEMA` refused it, or `authenticateFn` returned `null`/`false` | `error` event + close `4003` |
 | `"Authentication error"` | `authenticateFn` threw | `error` event + close `4003` |
 | `"Encryption handshake failed"` | `handshakeFn` returned `null`/`false` | `error` event + close `4004` |
 | Close `4004` (no error event) | `requireEncryption: true` but no `handshakeFn` configured | close `4004` only |
