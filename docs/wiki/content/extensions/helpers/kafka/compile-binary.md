@@ -47,7 +47,8 @@ if (!built.success) {
 | Crash | Plugin that prevents it |
 |---|---|
 | `ENOENT: no such file or directory, open '/$bunfs/dist/native.wasm'` | `PlatformaticKafkaPlugins.buildWasmPlugin()` |
-| `Cannot find package 'ajv-draft-04' from '/$bunfs/root/index.js'` | `PlatformaticKafkaPlugins.buildRequirePlugin()` |
+| `Cannot find package 'ajv-draft-04' from '/$bunfs/root/index.js'` (2.8, 2.9) | `PlatformaticKafkaPlugins.buildRequirePlugin()` |
+| `Cannot find module 'mnemonist/lru-cache.js'` (2.20) | `PlatformaticKafkaPlugins.buildRequirePlugin()` |
 
 Both fire while the module graph is still loading, before the IGNIS application boots. No log line, no lifecycle hook, and no error handler of yours ever runs.
 
@@ -68,7 +69,7 @@ const wasm = readFileSync(new URL('../dist/native.wasm', import.meta.url));
 
 ## Why the package lookup fails
 
-`@platformatic/kafka` 2.8 and 2.9 resolve two dependencies at module scope through `createRequire` (2.10.0 removed both `require()` calls, see below):
+`@platformatic/kafka` resolves some dependencies at module scope through `createRequire`. In 2.8 and 2.9:
 
 ```javascript
 // @platformatic/kafka/dist/registries/confluent-schema-registry.js
@@ -85,7 +86,15 @@ Three facts make that fatal in a binary:
 
 `PlatformaticKafkaPlugins.buildRequirePlugin()` rewrites each module-scope `require()` into a static import at bundle time, so the bundler pulls the module into the binary.
 
-On `@platformatic/kafka` 2.10.0 and later the module-scope `require()` is gone (platformatic/kafka#378) and this plugin matches nothing. Keep `PlatformaticKafkaPlugins.build()` anyway: the wasm read above still needs `buildWasmPlugin()`, and the require plugin still protects a compile that resolves 2.8 or 2.9.
+The static import names the file the `require()` would load, so a sub-path a package exports to `require` only still resolves.
+
+| `@platformatic/kafka` | Module-scope `require()` | Without this plugin, a binary |
+|---|---|---|
+| 2.8, 2.9 | `ajv-draft-04`, the draft-06 meta schema | dies at boot |
+| 2.10 (platformatic/kafka#378) | none of those two | boots |
+| 2.20 | `mnemonist/lru-cache.js` | dies at boot |
+
+Keep `PlatformaticKafkaPlugins.build()` on every version: the wasm read above needs `buildWasmPlugin()` too.
 
 > [!WARNING]
 > Installing `ajv-draft-04` as a direct dependency does not fix this. The defect is the resolution mechanism, not a missing package, so the second line fails identically.
