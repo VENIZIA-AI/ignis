@@ -29,12 +29,15 @@ CLEAN_INSTALL_TARGETS := $(addprefix clean-install-,$(PACKAGES))
 # file, servers and timers a file left open closed between files - so a mock, env or TLS setting one
 # file leaks cannot pass or fail another. Needs a build first (B-05).
 # ----------------------------------------------------------------------------
-BUN_TEST_FLAGS ?= --parallel
+# Every run keeps between 5 and 10 at once: `--parallel` alone starts one worker per core, and bun runs
+# 20 concurrent tests by default.
+BUN_TEST_LIMIT := --max-concurrency=6
+BUN_TEST_FLAGS ?= --parallel=6
 
 test-all: $(addprefix test-,$(TEST_PACKAGES))
 
 $(addprefix test-,$(TEST_PACKAGES)): test-%:
-	@cd packages/$* && $(TEST_ENV) bun test ./src $(BUN_TEST_FLAGS)
+	@cd packages/$* && $(TEST_ENV) bun test ./src $(BUN_TEST_FLAGS) $(BUN_TEST_LIMIT)
 
 ifneq ($(strip $(NO_TEST)),)
 $(addprefix test-,$(NO_TEST)):
@@ -55,7 +58,7 @@ tmp-leak-check:
 # purity-test, nothing else runs them.
 test-scripts:
 	@echo "🔍 Running the repository gate scripts' regression tests..."
-	@bun test scripts/release/__tests__ scripts/preset/__tests__ scripts/checks/__tests__ scripts/build/__tests__
+	@bun test $(BUN_TEST_LIMIT) scripts/release/__tests__ scripts/preset/__tests__ scripts/checks/__tests__ scripts/build/__tests__
 
 # ----------------------------------------------------------------------------
 # PURITY TARGETS
@@ -69,7 +72,7 @@ purity:
 # Checks that read the built dist, so they run after a build, never in test-scripts.
 build-checks:
 	@echo "🔍 Checking the build output: self-contained sourcemaps, the oxlint subpath loads no ESLint, every value typed in an entry exists at runtime..."
-	@bun test scripts/build/build-checks
+	@bun test $(BUN_TEST_LIMIT) scripts/build/build-checks
 
 # Every example type-checks against the built packages, so a type a package forgot to export, or a
 # signature that changed, breaks here and not in a consumer. Reports every failing example, then
@@ -93,7 +96,7 @@ controls-check:
 
 purity-test:
 	@echo "🔍 Running the purity probe's regression tests..."
-	@bun test scripts/checks/purity/__tests__ packages/dev-configs/src/__tests__/checks
+	@bun test $(BUN_TEST_LIMIT) scripts/checks/purity/__tests__ packages/dev-configs/src/__tests__/checks
 
 $(addprefix purity-,$(PURE)): purity-%:
 	@echo "🔍 Checking browser purity for $(call PKG_NAME,$*)..."

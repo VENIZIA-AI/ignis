@@ -55,7 +55,7 @@ make test-core-server   # or test-all, and one target per package
 
 Every package runs its tests from the TypeScript sources under `src/__tests__/`. Use the make
 targets, not a bare `bun test`: they are the one home of the test flags (`BUN_TEST_FLAGS`, default
-`--parallel`, which implies `--isolate`), and CI calls the same targets. Build first - a suite
+`--parallel=6`, which implies `--isolate`), and CI calls the same targets. Build first - a suite
 resolves its sibling packages through `dist`, not `src`.
 
 ## 5. Know where knowledge lives

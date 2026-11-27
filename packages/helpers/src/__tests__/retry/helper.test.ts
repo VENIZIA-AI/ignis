@@ -429,6 +429,19 @@ describe('executeWithRetry', () => {
     expect(calls).toBe(0);
   });
 
+  test('a fractional maxAttempts runs its whole number of attempts', async () => {
+    let calls = 0;
+
+    await RetryUtility.executeWithRetryUntil({
+      operation: 'fraction',
+      maxAttempts: 2.5,
+      execution: () => ++calls,
+      until: () => false,
+    });
+
+    expect(calls).toBe(2);
+  });
+
   test('maxAttempts < 1 throws a named configuration error', async () => {
     let caught: unknown;
 

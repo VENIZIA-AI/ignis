@@ -137,7 +137,7 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: bun scripts/checks/tmp-leak/cli.ts snapshot
 
-      # The make targets own the test flags (BUN_TEST_FLAGS, default --parallel, implies --isolate),
+      # The make targets own the test flags (BUN_TEST_FLAGS, default --parallel=6, implies --isolate),
       # so CI and a developer's `make test-<pkg>` run the very same command.
       - name: Test - inversion
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}

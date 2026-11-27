@@ -428,7 +428,8 @@ export class RetryUtility {
 
       const elapsedMs = Date.now() - startedAt;
 
-      if (attempt >= maxAttempts || (maxTotalMs !== undefined && elapsedMs >= maxTotalMs)) {
+      // `attempt + 1`: a fractional limit allows no attempt past its whole part.
+      if (attempt + 1 > maxAttempts || (maxTotalMs !== undefined && elapsedMs >= maxTotalMs)) {
         logger
           ?.for('executeWithRetryUntil')
           .warn('[%s] Exhausted retries - returning last (stale) result', operation);

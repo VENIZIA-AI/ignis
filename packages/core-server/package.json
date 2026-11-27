@@ -130,7 +130,7 @@
     "access": "public"
   },
   "scripts": {
-    "test": "bun test ./src",
+    "test": "bun test --max-concurrency=6 ./src",
     "force-update": "sh ../../scripts/build/force-update.sh"
   },
   "dependencies": {

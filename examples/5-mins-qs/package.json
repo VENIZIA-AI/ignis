@@ -9,7 +9,7 @@
     "typecheck": "bun check",
     "lint": "devz lint",
     "lint:fix": "devz lint --fix",
-    "test": "bun test",
+    "test": "bun test --max-concurrency=6",
     "clean": "sh scripts/clean.sh"
   },
   "dependencies": {
