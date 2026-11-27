@@ -14,7 +14,7 @@ import {
 } from '@/search/core/repositories/common/dialect.utility';
 import type { ITypesenseSearchQuery } from '@/search/typesense/repositories/common';
 import { Sorts, QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
-import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import { BaseHelper, getError, RecordUtility } from '@venizia/ignis-helpers/core';
 
 /** The non-raw search inputs the dialect translates; `raw` bypasses the dialect entirely. */
 type TTranslatableSearchInput = Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
@@ -714,7 +714,16 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
     const { value, capabilities, isDisjunction } = opts;
     const items = Array.isArray(value) ? value : [value];
 
-    const clauses = items.map((item) => this.compileWhere({ where: item as TWhere, capabilities }));
+    const clauses = items.map((item) => {
+      // Anything else compiles to "no constraint", which absorbs an `or`.
+      if (!RecordUtility.isPlainRecord(item)) {
+        throw getError({
+          message: `[TypesenseQueryDialect][toWhere] search() expected a logical group member to be an object | got: ${JSON.stringify(item)}`,
+        });
+      }
+
+      return this.compileWhere({ where: item, capabilities });
+    });
 
     // An empty member (`{}`) compiles to matchAll and the algebra absorbs it correctly: identity
     // under `and`, absorbing under `or`. Dropping it by string-length, as this once did, is what

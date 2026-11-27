@@ -1,18 +1,22 @@
 import { describe, expect, test } from 'bun:test';
-import { BaseSqliteDataSource } from '@/relational/sqlite/datasources/base';
+import { SqliteDataSourceFixture } from './fixtures/sqlite-datasource.fixture';
 
-/** `getConnectionString` run on settings as untyped configuration can carry them. */
-const read = (settings: unknown): unknown =>
-  Reflect.apply(BaseSqliteDataSource.prototype.getConnectionString, { settings }, []);
+/** The datasource with settings as untyped configuration can carry them. */
+const withSettings = (settings: object): SqliteDataSourceFixture => {
+  const dataSource = new SqliteDataSourceFixture();
+  Reflect.set(dataSource, 'settings', settings);
+
+  return dataSource;
+};
 
 describe('BaseSqliteDataSource.getConnectionString', () => {
   test('answers the url of the settings', () => {
-    expect(read({ url: ':memory:' })).toBe(':memory:');
+    expect(new SqliteDataSourceFixture().getConnectionString()).toBe(':memory:');
   });
 
   for (const settings of [{}, { url: '' }, { url: 7 }, { url: { path: 'x' } }]) {
     test(`${JSON.stringify(settings)} is refused for want of a url`, () => {
-      expect(() => read(settings)).toThrow(/No 'url' in settings/);
+      expect(() => withSettings(settings).getConnectionString()).toThrow(/No 'url' in settings/);
     });
   }
 });

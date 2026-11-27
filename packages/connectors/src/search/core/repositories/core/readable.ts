@@ -168,9 +168,8 @@ export class ReadableSearchRepository<
       filter: { ...filter, limit: 1 },
       options: options as TFindOptions<IExtraOptions, TRow<TDocument, R, F>>,
     });
-    const results = result as Array<TRow<TDocument, R, F>>;
 
-    return results[0] ?? null;
+    return result[0] ?? null;
   }
 
   // `TFilter<any, F>`: only `fields` is typed here; the `where` of the untyped model is `any`, see `TFilter`.

@@ -83,8 +83,16 @@ export abstract class AbstractDriverDataSource<
 
   protected resolveDriver(): TDriver {
     this.wireDriverFromMetadata();
+    const { driver } = this;
 
-    return this.driver as TDriver;
+    // A connector assigned by hand wires no driver.
+    if (driver === undefined) {
+      throw getError({
+        message: `[${this.constructor.name}][resolveDriver] No driver | Wire one with useDriver(), or leave this.connector unset so @datasource({ driver }) builds both`,
+      });
+    }
+
+    return driver;
   }
 
   /**
@@ -266,7 +274,15 @@ export abstract class AbstractDriverDataSource<
 
     try {
       await this.configure();
-      newClient = this.client as Client;
+      const configured = this.client;
+
+      if (configured === undefined) {
+        throw getError({
+          message: `[${this.constructor.name}][rotateSecret] configure() assigned no client`,
+        });
+      }
+
+      newClient = configured;
     } catch (error) {
       const halfBuilt = this.client;
       this.client = savedClient;
