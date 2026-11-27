@@ -1081,7 +1081,7 @@ oxlint-base-rules:
   data: Nothing stored changes.
 
 websocket-payload-types:
-  symbols: [TWebSocketServerOptions, TWebSocketAuthOptions, IWebSocketServerBaseOptions, IBunWebSocketHandler, WebSocketBindingKeys, WebSocketServerHelper]
+  symbols: [TWebSocketServerOptions, TWebSocketAuthOptions, IWebSocketSchemaAuthOptions, IWebSocketRecordAuthOptions, IWebSocketServerBaseOptions, IBunWebSocketHandler, WebSocketBindingKeys, WebSocketServerHelper]
   codemod: class-renames
   upgrade:
     before: |-

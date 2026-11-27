@@ -5473,7 +5473,11 @@ Source: `packages/helpers/src/modules/socket/websocket/common/constants.ts`
 
 *class*
 
-WebSocket server for Bun with authentication, rooms, heartbeats, optional encrypted sessions, and Redis fan-out across instances. Clients must authenticate through `authenticate.fn` within `authTimeout`.
+WebSocket server for Bun with authentication, rooms, heartbeats, optional encrypted sessions, and Redis fan-out
+across instances. Clients must authenticate through `authenticate.fn` within `authTimeout`.
+
+`AuthDataType` is what `authenticate.schema` answers and is inferred from it; leave it out when there is no schema,
+where the hooks receive `Record<string, unknown>` whatever it names.
 
 ```ts
 export declare class WebSocketServerHelper<AuthDataType extends Record<string, unknown> = Record<string, unknown>, MetadataType extends Record<string, unknown> = Record<string, unknown>> extends BaseHelper {

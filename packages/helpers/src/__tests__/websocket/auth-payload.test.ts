@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, mock, test } from 'bun:test';
 import { EventEmitter } from 'node:events';
 import { z } from 'zod';
-import { REDIS_HELPER_BRAND, type IRedisHelper } from '@/modules/redis';
+import { isRedisHelper, REDIS_HELPER_BRAND } from '@/modules/redis';
 import { WebSocketServerHelper } from '@/modules/socket/websocket';
 import { WebSocketEvents } from '@/modules/socket/websocket/common';
 
@@ -23,7 +23,6 @@ const redisConnection: object = {
   [REDIS_HELPER_BRAND]: true,
   duplicateClient: () => new FakeRedisClient(),
 };
-const isRedis = (value: object): value is IRedisHelper => REDIS_HELPER_BRAND in value;
 
 const socket = () => ({
   data: { clientId: 'c1' },
@@ -65,7 +64,7 @@ const authenticate = async (opts: {
 };
 
 const base = () => {
-  if (!isRedis(redisConnection)) {
+  if (!isRedisHelper(redisConnection)) {
     throw new Error('the fake is not a redis helper');
   }
 

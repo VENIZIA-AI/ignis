@@ -204,9 +204,9 @@ const AuthPayloadSchema = z.object({
   publicKey: z.string().optional(),
 });
 type TAuthPayload = z.infer<typeof AuthPayloadSchema>;
-interface IUserMetadata { role: string; permissions: string[] }
+type TUserMetadata = { role: string; permissions: string[] };
 
-const helper = new WebSocketServerHelper<TAuthPayload, IUserMetadata>({
+const helper = new WebSocketServerHelper<TAuthPayload, TUserMetadata>({
   identifier: 'typed-ws',
   server: bunServer,
   redisConnection: redis,
@@ -219,7 +219,7 @@ const helper = new WebSocketServerHelper<TAuthPayload, IUserMetadata>({
     },
   },
   clientConnectedFn: ({ metadata }) => {
-    // metadata is typed as IUserMetadata | undefined
+    // metadata is typed as TUserMetadata | undefined
     if (metadata?.role === 'admin') console.log('admin connected');
   },
 });
@@ -742,6 +742,11 @@ type TWebSocketAuthOptions<AuthDataType, MetadataType> =
       };
       handshake?: { fn: TWebSocketHandshakeFn };
     };
+
+interface IWebSocketEmitterOptions {
+  identifier?: string; // Default: 'WebSocketEmitter'
+  redisConnection: IRedisHelper;
+}
 ```
 
 ### Callback types

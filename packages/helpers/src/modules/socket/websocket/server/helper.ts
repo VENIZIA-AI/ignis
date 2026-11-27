@@ -39,7 +39,13 @@ interface IAuthSession<MetadataType extends Record<string, unknown>> {
   handshake?: (context: { clientId: string; userId?: string }) => ReturnType<TWebSocketHandshakeFn>;
 }
 
-/** WebSocket server for Bun with authentication, rooms, heartbeats, optional encrypted sessions, and Redis fan-out across instances. Clients must authenticate through `authenticate.fn` within `authTimeout`. */
+/**
+ * WebSocket server for Bun with authentication, rooms, heartbeats, optional encrypted sessions, and Redis fan-out
+ * across instances. Clients must authenticate through `authenticate.fn` within `authTimeout`.
+ *
+ * `AuthDataType` is what `authenticate.schema` answers and is inferred from it; leave it out when there is no schema,
+ * where the hooks receive `Record<string, unknown>` whatever it names.
+ */
 export class WebSocketServerHelper<
   AuthDataType extends Record<string, unknown> = Record<string, unknown>,
   MetadataType extends Record<string, unknown> = Record<string, unknown>,
