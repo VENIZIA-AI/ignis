@@ -127,12 +127,12 @@ export declare class AbstractRedisHelper<ClientType extends TRedisClient = TRedi
     getStrings(opts: {
         keys: Array<string>;
     }): Promise<(string | null)[]>;
-    getObject<T>(opts: {
+    getObject(opts: {
         key: string;
-    }): Promise<T | null>;
+    }): Promise<unknown>;
     getObjects(opts: {
         keys: Array<string>;
-    }): Promise<any[]>;
+    }): Promise<unknown[]>;
     mSet<T>(opts: {
         payload: Array<{
             key: string;

@@ -279,15 +279,15 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     return this.mGet(opts);
   }
 
-  getObject<T>(opts: { key: string }) {
-    return this.get<T>({
+  getObject(opts: { key: string }): Promise<unknown> {
+    return this.get<unknown>({
       ...opts,
       transform: (el: string) => JSON.parse(el),
     });
   }
 
-  getObjects(opts: { keys: Array<string> }) {
-    return this.mGet({
+  getObjects(opts: { keys: Array<string> }): Promise<unknown[]> {
+    return this.mGet<unknown>({
       ...opts,
       transform: (el: string) => JSON.parse(el),
     });

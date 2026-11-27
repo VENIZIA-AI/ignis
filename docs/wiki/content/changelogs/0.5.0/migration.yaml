@@ -1340,7 +1340,7 @@ claims-source-verify-typed:
   data: Nothing stored changes.
 
 caller-chosen-types:
-  symbols: [IRedisHelper.get, IRedisHelper.mGet, IRedisHelper.jGet, IRedisHelper.jPop, IRedisHelper.execute, ISecretsHelper.get, ParseUtility.getDeepProperty]
+  symbols: [IRedisHelper.get, IRedisHelper.mGet, IRedisHelper.getObject, IRedisHelper.getObjects, IRedisHelper.jGet, IRedisHelper.jPop, IRedisHelper.execute, ISecretsHelper.get, ParseUtility.getDeepProperty]
   upgrade:
     before: |-
       const user = await redis.get<IUser>({ key });
@@ -1355,6 +1355,7 @@ caller-chosen-types:
     steps:
       - "Run your typecheck and fix each line it reports. Without a transform the old type argument changed nothing at run time: redis.get answered the stored text and secrets.get the stored string, whatever type you named."
       - "redis.get and mGet: drop the type argument and read a string, or pass transform that turns the text into your type and checks it."
+      - "redis.getObject takes no type argument and answers the parsed value as unknown, as do the entries of getObjects: check it, or read with redis.get and a transform that parses and checks (transform: (text) => UserSchema.parse(JSON.parse(text)))."
       - "redis.jGet and jPop answer the JSON text Redis sends: parse it, then check it."
       - "redis.execute, secrets.get and ParseUtility.getDeepProperty answer unknown: check the value (a schema, typeof, ParseUtility) before you use it."
       - "A class of your own that implements IRedisHelper or ISecretsHelper takes the same signatures."

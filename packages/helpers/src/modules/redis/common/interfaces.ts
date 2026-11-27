@@ -39,8 +39,9 @@ export interface IRedisKeyValue {
   getString(opts: { key: string }): Promise<string | null>;
   getStrings(opts: { keys: Array<string> }): Promise<(string | null)[]>;
 
-  getObject<T>(opts: { key: string }): Promise<T | null>;
-  getObjects(opts: { keys: Array<string> }): Promise<(unknown | null)[]>;
+  /** The parsed JSON value, or `null`. Check it before you use it. */
+  getObject(opts: { key: string }): Promise<unknown>;
+  getObjects(opts: { keys: Array<string> }): Promise<unknown[]>;
 
   mSet<T>(opts: {
     payload: Array<{ key: string; value: T }>;

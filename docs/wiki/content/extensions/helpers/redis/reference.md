@@ -577,8 +577,8 @@ const dedicated = redis.duplicateClient();
 | `keys` | `(opts: { key: string }): Promise<string[]>` | Runs Redis `KEYS` with a glob pattern; avoid on large keyspaces - prefer `SCAN` via `execute` |
 | `getString` | `(opts: { key: string }): Promise<string \| null>` | Alias for `get` without transform |
 | `getStrings` | `(opts: { keys: string[] }): Promise<(string \| null)[]>` | Alias for `mGet` without transform |
-| `getObject<T>` | `(opts: { key: string }): Promise<T \| null>` | `get` with `JSON.parse` transform |
-| `getObjects` | `(opts: { keys: string[] }): Promise<(unknown \| null)[]>` | `mGet` with `JSON.parse` transform |
+| `getObject` | `(opts: { key: string }): Promise<unknown>` | `get` with `JSON.parse` transform; check the value before you use it |
+| `getObjects` | `(opts: { keys: string[] }): Promise<unknown[]>` | `mGet` with `JSON.parse` transform |
 | `mSet<T>` | `(opts: { payload: Array<{ key: string; value: T }>; options?: { log?: boolean } }): Promise<void>` | Bulk write; each value is JSON-serialized; empty `payload` is a no-op |
 | `mGet` | `(opts: { keys: string[] }): Promise<(string \| null)[]>`, or `mGet<T>(opts: { keys: string[]; transform: (input: string) => T }): Promise<(T \| null)[]>` | Bulk read with optional transform; empty `keys` returns `[]` |
 

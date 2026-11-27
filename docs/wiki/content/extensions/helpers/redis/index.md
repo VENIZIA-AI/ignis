@@ -26,9 +26,7 @@ const redis = new RedisSingleHelper({
 
 await redis.set({ key: 'session:42', value: { userId: 42, active: true } });
 
-const session = await redis.getObject<{ userId: number; active: boolean }>({
-  key: 'session:42',
-});
+const session = await redis.getObject({ key: 'session:42' }); // unknown: check it before you use it
 console.log(session); // { userId: 42, active: true }
 ```
 

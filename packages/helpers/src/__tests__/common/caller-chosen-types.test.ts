@@ -15,6 +15,10 @@ export const callerCannotName = async (opts: { redis: IRedisHelper; secrets: ISe
   await redis.get<number>({ key: 'k' });
   // @ts-expect-error a type argument needs a transform that answers it
   await redis.mGet<number>({ keys: ['k'] });
+  // @ts-expect-error getObject takes no type argument
+  await redis.getObject<{ id: string }>({ key: 'k' });
+  // @ts-expect-error a parsed value is unknown
+  const object: { id: string } = await redis.getObject({ key: 'k' });
   // @ts-expect-error the JSON reply is unknown
   const json: { id: string } = await redis.jGet({ key: 'k' });
   // @ts-expect-error the popped value is unknown
@@ -26,7 +30,7 @@ export const callerCannotName = async (opts: { redis: IRedisHelper; secrets: ISe
   // @ts-expect-error a property read by path is unknown
   const value: number = ParseUtility.getDeepProperty({ source: {}, path: 'a' });
 
-  return { text, count, texts, json, popped, reply, secret, value };
+  return { text, count, texts, object, json, popped, reply, secret, value };
 };
 
 describe('values a caller used to name', () => {

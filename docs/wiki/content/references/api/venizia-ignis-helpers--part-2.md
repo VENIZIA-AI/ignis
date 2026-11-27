@@ -1382,12 +1382,13 @@ export interface IRedisKeyValue {
     getStrings(opts: {
         keys: Array<string>;
     }): Promise<(string | null)[]>;
-    getObject<T>(opts: {
+    /** The parsed JSON value, or `null`. Check it before you use it. */
+    getObject(opts: {
         key: string;
-    }): Promise<T | null>;
+    }): Promise<unknown>;
     getObjects(opts: {
         keys: Array<string>;
-    }): Promise<(unknown | null)[]>;
+    }): Promise<unknown[]>;
     mSet<T>(opts: {
         payload: Array<{
             key: string;

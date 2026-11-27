@@ -134,7 +134,8 @@ Reduce database load with caching:
 **Example:**
 ```typescript
 // Cache expensive query results (RedisHelper uses an options-object API)
-const cached = await redis.getObject<TUser[]>({ key: 'users:active' });
+// The cached value is unknown: check it before you use it
+const cached = await redis.getObject({ key: 'users:active' });
 if (!cached) {
   const users = await userRepository.find({ filter: { where: { active: true } } });
   await redis.set({
