@@ -383,6 +383,8 @@ A part answers `unknown` when the config does not declare it, when `request.head
 
 `valid<T>(target)` still compiles and answers `T`, so code can move one route at a time. TypeScript does not stop a context typed for one route from being passed to a method typed for another. The lint rule [`@venizia/typed-route-context`](/best-practices/code-style-standards/tooling) reports these; it reads syntax only, so it does not follow a context stored, passed further than one method, or handled in another file.
 
+**Declaration files.** In a package that emits `.d.ts` files, an exported value whose type TypeScript infers and that holds `context.req` or `context.req.valid` fails with TS2883. Write the type: `TContextOf<typeof CONFIG>['req']`, or `TContextOf<typeof CONFIG>['req']['valid']`.
+
 `bun node_modules/.bin/devz codemod typed-route-context [paths...] --write` moves decorated methods, and methods that serve one route's handlers, to `TContextOf`. It leaves CRUD overrides alone.
 
 ### `TRouteContext`
