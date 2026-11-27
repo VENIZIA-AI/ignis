@@ -10,14 +10,13 @@ import {
 
 const BASE_PATH = '/configurations';
 
-/** The create body names the fields a client may set; `.strict()` rejects any other. */
+/** The create body names the fields a client may set; a strict object rejects any other. */
 const CreateConfigurationSchema = z
-  .object({
+  .strictObject({
     code: z.string().min(1).max(100).openapi({ example: 'APP_THEME' }),
     description: z.string().max(500).optional().openapi({ example: 'Application theme setting' }),
     group: z.string().min(1).max(50).openapi({ example: 'appearance' }),
   })
-  .strict()
   .openapi({ description: 'Request body for creating a configuration' });
 
 /**
