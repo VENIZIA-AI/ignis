@@ -8,7 +8,7 @@ const Route5BodySchema = z.object({ name: z.string(), age: z.number().int().posi
 export const RouteConfigs = {
   ['/1']: {
     path: '/1',
-    method: 'get',
+    method: HTTP.Methods.GET,
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Test message content 1',
@@ -18,7 +18,7 @@ export const RouteConfigs = {
   },
   ['/2']: {
     path: '/2',
-    method: 'get',
+    method: HTTP.Methods.GET,
     authenticate: { strategies: [AuthenticateStrategy.JWT] },
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
@@ -29,7 +29,7 @@ export const RouteConfigs = {
   },
   ['/3']: {
     path: '/3',
-    method: 'get',
+    method: HTTP.Methods.GET,
     authenticate: { strategies: [AuthenticateStrategy.BASIC] },
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({

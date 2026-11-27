@@ -1,11 +1,12 @@
 import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
+import { HTTP } from '@venizia/ignis-helpers/common';
 
 // The /certs endpoint is intentionally unauthenticated - it serves the public JWKS external verifiers need to validate tokens issued by this service.
 export const RouteConfigs = {
   GET_JWKS_CERTS: {
     path: '/',
-    method: 'get',
+    method: HTTP.Methods.GET,
     responses: OpenApiResponses.jsonResponse({
       schema: z
         .object({

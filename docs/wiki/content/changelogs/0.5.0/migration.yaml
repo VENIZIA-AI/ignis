@@ -1198,6 +1198,23 @@ http-datasource-resolvers:
       - "Pin @venizia/ignis-connectors and @venizia/ignis to the release before this one."
   data: Nothing stored changes.
 
+prefer-http-method-rule:
+  symbols: [PreferHttpMethodRule, houseConfigs, reactHouseConfigs]
+  upgrade:
+    before: |-
+      const route = { method: 'get', path: '/', responses };
+    after: |-
+      import { HTTP } from '@venizia/ignis-helpers/common';
+      const route = { method: HTTP.Methods.GET, path: '/', responses };
+    steps:
+      - "Run your lint with --fix: it rewrites each exact lowercase value and adds the import."
+      - "Rewrite the other spellings by hand. For a plain fetch, write HTTP.Methods.PATCH.toUpperCase(): fetch sends patch as written."
+      - "Where the file must keep the string, turn the rule off on that line with the reason."
+  downgrade:
+    steps:
+      - "Pin @venizia/dev-configs to the release before this one, or turn @venizia/prefer-http-method off."
+  data: Nothing stored changes.
+
 to-boolean-words:
   symbols: [ParseUtility, LoggerConfigUtility, PreferFrameworkApiRule, FrameworkApiPatterns]
   upgrade:

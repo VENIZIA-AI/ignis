@@ -105,6 +105,9 @@ describe('devz codemod typed-route-context: decorated methods', () => {
     'const WIDE: Record<string, IAuthRouteConfig> = { A: { path } };',
     'const WIDE = { A: { path } } as Record<string, IAuthRouteConfig>;',
     'class WIDE { static readonly A: IAuthRouteConfig = { path }; }',
+    'const WIDE: Readonly<Record<string, IAuthRouteConfig>> = { A: { path } };',
+    'const WIDE = { A: { path } as IAuthRouteConfig };',
+    "const WIDE = { 'A': { path } as Omit<IAuthRouteConfig, 'method'> };",
   ]) {
     test(`a handler of a config declared wide is left alone: ${declaration}`, () => {
       const source = [
@@ -224,7 +227,9 @@ describe('devz codemod typed-route-context: the command', () => {
       args: ['typed-route-context', '--reverse'],
     });
 
-    expect(String(log.mock.calls[0]?.[0]).split('\n')).toContain('typed-route-context');
+    const listed = log.mock.calls.flatMap(([text]) => String(text).split('\n'));
+
+    expect(listed).toContain('typed-route-context');
     expect(code).toBe(2);
     expect(error.mock.calls).toHaveLength(1);
   });

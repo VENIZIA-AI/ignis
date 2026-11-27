@@ -20,6 +20,7 @@ export * from './no-return-await.rule';
 export * from './no-silent-catch.rule';
 export * from './no-unbraced-case.rule';
 export * from './prefer-framework-api.rule';
+export * from './prefer-http-method.rule';
 export * from './prefer-promise-sleep.rule';
 export * from './prefer-tnullable.rule';
 export * from './typed-route-context.rule';

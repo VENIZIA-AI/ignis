@@ -13,6 +13,7 @@ import { NoLeakedRenderRule } from './no-leaked-render.rule';
 import { NoNewErrorRule } from './no-new-error.rule';
 import { NoShadowFrameworkTypeRule } from './no-shadow-framework-type.rule';
 import { PreferFrameworkApiRule } from './prefer-framework-api.rule';
+import { PreferHttpMethodRule } from './prefer-http-method.rule';
 import { PreferPromiseSleepRule } from './prefer-promise-sleep.rule';
 import { PreferTNullableRule } from './prefer-tnullable.rule';
 import { TypedRouteContextRule } from './typed-route-context.rule';
@@ -47,6 +48,7 @@ const houseRuleConfigs: Linter.Config[] = [
       [NoShadowFrameworkTypeRule.NAME]: NoShadowFrameworkTypeRule.build(),
       [PreferTNullableRule.NAME]: PreferTNullableRule.build(),
       [PreferPromiseSleepRule.NAME]: PreferPromiseSleepRule.build(),
+      [PreferHttpMethodRule.NAME]: PreferHttpMethodRule.build(),
       [PreferFrameworkApiRule.NAME]: PreferFrameworkApiRule.build({ hooks: false }),
       [ConstClassValuesRule.NAME]: ConstClassValuesRule.build({ severity: 'warn' }),
       [ZodSchemaConventionRule.NAME]: ZodSchemaConventionRule.build(),
@@ -60,6 +62,7 @@ const houseRuleConfigs: Linter.Config[] = [
       [NoNewErrorRule.NAME]: 'off',
       [NoShadowFrameworkTypeRule.NAME]: 'off',
       [PreferPromiseSleepRule.NAME]: 'off',
+      [PreferHttpMethodRule.NAME]: 'off',
       [PreferFrameworkApiRule.NAME]: 'off',
       [ConstClassValuesRule.NAME]: 'off',
       [NO_CAST_RULE]: 'off',

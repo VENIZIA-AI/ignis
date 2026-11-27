@@ -6,7 +6,7 @@ export const RouteConfigs = {
   // Public - no authentication, no authorization
   ['/public']: {
     path: '/public',
-    method: 'get',
+    method: HTTP.Methods.GET,
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Public endpoint - no auth required',
@@ -18,7 +18,7 @@ export const RouteConfigs = {
   // JWT auth only - no authorization check
   ['/profile']: {
     path: '/profile',
-    method: 'get',
+    method: HTTP.Methods.GET,
     authenticate: { strategies: [AuthenticateStrategy.JWT] },
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
@@ -31,7 +31,7 @@ export const RouteConfigs = {
   // JWT auth + authorization: must have "read" action on "configuration" resource
   ['/configurations']: {
     path: '/configurations',
-    method: 'get',
+    method: HTTP.Methods.GET,
     authenticate: { strategies: [AuthenticateStrategy.JWT] },
     authorize: { action: 'read', resource: 'configuration' },
     responses: {
@@ -45,7 +45,7 @@ export const RouteConfigs = {
   // JWT auth + authorization: must have "create" action on "user" resource
   ['/users']: {
     path: '/users',
-    method: 'post',
+    method: HTTP.Methods.POST,
     authenticate: { strategies: [AuthenticateStrategy.JWT] },
     authorize: { action: 'create', resource: 'user' },
     responses: {
@@ -59,7 +59,7 @@ export const RouteConfigs = {
   // JWT auth + authorization with allowedRoles: only super-admin and admin
   ['/admin/dashboard']: {
     path: '/admin/dashboard',
-    method: 'get',
+    method: HTTP.Methods.GET,
     authenticate: { strategies: [AuthenticateStrategy.JWT] },
     authorize: {
       action: 'read',
