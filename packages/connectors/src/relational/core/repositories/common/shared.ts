@@ -20,7 +20,8 @@ export class TableColumnCache {
     let columns = TableColumnCache.columns.get(schema);
 
     if (!columns) {
-      columns = Object.assign(Object.create(null), getTableColumns(schema)) as TTableColumns;
+      columns = { ...getTableColumns(schema) };
+      Object.setPrototypeOf(columns, null);
       TableColumnCache.columns.set(schema, columns);
     }
 

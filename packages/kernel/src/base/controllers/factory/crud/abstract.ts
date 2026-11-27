@@ -45,9 +45,9 @@ export abstract class AbstractCrudController<
   assertRequestFilter(opts: {
     filter?: { where?: unknown; order?: unknown; include?: unknown };
   }): void {
-    (
-      this.repository as Partial<Pick<AbstractRepository<object>, 'assertRequestFilter'>>
-    ).assertRequestFilter?.(opts);
+    const repository: Partial<Pick<AbstractRepository<object>, 'assertRequestFilter'>> =
+      this.repository;
+    repository.assertRequestFilter?.(opts);
   }
 
   /** 400 when a bulk operation is missing its `where` filter; undefined when it is present. */

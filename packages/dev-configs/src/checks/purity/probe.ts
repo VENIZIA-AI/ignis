@@ -238,6 +238,23 @@ const findUnresolvedExternalSpecifiers = (opts: {
   return [...unresolved].sort();
 };
 
+/** Whether `value` carries what the probe reads: every input with its imports, each with a path. */
+const isMetafile = (value: unknown): value is IMetafile => {
+  const read = (node: unknown, key: string): unknown =>
+    typeof node === 'object' && node !== null ? Reflect.get(node, key) : undefined;
+  const inputs = read(value, 'inputs');
+
+  return (
+    typeof inputs === 'object' &&
+    inputs !== null &&
+    Object.values(inputs).every((input) => {
+      const imports = read(input, 'imports');
+
+      return Array.isArray(imports) && imports.every((it) => typeof read(it, 'path') === 'string');
+    })
+  );
+};
+
 /**
  * Reads and removes the metafile unconditionally. Returns `undefined` rather than throwing -
  * `PurityProbe.probeEntry` reports on every entry it is given rather than aborting the run of the other five.
@@ -246,7 +263,15 @@ const readMetafile = async (path: string): Promise<IMetafile | undefined> => {
   try {
     const result = await Bun.file(path).text();
 
-    return JSON.parse(result) as IMetafile;
+    const metafile: unknown = JSON.parse(result);
+
+    if (!isMetafile(metafile)) {
+      CliOutput.error(`[purity] The build metafile at ${path} names no inputs with their imports`);
+
+      return undefined;
+    }
+
+    return metafile;
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     CliOutput.error(`[purity] Failed to read the build metafile at ${path}: ${reason}`);

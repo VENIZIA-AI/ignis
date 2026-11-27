@@ -409,6 +409,7 @@ export class DiskHelper extends BaseStorageHelper {
       range ? { start: range.start, end: range.end } : {},
     );
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `Readable.toWeb` answers a stream of `any`; this one reads a file, so its chunks are bytes
     return Readable.toWeb(source) as ReadableStream<Uint8Array>;
   }
 

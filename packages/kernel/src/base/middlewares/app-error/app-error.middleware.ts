@@ -314,7 +314,8 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     // here (generic in production), never the wrapped text.
     const normalized =
       'normalized' in error && !(UNEXPECTED_ERROR_MARKER in error)
-        ? (error.normalized as IResolvedApplicationError['normalized'])
+        ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the application's `transform` owns this value; a guard here could replace its answer with the default message
+          (error.normalized as IResolvedApplicationError['normalized'])
         : { text: message, code, args: {} };
 
     return { statusCode, message, normalized, type };
