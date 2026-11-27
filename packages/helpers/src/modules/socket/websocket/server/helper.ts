@@ -252,6 +252,19 @@ export class WebSocketServerHelper<
     logger.info('Redis subscriptions configured');
   }
 
+  /** A peer's message off Redis. Type guard, so it keeps its positional `value`; `data` is the application's own. */
+  private static isRedisMessage(value: unknown): value is IRedisSocketMessage {
+    return (
+      RecordUtility.isRecord(value) &&
+      typeof value.serverId === 'string' &&
+      typeof value.event === 'string' &&
+      WebSocketMessageTypes.isValid(value.type) &&
+      (value.target === undefined || typeof value.target === 'string') &&
+      (value.exclude === undefined ||
+        (Array.isArray(value.exclude) && value.exclude.every((id) => typeof id === 'string')))
+    );
+  }
+
   private onRedisMessage(opts: { channel: string; raw: string }) {
     const logger = this.logger.for(this.onRedisMessage.name);
     const { channel, raw } = opts;
@@ -266,27 +279,18 @@ export class WebSocketServerHelper<
       return;
     }
 
-    if (
-      !parsed ||
-      typeof parsed !== 'object' ||
-      !('serverId' in parsed) ||
-      typeof parsed.serverId !== 'string' ||
-      !('event' in parsed) ||
-      typeof parsed.event !== 'string'
-    ) {
+    if (!WebSocketServerHelper.isRedisMessage(parsed)) {
       logger.error('Invalid Redis message shape | channel: %s', channel);
 
       return;
     }
 
-    const message = parsed as IRedisSocketMessage;
-
     // Skip messages from this server instance (dedup)
-    if (message.serverId === this.serverId) {
+    if (parsed.serverId === this.serverId) {
       return;
     }
 
-    const { type, target, event, data, exclude } = message;
+    const { type, target, event, data, exclude } = parsed;
 
     switch (type) {
       case WebSocketMessageTypes.BROADCAST: {

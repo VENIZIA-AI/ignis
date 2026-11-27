@@ -183,7 +183,8 @@ describe('Relational onSecretRotated - draining a client that has no end()', () 
     dataSource.getConnector();
     const oldClient = dataSource.builds[0];
 
-    expect(await rotateWithoutNewClient(dataSource)).toContain('assigned no new client');
+    const result = await rotateWithoutNewClient(dataSource);
+    expect(result).toContain('assigned no new client');
     expect(oldClient?.closed).toBe(false);
     expect(dataSource.getClient()).toBe(oldClient);
   });
@@ -193,7 +194,8 @@ describe('Relational onSecretRotated - draining a client that has no end()', () 
     const client = new CloseOnlyClient({});
     dataSource['useDriver']({ driver: new CloseOnlyDriver({ client }) });
 
-    expect(await rotateWithoutNewClient(dataSource)).toContain('assigned no new client');
+    const result2 = await rotateWithoutNewClient(dataSource);
+    expect(result2).toContain('assigned no new client');
     expect(client.closed).toBe(false);
   });
 

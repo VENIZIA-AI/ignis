@@ -2197,7 +2197,7 @@ export declare class LogLevels {
     static readonly SCHEME_SET: Set<string>;
     /** From the most to the least severe: a threshold lets through its own level and every level before it. */
     static readonly ORDER: ReadonlyArray<string>;
-    static isValid(input: string): boolean;
+    static isValid(input: string): input is TLogLevel;
     /** Whether a line of `level` passes a `threshold`: `debug` lets everything through, `error` only `error` and `emerg`. */
     static isEnabled(opts: {
         level: string;

@@ -857,7 +857,7 @@ export declare class MessageCode {
     /** True when `code` is well-formed. Takes `unknown` because it guards codes arriving from outside - a guard that throws on the very input it exists to screen is not a guard. */
     static isValid(code: unknown): boolean;
     /** Normalizes an absent, empty or non-string code to {@link DEFAULT}. */
-    static resolve(code?: TNullable<string>): string;
+    static resolve(code?: unknown): string;
 }
 
 type TErrorFactory = (opts: TError) => Error;

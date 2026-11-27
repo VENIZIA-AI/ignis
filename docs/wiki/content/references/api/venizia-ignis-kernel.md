@@ -1220,6 +1220,8 @@ Provides the `TAuthorizeFn` that builds the per-route authorization middleware: 
 ```ts
 export declare class AuthorizationProvider extends BaseHelper implements IProvider<TAuthorizeFn> {
     constructor();
+    /** Type guard, so it keeps its positional `user`. */
+    private hasPrincipalType;
     value(): TAuthorizeFn;
     private createAuthorizeMiddleware;
     private extractUserRoles;

@@ -39,7 +39,7 @@ export class LoggerConfigUtility {
       return LogLevels.DEBUG;
     }
 
-    return normalized as TLogLevel;
+    return normalized;
   }
 
   /**
