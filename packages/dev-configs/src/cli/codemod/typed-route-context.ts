@@ -140,6 +140,8 @@ class RouteContextFile {
           if (this.isWideDeclaration(declaration)) {
             this.wide.add(name);
           }
+
+          this.readWideMembers({ owner: name, value: declaration.initializer });
         }
       }
 
@@ -190,6 +192,33 @@ class RouteContextFile {
     }
   }
 
+  /** The members of an object literal asserted wide one by one: `{ A: { ... } as IAuthRouteConfig }`. */
+  private readWideMembers(opts: { owner: string; value: TypeScript.Expression | undefined }) {
+    const { typescript: ts } = this.options;
+    let { value } = opts;
+
+    while (value && (ts.isAsExpression(value) || ts.isSatisfiesExpression(value))) {
+      value = value.expression;
+    }
+
+    if (!value || !ts.isObjectLiteralExpression(value)) {
+      return;
+    }
+
+    for (const property of value.properties) {
+      if (
+        ts.isPropertyAssignment(property) &&
+        ts.isAsExpression(property.initializer) &&
+        this.isWideType(property.initializer.type)
+      ) {
+        const key = ts.isStringLiteralLike(property.name)
+          ? property.name.text
+          : property.name.getText(this.file);
+        this.wide.add(`${opts.owner}.${key}`);
+      }
+    }
+  }
+
   /** Whether a declaration is typed `IAuthRouteConfig`, in an `Omit` or a `Record` too, by annotation or by `as`. */
   private isWideDeclaration(
     declaration: TypeScript.VariableDeclaration | TypeScript.PropertyDeclaration,
@@ -198,22 +227,26 @@ class RouteContextFile {
     const { initializer } = declaration;
     const asserted = initializer && ts.isAsExpression(initializer) ? initializer.type : undefined;
 
-    const isWide = (type: TypeScript.TypeNode | undefined): boolean => {
-      if (!type || !ts.isTypeReferenceNode(type)) {
-        return false;
-      }
+    return this.isWideType(declaration.type) || this.isWideType(asserted);
+  }
 
-      const name = type.typeName.getText(this.file);
-      const [first, second] = type.typeArguments ?? [];
+  private isWideType(type: TypeScript.TypeNode | undefined): boolean {
+    const { typescript: ts } = this.options;
 
-      if (name === 'Record') {
-        return isWide(second);
-      }
+    if (!type || !ts.isTypeReferenceNode(type)) {
+      return false;
+    }
 
-      return name === 'Omit' ? isWide(first) : name === 'IAuthRouteConfig';
-    };
+    const name = type.typeName.getText(this.file);
+    const [first, second] = type.typeArguments ?? [];
 
-    return isWide(declaration.type) || isWide(asserted);
+    if (name === 'Record') {
+      return this.isWideType(second);
+    }
+
+    return name === 'Omit' || name === 'Readonly'
+      ? this.isWideType(first)
+      : name === 'IAuthRouteConfig';
   }
 
   /** The framework type a type reference names. */

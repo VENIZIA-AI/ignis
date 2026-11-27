@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-0 exports, 0 with TSDoc. 72 more are re-exported from other entries (listed at the end).
+0 exports, 0 with TSDoc. 73 more are re-exported from other entries (listed at the end).
 
 ## Re-exported
 
@@ -59,6 +59,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 - `paddingConfigs` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `PaddingLineBetweenStatementsRule` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `PreferFrameworkApiRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
+- `PreferHttpMethodRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `PreferNullishCoalescingRule` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `PreferPromiseSleepRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `PreferTNullableRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)

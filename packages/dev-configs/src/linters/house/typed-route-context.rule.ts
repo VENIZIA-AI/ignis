@@ -221,6 +221,10 @@ class RouteNodes {
       return RouteNodes.isWideConfig(second);
     }
 
+    if (name === 'Readonly') {
+      return RouteNodes.isWideConfig(first);
+    }
+
     return name === 'Omit' ? RouteNodes.isWideConfig(first) : name === RouteNodes.CONFIG_TYPE;
   }
 }
@@ -313,18 +317,24 @@ export class TypedRouteContextRule {
         frames.pop();
       };
 
-      const checkDeclared = (opts: { node: Rule.Node; pattern: unknown; value: unknown }) => {
-        // `{ ... } as const` under a wide annotation loses the schemas the same way.
-        const value =
-          RouteNodes.type(opts.value) === AstNodeTypes.AS_EXPRESSION
-            ? RouteNodes.field(opts.value, 'expression')
-            : opts.value;
-        // An empty object is a collection filled later, with no literal schema to keep.
-        const isObject =
-          RouteNodes.type(value) === AstNodeTypes.OBJECT_EXPRESSION &&
-          RouteNodes.list(value, 'properties').length > 0;
+      /** An empty object is a collection filled later, with no literal schema to keep. */
+      const isFilledObject = (value: unknown) =>
+        RouteNodes.type(value) === AstNodeTypes.OBJECT_EXPRESSION &&
+        RouteNodes.list(value, 'properties').length > 0;
 
-        if (isObject && RouteNodes.isWideConfig(RouteNodes.annotation(opts.pattern))) {
+      const checkDeclared = (opts: { node: Rule.Node; pattern: unknown; value: unknown }) => {
+        // `{ ... } as const` under a wide annotation loses the schemas the same way. An `as` of a wide type is
+        // reported at the assertion itself.
+        const isAsserted = RouteNodes.type(opts.value) === AstNodeTypes.AS_EXPRESSION;
+        const value = isAsserted ? RouteNodes.field(opts.value, 'expression') : opts.value;
+        const isReportedThere =
+          isAsserted && RouteNodes.isWideConfig(RouteNodes.field(opts.value, 'typeAnnotation'));
+
+        if (
+          !isReportedThere &&
+          isFilledObject(value) &&
+          RouteNodes.isWideConfig(RouteNodes.annotation(opts.pattern))
+        ) {
           context.report({ node: opts.node, messageId: 'wideConfig' });
         }
       };
@@ -416,6 +426,14 @@ export class TypedRouteContextRule {
             if (holdsContext) {
               frame.typed.add(bound);
             }
+          }
+        },
+        [AstNodeTypes.AS_EXPRESSION]: (node: Rule.Node) => {
+          if (
+            isFilledObject(RouteNodes.field(node, 'expression')) &&
+            RouteNodes.isWideConfig(RouteNodes.field(node, 'typeAnnotation'))
+          ) {
+            context.report({ node, messageId: 'wideConfig' });
           }
         },
         [AstNodeTypes.PROPERTY_DEFINITION]: (node: Rule.Node) => {

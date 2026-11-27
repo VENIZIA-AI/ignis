@@ -15,6 +15,7 @@ import { NoShadowFrameworkTypeRule } from './no-shadow-framework-type.rule';
 import { NoSilentCatchRule } from './no-silent-catch.rule';
 import { NoUnbracedCaseRule } from './no-unbraced-case.rule';
 import { PreferFrameworkApiRule } from './prefer-framework-api.rule';
+import { PreferHttpMethodRule } from './prefer-http-method.rule';
 import { PreferPromiseSleepRule } from './prefer-promise-sleep.rule';
 import { PreferTNullableRule } from './prefer-tnullable.rule';
 import { TypedRouteContextRule } from './typed-route-context.rule';
@@ -39,6 +40,7 @@ export const houseEslintPlugin: ESLint.Plugin = {
     'no-silent-catch': NoSilentCatchRule.RULE,
     'no-unbraced-case': NoUnbracedCaseRule.RULE,
     'prefer-framework-api': PreferFrameworkApiRule.RULE,
+    'prefer-http-method': PreferHttpMethodRule.RULE,
     'prefer-promise-sleep': PreferPromiseSleepRule.RULE,
     'prefer-tnullable': PreferTNullableRule.RULE,
     'typed-route-context': TypedRouteContextRule.RULE,
