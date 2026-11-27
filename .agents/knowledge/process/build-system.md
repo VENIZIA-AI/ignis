@@ -155,7 +155,7 @@ tags: [process, build]
 `make examples-check` type-checks every example (`tsc --noEmit` per `examples/*/tsconfig.json`) and runs its `lint` script, against the built
 packages and reports every failing example before it fails; CI runs it after `make build-all` and the workspace
 bin link. `make lint-all` only format-checks the examples, so a lint error or a type a package forgot to export
-breaks here first. The gate fails on errors; a warning (a type cast) does not fail it.
+breaks here first. An error fails the gate, and so does an oxlint warning; an ESLint warning (the type-cast rule) does not.
 
 ## Related
 
