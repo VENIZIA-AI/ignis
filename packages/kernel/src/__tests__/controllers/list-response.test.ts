@@ -69,6 +69,26 @@ describe('BaseRestController list responses', () => {
     expect(responseHeaders[HTTP.Headers.RESPONSE_COUNT_DATA]).toBe('0');
   });
 
+  test.each([
+    ['no', rows],
+    ['off', rows],
+    ['yes', { count: 2, data: rows }],
+    ['not-a-boolean', { count: 2, data: rows }],
+  ])('x-request-count: %p', (header, expected) => {
+    const controller = new ItemsController();
+    const { context } = fakeContext({
+      requestHeaders: { [HTTP.Headers.REQUEST_COUNT_DATA]: header },
+    });
+
+    const body = controller.respond({
+      context,
+      format: ResponseFormats.ARRAY,
+      payload: { count: rows.length, data: rows },
+    });
+
+    expect(body).toEqual(expected);
+  });
+
   test('x-request-count: false returns the bare array and keeps every header', () => {
     const controller = new ItemsController();
     const { context, responseHeaders } = fakeContext({

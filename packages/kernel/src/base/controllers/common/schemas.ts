@@ -34,7 +34,7 @@ export const CountableHeadersSchema = z.object({
     .optional()
     .openapi({
       description:
-        'Controls response format. When "true" (default): returns {count, data}. When "false": returns data only.',
+        'Controls response format. When "true" (default): returns {count, data}. When "false": returns data only. The other words of a boolean (1/0, yes/no, on/off, y/n, enabled/disabled) are read too; any other value counts as "true".',
       examples: ['true', '1', 'false', '0'],
     }),
 });

@@ -673,7 +673,7 @@ interface ICustomLoggerOptions {
 
 The rule lives in `LoggerDebugGate` (`common/debug-gate.ts`) and every provider shares it, so Console, Winston, Pino and `HfLogger` agree. Debug logs require **both** conditions to be met:
 
-1. `DEBUG` is truthy (set, and not empty, `false` or `0`)
+1. `DEBUG` is set, not blank and not a false word (`false`, `0`, `no`, `off`, `n`, `disabled`); it is a namespace pattern, so `app:*` counts
 2. `NODE_ENV` is either unset **or** is present in the `Environment.COMMON_ENVS` set
 
 Where there is no `process` (a browser) the gate is closed: `debug` is off.
@@ -829,7 +829,7 @@ The first rule that matches wins:
 
 | Rule | Result |
 |------|--------|
-| `APP_ENV_LOGGER_COLOR` is set | That value. `false` or `0` is off, anything else is on |
+| `APP_ENV_LOGGER_COLOR` is set | That value, when it is a [boolean word](/references/utilities/parse); any other value counts as unset |
 | `NO_COLOR` is set and non-empty | Off ([no-color.org](https://no-color.org)) |
 | `NODE_ENV` is `local`, `debug`, `development`, `dev` or `sit` - or unset | On |
 | Anything else, including `production`, `staging`, `uat` and unrecognized names | Off |
@@ -926,14 +926,14 @@ Details for the longer entries:
 - `BaseLogger` has one abstract `write()` sink.
 - `Logger.get(scope, customWinstonLogger?)` supports `instanceof Logger`.
 - `LoggerFactory` exposes `use({ provider, level })`, `useUnlessChosen`, `isChosen` and `reset`, and acquires `ILogger` from scope arrays.
-- `LoggerDebugGate` keeps `debug` off unless `DEBUG` is truthy and the environment is allowed. It is also off where there is no `process`. `LoggerFactory.use({ level })` overrides it.
+- `LoggerDebugGate` keeps `debug` off unless `DEBUG` asks for it and the environment is allowed. It is also off where there is no `process`. `LoggerFactory.use({ level })` overrides it.
 - `IErrorSummary` holds `name`, `message`, `code`, `stack` (frames only), the `pg` diagnostics and a nested `cause`.
 
 ## Troubleshooting
 
 ### Debug logs not appearing
 
-**Cause:** Debug logging requires both a truthy `DEBUG` AND a `NODE_ENV` that is either unset or present in the `COMMON_ENVS` set, and a browser has no `process`, so there it is off. These values are read once, on the first `debug` call. A `level` passed to `LoggerFactory.use` overrides all of it.
+**Cause:** Debug logging requires both a `DEBUG` that is not blank or a false word AND a `NODE_ENV` that is either unset or present in the `COMMON_ENVS` set, and a browser has no `process`, so there it is off. These values are read once, on the first `debug` call. A `level` passed to `LoggerFactory.use` overrides all of it.
 
 **Fix:**
 1. Verify `DEBUG=true` is set in your environment, or pass `LoggerFactory.use({ level: LogLevels.DEBUG })`.

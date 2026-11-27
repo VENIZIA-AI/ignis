@@ -265,6 +265,10 @@ describe('@venizia/zod-schema-convention: strict calls, passthrough and coerce',
     ['a loose object', 'const ASchema = z.looseObject({}); const BSchema = z.object({}).loose();'],
     ['strict() of something else', 'const ASchema = z.string(); other.object({}).strict();'],
     ['passthrough() of something else', 'const a = stream.passthrough();'],
+    [
+      'passthrough() after a derivation of an import named like a schema',
+      "import { UserSchema } from './user';\nUserSchema.extend({}).passthrough();",
+    ],
     ['passthrough() of a local value', 'const user = build(); const a = user.passthrough();'],
     [
       'passthrough() of an import named like a schema',
@@ -281,6 +285,10 @@ describe('@venizia/zod-schema-convention: strict calls, passthrough and coerce',
 
   test.each([
     ['an object', 'const ASchema = z.object({}).passthrough();'],
+    [
+      'a derivation of a local const',
+      'const ASchema = z.object({}); ASchema.extend({}).passthrough();',
+    ],
     ['a local schema', 'const ASchema = z.object({}); const BSchema = ASchema.passthrough();'],
     [
       'a chain of local consts',

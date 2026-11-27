@@ -1128,3 +1128,22 @@ zod-strict-and-passthrough:
     steps:
       - "Pin @venizia/dev-configs to the release before this one, or set strictCall and noPassthrough to false."
   data: Nothing stored changes.
+
+to-boolean-words:
+  symbols: [ParseUtility, LoggerConfigUtility, PreferFrameworkApiRule, FrameworkApiPatterns]
+  upgrade:
+    before: |-
+      const isSecure = AppEnvs.get('APP_ENV_MAIL_SECURE') !== 'false';
+    after: |-
+      const isSecure = ParseUtility.toBoolean({
+        input: AppEnvs.get('APP_ENV_MAIL_SECURE', { defaultValue: 'true' }),
+      });
+    steps:
+      - "Check every value you pass to ParseUtility.toBoolean: one that is no boolean word now throws a 400. Where the input is free text and presence is what you mean, test for presence instead."
+      - "Check your environments for no, off, n or disabled, which used to read as true, and for other words in ALLOW_EMPTY_ENV_VALUE and APP_ENV_AUTO_PROVISION_COLLECTION, which now stop the boot."
+      - "Run your lint and replace each reported comparison; give the default the comparison implied."
+      - "To keep a comparison, set { ignore: ['env-boolean-comparison'] } on @venizia/prefer-framework-api, stating its hooks option again."
+  downgrade:
+    steps:
+      - "Pin the @venizia/ignis packages and @venizia/dev-configs to the release before this one."
+  data: Nothing stored changes.

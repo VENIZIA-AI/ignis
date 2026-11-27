@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { ParseUtility } from '@/utilities/parse.utility';
+import { LoggerDebugGate } from '@/modules/logger/common/debug-gate';
 import { BaseLogger, type ILogger, type TLogLevel } from '@/modules/logger';
 
 /** Minimal recording sink - the same shape a future provider (pino) would implement. */
@@ -53,7 +53,7 @@ describe('BaseLogger - level dispatch to the single write() sink', () => {
     logger.debug('gated');
 
     // .env.test does not set DEBUG, so the gate suppresses the line in a standard test run; a developer shell exporting DEBUG=true opens it - assert consistently with it.
-    const expected = ParseUtility.toBoolean({ input: process.env.DEBUG }) ? 1 : 0;
+    const expected = LoggerDebugGate.evaluate({ env: { DEBUG: process.env.DEBUG } }) ? 1 : 0;
     expect(logger.writes.length).toBe(expected);
   });
 

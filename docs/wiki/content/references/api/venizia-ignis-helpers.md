@@ -3710,7 +3710,7 @@ export declare class LoggerConfigUtility {
     /**
      * Whether log lines may carry ANSI color, resolved at CALL time. First match wins:
      *
-     * 1. `APP_ENV_LOGGER_COLOR` - an explicit yes or no from the operator.
+     * 1. `APP_ENV_LOGGER_COLOR` - an explicit yes or no from the operator, in the words `ParseUtility.toBoolean` reads.
      * 2. `NO_COLOR`, set to anything non-empty - the no-color.org convention.
      * 3. `NODE_ENV` outside {@link Environment.DEVELOPMENT_ENVS} - production, staging, uat and any
      *    unrecognized name. Fail-closed, the same boundary the error sanitizer draws: colors are a
@@ -3733,7 +3733,7 @@ Source: `packages/helpers/src/modules/logger/common/constants.ts`
 
 *class*
 
-The rule that decides whether `debug` lines are written: off unless `DEBUG` is truthy and the environment is allowed
+The rule that decides whether `debug` lines are written: off unless `DEBUG` is set to something but a false word and the environment is allowed
 (`NODE_ENV` unset, or one of the common names, or one `APP_ENV_EXTRA_LOG_ENVS` adds). Every provider shares it, so a
 console, a winston and a pino logger agree.
 
@@ -3745,14 +3745,18 @@ export declare class LoggerDebugGate {
     /** The override lives on globalThis, so `use({ level })` in one copy of the module opens or closes debug in the other. */
     private static readonly FORCED_SLOT;
     private static resolved?;
+    /**
+     * A false word of a boolean setting, as `z.stringbool()` reads it, or a blank text; in any case, space around it
+     * allowed. `ParseUtility` reads it too: it lives here because this module is in the graph of `BaseHelper`, in a
+     * browser bundle with a byte ceiling. No two `\s*` meet, so a long header costs linear time.
+     */
+    static readonly FALSE_WORDS: RegExp;
     /** The environment the host has, `{}` where there is no `process`. */
     static readEnvironment(): TEnvironment;
     /**
-     * The truthiness `ParseUtility.toBoolean` has, repeated here on purpose: `ParseUtility` imports the error module, and
-     * this file is in the graph of `BaseHelper`, which must stay a few hundred bytes in a browser bundle.
+     * The rule itself, for any environment: a pure function of `env`. `DEBUG` is a namespace pattern other libraries
+     * share (`app:*`), not a boolean: only a blank value or a false word turns it off, and nothing is refused.
      */
-    private static isTruthy;
-    /** The rule itself, for any environment: a pure function of `env`. */
     static evaluate(opts: {
         env: TEnvironment;
     }): boolean;

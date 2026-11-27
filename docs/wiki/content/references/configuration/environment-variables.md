@@ -264,8 +264,8 @@ APP_ENV_JWT_EXPIRES_IN=86400
 | `APP_ENV_LOGGER_FORMAT` | No | `text` | Log output format |
 | `APP_ENV_LOGGER_LEVEL` | No | `debug` | Logger-level floor; transports without their own level inherit it |
 | `APP_ENV_LOGGER_INSPECT_DEPTH` | No | `5` | How deep a `%s` argument is inspected; a non-negative integer, else `5` |
-| `APP_ENV_LOGGER_DO_REDACT` | No | `true` | Secret redaction in logged values. ONLY the literal `false` disables it |
-| `APP_ENV_LOGGER_COLOR` | No | _(unset)_ | ANSI color on console log lines; unset means auto (see below) |
+| `APP_ENV_LOGGER_DO_REDACT` | No | `true` | Secret redaction in logged values. ONLY the literal `false` disables it: on purpose it reads no other false word |
+| `APP_ENV_LOGGER_COLOR` | No | _(unset)_ | ANSI color on console log lines, a boolean word; unset, or any other value, means auto (see below) |
 | `APP_ENV_LOGGER_FILE_FREQUENCY` | No | `1h` | Log file rotation frequency |
 | `APP_ENV_LOGGER_FILE_MAX_SIZE` | No | `100m` | Max size per log file |
 | `APP_ENV_LOGGER_FILE_MAX_FILES` | No | `5d` | Log file retention |
@@ -364,7 +364,7 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
 |----------|----------|---------|-------------|
 | `APP_ENV_AUTO_PROVISION_COLLECTION` | No | `false` | Lets a search datasource create a missing collection on first use |
 
-`true` or `1` enables `APP_ENV_AUTO_PROVISION_COLLECTION`; the `autoProvision` constructor option overrides it.
+`APP_ENV_AUTO_PROVISION_COLLECTION` is read with [`ParseUtility.toBoolean`](/references/utilities/parse): a value that is no boolean word stops the boot. The `autoProvision` constructor option overrides it.
 
 > [!CAUTION] Removed on 2026-09-11: the DS name variables
 > `APP_ENV_APPLICATION_DS_MIGRATION`, `APP_ENV_APPLICATION_DS_AUTHORIZE` and
@@ -379,9 +379,9 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `DEBUG` | No | - | Enable debug mode |
+| `DEBUG` | No | - | Turns `debug` log lines on. Not a boolean: it is a namespace pattern other libraries share (`app:*`), so only a blank value or `false`, `0`, `no`, `off`, `n`, `disabled` leaves them off |
 | `NODE_ENV` | No | `development` | Environment mode. One of `local`, `debug`, `development`, `dev`, `sit`, `uat`, `alpha`, `beta`, `staging`, `production` |
-| `ALLOW_EMPTY_ENV_VALUE` | No | _(unset, which allows empty values)_ | Whether an empty `APP_ENV_*` value is accepted. Unset means allowed. Set it to `false` or `0` to turn the rejection ON |
+| `ALLOW_EMPTY_ENV_VALUE` | No | _(unset, which allows empty values)_ | Whether an empty `APP_ENV_*` value is accepted. Unset means allowed. Set it to `false` (or another false word) to turn the rejection ON; a value that is no boolean word stops the boot |
 | `RUN_MODE` | No | - | Printed in the startup banner; the framework never branches on it |
 
 Read `RUN_MODE` yourself to split a migrate run from a serve run.

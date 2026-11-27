@@ -30,7 +30,7 @@ Every helper in the framework gets its `this.logger` from the same factory, scop
 - **Custom-backed loggers are the exception.** `Logger.get(scope, customWinstonLogger)` (from the `/winston` sub-path) is NOT cached. Each call returns a fresh wrapper over the instance you passed in.
 - **Method scoping.** `.for(methodName)` returns a child logger scoped to `<scope>-<methodName>` (also cached), so each line shows where it came from.
 - **Level floor.** With Winston, `APP_ENV_LOGGER_LEVEL` (default `debug`) sets the logger-level floor. Transports without their own level inherit it. A `level` passed to `LoggerFactory.use` applies to every provider and wins over it.
-- **`debug()` is gated.** Every provider shares one rule: `debug` emits only when `DEBUG` is truthy and `NODE_ENV` is unset or listed in `Environment.COMMON_ENVS`. Extend that set via `APP_ENV_EXTRA_LOG_ENVS`. The environment is read once - runtime env changes need a restart. Where there is no `process` (a browser) `debug` is off. `LoggerFactory.use({ level })` overrides the rule.
+- **`debug()` is gated.** Every provider shares one rule: `debug` emits only when `DEBUG` is set to something other than a false word (`false`, `0`, `no`, `off`, `n`, `disabled`) and `NODE_ENV` is unset or listed in `Environment.COMMON_ENVS`. Extend that set via `APP_ENV_EXTRA_LOG_ENVS`. The environment is read once - runtime env changes need a restart. Where there is no `process` (a browser) `debug` is off. `LoggerFactory.use({ level })` overrides the rule.
 
 **Log levels**
 
@@ -157,7 +157,7 @@ LoggerFactory.use({ provider: PinoLogger, level: LogLevels.INFO });
 - **A script gets the console.** A script that imports only helpers or connectors logs to the console with no setup and no warning. To use Pino or Winston, call `LoggerFactory.use({ provider })` with the class from `@venizia/ignis-helpers/pino` or `/winston`.
 - **`@venizia/ignis` picks Winston.** At `initialize()` it selects Winston unless your application already chose a provider. If `winston` is not installed, the console stays. A compiled binary needs no `LoggerFactory.use` for this.
 - **`level` is a `LogLevels` value you pass.** The factory applies it to every provider the same way: a line below the level is dropped before the provider sees it. Without `level`, each provider applies its own gate.
-- **The debug gate.** The console writes `debug` only when `DEBUG` is truthy and the environment is allowed (see [How it works](#how-it-works)). In a browser there is no `process`, so `debug` is off. Pass `level: LogLevels.DEBUG` to turn it on, or `level: LogLevels.INFO` (or above) to silence it, whatever the environment says.
+- **The debug gate.** The console writes `debug` only when `DEBUG` asks for it and the environment is allowed (see [How it works](#how-it-works)). In a browser there is no `process`, so `debug` is off. Pass `level: LogLevels.DEBUG` to turn it on, or `level: LogLevels.INFO` (or above) to silence it, whatever the environment says.
 - **`use` can run after loggers exist.** Loggers already issued, children from `.for()` included, re-point to the new provider on their next line. Nothing has to be rebuilt.
 - **`useUnlessChosen({ provider })`** chooses a provider only when the application has not. It is for a framework's startup default, never an override. `LoggerFactory.isChosen()` says whether one was chosen.
 

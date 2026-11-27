@@ -2482,6 +2482,13 @@ export declare class ParseUtility {
     static toNumber(opts: {
         input: unknown;
     }): number | undefined;
+    /**
+     * Reads a boolean setting with the words of `z.stringbool()`, trimmed and in any case: `true`, `1`, `yes`, `on`,
+     * `y`, `enabled` are `true`; `false`, `0`, `no`, `off`, `n`, `disabled` are `false`. A boolean is itself, the numbers
+     * `1` and `0` read like their text, and `null`, `undefined` and a blank string are `false`.
+     *
+     * @throws A 400 error for anything else, another number and `NaN` included.
+     */
     static toBoolean(opts: {
         input: unknown;
     }): boolean;

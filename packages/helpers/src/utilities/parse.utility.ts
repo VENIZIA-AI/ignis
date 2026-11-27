@@ -1,3 +1,5 @@
+import { TrueWords } from '@/common/true-words';
+import { LoggerDebugGate } from '@/modules/logger/common/debug-gate';
 import { getError } from '@/modules/error';
 import { UidRandom } from '@/modules/uid/common/random';
 import { EchoUtility } from './echo.utility';
@@ -250,18 +252,39 @@ export class ParseUtility {
     });
   }
 
+  /**
+   * Reads a boolean setting with the words of `z.stringbool()`, trimmed and in any case: `true`, `1`, `yes`, `on`,
+   * `y`, `enabled` are `true`; `false`, `0`, `no`, `off`, `n`, `disabled` are `false`. A boolean is itself, the numbers
+   * `1` and `0` read like their text, and `null`, `undefined` and a blank string are `false`.
+   *
+   * @throws A 400 error for anything else, another number and `NaN` included.
+   */
   static toBoolean(opts: { input: unknown }): boolean {
     const { input } = opts;
 
-    return (
-      input !== '' &&
-      input !== 'false' &&
-      input !== '0' &&
-      input !== false &&
-      input !== 0 &&
-      input !== null &&
-      input !== undefined
-    );
+    if (typeof input === 'boolean') {
+      return input;
+    }
+
+    if (input === null || input === undefined) {
+      return false;
+    }
+
+    if (typeof input === 'string' || typeof input === 'number') {
+      const text = String(input);
+
+      if (LoggerDebugGate.FALSE_WORDS.test(text)) {
+        return false;
+      }
+
+      if (TrueWords.PATTERN.test(text)) {
+        return true;
+      }
+    }
+
+    throw getError({
+      message: `[toBoolean] ${ParseUtility.echoRejected({ value: input })} is not a boolean`,
+    });
   }
 
   /** Converts an array to a Map keyed by `key`. Last element wins on duplicate keys. */

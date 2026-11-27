@@ -5,7 +5,7 @@ import { SearchQueryParamsUtility } from '@/search/core/repositories/common';
 import type { ISearchDataSourceOptions } from '@/search/core/datasources/common';
 import type { TMultiSearchEntry } from '@/search/core/repositories/common';
 import { MetadataRegistry } from '@venizia/ignis-kernel/metadata';
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, ParseUtility } from '@venizia/ignis-helpers/core';
 import { type TClass } from '@venizia/ignis-helpers/common';
 import { AbstractSearchDataSource } from './abstract';
 import { isSearchCollectionDefinition } from './guards';
@@ -36,10 +36,9 @@ export abstract class BaseSearchDataSource<
 
     // `globalThis.process?.` not bare `process.`: `search/core` sits in the browser-pure root
     // barrel, and a free `process` identifier throws a ReferenceError outside Node.
-    const autoProvision = (
-      globalThis.process?.env?.APP_ENV_AUTO_PROVISION_COLLECTION ?? 'false'
-    ).toLowerCase();
-    this.autoProvision = opts.autoProvision ?? (autoProvision === 'true' || autoProvision === '1');
+    this.autoProvision =
+      opts.autoProvision ??
+      ParseUtility.toBoolean({ input: globalThis.process?.env?.APP_ENV_AUTO_PROVISION_COLLECTION });
     this.logger.info(
       '[constructor] Auto Provision Collection - autoProvision: %s',
       this.autoProvision,

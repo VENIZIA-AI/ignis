@@ -691,7 +691,7 @@ logger.for('start').warn('Slow boot | took: %d ms', 1420);
 
 **Operational notes:**
 - Five levels, each a direct method: `debug`, `info`, `warn`, `error`, `emerg`
-- `debug()` is off unless `DEBUG` is truthy and `NODE_ENV` is a development env, or `LoggerFactory.use({ level })` says otherwise - the environment is read once, so restart to change it
+- `debug()` is off unless `DEBUG` is set to something other than a false word and `NODE_ENV` is a development env, or `LoggerFactory.use({ level })` says otherwise - the environment is read once, so restart to change it
 - Log an `Error` with `%s`; `%j` swallows the stack
 - Secret-looking keys redact to `[REDACTED]` automatically
 - File output is opt-in: without `APP_ENV_LOGGER_FOLDER_PATH` nothing is written to disk
