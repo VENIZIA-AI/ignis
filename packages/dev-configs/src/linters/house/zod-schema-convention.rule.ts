@@ -40,6 +40,12 @@ export class ZodSchemaConventionRule {
 
   private static readonly SUFFIX = /_?(?:Schema|SCHEMA)$/;
 
+  /** An import that names a schema: something before the suffix, so a bare `Schema` of another library is not one. */
+  private static readonly IMPORTED_SCHEMA = /^.+(?:Schema|_SCHEMA)$/;
+
+  /** zod's classes: `ZodError.create([])` answers a value, not a schema. */
+  private static readonly ZOD_CLASS = /^Zod[A-Z]/;
+
   private static readonly TEST_FILE = /(?:^|[\\/])__tests__[\\/]|\.(?:test|spec)\.[cm]?[jt]sx?$/;
 
   /** The methods that make a schema of an imported one; any other call on it may answer a value. */
@@ -87,6 +93,9 @@ export class ZodSchemaConventionRule {
     '_zod',
     'description',
     'options',
+    'implement',
+    'implementAsync',
+    'regexes',
   ]);
 
   /** The wrappers a type adds around an expression. */
@@ -108,33 +117,64 @@ export class ZodSchemaConventionRule {
     return typeof value === 'string' ? value : '';
   }
 
-  /** The identifier a call chain starts from and the members it goes through, when it has a call and stays a schema. */
+  /** Whether the member access `node` leaves the schema: its value is not one. */
+  private static isOutside(opts: { node: Rule.Node; member: string }): boolean {
+    const { node, member } = opts;
+    const parent: unknown = AstNode.readField({ node, key: 'parent' });
+    const args: unknown = AstNode.readField({ node: parent, key: 'arguments' });
+    const isCalled = AstNode.readField({ node: parent, key: 'callee' }) === node;
+
+    if (ZodSchemaConventionRule.NOT_A_SCHEMA.has(member)) {
+      return true;
+    }
+
+    if (ZodSchemaConventionRule.ZOD_CLASS.test(member)) {
+      return true;
+    }
+
+    // `z.enum([...])` builds a schema and `.enum` reads its values; `.meta(info)` builds one and `.meta()` reads it.
+    if (member === 'enum') {
+      return !isCalled;
+    }
+
+    return member === 'meta' && Array.isArray(args) && args.length === 0;
+  }
+
+  /**
+   * The identifier a call chain starts from, the member its first call goes through (`''` when it calls the identifier
+   * itself), when it has a call and stays a schema.
+   */
   private static chainOf(opts: { expression: unknown }) {
-    const members: string[] = [];
     let node: unknown = opts.expression;
     let hasCall = false;
+    let firstCall = '';
 
     while (AstNode.isNode(node)) {
       const type = AstNode.getType({ node });
 
       if (type === AstNodeTypes.IDENTIFIER) {
-        return hasCall ? { root: node, members } : undefined;
+        return hasCall ? { root: node, firstCall } : undefined;
       }
 
       if (type === AstNodeTypes.CALL_EXPRESSION) {
+        const callee = AstNode.readField({ node, key: 'callee' });
+
         hasCall = true;
-        node = AstNode.readField({ node, key: 'callee' });
+        firstCall = ZodSchemaConventionRule.readString({
+          node: callee,
+          path: ['property', 'name'],
+        });
+        node = callee;
         continue;
       }
 
       if (type === AstNodeTypes.MEMBER_EXPRESSION) {
         const member = ZodSchemaConventionRule.readString({ node, path: ['property', 'name'] });
 
-        if (ZodSchemaConventionRule.NOT_A_SCHEMA.has(member)) {
+        if (ZodSchemaConventionRule.isOutside({ node, member })) {
           return undefined;
         }
 
-        members.push(member);
         node = AstNode.readField({ node, key: 'object' });
         continue;
       }
@@ -193,7 +233,8 @@ export class ZodSchemaConventionRule {
     }
 
     return ZodSchemaConventionRule.ZOD_SOURCE.test(source) &&
-      !ZodSchemaConventionRule.NOT_A_SCHEMA.has(imported)
+      !ZodSchemaConventionRule.NOT_A_SCHEMA.has(imported) &&
+      !ZodSchemaConventionRule.ZOD_CLASS.test(imported)
       ? imported
       : undefined;
   }
@@ -222,9 +263,10 @@ export class ZodSchemaConventionRule {
     if (definition?.type === 'ImportBinding') {
       const name = ZodSchemaConventionRule.readString({ node: chain.root, path: ['name'] });
 
+      // The derivation is the first call: what a call before it answers is not followed.
       return (
-        ZodSchemaConventionRule.SUFFIX.test(name) &&
-        chain.members.some((member) => ZodSchemaConventionRule.DERIVATIONS.has(member))
+        ZodSchemaConventionRule.IMPORTED_SCHEMA.test(name) &&
+        ZodSchemaConventionRule.DERIVATIONS.has(chain.firstCall)
       );
     }
 

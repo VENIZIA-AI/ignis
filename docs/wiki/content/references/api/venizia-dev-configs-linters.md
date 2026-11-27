@@ -1252,6 +1252,10 @@ export declare class ZodSchemaConventionRule {
     private static readonly HONO_SOURCE;
     private static readonly SCHEMA_NAME;
     private static readonly SUFFIX;
+    /** An import that names a schema: something before the suffix, so a bare `Schema` of another library is not one. */
+    private static readonly IMPORTED_SCHEMA;
+    /** zod's classes: `ZodError.create([])` answers a value, not a schema. */
+    private static readonly ZOD_CLASS;
     private static readonly TEST_FILE;
     /** The methods that make a schema of an imported one; any other call on it may answer a value. */
     private static readonly DERIVATIONS;
@@ -1261,7 +1265,12 @@ export declare class ZodSchemaConventionRule {
     private static readonly WRAPPERS;
     private static readonly INFERENCES;
     private static readString;
-    /** The identifier a call chain starts from and the members it goes through, when it has a call and stays a schema. */
+    /** Whether the member access `node` leaves the schema: its value is not one. */
+    private static isOutside;
+    /**
+     * The identifier a call chain starts from, the member its first call goes through (`''` when it calls the identifier
+     * itself), when it has a call and stays a schema.
+     */
     private static chainOf;
     /** The declaration an identifier resolves to, from the scope it is read in. */
     private static definitionOf;

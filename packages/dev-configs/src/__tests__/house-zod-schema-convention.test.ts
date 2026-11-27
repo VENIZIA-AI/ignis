@@ -94,8 +94,34 @@ describe('@venizia/zod-schema-convention: schema names', () => {
       "import { createRoute } from '@hono/zod-openapi';\nconst route = createRoute({});",
     ],
     ['a const that refers to itself', 'const a = a.extend({});'],
+    ['an implemented function', 'const f = z.function({ input: [] }).implement(() => 1);'],
+    ['an asynchronously implemented function', 'const f = z.function({}).implementAsync(run);'],
+    ['the values of an enum', "const values = z.enum(['a']).enum;"],
+    ['the metadata read back', 'const ASchema = z.string(); const info = ASchema.meta();'],
+    ['a regex of zod', 'const isEmail = z.regexes.email.test(text);'],
+    ["a class of zod's", "import { ZodError } from 'zod';\nconst error = ZodError.create([]);"],
+    ["a class of zod's through z", 'const error = z.ZodError.create([]);'],
+    [
+      'a bare Schema of another library',
+      "import { Schema } from 'effect';\nconst joined = Schema.extend(A, B);",
+    ],
+    [
+      'what a function answers',
+      "import { getSchema } from './base';\nconst a = getSchema().extend({});",
+    ],
+    [
+      'a derivation after another call',
+      "import { BaseSchema } from './base';\nconst a = BaseSchema.build().extend({});",
+    ],
   ])('says nothing on %s', (_, code) => {
     expect(zod(Z + code).messages).toEqual([]);
+  });
+
+  test.each([
+    ['an enum', "const b = z.enum(['a']);"],
+    ['metadata set on a schema', "const b = z.string().meta({ id: 'b' });"],
+  ])('still follows %s', (_, code) => {
+    expect(zod(Z + code).messages).toEqual([named('b', 'BSchema')]);
   });
 
   test('is off with schemaName: false, and skips an ignored name', () => {

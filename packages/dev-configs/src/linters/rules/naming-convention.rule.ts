@@ -93,7 +93,10 @@ export class NamingConventionRule {
     { selector: 'import', format: null, filter: '^_$' },
   ];
 
-  /** `extraSelectors` go last, so they win over a base selector they overlap. */
+  /**
+   * `extraSelectors` are appended, but position decides nothing: typescript-eslint orders selectors by how specific
+   * they are. To let a name through the base type selectors, give a selector a `filter` and `format: null`.
+   */
   static build(
     opts: { severity?: TRuleSeverity; extraSelectors?: TNamingSelector[] } = {},
   ): Linter.RuleEntry {

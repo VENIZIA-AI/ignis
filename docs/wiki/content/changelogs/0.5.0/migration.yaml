@@ -963,7 +963,7 @@ schema-and-type-names:
   data: Nothing stored changes.
 
 zod-and-type-name-rules:
-  symbols: [ZodSchemaConventionRule, NamingConventionRule, houseConfigs, reactHouseConfigs]
+  symbols: [ZodSchemaConventionRule, NamingConventionRule, houseConfigs, reactHouseConfigs, eslintConfigs, namingConventionConfigs, reactNamingConventionConfigs]
   upgrade:
     before: |-
       const saleOrder = z.object({ id: z.string() });
@@ -973,6 +973,7 @@ zod-and-type-name-rules:
       type TSaleOrder = z.infer<typeof SaleOrderSchema>;
     steps:
       - "Run your lint and rename each reported name, with every use of it: the rules have no rename fix, because a rename reaches other files."
+      - "The type and interface names also come from eslintConfigs, namingConventionConfigs and reactNamingConventionConfigs, and they apply to tests: your test files are reported too."
       - "An exported name other packages import is a change to your own API: rename it in a release that says so, or list it in ignore (zod-schema-convention) or in an extraSelectors entry of NamingConventionRule with a filter and format: null."
       - "To check strict objects and z.any() in some files: { rules: { '@venizia/zod-schema-convention': ['error', { strictPaths: ['src/dto/**'], noAnyPaths: ['src/dto/**'] }] } }. z.object(x).strict() is fixed to z.strictObject(x)."
   downgrade:

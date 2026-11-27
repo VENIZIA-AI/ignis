@@ -62,7 +62,6 @@ export interface IClassRename {
 const HELPERS = ['@venizia/ignis-helpers', '@venizia/ignis'];
 const TESTING = ['@venizia/dev-configs/testing'];
 const KERNEL = ['@venizia/ignis-kernel', '@venizia/ignis'];
-const CONNECTORS = ['@venizia/ignis-connectors', '@venizia/ignis'];
 
 /** The renamed classes: add a row for the next rename. */
 export class ClassRenameTable {
@@ -76,12 +75,16 @@ export class ClassRenameTable {
     { oldName: 'countableHeaders', newName: 'CountableHeadersSchema', packages: KERNEL },
     { oldName: 'defaultRequestHeaders', newName: 'DefaultRequestHeadersSchema', packages: KERNEL },
     { oldName: 'TErrorResponse', newName: 'TErrorOutput', packages: KERNEL },
-    { oldName: 'vaultAuthSchema', newName: 'VaultAuthSchema', packages: HELPERS },
+    {
+      oldName: 'vaultAuthSchema',
+      newName: 'VaultAuthSchema',
+      packages: ['@venizia/ignis-helpers'],
+    },
     { oldName: 'ISecretsRegistration', newName: 'TSecretsRegistration', packages: HELPERS },
     {
       oldName: 'IRelationalDataSourceOpening',
       newName: 'TRelationalDataSourceOpening',
-      packages: CONNECTORS,
+      packages: ['@venizia/ignis-connectors'],
     },
   ];
 }
