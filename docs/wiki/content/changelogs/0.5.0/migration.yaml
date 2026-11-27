@@ -947,26 +947,6 @@ test-controls-manifest-type:
       - "Pin @venizia/dev-configs to the release before this one and rename type back to kind."
   data: Nothing stored changes.
 
-app-envs-only:
-  symbols: [AppEnvs, applicationEnvironment, ClassRenames]
-  upgrade:
-    before: |-
-      import { applicationEnvironment } from '@venizia/ignis-helpers';
-
-      const secret = applicationEnvironment.get('APP_ENV_JWT_SECRET');
-    after: |-
-      import { AppEnvs } from '@venizia/ignis-helpers';
-
-      const secret = AppEnvs.get('APP_ENV_JWT_SECRET');
-    steps:
-      - "Run bun node_modules/.bin/devz codemod class-renames [paths...] to see what it would change, then add --write. Then run your typecheck."
-      - "It reads TypeScript files and named or namespace imports from @venizia/ignis and @venizia/ignis-helpers. Edit by hand a .js file, a dynamic import() and a barrel of your own that re-exports the old name."
-      - "A name of your own that is already AppEnvs in such a file clashes with the import: rename yours."
-  downgrade:
-    steps:
-      - "Nothing to rename: the release before this one exports AppEnvs too."
-  data: Nothing stored changes.
-
 framework-api-rows:
   symbols: [PreferFrameworkApiRule, FrameworkApiPatterns, houseConfigs, reactHouseConfigs]
   upgrade:

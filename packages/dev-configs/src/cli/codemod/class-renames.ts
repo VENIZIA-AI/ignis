@@ -5,8 +5,7 @@ import { CliOutput } from '../../common/cli-output';
 
 const USAGE = `Usage: devz codemod class-renames [paths...] [--write [--all] | --check] [--reverse]
 
-Renames the exports IGNIS renamed, at the import and at every use in the file: applicationEnvironment
-(@venizia/ignis-helpers) becomes AppEnvs, and RetryHelper, SlugHelper
+Renames the classes IGNIS renamed, at the import and at every use in the file: RetryHelper, SlugHelper
 and CredentialHelper (@venizia/ignis-helpers) become RetryUtility, SlugUtility and CredentialUtility,
 RejectionHelper and SpawnHelper (@venizia/dev-configs/testing) become RejectionUtility and SpawnUtility. One
 table, in this file; a later rename adds a row.
@@ -20,7 +19,7 @@ has the same name as a class is left alone.
   --write    write the changed files (without it, nothing is written); it needs a path, or --all
   --all      with --write and no path: rewrite every source file under the working directory
   --check    dry run that exits 1 while a file would change (for CI)
-  --reverse  rename back, for a downgrade (AppEnvs stays: the release before exports it too)
+  --reverse  rename back, for a downgrade
   --help     print this text and exit
 
 With no flag it lists what would change and writes nothing. Inside a git repository it reads the files git
@@ -56,8 +55,6 @@ export interface IClassRename {
   newName: string;
   /** The packages that export it; a module specifier is theirs when it is the package or a sub-path of it. */
   packages: ReadonlyArray<string>;
-  /** `--reverse` leaves it: the release before exports the new name too. */
-  isOneWay?: boolean;
 }
 
 /** `@venizia/ignis` re-exports the helpers as types only, so a value import of these classes comes from `@venizia/ignis-helpers`. */
@@ -72,7 +69,6 @@ export class ClassRenameTable {
     { oldName: 'CredentialHelper', newName: 'CredentialUtility', packages: HELPERS },
     { oldName: 'RejectionHelper', newName: 'RejectionUtility', packages: TESTING },
     { oldName: 'SpawnHelper', newName: 'SpawnUtility', packages: TESTING },
-    { oldName: 'applicationEnvironment', newName: 'AppEnvs', packages: HELPERS, isOneWay: true },
   ];
 }
 
@@ -93,13 +89,9 @@ export class ClassRenames {
     reverse?: boolean;
   }): IClassRenamesResult {
     const { typescript: ts, fileName, source, reverse = false } = opts;
-    const rows = reverse
-      ? ClassRenameTable.ROWS.filter((row) => !row.isOneWay).map((row) => ({
-          ...row,
-          oldName: row.newName,
-          newName: row.oldName,
-        }))
-      : ClassRenameTable.ROWS;
+    const rows = ClassRenameTable.ROWS.map((row) =>
+      reverse ? { ...row, oldName: row.newName, newName: row.oldName } : row,
+    );
     const scriptKind = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
     const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, scriptKind);
     const edits = new Map<number, { start: number; end: number; text: string }>();
@@ -112,45 +104,6 @@ export class ClassRenames {
     const rename = (node: import('typescript').Node, row: IClassRename, text = row.newName) => {
       const start = node.getStart(file);
       edits.set(start, { start, end: node.getEnd(), text });
-    };
-
-    /** The names the file imports as values, under their own name. */
-    const present = new Set(
-      file.statements.flatMap((statement) => {
-        const clause = ts.isImportDeclaration(statement) ? statement.importClause : undefined;
-        const bindings = clause?.namedBindings;
-
-        return bindings && ts.isNamedImports(bindings) && !clause.isTypeOnly
-          ? bindings.elements
-              .filter((element) => !element.propertyName && !element.isTypeOnly)
-              .map((element) => element.name.text)
-          : [];
-      }),
-    );
-
-    /** Takes an import specifier out with its comma, and the declaration when it was the only one. */
-    const drop = (given: {
-      declaration: import('typescript').ImportDeclaration;
-      element: import('typescript').ImportSpecifier;
-    }) => {
-      const { declaration, element } = given;
-      const siblings = element.parent.elements;
-      const index = siblings.indexOf(element);
-      const next = siblings[index + 1];
-      const previous = siblings[index - 1];
-      let start = element.getStart(file);
-      let end = element.getEnd();
-
-      if (next) {
-        end = next.getStart(file);
-      } else if (previous) {
-        start = previous.getEnd();
-      } else {
-        start = declaration.getStart(file);
-        end = declaration.getEnd() + (source[declaration.getEnd()] === '\n' ? 1 : 0);
-      }
-
-      edits.set(start, { start, end, text: '' });
     };
 
     /** The local names to rename everywhere in the file, and the namespace imports whose members are renamed. */
@@ -186,13 +139,6 @@ export class ClassRenames {
             const row = owned.find((entry) => entry.oldName === imported.text);
 
             if (!row) {
-              continue;
-            }
-
-            // The file already imports the new name: a second import of it would not compile.
-            if (!element.propertyName && present.has(row.newName)) {
-              drop({ declaration: statement, element });
-              locals.set(element.name.text, row);
               continue;
             }
 

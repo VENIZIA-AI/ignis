@@ -5,7 +5,7 @@ import { CliOutput } from '../../common/cli-output';
 
 const USAGE = `Usage: devz codemod env-get [paths...] [--write [--all] | --check]
 
-Rewrites the type arguments of applicationEnvironment.get() (and its alias AppEnvs.get()) for the
+Rewrites the type arguments of AppEnvs.get() (also imported as applicationEnvironment) for the
 @venizia/ignis-helpers release where get() reads strings:
 
   get<string>(key)                      becomes  get(key)

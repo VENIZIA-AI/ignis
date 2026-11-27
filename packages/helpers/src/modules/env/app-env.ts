@@ -148,5 +148,8 @@ const resolveApplicationEnvironment = (): ApplicationEnvironment => {
   return created;
 };
 
-/** The process-wide environment store, built from `process.env` with the prefix in `APPLICATION_ENV_PREFIX` (`APP_ENV` when unset). One instance is shared by every copy of this module in the process. */
+/** The process-wide environment store, built from `process.env` with the prefix in `APPLICATION_ENV_PREFIX` (`APP_ENV` when unset). One instance is shared by every copy of this module in the process. This is the name to use. */
 export const AppEnvs = resolveApplicationEnvironment();
+
+/** The same instance as `AppEnvs`: use `AppEnvs`. */
+export const applicationEnvironment = AppEnvs;

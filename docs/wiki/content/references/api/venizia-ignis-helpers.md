@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-222 exports, 222 with TSDoc. 261 more are re-exported from other entries (listed at the end).
+223 exports, 223 with TSDoc. 261 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -508,10 +508,22 @@ Source: `packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts`
 
 *const*
 
-The process-wide environment store, built from `process.env` with the prefix in `APPLICATION_ENV_PREFIX` (`APP_ENV` when unset). One instance is shared by every copy of this module in the process.
+The process-wide environment store, built from `process.env` with the prefix in `APPLICATION_ENV_PREFIX` (`APP_ENV` when unset). One instance is shared by every copy of this module in the process. This is the name to use.
 
 ```ts
 export declare const AppEnvs: ApplicationEnvironment;
+```
+
+Source: `packages/helpers/src/modules/env/app-env.ts`
+
+## `applicationEnvironment`
+
+*const*
+
+The same instance as `AppEnvs`: use `AppEnvs`.
+
+```ts
+export declare const applicationEnvironment: ApplicationEnvironment;
 ```
 
 Source: `packages/helpers/src/modules/env/app-env.ts`

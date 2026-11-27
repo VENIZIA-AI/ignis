@@ -11,6 +11,12 @@ const loadTwice = () => {
 };
 
 describe('AppEnvs across module copies', () => {
+  test('applicationEnvironment is the same instance', async () => {
+    const loaded = await import('../../modules/env/app-env');
+
+    expect(loaded.applicationEnvironment).toBe(loaded.AppEnvs);
+  });
+
   test('two copies of the module resolve one instance, so a value set through one is read through the other', () => {
     const { first, second } = loadTwice();
 

@@ -20,7 +20,8 @@ const timeout = AppEnvs.get('APP_ENV_TIMEOUT', {
 });
 ```
 
-The singleton is created once at module load. It reads only keys that start with `APP_ENV` (the default prefix) from `process.env`.
+The singleton is created once at module load. It reads only keys that start with `APP_ENV` (the default prefix) from `process.env`. `applicationEnvironment` is the same instance under an older name: use `AppEnvs`.
+
 ## How it works
 
 - **Construction filters by prefix.** `new ApplicationEnvironment({ prefix, envs })` copies only the keys of `envs` that start with `prefix` into an internal map. Everything else stays invisible to `get()`. The default singleton uses `process.env.APPLICATION_ENV_PREFIX ?? 'APP_ENV'` and `process.env`.
