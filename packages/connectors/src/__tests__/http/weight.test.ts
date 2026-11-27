@@ -23,6 +23,8 @@ const bundle = async () => {
 describe('the http connector stays free of the SQL stack', () => {
   test(`it bundles under ${CEILING_BYTES / 1024} KB minified`, async () => {
     const text = await bundle();
+    // Printed so a CI log shows how close the bundle is to its ceiling.
+    console.log(`connectors/http: ${Buffer.byteLength(text)} of ${CEILING_BYTES} bytes`);
 
     expect(
       Buffer.byteLength(text),
