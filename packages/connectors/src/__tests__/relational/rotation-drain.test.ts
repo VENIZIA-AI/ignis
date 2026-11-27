@@ -67,8 +67,13 @@ abstract class CloseOnlyDataSourceFixture extends BaseRelationalDataSource<
 > {
   readonly builds: Array<CloseOnlyClient> = [];
   failNextConfigure = false;
+  leaveClientNext = false;
 
   configure(): void {
+    if (this.leaveClientNext) {
+      return;
+    }
+
     const client = new CloseOnlyClient({ ...this.getSettings() });
     this.builds.push(client);
     this.client = client;
@@ -154,6 +159,59 @@ describe('Relational onSecretRotated - draining a client that has no end()', () 
 
     const live = dataSource.builds.filter((client) => !client.closed);
     expect(live).toEqual([dataSource.getClient()]);
+  });
+
+  /** The failure of a rotation whose `configure()` leaves `this.client` as it was. */
+  const rotateWithoutNewClient = async (dataSource: RotatingCloseOnlyDataSource) => {
+    dataSource.leaveClientNext = true;
+
+    try {
+      await dataSource.onSecretRotated({
+        key: 'datasources.sqlite',
+        secret: { username: 'v-new', password: 'v-new-pass' },
+      });
+    } catch (error) {
+      return String(error);
+    }
+
+    return 'rotated';
+  };
+
+  test('refuses a rotation whose configure() keeps the old client, and keeps it open', async () => {
+    const dataSource = new RotatingCloseOnlyDataSource();
+    dataSource.configure();
+    dataSource.getConnector();
+    const oldClient = dataSource.builds[0];
+
+    expect(await rotateWithoutNewClient(dataSource)).toContain('assigned no new client');
+    expect(oldClient?.closed).toBe(false);
+    expect(dataSource.getClient()).toBe(oldClient);
+  });
+
+  test('refuses a rotation whose configure() assigns no client at all', async () => {
+    const dataSource = new RotatingCloseOnlyDataSource();
+    const client = new CloseOnlyClient({});
+    dataSource['useDriver']({ driver: new CloseOnlyDriver({ client }) });
+
+    expect(await rotateWithoutNewClient(dataSource)).toContain('assigned no new client');
+    expect(client.closed).toBe(false);
+  });
+
+  test('closes a datasource whose connector was assigned by hand, draining the client', async () => {
+    const dataSource = new RotatingCloseOnlyDataSource();
+    dataSource.configure();
+    Reflect.set(dataSource, 'connector', {});
+
+    await dataSource.close();
+
+    expect(dataSource.builds[0]?.closed).toBe(true);
+  });
+
+  test('refuses to resolve a driver when the connector was assigned by hand', () => {
+    const dataSource = new RotatingCloseOnlyDataSource();
+    Reflect.set(dataSource, 'connector', {});
+
+    expect(() => dataSource['resolveDriver']()).toThrow(/\[resolveDriver\] No driver/);
   });
 
   test('drains the half-built client when configure() throws mid-rotation', async () => {

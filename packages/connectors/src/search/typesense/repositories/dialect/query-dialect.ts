@@ -715,7 +715,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
     const items = Array.isArray(value) ? value : [value];
 
     const clauses = items.map((item) => {
-      // Anything else compiles to "no constraint", which absorbs an `or`.
+      // Only an object is a where.
       if (!RecordUtility.isPlainRecord(item)) {
         throw getError({
           message: `[TypesenseQueryDialect][toWhere] search() expected a logical group member to be an object | got: ${JSON.stringify(item)}`,

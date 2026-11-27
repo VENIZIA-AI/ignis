@@ -276,9 +276,10 @@ export abstract class AbstractDriverDataSource<
       await this.configure();
       const configured = this.client;
 
-      if (configured === undefined) {
+      // The old client is drained after the swap, so a driver built on it would be closed with it.
+      if (configured === undefined || configured === savedClient) {
         throw getError({
-          message: `[${this.constructor.name}][rotateSecret] configure() assigned no client`,
+          message: `[${this.constructor.name}][onSecretRotated] configure() assigned no new client`,
         });
       }
 
