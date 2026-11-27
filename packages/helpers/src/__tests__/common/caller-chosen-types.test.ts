@@ -10,6 +10,13 @@ export const callerCannotName = async (opts: { redis: IRedisHelper; secrets: ISe
   const text: string | null = await redis.get({ key: 'k' });
   const count: number | null = await redis.get({ key: 'k', transform: Number });
   const texts: Array<string | null> = await redis.mGet({ keys: ['k'] });
+  // An object whose transform may be set is neither call: the answer would be the transform's type or text.
+  const optional: { key: string; transform?: (input: string) => number } = { key: 'k' };
+  const optionalMany: { keys: string[]; transform?: (input: string) => number } = { keys: ['k'] };
+  // @ts-expect-error a transform that may be set cannot be read as text
+  await redis.get(optional);
+  // @ts-expect-error a transform that may be set cannot be read as text
+  await redis.mGet(optionalMany);
   // The input of a transform written in place is typed from the method.
   const length: number | null = await redis.get({ key: 'k', transform: (input) => input.length });
   const lengths: Array<number | null> = await redis.mGet({

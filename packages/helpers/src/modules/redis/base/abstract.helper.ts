@@ -245,7 +245,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
   }
 
   get<T>(opts: { key: string; transform: (input: string) => T }): Promise<T | null>;
-  get(opts: { key: string }): Promise<string | null>;
+  get(opts: { key: string; transform?: undefined }): Promise<string | null>;
   async get<T>(opts: {
     key: string;
     transform?: (input: string) => T;
@@ -322,7 +322,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
   }
 
   mGet<T>(opts: { keys: Array<string>; transform: (input: string) => T }): Promise<(T | null)[]>;
-  mGet(opts: { keys: Array<string> }): Promise<(string | null)[]>;
+  mGet(opts: { keys: Array<string>; transform?: undefined }): Promise<(string | null)[]>;
   async mGet<T>(opts: {
     keys: Array<string>;
     transform?: (input: string) => T;

@@ -117,6 +117,7 @@ export declare class AbstractRedisHelper<ClientType extends TRedisClient = TRedi
     }): Promise<T | null>;
     get(opts: {
         key: string;
+        transform?: undefined;
     }): Promise<string | null>;
     del(opts: {
         keys: Array<string>;
@@ -148,6 +149,7 @@ export declare class AbstractRedisHelper<ClientType extends TRedisClient = TRedi
     }): Promise<(T | null)[]>;
     mGet(opts: {
         keys: Array<string>;
+        transform?: undefined;
     }): Promise<(string | null)[]>;
     keys(opts: {
         key: string;

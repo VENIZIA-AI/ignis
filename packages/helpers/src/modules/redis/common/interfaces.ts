@@ -30,7 +30,7 @@ export interface IRedisKeyValue {
     options?: { log?: boolean; expiresIn?: number };
   }): Promise<void>;
   get<T>(opts: { key: string; transform: (input: string) => T }): Promise<T | null>;
-  get(opts: { key: string }): Promise<string | null>;
+  get(opts: { key: string; transform?: undefined }): Promise<string | null>;
 
   del(opts: { keys: Array<string> }): Promise<number>;
 
@@ -49,7 +49,7 @@ export interface IRedisKeyValue {
   }): Promise<void>;
 
   mGet<T>(opts: { keys: Array<string>; transform: (input: string) => T }): Promise<(T | null)[]>;
-  mGet(opts: { keys: Array<string> }): Promise<(string | null)[]>;
+  mGet(opts: { keys: Array<string>; transform?: undefined }): Promise<(string | null)[]>;
 }
 
 /** Hash commands (`HSET`, `HGET`, ...) on one key. */

@@ -1371,6 +1371,7 @@ export interface IRedisKeyValue {
     }): Promise<T | null>;
     get(opts: {
         key: string;
+        transform?: undefined;
     }): Promise<string | null>;
     del(opts: {
         keys: Array<string>;
@@ -1406,6 +1407,7 @@ export interface IRedisKeyValue {
     }): Promise<(T | null)[]>;
     mGet(opts: {
         keys: Array<string>;
+        transform?: undefined;
     }): Promise<(string | null)[]>;
 }
 ```
