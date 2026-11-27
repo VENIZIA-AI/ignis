@@ -11,7 +11,7 @@ Types route handlers from their route config (TContextOf). In a file that import
 
 - a decorated method (@api, @get, @post, @put, @patch, @del) whose configs is a name declared or imported in the
   file: its TRouteContext becomes TContextOf<typeof CONFIG>, and valid<T>() on it loses its type argument;
-- the same for a method that only the handlers of one route config in its class pass their context to;
+- the same for a private method that only the handlers of one route config in its class pass their context to;
 - TRouteContext<Env, Body> drops the body, and TRouteHandler<Response, Env> drops the response.
 
 Left as they are, for you: a handler of a CRUD override, a method that serves two routes or is also called another
@@ -19,7 +19,8 @@ way, an inline or this.* config, and a context typed through an alias of yours. 
 where a type you wrote by hand differs from the schema.
 
 A config declared as IAuthRouteConfig, or in a Record of it, carries no schema type: change it to
-"satisfies" first (the lint rule @venizia/typed-route-context reports each one).
+"satisfies" first (the lint rule @venizia/typed-route-context reports each one). A handler of such a config declared
+in the same file is left as it is; one imported from another file cannot be seen, so change those first.
 
   --write    write the changed files (without it, nothing is written); it needs a path, or --all
   --all      with --write and no path: rewrite every source file under the working directory
@@ -74,6 +75,8 @@ class RouteContextFile {
   private readonly locals = new Map<string, string>();
   /** The names a `typeof` at the top of the file can read. */
   private readonly topLevel = new Set<string>();
+  /** The configs this file declares as `IAuthRouteConfig`, as a name or `Class.member`: their type holds no schema. */
+  private readonly wide = new Set<string>();
 
   constructor(
     private readonly options: {
@@ -131,12 +134,24 @@ class RouteContextFile {
     for (const statement of this.file.statements) {
       if (ts.isVariableStatement(statement)) {
         for (const declaration of statement.declarationList.declarations) {
-          this.topLevel.add(declaration.name.getText(this.file));
+          const name = declaration.name.getText(this.file);
+          this.topLevel.add(name);
+
+          if (this.isWideDeclaration(declaration)) {
+            this.wide.add(name);
+          }
         }
       }
 
       if (ts.isClassDeclaration(statement) && statement.name) {
-        this.topLevel.add(statement.name.text);
+        const owner = statement.name.text;
+        this.topLevel.add(owner);
+
+        for (const member of statement.members) {
+          if (ts.isPropertyDeclaration(member) && this.isWideDeclaration(member)) {
+            this.wide.add(`${owner}.${member.name.getText(this.file)}`);
+          }
+        }
       }
 
       if (!ts.isImportDeclaration(statement)) {
@@ -173,6 +188,32 @@ class RouteContextFile {
         }
       }
     }
+  }
+
+  /** Whether a declaration is typed `IAuthRouteConfig`, in an `Omit` or a `Record` too, by annotation or by `as`. */
+  private isWideDeclaration(
+    declaration: TypeScript.VariableDeclaration | TypeScript.PropertyDeclaration,
+  ): boolean {
+    const { typescript: ts } = this.options;
+    const { initializer } = declaration;
+    const asserted = initializer && ts.isAsExpression(initializer) ? initializer.type : undefined;
+
+    const isWide = (type: TypeScript.TypeNode | undefined): boolean => {
+      if (!type || !ts.isTypeReferenceNode(type)) {
+        return false;
+      }
+
+      const name = type.typeName.getText(this.file);
+      const [first, second] = type.typeArguments ?? [];
+
+      if (name === 'Record') {
+        return isWide(second);
+      }
+
+      return name === 'Omit' ? isWide(first) : name === 'IAuthRouteConfig';
+    };
+
+    return isWide(declaration.type) || isWide(asserted);
   }
 
   /** The framework type a type reference names. */
@@ -220,6 +261,10 @@ class RouteContextFile {
       return undefined;
     }
 
+    if (this.wide.has(current.text) || this.wide.has(`${current.text}.${keys[0]}`)) {
+      return undefined;
+    }
+
     const firstQuoted = keys.findIndex((key) => !RouteContextFile.IDENTIFIER.test(key));
     const dotted = firstQuoted === -1 ? keys : keys.slice(0, firstQuoted);
     const query = `typeof ${[current.text, ...dotted].join('.')}`;
@@ -252,6 +297,16 @@ class RouteContextFile {
           ? [this.configOf(call.arguments[0])]
           : [];
       });
+      const isPrivate =
+        ts.isPrivateIdentifier(member.name) ||
+        member.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.PrivateKeyword) ===
+          true;
+
+      // Only a private method is known to be reached from this class alone.
+      if (decorated.length === 0 && !isPrivate) {
+        continue;
+      }
+
       const routes = [...decorated, ...(forwarded.get(member.name.getText(this.file)) ?? [])];
       const [config] = routes;
 
@@ -403,7 +458,7 @@ class RouteContextFile {
       }
 
       const environment = type.typeArguments?.[0]?.getText(this.file);
-      const suffix = environment && environment !== 'Env' ? `, ${environment}` : '';
+      const suffix = environment ? `, ${environment}` : '';
       this.replace({
         start: type.getStart(this.file),
         end: type.getEnd(),
@@ -481,9 +536,13 @@ class RouteContextFile {
   /** Imports `TContextOf` beside the type it replaced, and drops `TRouteContext` when nothing reads it any more. */
   private fixImport() {
     const { typescript: ts } = this.options;
-    const isEdited = (node: TypeScript.Node) =>
+    /** Whether an edit takes this node away: one that writes the name back (`TRouteContext<Env>`) does not. */
+    const isRemoved = (node: TypeScript.Node, name: string) =>
       [...this.edits.values()].some(
-        (edit) => edit.start <= node.getStart(this.file) && edit.end >= node.getEnd(),
+        (edit) =>
+          edit.start <= node.getStart(this.file) &&
+          edit.end >= node.getEnd() &&
+          !edit.text.split(/[^\w$]+/).includes(name),
       );
     const usesTyped = [...this.edits.values()].some((edit) =>
       edit.text.startsWith(`${this.localName(TYPED)}<`),
@@ -501,7 +560,11 @@ class RouteContextFile {
         return;
       }
 
-      if (ts.isIdentifier(node) && node.text === contextName && !isEdited(node.parent)) {
+      if (
+        ts.isIdentifier(node) &&
+        node.text === contextName &&
+        !isRemoved(node.parent, contextName)
+      ) {
         isStillRead = true;
       }
 

@@ -39,6 +39,10 @@ describe('typed-route-context: a config declared wide', () => {
     ).toEqual(['wideConfig', 'wideConfig', 'wideConfig', 'wideConfig', 'wideConfig']);
   });
 
+  test('an empty object filled later is left alone', () => {
+    expect(lint('const routes: Record<string, IAuthRouteConfig> = {};')).toEqual([]);
+  });
+
   test('satisfies, a parameter and a value that is not an object literal are left alone', () => {
     expect(
       lint(`

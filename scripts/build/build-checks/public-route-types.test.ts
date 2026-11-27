@@ -24,6 +24,38 @@ const exportsOf = (entry: string) => {
 };
 
 describe('the context types of a route, in the built entry points', () => {
+  test('the controller types barrel exports exactly these names', () => {
+    const names = exportsOf('packages/kernel/dist/esm/base/controllers/common/types/index.d.ts');
+
+    expect([...names].sort()).toEqual([
+      'IAuthRouteConfig',
+      'IBindRouteOptions',
+      'IController',
+      'IControllerOptions',
+      'ICrudControllerOptions',
+      'ICustomizableRoutes',
+      'IDefineRouteOptions',
+      'TContext',
+      'TContextOf',
+      'TCountResponse',
+      'TCrudRepositoryClass',
+      'TCrudRoutes',
+      'TCustomizableRouteConfig',
+      'TEntityDataObject',
+      'TEntityPersistObject',
+      'TJsonResponse',
+      'TRepositoryDataObject',
+      'TRepositoryPersistObject',
+      'TResponseHeaderObject',
+      'TResponseHeaders',
+      'TRouteAuthConfig',
+      'TRouteAuthenticateConfig',
+      'TRouteAuthorizeConfig',
+      'TRouteContext',
+      'TRouteHandler',
+    ]);
+  });
+
   for (const entry of [
     'packages/kernel/dist/esm/index.d.ts',
     'packages/core-server/dist/esm/index.d.ts',

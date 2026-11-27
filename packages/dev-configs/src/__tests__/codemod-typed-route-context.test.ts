@@ -76,6 +76,62 @@ describe('devz codemod typed-route-context: decorated methods', () => {
     expect(rewrite(source).changed).toBe(false);
   });
 
+  test('the environment argument is kept, whatever it is named', () => {
+    const result = rewrite([
+      IMPORT,
+      ROUTES,
+      'class C { @post({ configs: Routes.A }) a(context: TRouteContext<Env>) {} }',
+    ]);
+
+    expect(result.output).toContain('a(context: TContextOf<typeof Routes.A, Env>)');
+  });
+
+  test('the import stays while a shortened TRouteContext still reads it', () => {
+    const result = rewrite([
+      IMPORT,
+      ROUTES,
+      'class C { @post({ configs: Routes.A }) a(context: TRouteContext) {} }',
+      'const helper = (c: TRouteContext<AppEnv, TSale>) => c;',
+    ]);
+
+    expect(result.output).toContain(
+      `import { post, type TRouteContext, type TContextOf } from '@venizia/ignis';`,
+    );
+    expect(result.output).toContain('const helper = (c: TRouteContext<AppEnv>) => c;');
+  });
+
+  for (const declaration of [
+    'const WIDE: IAuthRouteConfig = { path };',
+    'const WIDE: Record<string, IAuthRouteConfig> = { A: { path } };',
+    'const WIDE = { A: { path } } as Record<string, IAuthRouteConfig>;',
+    'class WIDE { static readonly A: IAuthRouteConfig = { path }; }',
+  ]) {
+    test(`a handler of a config declared wide is left alone: ${declaration}`, () => {
+      const source = [
+        IMPORT,
+        declaration,
+        'class C {',
+        `  @post({ configs: WIDE.A }) a(context: TRouteContext) { context.req.valid<B>('json'); }`,
+        '}',
+      ];
+
+      expect(rewrite(source).changed).toBe(false);
+    });
+  }
+
+  test('a method that is not private is left alone when only a route forwards to it', () => {
+    const source = [
+      IMPORT,
+      ROUTES,
+      'class C {',
+      '  binding() { this.defineRoute({ configs: Routes.A, handler: (context) => this.run(context) }); }',
+      '  run(context: TRouteContext) {}',
+      '}',
+    ];
+
+    expect(rewrite(source).changed).toBe(false);
+  });
+
   test('a type of the same name from another package is left alone', () => {
     const source = [
       `import type { TRouteContext } from './own';`,

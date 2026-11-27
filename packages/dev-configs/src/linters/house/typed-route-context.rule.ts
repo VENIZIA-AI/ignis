@@ -319,7 +319,10 @@ export class TypedRouteContextRule {
           RouteNodes.type(opts.value) === AstNodeTypes.AS_EXPRESSION
             ? RouteNodes.field(opts.value, 'expression')
             : opts.value;
-        const isObject = RouteNodes.type(value) === AstNodeTypes.OBJECT_EXPRESSION;
+        // An empty object is a collection filled later, with no literal schema to keep.
+        const isObject =
+          RouteNodes.type(value) === AstNodeTypes.OBJECT_EXPRESSION &&
+          RouteNodes.list(value, 'properties').length > 0;
 
         if (isObject && RouteNodes.isWideConfig(RouteNodes.annotation(opts.pattern))) {
           context.report({ node: opts.node, messageId: 'wideConfig' });

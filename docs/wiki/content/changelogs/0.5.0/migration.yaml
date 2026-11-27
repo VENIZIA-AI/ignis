@@ -1148,6 +1148,7 @@ typed-route-context:
       - "Run your typecheck. Where a type you wrote by hand differs from the schema, correct the one that is wrong."
       - "Where the codemod left a handler (a CRUD override, a method serving several routes), keep valid<T>() with TRouteContext, or add the type argument where a line relied on its annotation."
       - "Drop the second argument of TRouteContext and the response argument of TRouteHandler, defineRoute, defineJSXRoute, bindRoute().to and toHonoHandler."
+      - "In a package that emits .d.ts files, where TS2883 names context.internal, write the type of the exported value: TRouteContext['req'] or TContextOf<typeof CONFIG>['req'] (add ['valid'] for the method)."
       - "Replace TResponseBodyOf with z.output of your response schema. IValidRequestProps has no replacement: write the targets you need."
   downgrade:
     steps:
