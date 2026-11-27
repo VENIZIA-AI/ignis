@@ -1,4 +1,3 @@
-import { RedactUtility } from '@/common/redact';
 import { HTTP, type THttpMethod } from '@/common/constants/http';
 import { getError } from '@/modules/error';
 // The leaf file, never the logger BARREL: that barrel reaches `node:module` and would drag this
@@ -441,13 +440,7 @@ export abstract class AbstractNetworkFetchableHelper<
       '[%s] URL: %s | Props: %s | Timeout: %s',
       'send',
       request.url,
-      RedactUtility.redactSecrets({
-        value: {
-          method,
-          headers: Object.fromEntries(headers),
-          body: this.describeBody({ body }),
-        },
-      }),
+      { method, headerNames: [...headers.keys()], body: this.describeBody({ body }) },
       timeout,
     );
 
