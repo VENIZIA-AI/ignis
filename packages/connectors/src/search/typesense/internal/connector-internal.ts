@@ -1,3 +1,4 @@
+import { RecordUtility } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { IHttpLikeError } from './guards';
 import { EntryOutcomes, type TEntryClassification } from './outcomes';
@@ -149,29 +150,29 @@ export class TypesenseInternal {
   static classifyEntry(opts: { entry: unknown }): TEntryClassification {
     const { entry } = opts;
 
-    if (!entry || typeof entry !== 'object') {
+    if (!RecordUtility.isRecord(entry)) {
       return { outcome: EntryOutcomes.FAILED, message: 'Malformed multi_search entry', code: 0 };
     }
 
-    const candidate = entry as { code?: unknown; error?: unknown };
+    const { error, code: status } = entry;
 
     // `error` is what marks a failed entry - a successful one carries neither field, and `code`
     // alone would misread a response that merely echoes a status.
-    if (typeof candidate.error !== 'string') {
+    if (typeof error !== 'string') {
       return { outcome: EntryOutcomes.OK };
     }
 
-    const code = typeof candidate.code === 'number' ? candidate.code : 0;
+    const code = typeof status === 'number' ? status : 0;
 
     // Status-first, exactly as `classify` is: a 5xx whose message happens to contain 'not found'
     // must not be mistaken for an unprovisioned collection and quietly answered as empty.
     const isMissingCollection =
       code === HTTP.ResultCodes.RS_4.NotFound ||
-      (code === 0 && candidate.error.toLowerCase().includes('not found'));
+      (code === 0 && error.toLowerCase().includes('not found'));
 
     return {
       outcome: isMissingCollection ? EntryOutcomes.MISSING_COLLECTION : EntryOutcomes.FAILED,
-      message: candidate.error,
+      message: error,
       code,
     };
   }

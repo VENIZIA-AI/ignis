@@ -199,7 +199,9 @@ class TuningWireKeys {
 
     if (TuningWireKeys.INTEGER_FIELDS.has(field)) {
       const values = Array.isArray(value) && field === 'numTypos' ? value : [value];
-      const isInvalid = values.some((item) => !Number.isInteger(item) || (item as number) < 0);
+      const isInvalid = values.some(
+        (item) => typeof item !== 'number' || !Number.isInteger(item) || item < 0,
+      );
 
       if (isInvalid || values.length === 0) {
         throw getError({
@@ -210,7 +212,7 @@ class TuningWireKeys {
 
     if (
       TuningWireKeys.POSITIVE_INTEGER_FIELDS.has(field) &&
-      (!Number.isInteger(value) || (value as number) <= 0)
+      (typeof value !== 'number' || !Number.isInteger(value) || value <= 0)
     ) {
       throw getError({
         message: `[TypesenseQueryDialect][toWireParams] Invalid '${key}' | Expected a positive integer | Got: ${JSON.stringify(value)}`,
