@@ -10,7 +10,8 @@ const HTTP_ENTRY = join(process.cwd(), 'src/http/index.ts');
 /**
  * The measured size is 67,768 bytes: the data source sends through `NativeFetcher`, whose pipeline (status check, retry,
  * hooks, the error classes) is browser-pure and ships with it; the guard's `UrlPolicy` and duration units stay out. The
- * SQL stack was 140 KB more.
+ * SQL stack was 140 KB more. The 384 bytes above 66 KB hold what the measured size needs, the refusal of the removed hook
+ * settings included, and leave 200 free.
  */
 const CEILING_BYTES = 66 * 1024 + 384;
 
