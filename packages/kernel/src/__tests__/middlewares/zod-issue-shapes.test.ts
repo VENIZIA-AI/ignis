@@ -25,6 +25,7 @@ describe('a Zod error message', () => {
     expect(response.message).toBe('bad');
     expect(response.normalized.code).toBe('too_small');
     expect(oddCode.message).toBe('odd');
+    expect(oddCode.details.cause).toEqual([expect.objectContaining({ code: undefined })]);
     expect(typeof oddCode.normalized.code).toBe('string');
   });
 });

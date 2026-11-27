@@ -124,7 +124,7 @@ export class QuerySchemaFactory {
             relation: decorate(z.string(), { description: 'Model relation name' }),
             scope: decorate(
               z
-                .lazy((): z.ZodType<TFilter | undefined> => FilterSchema) // eslint-disable-line @typescript-eslint/no-use-before-define
+                .lazy((): z.ZodType<TFilter | undefined> => FilterSchema) // eslint-disable-line @typescript-eslint/no-use-before-define -- include scope and FilterSchema refer to each other
                 .optional(),
               { description: 'Model relation filter' },
             ),

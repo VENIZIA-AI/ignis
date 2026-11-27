@@ -70,10 +70,8 @@ describe('the application group', () => {
       }),
     ).toThrow(/ignore is not an array of string literals/);
   });
-});
 
-describe('an ignore list that mixes literals and names', () => {
-  test('is refused', () => {
+  test('a build refuses an ignore list that mixes literals and names', () => {
     expect(() =>
       IgnisArtifactsPlugin.rewriteGroups({
         filePath: GROUPS_FILE,
