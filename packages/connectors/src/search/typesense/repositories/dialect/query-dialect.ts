@@ -434,7 +434,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
   /** Writes the mode dispatch, the vector clause and the `prefix` default onto `query`; everything engine-specific about a non-raw search lives here, so the repository tier stays neutral. */
   applySearchInput(opts: { query: ISearchQuery; input: TTranslatableSearchInput }): void {
     const { input } = opts;
-    const searchQuery = opts.query as ITypesenseSearchQuery;
+    const searchQuery: ITypesenseSearchQuery = opts.query;
 
     switch (input.mode) {
       case SearchModes.KEYWORD: {

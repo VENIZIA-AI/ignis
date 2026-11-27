@@ -1,7 +1,6 @@
 import {
   UnusedArgsModes,
   UnusedVarsScopes,
-  type TOxlintRuleEntry,
   type TRuleSeverity,
   type TUnusedArgsMode,
   type TUnusedVarsScope,
@@ -28,7 +27,18 @@ export class NoUnusedVarsRule {
       caughtErrorsIgnorePattern?: string;
       destructuredArrayIgnorePattern?: string;
     } = {},
-  ): TOxlintRuleEntry<'no-unused-vars'> {
+  ): [
+    TRuleSeverity,
+    {
+      vars: TUnusedVarsScope;
+      args: TUnusedArgsMode;
+      ignoreRestSiblings: boolean;
+      varsIgnorePattern: string;
+      argsIgnorePattern?: string;
+      caughtErrorsIgnorePattern?: string;
+      destructuredArrayIgnorePattern?: string;
+    },
+  ] {
     const {
       severity = 'error',
       vars = UnusedVarsScopes.ALL,

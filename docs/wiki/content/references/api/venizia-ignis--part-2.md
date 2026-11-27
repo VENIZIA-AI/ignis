@@ -475,7 +475,8 @@ What a token service is configured with for claims: the required `claims`, the `
 ```ts
 export interface IClaimsConfigSource {
     claims?: unknown;
-    verify?: unknown;
+    /** Checked to be a plain object at construction. */
+    verify?: IJWTVerifyOptions;
     /** Removed: refused with a message that points to `claims`. */
     sign?: unknown;
 }

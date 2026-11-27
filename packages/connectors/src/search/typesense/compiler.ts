@@ -177,11 +177,9 @@ const mergeOverride = (opts: {
 }): CollectionCreateSchema => {
   const { schema, override } = opts;
 
-  // engineOverrides.typesense is a loose `object` in the neutral DSL; cast once here to a partial wire schema.
-  const { fields: overrideFields, ...restOverride } =
-    override as Partial<CollectionCreateSchema> & {
-      fields?: TTypesenseField[];
-    };
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `engineOverrides.typesense` is an `object` in the engine-neutral definition, and a field of it may be partial; nothing here checks either
+  const typed = override as Partial<CollectionCreateSchema> & { fields?: TTypesenseField[] };
+  const { fields: overrideFields, ...restOverride } = typed;
 
   return {
     ...schema,

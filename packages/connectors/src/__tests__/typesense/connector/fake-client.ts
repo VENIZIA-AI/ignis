@@ -2,11 +2,13 @@
 
 import type { ITypesenseClientLike } from '@/search/typesense/connector';
 import { TypesenseConnector } from '@/search/typesense/connector';
+import type { CollectionCreateSchema } from 'typesense/lib/Typesense/Collections';
+import { toFakeSchema } from './fake-schema';
 
 export interface IFakeBehavior {
   health?: { ok: boolean };
-  collectionsList?: unknown[];
-  collectionByName?: Record<string, unknown>;
+  collectionsList?: CollectionCreateSchema[];
+  collectionByName?: Record<string, CollectionCreateSchema>;
   existsByName?: Record<string, boolean>;
   documentById?: Record<string, unknown>;
   searchResult?: unknown;
@@ -152,28 +154,33 @@ export const createFakeClient = (behavior: IFakeBehavior = {}) => {
     },
   });
 
-  const collections = (name?: string) => ({
-    create: async (schema: unknown) => {
+  const collectionsApi = {
+    create: async (schema: CollectionCreateSchema) => {
       record('collections.create', schema);
       maybeThrow('collections.create');
 
-      return schema;
+      return toFakeSchema(schema);
     },
+    retrieve: async () => {
+      record('collections.retrieve', undefined);
+      maybeThrow('collections.retrieve');
+
+      return (behavior.collectionsList ?? []).map(toFakeSchema);
+    },
+  };
+
+  const collectionApi = (name: string) => ({
     retrieve: async () => {
       record('collections.retrieve', name);
       maybeThrow('collections.retrieve');
 
-      if (name === undefined) {
-        return behavior.collectionsList ?? [];
-      }
-
-      return behavior.collectionByName?.[name] ?? { name };
+      return toFakeSchema(behavior.collectionByName?.[name] ?? { name, fields: [] });
     },
     exists: async () => {
       record('collections.exists', name);
       maybeThrow('collections.exists');
 
-      return behavior.existsByName?.[name ?? ''] ?? false;
+      return behavior.existsByName?.[name] ?? false;
     },
     delete: async () => {
       record('collections.delete', name);
@@ -187,8 +194,15 @@ export const createFakeClient = (behavior: IFakeBehavior = {}) => {
 
       return schema;
     },
-    documents: (id?: string) => documents(name ?? '', id),
+    documents: (id?: string) => documents(name, id),
   });
+
+  function collections(): typeof collectionsApi;
+  function collections(name: string): ReturnType<typeof collectionApi>;
+
+  function collections(name?: string) {
+    return name === undefined ? collectionsApi : collectionApi(name);
+  }
 
   const aliases = (name?: string) => ({
     upsert: async (aliasName: string, mapping: unknown) => {

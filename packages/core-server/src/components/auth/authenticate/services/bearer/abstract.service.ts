@@ -25,7 +25,8 @@ import type { JWTPayload, JWTVerifyOptions, JWTVerifyResult, SignJWT } from 'jos
 /** What a token service is configured with for claims: the required `claims`, the `verify` checks, and the removed `sign` it refuses. */
 export interface IClaimsConfigSource {
   claims?: unknown;
-  verify?: unknown;
+  /** Checked to be a plain object at construction. */
+  verify?: IJWTVerifyOptions;
   /** Removed: refused with a message that points to `claims`. */
   sign?: unknown;
 }
@@ -159,7 +160,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     return {
       claims: { issuer, ...(resolvedAudience === undefined ? {} : { audience: resolvedAudience }) },
       verify: {
-        ...(verify as IJWTVerifyOptions),
+        ...verify,
         issuer,
         ...(resolvedAudience === undefined ? {} : { audience: resolvedAudience }),
         algorithms: [...algorithms],

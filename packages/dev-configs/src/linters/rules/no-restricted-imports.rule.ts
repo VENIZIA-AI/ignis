@@ -1,4 +1,4 @@
-import type { TOxlintRuleEntry, TRuleSeverity } from './common';
+import type { TRuleSeverity } from './common';
 
 /** One forbidden import path, with the message the author sees. */
 export interface IRestrictedImportPath {
@@ -21,7 +21,7 @@ export class NoRestrictedImportsRule {
 
   static build(
     opts: { severity?: TRuleSeverity; extraPaths?: IRestrictedImportPath[] } = {},
-  ): TOxlintRuleEntry<'no-restricted-imports'> {
+  ): [TRuleSeverity, { paths: IRestrictedImportPath[] }] {
     const { severity = 'error', extraPaths = [] } = opts;
 
     return [severity, { paths: [...NoRestrictedImportsRule.PATHS, ...extraPaths] }];

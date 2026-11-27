@@ -213,6 +213,7 @@ export abstract class ServerApplication<
   }
 
   getServerInstance<T extends TBunServerInstance = TBunServerInstance>(): T | undefined {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Bun types a server by its socket data, which the component that upgrades the sockets knows and the application does not
     return this.serverInstance as T | undefined;
   }
 

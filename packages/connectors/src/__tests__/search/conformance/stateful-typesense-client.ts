@@ -1,5 +1,8 @@
 import { getError } from '@venizia/ignis-helpers/core';
 import type { ITypesenseClientLike } from '@/search/typesense/connector';
+import type { CollectionSchema } from 'typesense/lib/Typesense/Collection';
+import type { CollectionCreateSchema } from 'typesense/lib/Typesense/Collections';
+import { toFakeSchema } from '../../typesense/connector/fake-schema';
 
 interface IFakeCollection {
   name: string;
@@ -159,18 +162,22 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
     };
   }
 
-  collections(): { create(schema: unknown): Promise<unknown>; retrieve(): Promise<unknown> };
+  collections(): {
+    create(schema: CollectionCreateSchema): Promise<CollectionSchema>;
+    retrieve(): Promise<CollectionSchema[]>;
+  };
   collections(collectionName: string): ReturnType<StatefulFakeTypesenseClient['collectionApi']>;
   collections(collectionName?: string): unknown {
     if (collectionName === undefined) {
       return {
-        create: async (schema: unknown) => {
-          const { name } = schema as { name: string };
+        create: async (schema: CollectionCreateSchema) => {
+          const { name } = schema;
           this.store.set(name, { name, documents: new Map() });
 
-          return schema;
+          return toFakeSchema(schema);
         },
-        retrieve: async () => [...this.store.values()].map((item) => ({ name: item.name })),
+        retrieve: async () =>
+          [...this.store.values()].map((item) => toFakeSchema({ name: item.name, fields: [] })),
       };
     }
 
@@ -310,7 +317,7 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
         documentId === undefined ? documentsApi : documentApi(documentId)) as never,
 
       async retrieve() {
-        return { name: self.requireCollection(name).name };
+        return toFakeSchema({ name: self.requireCollection(name).name, fields: [] });
       },
 
       async update(schema: unknown) {
