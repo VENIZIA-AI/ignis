@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
-import { MailErrors, MailProviders, type TMailOptions } from '@/components/mail/common';
+import { MailErrors, MailProviders } from '@/components/mail/common';
 import { MailTransportProvider } from '@/components/mail/providers/mail-transporter.provider';
+import { Container } from '@/helpers';
 
 describe('a custom mail transport with a bad config', () => {
   for (const [name, config] of [
@@ -10,12 +11,12 @@ describe('a custom mail transport with a bad config', () => {
     ['an object with no method', {}],
   ] as const) {
     test(`${name} is refused as an invalid configuration, naming both methods`, () => {
-      const provider = new MailTransportProvider();
-      const create = provider.value({} as never);
+      const create = new MailTransportProvider().value(new Container());
       let caught: unknown;
 
       try {
-        create({ provider: MailProviders.CUSTOM, config } as unknown as TMailOptions);
+        // Applied by reflection: the options under test are ones the type refuses.
+        Reflect.apply(create, undefined, [{ provider: MailProviders.CUSTOM, config }]);
       } catch (error) {
         caught = error;
       }
