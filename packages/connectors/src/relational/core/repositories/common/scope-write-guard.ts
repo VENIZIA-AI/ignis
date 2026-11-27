@@ -205,7 +205,7 @@ export class ScopeWriteGuard {
     }
 
     if (column === undefined) {
-      return "'or' is not a list";
+      return "an 'or' that names no column cannot be checked on a write";
     }
 
     return { column, allowed };
@@ -239,7 +239,7 @@ export class ScopeWriteGuard {
       return value.every(isScalar) ? allowing(value) : 'a list with a non-scalar entry';
     }
 
-    if (typeof value !== 'object' || value === null) {
+    if (!RecordUtility.isRecord(value)) {
       return 'an unsupported condition';
     }
 
@@ -250,7 +250,7 @@ export class ScopeWriteGuard {
     }
 
     const [operator] = operators;
-    const operand: unknown = Reflect.get(value, operator);
+    const operand = value[operator];
 
     if (operator === QueryOperators.EQ && isScalar(operand)) {
       return allowing([operand]);
@@ -576,7 +576,7 @@ export class ScopeWriteGuard {
                 ? !sharedRows
                 : normalised === undefined || !allowed.has(normalised);
 
-            if (normalised === undefined || isOutside) {
+            if (isOutside) {
               throw ScopeWriteGuard.denied({
                 model,
                 operation,

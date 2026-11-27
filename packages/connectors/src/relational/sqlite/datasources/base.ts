@@ -89,7 +89,7 @@ export abstract class BaseSqliteDataSource<
    * whose settings spell it differently overrides this.
    */
   override getConnectionString(): ValueOrPromise<string> {
-    const url: unknown = Reflect.get(this.settings, 'url');
+    const url = 'url' in this.settings ? this.settings.url : undefined;
 
     if (typeof url !== 'string' || !url) {
       throw getError({
