@@ -9,6 +9,7 @@ import type {
 import { OpenApiResponses } from '@/base/models';
 import { z } from '@hono/zod-openapi';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { Context, Env, MiddlewareHandler } from 'hono';
 import { describe, expect, test } from 'bun:test';
 
 type TSame<Left, Right> =
@@ -116,6 +117,34 @@ const forwarded = (context: TContextOf<typeof CREATE>) => {
   return read(context);
 };
 
+/** `Parameters` and `ReturnType` read the last overload of `valid`: a target of the request, answering `unknown`. */
+const readByUtilityTypes = () => {
+  type TValid = TContextOf<typeof CREATE>['req']['valid'];
+  type TTarget = 'json' | 'query' | 'param' | 'header' | 'cookie' | 'form';
+
+  check<TSame<Parameters<TValid>, [target: TTarget]>>();
+  check<TSame<ReturnType<TValid>, unknown>>();
+};
+
+type TAppEnv = { Variables: { tenant: string } };
+
+/** A route context goes where Hono's own context or middleware, with an explicit `Env`, is asked for. */
+const handedToHono = (
+  context: TContextOf<typeof CREATE>,
+  plain: TRouteContext,
+  middleware: MiddlewareHandler<Env, string>,
+  read: (any: Context<Env, string, {}>) => string,
+) => {
+  const next = async () => {};
+
+  return [read(context), read(plain), middleware(context, next), middleware(plain, next)];
+};
+
+const handedWithAnAppEnv = (
+  context: TContextOf<typeof CREATE, TAppEnv>,
+  read: (any: Context<TAppEnv>) => string,
+) => read(context);
+
 class OrderController extends BaseRestController {
   constructor() {
     super({ scope: OrderController.name, path: '/orders' });
@@ -158,6 +187,8 @@ describe('TContextOf', () => {
     const payload = await answer.json();
 
     expect(payload).toEqual({ name: 'pen' });
-    expect([typed, forms, untypedParts, forwarded]).toHaveLength(4);
+    const typeTests = [typed, forms, untypedParts, forwarded, handedToHono, handedWithAnAppEnv];
+
+    expect([...typeTests, readByUtilityTypes]).toHaveLength(7);
   });
 });

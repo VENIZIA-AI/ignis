@@ -385,7 +385,7 @@ A part answers `unknown` when the config does not declare it, when `request.head
 
 **Declaration files.** In a package that emits `.d.ts` files, an exported value whose type TypeScript infers and that holds `context.req` or `context.req.valid` fails with TS2883. Write the type: `TContextOf<typeof CONFIG>['req']`, or `TContextOf<typeof CONFIG>['req']['valid']`.
 
-`bun node_modules/.bin/devz codemod typed-route-context [paths...] --write` moves decorated methods, and methods that serve one route's handlers, to `TContextOf`. It leaves CRUD overrides alone.
+`bun node_modules/.bin/devz codemod typed-route-context [paths...] --write` moves decorated methods, and methods that serve one route's handlers, to `TContextOf`. It leaves CRUD overrides alone. It reads your project's types: a `valid<T>()` that would answer `unknown` without its argument keeps it, and is listed. An import or a local type its rewrite leaves unused is removed. Where a context named a body type, its `json()` calls take `body satisfies Body`, so the body stays checked, and a `TJsonResponse<X>` return type becomes `TJsonResponse<unknown>`.
 
 ### `TRouteContext`
 

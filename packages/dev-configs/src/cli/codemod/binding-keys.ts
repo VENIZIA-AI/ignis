@@ -994,8 +994,12 @@ export class BindingKeysCommand {
     typescript: typeof import('typescript');
     root: string;
     files: string[];
+    /** Text to read in place of what a file holds. */
+    contents?: ReadonlyMap<string, string>;
+    /** Read the tsconfig's own files too, for what only they declare: global types, a `declare module`. */
+    withProjectFiles?: boolean;
   }): import('typescript').Program {
-    const { typescript: ts, root, files } = opts;
+    const { typescript: ts, root, files, contents, withProjectFiles = false } = opts;
     const configPath = ts.findConfigFile(root, (path) => ts.sys.fileExists(path), 'tsconfig.json');
     const read =
       configPath === undefined
@@ -1018,7 +1022,17 @@ export class BindingKeysCommand {
       allowJs: false,
     };
 
-    return ts.createProgram({ rootNames: files, options });
+    const host = ts.createCompilerHost(options);
+    const readFile = host.readFile.bind(host);
+    // TypeScript asks with forward slashes, on Windows too.
+    const forward = (path: string) => path.replaceAll('\\', '/');
+    const replaced = new Map([...(contents ?? [])].map(([path, text]) => [forward(path), text]));
+    host.readFile = (fileName) => replaced.get(forward(fileName)) ?? readFile(fileName);
+    const rootNames = withProjectFiles
+      ? [...new Set([...files, ...(parsed?.fileNames ?? [])].map(forward))]
+      : files;
+
+    return ts.createProgram({ rootNames, options, host });
   }
 
   static async run(opts: { root: string; args: string[] }): Promise<number> {

@@ -4,7 +4,7 @@ import type { TDataRange } from '@/base/repositories/common/types';
 import type { TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { LoggerFactory, PerformanceUtility, ParseUtility } from '@venizia/ignis-helpers/core';
-import type { Env, Schema, TypedResponse } from 'hono';
+import type { Context, Env, Schema, TypedResponse } from 'hono';
 import { ResponseFormats } from '../common/constants';
 import type { TResponseFormat } from '../common/constants';
 import type {
@@ -223,7 +223,13 @@ export abstract class BaseRestController<
       context: TContextOf<RouteConfig, RouteEnv>,
     ) => ValueOrPromise<Response | TypedResponse<unknown>>;
   }) {
-    return opts.handler as Parameters<OpenAPIHono<RouteEnv>['openapi']>[1];
+    // The context side is checked here: a route context takes Hono's `Context`, whose `valid()` answers `never`.
+    const handler: (
+      context: Context<RouteEnv>,
+    ) => ValueOrPromise<Response | TypedResponse<unknown>> = opts.handler;
+
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- asserts the response side only: a handler's answer is not typed against the route's responses, and Hono's handler types are not inferred here on purpose
+    return handler as Parameters<OpenAPIHono<RouteEnv>['openapi']>[1];
   }
 
   /** Creates a fluent binding for registering a route (call .to() to attach handler). */
