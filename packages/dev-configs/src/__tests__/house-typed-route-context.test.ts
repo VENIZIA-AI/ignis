@@ -39,6 +39,19 @@ describe('typed-route-context: a config declared wide', () => {
     ).toEqual(['wideConfig', 'wideConfig', 'wideConfig', 'wideConfig', 'wideConfig']);
   });
 
+  test('an `as` of a wide type and a Readonly one are reported once each', () => {
+    expect(
+      lint(`
+        const a = { path: '/' } as IAuthRouteConfig;
+        const b = { c: { path: '/' } } as Record<string, IAuthRouteConfig>;
+        const d = { e: { path: '/' } as IAuthRouteConfig };
+        class Routes { static readonly F = { path: '/' } as IAuthRouteConfig; }
+        const g: Readonly<Record<string, IAuthRouteConfig>> = { h: { path: '/' } };
+        const i: IAuthRouteConfig = { path: '/' } as IAuthRouteConfig;
+      `),
+    ).toEqual(Array.from({ length: 6 }, () => 'wideConfig'));
+  });
+
   test('an empty object filled later is left alone', () => {
     expect(lint('const routes: Record<string, IAuthRouteConfig> = {};')).toEqual([]);
   });

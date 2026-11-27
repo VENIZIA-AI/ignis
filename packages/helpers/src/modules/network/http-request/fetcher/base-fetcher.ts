@@ -524,7 +524,7 @@ export abstract class AbstractNetworkFetchableHelper<
         const isSameOrigin = next.origin === target.origin;
 
         if (HttpRedirects.becomesGet({ status: exchange.status, method })) {
-          method = 'GET';
+          method = HTTP.Methods.GET.toUpperCase();
           body = undefined;
           headers = HttpHeaders.without({ headers, names: HttpRedirects.BODY_HEADERS });
         } else if (body !== undefined && !isSameOrigin) {

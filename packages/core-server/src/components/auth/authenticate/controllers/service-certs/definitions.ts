@@ -1,5 +1,6 @@
 import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
+import { HTTP } from '@venizia/ignis-helpers/common';
 
 /**
  * Unauthenticated by design: it serves the PUBLIC key a callee needs to verify this service's
@@ -11,7 +12,7 @@ import { z } from '@hono/zod-openapi';
 export const ServiceCertsRouteConfigs = {
   GET_SERVICE_CERTS: {
     path: '/',
-    method: 'get',
+    method: HTTP.Methods.GET,
     responses: OpenApiResponses.jsonResponse({
       schema: z
         .object({

@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs/linters, from the built decla
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-41 exports, 41 with TSDoc. 30 more are re-exported from other entries (listed at the end).
+42 exports, 42 with TSDoc. 30 more are re-exported from other entries (listed at the end).
 
 ## `AstNode`
 
@@ -1021,6 +1021,33 @@ export declare class PreferFrameworkApiRule {
 ```
 
 Source: `packages/dev-configs/src/linters/house/prefer-framework-api.rule.ts`
+
+## `PreferHttpMethodRule`
+
+*class*
+
+`@venizia/prefer-http-method`. An HTTP method written by hand (`method: 'get'`) is `HTTP.Methods.GET`
+(`@venizia/ignis-helpers/common`). Read where the syntax says it is one: `method`, `verb` or `httpMethod` in a route
+config or a request, and a variable or parameter of those names.
+
+The fix is offered only for a string that is exactly the constant's value (lowercase), so what is sent does not
+change. Another spelling is reported only: the constants are lowercase, the framework's fetchers send a method
+uppercased, and the platform `fetch` does not uppercase `patch`. It applies in a project that depends on an IGNIS
+package. `source` is where `HTTP` is imported from; `null` turns the import, and so the fix, off.
+
+```ts
+export declare class PreferHttpMethodRule {
+    static readonly NAME = "@venizia/prefer-http-method";
+    static readonly DEFAULT_SOURCE = "@venizia/ignis-helpers/common";
+    static readonly RULE: Rule.RuleModule;
+    static build(opts?: {
+        severity?: TRuleSeverity;
+        source?: string | null;
+    }): Linter.RuleEntry;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/prefer-http-method.rule.ts`
 
 ## `PreferPromiseSleepRule`
 
