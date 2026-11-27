@@ -223,12 +223,8 @@ export abstract class BaseRestController<
       context: TContextOf<RouteConfig, RouteEnv>,
     ) => ValueOrPromise<Response | TypedResponse<unknown>>;
   }) {
-    // Nothing checks this assertion: widened to `object` first, because TypeScript no longer finds the two contexts
-    // comparable. A route context must be a Hono `Context` where an application passes it on, which asks `valid()` to
-    // answer `never`; the comparison the other way asks the opposite for Hono's generic input.
-    const handler: object = opts.handler;
-
-    return handler as Parameters<OpenAPIHono<RouteEnv>['openapi']>[1];
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- through `unknown`, so it checks nothing: a route context's `valid(never): never`, which keeps it assignable to Hono's `Context`, leaves TypeScript unable to compare it with the context Hono's handler takes, and Hono's handler types are not inferred here on purpose
+    return opts.handler as unknown as Parameters<OpenAPIHono<RouteEnv>['openapi']>[1];
   }
 
   /** Creates a fluent binding for registering a route (call .to() to attach handler). */
