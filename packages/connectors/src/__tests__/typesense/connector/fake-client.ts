@@ -4,6 +4,7 @@ import type { ITypesenseClientLike } from '@/search/typesense/connector';
 import { TypesenseConnector } from '@/search/typesense/connector';
 import type { CollectionCreateSchema } from 'typesense/lib/Typesense/Collections';
 import { toFakeSchema } from './fake-schema';
+import type { TImportResponse } from '@/search/typesense/common';
 
 export interface IFakeBehavior {
   health?: { ok: boolean };
@@ -13,7 +14,7 @@ export interface IFakeBehavior {
   documentById?: Record<string, unknown>;
   searchResult?: unknown;
   multiSearchResult?: unknown;
-  importResponse?: Array<{ success: boolean }>;
+  importResponse?: TImportResponse[];
   exportResult?: string;
   // The chunks `documents().exportStream()` yields, produced lazily (one per read) so a test can see how far ahead the reader got.
   exportChunks?: () => AsyncIterable<string | Uint8Array>;
@@ -107,7 +108,7 @@ export const createFakeClient = (behavior: IFakeBehavior = {}) => {
 
       maybeThrow('documents.import');
 
-      return behavior.importResponse ?? docs.map(() => ({ success: true }));
+      return behavior.importResponse ?? docs.map((): TImportResponse => ({ success: true }));
     },
     search: async (params: unknown, options?: unknown) => {
       record('documents.search', name, params, options);

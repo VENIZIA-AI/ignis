@@ -44,7 +44,7 @@ describe('TypesenseConnector documents', () => {
   test('importDocuments batches by batchSize and aggregates counts', async () => {
     const docs = Array.from({ length: 5 }, (_, i) => ({ id: String(i), title: `t${i}` }));
     const { helper, fake } = makeHelper({
-      importResponse: [{ success: true }, { success: false }],
+      importResponse: [{ success: true }, { success: false, error: 'rejected', code: 400 }],
     });
     const result = await helper.importDocuments({
       collection: 'products',

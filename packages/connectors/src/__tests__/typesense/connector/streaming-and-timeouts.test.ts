@@ -317,7 +317,9 @@ describe('TypesenseConnector.importDocuments - throwOnFail', () => {
   const documents = [{ id: '1' }, { id: '2' }, { id: '3' }, { id: '4' }];
 
   test('by default a rejected row is in the result and nothing throws', async () => {
-    const { helper } = makeHelper({ importResponse: [{ success: true }, { success: false }] });
+    const { helper } = makeHelper({
+      importResponse: [{ success: true }, { success: false, error: 'rejected', code: 400 }],
+    });
 
     const result = await helper.importDocuments({
       collection: 'products',
@@ -330,7 +332,7 @@ describe('TypesenseConnector.importDocuments - throwOnFail', () => {
 
   test('with throwOnFail a rejected row throws a 422 after the last batch, with counts and responses', async () => {
     const { helper, fake } = makeHelper({
-      importResponse: [{ success: true }, { success: false }],
+      importResponse: [{ success: true }, { success: false, error: 'rejected', code: 400 }],
     });
 
     const error = await rejection({

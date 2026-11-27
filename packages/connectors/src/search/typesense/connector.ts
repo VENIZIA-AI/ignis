@@ -848,9 +848,10 @@ export class TypesenseConnector extends BaseSearchConnector {
           ...(dirtyValues ? { ['dirty_values']: dirtyValues } : {}),
         };
 
-        const result = await client.collections(collection).documents().import(batch, importParams);
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the client types an import answer `unknown`; with `throwOnFail` off it is one response per document
-        const batchResult = result as TImportResponse[];
+        const batchResult = await client
+          .collections(collection)
+          .documents()
+          .import(batch, importParams);
 
         const tally = this.tallyImportResponses({ batchResult, responses });
         successCount += tally.successCount;

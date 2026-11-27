@@ -45,7 +45,7 @@ export abstract class SearchBaseRepository<
   }
 
   override get entity(): BaseSearchEntity {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the base class stores it wider; this class only ever receives its own generic
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the base getter has no generic of its own; a search repository only ever receives a `BaseSearchEntity`
     return super.entity as BaseSearchEntity;
   }
 

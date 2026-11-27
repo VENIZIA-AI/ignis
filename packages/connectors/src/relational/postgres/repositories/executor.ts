@@ -50,7 +50,6 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
       query = query.offset(offset);
     }
 
-    // `$dynamic()` infers its row type from the table schema, not from the caller-chosen R.
     if (lock) {
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `$dynamic()` types its rows from the table schema, not from the caller's `R`
       return query.for(lock.strength, lock.config) as Promise<Array<R>>;
