@@ -443,10 +443,8 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
   }
 
   private assertNoUnsupportedKnobs(opts: { input: TTranslatableSearchInput }): void {
-    const input = opts.input as Record<string, unknown>;
-
     for (const knob of UNSUPPORTED_TUNING_KNOBS) {
-      if (input[knob] === undefined) {
+      if (Reflect.get(opts.input, knob) === undefined) {
         continue;
       }
 

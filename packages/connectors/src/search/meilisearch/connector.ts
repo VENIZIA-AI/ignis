@@ -476,7 +476,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
     });
 
     const primaryKey = await this.resolvePrimaryKey({ collection });
-    const id = (document as Record<string, unknown>)[primaryKey];
+    const id: unknown = Reflect.get(document, primaryKey);
 
     let isExisting = false;
 
@@ -756,9 +756,10 @@ export class MeilisearchConnector extends BaseSearchConnector {
     const { error, details } = opts;
 
     if (isApplicationError(error)) {
+      const previous = error.extra?.['details'];
       error.extra = {
         ...error.extra,
-        details: { ...(error.extra?.['details'] as object), ...details },
+        details: { ...(RecordUtility.isRecord(previous) ? previous : {}), ...details },
       };
       throw error;
     }

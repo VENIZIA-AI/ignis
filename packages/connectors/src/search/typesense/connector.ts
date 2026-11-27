@@ -518,7 +518,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       method: this.createDocument.name,
     });
 
-    const id = (document as Record<string, unknown>)['id'];
+    const id: unknown = Reflect.get(document, 'id');
 
     const rs = await this.runEngineCall({
       method: this.createDocument.name,
@@ -863,9 +863,10 @@ export class TypesenseConnector extends BaseSearchConnector {
 
       // Re-wrapping an ApplicationError would erase its statusCode/messageCode, so merge progress onto it instead of replacing it.
       if (isApplicationError(error)) {
+        const previous = error.extra?.['details'];
         error.extra = {
           ...error.extra,
-          details: { ...(error.extra?.['details'] as object), ...details },
+          details: { ...(RecordUtility.isRecord(previous) ? previous : {}), ...details },
         };
         throw error;
       }

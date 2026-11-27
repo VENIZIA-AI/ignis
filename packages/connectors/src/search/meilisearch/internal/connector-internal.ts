@@ -30,17 +30,15 @@ export class MeilisearchInternal {
   static getErrorCode(opts: { error: unknown }): string | undefined {
     const { error } = opts;
 
-    if (typeof error !== 'object' || error === null) {
+    if (!RecordUtility.isRecord(error)) {
       return undefined;
     }
 
-    const flatCode = (error as { code?: unknown }).code;
-
-    if (typeof flatCode === 'string') {
-      return flatCode;
+    if (typeof error.code === 'string') {
+      return error.code;
     }
 
-    const causeCode = (error as { cause?: { code?: unknown } }).cause?.code;
+    const causeCode = RecordUtility.isRecord(error.cause) ? error.cause.code : undefined;
 
     return typeof causeCode === 'string' ? causeCode : undefined;
   }
@@ -49,19 +47,19 @@ export class MeilisearchInternal {
   static getHttpStatus(opts: { error: unknown }): number | undefined {
     const { error } = opts;
 
-    if (typeof error !== 'object' || error === null) {
+    if (!RecordUtility.isRecord(error)) {
       return undefined;
     }
 
-    const responseStatus = (error as { response?: { status?: unknown } }).response?.status;
+    const responseStatus = RecordUtility.isRecord(error.response)
+      ? error.response.status
+      : undefined;
 
     if (typeof responseStatus === 'number') {
       return responseStatus;
     }
 
-    const httpStatus = (error as { httpStatus?: unknown }).httpStatus;
-
-    return typeof httpStatus === 'number' ? httpStatus : undefined;
+    return typeof error.httpStatus === 'number' ? error.httpStatus : undefined;
   }
 
   static isNotFoundError(opts: { error: unknown }): boolean {
