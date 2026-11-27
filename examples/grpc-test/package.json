@@ -9,7 +9,7 @@
     "typecheck": "bun check",
     "lint": "devz lint",
     "lint:fix": "devz lint --fix",
-    "test": "bun test",
+    "test": "bun test --max-concurrency=6",
     "clean": "sh scripts/clean.sh",
     "proto:gen": "node_modules/.bin/buf generate --template src/controllers/greeter/proto/buf.gen.yaml src/controllers/greeter/proto && bun fmt --no-script src/controllers/greeter/proto"
   },

@@ -107,7 +107,7 @@ const packageDirectoryOf = (opts: { root: string; file: string }): string => {
 const runIsRed = (opts: { root: string; file: string; name?: string }): boolean => {
   const directory = packageDirectoryOf({ root: opts.root, file: opts.file });
   const target = join(opts.root, opts.file).slice(directory.length + 1);
-  const args = ['test', target, ...(opts.name ? ['-t', opts.name] : [])];
+  const args = ['test', target, '--max-concurrency=6', ...(opts.name ? ['-t', opts.name] : [])];
   const result = spawnSync('bun', args, {
     cwd: directory,
     encoding: 'utf8',

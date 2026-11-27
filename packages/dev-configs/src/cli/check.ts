@@ -34,7 +34,7 @@ purity
 
 test-weight, test-dead-code, test-mutate, test-controls: the tools of the trim-tests method, see
   .agents/knowledge/process/trimming-tests.md in the IGNIS repository. Produce the JUnit files with
-  bun test ./src --parallel --reporter=junit --reporter-outfile=<file>.
+  bun test ./src --parallel=6 --max-concurrency=6 --reporter=junit --reporter-outfile=<file>.
 
 module-cycles
   <dir>, or --dist <dir>   the built folder (dist/esm); exits 1 when more cycles than --max, 2 on a usage error

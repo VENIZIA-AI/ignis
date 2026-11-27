@@ -133,7 +133,7 @@ A bare `bun test` in a package directory is the fastest way to a false alarm: it
 | `./src/__tests__` (or `./dist/__tests__`) | Scopes the run to one tree; otherwise Bun also collects tests under `dist` and vendored code |
 | `--env-file=.env.test` | The suite's own variables (ports, log folder, feature flags) instead of the developer's shell |
 | `--preload ./src/__tests__/preload.ts` | Anything that must run before the first import: `reflect-metadata`, a logger provider, global fakes |
-| `--parallel` (optional) | Bun 1.4+: files run in isolated workers; keep it only if no test relies on module-level state from another file |
+| `--parallel=<n>` (optional) | Bun 1.4+: files run in `n` isolated workers (one per CPU core without a number); keep it only if no test relies on module-level state from another file |
 
 Run the script, not the tool: `bun run test`. A CI job and a developer then execute the same line, and a red count means the same thing on both.
 

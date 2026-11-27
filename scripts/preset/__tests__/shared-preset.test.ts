@@ -502,7 +502,7 @@ describe('shared preset - the rendered package runs (P7)', () => {
   };
 
   const runTests = (opts: { cwd: string }): { exitCode: number; output: string } => {
-    const result = Bun.spawnSync(['bun', 'test'], {
+    const result = Bun.spawnSync(['bun', 'test', '--max-concurrency=6'], {
       cwd: opts.cwd,
       stdout: 'pipe',
       stderr: 'pipe',

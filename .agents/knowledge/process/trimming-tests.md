@@ -28,13 +28,13 @@ The tools are `devz check` commands of `@venizia/dev-configs` (Bun-only), so a r
 1. **Measure.** Per package, with JUnit output, and the CI step times:
 
    ```bash
-   cd packages/<pkg> && NODE_ENV=test bun test ./src --parallel \
+   cd packages/<pkg> && NODE_ENV=test bun test ./src --parallel=6 --max-concurrency=6 \
      --reporter=junit --reporter-outfile=<repo>/.agents/local/tmp/<pkg>.xml
    gh run view <run id> --json jobs      # step durations of a CI run
    devz check test-weight .agents/local/tmp/*.xml
    ```
 
-   `test-weight` prints totals, time per package, the heaviest files, how many files hold 80% of the time, files under 100 ms, the same suite and case name in more than one file, files with zero assertions, and skips. A `--parallel` run times every file under contention (16 workers): a file that shows 7 s there can take 1.2 s alone. Re-time any suspect file alone (`bun test <file>`) before judging it.
+   `test-weight` prints totals, time per package, the heaviest files, how many files hold 80% of the time, files under 100 ms, the same suite and case name in more than one file, files with zero assertions, and skips. A `--parallel` run times every file under contention (6 workers): a file that shows 7 s there can take 1.2 s alone. Re-time any suspect file alone (`bun test <file>`) before judging it.
 2. **Classify the candidates** into five kinds:
    - (a) duplicates: the same suite and name in two files, or two files covering the same lines (coverage prefilter, step 3);
    - (b) tests pinned to internals, and **type-only placeholders** (`@ts-expect-error` followed by `expect(true).toBe(true)`: the type check already catches them). `as never`, `as any`, `spyOn` and `toHaveBeenCalledTimes` counts are signals to read, not verdicts; `readFileSync` of a `.ts` file is a poor signal (gates read `dist` on purpose);

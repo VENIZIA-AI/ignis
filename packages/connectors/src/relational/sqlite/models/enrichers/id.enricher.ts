@@ -42,6 +42,9 @@ export class SqliteIdEnricher {
   ): TIdColumnDef<Opts> {
     const { id = { dataType: 'number' } } = opts ?? {};
 
+    // Read before the `switch` narrows `id` to `never` for the message of an unsupported type.
+    const dataType: string = id.dataType;
+
     switch (id.dataType) {
       case 'string': {
         return {
@@ -59,7 +62,7 @@ export class SqliteIdEnricher {
         throw getError({
           statusCode: HTTP.ResultCodes.RS_5.NotImplemented,
           messageCode: CoreErrorCodes.NOT_SUPPORTED,
-          message: `[enrichId] Id dataType '${(id as { dataType: string }).dataType}' is not supported on SQLite - it has no sequence, identity or bigint type; an INTEGER primary key is already a 64-bit rowid, so use dataType: 'number' or 'string'.`,
+          message: `[enrichId] Id dataType '${dataType}' is not supported on SQLite - it has no sequence, identity or bigint type; an INTEGER primary key is already a 64-bit rowid, so use dataType: 'number' or 'string'.`,
         });
       }
     }
