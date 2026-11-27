@@ -3152,6 +3152,7 @@ export interface IAuthRouteConfig {
         params?: TRequestPartSchema;
         query?: TRequestPartSchema;
         cookies?: TRequestPartSchema;
+        /** A zod object, or a list of schemas; with a list, the headers have no single type to validate into. */
         headers?: TRequestPartSchema | TRequestPartSchema[];
         body?: {
             content: Record<string, TRouteMediaType>;

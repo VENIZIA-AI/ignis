@@ -207,10 +207,10 @@ export abstract class AbstractRestController<
     const { restConfig, security, mws } = this.buildRouteMiddlewares(opts);
     const { tags = [] } = restConfig;
 
-    // `restConfig` already omits `authenticate`/`authorize`; the injected middleware, tags and security replace its own.
+    // `restConfig` is the config without `authenticate`/`authorize`, which stay out of the registered route and the OpenAPI document; the injected middleware, tags and security replace its own.
     return createRoute(
-      RouteConfigUtility.toHono({
-        config: Object.assign({}, opts.configs, restConfig, {
+      RouteConfigUtility.toHono<RouteConfig>({
+        config: Object.assign({}, restConfig, {
           middleware: mws,
           tags: [...tags, this.scope],
           security,
@@ -227,8 +227,8 @@ export abstract class AbstractRestController<
     const { responses, tags = [] } = restConfig;
 
     return createRoute(
-      RouteConfigUtility.toHono({
-        config: Object.assign({}, opts.configs, restConfig, {
+      RouteConfigUtility.toHono<RouteConfig>({
+        config: Object.assign({}, restConfig, {
           middleware: mws,
           responses: Object.assign(
             {},

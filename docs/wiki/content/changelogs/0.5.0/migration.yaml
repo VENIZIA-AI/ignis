@@ -1152,15 +1152,15 @@ light-route-config:
   symbols: [IAuthRouteConfig, IDefineRouteOptions, IBindRouteOptions]
   upgrade:
     before: |-
-      const route = { method: 'post', path: '/', requestBody: body, responses } satisfies IAuthRouteConfig;
+      const route = { method: 'post', path: '/{id}', requestBody: body, responses } satisfies IAuthRouteConfig;
       const path = this.defineRoute({ configs: route, handler }).configs.getRoutingPath();
     after: |-
-      const route = { method: 'post', path: '/', request: { body }, responses } satisfies IAuthRouteConfig;
-      const path = route.path;
+      const route = { method: 'post', path: '/{id}', request: { body }, responses } satisfies IAuthRouteConfig;
+      const path = route.path.replace(/\{(\w+)\}/g, ':$1'); // getRoutingPath() answered '/:id'
     steps:
       - "Run your typecheck. Move requestBody to request.body, and register a query route as post or get."
       - "Remove a member the type does not name, or write it as an x- extension."
-      - "Where you called getRoutingPath() on configs, use the path you declared, converted the way you need it."
+      - "Where you called getRoutingPath() on configs, use the path you declared: getRoutingPath() answered it with {id} written as :id."
       - "Where you pass an IAuthRouteConfig to createRoute or another Hono API, convert the type there."
   downgrade:
     steps:
