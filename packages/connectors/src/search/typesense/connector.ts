@@ -1115,7 +1115,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       when: (error: unknown) => boolean;
       handle: (error: unknown) => IMultiSearchResult | IUnionSearchResult;
     };
-  }): Promise<IMultiSearchResult | IUnionSearchResult> {
+  }): Promise<unknown> {
     const { method, entries, union: isUnion, commonParams, options, tolerate } = opts;
 
     return this.runEngineCall({
@@ -1127,8 +1127,7 @@ export class TypesenseConnector extends BaseSearchConnector {
           options,
         );
 
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- an entry of the envelope may be an error object, so the readers check each field and no type of the client could promise it
-        return result as IMultiSearchResult | IUnionSearchResult;
+        return result;
       },
       tolerate,
     });
@@ -1183,7 +1182,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       commonParams: common,
       options,
     });
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the document type of an engine answer nothing here checks
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the document type of an engine answer nothing here checks; a call without `union` is not the union shape, and `results` is checked to be a list below
     const response = result2 as IMultiSearchResult<T>;
 
     const results = Array.isArray(response?.results) ? response.results : [];

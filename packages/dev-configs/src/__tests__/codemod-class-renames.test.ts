@@ -194,6 +194,9 @@ describe('devz codemod class-renames: the command', () => {
   beforeEach(() => {
     directory = mkdtempSync(join(process.env.TMPDIR ?? '.', 'class-renames-'));
     execFileSync('git', ['init', '-q'], { cwd: directory });
+    // A commit starts git's maintenance in the background, which can write into .git while the folder is removed.
+    execFileSync('git', ['config', 'maintenance.auto', 'false'], { cwd: directory });
+    execFileSync('git', ['config', 'gc.auto', '0'], { cwd: directory });
     mkdirSync(join(directory, 'src'));
     writeFileSync(
       join(directory, 'src', 'a.ts'),
@@ -221,7 +224,7 @@ describe('devz codemod class-renames: the command', () => {
   afterEach(() => {
     log.mockRestore();
     warn.mockRestore();
-    rmSync(directory, { recursive: true, force: true });
+    rmSync(directory, { recursive: true, force: true, maxRetries: 5 });
   });
 
   test('a dry run writes nothing, --check exits 1, --write changes the file', async () => {

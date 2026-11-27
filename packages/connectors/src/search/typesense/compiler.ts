@@ -177,7 +177,8 @@ const mergeOverride = (opts: {
 }): CollectionCreateSchema => {
   const { schema, override } = opts;
 
-  const typed: Partial<CollectionCreateSchema> & { fields?: TTypesenseField[] } = override;
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `engineOverrides.typesense` is an `object` in the engine-neutral definition, and a field of it may be partial; nothing here checks either
+  const typed = override as Partial<CollectionCreateSchema> & { fields?: TTypesenseField[] };
   const { fields: overrideFields, ...restOverride } = typed;
 
   return {
