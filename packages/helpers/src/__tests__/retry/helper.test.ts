@@ -410,6 +410,25 @@ describe('executeWithRetry', () => {
     expect(Date.now() - startedAt).toBeLessThan(2000);
   });
 
+  test('a NaN maxAttempts is refused before the first execution', async () => {
+    let calls = 0;
+    let caught: unknown;
+
+    try {
+      await RetryUtility.executeWithRetryUntil({
+        operation: 'bad',
+        maxAttempts: Number.NaN,
+        execution: () => ++calls,
+        until: () => false,
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(String(caught)).toContain('maxAttempts');
+    expect(calls).toBe(0);
+  });
+
   test('maxAttempts < 1 throws a named configuration error', async () => {
     let caught: unknown;
 

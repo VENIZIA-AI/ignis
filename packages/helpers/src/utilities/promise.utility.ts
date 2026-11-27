@@ -12,7 +12,8 @@ export const isPromiseLike = <T>(value: T | PromiseLike<T>): value is PromiseLik
   return (
     !!value &&
     (typeof value === 'object' || typeof value === 'function') &&
-    typeof (value as PromiseLike<T>).then === 'function'
+    'then' in value &&
+    typeof value.then === 'function'
   );
 };
 

@@ -405,7 +405,8 @@ export class RetryUtility {
       until,
     } = opts;
 
-    if (maxAttempts < 1) {
+    // Not `< 1`: that lets `NaN` through, and the loop below ends on the attempt count.
+    if (!(maxAttempts >= 1)) {
       throw getError({
         message: `[executeWithRetryUntil][${operation}] maxAttempts must be >= 1 | Got: ${maxAttempts}`,
       });
@@ -415,22 +416,24 @@ export class RetryUtility {
     RetryUtility.computeBackoffDelayMs({ attempt: 1, backoff });
 
     const startedAt = Date.now();
-    let lastResult: T | undefined;
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    for (let attempt = 1; ; attempt++) {
       RetryUtility.throwIfAborted({ operation, signal });
 
-      const result2 = await execution({ attempt, signal });
-      lastResult = result2;
+      const result = await execution({ attempt, signal });
 
-      if (until(lastResult)) {
-        return lastResult;
+      if (until(result)) {
+        return result;
       }
 
       const elapsedMs = Date.now() - startedAt;
 
       if (attempt >= maxAttempts || (maxTotalMs !== undefined && elapsedMs >= maxTotalMs)) {
-        break;
+        logger
+          ?.for('executeWithRetryUntil')
+          .warn('[%s] Exhausted retries - returning last (stale) result', operation);
+
+        return result;
       }
 
       logger
@@ -443,11 +446,5 @@ export class RetryUtility {
         await RetryUtility.sleepWithSignal({ ms: nextDelayMs, operation, signal });
       }
     }
-
-    logger
-      ?.for('executeWithRetryUntil')
-      .warn('[%s] Exhausted retries - returning last (stale) result', operation);
-
-    return lastResult as T;
   }
 }

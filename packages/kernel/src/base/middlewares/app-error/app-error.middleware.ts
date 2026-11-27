@@ -373,7 +373,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     const candidate = 'logLevel' in opts.error ? opts.error.logLevel : undefined;
 
     if (typeof candidate === 'string' && LogLevels.isValid(candidate)) {
-      return candidate as TLogLevel;
+      return candidate;
     }
 
     return LogLevels.ERROR;
@@ -518,13 +518,9 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
       return normalized;
     }
 
-    return {
-      ...normalized,
-      args: RedactUtility.redactSecrets({
-        value: normalized.args,
-        force: true,
-      }) as typeof normalized.args,
-    };
+    const args = RedactUtility.redactSecrets({ value: normalized.args, force: true });
+
+    return { ...normalized, args: RecordUtility.isRecord(args) ? args : {} };
   }
 
   value(): ErrorHandler {

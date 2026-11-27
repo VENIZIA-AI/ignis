@@ -56,6 +56,6 @@ export class ConstClass {
 
   /** `true` when `value` is one of this class's values; narrows it to their union. */
   static isValid<T extends typeof ConstClass>(this: T, value: unknown): value is TConstValue<T> {
-    return typeof value === 'string' && (this.values() as readonly string[]).includes(value);
+    return typeof value === 'string' && this.values().some((member) => member === value);
   }
 }
