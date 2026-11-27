@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import path from 'node:path';
 import { LoggerDebugGate } from '@/modules/logger/common/debug-gate';
-import { ParseUtility } from '@/utilities/parse.utility';
 import { PACKAGE_ROOT } from '../package-root';
 import { SpawnUtility } from '@venizia/dev-configs/testing';
 
@@ -15,7 +14,7 @@ describe('LoggerDebugGate.evaluate - the rule, a pure function of env', () => {
     { name: "DEBUG 'false'", env: { DEBUG: 'false' }, isOpen: false },
     { name: "DEBUG '0'", env: { DEBUG: '0' }, isOpen: false },
     { name: "DEBUG ''", env: { DEBUG: '' }, isOpen: false },
-    // The string 'undefined' is not one of the falsy spellings: truthy, as `ParseUtility.toBoolean` has it.
+    // The string 'undefined' is not one of the false words: open.
     { name: "DEBUG 'undefined' (the string)", env: { DEBUG: 'undefined' }, isOpen: true },
     { name: 'NODE_ENV unset', env: { DEBUG: 'true', NODE_ENV: undefined }, isOpen: true },
     { name: "NODE_ENV ''", env: { DEBUG: 'true', NODE_ENV: '' }, isOpen: true },
@@ -67,38 +66,17 @@ describe('LoggerDebugGate.evaluate - the rule, a pure function of env', () => {
   });
 });
 
-describe('LoggerDebugGate - DEBUG truthiness matches ParseUtility.toBoolean', () => {
-  // The gate repeats the truthiness on purpose (ParseUtility's error module must stay out of BaseHelper's bundle).
-  // This table is what stops the two copies drifting.
-  const values: Array<string | undefined> = [
-    undefined,
-    '',
-    'false',
-    '0',
-    'true',
-    '1',
-    'yes',
-    'no',
-    'FALSE',
-    'False',
-    'TRUE',
-    ' ',
-    ' 0',
-    '0 ',
-    'false ',
-    '00',
-    'off',
-    'null',
-    'undefined',
-  ];
+describe('LoggerDebugGate - DEBUG is a namespace pattern: only a false word turns it off', () => {
+  const closed = [undefined, '', ' ', 'false', '0', 'no', 'off', 'n', 'disabled', 'FALSE', ' Off '];
+  const open = ['true', '1', 'yes', 'TRUE', '*', 'app:*', '00', 'null', 'undefined', 'constructor'];
 
-  for (const value of values) {
-    test(`DEBUG ${JSON.stringify(value) ?? 'undefined'}`, () => {
-      expect(LoggerDebugGate.evaluate({ env: { DEBUG: value } })).toBe(
-        ParseUtility.toBoolean({ input: value }),
-      );
-    });
-  }
+  test.each(closed)('DEBUG %p is closed', (value) => {
+    expect(LoggerDebugGate.evaluate({ env: { DEBUG: value } })).toBe(false);
+  });
+
+  test.each(open)('DEBUG %p is open', (value) => {
+    expect(LoggerDebugGate.evaluate({ env: { DEBUG: value } })).toBe(true);
+  });
 });
 
 /**

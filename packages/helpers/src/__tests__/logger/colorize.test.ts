@@ -106,6 +106,22 @@ describe('resolveLoggerColorize - environment policy', () => {
     expect(LoggerConfigUtility.resolveColorize()).toBe(false);
   });
 
+  test.each(['maybe', '2'])('APP_ENV_LOGGER_COLOR=%p counts as unset', (configured) => {
+    clearEnv();
+    process.env.NODE_ENV = 'development';
+    process.env.APP_ENV_LOGGER_COLOR = configured;
+    process.env.NO_COLOR = '1';
+
+    expect(LoggerConfigUtility.resolveColorize()).toBe(false);
+  });
+
+  test.each([
+    ['ON', true],
+    ['off', false],
+  ])('APP_ENV_LOGGER_COLOR=%p is an answer', (configured, expected) => {
+    expect(LoggerConfigUtility.resolveColorize({ configured })).toBe(expected);
+  });
+
   test('an empty NO_COLOR is not set at all', () => {
     clearEnv();
     process.env.NODE_ENV = 'development';

@@ -414,7 +414,7 @@ The default logger provider: it writes to the console, and it is the only provid
 satisfies `ILoggerProvider` (`ConsoleLogger.get(scope)`), so it is registered like Winston and Pino.
 
 Extends AbstractLogger rather than BaseLogger because BaseLogger's module graph reads `process.env` at load.
-`debug` follows the rule of the other providers (`LoggerDebugGate`): off unless `DEBUG` is truthy and the
+`debug` follows the rule of the other providers (`LoggerDebugGate`): off unless `DEBUG` is set to something but a false word and the
 environment is allowed, and off in a browser, which has no `process`; `LoggerFactory.use({ level })` overrides it.
 
 ```ts
@@ -2482,8 +2482,17 @@ export declare class ParseUtility {
     static toNumber(opts: {
         input: unknown;
     }): number | undefined;
+    /**
+     * Reads a boolean setting with the words of `z.stringbool()`, trimmed and in any case: `true`, `1`, `yes`, `on`,
+     * `y`, `enabled` are `true`; `false`, `0`, `no`, `off`, `n`, `disabled` are `false`. A boolean is itself, the numbers
+     * `1` and `0` read like their text, and `null`, `undefined` and a blank string are `false`.
+     *
+     * @param opts.name - The setting or field the value is read from; only the error message uses it.
+     * @throws A 400 error for anything else, another number and `NaN` included.
+     */
     static toBoolean(opts: {
         input: unknown;
+        name?: string;
     }): boolean;
     /** Converts an array to a Map keyed by `key`. Last element wins on duplicate keys. */
     static parseArrayToMapWithKey<T extends Record<K, PropertyKey>, K extends keyof T>(opts: {

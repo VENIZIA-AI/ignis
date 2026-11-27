@@ -7,7 +7,7 @@ import { AbstractLogger } from './abstract';
  * satisfies `ILoggerProvider` (`ConsoleLogger.get(scope)`), so it is registered like Winston and Pino.
  *
  * Extends AbstractLogger rather than BaseLogger because BaseLogger's module graph reads `process.env` at load.
- * `debug` follows the rule of the other providers (`LoggerDebugGate`): off unless `DEBUG` is truthy and the
+ * `debug` follows the rule of the other providers (`LoggerDebugGate`): off unless `DEBUG` is set to something but a false word and the
  * environment is allowed, and off in a browser, which has no `process`; `LoggerFactory.use({ level })` overrides it.
  */
 export class ConsoleLogger extends AbstractLogger {

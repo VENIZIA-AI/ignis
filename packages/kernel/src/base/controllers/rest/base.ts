@@ -3,7 +3,7 @@ import { DataRangeUtility } from '@/base/repositories/common/types';
 import type { TDataRange } from '@/base/repositories/common/types';
 import type { TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { PerformanceUtility, ParseUtility } from '@venizia/ignis-helpers/core';
+import { LoggerFactory, PerformanceUtility, ParseUtility } from '@venizia/ignis-helpers/core';
 import type { Env, Schema } from 'hono';
 import { ResponseFormats } from '../common/constants';
 import type { TResponseFormat } from '../common/constants';
@@ -17,6 +17,29 @@ import type {
 import { AbstractRestController } from './abstract';
 import type { IRequestedExtra, TResponseExtra } from './extras';
 import { ResponseExtras } from './extras';
+
+/** How `x-request-count` is read. */
+class RequestCountData {
+  /** `true` when the header is left out, and for a value that is no boolean word: a client's header fails no request. */
+  static isRequested(opts: { header: string | undefined }): boolean {
+    const { header } = opts;
+
+    if (header === undefined) {
+      return true;
+    }
+
+    try {
+      return ParseUtility.toBoolean({ input: header });
+    } catch (error) {
+      LoggerFactory.getLogger([RequestCountData.name]).debug(
+        'x-request-count is no boolean | Counted as true | Error: %s',
+        error,
+      );
+
+      return true;
+    }
+  }
+}
 
 /** Recommended base class for REST controllers with concrete bindRoute and defineRoute implementations. */
 export abstract class BaseRestController<
@@ -54,8 +77,9 @@ export abstract class BaseRestController<
     } = { count: number; data?: TNullable<ResponseSchema> },
   >(opts: { context: RequestContext; payload: ResponseData }) {
     const { context, payload } = opts;
-    const requestCountData = context.req.header(HTTP.Headers.REQUEST_COUNT_DATA) ?? 'true';
-    const useCountData = ParseUtility.toBoolean({ input: requestCountData });
+    const useCountData = RequestCountData.isRequested({
+      header: context.req.header(HTTP.Headers.REQUEST_COUNT_DATA),
+    });
 
     context.header(HTTP.Headers.RESPONSE_COUNT_DATA, payload.count.toString());
 
@@ -162,8 +186,8 @@ export abstract class BaseRestController<
     // `x-response-extra` marks it, so a client unwraps `{ data, extra }` only when the server says so.
     context.header(HTTP.Headers.RESPONSE_COUNT_DATA, payload.count.toString());
     context.header(HTTP.Headers.RESPONSE_EXTRA, Object.keys(computed).join(','));
-    const useCountData = ParseUtility.toBoolean({
-      input: context.req.header(HTTP.Headers.REQUEST_COUNT_DATA) ?? 'true',
+    const useCountData = RequestCountData.isRequested({
+      header: context.req.header(HTTP.Headers.REQUEST_COUNT_DATA),
     });
 
     return useCountData

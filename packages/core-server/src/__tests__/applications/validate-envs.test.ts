@@ -68,6 +68,18 @@ describe('validateEnvs and the ALLOW_EMPTY_ENV_VALUE default', () => {
     expect(validate()).toThrow(EMPTY_KEY);
   });
 
+  test.each(['no', 'off'])('ALLOW_EMPTY_ENV_VALUE=%s turns validation ON', (value) => {
+    process.env.ALLOW_EMPTY_ENV_VALUE = value;
+
+    expect(validate()).toThrow(EMPTY_KEY);
+  });
+
+  test('a value that is no boolean word stops the boot, naming the setting', () => {
+    process.env.ALLOW_EMPTY_ENV_VALUE = 'maybe';
+
+    expect(validate()).toThrow('[toBoolean] ALLOW_EMPTY_ENV_VALUE: "maybe" is not a boolean');
+  });
+
   test('ALLOW_EMPTY_ENV_VALUE=true is the default said out loud', () => {
     process.env.ALLOW_EMPTY_ENV_VALUE = 'true';
 

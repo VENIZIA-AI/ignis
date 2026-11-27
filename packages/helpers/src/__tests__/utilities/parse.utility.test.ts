@@ -147,34 +147,58 @@ describe('keysToCamel', () => {
 });
 
 /**
- * The accepted vocabulary is a CONTRACT, not an implementation detail.
- *
- * `x-request-count` decides whether an IGNIS list answers rows or a `{ count, data }` envelope, and
- * two packages in this house spell it differently: IGNIS sends `'true'`/`'false'`, a browser-side
- * consumer sends `'1'`/`'0'`. Only this parser makes them compatible.
- *
- * Tightening it to `=== 'false'` would make every `'0'` read as TRUE, so a list that asked for rows
- * would receive the envelope and render it as ONE row - no error, no failed request, just a page
- * showing one record where there were fifty.
+ * The accepted vocabulary is a contract: `x-request-count` is spelled `'true'`/`'false'` by one package of this house
+ * and `'1'`/`'0'` by another, and only this parser makes them compatible.
  */
 describe('toBoolean', () => {
-  test('treats the falsy wire values as false', () => {
-    expect(ParseUtility.toBoolean({ input: '' })).toBe(false);
-    expect(ParseUtility.toBoolean({ input: 'false' })).toBe(false);
-    expect(ParseUtility.toBoolean({ input: '0' })).toBe(false);
-    expect(ParseUtility.toBoolean({ input: false })).toBe(false);
-    expect(ParseUtility.toBoolean({ input: 0 })).toBe(false);
-    expect(ParseUtility.toBoolean({ input: null })).toBe(false);
-    expect(ParseUtility.toBoolean({ input: undefined })).toBe(false);
+  test.each(['true', '1', 'yes', 'on', 'y', 'enabled', 'TRUE', 'Yes', ' on ', true, 1])(
+    'reads %p as true',
+    (input) => {
+      expect(ParseUtility.toBoolean({ input })).toBe(true);
+    },
+  );
+
+  test.each(['false', '0', 'no', 'off', 'n', 'disabled', 'FALSE', 'No', ' off ', false, 0])(
+    'reads %p as false',
+    (input) => {
+      expect(ParseUtility.toBoolean({ input })).toBe(false);
+    },
+  );
+
+  test.each(['', '  ', null, undefined])('reads an absent value %p as false', (input) => {
+    expect(ParseUtility.toBoolean({ input })).toBe(false);
   });
 
-  test('treats everything else as true (pinned - any non-empty string is truthy)', () => {
-    expect(ParseUtility.toBoolean({ input: 'true' })).toBe(true);
-    expect(ParseUtility.toBoolean({ input: '1' })).toBe(true);
-    expect(ParseUtility.toBoolean({ input: true })).toBe(true);
-    expect(ParseUtility.toBoolean({ input: 1 })).toBe(true);
-    expect(ParseUtility.toBoolean({ input: 'anything' })).toBe(true);
-    expect(ParseUtility.toBoolean({ input: 'FALSE' })).toBe(true);
+  test.each([
+    ['an unknown word', 'anything'],
+    ['a longer number', '00'],
+    ['another number', 2],
+    ['NaN', Number.NaN],
+    ['an object', {}],
+    ['a list', ['true']],
+    ['a name of Object', 'constructor'],
+  ])('refuses %s with a 400', (_, input) => {
+    expect(() => ParseUtility.toBoolean({ input })).toThrow(/\[toBoolean\] .* is not a boolean/);
+    expect(() => ParseUtility.toBoolean({ input })).toThrow(
+      expect.objectContaining({ statusCode: 400 }),
+    );
+  });
+
+  test('refuses a long run of spaces before a letter in linear time', () => {
+    const started = performance.now();
+
+    expect(() => ParseUtility.toBoolean({ input: `${' '.repeat(100_000)}x` })).toThrow();
+    expect(performance.now() - started).toBeLessThan(500);
+  });
+
+  test('names the setting in the message when given its name', () => {
+    expect(() => ParseUtility.toBoolean({ input: 'maybe', name: 'APP_ENV_A' })).toThrow(
+      '[toBoolean] APP_ENV_A: "maybe" is not a boolean',
+    );
+  });
+
+  test('echoes a long rejected value shortened', () => {
+    expect(() => ParseUtility.toBoolean({ input: 'x'.repeat(500) })).toThrow(/^.{0,120}$/);
   });
 });
 

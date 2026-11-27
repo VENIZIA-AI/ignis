@@ -70,6 +70,29 @@ describe('@venizia/prefer-framework-api, rows outside React', () => {
     ]);
   });
 
+  test('an env value compared with a boolean word names ParseUtility.toBoolean', () => {
+    const message =
+      "Read a boolean setting with `ParseUtility.toBoolean({ input: AppEnvs.get(key) })`, not a comparison with `'true'` or `'false'`: `import { ParseUtility } from '@venizia/ignis-helpers/core';`";
+
+    for (const code of [
+      "const a = AppEnvs.get('APP_ENV_A') === 'true';",
+      "const a = AppEnvs.get('APP_ENV_A') !== 'false';",
+      "const a = 'true' == applicationEnvironment.get('APP_ENV_A');",
+      "const a = AppEnvs.get<string>('APP_ENV_A') != 'false';",
+    ]) {
+      expect(lint(code)).toEqual([message]);
+    }
+
+    for (const code of [
+      "const a = AppEnvs.get('APP_ENV_A') === 'yearly';",
+      "const a = map.get('APP_ENV_A') === 'true';",
+      "const a = AppEnvs.get('APP_ENV_A') === undefined;",
+      "const a = ParseUtility.toBoolean({ input: AppEnvs.get('APP_ENV_A') });",
+    ]) {
+      expect(lint(code)).toEqual([]);
+    }
+  });
+
   test('an APP_ENV_ read of process.env is reported', () => {
     for (const code of [
       'const a = process.env.APP_ENV_PORT;',

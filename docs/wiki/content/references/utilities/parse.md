@@ -34,7 +34,7 @@ const camelObject = ParseUtility.keysToCamel({
 | `isFloat` | `isFloat({ input: unknown }): boolean` | `true` when `input` is (or coerces to) a non-integer number. |
 | `toInt` | `toInt({ input: unknown }): number` | Parses `input` to an integer. Strips commas first; returns `0` for empty/invalid input. |
 | `toFloat` | `toFloat({ input: unknown, digit?: number }): number` | Parses `input` to a float, rounded to `digit` places (default `2`); `0` for invalid input |
-| `toBoolean` | `toBoolean({ input: unknown }): boolean` | `false` for `''`, `'false'`, `'0'`, `false`, `0`, `null`, `undefined`; `true` for everything else. |
+| `toBoolean` | `toBoolean({ input: unknown }): boolean` | `true` for `true`, `1`, `yes`, `on`, `y`, `enabled`; `false` for `false`, `0`, `no`, `off`, `n`, `disabled` (trimmed, any case: the words of `z.stringbool()`). A boolean is itself, the numbers `1` and `0` read like their text, and `null`, `undefined` and a blank string are `false`. Anything else, another number and `NaN` included, throws a 400. |
 | `toCamel` | `toCamel({ input: string }): string` | Converts a `snake_case` or `kebab-case` string to `camelCase`. |
 | `keysToCamel` | `keysToCamel({ source: object }): Record<string, unknown>` | Recursively camelizes every key in `source` and returns the new object |
 | `parseArrayToMapWithKey` | `parseArrayToMapWithKey<T, K>({ items: T[], key: K }): Map<T[K], T>` | Turns an array of objects into a `Map` keyed by `key` |

@@ -79,7 +79,7 @@ const scrubString = (value: string): string => {
     .replace(QUERY_CREDENTIAL_PATTERN, `$1$2=${'[REDACTED]'}`);
 };
 
-/** Kill-switch for local debugging: only the literal `false` disables redaction (fail-closed); read per call so it can be flipped at runtime. Never disable in production. `force` is the caller opting out of the switch: it always masks. */
+/** Kill-switch for local debugging: only the literal `false` disables redaction. It deliberately does not read the other false words (fail-closed). Read per call so it can be flipped at runtime. Never disable in production. `force` is the caller opting out of the switch: it always masks. */
 const isRedactionEnabled = (force?: boolean): boolean =>
   force === true || globalThis.process?.env?.APP_ENV_LOGGER_DO_REDACT !== 'false';
 

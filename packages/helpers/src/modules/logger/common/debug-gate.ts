@@ -3,7 +3,7 @@ import { EnvironmentNames } from '@/modules/env/names';
 type TEnvironment = Record<string, string | undefined>;
 
 /**
- * The rule that decides whether `debug` lines are written: off unless `DEBUG` is truthy and the environment is allowed
+ * The rule that decides whether `debug` lines are written: off unless `DEBUG` is set to something but a false word and the environment is allowed
  * (`NODE_ENV` unset, or one of the common names, or one `APP_ENV_EXTRA_LOG_ENVS` adds). Every provider shares it, so a
  * console, a winston and a pino logger agree.
  *
@@ -15,29 +15,29 @@ export class LoggerDebugGate {
   private static readonly FORCED_SLOT = Symbol.for('ignis:logger-debug-forced');
   private static resolved?: boolean;
 
+  /**
+   * A false word of a boolean setting, as `z.stringbool()` reads it, or a blank text; in any case, space around it
+   * allowed. `ParseUtility` reads it too: it lives here because this module is in the graph of `BaseHelper`, in a
+   * browser bundle with a byte ceiling. No two `\s*` meet, so a long header costs linear time.
+   */
+  static readonly FALSE_WORDS = /^\s*(?:(?:false|0|no|off|n|disabled)\s*)?$/i;
+
   /** The environment the host has, `{}` where there is no `process`. */
   static readEnvironment(): TEnvironment {
     return globalThis.process?.env ?? {};
   }
 
   /**
-   * The truthiness `ParseUtility.toBoolean` has, repeated here on purpose: `ParseUtility` imports the error module, and
-   * this file is in the graph of `BaseHelper`, which must stay a few hundred bytes in a browser bundle.
+   * The rule itself, for any environment: a pure function of `env`. `DEBUG` is a namespace pattern other libraries
+   * share (`app:*`), not a boolean: only a blank value or a false word turns it off, and nothing is refused.
    */
-  private static isTruthy(opts: { input: string | undefined }): boolean {
-    const { input } = opts;
-
-    return input !== undefined && input !== '' && input !== 'false' && input !== '0';
-  }
-
-  /** The rule itself, for any environment: a pure function of `env`. */
   static evaluate(opts: { env: TEnvironment }): boolean {
     const { env } = opts;
     const { DEBUG, NODE_ENV, APP_ENV_EXTRA_LOG_ENVS } = env;
     const extra = (APP_ENV_EXTRA_LOG_ENVS ?? '').split(',').map((name) => name.trim());
     const allowed = new Set([...Array.from(EnvironmentNames.COMMON_ENVS), ...extra]);
 
-    return this.isTruthy({ input: DEBUG }) && (!NODE_ENV || allowed.has(NODE_ENV));
+    return !this.FALSE_WORDS.test(DEBUG ?? '') && (!NODE_ENV || allowed.has(NODE_ENV));
   }
 
   /** Whether `debug` is written now: the override when `use` set one, else the rule on the host's environment, read once. */

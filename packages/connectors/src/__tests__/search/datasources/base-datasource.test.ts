@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'bun:test';
+import { afterEach, describe, test, expect } from 'bun:test';
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { getError } from '@venizia/ignis-helpers/core';
@@ -523,5 +523,47 @@ describe('BaseSearchDataSource - paradigm seam (search/core imports no engine)',
       expect(content).not.toContain("from 'typesense");
       expect(content).not.toContain("from 'meilisearch");
     }
+  });
+});
+
+describe('BaseSearchDataSource - APP_ENV_AUTO_PROVISION_COLLECTION', () => {
+  const KEY = 'APP_ENV_AUTO_PROVISION_COLLECTION';
+  const saved = process.env[KEY];
+
+  afterEach(() => {
+    if (saved === undefined) {
+      delete process.env[KEY];
+
+      return;
+    }
+
+    process.env[KEY] = saved;
+  });
+
+  class EnvDataSource extends FakeSearchDataSource {
+    get isAutoProvision(): boolean {
+      return this.autoProvision;
+    }
+  }
+
+  const build = (autoProvision?: boolean) =>
+    new EnvDataSource({ name: EnvDataSource.name, config: {}, autoProvision });
+
+  test('a true word provisions', () => {
+    process.env[KEY] = 'yes';
+
+    expect(build().isAutoProvision).toBe(true);
+  });
+
+  test('a value that is no boolean word is refused, with the name of the setting', () => {
+    process.env[KEY] = 'maybe';
+
+    expect(() => build()).toThrow(`[toBoolean] ${KEY}: "maybe" is not a boolean`);
+  });
+
+  test('the autoProvision option wins, and the setting is not read', () => {
+    process.env[KEY] = 'maybe';
+
+    expect(build(false).isAutoProvision).toBe(false);
   });
 });

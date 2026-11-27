@@ -82,7 +82,7 @@ new ArticleSearchDataSource({
 });
 ```
 
-Provisioning is governed by the same `APP_ENV_AUTO_PROVISION_COLLECTION` flag as every other search datasource. It is **off** unless set to `true` or `1`.
+Provisioning is governed by the same `APP_ENV_AUTO_PROVISION_COLLECTION` flag as every other search datasource. It is **off** unless set to a true word (`true`, `1`, `yes`, `on`, `y`, `enabled`); a value that is no boolean word stops the boot.
 
 ## Writes await their task
 

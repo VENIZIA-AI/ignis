@@ -484,7 +484,7 @@ export interface ISearchDataSourceOptions<Settings extends object = {}> {
     /**
      * Auto-provision discovered collections on configure().
      *
-     * @default `true` when `APP_ENV_AUTO_PROVISION_COLLECTION` is 'true' or '1', else `false`
+     * @default `APP_ENV_AUTO_PROVISION_COLLECTION` read by `ParseUtility.toBoolean`: `false` when unset
      */
     autoProvision?: boolean;
 }

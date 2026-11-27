@@ -67,7 +67,7 @@ match is never taken silently. The effective sequence for a
 server application is:
 
 1. `printStartUpInfo()` - name, env, runtime, run mode, timezone, log path.
-2. `validateEnvs()` - SKIPPED by default. Set `ALLOW_EMPTY_ENV_VALUE` to `false` or `0` and every
+2. `validateEnvs()` - SKIPPED by default. Set `ALLOW_EMPTY_ENV_VALUE` to a false word (read by `ParseUtility.toBoolean`) and every
    registered application env key must then be non-empty. The default is permissive because an empty
    value already falls back to `defaultValue` at read time (2026-09-12), so refusing to boot over one
    fights the reader; a host that wants boot to be the gate opts in.

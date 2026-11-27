@@ -60,6 +60,23 @@ export class FrameworkApiPatterns {
       owner: '@venizia/ignis-helpers',
     },
     {
+      id: 'env-boolean-comparison',
+      match: {
+        type: 'selector',
+        selector: ['left', 'right']
+          .map((side) => {
+            const other = side === 'left' ? 'right' : 'left';
+
+            return `BinaryExpression[operator=/^[!=]==?$/][${side}.callee.property.name='get'][${side}.callee.object.name=/^(AppEnvs|applicationEnvironment)$/][${other}.value=/^(true|false)$/]`;
+          })
+          .join(', '),
+      },
+      message:
+        "Read a boolean setting with `ParseUtility.toBoolean({ input: AppEnvs.get(key) })`, not a comparison with `'true'` or `'false'`: `import { ParseUtility } from '@venizia/ignis-helpers/core';`",
+      dependsOn: '@venizia/ignis',
+      owner: '@venizia/ignis-helpers',
+    },
+    {
       id: 'web-storage',
       match: { type: 'member', objects: ['localStorage', 'sessionStorage'] },
       message:

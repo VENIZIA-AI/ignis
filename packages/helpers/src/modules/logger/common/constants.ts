@@ -1,6 +1,7 @@
 import { type TConstValue } from '@/common/types';
 import { Environment } from '@/modules/env';
-import { ParseUtility } from '@/utilities/parse.utility';
+import { TrueWords } from '@/common/true-words';
+import { LoggerDebugGate } from '@/modules/logger/common/debug-gate';
 import { LogLevels, type TLogLevel } from './types';
 import { ConstClass } from '@/common/const-class';
 
@@ -45,7 +46,7 @@ export class LoggerConfigUtility {
   /**
    * Whether log lines may carry ANSI color, resolved at CALL time. First match wins:
    *
-   * 1. `APP_ENV_LOGGER_COLOR` - an explicit yes or no from the operator.
+   * 1. `APP_ENV_LOGGER_COLOR` - an explicit yes or no from the operator, in the words `ParseUtility.toBoolean` reads.
    * 2. `NO_COLOR`, set to anything non-empty - the no-color.org convention.
    * 3. `NODE_ENV` outside {@link Environment.DEVELOPMENT_ENVS} - production, staging, uat and any
    *    unrecognized name. Fail-closed, the same boundary the error sanitizer draws: colors are a
@@ -61,8 +62,15 @@ export class LoggerConfigUtility {
   }): boolean | undefined {
     const configured = opts?.configured ?? process.env.APP_ENV_LOGGER_COLOR;
 
-    if (configured !== undefined && configured.trim() !== '') {
-      return ParseUtility.toBoolean({ input: configured.trim().toLowerCase() });
+    // A value that is no boolean word counts as unset: a logger never throws over its own setting.
+    const text = configured?.trim() ?? '';
+
+    if (TrueWords.PATTERN.test(text)) {
+      return true;
+    }
+
+    if (text !== '' && LoggerDebugGate.FALSE_WORDS.test(text)) {
+      return false;
     }
 
     const noColor = process.env.NO_COLOR;
