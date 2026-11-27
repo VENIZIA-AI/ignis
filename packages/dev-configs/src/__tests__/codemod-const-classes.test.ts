@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, spyOn, test, setDefaultTimeout } from 'bun:test';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -6,6 +6,9 @@ import ts from 'typescript';
 import { CodemodCommand } from '../cli/codemod';
 import { ConstClasses, ConstClassesCommand } from '../cli/codemod/const-classes';
 import { CliOutput } from '../common/cli-output';
+
+// The tests of this file run a compiler or a linter: over bun's 5 s default in a parallel run on a small CI runner.
+setDefaultTimeout(30_000);
 
 const convert = (source: string, overrides = {}) =>
   ConstClasses.convert({

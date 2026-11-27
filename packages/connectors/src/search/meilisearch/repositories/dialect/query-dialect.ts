@@ -13,7 +13,7 @@ import {
   SearchDialectUtility,
 } from '@/search/core/repositories/common/dialect.utility';
 import { Sorts, QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
-import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import { BaseHelper, getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import type { IMeilisearchSearchQuery } from '../common';
 
 /** The non-raw search inputs the dialect translates; `raw` bypasses the dialect entirely. */
@@ -511,7 +511,16 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     const { value, capabilities, isDisjunction } = opts;
     const items = Array.isArray(value) ? value : [value];
 
-    const clauses = items.map((item) => this.compileWhere({ where: item as TWhere, capabilities }));
+    const clauses = items.map((item) => {
+      // Only an object is a where.
+      if (!RecordUtility.isPlainRecord(item)) {
+        throw getError({
+          message: `[MeilisearchQueryDialect][toWhere] search() expected a logical group member to be an object | got: ${JSON.stringify(item)}`,
+        });
+      }
+
+      return this.compileWhere({ where: item, capabilities });
+    });
 
     // An empty member (`{}`) compiles to matchAll and the algebra absorbs it correctly: identity
     // under `and`, absorbing under `or`. Dropping it by string-length, as this once did, is what

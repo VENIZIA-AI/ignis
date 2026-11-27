@@ -15,7 +15,7 @@ tags: [process, test, bun]
 2. Run a suite through its make target from the repository root: `make test-<package>`
    (`inversion`, `helpers`, `boot`, `kernel`, `connectors`, `core-worker`, `core-server`)
    or `make test-all`. The targets are the one home of the test flags - `BUN_TEST_FLAGS`,
-   default `--parallel=6`, which implies `--isolate`: a fresh global and module registry per file, and
+   default `--parallel=6` (set with `?=`, so a caller can override it), which implies `--isolate`: a fresh global and module registry per file, and
    the servers and timers a file left open are closed between files. The targets also pass `--max-concurrency=6`: no run goes past 10 workers or concurrent tests. CI calls the same targets, so a
    suite that is green for you is green there under the same command. `bun test` discovers
    `*.test.ts` under `src/__tests__/` and runs the TypeScript sources directly - no compile step

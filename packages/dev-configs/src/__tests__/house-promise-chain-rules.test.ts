@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test, setDefaultTimeout } from 'bun:test';
 import { Linter } from 'eslint';
 import ts from 'typescript';
 import {
@@ -11,6 +11,9 @@ import {
   reactHouseConfigs,
 } from '../linters/house';
 import { PADDING_OFF } from './padding-off';
+
+// The tests of this file run a compiler or a linter: over bun's 5 s default in a parallel run on a small CI runner.
+setDefaultTimeout(30_000);
 
 const CONFIGS = [...houseConfigs, PADDING_OFF];
 const CHAIN = NoAwaitPromiseChainRule.NAME;
