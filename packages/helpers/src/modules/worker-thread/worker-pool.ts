@@ -33,6 +33,7 @@ export class WorkerPoolHelper extends BaseHelper {
   }
 
   get<MessageType>(opts: { key: string }) {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the pool holds workers of many message types; only the caller knows this one
     return this.registry.get(opts.key) as IWorker<MessageType> | undefined;
   }
 

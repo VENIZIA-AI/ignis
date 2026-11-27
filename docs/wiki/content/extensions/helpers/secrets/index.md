@@ -52,7 +52,7 @@ Only HashiCorp mints dynamic, lease-bearing credentials. The other two are read-
 | Method | Purpose |
 |--------|---------|
 | `configure()` | Authenticate / prepare the backend (run before use) |
-| `get({ path, key?, defaultValue? })` | Read one static value (TTL-cached) |
+| `get({ path, key?, defaultValue? })` | Read one static value (TTL-cached): the string under `key` (else `undefined` or `defaultValue`), or the whole bundle without a `key` |
 | `getBundle({ path })` | Read a whole key-value bundle at a path |
 | `lease({ path, key })` | Open a dynamic, lease-bearing secret (HashiCorp only) |
 | `onRotate(handler)` | Subscribe to rotation events |

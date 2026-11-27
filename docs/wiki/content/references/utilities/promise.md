@@ -59,7 +59,7 @@ PromiseUtility.voidExecution(opts: {
 
 ErrorUtility.toError({ error }: { error: unknown }): Error;
 
-ParseUtility.getDeepProperty<T, V>(opts: { source: T; path: string }): V;
+ParseUtility.getDeepProperty(opts: { source: unknown; path: string }): unknown;
 
 isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T>;
 ```

@@ -385,7 +385,7 @@ The declarations are on 4 pages; each export below links to its own.
 
 ## `IRedisSentinelHelperOptions`
 
-*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iredissentinelhelperoptions)
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iredissentinelhelperoptions)
 
 ## `IRedisSentinelHelperProps`
 
@@ -625,7 +625,7 @@ The declarations are on 4 pages; each export below links to its own.
 
 ## `RedisDefaults`
 
-*class* - [Declaration](/references/api/venizia-ignis-helpers--part-3#redisdefaults)
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#redisdefaults)
 
 ## `RedisHelperFactory`
 

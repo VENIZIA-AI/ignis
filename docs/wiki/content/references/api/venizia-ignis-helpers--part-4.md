@@ -9,6 +9,32 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 Part 4 of 4 of [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers).
 
+## `RedisDefaults`
+
+*class*
+
+Reconnect defaults of a Redis helper.
+
+```ts
+export declare class RedisDefaults {
+    /** The port of a data node when none is given. */
+    static readonly PORT = 6379;
+    /** Reconnect attempts before the helper gives up: `0` never reconnects, `RETRY_FOREVER` never stops. */
+    static readonly MAX_RETRY = 5;
+    static readonly RETRY_FOREVER = -1;
+    /** The wait before reconnect attempt N, computed by `RetryUtility.computeBackoffDelayMs`. */
+    static readonly RECONNECT_BACKOFF: {
+        strategy: "exponential";
+        initialDelayMs: number;
+        multiplier: number;
+        maxDelayMs: number;
+        jitter: "equal";
+    };
+}
+```
+
+Source: `packages/helpers/src/modules/redis/common/constants.ts`
+
 ## `RedisHelperFactory`
 
 *class*
