@@ -37,6 +37,7 @@ export class SqliteTzEnricher {
       deleted = { enable: false },
     } = opts ?? {};
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the columns are added one by one as the options ask; the declared result is the whole of them
     let rs = {
       createdAt: isoTimestamp(created.columnName).default(sql.raw(ISO_TIMESTAMP_NOW)).notNull(),
     } as TTzEnricherResult<Opts>;

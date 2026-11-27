@@ -86,6 +86,7 @@ export abstract class BaseSearchDataSource<
   hasDiscoverableModels(): boolean {
     const registry = MetadataRegistry.getInstance();
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `this.constructor` is typed `Function`; here it is the class of this data source
     return registry.hasModels({ dataSource: this.constructor as TClass<IDataSource> });
   }
 
@@ -135,6 +136,7 @@ export abstract class BaseSearchDataSource<
   private readCollectionDefinition(
     modelClass: TClass<unknown>,
   ): ISearchCollectionDefinition | undefined {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the two static members a search model may carry: `schema` is shape-checked below, `searchCollection` is taken as declared
     const model = modelClass as TDiscoverableModelClass;
 
     if (model.searchCollection) {

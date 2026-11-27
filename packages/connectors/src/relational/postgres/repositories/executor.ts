@@ -52,9 +52,11 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
 
     // `$dynamic()` infers its row type from the table schema, not from the caller-chosen R.
     if (lock) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `$dynamic()` types its rows from the table schema, not from the caller's `R`
       return query.for(lock.strength, lock.config) as Promise<Array<R>>;
     }
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `$dynamic()` types its rows from the table schema, not from the caller's `R`
     return query as Promise<Array<R>>;
   }
 
@@ -70,6 +72,7 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
     // Same drizzle-relational-query-versus-caller-generic boundary as `findFirst` below.
     const rows = await queryInterface.findMany(opts.query);
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Drizzle's relational query types its rows from the schema, not from the caller's `R`
     return rows as Array<R>;
   }
 
@@ -81,7 +84,7 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
     const queryOptions = ObjectUtility.omit({ source: opts.query, keys: ['limit'] });
     const result = await queryInterface.findFirst(queryOptions);
 
-    // Same drizzle-relational-query-versus-caller-generic boundary as `findMany` above.
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Drizzle's relational query types its row from the schema, not from the caller's `R`
     return (result ?? null) as TNullable<R>;
   }
 
@@ -109,6 +112,7 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
       : query.returning();
     const rows = await pending;
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the row type of the query; the driver types rows loosely and nothing here checks them
     return { count: rows.length, rows: rows as Array<R> };
   }
 
@@ -127,11 +131,13 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
       : query.returning();
     const rows = await pending;
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the row type of the query; the driver types rows loosely and nothing here checks them
     return { count: rows.length, rows: rows as Array<R> };
   }
 
   async remove<R>(opts: IRemoveOptions<TRelationalConnector>): Promise<IWriteResult<R>> {
     const { connector, table, where, returning, shouldReturn } = opts;
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the executor takes any table of the connector contract; this engine's repositories hand it a Postgres table
     const query = connector.delete(table as PgTable).where(where);
 
     if (!shouldReturn) {
@@ -145,6 +151,7 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
       : query.returning();
     const rows = await pending;
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the row type of the query; the driver types rows loosely and nothing here checks them
     return { count: rows.length, rows: rows as Array<R> };
   }
 

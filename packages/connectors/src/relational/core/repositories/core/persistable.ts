@@ -176,7 +176,7 @@ export class PersistableRelationalRepository<
     data: PersistObject;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
-    // ExtraOptions is caller-bound and otherwise unconstrained, so the spread cannot be proven to satisfy the generic bound, only the concrete shape below.
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `ExtraOptions` is caller-bound and otherwise unconstrained, so the spread cannot be proven to satisfy it
     const options = { shouldReturn: true, ...opts.options } as ExtraOptions & {
       shouldReturn: boolean;
     };
@@ -209,7 +209,7 @@ export class PersistableRelationalRepository<
     data: Array<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    // ExtraOptions is caller-bound and otherwise unconstrained, so the spread cannot be proven to satisfy the generic bound, only the concrete shape below.
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `ExtraOptions` is caller-bound and otherwise unconstrained, so the spread cannot be proven to satisfy it
     const options = { shouldReturn: true, ...opts.options } as ExtraOptions & {
       shouldReturn: boolean;
     };

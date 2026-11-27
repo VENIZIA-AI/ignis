@@ -370,6 +370,7 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
     const parsed = await this.readJsonBody({ response, url, verb: 'write' });
     const { extra } = HttpResponseReader.readExtra({ body: parsed, headers: response.headers });
     // `extra` is only read off an object body, which carries the rows under `data`.
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the type of a response body that nothing here checks
     const data = (extra && RecordUtility.isPlainObject(parsed) ? parsed.data : parsed) as R;
 
     const countHeader = response.headers.get(HTTP.Headers.RESPONSE_COUNT_DATA);

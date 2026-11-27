@@ -428,6 +428,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
       method: this.getDocument.name,
       run: async () => {
         const result = await this.client.index(collection).getDocument(id);
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the document type; the engine's answer is not checked against it
         const document = result as T;
 
         return document;

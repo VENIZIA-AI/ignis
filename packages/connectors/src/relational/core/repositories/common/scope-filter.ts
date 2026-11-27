@@ -10,6 +10,7 @@ import type { TNullable } from '@venizia/ignis-helpers/common';
 export class ScopeFilterDenial {
   /** The empty `inq` compiles to `sql\`false\`` in every dialect, deterministically matching zero rows. */
   static where<DataObject>(): TWhere<DataObject> {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- every row of these repositories has an `id`, which the unresolved `DataObject` cannot show
     return { id: { [QueryOperators.INQ]: [] } } as TWhere<DataObject>;
   }
 }

@@ -40,6 +40,7 @@ type THttpRepositoryOptions = NonNullable<
 /** A remote resource has a name but no local schema. */
 class HttpResourceEntity extends AbstractEntity {
   getSchema<T = unknown>(_opts: { type: TSchemaType }): T {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a remote resource has no schema: an empty object stands for whatever type the caller asks
     return {} as T;
   }
 }

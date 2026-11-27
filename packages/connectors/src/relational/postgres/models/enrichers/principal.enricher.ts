@@ -63,12 +63,14 @@ export class PostgresPrincipalEnricher {
 
     switch (polymorphicIdType) {
       case 'number': {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the columns built depend on the options; TypeScript cannot narrow the generic return type per branch
         return {
           [typeField]: typeDef,
           [idField]: isNullableId ? integer(idColumnName) : integer(idColumnName).notNull(),
         } as TPrincipalColumnDef<Discriminator, IdType, Nullable, NullableDiscriminator>;
       }
       case 'string': {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the columns built depend on the options; TypeScript cannot narrow the generic return type per branch
         return {
           [typeField]: typeDef,
           [idField]: isNullableId ? text(idColumnName) : text(idColumnName).notNull(),

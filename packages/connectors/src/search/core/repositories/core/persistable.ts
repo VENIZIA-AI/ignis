@@ -46,6 +46,7 @@ export class PersistableSearchRepository<
       return { count: 1, data: null };
     }
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the type of the created document; the engine's answer is not checked against it
     return { count: 1, data: this.shapeDocument(created as R) };
   }
 
@@ -80,8 +81,8 @@ export class PersistableSearchRepository<
       return isImportRowLike(response) ? response.success !== false : true;
     });
 
-    // `created` is the caller's own input rows (bulk import echoes nothing back), so R is the caller's unchecked assertion, as on the non-hidden path.
-    return { count: rs.count.success, data: this.shapeDocuments(created) as any };
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `created` is the caller's own input rows (a bulk import echoes none), named `R` unchecked, as on the single create
+    return { count: rs.count.success, data: this.shapeDocuments(created as unknown as Array<R>) };
   }
 
   override updateById(opts: {
@@ -128,6 +129,7 @@ export class PersistableSearchRepository<
       return { count: 1, data: null };
     }
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the type of the updated document; the engine's answer is not checked against it
     return { count: 1, data: this.shapeDocument(updated as R) };
   }
 
@@ -206,7 +208,8 @@ export class PersistableSearchRepository<
       return { count: 0, data: null };
     }
 
-    // Typesense's delete has no RETURNING equivalent - `data` is populated only when the query.filter guard above already read the document; no extra read is done for shouldReturn.
+    // Typesense's delete has no RETURNING equivalent: `data` is what the `query.filter` guard above already read, if it did.
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the type of the document read before the delete
     const data = options?.shouldReturn === false ? null : ((found as R) ?? null);
 
     return { count: 1, data };

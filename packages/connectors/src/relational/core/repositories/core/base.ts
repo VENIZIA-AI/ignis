@@ -103,6 +103,7 @@ export abstract class RelationalBaseRepository<
   }
 
   override get dataSource(): TDataSource {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the base class stores it wider; this class only ever receives its own generic
     return super.dataSource as TDataSource;
   }
 
@@ -111,6 +112,7 @@ export abstract class RelationalBaseRepository<
   }
 
   override get entity(): BaseRelationalEntity<EntitySchema> {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the base class stores it wider; this class only ever receives its own generic
     return super.entity as BaseRelationalEntity<EntitySchema>;
   }
 
@@ -128,6 +130,7 @@ export abstract class RelationalBaseRepository<
   }
 
   get connector(): TRelationalConnectorOf<TDataSource> {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the data source answers its connector through a wider contract; `TRelationalConnectorOf` names it from the same generic
     return this.dataSource.getConnector() as TRelationalConnectorOf<TDataSource>;
   }
 
@@ -474,6 +477,7 @@ export abstract class RelationalBaseRepository<
   async beginTransaction(
     opts?: TRelationalTransactionOptionsOf<TDataSource>,
   ): Promise<TRelationalTransactionOf<TDataSource>> {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the data source opens its own transaction type, which the shared contract answers wider
     return this.dataSource.beginTransaction(opts) as Promise<TRelationalTransactionOf<TDataSource>>;
   }
 
@@ -574,7 +578,7 @@ export abstract class RelationalBaseRepository<
     const result = this.queryDialect.build({
       tableName: this.entity.name,
       schema: this.entity.schema,
-      // The dialect reads the filter against the table object; `DataObject` is the same row.
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the dialect reads the filter against the table object; `DataObject` is the same row
       filter: opts.filter as TFilter,
     });
 
@@ -644,6 +648,7 @@ export abstract class RelationalBaseRepository<
     const { transaction } = opts ?? {};
 
     if (!transaction) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the data source answers its connector through a wider contract; `TRelationalConnectorOf` names it from the same generic
       return this.dataSource.getConnector() as TRelationalConnectorOf<TDataSource>;
     }
 
@@ -659,6 +664,7 @@ export abstract class RelationalBaseRepository<
       });
     }
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- checked above to be a relational transaction; that its connector is of this data source's kind is the caller's promise
     return transaction.connector as TRelationalConnectorOf<TDataSource>;
   }
 

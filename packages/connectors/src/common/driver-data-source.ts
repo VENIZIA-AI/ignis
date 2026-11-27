@@ -78,6 +78,7 @@ export abstract class AbstractDriverDataSource<
       });
     }
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- checked to be a function above; that it is a driver class is what `@datasource({ driver })` declares
     return driver as TClass<TDriver>;
   }
 
@@ -160,6 +161,7 @@ export abstract class AbstractDriverDataSource<
 
   private readClient(): Client {
     if (this.driver) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the driver contract does not carry the client type of this data source
       return this.driver.getClient() as Client;
     }
 

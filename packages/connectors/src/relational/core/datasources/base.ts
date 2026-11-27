@@ -108,10 +108,12 @@ export abstract class BaseRelationalDataSource<
     if (metadata?.autoDiscovery === false) {
       this.logger.for(this.discoverSchema.name).debug('Auto-discovery disabled for %s', this.name);
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- with auto-discovery off there is no schema to give: an empty one stands for the declared type
       return {} as Schema;
     }
 
     const { schema, relations } = registry.buildSchema({
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `this.constructor` is typed `Function`; here it is the class of this data source
       dataSource: this.constructor as TClass<IDataSource>,
     });
 
@@ -151,13 +153,14 @@ export abstract class BaseRelationalDataSource<
       logger.debug(RelationPairing.describeOutside({ outside }));
     }
 
-    // buildSchema() is shared by every connector so it returns Record<string, unknown>; the cast narrows back to the Drizzle schema shape.
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `buildSchema()` is shared by every connector and answers a record; this data source declares its Drizzle schema type
     return discovered as Schema;
   }
 
   hasDiscoverableModels(): boolean {
     const registry = MetadataRegistry.getInstance();
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `this.constructor` is typed `Function`; here it is the class of this data source
     return registry.hasModels({ dataSource: this.constructor as TClass<IDataSource> });
   }
 
@@ -205,7 +208,7 @@ export abstract class BaseRelationalDataSource<
   protected abstract buildBeginStatement(opts?: TRelationalTransactionOptions): string;
 }
 
-// Runs once this module loads. Every engine (postgres, sqlite) extends `BaseRelationalDataSource`,
-// and `discoverSchema()` above is the sole caller of `resolveModelRelations()`, so this is the one
-// place guaranteed to load whenever relation building is actually needed.
+// Runs once this module loads. Every engine (postgres, sqlite) extends `BaseRelationalDataSource`, and `discoverSchema()`
+// above is the sole caller of `resolveModelRelations()`, so this is the one place guaranteed to load with it.
+// eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the factory is registered under the connector-neutral builder type, which does not name Drizzle
 RelationBuilderRegistry.set({ builder: RelationsFactory.create as TRelationBuilder });

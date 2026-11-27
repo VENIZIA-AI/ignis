@@ -34,6 +34,7 @@ export class AuditUserResolver {
       });
     }
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the request context holds whatever the application's authentication put there; the caller names its type
     return (userId as T) ?? null;
   }
 }

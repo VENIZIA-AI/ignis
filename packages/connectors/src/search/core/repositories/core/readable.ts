@@ -166,6 +166,7 @@ export class ReadableSearchRepository<
     // does not unify with find's own (Array<R>), hence the options-only cast.
     const result = await this.find<R, F>({
       filter: { ...filter, limit: 1 },
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `retry` is handled above and absent here; the `retry` type of `findOne` does not unify with the one of `find`
       options: options as TFindOptions<IExtraOptions, TRow<TDocument, R, F>>,
     });
 

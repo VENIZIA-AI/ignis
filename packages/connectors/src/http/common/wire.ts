@@ -82,10 +82,12 @@ export class HttpWire {
     const { body, shape, url } = opts;
 
     if (shape === HttpReadShapes.ONE || Array.isArray(body)) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the type of a response body that nothing here checks
       return body as R;
     }
 
     if (body && typeof body === 'object' && 'data' in body && 'count' in body) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- checked to carry `data` and `count`; the caller names the type of `data`, which nothing here checks
       return (body as { data: R }).data;
     }
 
