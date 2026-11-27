@@ -151,6 +151,18 @@ describe('devz codemod function-to-arrow: what it only lists', () => {
     expect(rewrite(source).output).toBe(source);
   });
 
+  test('CRLF line ends stay', () => {
+    expect(rewrite('export function a() {\r\n  return 1;\r\n}\r\n').output).toBe(
+      'export const a = () => {\r\n  return 1;\r\n};\r\n',
+    );
+  });
+
+  test('a second run over its own output changes nothing', () => {
+    const first = rewrite('function a() {}\nfunction* b() {}\n').output;
+
+    expect(rewrite(first).output).toBe(first);
+  });
+
   test('a skipped function is listed with its name and line', () => {
     expect(rewrite('\nfunction* gen() {}\n').skipped).toEqual([
       { name: 'gen', line: 2, reason: ArrowSkipReasons.GENERATOR },
