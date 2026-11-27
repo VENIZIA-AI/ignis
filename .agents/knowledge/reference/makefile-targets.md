@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**122 targets.**
+**123 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -38,6 +38,7 @@ generated:
 | `make clean-install-helpers` | - | Load one package's sub-paths from a clean install. Needs a build. |
 | `make clean-install-inversion` | - | Load one package's sub-paths from a clean install. Needs a build. |
 | `make clean-install-kernel` | - | Load one package's sub-paths from a clean install. Needs a build. |
+| `make conflict-markers-check` | - | Fail when a tracked file holds a git conflict marker |
 | `make connectors` | `kernel` | Rebuild one package, after its dependencies. |
 | `make controls-check` | - | Gate: every registered positive-control test still exists (scripts/checks/controls.json). Needs dev-configs built. |
 | `make core` | `core-server` | Rebuild one package, after its dependencies. |
@@ -135,4 +136,4 @@ generated:
 | `make vulcan-doctor` | - | Gate: the project follows VULCAN (config, Makefile include, rules, adapters). |
 | `make vulcan-sync` | - | Write the gitignored agent adapters (CLAUDE.md, .claude/) with VULCAN. |
 | `make wiki-anchors-check` | - | Gate: every wiki '#fragment' link resolves. Needs a build (make docs). |
-| `make wiki-links-check` | - | Gate: every source path the wiki and knowledge bundle name exists. |
+| `make wiki-links-check` | `conflict-markers-check` | Gate: every source path the wiki and knowledge bundle name exists. |

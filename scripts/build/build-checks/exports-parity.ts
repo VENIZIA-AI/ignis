@@ -72,9 +72,13 @@ export class ExportsParity {
         const resolved =
           symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
 
+        // A module re-exported as a namespace (`export * as X`) is a value of the built module; a `namespace` block a
+        // declaration file only describes is not.
+        const isModuleNamespace = resolved.declarations?.some(ts.isSourceFile) === true;
+
         return (
           (resolved.flags & ts.SymbolFlags.Value) !== 0 &&
-          (resolved.flags & ts.SymbolFlags.ValueModule) === 0
+          (isModuleNamespace || (resolved.flags & ts.SymbolFlags.ValueModule) === 0)
         );
       })
       .map((symbol) => symbol.name)

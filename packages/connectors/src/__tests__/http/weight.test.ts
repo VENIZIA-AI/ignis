@@ -8,11 +8,11 @@ import { join } from 'node:path';
  */
 const HTTP_ENTRY = join(process.cwd(), 'src/http/index.ts');
 /**
- * The measured size is 68,797 bytes: the data source sends through `NativeFetcher`, whose pipeline (status check, retry,
+ * The measured size is 67,768 bytes: the data source sends through `NativeFetcher`, whose pipeline (status check, retry,
  * hooks, the error classes) is browser-pure and ships with it; the guard's `UrlPolicy` and duration units stay out. The
- * SQL stack was 140 KB more. The 384 bytes above 67 KB pay for refusing the removed hook settings.
+ * SQL stack was 140 KB more.
  */
-const CEILING_BYTES = 67 * 1024 + 384;
+const CEILING_BYTES = 66 * 1024 + 384;
 
 const bundle = async () => {
   const built = await Bun.build({ entrypoints: [HTTP_ENTRY], target: 'browser', minify: true });
