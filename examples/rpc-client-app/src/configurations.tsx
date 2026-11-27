@@ -32,7 +32,7 @@ export const Configurations = () => {
         />
         <button type="submit">Add</button>
       </form>
-      {isError && <p role="alert">Request failed - see the network tab.</p>}
+      {isError ? <p role="alert">Request failed - see the network tab.</p> : null}
       <ul>
         {rows.map((row) => (
           <li key={row.id}>

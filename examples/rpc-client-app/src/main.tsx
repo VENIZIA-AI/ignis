@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { getError } from '@venizia/ignis-helpers/core';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './app';
@@ -6,8 +7,9 @@ import { App } from './app';
 const queryClient = new QueryClient();
 
 const container = document.getElementById('root');
+
 if (!container) {
-  throw new Error('[main] Missing #root element in index.html');
+  throw getError({ message: '[main] Missing #root element in index.html' });
 }
 
 createRoot(container).render(
