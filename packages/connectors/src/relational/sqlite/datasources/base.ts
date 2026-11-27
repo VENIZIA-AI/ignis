@@ -89,9 +89,9 @@ export abstract class BaseSqliteDataSource<
    * whose settings spell it differently overrides this.
    */
   override getConnectionString(): ValueOrPromise<string> {
-    const { url } = this.settings as Partial<ISqliteDataSourceSettings>;
+    const url: unknown = Reflect.get(this.settings, 'url');
 
-    if (!url) {
+    if (typeof url !== 'string' || !url) {
       throw getError({
         message: `[${this.constructor.name}][getConnectionString] No 'url' in settings | Carry the libsql url in config (\`:memory:\`, \`file:./data.db\`, \`libsql://...\`), or override getConnectionString()`,
       });

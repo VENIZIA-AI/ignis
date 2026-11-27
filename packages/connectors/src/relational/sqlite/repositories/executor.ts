@@ -244,7 +244,7 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
       });
     }
 
-    const { rowsAffected } = result as { rowsAffected?: unknown };
+    const { rowsAffected }: { rowsAffected?: unknown } = result;
 
     if (typeof rowsAffected !== 'number') {
       throw getError({

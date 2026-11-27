@@ -108,3 +108,17 @@ describe('ScopeResolution reads one level into an operator object', () => {
     }
   });
 });
+
+describe('an and member that is no object', () => {
+  test('makes the scope unverifiable instead of reading as no constraint', () => {
+    for (const member of [7, 'x', true, null]) {
+      // As an untyped caller would hand it: the type refuses such a member.
+      const where = JSON.parse(JSON.stringify({ and: [{ tenantId: 7 }, member] }));
+
+      expect(ScopeWriteGuard.extractConstraints({ where })).toEqual({
+        isVerifiable: false,
+        reason: "an 'and' member is not an object",
+      });
+    }
+  });
+});

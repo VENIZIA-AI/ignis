@@ -70,7 +70,7 @@ export class PostgresTzEnricher {
           .default(sql`NOW()`)
           .notNull()
           .$onUpdate(() => new Date().toISOString()),
-      } as TTzEnricherResult<Opts>;
+      };
     }
 
     if (deleted.enable !== false) {
@@ -79,7 +79,7 @@ export class PostgresTzEnricher {
         deletedAt: isoTimestamp(deleted.columnName, {
           withTimezone: deleted.withTimezone,
         }),
-      } as TTzEnricherResult<Opts>;
+      };
     }
 
     return rs;

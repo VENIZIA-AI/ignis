@@ -229,11 +229,11 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
       });
     }
 
-    const { rowCount, count, affectedRows } = result as {
-      rowCount?: unknown;
-      count?: unknown;
-      affectedRows?: unknown;
-    };
+    const {
+      rowCount,
+      count,
+      affectedRows,
+    }: { rowCount?: unknown; count?: unknown; affectedRows?: unknown } = result;
 
     // node-postgres. `rowCount` is null for statements
     // that affect no rows by definition (e.g. DDL).

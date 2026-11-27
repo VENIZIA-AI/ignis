@@ -2,7 +2,7 @@ import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import type { TRelationalConnector } from '@/relational/postgres/datasources/common';
 import type { PGlite } from '@electric-sql/pglite';
 import type { ILogger, IPoolControlOptions } from '@venizia/ignis-helpers/core';
-import { BaseHelper, BasePoolHelper, getError } from '@venizia/ignis-helpers/core';
+import { BaseHelper, BasePoolHelper, getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { DuckTypingUtility } from '@/common/internal';
 import { RelationalDialects } from '@/relational/core/drivers';
 import { drizzle } from 'drizzle-orm/pglite';
@@ -107,7 +107,7 @@ export class PGliteDriver<
       client = result2;
     } catch (error) {
       throw getError({
-        message: `[${PGliteDriver.name}][acquire] Could not borrow the single PGlite session | ${(error as Error)?.message ?? String(error)} | An unreleased transaction still holds it - commit/rollback it, or raise \`acquireTimeoutMs\``,
+        message: `[${PGliteDriver.name}][acquire] Could not borrow the single PGlite session | ${(RecordUtility.isRecord(error) ? error.message : undefined) ?? String(error)} | An unreleased transaction still holds it - commit/rollback it, or raise \`acquireTimeoutMs\``,
       });
     }
 

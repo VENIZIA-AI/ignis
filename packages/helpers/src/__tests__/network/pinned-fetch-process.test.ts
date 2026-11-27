@@ -15,7 +15,7 @@ const PACKAGE_DIR = join(import.meta.dir, '..', '..', '..');
 const hasOpenSsl = Bun.which('openssl') !== null;
 
 const runChild = async (env: Record<string, string>) => {
-  const child = Bun.spawn(['bun', 'test', CHILD], {
+  const child = Bun.spawn(['bun', 'test', '--max-concurrency=6', CHILD], {
     cwd: PACKAGE_DIR,
     env: { ...process.env, ...env },
     stdout: 'pipe',

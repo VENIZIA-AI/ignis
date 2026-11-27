@@ -165,7 +165,7 @@ export class ScopeFilterUtility {
       }
 
       if (columns !== undefined) {
-        const schema = (modelClass as { schema?: unknown }).schema;
+        const schema: unknown = 'schema' in modelClass ? modelClass.schema : undefined;
         const known = is(schema, Table) ? Object.keys(getTableColumns(schema)) : undefined;
         const unknown = columns.filter((column) => known !== undefined && !known.includes(column));
 

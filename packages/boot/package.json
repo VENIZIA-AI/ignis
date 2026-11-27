@@ -77,7 +77,7 @@
   },
   "scripts": {
     "force-update": "sh ../../scripts/build/force-update.sh",
-    "test": "bun test ./src"
+    "test": "bun test --max-concurrency=6 ./src"
   },
   "dependencies": {
     "@venizia/ignis-helpers": "workspace:*",

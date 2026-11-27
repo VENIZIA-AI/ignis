@@ -99,8 +99,12 @@ export class ScopeWriteGuard {
         }
 
         for (const part of value) {
+          if (!RecordUtility.isRecord(part)) {
+            return "an 'and' member is not an object";
+          }
+
           const reason = ScopeWriteGuard.collect({
-            where: part as Record<string, unknown>,
+            where: part,
             constraints,
           });
 
@@ -168,7 +172,7 @@ export class ScopeWriteGuard {
     const allowed: TAllowed = new Map();
 
     for (const branch of branches) {
-      const entries = Object.entries((branch ?? {}) as Record<string, unknown>);
+      const entries = RecordUtility.isRecord(branch) ? Object.entries(branch) : [];
 
       if (entries.length !== 1) {
         return "an 'or' branch with several conditions cannot be checked on a write";
@@ -200,7 +204,11 @@ export class ScopeWriteGuard {
       values.forEach((entry, normalised) => allowed.set(normalised, entry));
     }
 
-    return { column: column as string, allowed };
+    if (column === undefined) {
+      return "'or' is not a list";
+    }
+
+    return { column, allowed };
   }
 
   /**
@@ -231,7 +239,7 @@ export class ScopeWriteGuard {
       return value.every(isScalar) ? allowing(value) : 'a list with a non-scalar entry';
     }
 
-    if (typeof value !== 'object' || value === undefined) {
+    if (typeof value !== 'object' || value === null) {
       return 'an unsupported condition';
     }
 
@@ -242,7 +250,7 @@ export class ScopeWriteGuard {
     }
 
     const [operator] = operators;
-    const operand = (value as Record<string, unknown>)[operator];
+    const operand: unknown = Reflect.get(value, operator);
 
     if (operator === QueryOperators.EQ && isScalar(operand)) {
       return allowing([operand]);
@@ -564,7 +572,9 @@ export class ScopeWriteGuard {
             // A `null` branch in the scope lets this caller READ shared rows. Writing one (or moving a
             // row into the shared set) is a separate permission: only `sharedRows` grants it.
             const isOutside =
-              normalised === null ? !sharedRows : !allowed.has(normalised as string);
+              normalised === null
+                ? !sharedRows
+                : normalised === undefined || !allowed.has(normalised);
 
             if (normalised === undefined || isOutside) {
               throw ScopeWriteGuard.denied({

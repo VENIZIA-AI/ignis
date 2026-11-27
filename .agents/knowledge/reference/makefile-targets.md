@@ -108,7 +108,7 @@ generated:
 | `make split-report` | - | Report hub files, stray types, missing barrels, long files, cycles (informational). |
 | `make surface-check` | - | Fail when the public API surface differs from the committed one |
 | `make surface-gen` | - | Write the public API surface from the built .d.ts |
-| `make test-all` | `test-dev-configs test-inversion test-filter test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server` | test-<pkg> for every package with a suite (BUN_TEST_FLAGS, default --parallel). |
+| `make test-all` | `test-dev-configs test-inversion test-filter test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server` | test-<pkg> for every package with a suite (BUN_TEST_FLAGS, default --parallel=6). |
 | `make test-boot` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-connectors` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-core` | `test-core-server` | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |

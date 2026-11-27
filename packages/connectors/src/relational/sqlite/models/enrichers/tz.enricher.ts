@@ -50,14 +50,14 @@ export class SqliteTzEnricher {
           .default(sql.raw(ISO_TIMESTAMP_NOW))
           .notNull()
           .$onUpdate(() => new Date().toISOString()),
-      } as TTzEnricherResult<Opts>;
+      };
     }
 
     if (deleted.enable !== false) {
       rs = {
         ...rs,
         deletedAt: isoTimestamp(deleted.columnName),
-      } as TTzEnricherResult<Opts>;
+      };
     }
 
     return rs;

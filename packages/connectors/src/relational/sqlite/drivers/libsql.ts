@@ -2,7 +2,7 @@ import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { NotSupportedUtility } from '@venizia/ignis-kernel';
 import type { Client } from '@libsql/client';
 import type { ILogger, IPoolControlOptions } from '@venizia/ignis-helpers/core';
-import { BaseHelper, BasePoolHelper, getError } from '@venizia/ignis-helpers/core';
+import { BaseHelper, BasePoolHelper, getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { DuckTypingUtility } from '@/common/internal';
 import { RelationalDialects } from '@/relational/core/drivers';
 import { drizzle } from 'drizzle-orm/libsql';
@@ -120,7 +120,7 @@ export class LibSqlDriver<
       client = result2;
     } catch (error) {
       throw getError({
-        message: `[${LibSqlDriver.name}][acquire] Could not borrow the single libsql connection | ${(error as Error)?.message ?? String(error)} | An unreleased transaction still holds it - commit/rollback it, or raise \`acquireTimeoutMs\``,
+        message: `[${LibSqlDriver.name}][acquire] Could not borrow the single libsql connection | ${(RecordUtility.isRecord(error) ? error.message : undefined) ?? String(error)} | An unreleased transaction still holds it - commit/rollback it, or raise \`acquireTimeoutMs\``,
       });
     }
 
