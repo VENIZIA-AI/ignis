@@ -174,6 +174,24 @@ describe('NativeFetcher - logging', () => {
     expect(lines[0]).not.toContain('pw');
   });
 
+  test('the debug line names the headers and carries no header value', async () => {
+    captureRequest();
+    const lines: string[] = [];
+    const logger = {
+      debug: (_message: string, ...args: unknown[]) => lines.push(JSON.stringify(args)),
+      info: () => undefined,
+    };
+
+    // A header no key list would know: its value stays out because no value is written at all.
+    await buildFetcher().post(
+      { url: 'http://example.test/a', headers: { 'x-door-code': '4812-opaque' } },
+      logger,
+    );
+
+    expect(lines[0]).toContain('x-door-code');
+    expect(lines[0]).not.toContain('4812-opaque');
+  });
+
   test('with no logger, no provider logger is built - a request writes no line of its own', async () => {
     captureRequest();
     let resolved = 0;
