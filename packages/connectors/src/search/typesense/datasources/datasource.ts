@@ -67,6 +67,7 @@ export class TypesenseDataSource extends BaseSearchDataSource<
     commonParams?: Omit<TMultiSearchEntry, 'collection'>;
     options?: TSearchOptions;
   }): Promise<IMultiSearchResult<T> | IUnionSearchResult<T>> {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the document type of an engine answer nothing here checks
     return super.multiSearch(opts) as Promise<IMultiSearchResult<T> | IUnionSearchResult<T>>;
   }
 

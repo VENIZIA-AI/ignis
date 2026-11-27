@@ -177,11 +177,8 @@ const mergeOverride = (opts: {
 }): CollectionCreateSchema => {
   const { schema, override } = opts;
 
-  // engineOverrides.typesense is a loose `object` in the neutral DSL; cast once here to a partial wire schema.
-  const { fields: overrideFields, ...restOverride } =
-    override as Partial<CollectionCreateSchema> & {
-      fields?: TTypesenseField[];
-    };
+  const typed: Partial<CollectionCreateSchema> & { fields?: TTypesenseField[] } = override;
+  const { fields: overrideFields, ...restOverride } = typed;
 
   return {
     ...schema,

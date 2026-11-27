@@ -1284,3 +1284,41 @@ http-namespace:
     steps:
       - "Pin @venizia/ignis-helpers to the release before this one."
   data: Nothing stored changes.
+
+typesense-client-typed:
+  symbols: [ITypesenseClientLike]
+  upgrade:
+    before: |-
+      collections: () => ({ create: async (schema: unknown) => schema, retrieve: async () => [] })
+    after: |-
+      import type { CollectionCreateSchema } from 'typesense/lib/Typesense/Collections';
+      import type { CollectionSchema } from 'typesense/lib/Typesense/Collection';
+
+      collections: () => ({
+        create: async (schema: CollectionCreateSchema): Promise<CollectionSchema> => store.create(schema),
+        retrieve: async (): Promise<CollectionSchema[]> => store.list(),
+      })
+    steps:
+      - "Run your typecheck. Only a client or a fake you wrote yourself is affected; the SDK Client needs no change."
+      - "Answer a full CollectionSchema from collections().create, collections().retrieve and collections(name).retrieve, and a string from documents().export."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-connectors to the release before this one."
+  data: Nothing stored changes.
+
+claims-source-verify-typed:
+  symbols: [IClaimsConfigSource]
+  upgrade:
+    before: |-
+      const source: IClaimsConfigSource = { claims, verify: loadedFromConfig };
+    after: |-
+      import type { IJWTVerifyOptions } from '@venizia/ignis-kernel';
+
+      const verify: IJWTVerifyOptions = { algorithms: ['RS256'] };
+      const source: IClaimsConfigSource = { claims, verify };
+    steps:
+      - "Run your typecheck. Type the value you pass as verify as IJWTVerifyOptions."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis to the release before this one."
+  data: Nothing stored changes.

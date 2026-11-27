@@ -220,7 +220,9 @@ export declare class NoRestrictedImportsRule {
     static build(opts?: {
         severity?: TRuleSeverity;
         extraPaths?: IRestrictedImportPath[];
-    }): TOxlintRuleEntry<'no-restricted-imports'>;
+    }): [TRuleSeverity, {
+        paths: IRestrictedImportPath[];
+    }];
 }
 ```
 
@@ -272,7 +274,18 @@ export declare class NoUnusedVarsRule {
         varsIgnorePattern?: string;
         caughtErrorsIgnorePattern?: string;
         destructuredArrayIgnorePattern?: string;
-    }): TOxlintRuleEntry<'no-unused-vars'>;
+    }): [
+        TRuleSeverity,
+        {
+            vars: TUnusedVarsScope;
+            args: TUnusedArgsMode;
+            ignoreRestSiblings: boolean;
+            varsIgnorePattern: string;
+            argsIgnorePattern?: string;
+            caughtErrorsIgnorePattern?: string;
+            destructuredArrayIgnorePattern?: string;
+        }
+    ];
 }
 ```
 

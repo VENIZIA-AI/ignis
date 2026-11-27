@@ -284,7 +284,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
   /** Writes the mode dispatch and the hybrid/vector params onto `query`, and refuses any knob Meilisearch cannot honor. */
   applySearchInput(opts: { query: ISearchQuery; input: TTranslatableSearchInput }): void {
     const { input } = opts;
-    const searchQuery = opts.query as IMeilisearchSearchQuery;
+    const searchQuery: IMeilisearchSearchQuery = opts.query;
 
     this.assertNoUnsupportedKnobs({ input });
 

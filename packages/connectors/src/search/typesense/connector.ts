@@ -95,6 +95,7 @@ export class TypesenseConnector extends BaseSearchConnector {
   }
 
   getClient(): Client {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the SDK escape hatch: a `Client` unless the application injected a client of its own, which then knows what it passed
     return this.client as Client;
   }
 
@@ -207,8 +208,7 @@ export class TypesenseConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall<TCollectionSchema | void>({
       method: this.createCollection.name,
       run: async () => {
-        const result = await client.collections().create(schema);
-        const created = result as TCollectionSchema;
+        const created = await client.collections().create(schema);
         logger.info('Created collection | name: %s', schema.name);
 
         return created;
@@ -251,8 +251,7 @@ export class TypesenseConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.getCollection.name,
       run: async () => {
-        const result = await client.collections(name).retrieve();
-        const collection = result as TCollectionSchema;
+        const collection = await client.collections(name).retrieve();
 
         return collection;
       },
@@ -269,8 +268,7 @@ export class TypesenseConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.listCollections.name,
       run: async () => {
-        const result = await this.client.collections().retrieve();
-        const collections = result as TCollectionSchema[];
+        const collections = await this.client.collections().retrieve();
 
         return collections;
       },
@@ -1037,11 +1035,10 @@ export class TypesenseConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.exportDocuments.name,
       run: async () => {
-        const result = await client
+        const exported = await client
           .collections(collection)
           .documents()
           .export(TypesenseInternal.toExportParams(opts));
-        const exported = result as string;
 
         return exported;
       },
@@ -1130,6 +1127,7 @@ export class TypesenseConnector extends BaseSearchConnector {
           options,
         );
 
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- an entry of the envelope may be an error object, so the readers check each field and no type of the client could promise it
         return result as IMultiSearchResult | IUnionSearchResult;
       },
       tolerate,
@@ -1185,6 +1183,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       commonParams: common,
       options,
     });
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the document type of an engine answer nothing here checks
     const response = result2 as IMultiSearchResult<T>;
 
     const results = Array.isArray(response?.results) ? response.results : [];
@@ -1302,6 +1301,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       commonParams,
       options,
     });
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the document type of an engine answer nothing here checks
     const rs = result as IMultiSearchResult<T> | IUnionSearchResult<T>;
 
     return rs;

@@ -941,14 +941,14 @@ export interface ITypesenseClientLike {
 }
 
 interface ITypesenseCollectionsApi {
-    create(schema: unknown, options?: unknown): Promise<unknown>;
-    retrieve(options?: unknown): Promise<unknown>;
+    create(schema: CollectionCreateSchema): Promise<CollectionSchema>;
+    retrieve(options?: unknown): Promise<CollectionSchema[]>;
 }
 
 interface ITypesenseCollectionApi {
     documents(): ITypesenseDocumentsApi;
     documents(documentId: string): ITypesenseDocumentApi;
-    retrieve(): Promise<unknown>;
+    retrieve(): Promise<CollectionSchema>;
     update(schema: unknown): Promise<unknown>;
     delete(options?: unknown): Promise<unknown>;
     exists(): Promise<boolean>;
@@ -961,7 +961,7 @@ interface ITypesenseDocumentsApi {
     delete(query?: unknown): Promise<unknown>;
     import(documents: unknown[], options?: unknown): Promise<unknown>;
     search(searchParameters: unknown, options?: unknown): Promise<unknown>;
-    export(options?: unknown): Promise<unknown>;
+    export(options?: unknown): Promise<string>;
     /** The export as a stream of NDJSON text: a Node `Readable` (`typesense-js`), which is async-iterable. */
     exportStream(options?: unknown): Promise<AsyncIterable<string | Uint8Array>>;
 }

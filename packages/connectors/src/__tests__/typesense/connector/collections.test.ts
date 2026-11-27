@@ -35,12 +35,9 @@ describe('TypesenseConnector collections', () => {
   });
 
   test('ensureCollection returns existing when present', async () => {
-    const existingCollection: Record<string, unknown> = { name: 'products' };
-    existingCollection['num_documents'] = 5;
-
     const { helper } = makeHelper({
       existsByName: { products: true },
-      collectionByName: { products: existingCollection },
+      collectionByName: { products: { name: 'products', fields: [] } },
     });
     const result = await helper.ensureCollection({ schema });
     expect(result.name).toBe('products');
@@ -49,7 +46,7 @@ describe('TypesenseConnector collections', () => {
   test('ensureCollection creates then returns when absent', async () => {
     const { helper, fake } = makeHelper({
       existsByName: { products: false },
-      collectionByName: { products: { name: 'products' } },
+      collectionByName: { products: { name: 'products', fields: [] } },
     });
     const result = await helper.ensureCollection({ schema });
     expect(fake.calls.some((c) => c.op === 'collections.create')).toBe(true);
