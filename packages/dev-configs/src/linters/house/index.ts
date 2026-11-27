@@ -5,6 +5,7 @@ export { ImportSupport } from './import-support';
 export * from './common';
 export * from './const-class-values.rule';
 export * from './effect-cleanup-consistency.rule';
+export * from './framework-api-patterns';
 export * from './hook-support';
 export * from './max-params-own.rule';
 export * from './no-async-hook-callback.rule';

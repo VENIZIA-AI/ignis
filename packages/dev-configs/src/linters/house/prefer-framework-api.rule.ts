@@ -4,6 +4,9 @@ import type { TRuleSeverity } from '../rules/common';
 import type { IBrowserApiPattern } from './browser-api-patterns';
 import { BrowserApiPatterns } from './browser-api-patterns';
 import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
+import type { IFrameworkApiPattern } from './framework-api-patterns';
+import { FrameworkApiPatterns } from './framework-api-patterns';
+import type { IPackageManifest } from './framework-exports';
 import { FrameworkExports } from './framework-exports';
 
 /** The objects a global event listener is added to. */
@@ -19,7 +22,10 @@ const GLOBAL_OBJECTS: ReadonlyArray<string> = ['window', 'globalThis', 'self'];
  * the hook. The rule is for apps: the package that ships the hooks (the nearest `package.json` is named
  * `@venizia/ardor-react`) is not reported.
  *
- * Only a reference to the global is reported: a `window`, `navigator` or `document` the file binds itself is not. And only
+ * The rows of `FrameworkApiPatterns.TABLE` and of the `extra` option are not about React: they report anywhere in a file,
+ * with their own message, in a package their `dependsOn` and `owner` allow.
+ *
+ * For the hook rows, only a reference to the global is reported: a `window`, `navigator` or `document` the file binds itself is not. And only
  * where a hook can be called: in a component (a PascalCase function that draws JSX) or a hook (`useX`), see `isInReact`. A
  * module function, a class and an event handler making a one-off call are left alone. Hooks the author wants to bypass on
  * purpose take an `eslint-disable-next-line` with the reason, or `ignore` lists pattern ids.
@@ -219,13 +225,300 @@ export class PreferFrameworkApiRule {
     return false;
   }
 
+  /** The rows that apply in a file of this package: the table and `extra`, less the ignored ones. */
+  private static rowsFor(opts: {
+    manifest: IPackageManifest | undefined;
+    extra: ReadonlyArray<IFrameworkApiPattern>;
+    ignore: ReadonlySet<unknown>;
+  }): ReadonlyArray<IFrameworkApiPattern> {
+    const { manifest, extra, ignore } = opts;
+
+    return [...FrameworkApiPatterns.TABLE, ...extra].filter((row) => {
+      const { id, dependsOn, owner } = row;
+
+      if (ignore.has(id) || (owner !== undefined && manifest?.name === owner)) {
+        return false;
+      }
+
+      return (
+        dependsOn === undefined ||
+        (manifest?.dependencies.some((entry) => entry.startsWith(dependsOn)) ?? false)
+      );
+    });
+  }
+
+  /** The listeners the rows outside React need, by node type or selector. */
+  private static rowListeners(opts: {
+    context: Rule.RuleContext;
+    rows: ReadonlyArray<IFrameworkApiPattern>;
+  }): Array<[string, (node: Rule.Node) => void]> {
+    const { context, rows } = opts;
+    const listeners: Array<[string, (node: Rule.Node) => void]> = [];
+
+    for (const { match, message } of rows) {
+      const report = (node: Rule.Node) => {
+        context.report({ node, message });
+      };
+
+      /** Reports a global written as a member path, when `accepts` takes it. */
+      const onPath = (given: {
+        key: string;
+        accepts: (bare: string) => boolean;
+        property?: RegExp;
+      }) => {
+        listeners.push([
+          AstNodeTypes.MEMBER_EXPRESSION,
+          (node) => {
+            const path = PreferFrameworkApiRule.pathOf({
+              node: given.key === '' ? node : AstNode.readField({ node, key: given.key }),
+            });
+
+            if (
+              path !== undefined &&
+              (given.property === undefined ||
+                given.property.test(PreferFrameworkApiRule.memberName({ node }))) &&
+              given.accepts(PreferFrameworkApiRule.withoutGlobalRoot({ path })) &&
+              PreferFrameworkApiRule.isGlobal({ context, node, path })
+            ) {
+              report(node);
+            }
+          },
+        ]);
+      };
+
+      switch (match.type) {
+        case 'path': {
+          onPath({ key: '', accepts: (bare) => match.paths.includes(bare) });
+          break;
+        }
+
+        case 'member': {
+          onPath({
+            key: 'object',
+            accepts: (bare) => match.objects.includes(bare),
+            property: match.property === undefined ? undefined : new RegExp(match.property),
+          });
+          break;
+        }
+
+        case 'selector': {
+          listeners.push([match.selector, report]);
+          break;
+        }
+
+        case 'literal': {
+          const pattern = new RegExp(match.pattern);
+
+          const check = (node: Rule.Node, text: unknown) => {
+            const isWanted =
+              match.isFallbackOnly !== true || PreferFrameworkApiRule.isFallback({ node });
+
+            if (typeof text === 'string' && isWanted && pattern.test(text)) {
+              report(node);
+            }
+          };
+
+          listeners.push([
+            AstNodeTypes.LITERAL,
+            (node) => check(node, AstNode.readField({ node, key: 'value' })),
+          ]);
+          listeners.push([
+            AstNodeTypes.TEMPLATE_ELEMENT,
+            (node) => {
+              const value = AstNode.readField({ node, key: 'value' });
+              const template: unknown = AstNode.readField({ node, key: 'parent' });
+              const parts: unknown = AstNode.readField({ node: template, key: 'quasis' });
+
+              // The first part is where a URL starts, and the template is what stands in a position.
+              if (AstNode.isNode(template) && Array.isArray(parts) && parts[0] === node) {
+                check(template, AstNode.readField({ node: value, key: 'cooked' }));
+              }
+            },
+          ]);
+          break;
+        }
+
+        case 'import': {
+          const check = (node: Rule.Node) => {
+            const source = AstNode.readField({ node, key: 'source' });
+            const name = AstNode.readField({ node: source, key: 'value' });
+
+            if (
+              typeof name === 'string' &&
+              match.sources.includes(name) &&
+              !PreferFrameworkApiRule.isTypeOnly({ node })
+            ) {
+              report(node);
+            }
+          };
+
+          listeners.push([AstNodeTypes.IMPORT_DECLARATION, check]);
+          listeners.push([AstNodeTypes.IMPORT_EXPRESSION, check]);
+          break;
+        }
+
+        default: {
+          // The other types are hook rows of `BrowserApiPatterns`; as an `extra` row they match nothing here.
+          break;
+        }
+      }
+    }
+
+    return listeners;
+  }
+
+  /** The name of `a.name` or `a['name']`; empty for `a[name]`, whose name the file does not state. */
+  private static memberName(opts: { node: Rule.Node }): string {
+    const property = AstNode.readField({ node: opts.node, key: 'property' });
+    const computed = AstNode.readField({ node: opts.node, key: 'computed' }) === true;
+    const name = AstNode.readField({ node: property, key: computed ? 'value' : 'name' });
+
+    return typeof name === 'string' ? name : '';
+  }
+
+  /** The field each type of an `extra` row cannot do without. */
+  private static readonly ROW_FIELDS = new Map<unknown, string>([
+    ['path', 'paths'],
+    ['member', 'objects'],
+    ['selector', 'selector'],
+    ['literal', 'pattern'],
+    ['import', 'sources'],
+  ]);
+
+  /** Whether an `extra` entry is a row this rule can run. The option schema refuses the others before it gets here. */
+  private static isRow(value: unknown): value is IFrameworkApiPattern {
+    const match = AstNode.readField({ node: value, key: 'match' });
+    const field = PreferFrameworkApiRule.ROW_FIELDS.get(AstNode.getType({ node: match }));
+
+    return (
+      typeof AstNode.readField({ node: value, key: 'id' }) === 'string' &&
+      typeof AstNode.readField({ node: value, key: 'message' }) === 'string' &&
+      field !== undefined &&
+      AstNode.readField({ node: match, key: field }) !== undefined
+    );
+  }
+
+  /** The schema of the `match` of an `extra` row: one shape per type, each with its own field required. */
+  private static matchSchema() {
+    const text = { type: 'string' } as const;
+    const list = { type: 'array', items: text } as const;
+    const flag = { type: 'boolean' } as const;
+    const shapes: Array<{ type: string; more?: Record<string, typeof text | typeof flag> }> = [
+      { type: 'path' },
+      { type: 'member', more: { property: text } },
+      { type: 'selector' },
+      { type: 'literal', more: { isFallbackOnly: flag } },
+      { type: 'import' },
+    ];
+
+    return {
+      oneOf: shapes.map(({ type, more }) => {
+        const field = PreferFrameworkApiRule.ROW_FIELDS.get(type) ?? type;
+        const isText = type === 'selector' || type === 'literal';
+
+        return {
+          type: 'object' as const,
+          properties: { type: { enum: [type] }, [field]: isText ? text : list, ...more },
+          required: ['type', field],
+          additionalProperties: false,
+        };
+      }),
+    };
+  }
+
+  private static readonly FALLBACK_KEYS = new Set<unknown>(['default', 'defaultValue', 'fallback']);
+
+  /** Whether `node` is the value used when another is missing. */
+  private static isFallback(opts: { node: Rule.Node }): boolean {
+    const { node } = opts;
+    const parent: unknown = AstNode.readField({ node, key: 'parent' });
+    const type = AstNode.getType({ node: parent });
+    const isRight = AstNode.readField({ node: parent, key: 'right' }) === node;
+
+    if (type === AstNodeTypes.LOGICAL_EXPRESSION) {
+      return isRight && AstNode.readField({ node: parent, key: 'operator' }) !== '&&';
+    }
+
+    if (type === AstNodeTypes.ASSIGNMENT_PATTERN) {
+      return isRight;
+    }
+
+    return (
+      type === AstNodeTypes.PROPERTY &&
+      AstNode.readField({ node: parent, key: 'value' }) === node &&
+      PreferFrameworkApiRule.FALLBACK_KEYS.has(
+        AstNode.readField({
+          node: AstNode.readField({ node: parent, key: 'key' }),
+          key: 'name',
+        }),
+      )
+    );
+  }
+
+  /** Whether an import declaration brings in types only. */
+  private static isTypeOnly(opts: { node: unknown }): boolean {
+    const { node } = opts;
+    const specifiers: unknown = AstNode.readField({ node, key: 'specifiers' });
+    const isType = (item: unknown) =>
+      AstNode.readField({ node: item, key: 'importKind' }) === 'type';
+
+    return (
+      isType(node) ||
+      (Array.isArray(specifiers) && specifiers.length > 0 && specifiers.every(isType))
+    );
+  }
+
+  /** One listener object: two rows that visit the same node both run. */
+  private static merge(opts: { listeners: Array<[string, unknown]> }): Rule.RuleListener {
+    const byKey = new Map<string, Array<(node: Rule.Node) => void>>();
+
+    for (const [key, listener] of opts.listeners) {
+      if (PreferFrameworkApiRule.isListener(listener)) {
+        byKey.set(key, [...(byKey.get(key) ?? []), listener]);
+      }
+    }
+
+    return Object.fromEntries(
+      [...byKey].map(([key, all]) => [
+        key,
+        (node: Rule.Node) => {
+          for (const listener of all) {
+            listener(node);
+          }
+        },
+      ]),
+    );
+  }
+
+  private static isListener(value: unknown): value is (node: Rule.Node) => void {
+    return typeof value === 'function';
+  }
+
   static readonly RULE: Rule.RuleModule = {
     meta: {
       type: 'suggestion',
       schema: [
         {
           type: 'object',
-          properties: { ignore: { type: 'array', items: { type: 'string' } } },
+          properties: {
+            hooks: { type: 'boolean' },
+            ignore: { type: 'array', items: { type: 'string' } },
+            extra: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  message: { type: 'string' },
+                  dependsOn: { type: 'string' },
+                  owner: { type: 'string' },
+                  match: PreferFrameworkApiRule.matchSchema(),
+                },
+                required: ['id', 'match', 'message'],
+                additionalProperties: false,
+              },
+            },
+          },
           additionalProperties: false,
         },
       ],
@@ -235,17 +528,24 @@ export class PreferFrameworkApiRule {
       },
     },
     create: (context) => {
-      // The package that ships the hooks writes them with the browser APIs they wrap.
       const manifest = FrameworkExports.manifestFor({ directory: dirname(context.filename) });
-
-      if (manifest?.name === BrowserApiPatterns.PACKAGE) {
-        return {};
-      }
-
       const options: unknown = context.options[0];
       const ignored = AstNode.readField({ node: options, key: 'ignore' });
       const ignore = new Set(Array.isArray(ignored) ? ignored : []);
-      const patterns = BrowserApiPatterns.TABLE.filter((pattern) => !ignore.has(pattern.id));
+      const added: unknown = AstNode.readField({ node: options, key: 'extra' });
+      const rows = PreferFrameworkApiRule.rowsFor({
+        manifest,
+        extra: Array.isArray(added)
+          ? added.filter((row: unknown) => PreferFrameworkApiRule.isRow(row))
+          : [],
+        ignore,
+      });
+      // The package that ships the hooks writes them with the browser APIs they wrap.
+      const patterns =
+        AstNode.readField({ node: options, key: 'hooks' }) === false ||
+        manifest?.name === BrowserApiPatterns.PACKAGE
+          ? []
+          : BrowserApiPatterns.TABLE.filter((pattern) => !ignore.has(pattern.id));
 
       const report = (opts: { node: Rule.Node; pattern: IBrowserApiPattern }) => {
         const { node, pattern } = opts;
@@ -268,7 +568,7 @@ export class PreferFrameworkApiRule {
         });
       };
 
-      return {
+      const hooks: Rule.RuleListener = {
         // `window.matchMedia`, `window.innerWidth`, `navigator.onLine`, `navigator.clipboard.writeText`...
         [AstNodeTypes.MEMBER_EXPRESSION]: (node: Rule.Node) => {
           const path = PreferFrameworkApiRule.pathOf({ node });
@@ -367,14 +667,35 @@ export class PreferFrameworkApiRule {
           }
         },
       };
+
+      return PreferFrameworkApiRule.merge({
+        listeners: [
+          ...Object.entries(hooks),
+          ...PreferFrameworkApiRule.rowListeners({ context, rows }),
+        ],
+      });
     },
   };
 
+  /**
+   * `hooks: false` leaves out the rows of `BrowserApiPatterns`, for code that is not React: a `use...` function of another
+   * library reads as a hook. An entry that sets options replaces the earlier ones, so it states `hooks` again.
+   */
   static build(
-    opts: { severity?: TRuleSeverity; ignore?: ReadonlyArray<string> } = {},
+    opts: {
+      severity?: TRuleSeverity;
+      hooks?: boolean;
+      ignore?: ReadonlyArray<string>;
+      extra?: ReadonlyArray<IFrameworkApiPattern>;
+    } = {},
   ): Linter.RuleEntry {
-    const { severity = 'error', ignore } = opts;
+    const { severity = 'error', hooks, ignore, extra } = opts;
+    const options = {
+      ...(hooks !== undefined && { hooks }),
+      ...(ignore && { ignore: [...ignore] }),
+      ...(extra && { extra: [...extra] }),
+    };
 
-    return ignore === undefined ? [severity] : [severity, { ignore: [...ignore] }];
+    return Object.keys(options).length === 0 ? [severity] : [severity, options];
   }
 }

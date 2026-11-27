@@ -1,5 +1,5 @@
 import { defineConfig } from 'drizzle-kit';
-import { ParseUtility } from '@venizia/ignis-helpers';
+import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
 
 /**
  * drizzle-kit reads the model file directly - it bundles with esbuild, so the `@model` decorator
@@ -12,7 +12,7 @@ export default defineConfig({
   schema: './src/models/note.model.ts',
   dbCredentials: {
     url:
-      ParseUtility.blankToUndefined({ input: process.env.APP_ENV_SQLITE_URL }) ??
+      ParseUtility.blankToUndefined({ input: applicationEnvironment.get('APP_ENV_SQLITE_URL') }) ??
       'file:./app_data/database/local.db',
   },
 });
