@@ -114,6 +114,7 @@ export class AuthModelColumns {
 
     switch (idType) {
       case 'number': {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the column builders returned depend on an option; TypeScript cannot narrow the generic return type per branch
         return {
           code: text('code').unique().notNull(),
           name: text('name').notNull(),
@@ -126,6 +127,7 @@ export class AuthModelColumns {
         } as TPermissionColumnDef<Opts>;
       }
       case 'string': {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the column builders returned depend on an option; TypeScript cannot narrow the generic return type per branch
         return {
           code: text('code').unique().notNull(),
           name: text('name').notNull(),
@@ -161,6 +163,7 @@ export class AuthModelColumns {
 
     switch (idType) {
       case 'number': {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the column builders returned depend on an option; TypeScript cannot narrow the generic return type per branch
         return {
           ...common,
           subjectId: integer('subject_id').notNull(),
@@ -169,6 +172,7 @@ export class AuthModelColumns {
         } as TPolicyDefinitionColumnDef<Opts, Metadata>;
       }
       case 'string': {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the column builders returned depend on an option; TypeScript cannot narrow the generic return type per branch
         return {
           ...common,
           subjectId: text('subject_id').notNull(),

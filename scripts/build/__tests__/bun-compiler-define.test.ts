@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { BunCompiler } from '../../../packages/dev-configs/src/compilers/bun';
+import { RejectionUtility } from '../../../packages/dev-configs/src/testing';
 
 /**
  * `BunCompiler.compile({ define })` is how a compile script bakes a value (the build stamp) into
@@ -55,6 +56,18 @@ describe('BunCompiler.compile define', () => {
 
     expect(printed).toBe('undefined');
   });
+});
+
+describe('BunCompiler.compile target', () => {
+  test.each(['bun-solaris-x64', 'linux-x64', 'bun-linux-x64-musl-extra'])(
+    '%s is refused by name before anything is built',
+    async (target) => {
+      await RejectionUtility.expectRejection({
+        task: BunCompiler.compile({ entrypoint: 'missing.ts', target }),
+        message: /not a compile target/,
+      });
+    },
+  );
 });
 
 describe('BunCompiler.compile workers', () => {

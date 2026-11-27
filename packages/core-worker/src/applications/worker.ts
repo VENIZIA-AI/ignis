@@ -242,6 +242,7 @@ export abstract class WorkerApplication<
     // Everything down to the first `await` runs synchronously with the caller, which is what makes
     // the listener observable to anything posted in the same turn.
     const scope: MessagePort | IWorkerMessageScope =
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- inside a worker the global is the message scope, but the emit config's `postMessage` of the global does not match the interface, while the config that also loads the tests' types accepts it
       opts?.scope ?? (globalThis as IWorkerMessageScope);
 
     this.attachTo({ scope });

@@ -118,6 +118,7 @@ export class RouteConfigResolver {
   >(opts: { config: C; defaultSchema: D }): TResolvedResponseSchema<C, D> {
     const { config, defaultSchema } = opts;
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a generic `C` is known only by its constraint, so the resolved schema type cannot be proven from the value
     return (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<C, D>;
   }
 

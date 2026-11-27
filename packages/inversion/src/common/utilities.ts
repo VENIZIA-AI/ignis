@@ -73,6 +73,7 @@ export class ObjectUtility {
       kept[key] = value;
     }
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the loop copies every key but the omitted ones, which a filled-in object cannot tell the compiler
     return kept as Omit<T, Extract<K, keyof T>>;
   }
 }

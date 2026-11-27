@@ -17,6 +17,7 @@ export class MemoryStorageHelper<T extends object = Record<string, unknown>> ext
   }
 
   get<K extends keyof T>(key: K): T[K] | undefined {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `set` stores under a key only a value of that key's type, a pairing a Map type cannot state
     return this.container.get(key) as T[K] | undefined;
   }
 

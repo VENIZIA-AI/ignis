@@ -144,7 +144,7 @@ export class RequestUtility {
     fields: Record<string, string>;
   }): Promise<void> {
     const { formData, storage, uploadDir, files, fields } = opts;
-    const entries = formData.entries();
+    const entries: Iterable<[string, File | string]> = formData.entries();
 
     for (const [fieldname, value] of entries) {
       if (typeof value === 'string') {
@@ -153,7 +153,7 @@ export class RequestUtility {
         continue;
       }
 
-      const file = value as File;
+      const file = value;
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 

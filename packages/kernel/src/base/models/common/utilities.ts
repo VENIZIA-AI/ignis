@@ -22,11 +22,13 @@ export class ModelUtility {
       });
     }
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the one door to the entity id brand, which exists only in the types; the empty string is refused above
     return opts.value as TEntityId;
   }
 
   static snakeToCamel<T extends z.ZodRawShape>(opts: { shape: T }) {
     const { shape } = opts;
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `Object.fromEntries` loses the keys; these are the shape's keys in camel case
     const camelShape = Object.fromEntries(
       Object.entries(shape).map(([key, value]) => {
         return [ParseUtility.toCamel({ input: key }), value];

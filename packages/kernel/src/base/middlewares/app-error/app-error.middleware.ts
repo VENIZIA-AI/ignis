@@ -568,6 +568,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
         },
       };
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the status is a number read off an error; Hono types a status as the union of known codes
       return context.json(this.withRootKey(rs), statusCode as Parameters<typeof context.json>[1]);
     };
   }

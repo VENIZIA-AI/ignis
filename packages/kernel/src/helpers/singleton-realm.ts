@@ -33,7 +33,7 @@ export class SingletonRealm {
     if (anchor in globalThis) {
       const existing: unknown = Reflect.get(globalThis, anchor);
 
-      // The slot is filled by `create()` below, under this same `key`, so its value is the caller's `T`; no type reaches the realm.
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the slot under `key` is filled only by `create()` below, so its value is the caller's `T`; no type reaches the realm
       return existing as T;
     }
 

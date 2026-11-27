@@ -375,7 +375,7 @@ export abstract class AbstractRepository<
       operation: 'find',
       options: opts.options,
       defaultUntil: (result) => result.length > 0,
-      // `R` is named here, so the row is `R`; TypeScript cannot resolve `TRow` for an unresolved `R`.
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `R` is named here, so the row is `R`; TypeScript cannot resolve `TRow` for an unresolved `R`
       execution: () => this.find<R>({ filter: opts.filter, options }) as Promise<Array<R>>,
     });
   }
@@ -392,6 +392,7 @@ export abstract class AbstractRepository<
       options: opts.options,
       defaultUntil: (result) => result.data.length > 0,
       execution: () =>
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `options` asks for the range, so `find` answers the envelope; TypeScript cannot pick that overload for an unresolved `R`
         this.find<R>({ filter: opts.filter, options }) as unknown as Promise<TDataWithRange<R>>,
     });
   }
@@ -407,6 +408,7 @@ export abstract class AbstractRepository<
       operation: 'findOne',
       options: opts.options,
       defaultUntil: (result) => result !== null && result !== undefined,
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `R` is named here, so the row is `R`; TypeScript cannot resolve `TRow` for an unresolved `R`
       execution: () => this.findOne<R>({ filter: opts.filter, options }) as Promise<TNullable<R>>,
     });
   }

@@ -1,4 +1,5 @@
 import type { TContext } from '@/base/controllers/common/types';
+import { ContextUtility } from '@/base/controllers/context';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { IProvider } from '@venizia/ignis-inversion';
@@ -51,7 +52,7 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
       switch (mode) {
         case AuthenticationModes.ANY: {
           await this.executeAnyMode({
-            context: context as TContext,
+            context: ContextUtility.asTypedContext({ context }),
             strategies,
             registry,
             next,
@@ -61,7 +62,7 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
         }
         case AuthenticationModes.ALL: {
           await this.executeAllMode({
-            context: context as TContext,
+            context: ContextUtility.asTypedContext({ context }),
             strategies,
             registry,
             next,
