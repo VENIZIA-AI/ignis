@@ -24,7 +24,7 @@ Technical reference for the `Secrets` provider family. It covers how IGNIS loads
 | **DotenvVaultHelper** | Static, encrypted `.env.vault` | Decrypts via `@dotenvx/dotenvx`; `lease()` throws NotSupported |
 | **SecretProviders** | Provider const-class | `SYSTEM_ENVS`, `HASHICORP_VAULT`, `DOTENV_VAULT`, `values()`, `isValid()` |
 | **VaultAuthMethods** | Auth const-class | `TOKEN`, `APP_ROLE`, `KUBERNETES`, `values()`, `isValid()` |
-| **ISecretsRegistration** | What `registerSecrets()` returns | `provider`, `config`, `hydrate[]`, `lease[]`, `renewBeforeRatio`, `cacheTtlSeconds` |
+| **TSecretsRegistration** | What `registerSecrets()` returns | `provider`, `config`, `hydrate[]`, `lease[]`, `renewBeforeRatio`, `cacheTtlSeconds` |
 | **ISecretRotatable** | Opt-in consumer hook | `onSecretRotated({ key, secret })` |
 
 ## Two Paths: Hydrate and Provider
@@ -96,7 +96,7 @@ interface ISecretRotatable {
 
 ## Registration
 
-An application opts in by overriding `registerSecrets()` on its `BaseApplication` subclass. The method returns an `ISecretsRegistration` and runs before datasources are built.
+An application opts in by overriding `registerSecrets()` on its `BaseApplication` subclass. The method returns an `TSecretsRegistration` and runs before datasources are built.
 
 **File:** `packages/helpers/src/modules/secrets/common/types/registration.ts`
 
@@ -117,7 +117,7 @@ interface ISecretsRegistrationBase {
 }
 
 // The provider selects the shape of `config`
-type ISecretsRegistration =
+type TSecretsRegistration =
   | ISystemEnvsSecretsRegistration // provider 'system-envs', no config
   | IHashiCorpSecretsRegistration  // provider 'hashicorp-vault', config: the helper options (endpoint, auth, client?)
   | IDotenvSecretsRegistration;    // provider 'dotenv-vault', config?: the helper options (path, dotenvKey, decode?)
@@ -127,7 +127,7 @@ type ISecretsRegistration =
 
 ```typescript
 // packages/core-server/src/base/applications/base.ts
-registerSecrets(): ValueOrPromise<ISecretsRegistration> {
+registerSecrets(): ValueOrPromise<TSecretsRegistration> {
   return { provider: SecretProviders.SYSTEM_ENVS };
 }
 ```

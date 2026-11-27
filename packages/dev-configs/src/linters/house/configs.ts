@@ -15,6 +15,7 @@ import { NoShadowFrameworkTypeRule } from './no-shadow-framework-type.rule';
 import { PreferFrameworkApiRule } from './prefer-framework-api.rule';
 import { PreferPromiseSleepRule } from './prefer-promise-sleep.rule';
 import { PreferTNullableRule } from './prefer-tnullable.rule';
+import { ZodSchemaConventionRule } from './zod-schema-convention.rule';
 import { houseEslintPlugin } from './plugin';
 
 const SOURCE_FILES = ['**/*.{ts,tsx,mts,cts}'];
@@ -47,6 +48,7 @@ const houseRuleConfigs: Linter.Config[] = [
       [PreferPromiseSleepRule.NAME]: PreferPromiseSleepRule.build(),
       [PreferFrameworkApiRule.NAME]: PreferFrameworkApiRule.build({ hooks: false }),
       [ConstClassValuesRule.NAME]: ConstClassValuesRule.build({ severity: 'warn' }),
+      [ZodSchemaConventionRule.NAME]: ZodSchemaConventionRule.build(),
       [NO_CAST_RULE]: ['warn', { assertionStyle: 'never' }],
     },
   },

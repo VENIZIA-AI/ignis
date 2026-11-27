@@ -17,7 +17,7 @@ import type {
   ISecretHydrateEntry,
   ISecretRotatable,
   ISecretsHelper,
-  ISecretsRegistration,
+  TSecretsRegistration,
 } from '@venizia/ignis-helpers';
 import { ParseUtility, getError } from '@venizia/ignis-helpers/core';
 import { HTTP, ObjectUtility } from '@venizia/ignis-helpers/common';
@@ -92,7 +92,7 @@ const selectSecretEnvKeys = (opts: {
  */
 export abstract class BaseApplication extends ServerApplication implements IRestApplication {
   protected secretsProvider?: ISecretsHelper;
-  protected secretsRegistration?: ISecretsRegistration;
+  protected secretsRegistration?: TSecretsRegistration;
 
   protected normalizePath(...segments: string[]): string {
     const joined = segments.join('/').replace(/\/+/g, '/').replace(/\/$/, '');
@@ -159,7 +159,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     });
   }
 
-  registerSecrets(): ValueOrPromise<ISecretsRegistration> {
+  registerSecrets(): ValueOrPromise<TSecretsRegistration> {
     return { provider: SecretProviders.SYSTEM_ENVS };
   }
 
@@ -247,7 +247,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
   /** Applies each hydrate entry in declaration order; paths that resolve empty while declaring an expectation are collected in `emptyHydrations` rather than failing here. */
   protected async hydrateSecretEntries(opts: {
     provider: ISecretsHelper;
-    registration: ISecretsRegistration;
+    registration: TSecretsRegistration;
     emptyHydrations: string[];
     logger: ILogger;
   }): Promise<void> {

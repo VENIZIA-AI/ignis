@@ -947,6 +947,39 @@ test-controls-manifest-type:
       - "Pin @venizia/dev-configs to the release before this one and rename type back to kind."
   data: Nothing stored changes.
 
+schema-and-type-names:
+  symbols: [TrackableHeadersSchema, CountableHeadersSchema, DefaultRequestHeadersSchema, TErrorOutput, VaultAuthSchema, TSecretsRegistration, TRelationalDataSourceOpening]
+  upgrade:
+    before: |-
+      import { trackableHeaders, type TErrorResponse } from '@venizia/ignis-kernel';
+    after: |-
+      import { TrackableHeadersSchema, type TErrorOutput } from '@venizia/ignis-kernel';
+    steps:
+      - "Run bun node_modules/.bin/devz codemod class-renames [paths...] to see what it would change, then add --write. Then run your typecheck."
+      - "Edit by hand a .js file, a dynamic import() and a barrel of your own that re-exports an old name."
+  downgrade:
+    steps:
+      - "Run the same codemod with --reverse. It also renames back the classes of earlier rows, so review the diff."
+  data: Nothing stored changes.
+
+zod-and-type-name-rules:
+  symbols: [ZodSchemaConventionRule, NamingConventionRule, houseConfigs, reactHouseConfigs]
+  upgrade:
+    before: |-
+      const saleOrder = z.object({ id: z.string() });
+      type SaleOrder = z.infer<typeof saleOrder>;
+    after: |-
+      const SaleOrderSchema = z.object({ id: z.string() });
+      type TSaleOrder = z.infer<typeof SaleOrderSchema>;
+    steps:
+      - "Run your lint and rename each reported name, with every use of it: the rules have no rename fix, because a rename reaches other files."
+      - "An exported name other packages import is a change to your own API: rename it in a release that says so, or list it in ignore (zod-schema-convention) or in an extraSelectors entry of NamingConventionRule with a filter and format: null."
+      - "To check strict objects and z.any() in some files: { rules: { '@venizia/zod-schema-convention': ['error', { strictPaths: ['src/dto/**'], noAnyPaths: ['src/dto/**'] }] } }. z.object(x).strict() is fixed to z.strictObject(x)."
+  downgrade:
+    steps:
+      - "Pin @venizia/dev-configs to the release before this one, or set '@venizia/zod-schema-convention' and '@typescript-eslint/naming-convention' to 'off' after ...houseConfigs."
+  data: Nothing stored changes.
+
 framework-api-rows:
   symbols: [PreferFrameworkApiRule, FrameworkApiPatterns, houseConfigs, reactHouseConfigs]
   upgrade:

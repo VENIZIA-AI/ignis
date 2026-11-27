@@ -79,11 +79,11 @@ export interface IHashiCorpVaultHelperOptions {
     clock?: IClock;
     timers?: ITimerAdapter;
     /** Injection seam for tests; production builds the real node-vault client in configure(). */
-    client?: TVaultClient;
+    client?: IVaultClient;
 }
 
 /** What Vault answers is the body node-vault passes on: nothing is assumed of it, each key is read and narrowed where it is used. */
-interface TVaultClient {
+interface IVaultClient {
     token: string;
     read(path: string): Promise<unknown>;
     write(path: string, data: Record<string, unknown>): Promise<unknown>;
@@ -103,19 +103,19 @@ Source: `packages/helpers/src/modules/secrets/hashicorp/hashicorp.helper.ts`
 A validated Vault login config, discriminated by `method`.
 
 ```ts
-export type TVaultAuth = z.infer<typeof vaultAuthSchema>;
+export type TVaultAuth = z.infer<typeof VaultAuthSchema>;
 ```
 
 Source: `packages/helpers/src/modules/secrets/hashicorp/auth.ts`
 
-## `vaultAuthSchema`
+## `VaultAuthSchema`
 
 *const*
 
 Validates the Vault login config; `method` selects the token, AppRole or Kubernetes shape.
 
 ```ts
-export declare const vaultAuthSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
+export declare const VaultAuthSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     method: z.ZodLiteral<"token">;
     token: z.ZodString;
 }, z.core.$strip>, z.ZodObject<{

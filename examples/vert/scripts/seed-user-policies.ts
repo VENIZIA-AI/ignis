@@ -44,7 +44,7 @@ if (!username) {
   process.exit(1);
 }
 
-interface SeedIds {
+interface ISeedIds {
   organizations: { orgAlpha: string; orgBeta: string };
   roles: { superAdmin: string; admin: string; user: string; guest: string };
   permissions: { readConfig: string; createUser: string; readDashboard: string };
@@ -58,7 +58,7 @@ class PolicyPrincipalTypes {
   static readonly ORGANIZATION = 'Organization';
 }
 
-interface PolicyRow {
+interface IPolicyRow {
   variant: string;
   subjectType: string;
   subjectId: string;
@@ -86,7 +86,7 @@ const toRow = (policy: {
   effect?: string | null;
   domainType?: string | null;
   domainId?: IdType | null;
-}): PolicyRow => {
+}): IPolicyRow => {
   return {
     variant: policy.variant,
     subjectType: policy.subjectType,
@@ -100,14 +100,14 @@ const toRow = (policy: {
   };
 };
 
-const buildPolicies = (opts: { userId: string; ids: SeedIds }): PolicyRow[] => {
+const buildPolicies = (opts: { userId: string; ids: ISeedIds }): IPolicyRow[] => {
   const { userId, ids } = opts;
   const { organizations: orgs, roles, permissions: perms } = ids;
 
   const orgAlphaDomain = { type: PolicyPrincipalTypes.ORGANIZATION, id: orgs.orgAlpha };
   const orgBetaDomain = { type: PolicyPrincipalTypes.ORGANIZATION, id: orgs.orgBeta };
 
-  const policyMap: Record<string, PolicyRow[]> = {
+  const policyMap: Record<string, IPolicyRow[]> = {
     // Super admin - alwaysAllowRoles bypass
     test_superadmin: [
       toRow(
@@ -243,7 +243,7 @@ const buildPolicies = (opts: { userId: string; ids: SeedIds }): PolicyRow[] => {
 
 const seedUserPolicies = async () => {
   const idsPath = path.resolve(import.meta.dir, '../app_data/seed-ids.json');
-  const ids: SeedIds = JSON.parse(readFileSync(idsPath, 'utf-8'));
+  const ids: ISeedIds = JSON.parse(readFileSync(idsPath, 'utf-8'));
 
   const client = await pool.connect();
   try {

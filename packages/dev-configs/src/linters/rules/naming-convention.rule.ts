@@ -49,6 +49,33 @@ export class NamingConventionRule {
       leadingUnderscore: 'allow',
     },
     { selector: 'typeLike', format: ['PascalCase'] },
+    // A type alias starts with `T` or ends with `Type`; an interface starts with `I`.
+    {
+      selector: 'typeAlias',
+      format: ['PascalCase'],
+      custom: { regex: '^T[A-Z0-9]|Type$', match: true },
+    },
+    { selector: 'interface', format: ['PascalCase'], prefix: ['I'] },
+    // Names that stay as they are: the framework's value helpers, and a type that shares its name with a class value.
+    {
+      selector: 'typeAlias',
+      filter: {
+        regex: '^(ValueOf|ValueOptional|ValueOptionalExcept|ValueOrPromise|PGliteCRUDRepository)$',
+        match: true,
+      },
+      format: null,
+    },
+    // Interfaces that `declare module` or `declare global` adds to: the name belongs to the library, and the rule
+    // cannot see where an interface is declared.
+    {
+      selector: 'interface',
+      filter: {
+        regex:
+          '^(ContextRenderer|ContextVariableMap|ImportMeta|ImportMetaEnv|Matchers|ProcessEnv|Register|Window)$',
+        match: true,
+      },
+      format: null,
+    },
     {
       selector: [
         'objectLiteralProperty',

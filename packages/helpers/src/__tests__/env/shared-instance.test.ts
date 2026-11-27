@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { applicationEnvironment, AppEnvs } from '../../modules/env/app-env';
 
 /** Loading the module twice through the CommonJS cache is the in-process shape of an ESM import beside a CommonJS require: two module copies, two class identities. */
 const loadTwice = () => {
@@ -11,10 +12,8 @@ const loadTwice = () => {
 };
 
 describe('AppEnvs across module copies', () => {
-  test('applicationEnvironment is the same instance', async () => {
-    const loaded = await import('../../modules/env/app-env');
-
-    expect(loaded.applicationEnvironment).toBe(loaded.AppEnvs);
+  test('applicationEnvironment is the same instance', () => {
+    expect(applicationEnvironment).toBe(AppEnvs);
   });
 
   test('two copies of the module resolve one instance, so a value set through one is read through the other', () => {

@@ -3,7 +3,7 @@ import { PACKAGE_ROOT } from '../package-root';
 import { SpawnUtility } from '@venizia/dev-configs/testing';
 
 /** Bun.build() can't run in-process here (plugin registration dies on unrelated node_modules reads once other suites are loaded); the probe runs in a child process, matching how a real binary compiles. */
-interface TProbeResult {
+interface IProbeResult {
   success: boolean;
   hasOnDiskWasmRead?: boolean;
   hasInlinedWasm?: boolean;
@@ -18,7 +18,7 @@ interface TProbeResult {
   stderr?: string;
 }
 
-const runProbe = (opts: { fixture: string; args: string[] }): TProbeResult => {
+const runProbe = (opts: { fixture: string; args: string[] }): IProbeResult => {
   const script = `src/__tests__/kafka/fixtures/${opts.fixture}.ts`;
 
   const executed = SpawnUtility.spawnSyncBounded({

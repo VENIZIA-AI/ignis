@@ -9,7 +9,7 @@ const trackTimers = (delay: number) => {
   const armed = new Set<unknown>();
 
   globalThis.setTimeout = ((handler: unknown, ms?: number, ...rest: unknown[]) => {
-    const handle = (realSet as AnyTimer)(handler, ms, ...rest);
+    const handle = (realSet as TAnyTimer)(handler, ms, ...rest);
 
     if (ms === delay) {
       armed.add(handle);
@@ -20,7 +20,7 @@ const trackTimers = (delay: number) => {
   globalThis.clearTimeout = ((handle?: unknown) => {
     armed.delete(handle);
 
-    return (realClear as AnyTimer)(handle);
+    return (realClear as TAnyTimer)(handle);
   }) as typeof clearTimeout;
 
   return {
@@ -32,7 +32,7 @@ const trackTimers = (delay: number) => {
   };
 };
 
-type AnyTimer = (...args: unknown[]) => unknown;
+type TAnyTimer = (...args: unknown[]) => unknown;
 
 /** What the promise rejects with; fails the test when it resolves. */
 const rejectionOf = async (execution: Promise<unknown>): Promise<unknown> => {

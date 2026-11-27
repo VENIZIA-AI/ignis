@@ -7,7 +7,7 @@ import { HTTP } from '@venizia/ignis-helpers/common';
  * `ControllerTransports`, which the container's controller mixin imports, importing `Container`
  * alone cost 437 KB - 423 KB of it zod - for a four-line const class.
  */
-export const trackableHeaders = z.object({
+export const TrackableHeadersSchema = z.object({
   [HTTP.Headers.REQUEST_TRACING_ID]: z.string().optional().openapi({
     description: 'Optional request ID',
   }),
@@ -28,7 +28,7 @@ export const trackableHeaders = z.object({
 });
 
 /** Request header schema for the `x-request-count-data` header, which switches a response between `{ count, data }` and the raw payload. */
-export const countableHeaders = z.object({
+export const CountableHeadersSchema = z.object({
   [HTTP.Headers.REQUEST_COUNT_DATA]: z
     .string()
     .optional()
@@ -40,4 +40,6 @@ export const countableHeaders = z.object({
 });
 
 /** Default request headers of a CRUD route: the trackable headers plus the count header. */
-export const defaultRequestHeaders = trackableHeaders.extend(countableHeaders.shape);
+export const DefaultRequestHeadersSchema = TrackableHeadersSchema.extend(
+  CountableHeadersSchema.shape,
+);

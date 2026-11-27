@@ -17,7 +17,7 @@ export const SignInResponseSchema = z.object({
       description: 'Authentication Token',
     }),
 });
-export type TSignInResponseSchema = z.infer<typeof SignInResponseSchema>;
+export type SignInResponseType = z.infer<typeof SignInResponseSchema>;
 
 // ================================================================================
 export const SignUpResponseSchema = z.object({
@@ -25,7 +25,7 @@ export const SignUpResponseSchema = z.object({
     description: 'Sign-Up Response Message',
   }),
 });
-export type TSignUpResponseSchema = z.infer<typeof SignUpResponseSchema>;
+export type SignUpResponseType = z.infer<typeof SignUpResponseSchema>;
 
 // ================================================================================
 export const ChangePasswordResponseSchema = z.object({
@@ -33,4 +33,4 @@ export const ChangePasswordResponseSchema = z.object({
     description: 'Change Password Response Message',
   }),
 });
-export type TChangePasswordResponseSchema = z.infer<typeof ChangePasswordResponseSchema>;
+export type ChangePasswordResponseType = z.infer<typeof ChangePasswordResponseSchema>;

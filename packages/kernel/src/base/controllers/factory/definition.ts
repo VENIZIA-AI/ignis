@@ -16,10 +16,10 @@ import type {
 } from '../common';
 import {
   commonResponseHeaders,
-  defaultRequestHeaders,
+  DefaultRequestHeadersSchema,
   findResponseHeaders,
   RestPaths,
-  trackableHeaders,
+  TrackableHeadersSchema,
 } from '../common';
 
 /** Picks user-overridden response schema if present (and non-undefined), else the default. */
@@ -126,7 +126,7 @@ export class RouteConfigResolver {
     isStrict: boolean;
   }) {
     const { config, isStrict } = opts;
-    const defaultQuery = z
+    const DefaultQuerySchema = z
       .object({
         where: isStrict
           ? WhereSchema
@@ -136,8 +136,8 @@ export class RouteConfigResolver {
 
     return {
       request: {
-        query: config?.request?.query ?? defaultQuery,
-        headers: config?.request?.headers ?? trackableHeaders,
+        query: config?.request?.query ?? DefaultQuerySchema,
+        headers: config?.request?.headers ?? TrackableHeadersSchema,
       },
       response: {
         description: 'Total count of matching records',
@@ -158,7 +158,7 @@ export class RouteConfigResolver {
     return {
       request: {
         query: config?.request?.query ?? defaultQuery,
-        headers: config?.request?.headers ?? defaultRequestHeaders,
+        headers: config?.request?.headers ?? DefaultRequestHeadersSchema,
       },
       response: {
         description: 'Array of matching records (with optional count)',
@@ -182,7 +182,7 @@ export class RouteConfigResolver {
       request: {
         params: RouteConfigResolver.resolveIdParams({ config, idType }),
         query: config?.request?.query ?? defaultQuery,
-        headers: config?.request?.headers ?? defaultRequestHeaders,
+        headers: config?.request?.headers ?? DefaultRequestHeadersSchema,
       },
       response: {
         description: 'Single record matching ID or null',
@@ -205,7 +205,7 @@ export class RouteConfigResolver {
     return {
       request: {
         query: config?.request?.query ?? defaultQuery,
-        headers: config?.request?.headers ?? defaultRequestHeaders,
+        headers: config?.request?.headers ?? DefaultRequestHeadersSchema,
       },
       response: {
         description: 'First matching record or null',
@@ -238,7 +238,7 @@ export class RouteConfigResolver {
             route: 'create',
             serverStampedKeys,
           }),
-        headers: config?.request?.headers ?? defaultRequestHeaders,
+        headers: config?.request?.headers ?? DefaultRequestHeadersSchema,
       },
       response: {
         description: 'Created record with generated fields (id, createdAt, etc.)',
@@ -272,7 +272,7 @@ export class RouteConfigResolver {
             route: 'updateById',
             serverStampedKeys,
           }),
-        headers: config?.request?.headers ?? defaultRequestHeaders,
+        headers: config?.request?.headers ?? DefaultRequestHeadersSchema,
       },
       response: {
         description: 'Updated record with all current fields',
@@ -293,7 +293,7 @@ export class RouteConfigResolver {
     serverStampedKeys: string[];
   }) {
     const { config, selectSchema, updateSchema, serverStampedKeys } = opts;
-    const defaultQuery = z.object({ where: WhereSchema.optional() }).openapi({
+    const DefaultQuerySchema = z.object({ where: WhereSchema.optional() }).openapi({
       description:
         'Where condition selecting the records to update - here or in the body, not both',
     });
@@ -317,9 +317,9 @@ export class RouteConfigResolver {
 
     return {
       request: {
-        query: config?.request?.query ?? defaultQuery,
+        query: config?.request?.query ?? DefaultQuerySchema,
         body: config?.request?.body ?? buildDefaultBody(),
-        headers: config?.request?.headers ?? defaultRequestHeaders,
+        headers: config?.request?.headers ?? DefaultRequestHeadersSchema,
       },
       response: {
         description: 'Array of updated records',
@@ -339,7 +339,7 @@ export class RouteConfigResolver {
     return {
       request: {
         params: RouteConfigResolver.resolveIdParams({ config, idType }),
-        headers: config?.request?.headers ?? defaultRequestHeaders,
+        headers: config?.request?.headers ?? DefaultRequestHeadersSchema,
       },
       response: {
         description: 'Deleted record data',
@@ -354,7 +354,7 @@ export class RouteConfigResolver {
     SelectSchema extends TAnyObjectSchema,
   >(opts: { config: C; selectSchema: SelectSchema }) {
     const { config, selectSchema } = opts;
-    const defaultQuery = z.object({ where: WhereSchema.optional() }).openapi({
+    const DefaultQuerySchema = z.object({ where: WhereSchema.optional() }).openapi({
       description:
         'Where condition selecting the records to delete - here or in the body, not both',
     });
@@ -362,12 +362,12 @@ export class RouteConfigResolver {
 
     return {
       request: {
-        query: config?.request?.query ?? defaultQuery,
+        query: config?.request?.query ?? DefaultQuerySchema,
         // No DEFAULT body schema. Declaring one makes `@hono/zod-openapi` gate the media type, and a
         // client that sends `content-type: application/json` with no body then gets 400 where it used
         // to get 200. The handler reads the body itself; name one here to get the Swagger editor.
         body: config?.request?.body,
-        headers: config?.request?.headers ?? defaultRequestHeaders,
+        headers: config?.request?.headers ?? DefaultRequestHeadersSchema,
       },
       response: {
         description: 'Array of deleted records',
@@ -387,7 +387,7 @@ export class RouteConfigResolver {
     return {
       request: {
         params: RouteConfigResolver.resolveIdParams({ config, idType }),
-        headers: config?.request?.headers ?? defaultRequestHeaders,
+        headers: config?.request?.headers ?? DefaultRequestHeadersSchema,
       },
       response: {
         description: 'Restored record data',
@@ -402,15 +402,15 @@ export class RouteConfigResolver {
     SelectSchema extends TAnyObjectSchema,
   >(opts: { config: C; selectSchema: SelectSchema }) {
     const { config, selectSchema } = opts;
-    const defaultQuery = z.object({ where: WhereSchema.optional() }).openapi({
+    const DefaultQuerySchema = z.object({ where: WhereSchema.optional() }).openapi({
       description: 'Where condition selecting the deleted records to restore',
     });
     const defaultSchema = RouteConfigResolver.conditionalCountResponse(z.array(selectSchema));
 
     return {
       request: {
-        query: config?.request?.query ?? defaultQuery,
-        headers: config?.request?.headers ?? defaultRequestHeaders,
+        query: config?.request?.query ?? DefaultQuerySchema,
+        headers: config?.request?.headers ?? DefaultRequestHeadersSchema,
       },
       response: {
         description: 'Array of restored records',

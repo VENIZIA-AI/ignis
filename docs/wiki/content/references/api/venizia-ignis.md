@@ -562,16 +562,16 @@ await app.start();
 ```ts
 export declare abstract class BaseApplication extends ServerApplication implements IRestApplication {
     protected secretsProvider?: ISecretsHelper;
-    protected secretsRegistration?: ISecretsRegistration;
+    protected secretsRegistration?: TSecretsRegistration;
     protected normalizePath(...segments: string[]): string;
     /** Adds the gRPC branch the kernel cannot own: `GrpcComponent` needs `AbstractGrpcController`, core-only code that reaches `node:module`. */
     registerControllers(): Promise<void>;
-    registerSecrets(): ValueOrPromise<ISecretsRegistration>;
+    registerSecrets(): ValueOrPromise<TSecretsRegistration>;
     hydrateSecrets(): Promise<void>;
     /** Applies each hydrate entry in declaration order; paths that resolve empty while declaring an expectation are collected in `emptyHydrations` rather than failing here. */
     protected hydrateSecretEntries(opts: {
         provider: ISecretsHelper;
-        registration: ISecretsRegistration;
+        registration: TSecretsRegistration;
         emptyHydrations: string[];
         logger: ILogger;
     }): Promise<void>;
@@ -3389,7 +3389,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `ControllerTransports` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `CoreBindings` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `CoreErrorCodes` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
-- `countableHeaders` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `CountableHeadersSchema` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `CountSchema` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `CredentialAlgorithms` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `CredentialUtility` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -3423,7 +3423,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `DEFAULT_UID_LENGTH` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `DEFAULT_UID_MAX_ATTEMPTS` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `DefaultCRUDRepository` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
-- `defaultRequestHeaders` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `DefaultRequestHeadersSchema` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `Defaults` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `del` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `DiskHelper` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -3710,7 +3710,6 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `ISecretRotationEvent` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `ISecretsHelper` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `ISecretsHelperOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
-- `ISecretsRegistration` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IServerConfigMixin` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IService` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IServiceAssertionClaims` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -4039,7 +4038,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TErrorMessageOverride` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TErrorNormalized` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TErrorNormalizeTransformFn` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
-- `TErrorResponse` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `TErrorOutput` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TErrorScope` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TEventHandlerFunction` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TEventHandlerReference` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -4137,7 +4136,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TQueryStringNullishMode` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TQueueElement` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TQueueStatus` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
-- `trackableHeaders` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `TrackableHeadersSchema` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TRecursiveTreeDirection` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TRedisClient` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TRedisSentinelRole` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -4193,6 +4192,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TSecFetchSite` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TSecretProvider` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TSecretRotationHandler` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `TSecretsRegistration` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TSelectedRow` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
 - `TServiceCallerEntry` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TSignInRequest` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)

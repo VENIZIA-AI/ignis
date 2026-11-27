@@ -13,7 +13,7 @@ import { RelationsFactory } from '@/relational/core/repositories/dialect/relatio
 import type { IRelationalConnection } from '@/relational/core/drivers';
 import { AbstractRelationalDataSource } from './abstract';
 import type {
-  IRelationalDataSourceOpening,
+  TRelationalDataSourceOpening,
   IRelationalTransaction,
   TRelationalTransactionOptions,
 } from './common';
@@ -174,7 +174,7 @@ export abstract class BaseRelationalDataSource<
   }
 
   /** Adds the transaction to the handles of the open: `configure()` can run its migrations in one, through the ungated internals. */
-  protected override createOpening(): IRelationalDataSourceOpening<TConnector, Client> {
+  protected override createOpening(): TRelationalDataSourceOpening<TConnector, Client> {
     return {
       ...super.createOpening(),
       beginTransaction: (opts) => this.openTransaction(opts),

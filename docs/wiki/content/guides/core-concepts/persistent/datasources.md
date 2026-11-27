@@ -108,7 +108,7 @@ With `first-use`:
 export class PGliteDataSource extends BasePostgresDataSource<IPGliteSettings, {}, {}, PGlite> {
   override async configure(
     _options?: object,
-    opening?: IRelationalDataSourceOpening<TRelationalConnector, PGlite>,
+    opening?: TRelationalDataSourceOpening<TRelationalConnector, PGlite>,
   ): Promise<void> {
     this.client = new PGlite(this.settings.dataDir);
     await this.client.waitReady;

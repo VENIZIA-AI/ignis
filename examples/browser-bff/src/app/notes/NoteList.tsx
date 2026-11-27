@@ -9,10 +9,10 @@ import {
   TableHeader,
   TableRow,
 } from '~/components/ui/table';
-import type { TNoteRecord } from './types';
+import type { INoteRecord } from './types';
 
 const NoteRows = () => {
-  const { data, total, isPending, error } = useListContext<TNoteRecord>();
+  const { data, total, isPending, error } = useListContext<INoteRecord>();
   const [remove] = useDelete();
   const notify = useNotify();
   const refresh = useRefresh();
@@ -36,7 +36,7 @@ const NoteRows = () => {
     return <p className="text-muted-foreground text-sm">No notes yet. Create one above.</p>;
   }
 
-  const onDelete = (record: TNoteRecord): void => {
+  const onDelete = (record: INoteRecord): void => {
     // Failure is reported from `.catch`, not from an `onError` callback: one place to keep correct,
     // and the shared lint rules want the returned promise handled rather than dropped.
     remove(

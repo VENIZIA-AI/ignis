@@ -1,6 +1,6 @@
 import { getError } from '@/modules/error';
 import { ModuleUtility } from '@/utilities/module.utility';
-import { SecretProviders, type ISecretsHelper, type ISecretsRegistration } from './common';
+import { SecretProviders, type ISecretsHelper, type TSecretsRegistration } from './common';
 import { DotenvVaultHelper } from './dotenv';
 import { HashiCorpVaultHelper } from './hashicorp';
 import { SystemEnvsHelper } from './system-envs';
@@ -10,7 +10,7 @@ import { SystemEnvsHelper } from './system-envs';
 /** Builds the `ISecretsHelper` for a registration by its `provider`. Throws when the provider is unknown, or when the provider package is neither installed, registered, nor injected through the config. */
 export class SecretsHelperFactory {
   static async create(
-    opts: ISecretsRegistration & { identifier?: string },
+    opts: TSecretsRegistration & { identifier?: string },
   ): Promise<ISecretsHelper> {
     const shared = {
       identifier: opts.identifier,

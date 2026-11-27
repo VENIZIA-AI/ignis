@@ -79,7 +79,7 @@ export declare abstract class BaseRelationalDataSource<Settings extends object =
     };
     beginTransaction(opts?: TRelationalTransactionOptions): Promise<IRelationalTransaction<TConnector>>;
     /** Adds the transaction to the handles of the open: `configure()` can run its migrations in one, through the ungated internals. */
-    protected createOpening(): IRelationalDataSourceOpening<TConnector, Client>;
+    protected createOpening(): TRelationalDataSourceOpening<TConnector, Client>;
     /** A transaction on a connection of its own, with no gate: for `beginTransaction()` (after the open) and for the open itself. */
     private openTransaction;
     /** The engine's own BEGIN. Postgres interpolates an isolation level; SQLite has none and uses `BEGIN IMMEDIATE`. Never parameterized - `BEGIN ... ISOLATION LEVEL $1` is not valid SQL. */
@@ -721,30 +721,6 @@ export interface IRelationalDataSource<Settings extends object = {}, Schema exte
     getQueryExecutor(): IRelationalQueryExecutor<TConnector>;
     beginTransaction(opts?: TRelationalTransactionOptions): Promise<IRelationalTransaction<TConnector>>;
 }
-```
-
-Source: `packages/connectors/src/relational/core/datasources/common/types.ts`
-
-## `IRelationalDataSourceOpening`
-
-*type*
-
-The handles a relational datasource's `configure()` is given as its second argument, typed by the datasource's own
-connector and client: `opening.getClient()` of a PGlite datasource is a `PGlite`.
-
-**Example**
-```typescript
-override async configure(
-  _options?: object,
-  opening?: IRelationalDataSourceOpening<TRelationalConnector, PGlite>,
-): Promise<void> {
-  this.client = new PGlite(this.settings.dataDir);
-  const transaction = await opening!.beginTransaction(); // migrations, seeding
-}
-```
-
-```ts
-export type IRelationalDataSourceOpening<TConnector, Client> = IDataSourceOpening<TConnector, Client, IRelationalTransaction<TConnector>, TRelationalTransactionOptions>;
 ```
 
 Source: `packages/connectors/src/relational/core/datasources/common/types.ts`
@@ -2689,6 +2665,30 @@ export type TRelationalConnectorOf<TDataSource extends IRelationalDataSource> = 
 ```
 
 Source: `packages/connectors/src/relational/core/repositories/common/types.ts`
+
+## `TRelationalDataSourceOpening`
+
+*type*
+
+The handles a relational datasource's `configure()` is given as its second argument, typed by the datasource's own
+connector and client: `opening.getClient()` of a PGlite datasource is a `PGlite`.
+
+**Example**
+```typescript
+override async configure(
+  _options?: object,
+  opening?: TRelationalDataSourceOpening<TRelationalConnector, PGlite>,
+): Promise<void> {
+  this.client = new PGlite(this.settings.dataDir);
+  const transaction = await opening!.beginTransaction(); // migrations, seeding
+}
+```
+
+```ts
+export type TRelationalDataSourceOpening<TConnector, Client> = IDataSourceOpening<TConnector, Client, IRelationalTransaction<TConnector>, TRelationalTransactionOptions>;
+```
+
+Source: `packages/connectors/src/relational/core/datasources/common/types.ts`
 
 ## `TRelationalDialect`
 

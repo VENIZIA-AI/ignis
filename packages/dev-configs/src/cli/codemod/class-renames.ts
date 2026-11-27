@@ -5,7 +5,8 @@ import { CliOutput } from '../../common/cli-output';
 
 const USAGE = `Usage: devz codemod class-renames [paths...] [--write [--all] | --check] [--reverse]
 
-Renames the classes IGNIS renamed, at the import and at every use in the file: RetryHelper, SlugHelper
+Renames the exports IGNIS renamed, at the import and at every use in the file: the zod schemas and types renamed
+with the naming rules (such as trackableHeaders to TrackableHeadersSchema), and the classes RetryHelper, SlugHelper
 and CredentialHelper (@venizia/ignis-helpers) become RetryUtility, SlugUtility and CredentialUtility,
 RejectionHelper and SpawnHelper (@venizia/dev-configs/testing) become RejectionUtility and SpawnUtility. One
 table, in this file; a later rename adds a row.
@@ -60,6 +61,8 @@ export interface IClassRename {
 /** `@venizia/ignis` re-exports the helpers as types only, so a value import of these classes comes from `@venizia/ignis-helpers`. */
 const HELPERS = ['@venizia/ignis-helpers', '@venizia/ignis'];
 const TESTING = ['@venizia/dev-configs/testing'];
+const KERNEL = ['@venizia/ignis-kernel', '@venizia/ignis'];
+const CONNECTORS = ['@venizia/ignis-connectors', '@venizia/ignis'];
 
 /** The renamed classes: add a row for the next rename. */
 export class ClassRenameTable {
@@ -69,6 +72,17 @@ export class ClassRenameTable {
     { oldName: 'CredentialHelper', newName: 'CredentialUtility', packages: HELPERS },
     { oldName: 'RejectionHelper', newName: 'RejectionUtility', packages: TESTING },
     { oldName: 'SpawnHelper', newName: 'SpawnUtility', packages: TESTING },
+    { oldName: 'trackableHeaders', newName: 'TrackableHeadersSchema', packages: KERNEL },
+    { oldName: 'countableHeaders', newName: 'CountableHeadersSchema', packages: KERNEL },
+    { oldName: 'defaultRequestHeaders', newName: 'DefaultRequestHeadersSchema', packages: KERNEL },
+    { oldName: 'TErrorResponse', newName: 'TErrorOutput', packages: KERNEL },
+    { oldName: 'vaultAuthSchema', newName: 'VaultAuthSchema', packages: HELPERS },
+    { oldName: 'ISecretsRegistration', newName: 'TSecretsRegistration', packages: HELPERS },
+    {
+      oldName: 'IRelationalDataSourceOpening',
+      newName: 'TRelationalDataSourceOpening',
+      packages: CONNECTORS,
+    },
   ];
 }
 

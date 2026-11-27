@@ -1,5 +1,5 @@
 import { BaseApplication } from '@/base/applications/base';
-import { SecretProviders, type ISecretsRegistration } from '@venizia/ignis-helpers';
+import { SecretProviders, type TSecretsRegistration } from '@venizia/ignis-helpers';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
 
@@ -16,7 +16,7 @@ class FailingSecretsApp extends BaseApplication {
   override preConfigure() {}
   override postConfigure() {}
   override setupMiddlewares() {}
-  override registerSecrets(): ISecretsRegistration {
+  override registerSecrets(): TSecretsRegistration {
     // system-envs cannot fail; force a failure by pointing at a provider whose configure throws.
     return {
       provider: SecretProviders.HASHICORP_VAULT,
