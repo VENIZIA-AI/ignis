@@ -1,7 +1,7 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { BaseProvider } from '@venizia/ignis-kernel';
 import type { Container } from '@/helpers';
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import type {
   IAmazonSesMailOptions,
   ICustomMailOptions,
@@ -117,10 +117,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
     if (!MailTypeUtility.isTransport(options.config)) {
       const config: unknown = options.config;
       const missingMethods = ['send', 'verify'].filter(
-        (method) =>
-          typeof config !== 'object' ||
-          config === null ||
-          typeof Reflect.get(config, method) !== 'function',
+        (method) => !RecordUtility.isRecord(config) || typeof config[method] !== 'function',
       );
 
       throw getError({

@@ -94,14 +94,9 @@ export class BuildInfoResolver extends BaseHelper {
       // `rev-parse --abbrev-ref HEAD` in a repository with no commit prints the literal `HEAD` on
       // stdout while exiting 128, so the exit code decides and stdout alone never does: a nonzero
       // exit rejects here whatever it printed.
-      const code = error instanceof Object && 'code' in error ? error.code : undefined;
-
-      if (typeof code === 'number') {
-        const stderr =
-          error instanceof Object && 'stderr' in error && typeof error.stderr === 'string'
-            ? error.stderr
-            : '';
-        this.logger.debug('git %s | exit: %d | %s', args.join(' '), code, stderr.trim());
+      if (error instanceof Error && 'code' in error && typeof error.code === 'number') {
+        const stderr = 'stderr' in error && typeof error.stderr === 'string' ? error.stderr : '';
+        this.logger.debug('git %s | exit: %d | %s', args.join(' '), error.code, stderr.trim());
       } else {
         this.logger.debug('git %s | unavailable: %s', args.join(' '), error);
       }
