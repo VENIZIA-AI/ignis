@@ -17,9 +17,11 @@ export const fetchClient = createFetchClient<paths>({ baseUrl: '/api' });
 fetchClient.use({
   onRequest: ({ request }) => {
     const token = tokenStore.get();
+
     if (token) {
       request.headers.set('Authorization', `Bearer ${token}`);
     }
+
     return request;
   },
 });

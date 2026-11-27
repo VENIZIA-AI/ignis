@@ -152,9 +152,10 @@ tags: [process, build]
     (TS1309). `make preset-smoke` runs typecheck, lint, test and compile on a generated app, checks
     the stamp is inside `dist/bin`, calls `/api/hello` on the binary and checks `clean` removes `dist`.
 
-`make examples-check` type-checks every example (`tsc --noEmit` per `examples/*/tsconfig.json`) against the built
+`make examples-check` type-checks every example (`tsc --noEmit` per `examples/*/tsconfig.json`) and runs its `lint` script, against the built
 packages and reports every failing example before it fails; CI runs it after `make build-all` and the workspace
-bin link. Lint only format-checks the examples, so a type a package forgot to export breaks here first.
+bin link. `make lint-all` only format-checks the examples, so a lint error or a type a package forgot to export
+breaks here first. An error fails the gate, and so does an oxlint warning; an ESLint warning (the type-cast rule) does not.
 
 ## Related
 

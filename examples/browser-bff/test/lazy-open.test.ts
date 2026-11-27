@@ -72,6 +72,8 @@ describe('browser-bff opens PGlite on first use', () => {
     );
 
     expect(dataSource.isOpen()).toBe(true);
-    expect(await notes.count({ where: {} })).toEqual({ count: 6 });
+    const total = await notes.count({ where: {} });
+
+    expect(total).toEqual({ count: 6 });
   });
 });

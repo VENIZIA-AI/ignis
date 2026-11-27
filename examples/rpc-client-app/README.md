@@ -41,7 +41,7 @@ bun run compile    # bun check, then vite build - fails where the client no long
 | `bun run compile` | Typecheck, then bundle into `dist/` |
 | `bun run vite preview` | Serve `dist/`, with the same `/api` forwarding |
 | `bun run generate` | Rewrite `src/api/schema.d.ts` from the running server |
-| `bun run typecheck` / `bun run lint` | `bun check` / `eslint .` |
+| `bun run typecheck` / `bun run lint` | `bun check` / `devz lint` |
 
 ---
 
