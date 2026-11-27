@@ -257,10 +257,11 @@ export class ParseUtility {
    * `y`, `enabled` are `true`; `false`, `0`, `no`, `off`, `n`, `disabled` are `false`. A boolean is itself, the numbers
    * `1` and `0` read like their text, and `null`, `undefined` and a blank string are `false`.
    *
+   * @param opts.name - The setting or field the value is read from; only the error message uses it.
    * @throws A 400 error for anything else, another number and `NaN` included.
    */
-  static toBoolean(opts: { input: unknown }): boolean {
-    const { input } = opts;
+  static toBoolean(opts: { input: unknown; name?: string }): boolean {
+    const { input, name } = opts;
 
     if (typeof input === 'boolean') {
       return input;
@@ -283,7 +284,7 @@ export class ParseUtility {
     }
 
     throw getError({
-      message: `[toBoolean] ${ParseUtility.echoRejected({ value: input })} is not a boolean`,
+      message: `[toBoolean] ${name === undefined ? '' : `${name}: `}${ParseUtility.echoRejected({ value: input })} is not a boolean`,
     });
   }
 

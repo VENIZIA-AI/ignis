@@ -18,7 +18,7 @@
  * filter. Both are bootstrap variables and are read straight off `process.env`, which is the one
  * legitimate exception to "do not read process.env directly". Neither has to be declared or set:
  * the prefix defaults to `APP_ENV`, and empty values are allowed unless you set
- * `ALLOW_EMPTY_ENV_VALUE` to `false` or `0`.
+ * `ALLOW_EMPTY_ENV_VALUE` to a false word (see `ParseUtility.toBoolean`).
  */
 export class EnvironmentKeys {
   // --- Read by the framework -------------------------------------------------------------------

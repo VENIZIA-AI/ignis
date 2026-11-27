@@ -32,7 +32,7 @@ class RequestCountData {
       return ParseUtility.toBoolean({ input: header });
     } catch (error) {
       LoggerFactory.getLogger([RequestCountData.name]).debug(
-        'x-request-count is no boolean | Counted as true | Error: %o',
+        'x-request-count is no boolean | Counted as true | Error: %s',
         error,
       );
 

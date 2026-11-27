@@ -191,6 +191,12 @@ describe('toBoolean', () => {
     expect(performance.now() - started).toBeLessThan(500);
   });
 
+  test('names the setting in the message when given its name', () => {
+    expect(() => ParseUtility.toBoolean({ input: 'maybe', name: 'APP_ENV_A' })).toThrow(
+      '[toBoolean] APP_ENV_A: "maybe" is not a boolean',
+    );
+  });
+
   test('echoes a long rejected value shortened', () => {
     expect(() => ParseUtility.toBoolean({ input: 'x'.repeat(500) })).toThrow(/^.{0,120}$/);
   });

@@ -38,7 +38,10 @@ export abstract class BaseSearchDataSource<
     // barrel, and a free `process` identifier throws a ReferenceError outside Node.
     this.autoProvision =
       opts.autoProvision ??
-      ParseUtility.toBoolean({ input: globalThis.process?.env?.APP_ENV_AUTO_PROVISION_COLLECTION });
+      ParseUtility.toBoolean({
+        input: globalThis.process?.env?.APP_ENV_AUTO_PROVISION_COLLECTION,
+        name: 'APP_ENV_AUTO_PROVISION_COLLECTION',
+      });
     this.logger.info(
       '[constructor] Auto Provision Collection - autoProvision: %s',
       this.autoProvision,
