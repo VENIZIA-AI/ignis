@@ -73,17 +73,18 @@ afterAll(async () => {
 });
 
 describe('the root barrel survives bun build', () => {
-  test('Environment, AppEnvs and LoggerFactory are defined in a bundle of the barrel', async () => {
+  test('Environment, AppEnvs, applicationEnvironment and LoggerFactory are defined in a bundle of the barrel', async () => {
     const result = await runBundled({
       name: 'barrel-exports',
       entrySource:
-        `import { Environment, AppEnvs, LoggerFactory } from ${JSON.stringify(BARREL_PATH)};\n` +
-        `console.log('RESULT:' + JSON.stringify({ production: Environment.PRODUCTION, AppEnvs: typeof AppEnvs, loggerFactory: typeof LoggerFactory }));\n`,
+        `import { Environment, AppEnvs, applicationEnvironment, LoggerFactory } from ${JSON.stringify(BARREL_PATH)};\n` +
+        `console.log('RESULT:' + JSON.stringify({ production: Environment.PRODUCTION, AppEnvs: typeof AppEnvs, applicationEnvironment: typeof applicationEnvironment, loggerFactory: typeof LoggerFactory }));\n`,
     });
 
     expect(JSON.parse(result)).toEqual({
       production: 'production',
       AppEnvs: 'object',
+      applicationEnvironment: 'object',
       loggerFactory: 'function',
     });
   });

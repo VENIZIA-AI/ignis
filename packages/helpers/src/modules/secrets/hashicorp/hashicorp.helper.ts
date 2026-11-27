@@ -3,11 +3,11 @@ import { getError } from '@/modules/error';
 import { ModuleUtility } from '@/utilities/module.utility';
 import { AbstractSecretsHelper } from '../base';
 import { VaultAuthMethods, type IClock, type ITimerAdapter, type TTimerHandle } from '../common';
-import { vaultAuthSchema, type TVaultAuth } from './auth';
+import { VaultAuthSchema, type TVaultAuth } from './auth';
 
 // node-vault's wire contract uses snake_case (role_id, secret_id, client_token, lease_duration, ...); built/read via bracket-notation on a record here so the snake_case stays confined to this boundary instead of leaking into our camelCase-only typing convention.
 /** What Vault answers is the body node-vault passes on: nothing is assumed of it, each key is read and narrowed where it is used. */
-interface TVaultClient {
+interface IVaultClient {
   token: string;
   read(path: string): Promise<unknown>;
   write(path: string, data: Record<string, unknown>): Promise<unknown>;
@@ -39,7 +39,7 @@ export interface IHashiCorpVaultHelperOptions {
   clock?: IClock;
   timers?: ITimerAdapter;
   /** Injection seam for tests; production builds the real node-vault client in configure(). */
-  client?: TVaultClient;
+  client?: IVaultClient;
 }
 
 /** Secrets provider backed by HashiCorp Vault via `node-vault`. `configure()` must run before use; it logs in and schedules renewal of the Vault token when the token is renewable. */
@@ -49,7 +49,7 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
 
   private readonly endpoint: string;
   private readonly auth: TVaultAuth;
-  private client?: TVaultClient;
+  private client?: IVaultClient;
   private tokenTimer?: TTimerHandle;
   private tokenRenewalRetryCount = 0;
 
@@ -65,7 +65,7 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
     this.endpoint = opts.endpoint;
 
     try {
-      this.auth = vaultAuthSchema.parse(opts.auth);
+      this.auth = VaultAuthSchema.parse(opts.auth);
     } catch (error) {
       throw getError({
         message: `[HashiCorpVaultHelper] Invalid Vault auth configuration | ${
@@ -82,7 +82,7 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
 
     if (!this.client) {
       const result = await ModuleUtility.load<{
-        default: (opts: { endpoint: string; apiVersion: string }) => TVaultClient;
+        default: (opts: { endpoint: string; apiVersion: string }) => IVaultClient;
       }>({
         module: 'node-vault',
       });
@@ -118,7 +118,7 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
     return token;
   }
 
-  private requireClient(): TVaultClient {
+  private requireClient(): IVaultClient {
     if (!this.client) {
       throw getError({ message: '[HashiCorpVaultHelper] configure() must run before use' });
     }

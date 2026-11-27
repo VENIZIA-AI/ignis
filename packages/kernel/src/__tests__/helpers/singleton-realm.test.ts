@@ -17,7 +17,7 @@ const PROBE_ROOT = join(PACKAGE_ROOT, 'node_modules', '.singleton-realm-probe');
 
 type TKernelModule = typeof import('@/index');
 
-type SingletonName =
+type TSingletonName =
   | 'MetadataRegistry'
   | 'AuthenticationStrategyRegistry'
   | 'AuthorizationEnforcerRegistry'
@@ -86,7 +86,7 @@ describe('a second copy of the kernel is harmless, not forbidden', () => {
     }
   });
 
-  test.each<[SingletonName]>([
+  test.each<[TSingletonName]>([
     ['MetadataRegistry'],
     ['AuthenticationStrategyRegistry'],
     ['AuthorizationEnforcerRegistry'],

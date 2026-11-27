@@ -92,7 +92,7 @@ export interface IEnvGetResult {
   skipped: Array<{ line: number; receiver: string }>;
 }
 
-/** Rewrites the type arguments of `applicationEnvironment.get()` calls. */
+/** Rewrites the type arguments of `AppEnvs.get()` calls, the store imported under either of its names. */
 export class EnvGet {
   /** The names a declaration in `node` binds, for `node` a scope: a block or file, a function, a loop or a catch clause. */
   private static declarationIn(opts: {
@@ -650,7 +650,7 @@ export class EnvGet {
   }
 }
 
-/** `devz codemod env-get [paths...] [--write | --check]`: rewrites the type arguments of `applicationEnvironment.get()`. */
+/** `devz codemod env-get [paths...] [--write | --check]`: rewrites the type arguments of `AppEnvs.get()` (and `applicationEnvironment.get()`). */
 export class EnvGetCommand {
   static readonly USAGE = USAGE;
 

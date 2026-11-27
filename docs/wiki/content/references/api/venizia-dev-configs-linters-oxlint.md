@@ -194,7 +194,10 @@ The selectors are the LoopBack 4 set the base preset carried, kept one for one.
 export declare class NamingConventionRule {
     static readonly NAME = "@typescript-eslint/naming-convention";
     static readonly SELECTORS: readonly TNamingSelector[];
-    /** `extraSelectors` go last, so they win over a base selector they overlap. */
+    /**
+     * `extraSelectors` are appended, but position decides nothing: typescript-eslint orders selectors by how specific
+     * they are. To let a name through the base type selectors, give a selector a `filter` and `format: null`.
+     */
     static build(opts?: {
         severity?: TRuleSeverity;
         extraSelectors?: TNamingSelector[];

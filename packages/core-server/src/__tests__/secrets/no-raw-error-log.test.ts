@@ -5,7 +5,7 @@ import {
   SystemEnvsHelper,
   LogFormatUtility,
   LoggerFactory,
-  type ISecretsRegistration,
+  type TSecretsRegistration,
 } from '@venizia/ignis-helpers';
 import { Logger } from '@venizia/ignis-helpers/winston';
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
@@ -32,7 +32,7 @@ class SystemEnvsBackedApp extends BaseApplication {
   override preConfigure() {}
   override postConfigure() {}
   override setupMiddlewares() {}
-  override registerSecrets(): ISecretsRegistration {
+  override registerSecrets(): TSecretsRegistration {
     return { provider: SecretProviders.SYSTEM_ENVS };
   }
 }

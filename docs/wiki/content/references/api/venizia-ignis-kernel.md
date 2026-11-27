@@ -1998,14 +1998,14 @@ export declare class CoreBindings extends BindingKeys {
 
 Source: `packages/kernel/src/common/bindings.ts`
 
-## `countableHeaders`
+## `CountableHeadersSchema`
 
 *const*
 
 Request header schema for the `x-request-count-data` header, which switches a response between `{ count, data }` and the raw payload.
 
 ```ts
-export declare const countableHeaders: z.ZodObject<{
+export declare const CountableHeadersSchema: z.ZodObject<{
     "x-request-count": z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 ```
@@ -2394,14 +2394,14 @@ export declare class DataSourceOpenModes extends ConstClass {
 
 Source: `packages/kernel/src/base/datasources/common/types.ts`
 
-## `defaultRequestHeaders`
+## `DefaultRequestHeadersSchema`
 
 *const*
 
 Default request headers of a CRUD route: the trackable headers plus the count header.
 
 ```ts
-export declare const defaultRequestHeaders: z.ZodObject<{
+export declare const DefaultRequestHeadersSchema: z.ZodObject<{
     "x-request-id": z.ZodOptional<z.ZodString>;
     "x-request-channel": z.ZodOptional<z.ZodString>;
     "x-device-info": z.ZodOptional<z.ZodString>;
@@ -8062,14 +8062,14 @@ export type TErrorLogFormatter = (opts: {
 
 Source: `packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts`
 
-## `TErrorResponse`
+## `TErrorOutput`
 
 *type*
 
 The error response body type inferred from `ErrorSchema`.
 
 ```ts
-export type TErrorResponse = z.infer<typeof ErrorSchema>;
+export type TErrorOutput = z.infer<typeof ErrorSchema>;
 ```
 
 Source: `packages/kernel/src/base/models/common/schemas.ts`
@@ -8589,7 +8589,7 @@ export type TQueryOperatorHandlers = Record<string, (opts: IQueryHandlerOptions)
 
 Source: `packages/kernel/src/base/repositories/common/types/query.ts`
 
-## `trackableHeaders`
+## `TrackableHeadersSchema`
 
 *const*
 
@@ -8599,7 +8599,7 @@ module load, so any bundle reaching this file carries the whole of zod. While th
 alone cost 437 KB - 423 KB of it zod - for a four-line const class.
 
 ```ts
-export declare const trackableHeaders: z.ZodObject<{
+export declare const TrackableHeadersSchema: z.ZodObject<{
     "x-request-id": z.ZodOptional<z.ZodString>;
     "x-request-channel": z.ZodOptional<z.ZodString>;
     "x-device-info": z.ZodOptional<z.ZodString>;

@@ -2,8 +2,8 @@ import { z } from '@hono/zod-openapi';
 import { AuthenticateStrategy, type IAuthRouteConfig, OpenApiResponses } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
-const route5BodySchema = z.object({ name: z.string(), age: z.number().int().positive() });
-export type TRoute5Body = z.infer<typeof route5BodySchema>;
+const Route5BodySchema = z.object({ name: z.string(), age: z.number().int().positive() });
+export type TRoute5Body = z.infer<typeof Route5BodySchema>;
 
 // Define route configs as const for type inference
 export const RouteConfigs: Record<string, IAuthRouteConfig> = {
@@ -53,7 +53,7 @@ export const RouteConfigs: Record<string, IAuthRouteConfig> = {
     request: {
       body: OpenApiResponses.jsonContent({
         description: 'Request body for POST',
-        schema: route5BodySchema,
+        schema: Route5BodySchema,
       }),
     },
     responses: OpenApiResponses.jsonResponse({

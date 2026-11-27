@@ -22,14 +22,14 @@ export type TRelationalTransactionOptions = ITransactionOptions;
  * ```typescript
  * override async configure(
  *   _options?: object,
- *   opening?: IRelationalDataSourceOpening<TRelationalConnector, PGlite>,
+ *   opening?: TRelationalDataSourceOpening<TRelationalConnector, PGlite>,
  * ): Promise<void> {
  *   this.client = new PGlite(this.settings.dataDir);
  *   const transaction = await opening!.beginTransaction(); // migrations, seeding
  * }
  * ```
  */
-export type IRelationalDataSourceOpening<TConnector, Client> = IDataSourceOpening<
+export type TRelationalDataSourceOpening<TConnector, Client> = IDataSourceOpening<
   TConnector,
   Client,
   IRelationalTransaction<TConnector>,

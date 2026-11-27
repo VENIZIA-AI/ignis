@@ -135,10 +135,10 @@ describe('getError - by definition', () => {
 
 describe('TRegisterErrors', () => {
   test('yields the union of catalogued keys as literal types', () => {
-    type Registered = TRegisterErrors<typeof CategoryErrors>;
+    type TRegistered = TRegisterErrors<typeof CategoryErrors>;
 
     // If `key` widened to `string` this assignment fails to compile - which is the whole point: the registry needs literals, so MessageCode.build (returns `string`) cannot be used here.
-    const registered: Registered = { 'server.commerce.category.create.duplicate_name': true };
+    const registered: TRegistered = { 'server.commerce.category.create.duplicate_name': true };
 
     expect(registered['server.commerce.category.create.duplicate_name']).toBe(true);
   });

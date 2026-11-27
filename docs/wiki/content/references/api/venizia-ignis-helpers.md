@@ -3026,18 +3026,6 @@ export interface ISecretsHelperOptions {
 
 Source: `packages/helpers/src/modules/secrets/common/types/helper.ts`
 
-## `ISecretsRegistration`
-
-*type*
-
-Declares a secrets provider with the bundles to hydrate and the secrets to lease: the `provider` selects the shape of `config`.
-
-```ts
-export type ISecretsRegistration = ISystemEnvsSecretsRegistration | IHashiCorpSecretsRegistration | IDotenvSecretsRegistration;
-```
-
-Source: `packages/helpers/src/modules/secrets/common/types/registration.ts`
-
 ## `isPromiseLike`
 
 *const*
@@ -4461,7 +4449,7 @@ Builds the `ISecretsHelper` for a registration by its `provider`. Throws when th
 
 ```ts
 export declare class SecretsHelperFactory {
-    static create(opts: ISecretsRegistration & {
+    static create(opts: TSecretsRegistration & {
         identifier?: string;
     }): Promise<ISecretsHelper>;
 }
@@ -4943,6 +4931,18 @@ export type TSecretRotationHandler = (event: ISecretRotationEvent) => ValueOrPro
 ```
 
 Source: `packages/helpers/src/modules/secrets/common/types/lease.ts`
+
+## `TSecretsRegistration`
+
+*type*
+
+Declares a secrets provider with the bundles to hydrate and the secrets to lease: the `provider` selects the shape of `config`.
+
+```ts
+export type TSecretsRegistration = ISystemEnvsSecretsRegistration | IHashiCorpSecretsRegistration | IDotenvSecretsRegistration;
+```
+
+Source: `packages/helpers/src/modules/secrets/common/types/registration.ts`
 
 ## `TStorageType`
 

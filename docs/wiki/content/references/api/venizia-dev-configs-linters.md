@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs/linters, from the built decla
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-38 exports, 38 with TSDoc. 30 more are re-exported from other entries (listed at the end).
+40 exports, 40 with TSDoc. 30 more are re-exported from other entries (listed at the end).
 
 ## `AstNode`
 
@@ -536,6 +536,31 @@ export declare class ImportSupport {
 ```
 
 Source: `packages/dev-configs/src/linters/house/import-support.ts`
+
+## `IZodSchemaConventionOptions`
+
+*interface*
+
+The checks of `@venizia/zod-schema-convention`, as its options take them.
+
+```ts
+export interface IZodSchemaConventionOptions {
+    /** A const that holds a schema is PascalCase and ends in `Schema`. @default true */
+    schemaName?: boolean;
+    /** A type inferred from a schema `XSchema` is named `TX` or `XType`. @default true */
+    typeName?: boolean;
+    /** Globs, from the working directory, of the files where an object schema is `z.strictObject`. @default [] */
+    strictPaths?: ReadonlyArray<string>;
+    /** Globs, from the working directory, of the files where `z.any()` is refused. @default [] */
+    noAnyPaths?: ReadonlyArray<string>;
+    /** Skips test files. @default true */
+    ignoreTests?: boolean;
+    /** Names of consts and types the two name checks leave alone. @default [] */
+    ignore?: ReadonlyArray<string>;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/zod-schema-convention.rule.ts`
 
 ## `MaxParamsOwnRule`
 
@@ -1206,6 +1231,66 @@ export type TFrameworkApiMatch = TBrowserApiMatch
 ```
 
 Source: `packages/dev-configs/src/linters/house/framework-api-patterns.ts`
+
+## `ZodSchemaConventionRule`
+
+*class*
+
+`@venizia/zod-schema-convention`. How a zod schema is named, how its inferred types are named, and, in the files a
+project lists, that objects are strict and `any` is not used.
+
+A schema is recognised file by file, without types: a call chain that starts at an import of `zod` (or `z` of
+`@hono/zod-openapi`), at another schema const of the file, or at an import named `...Schema` / `..._SCHEMA` through a
+method that builds a schema (`extend`, `pick`, ...). An imported schema under another name, a member
+(`this.schema.extend`), a factory's result and a schema held in an object are not followed.
+
+```ts
+export declare class ZodSchemaConventionRule {
+    static readonly NAME = "@venizia/zod-schema-convention";
+    private static readonly ZOD_SOURCE;
+    /** Re-exports `z` next to its own functions (`createRoute`), so only its `z` is zod. */
+    private static readonly HONO_SOURCE;
+    private static readonly SCHEMA_NAME;
+    private static readonly SUFFIX;
+    /** An import that names a schema: something before the suffix, so a bare `Schema` of another library is not one. */
+    private static readonly IMPORTED_SCHEMA;
+    /** zod's classes: `ZodError.create([])` answers a value, not a schema. */
+    private static readonly ZOD_CLASS;
+    private static readonly TEST_FILE;
+    /** The methods that make a schema of an imported one; any other call on it may answer a value. */
+    private static readonly DERIVATIONS;
+    /** A chain through one of these answers a value, an error report or a part of a schema, not a schema. */
+    private static readonly NOT_A_SCHEMA;
+    /** The wrappers a type adds around an expression. */
+    private static readonly WRAPPERS;
+    private static readonly INFERENCES;
+    private static readString;
+    /** Whether the member access `node` leaves the schema: its value is not one. */
+    private static isOutside;
+    /**
+     * The identifier a call chain starts from, the member its first call goes through (`''` when it calls the identifier
+     * itself), when it has a call and stays a schema.
+     */
+    private static chainOf;
+    /** The declaration an identifier resolves to, from the scope it is read in. */
+    private static definitionOf;
+    /** The name zod exports what an import binds, when the import is zod's: `''` for a default or a namespace. */
+    private static zodImport;
+    /** Whether `expression` builds a schema; `seen` stops a declaration that refers to itself. */
+    private static isSchema;
+    /** `saleOrder`, `SALE_ORDER` and `SaleOrder` are all `SaleOrder`. */
+    private static toPascalCase;
+    /** The name of the schema a type alias infers from, and by which inference; `undefined` for any other type. */
+    private static inferenceOf;
+    private static matches;
+    static readonly RULE: Rule.RuleModule;
+    static build(opts?: IZodSchemaConventionOptions & {
+        severity?: TRuleSeverity;
+    }): Linter.RuleEntry;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/zod-schema-convention.rule.ts`
 
 ## Re-exported
 

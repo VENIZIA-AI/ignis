@@ -1,5 +1,5 @@
 import { BaseApplication } from '@/base/applications/base';
-import { SecretProviders, type ISecretsRegistration } from '@venizia/ignis-helpers';
+import { SecretProviders, type TSecretsRegistration } from '@venizia/ignis-helpers';
 import { describe, expect, test } from 'bun:test';
 
 class OrderApp extends BaseApplication {
@@ -18,7 +18,7 @@ class OrderApp extends BaseApplication {
   override postConfigure() {}
   override setupMiddlewares() {}
 
-  override registerSecrets(): ISecretsRegistration {
+  override registerSecrets(): TSecretsRegistration {
     this.order.push('hydrate');
 
     return { provider: SecretProviders.SYSTEM_ENVS };

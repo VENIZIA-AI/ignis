@@ -252,7 +252,7 @@ export class SearchControllerFactory extends BaseHelper {
       isQueryBySettable,
     });
 
-    const searchResponseSchema = z.object({
+    const SearchResponseSchema = z.object({
       found: z.number(),
       isFoundExact: z
         .boolean()
@@ -260,7 +260,7 @@ export class SearchControllerFactory extends BaseHelper {
       hits: z.array(z.object({ document: opts.responseDocument ?? selectSchema })),
     });
 
-    const multiSearchResponseSchema = z.record(z.string(), z.unknown());
+    const MultiSearchResponseSchema = z.record(z.string(), z.unknown());
 
     const resolvedAuthenticate = authenticate ?? {};
 
@@ -280,7 +280,7 @@ export class SearchControllerFactory extends BaseHelper {
         },
         responses: OpenApiResponses.jsonResponse({
           description: 'Search results',
-          schema: searchResponseSchema,
+          schema: SearchResponseSchema,
         }),
       },
 
@@ -299,7 +299,7 @@ export class SearchControllerFactory extends BaseHelper {
         },
         responses: OpenApiResponses.jsonResponse({
           description: 'Federated (or, when union is true, merged) search results',
-          schema: multiSearchResponseSchema,
+          schema: MultiSearchResponseSchema,
         }),
       },
     } as const;

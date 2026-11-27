@@ -720,9 +720,9 @@ class RestPaths {
 
 | Constant | Headers Included |
 | :--- | :--- |
-| `trackableHeaders` | `x-request-id`, `x-request-channel`, `x-device-info` (all optional) |
-| `countableHeaders` | `x-request-count` - controls `{count, data}` vs data-only response format |
-| `defaultRequestHeaders` | `trackableHeaders` + `countableHeaders` combined |
+| `TrackableHeadersSchema` | `x-request-id`, `x-request-channel`, `x-device-info` (all optional) |
+| `CountableHeadersSchema` | `x-request-count` - controls `{count, data}` vs data-only response format |
+| `DefaultRequestHeadersSchema` | `TrackableHeadersSchema` + `CountableHeadersSchema` combined |
 | `commonResponseHeaders` | `x-request-id` (echo), `x-response-count`, `x-response-format` |
 | `findResponseHeaders` | `commonResponseHeaders` + `content-range` for pagination |
 

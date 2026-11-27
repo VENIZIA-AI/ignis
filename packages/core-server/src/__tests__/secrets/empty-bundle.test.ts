@@ -1,5 +1,5 @@
 import { BaseApplication } from '@/base/applications/base';
-import { SecretProviders, type ISecretsRegistration } from '@venizia/ignis-helpers';
+import { SecretProviders, type TSecretsRegistration } from '@venizia/ignis-helpers';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
 
@@ -22,7 +22,7 @@ class EmptyHydrateApp extends BaseApplication {
   override preConfigure() {}
   override postConfigure() {}
   override setupMiddlewares() {}
-  override registerSecrets(): ISecretsRegistration {
+  override registerSecrets(): TSecretsRegistration {
     return {
       provider: SecretProviders.SYSTEM_ENVS,
       hydrate: [{ path: 'secret/data/app', keys: { [MISSING_SOURCE]: 'APP_ENV_MISSING_TARGET' } }],

@@ -6,7 +6,7 @@ import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { sql } from 'drizzle-orm';
 import { pgTable, serial, text } from 'drizzle-orm/pg-core';
-import type { IRelationalDataSourceOpening } from '@/relational/core/datasources/common';
+import type { TRelationalDataSourceOpening } from '@/relational/core/datasources/common';
 import type { TTableInsert, TTableObject } from '@/relational/core/models';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import type { TRelationalConnector } from '@/relational/postgres/datasources/common';
@@ -63,7 +63,7 @@ class Probe {
   }
 }
 
-type TOpening = IRelationalDataSourceOpening<TRelationalConnector, PGlite>;
+type TOpening = TRelationalDataSourceOpening<TRelationalConnector, PGlite>;
 
 /** The same body at start and on first use: it only touches `opening`. */
 const migrateAndSeed = async (opening: TOpening): Promise<void> => {
