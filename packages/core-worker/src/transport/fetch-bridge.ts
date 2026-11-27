@@ -143,8 +143,7 @@ export class BffFetchBridge {
     Object.defineProperties(bridged, Object.getOwnPropertyDescriptors(previousFetch));
     Object.defineProperty(bridged, BffFetchBridge.BRIDGE_MARKER, { value: true });
 
-    // The cast is for a runtime's own typing of `fetch` (Bun adds `preconnect`), which the copied
-    // descriptors provide and the compiler cannot see.
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a runtime may type `fetch` with more members (Bun adds `preconnect`); the copied descriptors provide them unseen by the compiler
     carrier.fetch = bridged as TFetch;
 
     return () => {

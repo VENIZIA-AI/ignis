@@ -38,6 +38,7 @@ export class AesEngine {
     const encrypted = await crypto.subtle.encrypt(
       AesEngine.getParams({ algorithm, iv }),
       cryptoKey,
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Web Crypto types its input as a view on an ArrayBuffer; a copy to prove it would cost every call
       plain as TBytes,
     );
     const sealed = new Uint8Array(encrypted);
@@ -79,6 +80,7 @@ export class AesEngine {
     const decrypted = await crypto.subtle.decrypt(
       AesEngine.getParams({ algorithm, iv }),
       cryptoKey,
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Web Crypto types its input as a view on an ArrayBuffer; a copy to prove it would cost every call
       input as TBytes,
     );
 
@@ -102,6 +104,7 @@ export class AesEngine {
 
     return crypto.subtle.importKey(
       'raw',
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Web Crypto types its input as a view on an ArrayBuffer; a copy to prove it would cost every call
       key as TBytes,
       { name: AesEngine.getName({ algorithm }) },
       false,
@@ -122,6 +125,7 @@ export class AesEngine {
         throw getError({ message: '[AesEngine][getParams] The GCM IV must not be empty' });
       }
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Web Crypto types its input as a view on an ArrayBuffer; a copy to prove it would cost every call
       return { name: 'AES-GCM', iv: iv as TBytes, tagLength: TAG_BITS };
     }
 
@@ -131,6 +135,7 @@ export class AesEngine {
       });
     }
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Web Crypto types its input as a view on an ArrayBuffer; a copy to prove it would cost every call
     return { name: 'AES-CBC', iv: iv as TBytes };
   }
 }

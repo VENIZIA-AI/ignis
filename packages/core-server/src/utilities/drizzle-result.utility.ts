@@ -12,6 +12,7 @@ export class DrizzleResultUtility {
 
     // postgres-js: the result IS the row list.
     if (Array.isArray(result)) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the row type of its own SQL; only the list itself is checked
       return result as TRow[];
     }
 
@@ -25,6 +26,7 @@ export class DrizzleResultUtility {
     const rows: unknown = 'rows' in result ? result.rows : undefined;
 
     if (Array.isArray(rows)) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the row type of its own SQL; only the list itself is checked
       return rows as TRow[];
     }
 

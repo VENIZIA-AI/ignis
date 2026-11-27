@@ -51,6 +51,7 @@ export class ConstClass {
       ConstClass.#cache.set(this, values);
     }
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the values are read off the static members at run time, and the list is checked above to be non-empty
     return values as unknown as readonly [TConstValue<T>, ...TConstValue<T>[]];
   }
 

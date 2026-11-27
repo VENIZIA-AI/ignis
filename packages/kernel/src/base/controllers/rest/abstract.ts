@@ -118,6 +118,7 @@ export abstract class AbstractRestController<
       }
 
       this.bindRoute({ configs: routeConfigs }).to({
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the method is found by its decorated name; it is checked to be a function, and its signature is the decorator's promise
         handler: (handler as TRouteHandler<RouteEnv>).bind(this),
       });
     }

@@ -244,6 +244,7 @@ export abstract class BaseContainer extends AbstractContainer {
       };
     };
   }): { [K in keyof T]: T[K] | undefined } {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `map` answers an array of one type; each entry here has the type of the binding at its position
     return opts.bindings.map((opt) => this.get({ ...opt, isOptional: true })) as {
       [K in keyof T]: T[K] | undefined;
     };

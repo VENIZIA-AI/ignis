@@ -50,6 +50,7 @@ export class BindingKeys {
 
     keyParts.push(key);
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a binding key is a string carrying its value type as a brand that exists only in the types
     return keyParts.join('.') as TBindingKey<T>;
   }
 }

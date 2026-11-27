@@ -40,6 +40,7 @@ export class BunCompiler {
       sourcemap: 'linked',
       throw: false,
       compile: {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the target is text from an option or BUN_TARGET; Bun.build throws on one it does not know
         target: target as Bun.Build.CompileTarget,
         outfile,
       },

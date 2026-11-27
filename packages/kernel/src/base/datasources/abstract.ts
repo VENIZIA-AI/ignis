@@ -32,6 +32,7 @@ export abstract class AbstractDataSource<
   /** Model classes bound to this datasource via `@repository` metadata - paradigm-free (no schema/relation resolution). */
   protected getBoundModelClasses(): Array<TClass<unknown>> {
     return MetadataRegistry.getInstance().getModelClasses({
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `this.constructor` is typed `Function`; here it is the class of this data source
       dataSource: this.constructor as TClass<IDataSource>,
     });
   }

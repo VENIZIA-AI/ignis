@@ -153,6 +153,7 @@ export class RequestUtility {
         continue;
       }
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a FormData entry that is not a string is a file
       const file = value as File;
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);

@@ -51,6 +51,7 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
       switch (mode) {
         case AuthenticationModes.ANY: {
           await this.executeAnyMode({
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the Hono context has every member `TContext` declares, but the compiler does not take it for a subtype
             context: context as TContext,
             strategies,
             registry,
@@ -61,6 +62,7 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
         }
         case AuthenticationModes.ALL: {
           await this.executeAllMode({
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the Hono context has every member `TContext` declares, but the compiler does not take it for a subtype
             context: context as TContext,
             strategies,
             registry,

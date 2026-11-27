@@ -89,7 +89,7 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
     }) {
       const { target, metadata } = opts;
 
-      // Decorator target is always a class constructor at runtime
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a decorator target is the model class itself; the decorator types it wider
       const modelClass = target as TModelClass<Model>;
 
       // Table name precedence: explicit metadata > static TABLE_NAME > class name.
