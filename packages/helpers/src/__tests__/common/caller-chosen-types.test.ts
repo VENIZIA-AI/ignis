@@ -10,6 +10,12 @@ export const callerCannotName = async (opts: { redis: IRedisHelper; secrets: ISe
   const text: string | null = await redis.get({ key: 'k' });
   const count: number | null = await redis.get({ key: 'k', transform: Number });
   const texts: Array<string | null> = await redis.mGet({ keys: ['k'] });
+  // The input of a transform written in place is typed from the method.
+  const length: number | null = await redis.get({ key: 'k', transform: (input) => input.length });
+  const lengths: Array<number | null> = await redis.mGet({
+    keys: ['k'],
+    transform: (input) => input.length,
+  });
 
   // @ts-expect-error a type argument needs a transform that answers it
   await redis.get<number>({ key: 'k' });
@@ -25,12 +31,46 @@ export const callerCannotName = async (opts: { redis: IRedisHelper; secrets: ISe
   const popped: string = await redis.jPop({ key: 'k', path: '$' });
   // @ts-expect-error a raw reply is unknown
   const reply: string = await redis.execute('PING');
-  // @ts-expect-error a secret is unknown until the caller checks it
-  const secret: string = await secrets.get({ path: 'p', key: 'k' });
+  const secret: string | undefined = await secrets.get({ path: 'p', key: 'k' });
+  const fallback: string | number = await secrets.get({ path: 'p', key: 'k', defaultValue: 1 });
+  const bundle: Record<string, string> = await secrets.get({ path: 'p' });
+  const appended: Array<number | null> | number | null = await redis.jPush({
+    key: 'k',
+    path: '$',
+    value: 1,
+  });
+  // @ts-expect-error a secret may be absent without a default
+  const present: string = await secrets.get({ path: 'p', key: 'k' });
+  // @ts-expect-error secrets.get takes no type of the answer
+  await secrets.get<number>({ path: 'p', key: 'k' });
+  // @ts-expect-error execute takes no type argument
+  await redis.execute<number>('DBSIZE');
+  // @ts-expect-error jGet takes no type argument
+  await redis.jGet<{ id: string }>({ key: 'k' });
+  // @ts-expect-error jPop takes no type argument
+  await redis.jPop<{ id: string }>({ key: 'k', path: '$' });
+  // @ts-expect-error getDeepProperty takes no type arguments
+  ParseUtility.getDeepProperty<object, number>({ source: {}, path: 'a' });
   // @ts-expect-error a property read by path is unknown
   const value: number = ParseUtility.getDeepProperty({ source: {}, path: 'a' });
 
-  return { text, count, texts, object, json, popped, reply, secret, value };
+  return {
+    length,
+    lengths,
+    text,
+    count,
+    texts,
+    object,
+    json,
+    popped,
+    reply,
+    secret,
+    fallback,
+    bundle,
+    appended,
+    present,
+    value,
+  };
 };
 
 describe('values a caller used to name', () => {

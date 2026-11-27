@@ -29,8 +29,8 @@ export interface IRedisKeyValue {
     value: T;
     options?: { log?: boolean; expiresIn?: number };
   }): Promise<void>;
-  get(opts: { key: string }): Promise<string | null>;
   get<T>(opts: { key: string; transform: (input: string) => T }): Promise<T | null>;
+  get(opts: { key: string }): Promise<string | null>;
 
   del(opts: { keys: Array<string> }): Promise<number>;
 
@@ -48,8 +48,8 @@ export interface IRedisKeyValue {
     options?: { log?: boolean };
   }): Promise<void>;
 
-  mGet(opts: { keys: Array<string> }): Promise<(string | null)[]>;
   mGet<T>(opts: { keys: Array<string>; transform: (input: string) => T }): Promise<(T | null)[]>;
+  mGet(opts: { keys: Array<string> }): Promise<(string | null)[]>;
 }
 
 /** Hash commands (`HSET`, `HGET`, ...) on one key. */
@@ -103,15 +103,25 @@ export interface IRedisJson {
     key: string;
     /** @default '$' */
     path?: string;
-  }): Promise<unknown>;
+  }): Promise<string | null>;
   jDelete(opts: {
     key: string;
     /** @default '$' */
     path?: string;
   }): Promise<number>;
   jNumberIncreaseBy(opts: { key: string; path: string; value: number }): Promise<string | null>;
-  jStringAppend(opts: { key: string; path: string; value: string }): Promise<number[] | null>;
-  jPush<T>(opts: { key: string; path: string; value: T }): Promise<number[] | null>;
+  /** A `$` path answers one length per match (`null` where the match has another type); a legacy path one length. */
+  jStringAppend(opts: {
+    key: string;
+    path: string;
+    value: string;
+  }): Promise<Array<number | null> | number | null>;
+  /** A `$` path answers one length per match (`null` where the match has another type); a legacy path one length. */
+  jPush<T>(opts: {
+    key: string;
+    path: string;
+    value: T;
+  }): Promise<Array<number | null> | number | null>;
   jPop(opts: { key: string; path: string }): Promise<unknown>;
 }
 

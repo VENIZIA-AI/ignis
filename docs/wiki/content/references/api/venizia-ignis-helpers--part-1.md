@@ -111,13 +111,13 @@ export declare class AbstractRedisHelper<ClientType extends TRedisClient = TRedi
             expiresIn?: number;
         };
     }): Promise<void>;
-    get(opts: {
-        key: string;
-    }): Promise<string | null>;
     get<T>(opts: {
         key: string;
         transform: (input: string) => T;
     }): Promise<T | null>;
+    get(opts: {
+        key: string;
+    }): Promise<string | null>;
     del(opts: {
         keys: Array<string>;
     }): Promise<number>;
@@ -142,13 +142,13 @@ export declare class AbstractRedisHelper<ClientType extends TRedisClient = TRedi
             log?: boolean;
         };
     }): Promise<void>;
-    mGet(opts: {
-        keys: Array<string>;
-    }): Promise<(string | null)[]>;
     mGet<T>(opts: {
         keys: Array<string>;
         transform: (input: string) => T;
     }): Promise<(T | null)[]>;
+    mGet(opts: {
+        keys: Array<string>;
+    }): Promise<(string | null)[]>;
     keys(opts: {
         key: string;
     }): Promise<string[]>;
@@ -237,7 +237,7 @@ export declare class AbstractRedisHelper<ClientType extends TRedisClient = TRedi
     jGet(opts: {
         key: string;
         path?: string;
-    }): Promise<unknown>;
+    }): Promise<string | null>;
     jDelete(opts: {
         key: string;
         path?: string;
@@ -251,12 +251,12 @@ export declare class AbstractRedisHelper<ClientType extends TRedisClient = TRedi
         key: string;
         path: string;
         value: string;
-    }): Promise<number[] | null>;
+    }): Promise<Array<number | null> | number | null>;
     jPush<T>(opts: {
         key: string;
         path: string;
         value: T;
-    }): Promise<number[] | null>;
+    }): Promise<Array<number | null> | number | null>;
     jPop(opts: {
         key: string;
         path: string;
@@ -317,7 +317,21 @@ export declare abstract class AbstractSecretsHelper extends BaseHelper implement
     getBundle(opts: {
         path: string;
     }): Promise<Record<string, string>>;
-    get(opts: IGetSecretOptions<unknown>): Promise<unknown>;
+    get(opts: {
+        path: string;
+        key: string;
+        defaultValue?: undefined;
+    }): Promise<string | undefined>;
+    get<TDefault>(opts: {
+        path: string;
+        key: string;
+        defaultValue: TDefault;
+    }): Promise<string | TDefault>;
+    get(opts: {
+        path: string;
+        key?: undefined;
+    }): Promise<Record<string, string>>;
+    get(opts: IGetSecretOptions): Promise<unknown>;
     lease(opts: {
         path: string;
         key: string;

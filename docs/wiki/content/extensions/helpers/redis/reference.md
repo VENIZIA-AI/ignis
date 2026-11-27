@@ -530,7 +530,7 @@ const dedicated = redis.duplicateClient();
   |---|---|
   | `set`, `mSet`, `jSet`, `jPush` | `JSON.stringify` before writing |
   | `getObject`, `getObjects` | `JSON.parse` on read |
-  | `jGet`, `jPop` | Answer the JSON text; parse it yourself |
+  | `jGet`, `jPop` | Answer JSON text (a list of texts for `jPop` on a `$` path); parse it yourself |
   | `get`, `mGet` | Return the raw string, unless you pass `transform` |
 
 - **TTL units differ by field.**
@@ -651,12 +651,12 @@ Requires the [RedisJSON module](https://redis.io/docs/stack/json/) on the server
 | Method | Signature | Behavior |
 |--------|-----------|----------|
 | `jSet<T>` | `(opts: { key: string; path: string; value: T }): Promise<string \| null>` | Sets a JSON document at `path` (`JSON.SET`); value is `JSON.stringify`-ed |
-| `jGet` | `(opts: { key: string; path?: string }): Promise<unknown>` | Answers the JSON text of the document or sub-path (`JSON.GET`), or `null`; `path` defaults to `'$'` |
+| `jGet` | `(opts: { key: string; path?: string }): Promise<string \| null>` | Answers the JSON text of the document or sub-path (`JSON.GET`), or `null`; `path` defaults to `'$'`, whose text is a list of the matches |
 | `jDelete` | `(opts: { key: string; path?: string }): Promise<number>` | Deletes the document or sub-path (`JSON.DEL`); `path` defaults to `'$'`; returns count deleted |
 | `jNumberIncreaseBy` | `(opts: { key: string; path: string; value: number }): Promise<string \| null>` | Increments a numeric field by `value` (`JSON.NUMINCRBY`) |
-| `jStringAppend` | `(opts: { key: string; path: string; value: string }): Promise<number[] \| null>` | Appends `value` to a string field (`JSON.STRAPPEND`); returns new string lengths |
-| `jPush<T>` | `(opts: { key: string; path: string; value: T }): Promise<number[] \| null>` | Appends `value` to an array field (`JSON.ARRAPPEND`); value is `JSON.stringify`-ed; returns new array lengths |
-| `jPop` | `(opts: { key: string; path: string }): Promise<unknown>` | Pops the last element from an array field (`JSON.ARRPOP`) and answers its JSON text, or `null` |
+| `jStringAppend` | `(opts: { key: string; path: string; value: string }): Promise<Array<number \| null> \| number \| null>` | Appends `value` to a string field (`JSON.STRAPPEND`); a `$` path answers one new length per match (`null` where the match is no string), a legacy path one length |
+| `jPush<T>` | `(opts: { key: string; path: string; value: T }): Promise<Array<number \| null> \| number \| null>` | Appends `value`, `JSON.stringify`-ed, to an array field (`JSON.ARRAPPEND`); a `$` path answers one new length per match (`null` where the match is no array), a legacy path one length |
+| `jPop` | `(opts: { key: string; path: string }): Promise<unknown>` | Pops the last element of an array field (`JSON.ARRPOP`): a `$` path answers a list of JSON texts (`null` where a match is no array or empty), a legacy path one JSON text or `null` |
 
 ### IRedisCommand - raw escape hatch
 
@@ -666,8 +666,11 @@ Requires the [RedisJSON module](https://redis.io/docs/stack/json/) on the server
 
 ```typescript
 // Use SCAN instead of KEYS on large keyspaces
-// The reply is unknown: check it before you use it
+import { z } from 'zod';
+
 const reply = await redis.execute('SCAN', [0, 'MATCH', 'user:*', 'COUNT', 100]);
+// The reply is unknown: SCAN answers [cursor, keys], checked here with your own zod schema
+const [cursor, keys] = z.tuple([z.string(), z.array(z.string())]).parse(reply);
 
 // Fetch server info
 const info = String(await redis.execute('INFO'));

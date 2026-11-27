@@ -111,13 +111,22 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
     return fresh.value;
   }
 
-  async get(opts: IGetSecretOptions<unknown>): Promise<unknown> {
+  get(opts: { path: string; key: string; defaultValue?: undefined }): Promise<string | undefined>;
+  get<TDefault>(opts: {
+    path: string;
+    key: string;
+    defaultValue: TDefault;
+  }): Promise<string | TDefault>;
+  get(opts: { path: string; key?: undefined }): Promise<Record<string, string>>;
+  get(opts: IGetSecretOptions): Promise<unknown>;
+  async get(opts: IGetSecretOptions): Promise<unknown> {
     const bundle = await this.getBundle({ path: opts.path });
-    const raw = opts.key
-      ? Object.hasOwn(bundle, opts.key)
-        ? bundle[opts.key]
-        : undefined
-      : bundle;
+    const raw =
+      opts.key === undefined
+        ? bundle
+        : Object.hasOwn(bundle, opts.key)
+          ? bundle[opts.key]
+          : undefined;
 
     return raw ?? opts.defaultValue;
   }

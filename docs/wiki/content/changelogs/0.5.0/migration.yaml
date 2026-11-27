@@ -1340,24 +1340,44 @@ claims-source-verify-typed:
   data: Nothing stored changes.
 
 caller-chosen-types:
-  symbols: [IRedisHelper.get, IRedisHelper.mGet, IRedisHelper.getObject, IRedisHelper.getObjects, IRedisHelper.jGet, IRedisHelper.jPop, IRedisHelper.execute, ISecretsHelper.get, ParseUtility.getDeepProperty]
+  symbols: [IRedisHelper.get, IRedisHelper.mGet, IRedisHelper.getObject, IRedisHelper.getObjects, IRedisHelper.jGet, IRedisHelper.jPop, IRedisHelper.jPush, IRedisHelper.jStringAppend, IRedisHelper.execute, ISecretsHelper.get, IGetSecretOptions, ParseUtility.getDeepProperty]
   upgrade:
     before: |-
-      const user = await redis.get<IUser>({ key });
-      const total = await redis.execute<number>('DBSIZE');
+      const user = await redis.getObject<IUser>({ key });
+      const users = await redis.getObjects({ keys }); // any[]
+      const ids = await redis.mGet<number>({ keys });
+      const profile = await redis.jGet<IProfile>({ key });
+      const job = await redis.jPop<IJob>({ key, path: '$.jobs' });
+      const size = await redis.execute<number>('DBSIZE');
       const port = await secrets.get<number>({ path, key: 'PORT' });
+      const name = ParseUtility.getDeepProperty<typeof config, string>({ source: config, path: 'app.name' });
     after: |-
-      import { ParseUtility } from '@venizia/ignis-helpers';
+      import { ParseUtility, RecordUtility, getError } from '@venizia/ignis-helpers';
 
+      // UserSchema and the other schemas are your own zod schemas
       const user = await redis.get({ key, transform: (text) => UserSchema.parse(JSON.parse(text)) });
-      const total = ParseUtility.toInt({ input: await redis.execute('DBSIZE') });
-      const port = ParseUtility.toInt({ input: await secrets.get({ path, key: 'PORT' }) });
+      const users = (await redis.getObjects({ keys })).map((entry) => (entry === null ? null : UserSchema.parse(entry)));
+      const ids = await redis.mGet({ keys, transform: (text) => ParseUtility.toInt({ input: text }) });
+      const profileText = await redis.jGet({ key }); // the path '$' answers a JSON list
+      const profile = profileText === null ? null : ProfileListSchema.parse(JSON.parse(profileText))[0];
+      const jobs = await redis.jPop({ key, path: '$.jobs' });
+      const job = Array.isArray(jobs) && typeof jobs[0] === 'string' ? JobSchema.parse(JSON.parse(jobs[0])) : null;
+      const size = ParseUtility.toNumber({ input: await redis.execute('DBSIZE') });
+      const port = ParseUtility.toNumber({ input: await secrets.get({ path, key: 'PORT' }) });
+      const name = RecordUtility.read({ value: config, path: ['app', 'name'] });
+
+      if (typeof name !== 'string') {
+        throw getError({ message: 'app.name is not a string' });
+      }
     steps:
-      - "Run your typecheck and fix each line it reports. Without a transform the old type argument changed nothing at run time: redis.get answered the stored text and secrets.get the stored string, whatever type you named."
-      - "redis.get and mGet: drop the type argument and read a string, or pass transform that turns the text into your type and checks it."
-      - "redis.getObject takes no type argument and answers the parsed value as unknown, as do the entries of getObjects: check it, or read with redis.get and a transform that parses and checks (transform: (text) => UserSchema.parse(JSON.parse(text)))."
-      - "redis.jGet and jPop answer the JSON text Redis sends: parse it, then check it."
-      - "redis.execute, secrets.get and ParseUtility.getDeepProperty answer unknown: check the value (a schema, typeof, ParseUtility) before you use it."
+      - "Run your typecheck and fix each line it reports. The old type argument never converted or checked the value: it was the stored text, or what JSON.parse made of it."
+      - "redis.get and mGet: drop the type argument and read a string, or pass a transform that turns the text into your type and checks it. A transform that is only JSON.parse answers any, so your typecheck reports nothing and nothing is checked."
+      - "redis.getObject takes no type argument and answers unknown, as do the entries of getObjects: read with redis.get and a transform that parses and checks."
+      - "redis.jGet answers the JSON text or null: parse it, then check it. redis.jPop answers unknown: Redis sends a list for a $ path and one text for a legacy path."
+      - "redis.jPush and jStringAppend answer Array<number | null> for a $ path and a number for a legacy path, where the type said number[]: narrow with Array.isArray."
+      - "redis.execute answers unknown: check the reply (ParseUtility.toNumber, typeof, Array.isArray)."
+      - "secrets.get answers string | undefined for a key, string | your default type with a defaultValue, and the bundle without a key. It takes no type of the answer: convert the string, and handle undefined. IGetSecretOptions lost its type parameter, and an empty key no longer answers the whole bundle."
+      - "ParseUtility.getDeepProperty answers unknown: check the value. RecordUtility.read({ value, path: ['a', 'b'] }) reads a path without throwing and answers unknown too."
       - "A class of your own that implements IRedisHelper or ISecretsHelper takes the same signatures."
   downgrade:
     steps:

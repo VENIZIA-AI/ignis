@@ -769,10 +769,10 @@ Source: `packages/helpers/src/modules/storage/common/types.ts`
 Selects a secret: the `path` of a bundle and optionally one `key` in it. `defaultValue` is returned when the key is absent.
 
 ```ts
-export interface IGetSecretOptions<TValue = string> {
+export interface IGetSecretOptions {
     path: string;
     key?: string;
-    defaultValue?: TValue;
+    defaultValue?: unknown;
 }
 ```
 
@@ -1273,7 +1273,7 @@ export interface IRedisJson {
         key: string;
         /** @default '$' */
         path?: string;
-    }): Promise<unknown>;
+    }): Promise<string | null>;
     jDelete(opts: {
         key: string;
         /** @default '$' */
@@ -1284,16 +1284,18 @@ export interface IRedisJson {
         path: string;
         value: number;
     }): Promise<string | null>;
+    /** A `$` path answers one length per match (`null` where the match has another type); a legacy path one length. */
     jStringAppend(opts: {
         key: string;
         path: string;
         value: string;
-    }): Promise<number[] | null>;
+    }): Promise<Array<number | null> | number | null>;
+    /** A `$` path answers one length per match (`null` where the match has another type); a legacy path one length. */
     jPush<T>(opts: {
         key: string;
         path: string;
         value: T;
-    }): Promise<number[] | null>;
+    }): Promise<Array<number | null> | number | null>;
     jPop(opts: {
         key: string;
         path: string;
@@ -1363,13 +1365,13 @@ export interface IRedisKeyValue {
             expiresIn?: number;
         };
     }): Promise<void>;
-    get(opts: {
-        key: string;
-    }): Promise<string | null>;
     get<T>(opts: {
         key: string;
         transform: (input: string) => T;
     }): Promise<T | null>;
+    get(opts: {
+        key: string;
+    }): Promise<string | null>;
     del(opts: {
         keys: Array<string>;
     }): Promise<number>;
@@ -1398,13 +1400,13 @@ export interface IRedisKeyValue {
             log?: boolean;
         };
     }): Promise<void>;
-    mGet(opts: {
-        keys: Array<string>;
-    }): Promise<(string | null)[]>;
     mGet<T>(opts: {
         keys: Array<string>;
         transform: (input: string) => T;
     }): Promise<(T | null)[]>;
+    mGet(opts: {
+        keys: Array<string>;
+    }): Promise<(string | null)[]>;
 }
 ```
 
@@ -1500,16 +1502,3 @@ export interface IRedisPubSub {
 ```
 
 Source: `packages/helpers/src/modules/redis/common/interfaces.ts`
-
-## `IRedisSentinelHelperOptions`
-
-*interface*
-
-Options for `RedisSentinelHelper`: connection props, lifecycle callbacks and an optional `ioredis` module.
-
-```ts
-export interface IRedisSentinelHelperOptions extends IRedisSentinelHelperProps, IRedisHelperCallbacks, IRedisModuleOption {
-}
-```
-
-Source: `packages/helpers/src/modules/redis/sentinel/types.ts`

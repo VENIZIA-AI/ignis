@@ -244,8 +244,8 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     this.logger.for(this.set.name).info('Set key: %s | value: %s', key, serialized);
   }
 
-  get(opts: { key: string }): Promise<string | null>;
   get<T>(opts: { key: string; transform: (input: string) => T }): Promise<T | null>;
+  get(opts: { key: string }): Promise<string | null>;
   async get<T>(opts: {
     key: string;
     transform?: (input: string) => T;
@@ -321,8 +321,8 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     this.logger.for(this.mSet.name).info('Payload: %j', serialized);
   }
 
-  mGet(opts: { keys: Array<string> }): Promise<(string | null)[]>;
   mGet<T>(opts: { keys: Array<string>; transform: (input: string) => T }): Promise<(T | null)[]>;
+  mGet(opts: { keys: Array<string> }): Promise<(string | null)[]>;
   async mGet<T>(opts: {
     keys: Array<string>;
     transform?: (input: string) => T;
@@ -520,10 +520,10 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     return this.reply<string | null>('JSON.SET', [key, path, JSON.stringify(value)]);
   }
 
-  jGet(opts: { key: string; path?: string }): Promise<unknown> {
+  jGet(opts: { key: string; path?: string }): Promise<string | null> {
     const { key, path = '$' } = opts;
 
-    return this.execute('JSON.GET', [key, path]);
+    return this.reply<string | null>('JSON.GET', [key, path]);
   }
 
   jDelete(opts: { key: string; path?: string }): Promise<number> {
@@ -538,16 +538,28 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     return this.reply<string | null>('JSON.NUMINCRBY', [key, path, value]);
   }
 
-  jStringAppend(opts: { key: string; path: string; value: string }): Promise<number[] | null> {
+  jStringAppend(opts: {
+    key: string;
+    path: string;
+    value: string;
+  }): Promise<Array<number | null> | number | null> {
     const { key, path, value } = opts;
 
-    return this.reply<number[] | null>('JSON.STRAPPEND', [key, path, value]);
+    return this.reply<Array<number | null> | number | null>('JSON.STRAPPEND', [key, path, value]);
   }
 
-  jPush<T>(opts: { key: string; path: string; value: T }): Promise<number[] | null> {
+  jPush<T>(opts: {
+    key: string;
+    path: string;
+    value: T;
+  }): Promise<Array<number | null> | number | null> {
     const { key, path, value } = opts;
 
-    return this.reply<number[] | null>('JSON.ARRAPPEND', [key, path, JSON.stringify(value)]);
+    return this.reply<Array<number | null> | number | null>('JSON.ARRAPPEND', [
+      key,
+      path,
+      JSON.stringify(value),
+    ]);
   }
 
   jPop(opts: { key: string; path: string }): Promise<unknown> {

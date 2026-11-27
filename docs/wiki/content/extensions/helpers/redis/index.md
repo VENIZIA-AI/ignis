@@ -26,7 +26,11 @@ const redis = new RedisSingleHelper({
 
 await redis.set({ key: 'session:42', value: { userId: 42, active: true } });
 
-const session = await redis.getObject({ key: 'session:42' }); // unknown: check it before you use it
+// The transform parses and checks; SessionSchema is your own zod schema
+const session = await redis.get({
+  key: 'session:42',
+  transform: (text) => SessionSchema.parse(JSON.parse(text)),
+});
 console.log(session); // { userId: 42, active: true }
 ```
 
@@ -62,7 +66,7 @@ console.log(session); // { userId: 42, active: true }
 |---|---|
 | `set`, `mSet`, `jSet`, `jPush` | `JSON.stringify` before writing |
 | `getObject`, `getObjects` | `JSON.parse` on read |
-| `jGet`, `jPop` | Answer the JSON text; parse it yourself |
+| `jGet`, `jPop` | Answer JSON text (a list of texts for `jPop` on a `$` path); parse it yourself |
 | `get`, `mGet` | Return the raw stored string, unless you pass `transform` |
 
 Wrote a value with `set`? Read it back with `getObject`/`getObjects`.
@@ -134,8 +138,11 @@ await redis.lPush({ key: 'queue:emails', values: ['welcome@example.com'] });
 `execute` calls any ioredis command directly. Reach for it when the typed API doesn't cover a command, like `SCAN`. Prefer `SCAN` over `keys()` in production - `keys()` blocks the server on large keyspaces.
 
 ```typescript
-// The reply is unknown: check it before you use it
+import { z } from 'zod';
+
 const reply = await redis.execute('SCAN', [0, 'MATCH', 'user:*', 'COUNT', 100]);
+// The reply is unknown: SCAN answers [cursor, keys], checked here with your own zod schema
+const [cursor, matched] = z.tuple([z.string(), z.array(z.string())]).parse(reply);
 ```
 
 ### Run in a compiled binary

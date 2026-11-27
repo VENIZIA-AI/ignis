@@ -3,16 +3,26 @@ import type { ISecretLease, ISecretRotatable, TSecretRotationHandler } from './l
 import type { IClock, ITimerAdapter } from './timer';
 
 /** Selects a secret: the `path` of a bundle and optionally one `key` in it. `defaultValue` is returned when the key is absent. */
-export interface IGetSecretOptions<TValue = string> {
+export interface IGetSecretOptions {
   path: string;
   key?: string;
-  defaultValue?: TValue;
+  defaultValue?: unknown;
 }
 
 /** Contract of a secrets provider: cached reads, dynamic leases with rotation handlers, and shutdown. */
 export interface ISecretsHelper extends IConfigurable {
-  /** The value of `key` (the whole bundle without one), or `defaultValue`. Check what you read. */
-  get(opts: IGetSecretOptions<unknown>): Promise<unknown>;
+  /** The string under `key`, or `undefined`. */
+  get(opts: { path: string; key: string; defaultValue?: undefined }): Promise<string | undefined>;
+  /** The string under `key`, or `defaultValue`. */
+  get<TDefault>(opts: {
+    path: string;
+    key: string;
+    defaultValue: TDefault;
+  }): Promise<string | TDefault>;
+  /** The whole bundle at `path`. */
+  get(opts: { path: string; key?: undefined }): Promise<Record<string, string>>;
+  /** Where the key may or may not be given: check what you read. */
+  get(opts: IGetSecretOptions): Promise<unknown>;
   getBundle(opts: { path: string }): Promise<Record<string, string>>;
   lease(opts: { path: string; key: string }): Promise<ISecretLease>;
   onRotate(handler: TSecretRotationHandler): void;
