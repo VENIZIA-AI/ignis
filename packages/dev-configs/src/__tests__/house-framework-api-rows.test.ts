@@ -43,22 +43,23 @@ const lint = (
     hooks?: boolean;
     ignore?: string[];
     extra?: IFrameworkApiPattern[];
+    file?: string;
   } = {},
 ) => {
-  const { root = IGNIS, entry, ...options } = opts;
+  const { root = IGNIS, entry, file = 'src/subject.ts', ...options } = opts;
 
   return new Linter({ cwd: root })
     .verify(
       code,
       [
         {
-          files: ['**/*.ts'],
+          files: ['**/*.{ts,mts,js,mjs}'],
           languageOptions: { parser: tseslint.parser as Linter.Parser },
           plugins: { '@venizia': houseEslintPlugin },
           rules: { [NAME]: entry ?? PreferFrameworkApiRule.build(options) },
         },
       ],
-      { filename: join(root, 'src/subject.ts') },
+      { filename: join(root, file) },
     )
     .map((message) => message.message);
 };
@@ -164,6 +165,33 @@ describe('@venizia/prefer-framework-api, rows outside React', () => {
     ['a later part of a template', 'const a = url ?? `${base}http://localhost`;'],
   ])('says nothing on %s', (_, code) => {
     expect([...lint(code), ...lint(code, { root: ARDOR })]).toEqual([]);
+  });
+
+  const proxy = "const a = { target: url ?? 'http://localhost:3000' };";
+
+  test.each([
+    'vite.config.ts',
+    'vite.config.mjs',
+    'packages/web/vite.config.mts',
+    '.configs/builders/dev-server.ts',
+    'packages/web/.configs/builders/vite/proxy.ts',
+  ])('a localhost fallback in %s, a dev tool configuration, is left alone', (file) => {
+    expect(lint(proxy, { root: BARE, file })).toEqual([]);
+  });
+
+  test.each([
+    'src/vite.config.helper.ts',
+    'src/configs/builders/proxy.ts',
+    '.configs/lints/eslint.config.mjs',
+    'src/my-vite.config.ts',
+  ])('a localhost fallback in %s is still reported', (file) => {
+    expect(lint(proxy, { root: BARE, file })).toHaveLength(1);
+  });
+
+  test('a dev tool configuration still gets the other rows', () => {
+    const code = 'const a = process.env.APP_ENV_PORT;';
+
+    expect(lint(code, { file: 'vite.config.ts' })).toHaveLength(1);
   });
 
   test('an extra row that lacks the field of its type is refused', () => {

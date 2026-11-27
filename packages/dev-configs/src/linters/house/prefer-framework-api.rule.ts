@@ -225,16 +225,28 @@ export class PreferFrameworkApiRule {
     return false;
   }
 
+  /** A dev tool's own configuration: what it names never reaches a browser or a deployment (a dev server's proxy target). */
+  private static readonly DEV_TOOL_CONFIG =
+    /(?:^|\/)(?:vite\.config\.[cm]?[jt]s|\.configs\/builders\/.+)$/;
+
   /** The rows that apply in a file of this package: the table and `extra`, less the ignored ones. */
   private static rowsFor(opts: {
+    filename: string;
     manifest: IPackageManifest | undefined;
     extra: ReadonlyArray<IFrameworkApiPattern>;
     ignore: ReadonlySet<unknown>;
   }): ReadonlyArray<IFrameworkApiPattern> {
     const { manifest, extra, ignore } = opts;
+    const isDevToolConfig = PreferFrameworkApiRule.DEV_TOOL_CONFIG.test(
+      opts.filename.replaceAll('\\', '/'),
+    );
 
     return [...FrameworkApiPatterns.TABLE, ...extra].filter((row) => {
       const { id, dependsOn, owner } = row;
+
+      if (isDevToolConfig && id === 'localhost-url') {
+        return false;
+      }
 
       if (ignore.has(id) || (owner !== undefined && manifest?.name === owner)) {
         return false;
@@ -558,6 +570,7 @@ export class PreferFrameworkApiRule {
       const ignore = new Set(Array.isArray(ignored) ? ignored : []);
       const added: unknown = AstNode.readField({ node: options, key: 'extra' });
       const rows = PreferFrameworkApiRule.rowsFor({
+        filename: context.filename,
         manifest,
         extra: Array.isArray(added)
           ? added.filter((row: unknown) => PreferFrameworkApiRule.isRow(row))
