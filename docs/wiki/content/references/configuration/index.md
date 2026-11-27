@@ -37,7 +37,7 @@ APP_ENV_POSTGRES_HOST=localhost
 APP_ENV_POSTGRES_DATABASE=my_database
 ```
 
-Read a value either directly or through the `applicationEnvironment` helper:
+Read a value through the `applicationEnvironment` helper:
 
 ```typescript
 import { EnvironmentKeys } from '@venizia/ignis';
