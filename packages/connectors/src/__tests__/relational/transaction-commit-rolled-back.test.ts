@@ -7,9 +7,13 @@ import { PostgresJsDriver } from '@/relational/postgres/drivers/postgres-js';
 import { PGlite } from '@electric-sql/pglite';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, setDefaultTimeout, test } from 'bun:test';
 import { createFakePool } from '../postgres/drivers/fake-pg-client';
 import { createFakeSql } from '../postgres/drivers/fake-postgres-js-client';
+
+// A PGlite instance starts a Postgres in WebAssembly. Set only on the files whose tests CI logs showed over the
+// threshold: up to 9.1 s here, in a parallel run on a small runner.
+setDefaultTimeout(30_000);
 
 @datasource({ driver: PGliteDriver, autoDiscovery: false })
 class MemoryDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {

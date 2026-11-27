@@ -3,7 +3,7 @@ import { RejectionUtility } from '@venizia/dev-configs/testing';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { datasource, model, RestApplication, BindingKeys } from '@venizia/ignis-kernel';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, setDefaultTimeout, test } from 'bun:test';
 import { sql } from 'drizzle-orm';
 import { pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { TRelationalDataSourceOpening } from '@/relational/core/datasources/common';
@@ -14,6 +14,10 @@ import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
 import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
 import type { IDatabaseExtraOptions } from '@/relational/postgres/repositories/common';
+
+// A PGlite instance starts a Postgres in WebAssembly. Set only on the files whose tests CI logs showed over the
+// threshold: up to 9.1 s here, in a parallel run on a small runner.
+setDefaultTimeout(30_000);
 
 /**
  * Inside the open of a datasource that opens on first use, `configure()` does its database work through the `opening` handles:

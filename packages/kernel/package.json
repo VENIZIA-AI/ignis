@@ -92,7 +92,7 @@
     "@hono/zod-openapi": "^1.6.3",
     "casbin": "^5.51.1",
     "drizzle-orm": "^0.45.4",
-    "hono": "^4.13.13",
+    "hono": "^4.13.23",
     "jose": "^6.2.13"
   },
   "peerDependenciesMeta": {

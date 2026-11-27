@@ -1,12 +1,16 @@
 import { PGlite } from '@electric-sql/pglite';
 import { createClient } from '@libsql/client';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
-import { afterEach, describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, setDefaultTimeout, test } from 'bun:test';
 import type { IRelationalDriver } from '@/relational/core/drivers';
 import { RelationalMigrationRunner } from '@/relational/core/migrations';
 import type { IMigration } from '@/relational/core/migrations';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
+
+// A PGlite instance starts a Postgres in WebAssembly. Set only on the files whose tests CI logs showed over the
+// threshold: up to 9.1 s here, in a parallel run on a small runner.
+setDefaultTimeout(30_000);
 
 /**
  * The ledger placement runs against the real engines, not only against a recorder: the schema is created, the table lands

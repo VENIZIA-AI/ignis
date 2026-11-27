@@ -47,23 +47,23 @@
     "catalog": {
       "@stylistic/eslint-plugin": "^5.10.0",
       "@hono/zod-openapi": "^1.6.3",
-      "@scalar/hono-api-reference": "^0.12.13",
+      "@scalar/hono-api-reference": "^0.12.26",
       "@socket.io/redis-adapter": "^8.3.0",
       "@socket.io/redis-emitter": "^5.1.0",
-      "bullmq": "^6.4.0",
+      "bullmq": "^6.7.10",
       "dayjs": "^1.11.23",
       "dotenv-flow": "^4.1.0",
       "drizzle-zod": "^0.8.3",
-      "eslint": "^10.13.0",
-      "hono": "^4.13.13",
-      "ioredis": "^6.0.0",
+      "eslint": "^10.15.0",
+      "hono": "^4.13.23",
+      "ioredis": "^6.1.0",
       "pg": "^8.23.1",
       "reflect-metadata": "^0.2.2",
-      "tsc-alias": "1.9.4",
+      "tsc-alias": "1.9.12",
       "typescript": "^6.0.3",
-      "typesense": "^3.2.0",
+      "typesense": "^3.3.0",
       "zod": "^4.6.7",
-      "@connectrpc/connect": "^2.2.0",
+      "@connectrpc/connect": "^2.3.0",
       "@socket.io/bun-engine": "^0.1.2",
       "@types/bun": "^1.4.5",
       "@types/pg": "^8.23.1",
@@ -72,9 +72,9 @@
       "postgres": "^3.4.9",
       "socket.io": "^4.8.4",
       "socket.io-client": "^4.8.4",
-      "oxlint": "1.89.0",
-      "oxlint-tsgolint": "7.0.2004",
-      "typescript-eslint": "^8.72.0"
+      "oxlint": "1.95.0",
+      "oxlint-tsgolint": "7.0.2009",
+      "typescript-eslint": "^8.74.0"
     }
   },
   "scripts": {
@@ -90,9 +90,6 @@
     "eslint": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:"
-  },
-  "overrides": {
-    "@electric-sql/pglite": "0.5.8"
   },
   "engines": {
     "bun": ">=1.4"

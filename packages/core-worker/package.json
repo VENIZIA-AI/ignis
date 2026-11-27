@@ -72,7 +72,7 @@
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.6.3",
-    "hono": "^4.13.13"
+    "hono": "^4.13.23"
   },
   "engines": {
     "bun": ">=1.4"

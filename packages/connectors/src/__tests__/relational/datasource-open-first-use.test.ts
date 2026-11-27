@@ -1,7 +1,7 @@
 import { PGlite } from '@electric-sql/pglite';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { datasource, model } from '@venizia/ignis-kernel';
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, setDefaultTimeout, test } from 'bun:test';
 import { integer, pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { TTableInsert, TTableObject } from '@/relational/core/models';
 import { RelationalMigrationRunner } from '@/relational/core/migrations';
@@ -10,6 +10,10 @@ import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
 import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
 import type { IDatabaseExtraOptions } from '@/relational/postgres/repositories/common';
+
+// A PGlite instance starts a Postgres in WebAssembly. Set only on the files whose tests CI logs showed over the
+// threshold: up to 8.9 s here, in a parallel run on a small runner.
+setDefaultTimeout(30_000);
 
 /**
  * A relational datasource that opens on first use, on a real PGlite: the application starts without it, the first
