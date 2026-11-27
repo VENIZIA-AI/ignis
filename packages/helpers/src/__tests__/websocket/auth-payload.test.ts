@@ -1,4 +1,4 @@
-// What the server hands to `authenticateFn` and `handshakeFn`: an object, checked by `authSchema` when one is given.
+// What the server hands to `authenticate.fn` and `handshake.fn`: an object, checked by `authenticate.schema` when one is given.
 import { afterEach, describe, expect, mock, test } from 'bun:test';
 import { EventEmitter } from 'node:events';
 import { z } from 'zod';
@@ -85,7 +85,7 @@ describe('WebSocketServerHelper, the authentication payload', () => {
     ['nothing', undefined],
   ])('refuses %s without calling authenticateFn', async (_, payload) => {
     const authenticateFn = mock(() => ({ userId: 'u' }));
-    const helper = new WebSocketServerHelper({ ...base(), authenticateFn });
+    const helper = new WebSocketServerHelper({ ...base(), authenticate: { fn: authenticateFn } });
 
     const client = await authenticate({ helper, payload });
 
@@ -95,7 +95,7 @@ describe('WebSocketServerHelper, the authentication payload', () => {
 
   test('hands an object to authenticateFn as it came', async () => {
     const authenticateFn = mock((_data: Record<string, unknown>) => ({ userId: 'u' }));
-    const helper = new WebSocketServerHelper({ ...base(), authenticateFn });
+    const helper = new WebSocketServerHelper({ ...base(), authenticate: { fn: authenticateFn } });
 
     const client = await authenticate({ helper, payload: { token: 't', extra: 1 } });
 
@@ -103,7 +103,7 @@ describe('WebSocketServerHelper, the authentication payload', () => {
     expect(client.close).not.toHaveBeenCalled();
   });
 
-  test('with authSchema, hands over what the schema answers', async () => {
+  test('with a schema, hands over what the schema answers', async () => {
     const authenticateFn = mock((data: { token: string }) => ({ userId: data.token }));
     const handshakeFn = mock((_opts: { data: { token: string } }) => ({
       serverPublicKey: 'k',
@@ -112,9 +112,8 @@ describe('WebSocketServerHelper, the authentication payload', () => {
     const helper = new WebSocketServerHelper({
       ...base(),
       requireEncryption: true,
-      authSchema: z.object({ token: z.string().trim() }),
-      authenticateFn,
-      handshakeFn,
+      authenticate: { schema: z.object({ token: z.string().trim() }), fn: authenticateFn },
+      handshake: { fn: handshakeFn },
     });
 
     await authenticate({ helper, payload: { token: ' t ', extra: 1 } });
@@ -123,12 +122,11 @@ describe('WebSocketServerHelper, the authentication payload', () => {
     expect(handshakeFn.mock.calls[0]?.[0].data).toEqual({ token: 't' });
   });
 
-  test('with authSchema, refuses what the schema refuses', async () => {
+  test('with a schema, refuses what the schema refuses', async () => {
     const authenticateFn = mock((_data: { token: string }) => ({ userId: 'u' }));
     const helper = new WebSocketServerHelper({
       ...base(),
-      authSchema: z.object({ token: z.string() }),
-      authenticateFn,
+      authenticate: { schema: z.object({ token: z.string() }), fn: authenticateFn },
     });
 
     const client = await authenticate({ helper, payload: { token: 7 } });
@@ -137,8 +135,52 @@ describe('WebSocketServerHelper, the authentication payload', () => {
     expect(client.close).toHaveBeenCalledWith(4003, 'Authentication failed');
   });
 
+  test('types hooks written inline from authenticate.schema', async () => {
+    const seen: string[] = [];
+    const helper = new WebSocketServerHelper({
+      ...base(),
+      requireEncryption: true,
+      authenticate: {
+        schema: z.object({ token: z.string() }),
+        fn: (data) => {
+          seen.push(data.token.toUpperCase());
+
+          return { userId: data.token, metadata: { role: 'admin' } };
+        },
+      },
+      handshake: { fn: (opts) => ({ serverPublicKey: opts.data.token.trim(), salt: 's' }) },
+      clientConnectedFn: (opts) => {
+        seen.push(opts.metadata?.role ?? 'none');
+      },
+    });
+
+    await authenticate({ helper, payload: { token: 't' } });
+
+    expect(seen).toEqual(['T', 'admin']);
+  });
+
+  test('types hooks written inline without a schema as a record', async () => {
+    const seen: unknown[] = [];
+    const helper = new WebSocketServerHelper({
+      ...base(),
+      authenticate: {
+        fn: (data) => {
+          // @ts-expect-error without a schema the data is a record of unknown
+          const token: string = data.token;
+          seen.push(token);
+
+          return null;
+        },
+      },
+    });
+
+    await authenticate({ helper, payload: { token: 't' } });
+
+    expect(seen).toEqual(['t']);
+  });
+
   test('the socket handler takes a socket that carries its client id', () => {
-    const helper = new WebSocketServerHelper({ ...base(), authenticateFn: () => null });
+    const helper = new WebSocketServerHelper({ ...base(), authenticate: { fn: () => null } });
     const handler = helper.getBunWebSocketHandler();
 
     helpers.push(helper);

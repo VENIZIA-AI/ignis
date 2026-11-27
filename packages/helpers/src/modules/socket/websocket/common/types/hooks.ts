@@ -12,26 +12,38 @@ export type TWebSocketAuthenticateFn<
   opts: AuthDataType,
 ) => ValueOrPromise<{ userId?: string; metadata?: MetadataType } | null | false>;
 
-/**
- * How the authentication data is checked, with the hooks that receive it. The server refuses data that is not an object;
- * with `authSchema` it also refuses what the schema refuses, and the hooks receive what the schema answers.
- */
+/** Authentication checked by a schema: the server refuses what `schema` refuses, and the hooks receive what it answers. */
+export interface IWebSocketSchemaAuthOptions<
+  AuthDataType extends Record<string, unknown>,
+  MetadataType extends Record<string, unknown> = Record<string, unknown>,
+> {
+  authenticate: {
+    schema: z.ZodType<AuthDataType>;
+    fn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
+  };
+  /** Required when `requireEncryption` is true. */
+  handshake?: { fn: TWebSocketHandshakeFn<AuthDataType> };
+}
+
+/** Authentication without a schema: the hooks receive the object the client sent. */
+export interface IWebSocketRecordAuthOptions<
+  MetadataType extends Record<string, unknown> = Record<string, unknown>,
+> {
+  authenticate: {
+    schema?: undefined;
+    fn: TWebSocketAuthenticateFn<Record<string, unknown>, MetadataType>;
+  };
+  /** Required when `requireEncryption` is true. */
+  handshake?: { fn: TWebSocketHandshakeFn };
+}
+
+/** How a client authenticates. The server refuses authentication data that is not an object, with or without a schema. */
 export type TWebSocketAuthOptions<
   AuthDataType extends Record<string, unknown> = Record<string, unknown>,
   MetadataType extends Record<string, unknown> = Record<string, unknown>,
 > =
-  | {
-      authSchema: z.ZodType<AuthDataType>;
-      authenticateFn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
-      /** Required when `requireEncryption` is true. */
-      handshakeFn?: TWebSocketHandshakeFn<AuthDataType>;
-    }
-  | {
-      authSchema?: undefined;
-      authenticateFn: TWebSocketAuthenticateFn<Record<string, unknown>, MetadataType>;
-      /** Required when `requireEncryption` is true. */
-      handshakeFn?: TWebSocketHandshakeFn;
-    };
+  | IWebSocketSchemaAuthOptions<AuthDataType, MetadataType>
+  | IWebSocketRecordAuthOptions<MetadataType>;
 
 /** Produces the server public key and salt for an encrypted session during authentication. Resolves `null` or `false` to refuse the handshake. */
 export type TWebSocketHandshakeFn<

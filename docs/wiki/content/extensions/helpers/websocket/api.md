@@ -129,10 +129,10 @@ Client connects via WebSocket upgrade
   |     +-- handleAuthenticate()
   |           +-- Set state: AUTHENTICATING
   |           +-- Extended timeout (authTimeout * 3) for async auth
-  |           +-- Call authenticateFn(data)
+  |           +-- Call authenticate.fn(data)
   |                 +-- Success:
   |                 |     +-- Set state: AUTHENTICATED
-  |                 |     +-- [requireEncryption?] -> handshakeFn() -> enableClientEncryption()
+  |                 |     +-- [requireEncryption?] -> handshake.fn() -> enableClientEncryption()
   |                 |     +-- Index by userId
   |                 |     +-- Subscribe to broadcast topic (unless encrypted)
   |                 |     +-- Join clientId room + defaultRooms
@@ -194,7 +194,7 @@ Throws `getError({ statusCode: 500, message: '[WebSocketServerHelper] Invalid re
 
 | Type parameter | Types | Default |
 |---|---|---|
-| `AuthDataType` | The data passed to `authenticateFn`/`handshakeFn`; inferred from `authSchema` | `Record<string, unknown>` |
+| `AuthDataType` | The data passed to `authenticate.fn`/`handshake.fn`; inferred from `authenticate.schema` | `Record<string, unknown>` |
 | `MetadataType` | The value returned as `metadata` and stored on `IWebSocketClient` | `Record<string, unknown>` |
 
 ```typescript
@@ -210,11 +210,13 @@ const helper = new WebSocketServerHelper<TAuthPayload, IUserMetadata>({
   identifier: 'typed-ws',
   server: bunServer,
   redisConnection: redis,
-  authSchema: AuthPayloadSchema,
-  authenticateFn: async data => {
-    // data is what AuthPayloadSchema answered
-    const user = await verifyJWT(data.token);
-    return user ? { userId: user.id, metadata: { role: user.role, permissions: user.permissions } } : null;
+  authenticate: {
+    schema: AuthPayloadSchema,
+    fn: async data => {
+      // data is what AuthPayloadSchema answered
+      const user = await verifyJWT(data.token);
+      return user ? { userId: user.id, metadata: { role: user.role, permissions: user.permissions } } : null;
+    },
   },
   clientConnectedFn: ({ metadata }) => {
     // metadata is typed as IUserMetadata | undefined
@@ -227,7 +229,7 @@ const helper = new WebSocketServerHelper<TAuthPayload, IUserMetadata>({
 
 The server passes the `data` of the `authenticate` message to the hooks only when it is an object. Anything else (a string, a number, a list, `null`, nothing) fails authentication: the client gets an `error` event and close code `4003`.
 
-With `authSchema`, the server also parses the object with it. Data the schema refuses fails authentication the same way; the hooks receive what the schema answers.
+With `authenticate.schema`, the server also parses the object with it. Data the schema refuses fails authentication the same way; the hooks receive what the schema answers.
 
 ### `TWebSocketServerOptions`
 
@@ -244,34 +246,34 @@ With `authSchema`, the server also parses the object with it. Data the schema re
 | `heartbeatTimeout` | `number` | No | `90000` (90s) | Milliseconds of inactivity before an authenticated client is closed (close code `4002`) |
 | `encryptedBatchLimit` | `number` | No | `10` | Max concurrent `outboundTransformer` invocations during room/broadcast delivery |
 | `requireEncryption` | `boolean` | No | `false` | When `true`, clients must complete the handshake during auth |
-| `authSchema` | `z.ZodType` | No | - | Checks the authentication data; see [Authentication data](#authentication-data) |
-| `authenticateFn` | `TWebSocketAuthenticateFn` | Yes | - | Called on `{ event: 'authenticate' }`; returns `{ userId, metadata }` to accept |
+| `authenticate.fn` | `TWebSocketAuthenticateFn` | Yes | - | Called on `{ event: 'authenticate' }`; returns `{ userId, metadata }` to accept |
+| `authenticate.schema` | `z.ZodType` | No | - | Checks the authentication data; see [Authentication data](#authentication-data) |
 | `validateRoomFn` | `TWebSocketValidateRoomFn` | No | - | Called on `{ event: 'join' }`; returns the allowed subset of requested rooms |
 | `clientConnectedFn` | `TWebSocketClientConnectedFn` | No | - | Called after successful authentication |
 | `clientDisconnectedFn` | `TWebSocketClientDisconnectedFn` | No | - | Called during disconnect cleanup |
 | `messageHandler` | `TWebSocketMessageHandler` | No | - | Called for other events from authenticated clients |
 | `outboundTransformer` | `TWebSocketOutboundTransformer` | No | - | Intercepts outbound `{ event, data }` before `socket.send()`; enables per-client encryption |
-| `handshakeFn` | `TWebSocketHandshakeFn` | No | - | Required when `requireEncryption` is `true`; returns `{ serverPublicKey, salt }` to accept |
+| `handshake.fn` | `TWebSocketHandshakeFn` | No | - | Required when `requireEncryption` is `true`; returns `{ serverPublicKey, salt }` to accept |
 
 Details for the table:
 
-- `authTimeout` is extended to `authTimeout * 3` while `authenticateFn` is in flight.
-- `authenticateFn` rejects the client by returning `null` or `false`, or by throwing.
+- `authTimeout` is extended to `authTimeout * 3` while `authenticate.fn` is in flight.
+- `authenticate.fn` rejects the client by returning `null` or `false`, or by throwing.
 - Without `validateRoomFn`, all joins are rejected.
 - `messageHandler` receives every event except `authenticate`, `heartbeat`, `join` and `leave`.
 - `requireEncryption: true` disconnects a client that skips the handshake, with code `4004`.
-- `handshakeFn` returns `null` or `false` to reject.
+- `handshake.fn` returns `null` or `false` to reject.
 
 - **Three callbacks run through `HookUtility.invoke()`:** `clientConnectedFn`, `clientDisconnectedFn`, and `messageHandler`. A throw or a rejection there is caught and logged, and nothing else changes.
 - **The other three fail differently.** They sit on the connection's own promise chain, so a failure has a visible consequence for the client.
 
 | Callback | On throw or rejection |
 |---|---|
-| `authenticateFn` | The socket is closed with `4003 Authentication failed`, after an `Authentication error` event is sent |
-| `handshakeFn` | A throw closes with `4003`; a falsy return closes with `4004 Encryption required` |
+| `authenticate.fn` | The socket is closed with `4003 Authentication failed`, after an `Authentication error` event is sent |
+| `handshake.fn` | A throw closes with `4003`; a falsy return closes with `4004 Encryption required` |
 | `validateRoomFn` | Logged as `Failed to join rooms`. The socket stays open and the join simply does not happen |
 
-`handshakeFn` runs inside the same promise chain as `authenticateFn`, so a throw lands in the same handler.
+`handshake.fn` runs inside the same promise chain as `authenticate.fn`, so a throw lands in the same handler.
 
 - **Failures do not crash the process.** A synchronous throw inside a Bun socket handler is caught and logged. A rejected promise is logged the same way, via `PromiseUtility.voidExecution`.
 
@@ -724,23 +726,22 @@ type TWebSocketServerOptions<
   MetadataType extends Record<string, unknown> = Record<string, unknown>,
 > = IWebSocketServerBaseOptions<MetadataType> & TWebSocketAuthOptions<AuthDataType, MetadataType>;
 
-// handshakeFn is required when requireEncryption is true
+// handshake is required when requireEncryption is true
 type TWebSocketAuthOptions<AuthDataType, MetadataType> =
   | {
-      authSchema: z.ZodType<AuthDataType>;
-      authenticateFn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
-      handshakeFn?: TWebSocketHandshakeFn<AuthDataType>;
+      authenticate: {
+        schema: z.ZodType<AuthDataType>;
+        fn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
+      };
+      handshake?: { fn: TWebSocketHandshakeFn<AuthDataType> };
     }
   | {
-      authSchema?: undefined;
-      authenticateFn: TWebSocketAuthenticateFn<Record<string, unknown>, MetadataType>;
-      handshakeFn?: TWebSocketHandshakeFn;
+      authenticate: {
+        schema?: undefined;
+        fn: TWebSocketAuthenticateFn<Record<string, unknown>, MetadataType>;
+      };
+      handshake?: { fn: TWebSocketHandshakeFn };
     };
-
-interface IWebSocketEmitterOptions {
-  identifier?: string; // Default: 'WebSocketEmitter'
-  redisConnection: IRedisHelper;
-}
 ```
 
 ### Callback types
@@ -882,7 +883,7 @@ WebSocketMessageTypes.values();         // ['client', 'user', 'room', 'broadcast
 | Constant | Value | Description |
 |----------|-------|-------------|
 | `UNAUTHORIZED` | `'unauthorized'` | Initial state after connection |
-| `AUTHENTICATING` | `'authenticating'` | `authenticate` event received, awaiting `authenticateFn` |
+| `AUTHENTICATING` | `'authenticating'` | `authenticate` event received, awaiting `authenticate.fn` |
 | `AUTHENTICATED` | `'authenticated'` | Successfully authenticated, fully operational |
 | `DISCONNECTED` | `'disconnected'` | Client has disconnected |
 
@@ -895,10 +896,10 @@ WebSocketClientStates.values();                 // all valid state strings
 
 | Code | Meaning | Trigger |
 |------|---------|---------|
-| `4001` | Authentication timeout | Client did not authenticate within `authTimeout` (or `authTimeout * 3` once `authenticateFn` started) |
+| `4001` | Authentication timeout | Client did not authenticate within `authTimeout` (or `authTimeout * 3` once `authenticate.fn` started) |
 | `4002` | Heartbeat timeout | No activity for `heartbeatTimeout` |
-| `4003` | Authentication failed | The data is not an object, `authSchema` refused it, or `authenticateFn` returned `null`/`false` or threw |
-| `4004` | Encryption required | `requireEncryption` is `true` and `handshakeFn` is missing or rejected |
+| `4003` | Authentication failed | The data is not an object, `authenticate.schema` refused it, or `authenticate.fn` returned `null`/`false` or threw |
+| `4004` | Encryption required | `requireEncryption` is `true` and `handshake.fn` is missing or rejected |
 | `1001` | Going away | Server shutting down gracefully (`shutdown()`) |
 
 ## Troubleshooting
@@ -921,8 +922,8 @@ WebSocketClientStates.values();                 // all valid state strings
 
 ### `requireEncryption` is true but clients get disconnected with code 4004
 
-- **`handshakeFn` missing.** The server logs `"requireEncryption is true but no handshakeFn configured"` and closes the client.
-- **`handshakeFn` rejected.** It returned `null`/`false` - typically because required key-exchange data (e.g. `publicKey`) was missing from the authenticate payload.
+- **`handshake.fn` missing.** The server logs `"requireEncryption is true but no handshake configured"` and closes the client.
+- **`handshake.fn` rejected.** It returned `null`/`false` - typically because required key-exchange data (e.g. `publicKey`) was missing from the authenticate payload.
 
 ### `[WebSocketServerHelper] Invalid redis connection!` / `[WebSocketEmitter] Invalid redis connection!`
 

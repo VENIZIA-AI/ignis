@@ -88,7 +88,7 @@ export interface IWebSocketServerBaseOptions<
   outboundTransformer?: TWebSocketOutboundTransformer<unknown, MetadataType>;
 }
 
-/** Options for `WebSocketServerHelper`. `handshakeFn` is required when `requireEncryption` is true. */
+/** Options for `WebSocketServerHelper`. `handshake` is required when `requireEncryption` is true. */
 export type TWebSocketServerOptions<
   AuthDataType extends Record<string, unknown> = Record<string, unknown>,
   MetadataType extends Record<string, unknown> = Record<string, unknown>,

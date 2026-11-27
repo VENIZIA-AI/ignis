@@ -7,6 +7,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   isRedisHelper,
+  type TWebSocketAuthOptions,
   type TWebSocketValidateRoomFn,
   WebSocketDefaults,
   type IWebSocketData,
@@ -175,6 +176,11 @@ export class WebSocketComponent extends BaseComponent {
           });
         }
 
+        const handshake = handshakeFn && { fn: handshakeFn };
+        const auth: TWebSocketAuthOptions = authSchema
+          ? { authenticate: { schema: authSchema, fn: authenticateFn }, handshake }
+          : { authenticate: { fn: authenticateFn }, handshake };
+
         const wsHelper = new WebSocketServerHelper({
           identifier: serverOptions.identifier,
           path: serverOptions.path,
@@ -184,14 +190,12 @@ export class WebSocketComponent extends BaseComponent {
           heartbeatTimeout: serverOptions.heartbeatTimeout,
           server: serverInstance,
           redisConnection,
-          authSchema,
-          authenticateFn,
+          ...auth,
           validateRoomFn,
           clientConnectedFn,
           clientDisconnectedFn,
           messageHandler,
           outboundTransformer,
-          handshakeFn,
           requireEncryption: serverOptions.requireEncryption,
         });
         await wsHelper.configure();

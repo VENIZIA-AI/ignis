@@ -132,10 +132,10 @@ interface IWebSocketMessage<DataType = unknown> {
 | Code | Reason | Trigger |
 |------|--------|---------|
 | `1001` | Server shutting down | `wsHelper.shutdown()` |
-| `4001` | Authentication timeout | No `authenticate` within `authTimeout`, or `authenticateFn`/`handshakeFn` didn't finish within `authTimeout * 3` |
+| `4001` | Authentication timeout | No `authenticate` within `authTimeout`, or `authenticate.fn`/`handshake.fn` didn't finish within `authTimeout * 3` |
 | `4002` | Heartbeat timeout | No messages within `heartbeatTimeout` |
-| `4003` | Authentication failed | The data is not an object, the schema refused it, or `authenticateFn` returned `null`/`false` or threw |
-| `4004` | Encryption required | `requireEncryption: true` and no `handshakeFn`, or it returned `null`/`false` |
+| `4003` | Authentication failed | The data is not an object, the schema refused it, or `authenticate.fn` returned `null`/`false` or threw |
+| `4004` | Encryption required | `requireEncryption: true` and no `handshake.fn`, or it returned `null`/`false` |
 
 **Redis Pub/Sub envelope** (cross-instance messages only):
 
@@ -174,7 +174,7 @@ interface IWebSocketClient<MetadataType extends Record<string, unknown> = Record
   encrypted: boolean;            // Completed the encryption handshake
   connectedAt: number;
   lastActivity: number;          // Last heartbeat/message timestamp
-  metadata?: MetadataType;       // From authenticateFn's return value
+  metadata?: MetadataType;       // From authenticate.fn's return value
   serverPublicKey?: string;
   salt?: string;
 }
@@ -216,8 +216,8 @@ Client                          Server
   |                                |-- state = UNAUTHORIZED, subscribe(clientId), start authTimer (5s)
   |-- { event: 'authenticate',    |
   |     data: { token: '...' } } >|-- state = AUTHENTICATING, replace timer with authTimeout * 3
-  |                                |   await authenticateFn(data)
-  |                                |   (if requireEncryption) await handshakeFn(data)
+  |                                |   await authenticate.fn(data)
+  |                                |   (if requireEncryption) await handshake.fn(data)
   |                                |   state = AUTHENTICATED, index by userId
   |                                |   subscribe(BROADCAST_TOPIC) + joinRoom(clientId + default rooms)  <- unless encrypted
   |<-- { event: 'connected', ... }-|
@@ -229,7 +229,7 @@ Client                          Server
   | Phase | Timeout | Starts when | On expiry |
   |---|---|---|---|
   | Initial | `authTimeout` (5s default) | Connection opens | Closes with `4001` if no `authenticate` event arrives |
-  | Post-authenticate | `authTimeout * 3` (15s default) | `authenticate` event is received | Gives the async `authenticateFn` (and `handshakeFn`, when encryption is required) room to complete |
+  | Post-authenticate | `authTimeout * 3` (15s default) | `authenticate` event is received | Gives the async `authenticate.fn` (and `handshake.fn`, when encryption is required) room to complete |
 - **A client's own ID becomes a room.** After authentication, `joinRoom({ clientId, room: clientId })` runs automatically. This is what lets `send({ destination: clientId })` or `sendToRoom({ room: clientId })` target one specific client.
 - **Encrypted clients skip Bun's native topics.** A client's own `clientId` topic is subscribed before auth (always). `BROADCAST_TOPIC` and rooms are subscribed after auth, but only when `!client.encrypted`. Encrypted clients rely entirely on the per-client `outboundTransformer` path.
 

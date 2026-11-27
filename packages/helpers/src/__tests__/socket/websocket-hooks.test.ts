@@ -77,7 +77,7 @@ const createHelper = (opts?: Partial<TWebSocketServerOptions>) => {
     identifier: 'test-ws-server',
     redisConnection,
     server: { publish: mock(() => 1), pendingWebSockets: 0 },
-    authenticateFn: () => ({ userId: 'user-a' }),
+    authenticate: { fn: () => ({ userId: 'user-a' }) },
     ...opts,
   } as TWebSocketServerOptions);
 

@@ -384,10 +384,12 @@ describe('WebSocketServerHelper', () => {
       identifier: 'test-ws-server',
       server: mockBunServer,
       redisConnection: mockRedisHelper,
-      authenticateFn: mock((data: Record<string, unknown>) => ({
-        userId: (data.userId as string) ?? 'user-1',
-        metadata: data.metadata as Record<string, unknown> | undefined,
-      })),
+      authenticate: {
+        fn: mock((data: Record<string, unknown>) => ({
+          userId: (data.userId as string) ?? 'user-1',
+          metadata: data.metadata as Record<string, unknown> | undefined,
+        })),
+      },
     };
 
     helper = new WebSocketServerHelper(opts);
@@ -563,10 +565,12 @@ describe('WebSocketServerHelper', () => {
     test('should set metadata on client after auth', async () => {
       const metaHelper = new WebSocketServerHelper({
         ...opts,
-        authenticateFn: mock(() => ({
-          userId: 'user-1',
-          metadata: { role: 'admin', tenant: 'acme' },
-        })),
+        authenticate: {
+          fn: mock(() => ({
+            userId: 'user-1',
+            metadata: { role: 'admin', tenant: 'acme' },
+          })),
+        },
       });
 
       const socket = createMockSocket('client-1');
@@ -670,7 +674,7 @@ describe('WebSocketServerHelper', () => {
     test('should reject auth when authenticateFn returns null', async () => {
       const rejectHelper = new WebSocketServerHelper({
         ...opts,
-        authenticateFn: mock(() => null),
+        authenticate: { fn: mock(() => null) },
       });
 
       const socket = createMockSocket('client-1');
@@ -687,7 +691,7 @@ describe('WebSocketServerHelper', () => {
     test('should reject auth when authenticateFn returns false', async () => {
       const rejectHelper = new WebSocketServerHelper({
         ...opts,
-        authenticateFn: mock(() => false as const),
+        authenticate: { fn: mock(() => false as const) },
       });
 
       const socket = createMockSocket('client-1');
@@ -704,7 +708,7 @@ describe('WebSocketServerHelper', () => {
     test('should send error event on auth failure before closing', async () => {
       const rejectHelper = new WebSocketServerHelper({
         ...opts,
-        authenticateFn: mock(() => null),
+        authenticate: { fn: mock(() => null) },
       });
 
       const socket = createMockSocket('client-1');
@@ -728,9 +732,11 @@ describe('WebSocketServerHelper', () => {
     test('should reject auth when authenticateFn throws', async () => {
       const throwHelper = new WebSocketServerHelper({
         ...opts,
-        authenticateFn: mock(() => {
-          throw new Error('Auth failed');
-        }),
+        authenticate: {
+          fn: mock(() => {
+            throw new Error('Auth failed');
+          }),
+        },
       });
 
       const socket = createMockSocket('client-1');
@@ -747,11 +753,13 @@ describe('WebSocketServerHelper', () => {
     test('should handle async authenticateFn', async () => {
       const asyncHelper = new WebSocketServerHelper({
         ...opts,
-        authenticateFn: mock(async () => {
-          await wait(10);
+        authenticate: {
+          fn: mock(async () => {
+            await wait(10);
 
-          return { userId: 'async-user', metadata: { role: 'admin' } };
-        }),
+            return { userId: 'async-user', metadata: { role: 'admin' } };
+          }),
+        },
       });
 
       const socket = createMockSocket('client-1');
@@ -772,7 +780,7 @@ describe('WebSocketServerHelper', () => {
       const authFn = mock(() => ({ userId: 'user-x' }));
       const authHelper = new WebSocketServerHelper({
         ...opts,
-        authenticateFn: authFn,
+        authenticate: { fn: authFn },
       });
 
       const socket = createMockSocket('client-1');
@@ -2135,9 +2143,11 @@ describe('Heartbeat — Application-Level Liveness Check', () => {
       identifier: 'test-heartbeat',
       server: mockBunServer,
       redisConnection: mockRedisHelper,
-      authenticateFn: mock((data: Record<string, unknown>) => ({
-        userId: (data.userId as string) ?? 'user-1',
-      })),
+      authenticate: {
+        fn: mock((data: Record<string, unknown>) => ({
+          userId: (data.userId as string) ?? 'user-1',
+        })),
+      },
       heartbeatInterval: 100, // Fast interval for testing
       heartbeatTimeout: 250, // Fast timeout for testing
     };
@@ -2441,12 +2451,14 @@ describe('WebSocketServerHelper - the window of an encryption handshake', () => 
       authTimeout,
       server: createMockBunServer(),
       redisConnection: createMockRedisHelper(),
-      authenticateFn: () => ({ userId: 'user-1' }),
+      authenticate: { fn: () => ({ userId: 'user-1' }) },
       requireEncryption: true,
-      handshakeFn: () =>
-        new Promise((resolve) => {
-          handshake.resolve = resolve as (value: unknown) => void;
-        }) as never,
+      handshake: {
+        fn: () =>
+          new Promise((resolve) => {
+            handshake.resolve = resolve as (value: unknown) => void;
+          }) as never,
+      },
       messageHandler,
     } as TWebSocketServerOptions);
 

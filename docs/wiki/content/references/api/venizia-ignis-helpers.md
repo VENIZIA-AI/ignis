@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-225 exports, 225 with TSDoc. 261 more are re-exported from other entries (listed at the end).
+227 exports, 227 with TSDoc. 261 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -3451,6 +3451,48 @@ export interface IWebSocketMessage<DataType = unknown> {
 
 Source: `packages/helpers/src/modules/socket/websocket/common/types/message.ts`
 
+## `IWebSocketRecordAuthOptions`
+
+*interface*
+
+Authentication without a schema: the hooks receive the object the client sent.
+
+```ts
+export interface IWebSocketRecordAuthOptions<MetadataType extends Record<string, unknown> = Record<string, unknown>> {
+    authenticate: {
+        schema?: undefined;
+        fn: TWebSocketAuthenticateFn<Record<string, unknown>, MetadataType>;
+    };
+    /** Required when `requireEncryption` is true. */
+    handshake?: {
+        fn: TWebSocketHandshakeFn;
+    };
+}
+```
+
+Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
+
+## `IWebSocketSchemaAuthOptions`
+
+*interface*
+
+Authentication checked by a schema: the server refuses what `schema` refuses, and the hooks receive what it answers.
+
+```ts
+export interface IWebSocketSchemaAuthOptions<AuthDataType extends Record<string, unknown>, MetadataType extends Record<string, unknown> = Record<string, unknown>> {
+    authenticate: {
+        schema: z.ZodType<AuthDataType>;
+        fn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
+    };
+    /** Required when `requireEncryption` is true. */
+    handshake?: {
+        fn: TWebSocketHandshakeFn<AuthDataType>;
+    };
+}
+```
+
+Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
+
 ## `IWebSocketServerBaseOptions`
 
 *interface*
@@ -5033,21 +5075,10 @@ Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
 
 *type*
 
-How the authentication data is checked, with the hooks that receive it. The server refuses data that is not an object;
-with `authSchema` it also refuses what the schema refuses, and the hooks receive what the schema answers.
+How a client authenticates. The server refuses authentication data that is not an object, with or without a schema.
 
 ```ts
-export type TWebSocketAuthOptions<AuthDataType extends Record<string, unknown> = Record<string, unknown>, MetadataType extends Record<string, unknown> = Record<string, unknown>> = {
-    authSchema: z.ZodType<AuthDataType>;
-    authenticateFn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
-    /** Required when `requireEncryption` is true. */
-    handshakeFn?: TWebSocketHandshakeFn<AuthDataType>;
-} | {
-    authSchema?: undefined;
-    authenticateFn: TWebSocketAuthenticateFn<Record<string, unknown>, MetadataType>;
-    /** Required when `requireEncryption` is true. */
-    handshakeFn?: TWebSocketHandshakeFn;
-};
+export type TWebSocketAuthOptions<AuthDataType extends Record<string, unknown> = Record<string, unknown>, MetadataType extends Record<string, unknown> = Record<string, unknown>> = IWebSocketSchemaAuthOptions<AuthDataType, MetadataType> | IWebSocketRecordAuthOptions<MetadataType>;
 ```
 
 Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
@@ -5177,7 +5208,7 @@ Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
 
 *type*
 
-Options for `WebSocketServerHelper`. `handshakeFn` is required when `requireEncryption` is true.
+Options for `WebSocketServerHelper`. `handshake` is required when `requireEncryption` is true.
 
 ```ts
 export type TWebSocketServerOptions<AuthDataType extends Record<string, unknown> = Record<string, unknown>, MetadataType extends Record<string, unknown> = Record<string, unknown>> = IWebSocketServerBaseOptions<MetadataType> & TWebSocketAuthOptions<AuthDataType, MetadataType>;
@@ -5442,7 +5473,7 @@ Source: `packages/helpers/src/modules/socket/websocket/common/constants.ts`
 
 *class*
 
-WebSocket server for Bun with authentication, rooms, heartbeats, optional encrypted sessions, and Redis fan-out across instances. Clients must authenticate through `authenticateFn` within `authTimeout`.
+WebSocket server for Bun with authentication, rooms, heartbeats, optional encrypted sessions, and Redis fan-out across instances. Clients must authenticate through `authenticate.fn` within `authTimeout`.
 
 ```ts
 export declare class WebSocketServerHelper<AuthDataType extends Record<string, unknown> = Record<string, unknown>, MetadataType extends Record<string, unknown> = Record<string, unknown>> extends BaseHelper {
@@ -5476,8 +5507,15 @@ export declare class WebSocketServerHelper<AuthDataType extends Record<string, u
     private heartbeatTimeout;
     private heartbeatTimer;
     private requireEncryption;
-    /** The two shapes of the options: with a schema the data is what it answers, without one the object as it came. */
+    /** TypeScript narrows a union by its own properties only, and the schema is one level down. */
+    private static hasNoSchema;
+    /** Checks authentication data, then binds the hooks to it: with a schema to what it answers, without one to the object as it came. */
     private static authSessionOf;
+    /** With `authenticate.schema`, the hooks receive what it answers, typed from it. */
+    constructor(opts: IWebSocketServerBaseOptions<MetadataType> & IWebSocketSchemaAuthOptions<AuthDataType, MetadataType>);
+    /** Without a schema, the hooks receive the object as it came. */
+    constructor(opts: IWebSocketServerBaseOptions<MetadataType> & IWebSocketRecordAuthOptions<MetadataType>);
+    /** For options built beforehand as `TWebSocketServerOptions`. */
     constructor(opts: TWebSocketServerOptions<AuthDataType, MetadataType>);
     private initRedisClients;
     getClients(opts?: {

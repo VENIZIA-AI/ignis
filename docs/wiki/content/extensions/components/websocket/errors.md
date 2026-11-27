@@ -15,12 +15,12 @@ Every error condition the WebSocket component and helper can raise, plus fixes f
 | `"Invalid message format"` | Client sent non-JSON data | `error` event |
 | `"Already authenticated"` | Client sent `authenticate` while state was not `UNAUTHORIZED` | `error` event |
 | `"Not authenticated"` | Client sent a non-`authenticate`, non-`heartbeat` event while unauthenticated | `error` event |
-| `"Authentication failed"` | The data is not an object, `AUTH_SCHEMA` refused it, or `authenticateFn` returned `null`/`false` | `error` event + close `4003` |
-| `"Authentication error"` | `authenticateFn` threw | `error` event + close `4003` |
-| `"Encryption handshake failed"` | `handshakeFn` returned `null`/`false` | `error` event + close `4004` |
-| Close `4004` (no error event) | `requireEncryption: true` but no `handshakeFn` configured | close `4004` only |
+| `"Authentication failed"` | The data is not an object, `AUTH_SCHEMA` refused it, or `authenticate.fn` returned `null`/`false` | `error` event + close `4003` |
+| `"Authentication error"` | `authenticate.fn` threw | `error` event + close `4003` |
+| `"Encryption handshake failed"` | `handshake.fn` returned `null`/`false` | `error` event + close `4004` |
+| Close `4004` (no error event) | `requireEncryption: true` but no `handshake.fn` configured | close `4004` only |
 | Close `4001` | Auth timeout - no `authenticate` sent within `authTimeout` | close `4001` only |
-| Close `4001` | Auth in-progress timeout - `authenticateFn`/`handshakeFn` slower than `authTimeout * 3` | close `4001` only |
+| Close `4001` | Auth in-progress timeout - `authenticate.fn`/`handshake.fn` slower than `authTimeout * 3` | close `4001` only |
 | Close `4002` | Heartbeat timeout - no messages within `heartbeatTimeout` | close `4002` only |
 | Close `1001` | Server shutdown (`wsHelper.shutdown()`) | close `1001` only |
 | `"Invalid redis connection!"` | Constructor: `redisConnection` is falsy | thrown `Error` (startup) |

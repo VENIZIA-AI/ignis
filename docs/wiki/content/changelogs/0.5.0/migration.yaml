@@ -1088,19 +1088,25 @@ websocket-payload-types:
       new WebSocketServerHelper<{ token: string }>({
         ...options,
         authenticateFn: data => verify(data.token),
+        handshakeFn: ({ data }) => exchange(data.token),
       });
     after: |-
       new WebSocketServerHelper({
         ...options,
-        authSchema: z.object({ token: z.string() }),
-        authenticateFn: data => verify(data.token),
+        authenticate: {
+          schema: z.object({ token: z.string() }),
+          fn: data => verify(data.token),
+        },
+        handshake: { fn: ({ data }) => exchange(data.token) },
       });
     steps:
       - "Run bun node_modules/.bin/devz codemod class-renames [paths...] --write, then your typecheck."
-      - "Where you named the type of the authentication data, pass authSchema instead, or narrow the Record<string, unknown> the hook receives."
+      - "TWebSocketServerOptions is a union, which an interface cannot extend: change interface X extends IWebSocketServerOptions to type X = TWebSocketServerOptions & { ... }."
+      - "By hand (the codemod does not move options): authenticateFn: f becomes authenticate: { fn: f }, and handshakeFn: g becomes handshake: { fn: g }."
+      - "Where you named the type of the authentication data, pass authenticate.schema instead, or narrow the Record<string, unknown> the hook receives."
       - "Make every client send data as an object in its authenticate message; send {} where there is nothing to send."
       - "Through WebSocketComponent, bind the schema to WebSocketBindingKeys.AUTH_SCHEMA; the hooks bound there keep the Record<string, unknown> type."
   downgrade:
     steps:
-      - "Pin @venizia/ignis-helpers and @venizia/ignis to the release before this one and remove authSchema."
+      - "Pin @venizia/ignis-helpers and @venizia/ignis to the release before this one and write the options flat again (authenticateFn, handshakeFn)."
   data: Nothing stored changes.

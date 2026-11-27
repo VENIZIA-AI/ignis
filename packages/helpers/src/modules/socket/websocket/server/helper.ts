@@ -14,6 +14,8 @@ import {
   type IWebSocketClient,
   type IWebSocketData,
   type IWebSocketMessage,
+  type IWebSocketRecordAuthOptions,
+  type IWebSocketSchemaAuthOptions,
   type IWebSocketServerBaseOptions,
   type TWebSocketAuthenticateFn,
   type TWebSocketAuthOptions,
@@ -37,7 +39,7 @@ interface IAuthSession<MetadataType extends Record<string, unknown>> {
   handshake?: (context: { clientId: string; userId?: string }) => ReturnType<TWebSocketHandshakeFn>;
 }
 
-/** WebSocket server for Bun with authentication, rooms, heartbeats, optional encrypted sessions, and Redis fan-out across instances. Clients must authenticate through `authenticateFn` within `authTimeout`. */
+/** WebSocket server for Bun with authentication, rooms, heartbeats, optional encrypted sessions, and Redis fan-out across instances. Clients must authenticate through `authenticate.fn` within `authTimeout`. */
 export class WebSocketServerHelper<
   AuthDataType extends Record<string, unknown> = Record<string, unknown>,
   MetadataType extends Record<string, unknown> = Record<string, unknown>,
@@ -86,46 +88,60 @@ export class WebSocketServerHelper<
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private requireEncryption: boolean;
 
-  /** The two shapes of the options: with a schema the data is what it answers, without one the object as it came. */
+  /** TypeScript narrows a union by its own properties only, and the schema is one level down. */
+  private static hasNoSchema<
+    AuthDataType extends Record<string, unknown>,
+    MetadataType extends Record<string, unknown>,
+  >(
+    opts: TWebSocketAuthOptions<AuthDataType, MetadataType>,
+  ): opts is IWebSocketRecordAuthOptions<MetadataType> {
+    return opts.authenticate.schema === undefined;
+  }
+
+  /** Checks authentication data, then binds the hooks to it: with a schema to what it answers, without one to the object as it came. */
   private static authSessionOf<
     AuthDataType extends Record<string, unknown>,
     MetadataType extends Record<string, unknown>,
   >(opts: TWebSocketAuthOptions<AuthDataType, MetadataType>) {
-    if (opts.authSchema === undefined) {
-      const { authenticateFn, handshakeFn } = opts;
-
-      return async (payload: unknown): Promise<IAuthSession<MetadataType> | undefined> => {
-        if (!RecordUtility.isPlainRecord(payload)) {
-          return undefined;
-        }
-
-        return {
-          authenticate: () => authenticateFn(payload),
-          handshake: handshakeFn && ((context) => handshakeFn({ ...context, data: payload })),
-        };
-      };
-    }
-
-    const { authSchema, authenticateFn, handshakeFn } = opts;
-
     return async (payload: unknown): Promise<IAuthSession<MetadataType> | undefined> => {
       if (!RecordUtility.isPlainRecord(payload)) {
         return undefined;
       }
 
-      const parsed = await authSchema.safeParseAsync(payload);
+      if (WebSocketServerHelper.hasNoSchema(opts)) {
+        const { authenticate, handshake } = opts;
+
+        return {
+          authenticate: () => authenticate.fn(payload),
+          handshake: handshake && ((context) => handshake.fn({ ...context, data: payload })),
+        };
+      }
+
+      const { authenticate, handshake } = opts;
+      const parsed = await authenticate.schema.safeParseAsync(payload);
 
       if (!parsed.success) {
         return undefined;
       }
 
       return {
-        authenticate: () => authenticateFn(parsed.data),
-        handshake: handshakeFn && ((context) => handshakeFn({ ...context, data: parsed.data })),
+        authenticate: () => authenticate.fn(parsed.data),
+        handshake: handshake && ((context) => handshake.fn({ ...context, data: parsed.data })),
       };
     };
   }
 
+  /** With `authenticate.schema`, the hooks receive what it answers, typed from it. */
+  constructor(
+    opts: IWebSocketServerBaseOptions<MetadataType> &
+      IWebSocketSchemaAuthOptions<AuthDataType, MetadataType>,
+  );
+  /** Without a schema, the hooks receive the object as it came. */
+  constructor(
+    opts: IWebSocketServerBaseOptions<MetadataType> & IWebSocketRecordAuthOptions<MetadataType>,
+  );
+  /** For options built beforehand as `TWebSocketServerOptions`. */
+  constructor(opts: TWebSocketServerOptions<AuthDataType, MetadataType>);
   constructor(opts: TWebSocketServerOptions<AuthDataType, MetadataType>) {
     super({ scope: opts.identifier });
 
@@ -718,7 +734,7 @@ export class WebSocketServerHelper<
 
     client.state = WebSocketClientStates.AUTHENTICATING;
 
-    // Replace with a longer in-progress timeout - prevents DoS via a hanging authenticateFn
+    // Replace with a longer in-progress timeout - prevents DoS via a hanging authenticate.fn
     if (client.authTimer) {
       clearTimeout(client.authTimer);
     }
@@ -764,7 +780,7 @@ export class WebSocketServerHelper<
         if (this.requireEncryption) {
           if (!session.handshake) {
             logger.error(
-              'requireEncryption is true but no handshakeFn configured | id: %s',
+              'requireEncryption is true but no handshake configured | id: %s',
               clientId,
             );
             client.socket.close(4004, 'Encryption required');
