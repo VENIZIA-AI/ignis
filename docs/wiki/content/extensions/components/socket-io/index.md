@@ -58,9 +58,7 @@ Socket.IO needs a running server, but components initialize before the server ex
 Bind `SERVER_OPTIONS` before registering the component. The default (`cors.origin: '*'`) is for local development only.
 
 ```typescript
-import type { ServerOptions } from 'socket.io';
-
-this.bind<Partial<ServerOptions>>({ key: SocketIOBindingKeys.SERVER_OPTIONS }).toValue({
+this.bind({ key: SocketIOBindingKeys.SERVER_OPTIONS }).toValue({
   cors: { origin: ['https://myapp.com'], credentials: true },
 });
 this.component(SocketIOComponent);

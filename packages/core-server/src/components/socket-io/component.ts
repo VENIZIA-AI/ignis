@@ -9,6 +9,7 @@ import { isRedisHelper } from '@venizia/ignis-helpers';
 import { SocketIOServerHelper } from '@venizia/ignis-helpers/socket-io';
 import {
   SocketIOBindingKeys,
+  DEFAULT_SERVER_IDENTIFIER,
   DEFAULT_SERVER_OPTIONS,
   type IResolvedBindings,
   type IServerOptions,
@@ -103,7 +104,7 @@ export class SocketIOComponent extends BaseComponent {
 
         const socketIOHelper = new SocketIOServerHelper({
           runtime: RuntimeModules.BUN,
-          identifier: serverOptions.identifier!,
+          identifier: serverOptions.identifier ?? DEFAULT_SERVER_IDENTIFIER,
           engine,
           serverOptions,
           redisConnection,
