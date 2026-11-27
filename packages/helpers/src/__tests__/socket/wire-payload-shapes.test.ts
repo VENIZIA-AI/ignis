@@ -33,7 +33,17 @@ describe('a Redis fan-out message', () => {
   };
 
   test('one without a string serverId and event is refused', () => {
-    for (const raw of ['null', '7', '[]', '{}', '{"serverId":1,"event":"e"}', '{"serverId":"s"}']) {
+    for (const raw of [
+      'null',
+      '7',
+      '[]',
+      '{}',
+      '{"serverId":1,"event":"e"}',
+      '{"serverId":"s"}',
+      '{"serverId":"s","event":"e","type":"nope"}',
+      '{"serverId":"s","event":"e","type":"room","target":1}',
+      '{"serverId":"s","event":"e","type":"broadcast","exclude":[1]}',
+    ]) {
       const { error, broadcast } = receive(raw);
 
       expect(error).toHaveBeenCalledTimes(1);

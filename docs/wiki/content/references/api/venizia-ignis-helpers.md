@@ -5462,6 +5462,8 @@ export declare class WebSocketServerHelper<AuthDataType extends Record<string, u
     }): void;
     configure(): Promise<void>;
     private setupRedisSubscriptions;
+    /** A peer's message off Redis. Type guard, so it keeps its positional `value`; `data` is the application's own. */
+    private static isRedisMessage;
     private onRedisMessage;
     private publishToRedis;
     getBunWebSocketHandler(): IBunWebSocketHandler;

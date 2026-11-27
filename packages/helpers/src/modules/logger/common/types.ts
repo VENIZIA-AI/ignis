@@ -19,7 +19,7 @@ export class LogLevels {
     this.DEBUG,
   ];
 
-  static isValid(input: string): boolean {
+  static isValid(input: string): input is TLogLevel {
     return this.SCHEME_SET.has(input);
   }
 

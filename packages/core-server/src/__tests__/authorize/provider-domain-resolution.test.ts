@@ -264,6 +264,24 @@ describe('AuthorizationProvider — principalType guard (lines 128-132)', () => 
     expect(error?.statusCode).toBe(400);
     expect(error?.message).toContain('principalType is required');
   });
+
+  test('throws 400 when principalType is not a string', async () => {
+    const { middleware } = setup({
+      spec: { action: 'read', resource: 'Order' },
+      rules: [{ action: 'read', resource: 'Order', effect: 'allow' }],
+    });
+
+    // As an authentication strategy can hand it: `IAuthUser` leaves extra fields untyped.
+    const user: IAuthUser = { userId: 'u1', principalType: 7 };
+    const context = createFullContext();
+    context._store.set(Authentication.CURRENT_USER, user);
+
+    const { hasCalledNext, error } = await run(middleware, context);
+
+    expect(hasCalledNext).toBe(false);
+    expect(error?.statusCode).toBe(400);
+    expect(error?.message).toContain('principalType is required');
+  });
 });
 
 describe('AuthorizationProvider — ABSTAIN → defaultDecision (line 155)', () => {

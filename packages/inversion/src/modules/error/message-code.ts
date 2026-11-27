@@ -1,4 +1,3 @@
-import type { TNullable } from '@/common/types';
 import type { TError } from './common';
 
 type TErrorFactory = (opts: TError) => Error;
@@ -62,7 +61,7 @@ export class MessageCode {
   }
 
   /** Normalizes an absent, empty or non-string code to {@link DEFAULT}. */
-  static resolve(code?: TNullable<string>): string {
+  static resolve(code?: unknown): string {
     return typeof code === 'string' && code.length
       ? code.toLowerCase()
       : this.DEFAULT.toLowerCase();

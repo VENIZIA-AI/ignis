@@ -16,6 +16,11 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
     super({ scope: AuthorizationProvider.name });
   }
 
+  /** Type guard, so it keeps its positional `user`. */
+  private hasPrincipalType(user: IAuthUser): user is IAuthUser & { principalType: string } {
+    return typeof user.principalType === 'string' && user.principalType.length > 0;
+  }
+
   value(): TAuthorizeFn {
     return (opts) => {
       return this.createAuthorizeMiddleware(opts);
@@ -38,7 +43,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
         return next();
       }
 
-      const user = context.get(Authentication.CURRENT_USER) as IAuthUser | undefined;
+      const user: IAuthUser | undefined = context.get(Authentication.CURRENT_USER);
 
       if (!user) {
         throw getError({
@@ -153,7 +158,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
       let rules = rulesByEnforcer.get(resolvedName);
 
       if (!rules) {
-        if (!user.principalType) {
+        if (!this.hasPrincipalType(user)) {
           throw getError({
             error: AuthorizationErrors.PRINCIPAL_TYPE_MISSING,
             message:
@@ -162,7 +167,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
         }
 
         const result = await enforcer.buildRules({
-          user: user as { principalType: string } & IAuthUser,
+          user,
           context: ContextUtility.asTypedContext({ context }),
         });
         rules = result;
