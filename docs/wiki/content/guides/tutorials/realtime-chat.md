@@ -971,6 +971,7 @@ import { applicationEnvironment, RedisSingleHelper } from '@venizia/ignis-helper
 import {
   type ISocketIOServerBaseOptions,
   SocketIOServerHelper,
+  type TSocketIOClientConnectedFn,
 } from '@venizia/ignis-helpers/socket-io';
 import { ChatService } from './services/chat.service';
 
@@ -1045,7 +1046,7 @@ export class ChatApp extends BaseApplication {
 
     // 3. Client connected handler - called AFTER successful authentication
     //    This is where you register custom event handlers on each socket
-    const clientConnectedFn: ISocketIOServerBaseOptions['clientConnectedFn'] = ({ socket }) => {
+    const clientConnectedFn: TSocketIOClientConnectedFn = ({ socket }) => {
       const chatService = this.get({
         key: BindingKeys.build<ChatService>({
           namespace: BindingNamespaces.SERVICE,
@@ -1056,7 +1057,7 @@ export class ChatApp extends BaseApplication {
       chatService.registerClientHandlers({ socket });
     };
 
-    this.bind<ISocketIOServerBaseOptions['clientConnectedFn']>({
+    this.bind({
       key: SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER,
     }).toValue(clientConnectedFn);
 
@@ -1064,7 +1065,6 @@ export class ChatApp extends BaseApplication {
     this.bind({
       key: SocketIOBindingKeys.SERVER_OPTIONS,
     }).toValue({
-      identifier: 'chat-socket-server',
       path: '/io',
       cors: {
         origin: applicationEnvironment.get('APP_ENV_CORS_ORIGIN') ?? '*',

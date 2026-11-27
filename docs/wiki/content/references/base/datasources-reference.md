@@ -364,7 +364,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
         port: ParseUtility.toInt({ input: applicationEnvironment.get('APP_ENV_POSTGRES_PORT') }),
         database: applicationEnvironment.getRequired('APP_ENV_POSTGRES_DATABASE'),
         user: applicationEnvironment.getRequired('APP_ENV_POSTGRES_USERNAME'),
-        password: applicationEnvironment.getRequired('APP_ENV_POSTGRES_PASSWORD'),
+        password: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD', { defaultValue: '' }),
         ssl: false,
       },
       // NO schema property - auto-discovered from @repository bindings.
