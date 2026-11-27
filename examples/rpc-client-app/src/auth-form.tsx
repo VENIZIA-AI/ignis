@@ -38,9 +38,9 @@ export const AuthForm = (props: { onSignedIn: (token: string) => void }) => {
       />
       <button onClick={doSignIn}>Sign in</button>
       <button onClick={doSignUp}>Sign up</button>
-      {(signUp.isError || signIn.isError) && (
+      {signUp.isError || signIn.isError ? (
         <p role="alert">Request failed - see the network tab.</p>
-      )}
+      ) : null}
     </form>
   );
 };

@@ -75,17 +75,18 @@ build-checks:
 	@bun test $(BUN_TEST_LIMIT) scripts/build/build-checks
 
 # Every example type-checks against the built packages, so a type a package forgot to export, or a
-# signature that changed, breaks here and not in a consumer. Reports every failing example, then
-# fails. Needs a build and `bun install --frozen-lockfile` after it (the workspace links).
+# signature that changed, breaks here and not in a consumer, and passes its own `lint` script. Reports
+# every failing example, then fails. Needs a build and `bun install --frozen-lockfile` after it (the
+# workspace links).
 examples-check:
-	@echo "🔍 Type-checking the examples..."
+	@echo "🔍 Type-checking and linting the examples..."
 	@failed=""; \
 	for dir in examples/*/; do \
 	  name=$$(basename $$dir); \
 	  [ -f "$$dir/tsconfig.json" ] || continue; \
-	  if (cd $$dir && $(CURDIR)/node_modules/.bin/tsc --noEmit -p tsconfig.json); then echo "  ok   $$name"; else echo "  FAIL $$name"; failed="$$failed $$name"; fi; \
+	  if (cd $$dir && $(CURDIR)/node_modules/.bin/tsc --noEmit -p tsconfig.json && bun run lint); then echo "  ok   $$name"; else echo "  FAIL $$name"; failed="$$failed $$name"; fi; \
 	done; \
-	if [ -n "$$failed" ]; then echo "❌ examples that do not type-check:$$failed"; exit 1; fi
+	if [ -n "$$failed" ]; then echo "❌ examples that do not type-check or lint:$$failed"; exit 1; fi
 
 # The probe's own regression tests. They live outside every package, so `cd packages/<x> && bun test`
 # never discovers them - without this target nothing runs the tests that guard the CI gate.
