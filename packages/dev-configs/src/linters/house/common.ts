@@ -23,6 +23,7 @@ export class AstNodeTypes {
   static readonly ARRAY_EXPRESSION = 'ArrayExpression';
   static readonly AS_EXPRESSION = 'TSAsExpression';
   static readonly ASSIGNMENT_EXPRESSION = 'AssignmentExpression';
+  static readonly ASSIGNMENT_PATTERN = 'AssignmentPattern';
   static readonly BINARY_EXPRESSION = 'BinaryExpression';
   static readonly CHAIN_EXPRESSION = 'ChainExpression';
   static readonly CLASS_IMPLEMENTS = 'TSClassImplements';
@@ -53,6 +54,7 @@ export class AstNodeTypes {
   static readonly SEQUENCE_EXPRESSION = 'SequenceExpression';
   static readonly SPREAD_ELEMENT = 'SpreadElement';
   static readonly STATIC_BLOCK = 'StaticBlock';
+  static readonly TEMPLATE_ELEMENT = 'TemplateElement';
   static readonly TEMPLATE_LITERAL = 'TemplateLiteral';
   static readonly THIS_EXPRESSION = 'ThisExpression';
   static readonly TRY_STATEMENT = 'TryStatement';

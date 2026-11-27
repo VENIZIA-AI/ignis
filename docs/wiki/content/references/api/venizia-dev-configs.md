@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-0 exports, 0 with TSDoc. 66 more are re-exported from other entries (listed at the end).
+0 exports, 0 with TSDoc. 69 more are re-exported from other entries (listed at the end).
 
 ## Re-exported
 
@@ -22,12 +22,14 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 - `EqeqeqModes` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `EqeqeqRule` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `eslintConfigs` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
+- `FrameworkApiPatterns` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `FrameworkExports` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `HookSupport` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `HOUSE_PLUGIN_NAMESPACE` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `houseConfigs` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `houseEslintPlugin` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `IBrowserApiPattern` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
+- `IFrameworkApiPattern` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `ImportSupport` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `IOxlintPresetOptions` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `IRestrictedImportPath` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
@@ -69,6 +71,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 - `TBrowserApiMatch` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `TConstValue` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `TEqeqeqMode` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
+- `TFrameworkApiMatch` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `TNamingSelector` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `TOxlintRuleEntry` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `TRuleSeverity` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)

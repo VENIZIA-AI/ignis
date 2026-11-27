@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs/linters, from the built decla
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-35 exports, 35 with TSDoc. 30 more are re-exported from other entries (listed at the end).
+38 exports, 38 with TSDoc. 30 more are re-exported from other entries (listed at the end).
 
 ## `AstNode`
 
@@ -62,6 +62,7 @@ export declare class AstNodeTypes {
     static readonly ARRAY_EXPRESSION = "ArrayExpression";
     static readonly AS_EXPRESSION = "TSAsExpression";
     static readonly ASSIGNMENT_EXPRESSION = "AssignmentExpression";
+    static readonly ASSIGNMENT_PATTERN = "AssignmentPattern";
     static readonly BINARY_EXPRESSION = "BinaryExpression";
     static readonly CHAIN_EXPRESSION = "ChainExpression";
     static readonly CLASS_IMPLEMENTS = "TSClassImplements";
@@ -92,6 +93,7 @@ export declare class AstNodeTypes {
     static readonly SEQUENCE_EXPRESSION = "SequenceExpression";
     static readonly SPREAD_ELEMENT = "SpreadElement";
     static readonly STATIC_BLOCK = "StaticBlock";
+    static readonly TEMPLATE_ELEMENT = "TemplateElement";
     static readonly TEMPLATE_LITERAL = "TemplateLiteral";
     static readonly THIS_EXPRESSION = "ThisExpression";
     static readonly TRY_STATEMENT = "TryStatement";
@@ -270,6 +272,21 @@ export declare const eslintConfigs: Linter.Config[];
 
 Source: `packages/dev-configs/src/linters/eslint.ts`
 
+## `FrameworkApiPatterns`
+
+*class*
+
+The forms the framework replaces outside React, one row each. Unlike `BrowserApiPatterns`, a row counts anywhere in a
+file: a service or a module function can call the API as well as a component.
+
+```ts
+export declare class FrameworkApiPatterns {
+    static readonly TABLE: ReadonlyArray<IFrameworkApiPattern>;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/framework-api-patterns.ts`
+
 ## `FrameworkExports`
 
 *class*
@@ -433,6 +450,28 @@ export interface IBrowserApiPattern {
 ```
 
 Source: `packages/dev-configs/src/linters/house/browser-api-patterns.ts`
+
+## `IFrameworkApiPattern`
+
+*interface*
+
+One hand-written form `@venizia/prefer-framework-api` reports anywhere in a file.
+
+```ts
+export interface IFrameworkApiPattern {
+    /** The name `ignore` takes to switch the row off. */
+    id: string;
+    match: TFrameworkApiMatch;
+    /** The whole message. */
+    message: string;
+    /** The row applies only in a package that depends on a package whose name starts with this. */
+    dependsOn?: string;
+    /** The package that writes the API: the row is not reported in it. */
+    owner?: string;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/framework-api-patterns.ts`
 
 ## `ImportSupport`
 
@@ -873,7 +912,10 @@ used through the hook, which owns the subscribe and cleanup. The rows are `Brows
 the hook. The rule is for apps: the package that ships the hooks (the nearest `package.json` is named
 `@venizia/ardor-react`) is not reported.
 
-Only a reference to the global is reported: a `window`, `navigator` or `document` the file binds itself is not. And only
+The rows of `FrameworkApiPatterns.TABLE` and of the `extra` option are not about React: they report anywhere in a file,
+with their own message, in a package their `dependsOn` and `owner` allow.
+
+For the hook rows, only a reference to the global is reported: a `window`, `navigator` or `document` the file binds itself is not. And only
 where a hook can be called: in a component (a PascalCase function that draws JSX) or a hook (`useX`), see `isInReact`. A
 module function, a class and an event handler making a one-off call are left alone. Hooks the author wants to bypass on
 purpose take an `eslint-disable-next-line` with the reason, or `ignore` lists pattern ids.
@@ -905,10 +947,40 @@ export declare class PreferFrameworkApiRule {
      * one-off call a hook cannot make.
      */
     private static isInReact;
+    /** The rows that apply in a file of this package: the table and `extra`, less the ignored ones. */
+    private static rowsFor;
+    /** The listeners the rows outside React need, by node type or selector. */
+    private static rowListeners;
+    /** The name of `a.name` or `a['name']`; empty for `a[name]`, whose name the file does not state. */
+    private static memberName;
+    /** The field each type of an `extra` row cannot do without. */
+    private static readonly ROW_FIELDS;
+    /** Whether an `extra` entry is a row this rule can run. The option schema refuses the others before it gets here. */
+    private static isRow;
+    /** The schema of the `match` of an `extra` row: one shape per type, each with its own field required. */
+    private static matchSchema;
+    /**
+     * Whether `node` is assigned to or deleted, rather than read. A member that a destructuring pattern writes
+     * (`[process.env.APP_ENV_A] = values`) counts as a read and is reported.
+     */
+    private static isWritten;
+    private static readonly FALLBACK_KEYS;
+    /** Whether `node` is the value used when another is missing. */
+    private static isFallback;
+    /** Whether an import declaration brings in types only. */
+    private static isTypeOnly;
+    /** One listener object: two rows that visit the same node both run. */
+    private static merge;
     static readonly RULE: Rule.RuleModule;
+    /**
+     * `hooks: false` leaves out the rows of `BrowserApiPatterns`, for code that is not React: a `use...` function of another
+     * library reads as a hook. An entry that sets options replaces the earlier ones, so it states `hooks` again.
+     */
     static build(opts?: {
         severity?: TRuleSeverity;
+        hooks?: boolean;
         ignore?: ReadonlyArray<string>;
+        extra?: ReadonlyArray<IFrameworkApiPattern>;
     }): Linter.RuleEntry;
 }
 ```
@@ -1091,6 +1163,49 @@ export type TBrowserApiMatch =
 ```
 
 Source: `packages/dev-configs/src/linters/house/browser-api-patterns.ts`
+
+## `TFrameworkApiMatch`
+
+*type*
+
+How a hand-written form shows up in code.
+
+```ts
+export type TFrameworkApiMatch = TBrowserApiMatch
+/**
+ * A member of a global object read or called: `localStorage.getItem`; `window.` in front is the same object. With
+ * `property`, the source of a regular expression, only a member whose name matches it. With `isReadOnly`, an
+ * assignment to it and a `delete` of it pass.
+ */
+ | {
+    type: 'member';
+    objects: ReadonlyArray<string>;
+    property?: string;
+    isReadOnly?: boolean;
+}
+/**
+ * A string or a template whose text matches `pattern`, the source of a regular expression. With
+ * `isFallbackOnly`, only where it stands in for a missing value: after `??`, `||`, `??=` or `||=`, a
+ * parameter default, or a `default`, `defaultValue` or `fallback` property.
+ */
+ | {
+    type: 'literal';
+    pattern: string;
+    isFallbackOnly?: boolean;
+}
+/** An `import` or `import()` of one of these modules; `import type` is not one. */
+ | {
+    type: 'import';
+    sources: ReadonlyArray<string>;
+}
+/** Every node an ESLint selector matches. */
+ | {
+    type: 'selector';
+    selector: string;
+};
+```
+
+Source: `packages/dev-configs/src/linters/house/framework-api-patterns.ts`
 
 ## Re-exported
 

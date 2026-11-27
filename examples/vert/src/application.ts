@@ -37,11 +37,16 @@ import { Organization, Permission, PolicyDefinition, Role } from './models/entit
 import { RepositoryTestService } from './services/repository-test.service';
 
 export const beConfigs: IApplicationConfigs = {
-  host: process.env.APP_ENV_SERVER_HOST,
+  host: applicationEnvironment.get('APP_ENV_SERVER_HOST'),
   port: ParseUtility.toInt({
-    input: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_SERVER_PORT }) ?? '3000',
+    input:
+      ParseUtility.blankToUndefined({ input: applicationEnvironment.get('APP_ENV_SERVER_PORT') }) ??
+      '3000',
   }),
-  path: { base: process.env.APP_ENV_SERVER_BASE_PATH ?? '/v1/api', isStrict: true },
+  path: {
+    base: applicationEnvironment.get('APP_ENV_SERVER_BASE_PATH') ?? '/v1/api',
+    isStrict: true,
+  },
   error: { rootKey: 'error' },
   debug: { shouldShowRoutes: !Environment.is({ name: Environment.PRODUCTION }) },
 

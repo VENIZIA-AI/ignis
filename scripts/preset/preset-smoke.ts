@@ -242,7 +242,7 @@ const assertScaffold = (opts: { appDir: string }): void => {
 
   assertIgnoreFiles({ dir: opts.appDir });
 
-  if (!application.includes(`?? '${DEV_PORT}'`)) {
+  if (!application.includes(`||= '${DEV_PORT}'`)) {
     throw new Error(`[preset-smoke] src/application.ts did not get the dev port ${DEV_PORT}`);
   }
 

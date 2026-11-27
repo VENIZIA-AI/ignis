@@ -223,7 +223,7 @@ describe('@venizia/prefer-framework-api', () => {
     expect(lintUnder({})).toBe(1);
   });
 
-  test('reactHouseConfigs turns it on for .ts and .tsx source and off for tests; houseConfigs does not carry it', () => {
+  test('reactHouseConfigs turns it on for .ts and .tsx source and off for tests; houseConfigs carries no hook row', () => {
     const code = inHook(`const q = window.matchMedia('print');`);
     const at = (filename: string, configs: Linter.Config[]) =>
       new Linter().verify(code, configs, { filename }).filter((message) => message.ruleId === NAME)

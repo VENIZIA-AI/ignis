@@ -1,6 +1,6 @@
 import { datasource } from '@venizia/ignis';
 import { TypesenseDataSource } from '@venizia/ignis-connectors/typesense';
-import { ParseUtility } from '@venizia/ignis-helpers';
+import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
 
 // Matches examples/typesense-search/docker-compose.yml, which maps host port 18108 to the
 // container's 8108 - a non-default port so this example never clashes with another local Typesense.
@@ -23,20 +23,24 @@ export class SearchDataSource extends TypesenseDataSource {
         nodes: [
           {
             host:
-              ParseUtility.blankToUndefined({ input: process.env.APP_ENV_TYPESENSE_HOST }) ??
-              DEFAULT_HOST,
+              ParseUtility.blankToUndefined({
+                input: applicationEnvironment.get('APP_ENV_TYPESENSE_HOST'),
+              }) ?? DEFAULT_HOST,
             port: Number(
-              ParseUtility.blankToUndefined({ input: process.env.APP_ENV_TYPESENSE_PORT }) ??
-                DEFAULT_PORT,
+              ParseUtility.blankToUndefined({
+                input: applicationEnvironment.get('APP_ENV_TYPESENSE_PORT'),
+              }) ?? DEFAULT_PORT,
             ),
             protocol:
-              ParseUtility.blankToUndefined({ input: process.env.APP_ENV_TYPESENSE_PROTOCOL }) ??
-              'http',
+              ParseUtility.blankToUndefined({
+                input: applicationEnvironment.get('APP_ENV_TYPESENSE_PROTOCOL'),
+              }) ?? 'http',
           },
         ],
         apiKey:
-          ParseUtility.blankToUndefined({ input: process.env.APP_ENV_TYPESENSE_API_KEY }) ??
-          DEFAULT_API_KEY,
+          ParseUtility.blankToUndefined({
+            input: applicationEnvironment.get('APP_ENV_TYPESENSE_API_KEY'),
+          }) ?? DEFAULT_API_KEY,
       },
     });
   }

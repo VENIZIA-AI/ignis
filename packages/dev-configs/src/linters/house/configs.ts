@@ -45,6 +45,7 @@ const houseRuleConfigs: Linter.Config[] = [
       [NoShadowFrameworkTypeRule.NAME]: NoShadowFrameworkTypeRule.build(),
       [PreferTNullableRule.NAME]: PreferTNullableRule.build(),
       [PreferPromiseSleepRule.NAME]: PreferPromiseSleepRule.build(),
+      [PreferFrameworkApiRule.NAME]: PreferFrameworkApiRule.build({ hooks: false }),
       [ConstClassValuesRule.NAME]: ConstClassValuesRule.build({ severity: 'warn' }),
       [NO_CAST_RULE]: ['warn', { assertionStyle: 'never' }],
     },
@@ -55,6 +56,7 @@ const houseRuleConfigs: Linter.Config[] = [
       [NoNewErrorRule.NAME]: 'off',
       [NoShadowFrameworkTypeRule.NAME]: 'off',
       [PreferPromiseSleepRule.NAME]: 'off',
+      [PreferFrameworkApiRule.NAME]: 'off',
       [ConstClassValuesRule.NAME]: 'off',
       [NO_CAST_RULE]: 'off',
     },
@@ -93,8 +95,7 @@ const reactRuleConfigs: Linter.Config[] = [
 
 /**
  * The hook rules: a hook never gets an async function (`no-async-hook-callback`), and an effect callback returns a
- * cleanup on every path or on none (`effect-cleanup-consistency`), and `prefer-framework-api` (a browser API ardor-react wraps
- * in a hook is used through the hook). Hooks live in `.ts` files too, so it covers all
+ * cleanup on every path or on none (`effect-cleanup-consistency`). Hooks live in `.ts` files too, so it covers all
  * source files.
  */
 const reactHookRuleConfigs: Linter.Config[] = [
@@ -110,7 +111,7 @@ const reactHookRuleConfigs: Linter.Config[] = [
   {
     files: SOURCE_FILES,
     plugins: { [HOUSE_PLUGIN_NAMESPACE]: houseEslintPlugin },
-    rules: { [PreferFrameworkApiRule.NAME]: PreferFrameworkApiRule.build() },
+    rules: { [PreferFrameworkApiRule.NAME]: PreferFrameworkApiRule.build({ hooks: true }) },
   },
   { files: TEST_FILES, rules: { [PreferFrameworkApiRule.NAME]: 'off' } },
 ];

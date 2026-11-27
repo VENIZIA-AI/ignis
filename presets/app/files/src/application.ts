@@ -28,12 +28,14 @@ export class Application extends BaseApplication {
 // It is registered before the application below is built, because building it already logs.
 LoggerFactory.use({ provider: WinstonLogger });
 
+// The server resolves its own address from HOST and PORT, then these two: .env.example lists them. Without a value the
+// app listens on every interface, on its dev port.
+process.env.APP_ENV_SERVER_HOST ||= '0.0.0.0';
+process.env.APP_ENV_SERVER_PORT ||= '{{devPort}}';
+
 export const application = new Application({
   scope: 'Application',
   config: {
-    // Explicit config wins over the server's own env lookup, so it reads the same keys: .env.example lists them.
-    host: process.env.HOST ?? process.env.APP_ENV_SERVER_HOST ?? '0.0.0.0',
-    port: Number(process.env.PORT ?? process.env.APP_ENV_SERVER_PORT ?? '{{devPort}}'),
     path: { base: '/api', isStrict: false },
     artifacts: AutoArtifacts,
   },
