@@ -515,6 +515,23 @@ describe('the hooks are told which request they serve', () => {
   });
 });
 
+describe('a removed hook setting is refused when the datasource is built', () => {
+  const removedSettings = [
+    { name: 'headersResolver', replacement: 'resolvers.headers' },
+    { name: 'authTokenResolver', replacement: 'resolvers.authToken' },
+  ];
+
+  for (const { name, replacement } of removedSettings) {
+    test(`${name}, spread into the settings`, () => {
+      const settings = { baseUrl: 'https://api.example.com', [name]: () => undefined };
+
+      expect(() => new HttpDataSource({ ...settings })).toThrow(
+        `The ${name} setting was removed | Pass it as ${replacement}`,
+      );
+    });
+  }
+});
+
 describe('a throwing hook fails the request with its own error', () => {
   const fail = (): never => {
     throw new Error('session headers unavailable');

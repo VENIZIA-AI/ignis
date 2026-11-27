@@ -1148,7 +1148,8 @@ http-datasource-resolvers:
       });
     steps:
       - "Move headersResolver to resolvers.headers and authTokenResolver to resolvers.authToken. Run your typecheck: a settings object literal with an old name is an excess-property error."
-      - "Search for the old names too: a settings object built by spread or typed loosely still compiles, and its old names are ignored at run time."
+      - "Search for the old names too: a settings object built by spread or typed loosely still compiles, and an old name in it is refused when the datasource is built."
+      - "Where the settings come from a library, such as super({ baseUrl, ...dataProvider.getDataSourceAuth() }) with ARDOR, take the release of that library that returns resolvers."
       - "A subclass reading this.settings.headersResolver or .authTokenResolver reads this.settings.resolvers?.headers or ?.authToken."
   downgrade:
     steps:
