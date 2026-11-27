@@ -10,9 +10,9 @@ export type TFrameworkApiMatch =
    */
   | { type: 'member'; objects: ReadonlyArray<string>; property?: string; isReadOnly?: boolean }
   /**
-   * A string or a template whose text matches `pattern`, the source of a regular expression. With `isFallbackOnly`, only
-   * where it stands in for a missing value: after `??`, `||`, `??=` or `||=`, a parameter default, or a `default`, `defaultValue` or
-   * `fallback` property.
+   * A string or a template whose text matches `pattern`, the source of a regular expression. With
+   * `isFallbackOnly`, only where it stands in for a missing value: after `??`, `||`, `??=` or `||=`, a
+   * parameter default, or a `default`, `defaultValue` or `fallback` property.
    */
   | { type: 'literal'; pattern: string; isFallbackOnly?: boolean }
   /** An `import` or `import()` of one of these modules; `import type` is not one. */

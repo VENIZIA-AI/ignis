@@ -86,6 +86,10 @@ describe('@venizia/prefer-framework-api, rows outside React', () => {
     expect(lint('process.env.APP_ENV_A = process.env.APP_ENV_B;')).toHaveLength(1);
   });
 
+  test('a member written by destructuring is still reported', () => {
+    expect(lint('[process.env.APP_ENV_A] = values;')).toHaveLength(1);
+  });
+
   test('web storage is reported on a member of it', () => {
     for (const code of [
       "localStorage.getItem('a');",

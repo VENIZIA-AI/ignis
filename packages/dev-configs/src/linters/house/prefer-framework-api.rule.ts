@@ -429,7 +429,10 @@ export class PreferFrameworkApiRule {
     };
   }
 
-  /** Whether `node` is assigned to or deleted, rather than read. */
+  /**
+   * Whether `node` is assigned to or deleted, rather than read. A member that a destructuring pattern writes
+   * (`[process.env.APP_ENV_A] = values`) counts as a read and is reported.
+   */
   private static isWritten(opts: { node: Rule.Node }): boolean {
     const { node } = opts;
     const parent: unknown = AstNode.readField({ node, key: 'parent' });

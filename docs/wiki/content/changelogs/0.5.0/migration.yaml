@@ -970,6 +970,16 @@ framework-api-rows:
       - "applicationEnvironment copies process.env once, when it is first imported. A test or a loader that sets process.env.APP_ENV_* after that import calls applicationEnvironment.set or merge instead."
       - "applicationEnvironment keeps only the names under APPLICATION_ENV_PREFIX (APP_ENV when unset). With another prefix, or where the process value is what you mean, switch the row off: { rules: { '@venizia/prefer-framework-api': ['error', { hooks: false, ignore: ['process-env'] }] } }."
       - "A config that sets options for this rule states hooks again: false for a backend, true for React."
+      - |-
+        An app made from an earlier IGNIS preset reads its address in src/application.ts, and lint reports the two APP_ENV_ reads. Replace this:
+
+            host: process.env.HOST ?? process.env.APP_ENV_SERVER_HOST ?? '0.0.0.0',
+            port: Number(process.env.PORT ?? process.env.APP_ENV_SERVER_PORT ?? '3000'),
+
+        by removing both lines from config and writing the defaults above `new Application`, with your own port:
+
+            process.env.APP_ENV_SERVER_HOST ||= '0.0.0.0';
+            process.env.APP_ENV_SERVER_PORT ||= '3000';
   downgrade:
     steps:
       - "Pin @venizia/dev-configs to the release before this one, or ignore the ids application-error-instanceof, process-env, web-storage and localhost-url."

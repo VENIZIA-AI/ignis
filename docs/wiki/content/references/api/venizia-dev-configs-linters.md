@@ -959,7 +959,10 @@ export declare class PreferFrameworkApiRule {
     private static isRow;
     /** The schema of the `match` of an `extra` row: one shape per type, each with its own field required. */
     private static matchSchema;
-    /** Whether `node` is assigned to or deleted, rather than read. */
+    /**
+     * Whether `node` is assigned to or deleted, rather than read. A member that a destructuring pattern writes
+     * (`[process.env.APP_ENV_A] = values`) counts as a read and is reported.
+     */
     private static isWritten;
     private static readonly FALLBACK_KEYS;
     /** Whether `node` is the value used when another is missing. */
@@ -1181,9 +1184,9 @@ export type TFrameworkApiMatch = TBrowserApiMatch
     isReadOnly?: boolean;
 }
 /**
- * A string or a template whose text matches `pattern`, the source of a regular expression. With `isFallbackOnly`, only
- * where it stands in for a missing value: after `??`, `||`, `??=` or `||=`, a parameter default, or a `default`, `defaultValue` or
- * `fallback` property.
+ * A string or a template whose text matches `pattern`, the source of a regular expression. With
+ * `isFallbackOnly`, only where it stands in for a missing value: after `??`, `||`, `??=` or `||=`, a
+ * parameter default, or a `default`, `defaultValue` or `fallback` property.
  */
  | {
     type: 'literal';
