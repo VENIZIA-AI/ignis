@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 /**
@@ -10,22 +11,22 @@ import { join, resolve } from 'node:path';
 
 const REPO_ROOT = resolve(import.meta.dir, '..', '..', '..');
 const COMMON = join(REPO_ROOT, 'packages/helpers/dist/esm/common/index.js');
-const FOLDER = join(REPO_ROOT, 'packages/helpers/node_modules/.cache/http-weight');
-/** The measured size is a few hundred bytes. */
+/** The measured size is about 140 bytes. */
 const CEILING_BYTES = 512;
 
 const bundle = async () => {
-  const entry = join(FOLDER, 'front.js');
-  mkdirSync(FOLDER, { recursive: true });
-  writeFileSync(entry, `import { HTTP } from '${COMMON}';\nconsole.log(HTTP.Methods.GET);\n`);
-  const built = await Bun.build({ entrypoints: [entry], target: 'browser', minify: true });
-  rmSync(FOLDER, { recursive: true, force: true });
+  const folder = mkdtempSync(join(tmpdir(), 'http-weight-'));
+  const entry = join(folder, 'front.js');
 
-  if (!built.success) {
-    throw new Error(`[http-weight] Bundle failed | ${built.logs.map(String).join(' | ')}`);
+  try {
+    writeFileSync(entry, `import { HTTP } from '${COMMON}';\nconsole.log(HTTP.Methods.GET);\n`);
+    const built = await Bun.build({ entrypoints: [entry], target: 'browser', minify: true });
+    const text = await built.outputs[0].text();
+
+    return text;
+  } finally {
+    rmSync(folder, { recursive: true, force: true });
   }
-
-  return built.outputs[0].text();
 };
 
 describe('a bundle that reads HTTP.Methods', () => {
