@@ -13,6 +13,12 @@ export interface IZodSchemaConventionOptions {
   strictPaths?: ReadonlyArray<string>;
   /** Globs, from the working directory, of the files where `z.any()` is refused. @default [] */
   noAnyPaths?: ReadonlyArray<string>;
+  /** `z.object({ ... }).strict()` is written `z.strictObject({ ... })`, in every file. @default true */
+  strictCall?: boolean;
+  /** Refuses `.passthrough()` on a schema. @default true */
+  noPassthrough?: boolean;
+  /** Globs, from the working directory, of the files where `z.coerce` is refused. @default [] */
+  noCoercePaths?: ReadonlyArray<string>;
   /** Skips test files. @default true */
   ignoreTests?: boolean;
   /** Names of consts and types the two name checks leave alone. @default [] */
@@ -20,8 +26,9 @@ export interface IZodSchemaConventionOptions {
 }
 
 /**
- * `@venizia/zod-schema-convention`. How a zod schema is named, how its inferred types are named, and, in the files a
- * project lists, that objects are strict and `any` is not used.
+ * `@venizia/zod-schema-convention`. How a zod schema is named, how its inferred types are named, that a strict object
+ * is written `z.strictObject` and `.passthrough()` is not used and, in the files a project lists, that objects are
+ * strict and `any` and `z.coerce` are not used.
  *
  * A schema is recognised file by file, without types: a call chain that starts at an import of `zod` (or `z` of
  * `@hono/zod-openapi`), at another schema const of the file, or at an import named `...Schema` / `..._SCHEMA` through a
@@ -345,6 +352,9 @@ export class ZodSchemaConventionRule {
             typeName: { type: 'boolean' },
             strictPaths: { type: 'array', items: { type: 'string' } },
             noAnyPaths: { type: 'array', items: { type: 'string' } },
+            strictCall: { type: 'boolean' },
+            noPassthrough: { type: 'boolean' },
+            noCoercePaths: { type: 'array', items: { type: 'string' } },
             ignoreTests: { type: 'boolean' },
             ignore: { type: 'array', items: { type: 'string' } },
           },
@@ -358,6 +368,12 @@ export class ZodSchemaConventionRule {
           'A type inferred from `{{schema}}` is named `{{expected}}` or `{{other}}`, not `{{name}}`.',
         strict: 'An object schema here is strict: `z.strictObject({ ... })`.',
         any: '`z.any()` accepts everything: describe the value, or use `z.unknown()` and narrow it.',
+        strictCall:
+          '`z.object(...).strict()` is `z.strictObject(...)`: write the strict object directly.',
+        passthrough:
+          '`.passthrough()` is deprecated: write `z.looseObject({ ... })`, or `.loose()` on a schema you did not declare here.',
+        coerce:
+          '`z.coerce` accepts what it can convert, `"abc"` as `NaN` included: declare both sides with `z.codec`.',
       },
     },
     create: (context) => {
@@ -375,6 +391,9 @@ export class ZodSchemaConventionRule {
       const ignored = new Set<unknown>(Array.isArray(configured) ? configured : []);
       const isStrict = ZodSchemaConventionRule.matches({ context, globs: read('strictPaths') });
       const isNoAny = ZodSchemaConventionRule.matches({ context, globs: read('noAnyPaths') });
+      const isNoCoerce = ZodSchemaConventionRule.matches({ context, globs: read('noCoercePaths') });
+      const isStrictCallChecked = read('strictCall') !== false;
+      const isPassthroughChecked = read('noPassthrough') !== false;
 
       const checkName = (node: Rule.Node) => {
         const parent: unknown = AstNode.readField({ node, key: 'parent' });
@@ -430,10 +449,121 @@ export class ZodSchemaConventionRule {
         }
       };
 
+      /** Whether the identifier `node` is zod's `name`, as an import binds it. */
+      const isZodImport = (opts: { node: unknown; name?: string }) => {
+        const { node, name } = opts;
+
+        if (!AstNode.isNode(node) || AstNode.getType({ node }) !== AstNodeTypes.IDENTIFIER) {
+          return false;
+        }
+
+        const definition = ZodSchemaConventionRule.definitionOf({ context, node });
+        const imported = ZodSchemaConventionRule.zodImport({ definition });
+
+        return name === undefined ? imported !== undefined : imported === name;
+      };
+
+      /** Whether `target` is a schema: a chain that builds one, a const that holds one, or an import named as one. */
+      const isSchemaTarget = (target: unknown) => {
+        if (
+          !AstNode.isNode(target) ||
+          AstNode.getType({ node: target }) !== AstNodeTypes.IDENTIFIER
+        ) {
+          return ZodSchemaConventionRule.isSchema({ context, expression: target, seen: new Set() });
+        }
+
+        const definition = ZodSchemaConventionRule.definitionOf({ context, node: target });
+        const name = ZodSchemaConventionRule.readString({ node: target, path: ['name'] });
+
+        if (definition?.type === 'ImportBinding') {
+          return ZodSchemaConventionRule.IMPORTED_SCHEMA.test(name);
+        }
+
+        return (
+          definition?.type === 'Variable' &&
+          ZodSchemaConventionRule.isSchema({
+            context,
+            expression: AstNode.readField({ node: definition.node, key: 'init' }),
+            seen: new Set(),
+          })
+        );
+      };
+
+      /** `z.coerce.number()`, or `coerce.number()` where `coerce` is imported from zod. */
+      const checkCoerce = (opts: { node: Rule.Node; target: unknown }) => {
+        const { node, target } = opts;
+        const owner = AstNode.readField({ node: target, key: 'object' });
+        const member = ZodSchemaConventionRule.readString({
+          node: target,
+          path: ['property', 'name'],
+        });
+
+        if (
+          isZodImport({ node: target, name: 'coerce' }) ||
+          (member === 'coerce' && isZodImport({ node: owner }))
+        ) {
+          context.report({ node, messageId: 'coerce' });
+        }
+      };
+
+      /** `.strict()` called on `node`, with its fix when the call says no more than `z.strictObject`. */
+      const strictCallOf = (opts: { node: Rule.Node; property: unknown }) => {
+        const { node, property } = opts;
+        const member: unknown = AstNode.readField({ node, key: 'parent' });
+        const outer: unknown = AstNode.readField({ node: member, key: 'parent' });
+        const args: unknown = AstNode.readField({ node: outer, key: 'arguments' });
+        const isCalled =
+          ZodSchemaConventionRule.readString({ node: member, path: ['property', 'name'] }) ===
+            'strict' && AstNode.readField({ node: outer, key: 'callee' }) === member;
+
+        if (!isCalled) {
+          return undefined;
+        }
+
+        // `z.object(x).strict()` says the same as `z.strictObject(x)`; with an argument it says more.
+        if (
+          !Array.isArray(args) ||
+          args.length > 0 ||
+          !AstNode.isNode(property) ||
+          !AstNode.isNode(outer)
+        ) {
+          return { fix: null };
+        }
+
+        const fix: Rule.ReportFixer = (fixer) => {
+          const end = context.sourceCode.getRange(node)[1];
+          const tail: [number, number] = [end, context.sourceCode.getRange(outer)[1]];
+          const hasComment = context.sourceCode
+            .getAllComments()
+            .some(
+              (comment) =>
+                (comment.range?.[0] ?? 0) >= tail[0] && (comment.range?.[1] ?? 0) <= tail[1],
+            );
+
+          return hasComment
+            ? null
+            : [fixer.replaceText(property, 'strictObject'), fixer.removeRange(tail)];
+        };
+
+        return { fix };
+      };
+
       const checkCall = (node: Rule.Node) => {
         const callee = AstNode.readField({ node, key: 'callee' });
         const isMember = AstNode.getType({ node: callee }) === AstNodeTypes.MEMBER_EXPRESSION;
         const root = isMember ? AstNode.readField({ node: callee, key: 'object' }) : callee;
+        const property = AstNode.readField({ node: callee, key: 'property' });
+        const method = ZodSchemaConventionRule.readString({ node: property, path: ['name'] });
+
+        if (isPassthroughChecked && isMember && method === 'passthrough') {
+          if (isSchemaTarget(root)) {
+            context.report({ node, messageId: 'passthrough' });
+          }
+        }
+
+        if (isNoCoerce && isMember) {
+          checkCoerce({ node, target: root });
+        }
 
         if (!AstNode.isNode(root) || AstNode.getType({ node: root }) !== AstNodeTypes.IDENTIFIER) {
           return;
@@ -446,52 +576,27 @@ export class ZodSchemaConventionRule {
           return;
         }
 
-        const property = AstNode.readField({ node: callee, key: 'property' });
-        const called = isMember
-          ? ZodSchemaConventionRule.readString({ node: property, path: ['name'] })
-          : imported;
+        const called = isMember ? method : imported;
 
         if (isNoAny && called === 'any') {
           context.report({ node, messageId: 'any' });
         }
 
-        if (!isStrict || called !== 'object') {
+        if (called !== 'object') {
           return;
         }
 
-        const member: unknown = AstNode.readField({ node, key: 'parent' });
-        const outer: unknown = AstNode.readField({ node: member, key: 'parent' });
-        const args: unknown = AstNode.readField({ node: outer, key: 'arguments' });
-        // `z.object(x).strict()` says the same as `z.strictObject(x)`; with an argument it says more.
-        const isStrictCall =
-          ZodSchemaConventionRule.readString({ node: member, path: ['property', 'name'] }) ===
-            'strict' &&
-          AstNode.readField({ node: outer, key: 'callee' }) === member &&
-          Array.isArray(args) &&
-          args.length === 0;
+        const strictCall = strictCallOf({ node, property: isMember ? property : undefined });
 
-        context.report({
-          node,
-          messageId: 'strict',
-          fix:
-            isStrictCall && isMember && AstNode.isNode(property) && AstNode.isNode(outer)
-              ? (fixer) => {
-                  const end = context.sourceCode.getRange(node)[1];
-                  const tail: [number, number] = [end, context.sourceCode.getRange(outer)[1]];
-                  const hasComment = context.sourceCode
-                    .getAllComments()
-                    .some(
-                      (comment) =>
-                        (comment.range?.[0] ?? 0) >= tail[0] &&
-                        (comment.range?.[1] ?? 0) <= tail[1],
-                    );
+        if (isStrict) {
+          context.report({ node, messageId: 'strict', fix: strictCall?.fix ?? null });
 
-                  return hasComment
-                    ? null
-                    : [fixer.replaceText(property, 'strictObject'), fixer.removeRange(tail)];
-                }
-              : null,
-        });
+          return;
+        }
+
+        if (isStrictCallChecked && strictCall) {
+          context.report({ node, messageId: 'strictCall', fix: strictCall.fix });
+        }
       };
 
       return {
@@ -499,7 +604,9 @@ export class ZodSchemaConventionRule {
           [AstNodeTypes.VARIABLE_DECLARATOR]: checkName,
         }),
         ...(read('typeName') !== false && { [AstNodeTypes.TYPE_ALIAS_DECLARATION]: checkType }),
-        ...((isStrict || isNoAny) && { [AstNodeTypes.CALL_EXPRESSION]: checkCall }),
+        ...((isStrict || isNoAny || isNoCoerce || isStrictCallChecked || isPassthroughChecked) && {
+          [AstNodeTypes.CALL_EXPRESSION]: checkCall,
+        }),
       };
     },
   };
@@ -513,6 +620,9 @@ export class ZodSchemaConventionRule {
       typeName = true,
       strictPaths = [],
       noAnyPaths = [],
+      strictCall = true,
+      noPassthrough = true,
+      noCoercePaths = [],
       ignoreTests = true,
       ignore = [],
     } = opts;
@@ -524,6 +634,9 @@ export class ZodSchemaConventionRule {
         typeName,
         strictPaths: [...strictPaths],
         noAnyPaths: [...noAnyPaths],
+        strictCall,
+        noPassthrough,
+        noCoercePaths: [...noCoercePaths],
         ignoreTests,
         ignore: [...ignore],
       },

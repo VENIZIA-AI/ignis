@@ -1110,3 +1110,21 @@ websocket-payload-types:
     steps:
       - "Pin @venizia/ignis-helpers and @venizia/ignis to the release before this one and write the options flat again (authenticateFn, handshakeFn)."
   data: Nothing stored changes.
+
+zod-strict-and-passthrough:
+  symbols: [ZodSchemaConventionRule, houseConfigs, reactHouseConfigs]
+  upgrade:
+    before: |-
+      const SaleOrderSchema = z.object({ id: z.string() }).strict();
+      const MetaSchema = z.object({}).passthrough();
+    after: |-
+      const SaleOrderSchema = z.strictObject({ id: z.string() });
+      const MetaSchema = z.looseObject({});
+    steps:
+      - "Run your lint with --fix for .strict(). A call with an argument or a comment is reported and left alone."
+      - "Rewrite .passthrough() by hand: z.looseObject({ ... }) where the object is declared, .loose() on a schema declared elsewhere."
+      - "To refuse z.coerce in some files: { rules: { '@venizia/zod-schema-convention': ['error', { noCoercePaths: ['src/dto/**'] }] } }, and declare those values with z.codec."
+  downgrade:
+    steps:
+      - "Pin @venizia/dev-configs to the release before this one, or set strictCall and noPassthrough to false."
+  data: Nothing stored changes.

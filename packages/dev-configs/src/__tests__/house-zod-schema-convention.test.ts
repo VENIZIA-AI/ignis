@@ -229,6 +229,83 @@ describe('@venizia/zod-schema-convention: strict objects and any', () => {
   });
 });
 
+describe('@venizia/zod-schema-convention: strict calls, passthrough and coerce', () => {
+  const strictCall =
+    '`z.object(...).strict()` is `z.strictObject(...)`: write the strict object directly.';
+  const passthrough =
+    '`.passthrough()` is deprecated: write `z.looseObject({ ... })`, or `.loose()` on a schema you did not declare here.';
+  const coerce =
+    '`z.coerce` accepts what it can convert, `"abc"` as `NaN` included: declare both sides with `z.codec`.';
+
+  test('rewrites .strict() to z.strictObject in any file', () => {
+    const result = zod(`${Z}const ASchema = z.object({ a: z.string() }).strict().optional();`);
+
+    expect(result.messages).toEqual([strictCall]);
+    expect(result.fixed).toBe(`${Z}const ASchema = z.strictObject({ a: z.string() }).optional();`);
+  });
+
+  test.each([
+    ['.strict() with an argument', "const ASchema = z.object({}).strict('no');"],
+    ['a comment before .strict()', 'const ASchema = z.object({}) /* why */.strict();'],
+  ])('reports %s and rewrites nothing', (_, code) => {
+    const result = zod(Z + code);
+
+    expect(result.messages).toEqual([strictCall]);
+    expect(result.fixed).toBe(Z + code);
+  });
+
+  test('reports a strict call once where objects are strict', () => {
+    const result = zod(`${Z}const ASchema = z.object({}).strict();`, { strictPaths: ['src/**'] });
+
+    expect(result.messages).toHaveLength(1);
+  });
+
+  test.each([
+    ['a plain object outside the strict paths', 'const ASchema = z.object({});'],
+    ['a loose object', 'const ASchema = z.looseObject({}); const BSchema = z.object({}).loose();'],
+    ['strict() of something else', 'const ASchema = z.string(); other.object({}).strict();'],
+    ['passthrough() of something else', 'const a = stream.passthrough();'],
+  ])('says nothing on %s', (_, code) => {
+    expect(zod(Z + code).messages).toEqual([]);
+  });
+
+  test.each([
+    ['an object', 'const ASchema = z.object({}).passthrough();'],
+    ['a local schema', 'const ASchema = z.object({}); const BSchema = ASchema.passthrough();'],
+    [
+      'an imported schema',
+      "import { BaseSchema } from './base';\nconst BSchema = BaseSchema.passthrough();",
+    ],
+  ])('reports passthrough() on %s', (_, code) => {
+    const result = zod(Z + code);
+
+    expect(result.messages).toEqual([passthrough]);
+    expect(result.fixed).toBe(Z + code);
+  });
+
+  test.each([
+    ['z.coerce', `${Z}const ASchema = z.coerce.number();`],
+    ['an imported coerce', "import { coerce } from 'zod';\nconst ASchema = coerce.date();"],
+  ])('reports %s in the listed files only', (_, code) => {
+    expect(zod(code, { noCoercePaths: ['src/dto/**'] }, '/project/src/dto/a.ts').messages).toEqual([
+      coerce,
+    ]);
+    expect(zod(code, { noCoercePaths: ['src/dto/**'] }).messages).toEqual([]);
+  });
+
+  test('says nothing on a coerce that is not zod', () => {
+    const code = `${Z}const a = other.coerce.number();`;
+
+    expect(zod(code, { noCoercePaths: ['src/**'] }).messages).toEqual([]);
+  });
+
+  test('each check switches off', () => {
+    const code = `${Z}const ASchema = z.object({}).strict(); const BSchema = z.object({}).passthrough();`;
+
+    expect(zod(code, { strictCall: false, noPassthrough: false }).messages).toEqual([]);
+  });
+});
+
 describe('houseConfigs', () => {
   test('carries the zod rule at error', () => {
     const levels = houseConfigs.flatMap((config) => {

@@ -553,6 +553,12 @@ export interface IZodSchemaConventionOptions {
     strictPaths?: ReadonlyArray<string>;
     /** Globs, from the working directory, of the files where `z.any()` is refused. @default [] */
     noAnyPaths?: ReadonlyArray<string>;
+    /** `z.object({ ... }).strict()` is written `z.strictObject({ ... })`, in every file. @default true */
+    strictCall?: boolean;
+    /** Refuses `.passthrough()` on a schema. @default true */
+    noPassthrough?: boolean;
+    /** Globs, from the working directory, of the files where `z.coerce` is refused. @default [] */
+    noCoercePaths?: ReadonlyArray<string>;
     /** Skips test files. @default true */
     ignoreTests?: boolean;
     /** Names of consts and types the two name checks leave alone. @default [] */
@@ -1236,8 +1242,9 @@ Source: `packages/dev-configs/src/linters/house/framework-api-patterns.ts`
 
 *class*
 
-`@venizia/zod-schema-convention`. How a zod schema is named, how its inferred types are named, and, in the files a
-project lists, that objects are strict and `any` is not used.
+`@venizia/zod-schema-convention`. How a zod schema is named, how its inferred types are named, that a strict object
+is written `z.strictObject` and `.passthrough()` is not used and, in the files a project lists, that objects are
+strict and `any` and `z.coerce` are not used.
 
 A schema is recognised file by file, without types: a call chain that starts at an import of `zod` (or `z` of
 `@hono/zod-openapi`), at another schema const of the file, or at an import named `...Schema` / `..._SCHEMA` through a
