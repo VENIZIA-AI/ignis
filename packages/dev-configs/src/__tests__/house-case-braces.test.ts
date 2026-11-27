@@ -1,8 +1,11 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test, setDefaultTimeout } from 'bun:test';
 import { Linter } from 'eslint';
 import { eslintConfigs, oxlintConfigs } from '../linters';
 import { NoUnbracedCaseRule } from '../linters/house';
 import { SwitchCaseBracesRule } from '../linters/rules';
+
+// The tests of this file run a compiler or a linter: over bun's 5 s default in a parallel run on a small CI runner.
+setDefaultTimeout(30_000);
 
 const UNBRACED = `switch (value) {\n  case 'a':\n    run();\n    break;\n  default:\n    stop();\n}\n`;
 const BRACED = `switch (value) {\n  case 'a': {\n    run();\n    break;\n  }\n  default: {\n    stop();\n  }\n}\n`;
