@@ -115,17 +115,16 @@ export class MyItemsController extends BaseRestController {
 
   @get({ configs: TestRoutes.GET_DATA })
   getData(context: TRouteContext) {
-    // 'context' is fully typed here, including context.req.valid and context.json return type
+    // The request is validated against the route's schemas; `context` is typed by `TRouteContext`
     return context.json({ message: 'Hello from decorator', method: 'GET' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
   @post({ configs: TestRoutes.CREATE_ITEM })
   createItem(context: TRouteContext) {
-    // context.req.valid('json') is automatically typed based on CREATE_ITEM.request.body.content['application/json']['schema']
-    // You can also provide an explicit type for stricter checking:
+    // Name the body's type: it is not read from the config
     const body = context.req.valid<{ name: string; value: number }>('json');
 
-    // Return type is automatically validated against CREATE_ITEM.responses[200].content['application/json']['schema']
+    // The response body is not checked against the config's response schema
     return context.json(
       {
         id: 'some-uuid',

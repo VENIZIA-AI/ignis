@@ -652,7 +652,13 @@ export class RouteConfigResolver {
             }),
             headers: create.request.headers,
           },
-          responses: OpenApiResponses.jsonResponse(create.response),
+          responses: {
+            [HTTP.ResultCodes.RS_2.Created]: {
+              ...OpenApiResponses.jsonContent(create.response),
+              headers: create.response.headers,
+            },
+            ...OpenApiResponses.errorResponses(),
+          },
         },
       }),
 

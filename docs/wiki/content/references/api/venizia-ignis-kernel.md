@@ -186,14 +186,14 @@ export declare abstract class AbstractRestController<RouteEnv extends Env = Env,
     /** Processes route config, injecting auth middleware and OpenAPI security specs. */
     getRouteConfigs<RouteConfig extends IAuthRouteConfig>(opts: {
         configs: RouteConfig;
-    }): RouteConfig & {
-        getRoutingPath(): RouteConfig["path"] extends infer T ? T extends RouteConfig["path"] ? T extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${/*elided*/ any}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : T : never : never;
+    }): RouteConfig & HonoRouteConfig & {
+        getRoutingPath(): string;
     };
     /** Like getRouteConfigs but adds HTML response schema for JSX rendering. */
     getJSXRouteConfigs<RouteConfig extends IAuthRouteConfig>(opts: {
         configs: RouteConfig;
-    }): RouteConfig & {
-        getRoutingPath(): RouteConfig["path"] extends infer T ? T extends RouteConfig["path"] ? T extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${/*elided*/ any}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : T : never : never;
+    }): RouteConfig & HonoRouteConfig & {
+        getRoutingPath(): string;
     };
     /** Override to register routes using bindRoute or defineRoute. */
     abstract binding(): ValueOrPromise<void>;
@@ -2247,13 +2247,13 @@ export declare class CrudControllerFactory extends BaseHelper {
             };
             getRouteConfigs<RouteConfig extends import("../index.js").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
-            }): RouteConfig & {
-                getRoutingPath(): RouteConfig["path"] extends infer T ? T extends RouteConfig["path"] ? T extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${/*elided*/ any}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : T : never : never;
+            }): RouteConfig & import("@hono/zod-openapi").RouteConfig & {
+                getRoutingPath(): string;
             };
             getJSXRouteConfigs<RouteConfig extends import("../index.js").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
-            }): RouteConfig & {
-                getRoutingPath(): RouteConfig["path"] extends infer T ? T extends RouteConfig["path"] ? T extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${/*elided*/ any}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : Rest}` : T : never : never;
+            }): RouteConfig & import("@hono/zod-openapi").RouteConfig & {
+                getRoutingPath(): string;
             };
             scope: string;
             identifier: string;
@@ -3127,16 +3127,85 @@ Source: `packages/kernel/src/base/auth/authorize/common/types/enforcer.ts`
 
 *interface*
 
-Route configuration extended with optional authenticate and authorize fields.
+A route of an IGNIS controller: the OpenAPI operation, its request and responses, and the framework's
+`authenticate` and `authorize`. It is IGNIS's own type, not Hono's `RouteConfig`, so that checking a config never
+compares zod types structurally; the framework converts it where it registers the route.
 
 ```ts
-export interface IAuthRouteConfig extends HonoRouteConfig {
+export interface IAuthRouteConfig {
+    method: TRouteMethod;
+    path: string;
+    summary?: string;
+    description?: string;
+    tags?: string[];
+    operationId?: string;
+    deprecated?: boolean;
+    security?: Array<Record<string, string[]>>;
+    /** Leaves the route out of the OpenAPI document. */
+    hide?: boolean;
+    externalDocs?: object;
+    servers?: object[];
+    parameters?: object[];
+    callbacks?: object;
+    middleware?: MiddlewareHandler | MiddlewareHandler[];
+    request?: {
+        params?: TRequestPartSchema;
+        query?: TRequestPartSchema;
+        cookies?: TRequestPartSchema;
+        /** A zod object, or a list of schemas; with a list, the headers have no single type to validate into. */
+        headers?: TRequestPartSchema | TRequestPartSchema[];
+        body?: {
+            content: Record<string, TRouteMediaType>;
+            description?: string;
+            required?: boolean;
+            [extension: `x-${string}`]: unknown;
+        };
+    };
+    responses: Record<string | number, TRouteResponse>;
+    [extension: `x-${string}`]: unknown;
     authenticate?: {
         strategies?: TAuthStrategy[];
         mode?: TAuthMode;
     };
     authorize?: IAuthorizationSpec | IAuthorizationSpec[];
 }
+
+/** The methods a route is registered under. */
+type TRouteMethod = Exclude<ValueOf<typeof HTTP.Methods>, typeof HTTP.Methods.QUERY> | 'trace';
+
+/** A zod object schema of a request part. */
+type TRequestPartSchema = {
+    _zod: unknown;
+};
+
+/** One entry of a `content` map. */
+type TRouteMediaType = {
+    schema?: TRouteSchema;
+    example?: unknown;
+    examples?: unknown;
+    encoding?: unknown;
+    itemSchema?: unknown;
+    itemEncoding?: unknown;
+    prefixEncoding?: unknown;
+    [extension: `x-${string}`]: unknown;
+};
+
+/** A zod schema, read by its `_zod` member and never compared structurally, or a raw OpenAPI object. */
+type TRouteSchema = {
+    _zod: unknown;
+} | Record<string, unknown>;
+
+/** A response of a route, or a reference to one. */
+type TRouteResponse = {
+    description?: string;
+    summary?: string;
+    headers?: object;
+    links?: object;
+    content?: Record<string, TRouteMediaType>;
+    [extension: `x-${string}`]: unknown;
+} | {
+    $ref: string;
+};
 ```
 
 Source: `packages/kernel/src/base/controllers/common/types/route.ts`
@@ -3202,7 +3271,7 @@ Source: `packages/kernel/src/base/applications/common/types/middlewares.ts`
 Fluent binding for two-step route registration: bindRoute({ configs }).to({ handler }).
 
 ```ts
-export interface IBindRouteOptions<RouteConfig extends HonoRouteConfig, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/'> {
+export interface IBindRouteOptions<RouteConfig extends IAuthRouteConfig, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/'> {
     configs: RouteConfig;
     to: <ResponseType = unknown>(opts: {
         handler: TRouteHandler<ResponseType, RouteEnv>;
@@ -3656,8 +3725,9 @@ Source: `packages/kernel/src/base/datasources/common/types.ts`
 Registered route with its configuration and router instance.
 
 ```ts
-export interface IDefineRouteOptions<RouteConfig extends HonoRouteConfig, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/'> {
-    configs: ReturnType<typeof createRoute<string, RouteConfig>>;
+export interface IDefineRouteOptions<RouteConfig extends IAuthRouteConfig, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/'> {
+    /** The config given, typed as given; at run time it also carries what the framework added to register the route. */
+    configs: RouteConfig;
     route: OpenAPIHono<RouteEnv, RouteSchema, BasePath>;
 }
 ```
