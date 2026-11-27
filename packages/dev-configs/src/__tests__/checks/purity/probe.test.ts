@@ -1,4 +1,5 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { GLOBAL_PATTERNS, PurityProbe } from '../../../checks/purity/probe';
 
@@ -160,4 +161,46 @@ describe('PurityProbe.probeEntry', () => {
       expect(PROCESS_PATTERN.pattern.test(stripped)).toBe(true);
     });
   });
+});
+
+describe('PurityProbe.probeEntry and a metafile it cannot read', () => {
+  /** Probes a pure entry while every file the probe opens answers `metafile`. */
+  const withMetafile = async (metafile: string) => {
+    const scratch = join(REPOSITORY_ROOT, '.agents/local/tmp');
+    mkdirSync(scratch, { recursive: true });
+    const directory = mkdtempSync(join(scratch, 'purity-probe-metafile-'));
+    const written = join(directory, 'metafile.json');
+
+    writeFileSync(written, metafile);
+    const replacement = Bun.file(written);
+    const spy = spyOn(Bun, 'file').mockImplementation(() => replacement);
+
+    try {
+      const result = await PurityProbe.probeEntry({
+        entry: join(FIXTURES, 'pure.entry.ts'),
+        cwd: REPOSITORY_ROOT,
+      });
+
+      return result;
+    } finally {
+      spy.mockRestore();
+      rmSync(directory, { recursive: true, force: true });
+    }
+  };
+
+  test.each([
+    ['no inputs', '{}'],
+    ['an input without imports', '{"inputs":{"a.js":{}}}'],
+    ['an import without a path', '{"inputs":{"a.js":{"imports":[{}]}}}'],
+    ['text that is not JSON', 'nope'],
+  ])(
+    'fails the entry on a metafile with %s',
+    async (_, metafile) => {
+      const result = await withMetafile(metafile);
+
+      expect(result.ok).toBe(false);
+      expect(result.buildError).toContain('Could not read the bun build metafile');
+    },
+    60_000,
+  );
 });

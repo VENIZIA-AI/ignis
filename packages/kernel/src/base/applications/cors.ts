@@ -206,17 +206,16 @@ export class CorsUtility {
 
     // Only the keys that are set: hono spreads over its defaults, so an `undefined` would erase one
     // (a missing `allowMethods` would then answer a preflight with no allowed methods).
-    const settings = Object.fromEntries(
-      Object.entries({
+    server.use(
+      path ?? '*',
+      cors({
         origin: CorsUtility.resolveOrigin({ origin }),
-        allowMethods,
-        allowHeaders,
-        maxAge,
-        credentials,
-        exposeHeaders,
-      }).filter(([, value]) => value !== undefined),
+        ...(allowMethods !== undefined && { allowMethods }),
+        ...(allowHeaders !== undefined && { allowHeaders }),
+        ...(maxAge !== undefined && { maxAge }),
+        ...(credentials !== undefined && { credentials }),
+        ...(exposeHeaders !== undefined && { exposeHeaders }),
+      }),
     );
-
-    server.use(path ?? '*', cors(settings));
   }
 }

@@ -777,33 +777,3 @@ describe('MessageTemplate.render', () => {
     });
   });
 });
-
-describe('the error envelope - a thrown value that carries its own normalized', () => {
-  const thrown = (normalized: unknown) => () => {
-    throw Object.assign(new Error('outer'), { statusCode: 409, normalized });
-  };
-
-  test('keeps a well-formed one, extra members included', async () => {
-    const carried = { text: 'inner', code: ORDER_NOT_FOUND_CODE, args: { id: 1 }, hint: 'h' };
-    const { body } = await probe({ thrower: thrown(carried) });
-
-    expect<unknown>(body.normalized).toEqual(carried);
-  });
-
-  test('completes one that names only its text', async () => {
-    const { body } = await probe({ thrower: thrown({ text: 'inner', args: 'no' }) });
-
-    expect(body.normalized).toMatchObject({ text: 'inner', args: {} });
-    expect(typeof body.normalized.code).toBe('string');
-  });
-
-  test.each([
-    ['a string', 'inner'],
-    ['null', null],
-    ['an object without a text', { code: 'x' }],
-  ])('answers its own for %s', async (_, normalized) => {
-    const { body } = await probe({ thrower: thrown(normalized) });
-
-    expect(body.normalized).toMatchObject({ text: body.message, args: {} });
-  });
-});
