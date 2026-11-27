@@ -52,7 +52,7 @@ class SyncRecordingHandler implements IEventHandler {
   }
 }
 
-interface TestEventPayloadMap {
+interface ITestEventPayloadMap {
   testEvent: { value: number };
   otherEvent: { flag: boolean };
 }
@@ -94,12 +94,12 @@ const flush = async (opts?: { ms?: number }): Promise<void> => {
 };
 
 const buildBus = (): {
-  bus: EventBus<TestEventPayloadMap>;
+  bus: EventBus<ITestEventPayloadMap>;
   container: Container;
   logger: RecordingLogger;
 } => {
   const container = new Container({ scope: 'event-bus-test' });
-  const bus = new EventBus<TestEventPayloadMap>({ scope: 'event-bus-test', container });
+  const bus = new EventBus<ITestEventPayloadMap>({ scope: 'event-bus-test', container });
   const logger = new RecordingLogger();
   bus.logger = logger;
 
@@ -282,7 +282,7 @@ describe('EventBus - type safety', () => {
   test('a wrong event name is a compile error', () => {
     const { bus } = buildBus();
 
-    // @ts-expect-error - 'notAnEvent' is not a key of TestEventPayloadMap
+    // @ts-expect-error - 'notAnEvent' is not a key of ITestEventPayloadMap
     bus.publish({ name: 'notAnEvent', payload: { value: 1 } });
 
     expect(true).toBe(true);

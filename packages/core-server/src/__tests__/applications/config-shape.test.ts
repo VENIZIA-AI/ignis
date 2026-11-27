@@ -20,27 +20,27 @@ import { describe, expect, test } from 'bun:test';
  * `'host' extends keyof T` answers `true` for every name and proves nothing. This strips the index
  * signature first, leaving only the keys someone actually declared.
  */
-type WithoutIndexSignature<TTarget> = {
+type TWithoutIndexSignature<TTarget> = {
   [
     TKey in keyof TTarget as string extends TKey ? never : number extends TKey ? never : TKey
   ]: TTarget[TKey];
 };
 
-type HasDeclaredKey<
+type THasDeclaredKey<
   TTarget,
   TKey extends string,
-> = TKey extends keyof WithoutIndexSignature<TTarget> ? true : false;
+> = TKey extends keyof TWithoutIndexSignature<TTarget> ? true : false;
 
-/** `HasDeclaredKey<any, K>` is `true` for every K, so without this the assertions below would pass vacuously if the export ever resolved to `any` instead of an interface. */
-type IsAny<TTarget> = 0 extends 1 & TTarget ? true : false;
+/** `THasDeclaredKey<any, K>` is `true` for every K, so without this the assertions below would pass vacuously if the export ever resolved to `any` instead of an interface. */
+type TIsAny<TTarget> = 0 extends 1 & TTarget ? true : false;
 
 /** Compile-time assertions: a mismatch is a build error, and the runtime body only proves the file ran. */
-const SERVER_IS_A_REAL_TYPE: IsAny<IApplicationConfigs> = false;
-const KERNEL_IS_A_REAL_TYPE: IsAny<IKernelApplicationConfigs> = false;
-const SERVER_DECLARES_HOST: HasDeclaredKey<IApplicationConfigs, 'host'> = true;
-const SERVER_DECLARES_PORT: HasDeclaredKey<IApplicationConfigs, 'port'> = true;
-const KERNEL_DECLARES_HOST: HasDeclaredKey<IKernelApplicationConfigs, 'host'> = false;
-const KERNEL_DECLARES_PORT: HasDeclaredKey<IKernelApplicationConfigs, 'port'> = false;
+const SERVER_IS_A_REAL_TYPE: TIsAny<IApplicationConfigs> = false;
+const KERNEL_IS_A_REAL_TYPE: TIsAny<IKernelApplicationConfigs> = false;
+const SERVER_DECLARES_HOST: THasDeclaredKey<IApplicationConfigs, 'host'> = true;
+const SERVER_DECLARES_PORT: THasDeclaredKey<IApplicationConfigs, 'port'> = true;
+const KERNEL_DECLARES_HOST: THasDeclaredKey<IKernelApplicationConfigs, 'host'> = false;
+const KERNEL_DECLARES_PORT: THasDeclaredKey<IKernelApplicationConfigs, 'port'> = false;
 
 /** A consumer application's `createAppConfig`, reduced to the shape that must keep compiling. */
 const CONSUMER_SHAPED_CONFIG: IApplicationConfigs = {

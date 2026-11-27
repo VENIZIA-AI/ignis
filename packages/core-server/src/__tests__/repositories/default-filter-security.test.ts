@@ -12,7 +12,7 @@ import { type TFilter } from '@venizia/ignis-kernel';
 
 /** Adversarial coverage of `FilterBuilder.mergeFilter` + `PostgresBaseRepository.applyDefaultFilter`: a user-controlled filter must never widen or erase a `@model` `defaultFilter` (soft-delete, tenant scoping), regardless of the value shape it carries. */
 
-type AnyFilter = TFilter<any>;
+type TAnyFilter = TFilter<any>;
 
 const SQL_INJECTION_PAYLOADS = {
   dropTableInKey: "'; DROP TABLE users; --",
@@ -63,12 +63,12 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
   });
 
   test('SQL injection payloads pass through as opaque values while the default where survives', () => {
-    const defaultFilter: AnyFilter = { where: { isDeleted: false } };
+    const defaultFilter: TAnyFilter = { where: { isDeleted: false } };
 
     const sqlInjectionPayloadEntries = Object.entries(SQL_INJECTION_PAYLOADS);
 
     for (const [name, payload] of sqlInjectionPayloadEntries) {
-      const userFilter: AnyFilter = { where: { [name]: payload } };
+      const userFilter: TAnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
 
       expect(result.where?.isDeleted).toBe(false);
@@ -77,8 +77,8 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
   });
 
   test('SQL injection payload placed in the where KEY does not execute or get stripped', () => {
-    const defaultFilter: AnyFilter = { where: { isDeleted: false } };
-    const userFilter: AnyFilter = {
+    const defaultFilter: TAnyFilter = { where: { isDeleted: false } };
+    const userFilter: TAnyFilter = {
       where: { [SQL_INJECTION_PAYLOADS.dropTableInKey]: 'value' },
     };
     const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
@@ -96,12 +96,12 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
   });
 
   test('XSS payloads pass through as opaque values while the default where survives', () => {
-    const defaultFilter: AnyFilter = { where: { isDeleted: false } };
+    const defaultFilter: TAnyFilter = { where: { isDeleted: false } };
 
     const xssPayloadEntries = Object.entries(XSS_PAYLOADS);
 
     for (const [name, payload] of xssPayloadEntries) {
-      const userFilter: AnyFilter = { where: { [name]: payload } };
+      const userFilter: TAnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
 
       expect(result.where?.isDeleted).toBe(false);
@@ -110,12 +110,12 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
   });
 
   test('command injection payloads pass through as opaque values while the default where survives', () => {
-    const defaultFilter: AnyFilter = { where: { isDeleted: false } };
+    const defaultFilter: TAnyFilter = { where: { isDeleted: false } };
 
     const commandInjectionPayloadEntries = Object.entries(COMMAND_INJECTION_PAYLOADS);
 
     for (const [name, payload] of commandInjectionPayloadEntries) {
-      const userFilter: AnyFilter = { where: { [name]: payload } };
+      const userFilter: TAnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
 
       expect(result.where?.isDeleted).toBe(false);
@@ -124,12 +124,12 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
   });
 
   test('path traversal payloads pass through as opaque values while the default where survives', () => {
-    const defaultFilter: AnyFilter = { where: { isDeleted: false } };
+    const defaultFilter: TAnyFilter = { where: { isDeleted: false } };
 
     const pathTraversalPayloadEntries = Object.entries(PATH_TRAVERSAL_PAYLOADS);
 
     for (const [name, payload] of pathTraversalPayloadEntries) {
-      const userFilter: AnyFilter = { where: { [name]: payload } };
+      const userFilter: TAnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
 
       expect(result.where?.isDeleted).toBe(false);
@@ -139,8 +139,8 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
 
   describe('prototype pollution prevention', () => {
     test('__proto__ key in the user where does not pollute Object.prototype', () => {
-      const defaultFilter: AnyFilter = { where: { isDeleted: false } };
-      const userFilter: AnyFilter = {
+      const defaultFilter: TAnyFilter = { where: { isDeleted: false } };
+      const userFilter: TAnyFilter = {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         where: { __proto__: { polluted: true } },
       };
@@ -151,8 +151,8 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     });
 
     test('nested __proto__ key does not pollute Object.prototype', () => {
-      const defaultFilter: AnyFilter = { where: { safe: true } };
-      const userFilter: AnyFilter = {
+      const defaultFilter: TAnyFilter = { where: { safe: true } };
+      const userFilter: TAnyFilter = {
         where: {
           nested: {
             // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -167,8 +167,8 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     });
 
     test('constructor.prototype key in the user where does not pollute Object.prototype', () => {
-      const defaultFilter: AnyFilter = { where: { isDeleted: false } };
-      const userFilter: AnyFilter = {
+      const defaultFilter: TAnyFilter = { where: { isDeleted: false } };
+      const userFilter: TAnyFilter = {
         where: { constructor: { prototype: { polluted: true } } },
       };
 
@@ -180,8 +180,8 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     });
 
     test('literal "__proto__.isAdmin" string key does not pollute Object.prototype', () => {
-      const defaultFilter: AnyFilter = { where: {} };
-      const userFilter: AnyFilter = {
+      const defaultFilter: TAnyFilter = { where: {} };
+      const userFilter: TAnyFilter = {
         where: { '__proto__.isAdmin': true },
       };
       filterBuilder.mergeFilter({ defaultFilter, userFilter });
@@ -191,12 +191,12 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
   });
 
   test('NoSQL-style operator objects ($ne/$where) are merged as opaque data, not interpreted', () => {
-    const defaultFilter: AnyFilter = { where: { isDeleted: false } };
+    const defaultFilter: TAnyFilter = { where: { isDeleted: false } };
 
     const nosqlInjectionPayloadEntries = Object.entries(NOSQL_INJECTION_PAYLOADS);
 
     for (const [name, payload] of nosqlInjectionPayloadEntries) {
-      const userFilter: AnyFilter = { where: { [name]: payload } };
+      const userFilter: TAnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
 
       expect(result.where?.isDeleted).toBe(false);
@@ -205,12 +205,12 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
   });
 
   test('Unicode edge cases (null char, BOM, zero-width, RTL override) pass through untouched', () => {
-    const defaultFilter: AnyFilter = { where: { isDeleted: false } };
+    const defaultFilter: TAnyFilter = { where: { isDeleted: false } };
 
     const unicodeEdgeCaseEntries = Object.entries(UNICODE_EDGE_CASES);
 
     for (const [name, value] of unicodeEdgeCaseEntries) {
-      const userFilter: AnyFilter = { where: { [name]: value } };
+      const userFilter: TAnyFilter = { where: { [name]: value } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
 
       expect(result.where?.isDeleted).toBe(false);
@@ -219,12 +219,12 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
   });
 
   test('ReDoS-shaped string payloads merge in well under a second (no regex evaluation on values)', () => {
-    const defaultFilter: AnyFilter = { where: { isDeleted: false } };
+    const defaultFilter: TAnyFilter = { where: { isDeleted: false } };
 
     const redosPayloadValues = Object.values(REDOS_PAYLOADS);
 
     for (const payload of redosPayloadValues) {
-      const userFilter: AnyFilter = { where: { pattern: payload } };
+      const userFilter: TAnyFilter = { where: { pattern: payload } };
 
       const startedAt = Date.now();
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
@@ -247,7 +247,7 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     test('user where: null does not erase the default where', () => {
       const defaultFilter = { where: { isDeleted: false } };
       // @ts-expect-error where must be null (not a valid TWhere) to exercise the bypass guard.
-      const userFilter: AnyFilter = { where: null };
+      const userFilter: TAnyFilter = { where: null };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
 
       expect(result.where).toBeDefined();
@@ -263,10 +263,10 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     });
 
     test('user where keys set to undefined do not override defined default values (soft-delete/tenant scope)', () => {
-      const defaultFilter: AnyFilter = {
+      const defaultFilter: TAnyFilter = {
         where: { tenantId: 'safe-tenant', isDeleted: false },
       };
-      const userFilter: AnyFilter = {
+      const userFilter: TAnyFilter = {
         where: { tenantId: undefined, isDeleted: undefined },
       };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
@@ -277,8 +277,8 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
   });
 
   test('special JavaScript object keys (hasOwnProperty/toString/valueOf) merge as ordinary where properties', () => {
-    const defaultFilter: AnyFilter = { where: { isDeleted: false } };
-    const userFilter: AnyFilter = {
+    const defaultFilter: TAnyFilter = { where: { isDeleted: false } };
+    const userFilter: TAnyFilter = {
       where: {
         hasOwnProperty: 'test',
         toString: 'string',
@@ -297,8 +297,8 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     const circularObject: Record<string, unknown> = { name: 'test' };
     circularObject.self = circularObject;
 
-    const defaultFilter: AnyFilter = { where: { isDeleted: false } };
-    const userFilter: AnyFilter = { where: { data: circularObject } };
+    const defaultFilter: TAnyFilter = { where: { isDeleted: false } };
+    const userFilter: TAnyFilter = { where: { data: circularObject } };
 
     try {
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
@@ -359,7 +359,7 @@ describe('PostgresBaseRepository.applyDefaultFilter (real production repository,
       new StubSecurityDataSource({ name: 'security-scoped-ds', config: {} }),
     );
 
-    const userFilter: AnyFilter = {
+    const userFilter: TAnyFilter = {
       where: { name: SQL_INJECTION_PAYLOADS.orAttack },
       limit: 10,
     };
@@ -377,7 +377,7 @@ describe('PostgresBaseRepository.applyDefaultFilter (real production repository,
       new StubSecurityDataSource({ name: 'security-scoped-skip-ds', config: {} }),
     );
 
-    const userFilter: AnyFilter = { where: { isDeleted: true } };
+    const userFilter: TAnyFilter = { where: { isDeleted: true } };
     const result = repo.applyDefaultFilter({ userFilter, shouldSkipDefaultFilter: true });
 
     expect(result).toEqual({ where: { isDeleted: true } });
@@ -408,7 +408,7 @@ describe('PostgresBaseRepository.applyDefaultFilter (real production repository,
       new StubSecurityDataSource({ name: 'security-unscoped-ds', config: {} }),
     );
 
-    const userFilter: AnyFilter = { where: { name: XSS_PAYLOADS.scriptTag } };
+    const userFilter: TAnyFilter = { where: { name: XSS_PAYLOADS.scriptTag } };
     const result = repo.applyDefaultFilter({ userFilter });
 
     expect(result).toEqual({ where: { name: XSS_PAYLOADS.scriptTag } });

@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-0 exports, 0 with TSDoc. 69 more are re-exported from other entries (listed at the end).
+0 exports, 0 with TSDoc. 71 more are re-exported from other entries (listed at the end).
 
 ## Re-exported
 
@@ -34,6 +34,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 - `IOxlintPresetOptions` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `IRestrictedImportPath` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `IRestrictedProperty` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
+- `IZodSchemaConventionOptions` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `LinesBetweenClassMembersRule` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `LintIgnore` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `MaxParamsOwnRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
@@ -80,3 +81,4 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 - `TUnusedVarsScope` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `UnusedArgsModes` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `UnusedVarsScopes` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
+- `ZodSchemaConventionRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)

@@ -3,12 +3,12 @@ import {
   policyDefinitionTable,
   Role,
   roleTable,
-  type TChangePasswordRequestSchema,
-  type TChangePasswordResponseSchema,
-  type TSignInRequestSchema,
-  type TSignInResponseSchema,
-  type TSignUpRequestSchema,
-  type TSignUpResponseSchema,
+  type ChangePasswordRequestType,
+  type ChangePasswordResponseType,
+  type SignInRequestType,
+  type SignInResponseType,
+  type SignUpRequestType,
+  type SignUpResponseType,
   userTable,
 } from '@/models';
 import { Organization } from '@/models';
@@ -44,12 +44,12 @@ export class AuthenticationService
   implements
     IAuthService<
       Env,
-      TSignInRequestSchema,
-      TSignInResponseSchema,
-      TSignUpRequestSchema,
-      TSignUpResponseSchema,
-      TChangePasswordRequestSchema,
-      TChangePasswordResponseSchema
+      SignInRequestType,
+      SignInResponseType,
+      SignUpRequestType,
+      SignUpResponseType,
+      ChangePasswordRequestType,
+      ChangePasswordResponseType
     >
 {
   constructor(
@@ -60,10 +60,7 @@ export class AuthenticationService
     super({ scope: AuthenticationService.name });
   }
 
-  async signUp(
-    _context: TContext<Env>,
-    opts: TSignUpRequestSchema,
-  ): Promise<TSignUpResponseSchema> {
+  async signUp(_context: TContext<Env>, opts: SignUpRequestType): Promise<SignUpResponseType> {
     const existing = await this.userRepository.findByUsername({ username: opts.username });
 
     if (existing) {
@@ -88,10 +85,7 @@ export class AuthenticationService
     return { message: 'User registered successfully' };
   }
 
-  async signIn(
-    _context: TContext<Env>,
-    opts: TSignInRequestSchema,
-  ): Promise<TSignInResponseSchema> {
+  async signIn(_context: TContext<Env>, opts: SignInRequestType): Promise<SignInResponseType> {
     // `password` is a hidden property, so the repository never returns it: read it with the connector.
     const [user] = await this.userRepository.connector
       .select({
@@ -144,8 +138,8 @@ export class AuthenticationService
 
   async changePassword(
     context: TContext<Env>,
-    opts: TChangePasswordRequestSchema,
-  ): Promise<TChangePasswordResponseSchema> {
+    opts: ChangePasswordRequestType,
+  ): Promise<ChangePasswordResponseType> {
     const currentUser = context.get(Authentication.CURRENT_USER);
     const isAlwaysAllowed = currentUser?.roles?.some(
       (role) => (typeof role === 'string' ? role : role.identifier) === ALWAYS_ALLOWED_ROLE,

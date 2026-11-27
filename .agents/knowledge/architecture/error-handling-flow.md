@@ -285,7 +285,7 @@ Every `TResponsedError` field is optional deliberately - a client parses what a 
 server actually sent. A non-IGNIS body still yields an `ApplicationError` degraded to
 `MessageCode.DEFAULT` / status 400, so no call site branches on a parse failure.
 
-The wire shape is also described by `ErrorSchema`/`TErrorResponse` in **kernel** (`base/models/common/schemas.ts`), for OpenAPI. That
+The wire shape is also described by `ErrorSchema`/`TErrorOutput` in **kernel** (`base/models/common/schemas.ts`), for OpenAPI. That
 one cannot serve a browser: it depends on `@hono/zod-openapi`. `TResponsedError` exists because inversion
 must stay browser-safe, not as a duplicate to be consolidated away.
 

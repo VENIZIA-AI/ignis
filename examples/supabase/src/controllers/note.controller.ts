@@ -30,7 +30,7 @@ const CreateNoteSchema = z.object({
   isPrivate: z.boolean().optional(),
 });
 
-type TCreateNoteRequest = z.infer<typeof CreateNoteSchema>;
+type TCreateNote = z.infer<typeof CreateNoteSchema>;
 
 const authenticated: IAuthRouteConfig['authenticate'] = { strategies: [AuthenticateStrategy.JWT] };
 
@@ -120,7 +120,7 @@ export class NoteController extends BaseRestController {
 
   @post({ configs: RouteConfigs['/create'] })
   async create(context: TRouteContext) {
-    const body = context.req.valid<TCreateNoteRequest>('json');
+    const body = context.req.valid<TCreateNote>('json');
     const data = await this.noteService.create({ claims: this.getClaims(context), data: body });
 
     return context.json(data, HTTP.ResultCodes.RS_2.Ok);

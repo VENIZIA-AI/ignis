@@ -54,7 +54,7 @@ export class TestController extends BaseRestController {
   @post({ configs: RouteConfigs['/5'] })
   createWithDecorator(context: TRouteContext) {
     // The body's compile-time type comes from this explicit generic, not inference - the request
-    // is still validated against `route5BodySchema` at runtime regardless.
+    // is still validated against `Route5BodySchema` at runtime regardless.
     const body = context.req.valid<TRoute5Body>('json');
 
     return context.json(

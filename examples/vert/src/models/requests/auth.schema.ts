@@ -25,14 +25,14 @@ export const SignInRequestSchema = z.object({
     description: 'Authenticate Provider',
   }),
 });
-export type TSignInRequestSchema = z.infer<typeof SignInRequestSchema>;
+export type SignInRequestType = z.infer<typeof SignInRequestSchema>;
 
 // ================================================================================
 export const SignUpRequestSchema = z.object({
   username: z.string().nonempty().trim().min(4).max(80),
   credential: z.string().nonempty().trim().min(4).max(80),
 });
-export type TSignUpRequestSchema = z.infer<typeof SignUpRequestSchema>;
+export type SignUpRequestType = z.infer<typeof SignUpRequestSchema>;
 
 // ================================================================================
 export const ChangePasswordRequestSchema = z.object({
@@ -41,4 +41,4 @@ export const ChangePasswordRequestSchema = z.object({
   newCredential: z.string().nonempty().min(4).max(80),
   userId: z.string().nonempty(),
 });
-export type TChangePasswordRequestSchema = z.infer<typeof ChangePasswordRequestSchema>;
+export type ChangePasswordRequestType = z.infer<typeof ChangePasswordRequestSchema>;

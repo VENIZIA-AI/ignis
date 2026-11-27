@@ -1,6 +1,6 @@
 import { BaseApplication } from '@/base/applications/base';
 import { CoreBindings } from '@venizia/ignis-kernel';
-import { AppEnvs, SecretProviders, type ISecretsRegistration } from '@venizia/ignis-helpers';
+import { AppEnvs, SecretProviders, type TSecretsRegistration } from '@venizia/ignis-helpers';
 import { describe, expect, test } from 'bun:test';
 
 class HydrateApp extends BaseApplication {
@@ -16,7 +16,7 @@ class HydrateApp extends BaseApplication {
   override preConfigure() {}
   override postConfigure() {}
   override setupMiddlewares() {}
-  override registerSecrets(): ISecretsRegistration {
+  override registerSecrets(): TSecretsRegistration {
     return {
       provider: SecretProviders.SYSTEM_ENVS,
       hydrate: [{ path: 'ignored', keys: { SOURCE: 'APP_ENV_TARGET' } }],

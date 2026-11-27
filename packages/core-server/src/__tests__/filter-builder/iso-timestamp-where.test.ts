@@ -21,37 +21,37 @@ describe('TWhere<T> - isoTimestamp columns admit a Date, plain text columns do n
     plainText: text('plain_text').notNull(),
   });
 
-  type EventRow = typeof table.$inferSelect;
+  type TEventRow = typeof table.$inferSelect;
 
   test('accepts a Date inside an operator object on an isoTimestamp column', () => {
-    const where: TWhere<EventRow> = { effectiveFrom: { lte: new Date() } };
+    const where: TWhere<TEventRow> = { effectiveFrom: { lte: new Date() } };
     expect(where.effectiveFrom).toMatchObject({ lte: expect.any(Date) });
   });
 
   test('accepts a bare Date scalar on an isoTimestamp column', () => {
-    const where: TWhere<EventRow> = { effectiveFrom: new Date() };
+    const where: TWhere<TEventRow> = { effectiveFrom: new Date() };
     expect(where.effectiveFrom).toBeInstanceOf(Date);
   });
 
   test('a string still works on an isoTimestamp column', () => {
-    const where: TWhere<EventRow> = { effectiveFrom: '2026-01-01T00:00:00.000Z' };
+    const where: TWhere<TEventRow> = { effectiveFrom: '2026-01-01T00:00:00.000Z' };
     expect(where.effectiveFrom).toBe('2026-01-01T00:00:00.000Z');
   });
 
   test('accepts null on a nullable isoTimestamp column', () => {
-    const where: TWhere<EventRow> = { effectiveTo: null };
+    const where: TWhere<TEventRow> = { effectiveTo: null };
     expect(where.effectiveTo).toBeNull();
   });
 
   test('rejects a bare Date scalar on a plain text column', () => {
     // @ts-expect-error 'plainText' is a text column, not an isoTimestamp - a Date is not valid here.
-    const where: TWhere<EventRow> = { plainText: new Date() };
+    const where: TWhere<TEventRow> = { plainText: new Date() };
     expect(where).toBeDefined();
   });
 
   test('rejects a Date inside an operator object on a plain text column', () => {
     // @ts-expect-error same column, inside an operator - the brand does not reach it either.
-    const where: TWhere<EventRow> = { plainText: { lte: new Date() } };
+    const where: TWhere<TEventRow> = { plainText: { lte: new Date() } };
     expect(where).toBeDefined();
   });
 
@@ -79,8 +79,8 @@ describe('TWhere<T> - isoTimestamp columns admit a Date, plain text columns do n
   });
 
   test('$inferInsert still accepts a plain string for an isoTimestamp column', () => {
-    type EventInsert = typeof table.$inferInsert;
-    const insertValue: EventInsert = {
+    type TEventInsert = typeof table.$inferInsert;
+    const insertValue: TEventInsert = {
       effectiveFrom: '2026-01-01T00:00:00.000Z',
       plainText: 'unchanged',
     };
@@ -92,9 +92,9 @@ describe('TWhere<T> - isoTimestamp columns admit a Date, plain text columns do n
       id: integer('id').primaryKey(),
       effectiveFrom: sqliteIsoTimestamp('effective_from').notNull(),
     });
-    type SqliteEventRow = typeof sqliteTableWithTimestamp.$inferSelect;
+    type TSqliteEventRow = typeof sqliteTableWithTimestamp.$inferSelect;
 
-    const where: TWhere<SqliteEventRow> = { effectiveFrom: { gte: new Date() } };
+    const where: TWhere<TSqliteEventRow> = { effectiveFrom: { gte: new Date() } };
     expect(where.effectiveFrom).toMatchObject({ gte: expect.any(Date) });
     expect(sqliteTableWithTimestamp.effectiveFrom.getSQLType()).toBe('text');
   });

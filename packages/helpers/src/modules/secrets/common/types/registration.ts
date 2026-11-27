@@ -60,7 +60,7 @@ export interface IDotenvSecretsRegistration extends ISecretsRegistrationBase {
 }
 
 /** Declares a secrets provider with the bundles to hydrate and the secrets to lease: the `provider` selects the shape of `config`. */
-export type ISecretsRegistration =
+export type TSecretsRegistration =
   | ISystemEnvsSecretsRegistration
   | IHashiCorpSecretsRegistration
   | IDotenvSecretsRegistration;
