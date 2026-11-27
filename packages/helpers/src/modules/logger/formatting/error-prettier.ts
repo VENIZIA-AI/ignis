@@ -348,7 +348,7 @@ export class ErrorPrettier {
   private static renderJson(opts: {
     summary: IErrorSummary;
     messageCode?: string;
-    extra?: Record<string, unknown>;
+    extra?: unknown;
   }): string {
     const { summary, messageCode, extra } = opts;
 
@@ -408,7 +408,7 @@ export class ErrorPrettier {
   private static renderText(opts: {
     summary: IErrorSummary;
     messageCode?: string;
-    extra?: Record<string, unknown>;
+    extra?: unknown;
     inspectOptions: util.InspectOptions;
   }): string {
     const { summary, messageCode, extra, inspectOptions } = opts;
@@ -479,7 +479,7 @@ export class ErrorPrettier {
   static format(opts: {
     error: unknown;
     messageCode?: string;
-    extra?: Record<string, unknown>;
+    extra?: unknown;
     includeStack?: boolean;
     maxStackFrames?: number;
     format?: TLoggerFormat;

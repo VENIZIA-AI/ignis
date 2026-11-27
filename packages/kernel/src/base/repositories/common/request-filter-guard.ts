@@ -163,7 +163,7 @@ export class RequestFilterGuard {
   }): void {
     const { filter, judge, tableName, walk } = opts;
 
-    if (typeof filter !== 'object' || filter === null) {
+    if (!RecordUtility.isRecord(filter)) {
       return;
     }
 

@@ -1381,7 +1381,7 @@ export declare class BaseAppErrorMiddleware extends BaseHelper implements IProvi
     protected formatError(opts: {
         error: unknown;
         messageCode?: string;
-        extra?: Record<string, unknown>;
+        extra?: unknown;
         includeStack?: boolean;
         maxStackFrames?: number;
     }): string;
@@ -8052,7 +8052,7 @@ How a thrown error is rendered into the log line. Must never throw - a throw ins
 export type TErrorLogFormatter = (opts: {
     error: unknown;
     messageCode?: string;
-    extra?: Record<string, unknown>;
+    extra?: unknown;
     includeStack?: boolean;
     maxStackFrames?: number;
 }) => string;

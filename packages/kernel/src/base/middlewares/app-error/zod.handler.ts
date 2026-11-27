@@ -6,14 +6,12 @@ import type { IZodIssueLike } from './common';
 export class ZodErrorHandler {
   private static readonly DEFAULT_VALIDATION_MESSAGE = 'ValidationError';
 
-  /** Type guard, so it keeps its positional `value`. */
+  /** Type guard, so it keeps its positional `value`. `code` and `params` are checked where they are read. */
   private static isIssue(value: unknown): value is IZodIssueLike {
     return (
       RecordUtility.isRecord(value) &&
       Array.isArray(value.path) &&
-      typeof value.message === 'string' &&
-      (value.code === undefined || typeof value.code === 'string') &&
-      (value.params === undefined || RecordUtility.isRecord(value.params))
+      typeof value.message === 'string'
     );
   }
 
@@ -59,7 +57,8 @@ export class ZodErrorHandler {
       const primaryIssue =
         issues.find((issue) => ZodErrorHandler.extractIssueCode({ issue }) !== undefined) ??
         issues[0];
-      messageCode = ZodErrorHandler.extractIssueCode({ issue: primaryIssue }) ?? primaryIssue.code;
+      const zodCode = typeof primaryIssue.code === 'string' ? primaryIssue.code : undefined;
+      messageCode = ZodErrorHandler.extractIssueCode({ issue: primaryIssue }) ?? zodCode;
       message = primaryIssue.message;
     }
 

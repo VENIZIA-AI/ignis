@@ -40,7 +40,7 @@ const DEFAULT_UNEXPECTED_STACK_FRAMES = 10;
 export type TErrorLogFormatter = (opts: {
   error: unknown;
   messageCode?: string;
-  extra?: Record<string, unknown>;
+  extra?: unknown;
   includeStack?: boolean;
   maxStackFrames?: number;
 }) => string;
@@ -146,7 +146,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
   protected formatError(opts: {
     error: unknown;
     messageCode?: string;
-    extra?: Record<string, unknown>;
+    extra?: unknown;
     includeStack?: boolean;
     maxStackFrames?: number;
   }): string {
@@ -163,24 +163,23 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
   private renderErrorForLog(opts: {
     error: unknown;
     messageCode?: string;
-    extra?: Record<string, unknown>;
+    extra?: unknown;
     includeStack?: boolean;
     maxStackFrames?: number;
   }): string {
     const { error, messageCode, extra, includeStack = true, maxStackFrames } = opts;
     // Anything can be thrown, a function included.
-    const thrown = RecordUtility.isRecord(error) || typeof error === 'function' ? error : undefined;
-    const read = (key: keyof Error): unknown => (thrown ? Reflect.get(thrown, key) : undefined);
-    const name = read('name');
-    const text = read('message');
-    const stack = read('stack');
+    const thrown: { name?: unknown; message?: unknown; stack?: unknown } =
+      RecordUtility.isRecord(error) || typeof error === 'function' ? error : {};
     const lines: Array<string> = [];
 
-    if (typeof name === 'string') {
-      lines.push(`name: ${name}`);
+    if (typeof thrown.name === 'string') {
+      lines.push(`name: ${thrown.name}`);
     }
 
-    lines.push(`message: ${typeof text === 'string' ? text : renderValue({ value: error })}`);
+    lines.push(
+      `message: ${typeof thrown.message === 'string' ? thrown.message : renderValue({ value: error })}`,
+    );
 
     if (messageCode) {
       lines.push(`code: ${messageCode}`);
@@ -190,8 +189,8 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
       lines.push(`extra: ${renderValue({ value: extra })}`);
     }
 
-    if (includeStack && typeof stack === 'string') {
-      const frames = stack.split('\n').filter((line) => line.trimStart().startsWith('at '));
+    if (includeStack && typeof thrown.stack === 'string') {
+      const frames = thrown.stack.split('\n').filter((line) => line.trimStart().startsWith('at '));
       const capped = maxStackFrames === undefined ? frames : frames.slice(0, maxStackFrames);
 
       if (capped.length > 0) {
@@ -402,7 +401,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
         error,
         // The default code means "no code" - logging it on every error would be a noise line.
         messageCode: messageCode === MessageCode.DEFAULT ? undefined : messageCode,
-        extra: 'extra' in error && RecordUtility.isRecord(error.extra) ? error.extra : undefined,
+        extra: 'extra' in error ? error.extra : undefined,
         includeStack: true,
         // An intentional error still needs its throw site; it just does not need the caller chain behind it.
         maxStackFrames:

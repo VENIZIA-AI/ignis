@@ -1,3 +1,4 @@
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError, ParseUtility } from '@venizia/ignis-helpers/core';
 import type { IPayloadFieldCodec, TJWTTokenRole } from './types';
 
@@ -10,13 +11,24 @@ export class AuthenticationFieldCodecs {
     },
     deserialize(opts) {
       const roles: unknown = JSON.parse(opts.raw);
+      const refuse = () =>
+        getError({
+          statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+          message: '[ROLES_CODEC] The roles field is not a list of id|identifier|priority strings',
+        });
 
-      if (!Array.isArray(roles) || !roles.every((role) => typeof role === 'string')) {
-        throw getError({ message: '[ROLES_CODEC] The roles field is not a list of strings' });
+      if (!Array.isArray(roles)) {
+        throw refuse();
       }
 
-      return roles.map((el) => {
-        const [id, identifier, priority] = el.split('|');
+      return roles.map((role) => {
+        const parts = typeof role === 'string' ? role.split('|') : [];
+
+        if (parts.length < 3) {
+          throw refuse();
+        }
+
+        const [id, identifier, priority] = parts;
 
         return { id, identifier, priority: ParseUtility.toInt({ input: priority }) };
       });
