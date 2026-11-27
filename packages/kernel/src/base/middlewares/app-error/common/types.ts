@@ -16,8 +16,8 @@ export interface IPostgresError {
 export interface IZodIssueLike {
   path: Array<string | number>;
   message: string;
-  code?: string;
-  params?: Record<string, unknown>;
+  code?: unknown;
+  params?: unknown;
   expected?: unknown;
   received?: unknown;
 }

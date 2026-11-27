@@ -19,8 +19,9 @@ describe('@model - the table name', () => {
       }
     }
 
-    expect(MetadataRegistry.getInstance().getAllModels().get('OddlyNamedTable')?.target).toBe(
-      OddlyNamedTable,
-    );
+    const registry = MetadataRegistry.getInstance();
+
+    expect(registry.getAllModels().get('OddlyNamedTable')?.target).toBe(OddlyNamedTable);
+    expect(registry.resolveModelKey({ modelClass: OddlyNamedTable })).toBe('OddlyNamedTable');
   });
 });
