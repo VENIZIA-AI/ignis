@@ -14,6 +14,7 @@ Exhaustive reference for every utility type, resolver function, and constant cla
 - [`packages/helpers/src/common/resolvers.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/resolvers.ts) - `resolveValue`, `resolveValueAsync`, `ClassResolver.resolveClass`
 - [`packages/helpers/src/common/constants/app.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/app.ts) - `Defaults`, `RuntimeModules`, `DataTypes`
 - [`packages/helpers/src/common/constants/http.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/http.ts) - `HTTP`
+- [`packages/helpers/src/common/constants/content-disposition.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/content-disposition.ts) - `ContentDispositionTypes`
 - [`packages/helpers/src/common/constants/grpc.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/grpc.ts) - `GRPC`
 - [`packages/helpers/src/common/constants/mime.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/mime.ts) - `MimeTypes`, `FileExtensions`, `ContentTypes`, `ContentTypeTable`
 - [`packages/helpers/src/common/constants/duration.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/duration.ts) - `DurationUnits`, `DurationAliases`, `DurationMultipliers`, `IDuration`

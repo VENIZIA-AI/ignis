@@ -1,4 +1,4 @@
-import type { TContentDispositionType } from '@/common/constants/http';
+import type { TContentDispositionType } from '@/common/constants/content-disposition';
 import type { TConstValue } from '@/common/types';
 import { getError } from '@/modules/error';
 import { MIN_TOKEN_BYTES, TokenUidHelper, UidTokenEncodings } from '@/modules/uid';
