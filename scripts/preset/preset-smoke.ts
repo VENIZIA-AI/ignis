@@ -145,11 +145,20 @@ const findFreePort = async (): Promise<number> => {
 };
 
 /** Every path the preset's `urls` names must answer 200: VULCAN prints them as the pages to open. Served by the compiled binary. */
-const assertHello = async (opts: { cwd: string; urls: string[] }): Promise<void> => {
+const assertHello = async (opts: {
+  cwd: string;
+  urls: string[];
+  /** The variables that give the app `port`; by default `PORT`. */
+  envFor?: (port: number) => Record<string, string>;
+}): Promise<void> => {
   const port = await findFreePort();
   const server = Bun.spawn([join(opts.cwd, BINARY)], {
     cwd: opts.cwd,
-    env: { ...process.env, PORT: String(port), APP_BUILD_COMMIT: '' },
+    env: {
+      ...process.env,
+      ...(opts.envFor?.(port) ?? { PORT: String(port) }),
+      APP_BUILD_COMMIT: '',
+    },
     stdout: 'ignore',
     stderr: 'inherit',
   });
@@ -682,6 +691,16 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
     throw new Error('[preset-smoke] the packed preset names no urls');
   }
   await assertHello({ cwd: appDir, urls: preset.urls });
+  // With another env prefix the server still takes its port from APP_ENV_SERVER_PORT.
+  await assertHello({
+    cwd: appDir,
+    urls: preset.urls,
+    envFor: (port) => ({
+      PORT: '',
+      APPLICATION_ENV_PREFIX: 'OTHER_ENV',
+      APP_ENV_SERVER_PORT: String(port),
+    }),
+  });
 
   step({ label: 'the app: clean removes dist' });
   await run({ command: ['bun', 'run', 'clean'], cwd: appDir });

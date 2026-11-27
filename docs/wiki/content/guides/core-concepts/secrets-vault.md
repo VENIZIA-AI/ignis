@@ -15,7 +15,7 @@ IGNIS can load configuration and credentials from a vault instead of reading `pr
 
 Secrets reach your app through two paths:
 
-- **Hydrate** - at boot, IGNIS fetches secrets and merges them into `process.env` / `applicationEnvironment`. Existing code that reads `process.env.APP_ENV_*` keeps working with no change.
+- **Hydrate** - at boot, IGNIS fetches secrets and merges them into `process.env` / `applicationEnvironment`. Existing code that reads either one gets the value; new code reads `applicationEnvironment.get`, as the lint rule asks.
 - **Provider** - the resolved provider is bound in the container at `@app/config`. Inject it wherever you need on-demand reads, dynamic credentials, or rotation.
 
 You configure both in one place: a `registerSecrets()` override on your application class.
@@ -136,7 +136,7 @@ export class BillingService {
 }
 ```
 
-Code that only relies on hydrated values keeps reading `process.env.APP_ENV_*` and needs no injection at all.
+Code that only relies on hydrated values reads them with `applicationEnvironment.get` and needs no injection at all.
 
 ## Rotating Database Credentials
 

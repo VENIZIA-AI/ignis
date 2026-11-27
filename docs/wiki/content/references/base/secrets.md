@@ -31,7 +31,7 @@ Technical reference for the `Secrets` provider family. It covers how IGNIS loads
 
 Secrets reach the application through two independent channels.
 
-- **Hydrate (static)** - during boot, the framework fetches secrets from the vault and merges them into `applicationEnvironment` and `process.env`. Any code that already reads `process.env.APP_ENV_*` keeps working unchanged. Set once, never rotated.
+- **Hydrate (static)** - during boot, the framework fetches secrets from the vault and merges them into `applicationEnvironment` and `process.env`. Code that reads either one gets the value; new code reads `applicationEnvironment.get`, as the lint rule asks. Set once, never rotated.
 - **Provider (dynamic)** - the resolved provider is bound in the container at the key `@app/config`. Code that needs on-demand reads, dynamic credentials, or rotation injects that provider and calls `await secrets.get(...)`.
 
 A single registration drives both. The hydrate path is a convenience over the provider path - the same provider produces both.

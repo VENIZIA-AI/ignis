@@ -28,8 +28,10 @@ export class Application extends BaseApplication {
 // It is registered before the application below is built, because building it already logs.
 LoggerFactory.use({ provider: WinstonLogger });
 
-// The server resolves its own address from HOST and PORT, then these two: .env.example lists them. Without a value the
-// app listens on every interface, on its dev port.
+// The server resolves its own address from HOST and PORT, then these two (.env.example lists
+// them). Without a value the app listens on every interface, on its dev port.
+// `applicationEnvironment` copied process.env when it was imported, so it does not see these
+// defaults.
 process.env.APP_ENV_SERVER_HOST ||= '0.0.0.0';
 process.env.APP_ENV_SERVER_PORT ||= '{{devPort}}';
 

@@ -63,6 +63,7 @@ import { datasource } from '@venizia/ignis';
 import type { TAnyDataSourceSchema, ValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { PGliteDriver } from '@venizia/ignis-connectors/postgres/pglite';
+import { applicationEnvironment } from '@venizia/ignis-helpers';
 
 interface IDataSourceConfigs {
   dataDir: string;
@@ -78,7 +79,7 @@ export class EmbeddedDataSource extends BasePostgresDataSource<
   constructor() {
     super({
       name: EmbeddedDataSource.name,
-      config: { dataDir: process.env.APP_ENV_PGLITE_DATA_DIR ?? './pgdata' },
+      config: { dataDir: applicationEnvironment.get('APP_ENV_PGLITE_DATA_DIR') ?? './pgdata' },
     });
   }
 

@@ -230,6 +230,7 @@ import {
 } from '@venizia/ignis';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
+import { applicationEnvironment } from '@venizia/ignis-helpers';
 
 interface IDataSourceConfigs {
   host: string;
@@ -245,11 +246,11 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
     super({
       name: PostgresDataSource.name,
       config: {
-        host: process.env.APP_ENV_POSTGRES_HOST ?? 'localhost',
-        port: +(process.env.APP_ENV_POSTGRES_PORT ?? 5432),
-        database: process.env.APP_ENV_POSTGRES_DATABASE ?? 'chat_db',
-        user: process.env.APP_ENV_POSTGRES_USERNAME ?? 'postgres',
-        password: process.env.APP_ENV_POSTGRES_PASSWORD ?? '',
+        host: applicationEnvironment.get('APP_ENV_POSTGRES_HOST') ?? 'localhost',
+        port: +(applicationEnvironment.get('APP_ENV_POSTGRES_PORT') ?? 5432),
+        database: applicationEnvironment.get('APP_ENV_POSTGRES_DATABASE') ?? 'chat_db',
+        user: applicationEnvironment.get('APP_ENV_POSTGRES_USERNAME') ?? 'postgres',
+        password: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD') ?? '',
       },
     });
   }
@@ -1012,9 +1013,9 @@ export class ChatApp extends BaseApplication {
     //    for adapter (pub/sub) and emitter automatically
     this.redisHelper = new RedisSingleHelper({
       name: 'chat-redis',
-      host: process.env.APP_ENV_REDIS_HOST ?? 'localhost',
-      port: +(process.env.APP_ENV_REDIS_PORT ?? 6379),
-      password: process.env.APP_ENV_REDIS_PASSWORD,
+      host: applicationEnvironment.get('APP_ENV_REDIS_HOST') ?? 'localhost',
+      port: +(applicationEnvironment.get('APP_ENV_REDIS_PORT') ?? 6379),
+      password: applicationEnvironment.get('APP_ENV_REDIS_PASSWORD'),
       autoConnect: false,
     });
 
@@ -1066,7 +1067,7 @@ export class ChatApp extends BaseApplication {
       identifier: 'chat-socket-server',
       path: '/io',
       cors: {
-        origin: process.env.APP_ENV_CORS_ORIGIN ?? '*',
+        origin: applicationEnvironment.get('APP_ENV_CORS_ORIGIN') ?? '*',
         methods: ['GET', 'POST'],
         credentials: true,
       },
@@ -1525,11 +1526,13 @@ All calls to `socketIOHelper.send()` go through the Redis emitter, so messages r
 The only thing you need is a `RedisSingleHelper` bound to the correct key (already done in the application setup):
 
 ```typescript
+import { applicationEnvironment } from '@venizia/ignis-helpers';
+
 this.redisHelper = new RedisSingleHelper({
   name: 'chat-redis',
-  host: process.env.APP_ENV_REDIS_HOST ?? 'localhost',
-  port: +(process.env.APP_ENV_REDIS_PORT ?? 6379),
-  password: process.env.APP_ENV_REDIS_PASSWORD,
+  host: applicationEnvironment.get('APP_ENV_REDIS_HOST') ?? 'localhost',
+  port: +(applicationEnvironment.get('APP_ENV_REDIS_PORT') ?? 6379),
+  password: applicationEnvironment.get('APP_ENV_REDIS_PASSWORD'),
   autoConnect: false,
 });
 

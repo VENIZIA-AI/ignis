@@ -290,11 +290,15 @@ keys: {
 **Share AES payload encryption across issuer and verifier.** Both sides need the identical `applicationSecret` - the verifier decrypts what the issuer encrypted.
 
 ```typescript
+import { applicationEnvironment } from '@venizia/ignis-helpers';
+
+const applicationSecret = applicationEnvironment.get('APP_ENV_APPLICATION_SECRET');
+
 // Issuer
-{ mode: JWKSModes.ISSUER, /* claims, ... */ applicationSecret: process.env.APP_ENV_APPLICATION_SECRET }
+const issuer = { mode: JWKSModes.ISSUER, /* claims, ... */ applicationSecret };
 
 // Verifier - must match
-{ mode: JWKSModes.VERIFIER, jwksUrl: '...', /* claims, verify.algorithms, ... */ applicationSecret: process.env.APP_ENV_APPLICATION_SECRET }
+const verifier = { mode: JWKSModes.VERIFIER, jwksUrl: '...', /* claims, verify.algorithms, ... */ applicationSecret };
 ```
 
 ## Auth flows
@@ -372,13 +376,15 @@ Other fields, in detail:
 For `roles`, opt in to `AuthenticationFieldCodecs.ROLES_CODEC`. It serializes roles as pipe-separated `id|identifier|priority` strings instead of JSON.
 
 ```typescript
+import { applicationEnvironment } from '@venizia/ignis-helpers';
+
 this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
   standard: JOSEStandards.JWS,
   options: {
-    jwtSecret: process.env.APP_ENV_JWT_SECRET!,
+    jwtSecret: applicationEnvironment.getRequired('APP_ENV_JWT_SECRET'),
     getTokenExpiresFn: () => 86400,
     claims: { issuer: 'my-api', audience: 'my-api' },
-    applicationSecret: process.env.APP_ENV_APPLICATION_SECRET, // enables AES encryption
+    applicationSecret: applicationEnvironment.get('APP_ENV_APPLICATION_SECRET'), // enables AES encryption
     fieldCodecs: [AuthenticationFieldCodecs.ROLES_CODEC],       // optional, opt-in
   },
 });

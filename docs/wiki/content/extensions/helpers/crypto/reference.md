@@ -219,9 +219,11 @@ const decrypted = await aes.decryptFile({ absolutePath: '/path/to/config.json.en
 `secret` accepts a list as well as a string. Encryption always uses the first entry; decryption looks up the id stamped in the envelope.
 
 ```typescript
+import { applicationEnvironment } from '@venizia/ignis-helpers';
+
 const KEYRING = [
-  { id: '2', secret: process.env.APP_ENV_SECRET_V2! }, // current - everything new is written with this
-  { id: '1', secret: process.env.APP_ENV_SECRET_V1! }, // retired - still needed to read old rows
+  { id: '2', secret: applicationEnvironment.getRequired('APP_ENV_SECRET_V2') }, // current - everything new is written with this
+  { id: '1', secret: applicationEnvironment.getRequired('APP_ENV_SECRET_V1') }, // retired - still needed to read old rows
 ];
 
 const fresh = await aes.encrypt({ message: 'payload', secret: KEYRING }); // tagged id '2'

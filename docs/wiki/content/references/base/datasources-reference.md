@@ -360,11 +360,11 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     super({
       name: PostgresDataSource.name,
       config: {
-        host: applicationEnvironment.get('APP_ENV_POSTGRES_HOST'),
+        host: applicationEnvironment.getRequired('APP_ENV_POSTGRES_HOST'),
         port: ParseUtility.toInt({ input: applicationEnvironment.get('APP_ENV_POSTGRES_PORT') }),
-        database: applicationEnvironment.get('APP_ENV_POSTGRES_DATABASE'),
-        user: applicationEnvironment.get('APP_ENV_POSTGRES_USERNAME'),
-        password: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD'),
+        database: applicationEnvironment.getRequired('APP_ENV_POSTGRES_DATABASE'),
+        user: applicationEnvironment.getRequired('APP_ENV_POSTGRES_USERNAME'),
+        password: applicationEnvironment.getRequired('APP_ENV_POSTGRES_PASSWORD'),
         ssl: false,
       },
       // NO schema property - auto-discovered from @repository bindings.
@@ -409,6 +409,7 @@ import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-post
 import { Pool } from 'pg';
 import { User, userTable, userRelations } from '@/models/user.model';
 import { Configuration, configurationTable, configurationRelations } from '@/models/configuration.model';
+import { applicationEnvironment } from '@venizia/ignis-helpers';
 
 @datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
@@ -416,11 +417,11 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     super({
       name: PostgresDataSource.name,
       config: {
-        host: process.env.APP_ENV_POSTGRES_HOST ?? 'localhost',
-        port: +(process.env.APP_ENV_POSTGRES_PORT ?? 5432),
-        database: process.env.APP_ENV_POSTGRES_DATABASE ?? 'mydb',
-        user: process.env.APP_ENV_POSTGRES_USERNAME ?? 'postgres',
-        password: process.env.APP_ENV_POSTGRES_PASSWORD ?? '',
+        host: applicationEnvironment.get('APP_ENV_POSTGRES_HOST') ?? 'localhost',
+        port: +(applicationEnvironment.get('APP_ENV_POSTGRES_PORT') ?? 5432),
+        database: applicationEnvironment.get('APP_ENV_POSTGRES_DATABASE') ?? 'mydb',
+        user: applicationEnvironment.get('APP_ENV_POSTGRES_USERNAME') ?? 'postgres',
+        password: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD') ?? '',
       },
       // Manually provide schema using spread syntax.
       schema: {

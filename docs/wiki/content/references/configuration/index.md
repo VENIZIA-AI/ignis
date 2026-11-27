@@ -40,13 +40,14 @@ APP_ENV_POSTGRES_DATABASE=my_database
 Read a value either directly or through the `applicationEnvironment` helper:
 
 ```typescript
-// 1. Direct access
-const host = process.env.APP_ENV_POSTGRES_HOST;
-
-// 2. Using the helper (recommended)
-import { applicationEnvironment } from '@venizia/ignis-helpers';
 import { EnvironmentKeys } from '@venizia/ignis';
-const host = applicationEnvironment.get(EnvironmentKeys.APP_ENV_POSTGRES_HOST);
+import { applicationEnvironment } from '@venizia/ignis-helpers';
+
+// 1. By name
+const host = applicationEnvironment.get('APP_ENV_POSTGRES_HOST');
+
+// 2. By a key constant (recommended)
+const sameHost = applicationEnvironment.get(EnvironmentKeys.APP_ENV_POSTGRES_HOST);
 ```
 
 ## How it works
