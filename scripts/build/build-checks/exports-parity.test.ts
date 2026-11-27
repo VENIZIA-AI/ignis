@@ -157,6 +157,34 @@ describe('the parity check itself', () => {
     expect(typed).toEqual(['ownValue']);
   });
 
+  test('a namespace re-export that is typed and exported matches, in both forms', async () => {
+    const { missing, extra } = await compareEntry({
+      dts: join(FIXTURES, 'namespace-reexport.d.ts'),
+      file: join(FIXTURES, 'namespace-reexport.js'),
+    });
+
+    expect(missing).toEqual([]);
+    expect(extra).toEqual([]);
+  });
+
+  test('positive control: a namespace typed but absent at runtime is reported', async () => {
+    const { missing } = await compareEntry({
+      dts: join(FIXTURES, 'namespace-missing.d.ts'),
+      file: join(FIXTURES, 'namespace-missing.js'),
+    });
+
+    expect(missing).toEqual(['Starred']);
+  });
+
+  test('positive control: a namespace exported with no declaration is reported', async () => {
+    const { extra } = await compareEntry({
+      dts: join(FIXTURES, 'namespace-untyped.d.ts'),
+      file: join(FIXTURES, 'namespace-untyped.js'),
+    });
+
+    expect(extra).toEqual(['Starred']);
+  });
+
   test('interfaces and type aliases are not values', async () => {
     const { missing, extra } = await compareEntry({
       dts: join(FIXTURES, 'matching.d.ts'),

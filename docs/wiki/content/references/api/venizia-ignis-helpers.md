@@ -9,5645 +9,915 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 227 exports, 227 with TSDoc. 261 more are re-exported from other entries (listed at the end).
 
+The declarations are on 4 pages; each export below links to its own.
+
 ## `AbstractLogger`
 
-*class*
-
-The ILogger contract as a class - for instanceof and implementations sharing no plumbing.
-
-```ts
-export declare abstract class AbstractLogger implements ILogger {
-    abstract debug(message: string, ...args: unknown[]): void;
-    abstract info(message: string, ...args: unknown[]): void;
-    abstract warn(message: string, ...args: unknown[]): void;
-    abstract error(message: string, ...args: unknown[]): void;
-    abstract emerg(message: string, ...args: unknown[]): void;
-    abstract log(level: TLogLevel, message: string, ...args: unknown[]): void;
-    abstract for(methodName: string): ILogger;
-}
-```
-
-Source: `packages/helpers/src/modules/logger/base/abstract.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#abstractlogger)
 
 ## `AbstractRedisHelper`
 
-*class*
-
-Base for the Redis helpers: wraps one ioredis client, logs its lifecycle events and forwards them to the `onInitialized`, `onConnected`, `onReady` and `onError` callbacks. Subclasses build the client.
-
-```ts
-export declare class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient> extends BaseHelper implements IRedisHelper {
-    /** Read by {@link isRedisHelper}. On the instance, so every subclass instance carries it. */
-    readonly [REDIS_HELPER_BRAND] = true;
-    client: ClientType;
-    readonly name: string;
-    constructor(opts: {
-        scope: string;
-        identifier: string;
-        client: ClientType;
-    } & IRedisHelperCallbacks);
-    /** `maxRetry` is `0`, `RedisDefaults.RETRY_FOREVER` or a positive integer; anything else is a typo that would silently change how the client reconnects. */
-    protected static assertMaxRetry(opts: {
-        scope: string;
-        name: string;
-        maxRetry: number;
-    }): void;
-    /** The wait before each reconnect, then `undefined` once `maxRetry` attempts failed: ioredis stops and the helper logs it once. */
-    protected static buildRetryStrategy(opts: {
-        scope: string;
-        name: string;
-        maxRetry: number;
-    }): (attempt: number) => number | undefined;
-    protected static buildDefaultOpts(opts: {
-        scope: string;
-        name: string;
-        maxRetry: number;
-    }): {
-        showFriendlyErrorStack: boolean;
-        maxRetriesPerRequest: null;
-        retryStrategy: (attempt: number) => number | undefined;
-    };
-    getClient(): ClientType;
-    duplicateClient(): TRedisClient;
-    ping(): Promise<"PONG">;
-    connect(): Promise<boolean>;
-    disconnect(): Promise<boolean>;
-    exists(opts: {
-        keys: Array<string>;
-    }): Promise<number>;
-    expire(opts: {
-        key: string;
-        seconds: number;
-    }): Promise<boolean>;
-    expireAt(opts: {
-        key: string;
-        atEpochSeconds: number;
-    }): Promise<boolean>;
-    ttl(opts: {
-        key: string;
-    }): Promise<number>;
-    persist(opts: {
-        key: string;
-    }): Promise<boolean>;
-    incr(opts: {
-        key: string;
-    }): Promise<number>;
-    decr(opts: {
-        key: string;
-    }): Promise<number>;
-    incrBy(opts: {
-        key: string;
-        value: number;
-    }): Promise<number>;
-    decrBy(opts: {
-        key: string;
-        value: number;
-    }): Promise<number>;
-    set<T>(opts: {
-        key: string;
-        value: T;
-        options?: {
-            log?: boolean;
-            expiresIn?: number;
-        };
-    }): Promise<void>;
-    get<T = string>(opts: {
-        key: string;
-        transform?: (input: string) => T;
-    }): Promise<T | null>;
-    del(opts: {
-        keys: Array<string>;
-    }): Promise<number>;
-    getString(opts: {
-        key: string;
-    }): Promise<string | null>;
-    getStrings(opts: {
-        keys: Array<string>;
-    }): Promise<(string | null)[]>;
-    getObject<T>(opts: {
-        key: string;
-    }): Promise<T | null>;
-    getObjects(opts: {
-        keys: Array<string>;
-    }): Promise<any[]>;
-    mSet<T>(opts: {
-        payload: Array<{
-            key: string;
-            value: T;
-        }>;
-        options?: {
-            log?: boolean;
-        };
-    }): Promise<void>;
-    mGet<T = string>(opts: {
-        keys: Array<string>;
-        transform?: (input: string) => T;
-    }): Promise<(T | null)[]>;
-    keys(opts: {
-        key: string;
-    }): Promise<string[]>;
-    hSet<T extends Record<string, unknown>>(opts: {
-        key: string;
-        value: T;
-        options?: {
-            log?: boolean;
-        };
-    }): Promise<number>;
-    hGetAll(opts: {
-        key: string;
-        transform?: <T, R>(input: T) => R;
-    }): Promise<unknown>;
-    hGet(opts: {
-        key: string;
-        field: string;
-    }): Promise<string | null>;
-    hDel(opts: {
-        key: string;
-        fields: Array<string>;
-    }): Promise<number>;
-    hExists(opts: {
-        key: string;
-        field: string;
-    }): Promise<boolean>;
-    hKeys(opts: {
-        key: string;
-    }): Promise<string[]>;
-    hVals(opts: {
-        key: string;
-    }): Promise<string[]>;
-    hIncrBy(opts: {
-        key: string;
-        field: string;
-        value: number;
-    }): Promise<number>;
-    hLen(opts: {
-        key: string;
-    }): Promise<number>;
-    sAdd(opts: {
-        key: string;
-        members: Array<string | number>;
-    }): Promise<number>;
-    sRem(opts: {
-        key: string;
-        members: Array<string | number>;
-    }): Promise<number>;
-    sMembers(opts: {
-        key: string;
-    }): Promise<string[]>;
-    sIsMember(opts: {
-        key: string;
-        member: string | number;
-    }): Promise<boolean>;
-    sCard(opts: {
-        key: string;
-    }): Promise<number>;
-    lPush(opts: {
-        key: string;
-        values: Array<string | number>;
-    }): Promise<number>;
-    rPush(opts: {
-        key: string;
-        values: Array<string | number>;
-    }): Promise<number>;
-    lPop(opts: {
-        key: string;
-    }): Promise<string | null>;
-    rPop(opts: {
-        key: string;
-    }): Promise<string | null>;
-    lRange(opts: {
-        key: string;
-        start: number;
-        stop: number;
-    }): Promise<string[]>;
-    lLen(opts: {
-        key: string;
-    }): Promise<number>;
-    jSet<T>(opts: {
-        key: string;
-        path: string;
-        value: T;
-    }): Promise<string | null>;
-    jGet<T>(opts: {
-        key: string;
-        path?: string;
-    }): Promise<T | null>;
-    jDelete(opts: {
-        key: string;
-        path?: string;
-    }): Promise<number>;
-    jNumberIncreaseBy(opts: {
-        key: string;
-        path: string;
-        value: number;
-    }): Promise<string | null>;
-    jStringAppend(opts: {
-        key: string;
-        path: string;
-        value: string;
-    }): Promise<number[] | null>;
-    jPush<T>(opts: {
-        key: string;
-        path: string;
-        value: T;
-    }): Promise<number[] | null>;
-    jPop<T>(opts: {
-        key: string;
-        path: string;
-    }): Promise<T | null>;
-    execute<R>(command: string, parameters?: Array<string | number | Buffer>): Promise<R>;
-    publish<T>(opts: {
-        topics: Array<string>;
-        payload: T;
-        useCompress?: boolean;
-    }): Promise<void>;
-    subscribe(opts: {
-        topic: string;
-    }): void;
-    unsubscribe(opts: {
-        topic: string;
-    }): void;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/base/abstract.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#abstractredishelper)
 
 ## `AbstractSecretsHelper`
 
-*class*
-
-Base for secrets providers: caches bundles for `cacheTtlSeconds`, tracks leases and renews them at `renewBeforeRatio` of their TTL, and notifies rotation handlers. Subclasses implement `fetchRaw`, `renewRaw` and `revokeRaw`. The constructor throws when `renewBeforeRatio` is outside (0, 1].
-
-```ts
-export declare abstract class AbstractSecretsHelper extends BaseHelper implements ISecretsHelper {
-    protected readonly clock: IClock;
-    protected readonly timers: ITimerAdapter;
-    protected readonly cacheTtlSeconds: number;
-    protected readonly renewBeforeRatio: number;
-    private readonly cache;
-    private readonly leases;
-    private readonly leasePaths;
-    private readonly timerHandles;
-    private readonly rotatables;
-    private readonly rotateHandlers;
-    private readonly backoffAttempts;
-    private closed;
-    constructor(opts: ISecretsHelperOptions);
-    protected abstract fetchRaw(opts: {
-        path: string;
-    }): Promise<IRawFetchResult>;
-    protected abstract renewRaw(opts: {
-        leaseId: string;
-        ttlSeconds: number;
-    }): Promise<{
-        ttlSeconds: number;
-    } | null>;
-    protected abstract revokeRaw(opts: {
-        leaseId: string;
-    }): Promise<void>;
-    configure(): Promise<void>;
-    getBundle(opts: {
-        path: string;
-    }): Promise<Record<string, string>>;
-    get(opts: IGetSecretOptions<string>): Promise<string>;
-    get<TValue>(opts: IGetSecretOptions<TValue>): Promise<TValue>;
-    lease(opts: {
-        path: string;
-        key: string;
-    }): Promise<ISecretLease>;
-    onRotate(handler: TSecretRotationHandler): void;
-    registerRotatable(opts: {
-        key: string;
-        target: ISecretRotatable;
-    }): void;
-    shutdown(): Promise<void>;
-    private writeCache;
-    private evictExpiredCache;
-    private clampDelayMs;
-    private armTimer;
-    private scheduleRenewal;
-    private scheduleBackoffRetry;
-    private handleRenewal;
-    private rotate;
-    private dispatchRotation;
-}
-
-interface IRawFetchResult {
-    value: Record<string, string>;
-    lease?: {
-        leaseId: string;
-        ttlSeconds: number;
-        renewable: boolean;
-    };
-}
-```
-
-Source: `packages/helpers/src/modules/secrets/base/abstract.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#abstractsecretshelper)
 
 ## `AbstractWorkerBusHelper`
 
-*class*
-
-Base for a bus over a `MessagePort`: incoming messages go to `handler`, outgoing ones through `postMessage`.
-
-```ts
-export declare abstract class AbstractWorkerBusHelper<IConsumePayload, IPublishPayload> extends BaseHelper implements IWorkerBus<IConsumePayload, IPublishPayload> {
-    port: MessagePort;
-    handler: IWorkerMessageBusHandler<IConsumePayload>;
-    abstract onBeforePostMessage?(opts: {
-        message: IPublishPayload;
-    }): ValueOrPromise<void>;
-    abstract onAfterPostMessage?(opts: {
-        message: IPublishPayload;
-    }): ValueOrPromise<void>;
-    abstract postMessage(opts: {
-        message: IPublishPayload;
-        transferList: readonly Transferable[] | undefined;
-    }): ValueOrPromise<void>;
-}
-```
-
-Source: `packages/helpers/src/modules/worker-thread/bus/abstract.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#abstractworkerbushelper)
 
 ## `AbstractWorkerHelper`
 
-*class*
-
-Base for a helper that owns a `Worker` and reacts to its lifecycle events.
-
-```ts
-export declare abstract class AbstractWorkerHelper<MessageType> extends BaseHelper implements IWorker<MessageType> {
-    worker: Worker;
-    options: WorkerOptions;
-    abstract onOnline(): ValueOrPromise<void>;
-    abstract onExit(opts: {
-        code: string | number;
-    }): ValueOrPromise<void>;
-    abstract onError(opts: {
-        error: Error;
-    }): ValueOrPromise<void>;
-    abstract onMessage(opts: {
-        message: MessageType;
-    }): ValueOrPromise<void>;
-    abstract onMessageError(opts: {
-        error: Error;
-    }): ValueOrPromise<void>;
-}
-```
-
-Source: `packages/helpers/src/modules/worker-thread/worker/abstract.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#abstractworkerhelper)
 
 ## `AbstractWorkerMessageBusHandlerHelper`
 
-*class*
-
-Base for the callbacks a worker bus invokes: `onMessage`, `onClose`, `onError` and `onExit`.
-
-```ts
-export declare abstract class AbstractWorkerMessageBusHandlerHelper<IConsumePayload> extends BaseHelper implements IWorkerMessageBusHandler<IConsumePayload> {
-    onMessage: (opts: {
-        message: IConsumePayload;
-    }) => ValueOrPromise<void>;
-    onClose: () => ValueOrPromise<void>;
-    onError: (opts: {
-        error: Error;
-    }) => ValueOrPromise<void>;
-    onExit: (opts: {
-        exitCode: number | string;
-    }) => ValueOrPromise<void>;
-}
-```
-
-Source: `packages/helpers/src/modules/worker-thread/bus/handler/abstract.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#abstractworkermessagebushandlerhelper)
 
 ## `AbstractWorkerThreadHelper`
 
-*class*
-
-Base for the worker-side helper that holds message buses by key.
-
-```ts
-export declare abstract class AbstractWorkerThreadHelper extends BaseHelper implements IWorkerThread {
-    buses: {
-        [workerKey: string | symbol]: IWorkerBus<never, never>;
-    };
-    abstract bindWorkerBus<IC, IP>(opts: {
-        key: string;
-        bus: IWorkerBus<IC, IP>;
-    }): ValueOrPromise<void>;
-    abstract getWorkerBus<IC, IP>(opts: {
-        key: string;
-    }): IWorkerBus<IC, IP>;
-}
-```
-
-Source: `packages/helpers/src/modules/worker-thread/thread/abstract.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#abstractworkerthreadhelper)
 
 ## `AES`
 
-*class*
-
-`encrypt` and `decrypt` are async: key derivation and the cipher run over `crypto.subtle`.
-
-```ts
-export declare class AES extends BaseCryptoAlgorithm<AESAlgorithmType, string, string, TAESSecret, Promise<string>, Promise<string>, IAESOptions> {
-    /** The options AES refuses: `doThrow` (a failure always throws) and `iv` (every encryption draws its own). */
-    private static readonly REMOVED_OPTIONS;
-    constructor(opts: {
-        algorithm: AESAlgorithmType;
-    });
-    static withAlgorithm(algorithm: AESAlgorithmType): AES;
-    protected resolveEncryptKey(opts: {
-        secret: TAESSecret;
-        kdfSalt?: string;
-        kdfIterations?: number;
-    }): Promise<{
-        id: string;
-        key: Buffer;
-    }>;
-    protected resolveDecryptKey(opts: {
-        secret: TAESSecret;
-        id: string;
-        kdfSalt?: string;
-        kdfIterations?: number;
-    }): Promise<Buffer>;
-    encrypt(opts: {
-        message: string;
-        secret: TAESSecret;
-        opts?: IAESOptions;
-    }): Promise<string>;
-    encryptFile(opts: {
-        absolutePath: string;
-        secret: TAESSecret;
-    }): Promise<string>;
-    decrypt(opts: {
-        message: string;
-        secret: TAESSecret;
-        opts?: IAESOptions;
-    }): Promise<string>;
-    decryptFile(opts: {
-        absolutePath: string;
-        secret: TAESSecret;
-    }): Promise<string>;
-}
-
-/** Options of `AES.encrypt` and `AES.decrypt`. There is no `iv`: every encryption draws a fresh random one, and decrypt reads it from the envelope. */
-interface IAESOptions {
-    inputEncoding?: BufferEncoding;
-    outputEncoding?: BufferEncoding;
-    /** Per-deployment PBKDF2 salt override. Must be supplied identically on encrypt and decrypt; omit for the shipped default. */
-    kdfSalt?: string;
-    /** PBKDF2 iteration count override. Must be supplied identically on encrypt and decrypt; omit for the shipped default. */
-    kdfIterations?: number;
-}
-```
-
-Source: `packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#aes)
 
 ## `AppEnvs`
 
-*const*
-
-The process-wide environment store, built from `process.env` with the prefix in `APPLICATION_ENV_PREFIX` (`APP_ENV` when unset). One instance is shared by every copy of this module in the process. This is the name to use.
-
-```ts
-export declare const AppEnvs: ApplicationEnvironment;
-```
-
-Source: `packages/helpers/src/modules/env/app-env.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-1#appenvs)
 
 ## `applicationEnvironment`
 
-*const*
-
-The same instance as `AppEnvs`: use `AppEnvs`.
-
-```ts
-export declare const applicationEnvironment: ApplicationEnvironment;
-```
-
-Source: `packages/helpers/src/modules/env/app-env.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-1#applicationenvironment)
 
 ## `ApplicationEnvironment`
 
-*class*
-
-Key-value store of the environment entries whose key starts with `prefix`; other keys are dropped at construction. `get` applies a default and an optional transform. Use the shared `AppEnvs` instance rather than constructing one.
-
-```ts
-export declare class ApplicationEnvironment extends BaseHelper implements IApplicationEnvironment {
-    private prefix;
-    private arguments;
-    constructor(opts: {
-        prefix: string;
-        envs: Record<string, string | undefined>;
-    });
-    /**
-     * Reads one name. A line that is present but empty - `KEY=`, or padded to `KEY=   ` by a hand
-     * edit - is a pipeline that forgot to export the value, not a value: it is normalised to
-     * `undefined` so `defaultValue` applies, and `transform` is handed that `undefined` rather than
-     * the empty string.
-     *
-     * The normalisation runs ONLY when the caller supplied a `defaultValue`, because that call site
-     * has already declared what it wants when the name carries nothing. A caller without one still
-     * receives `''` unchanged, so no existing read changes shape. `'0'` and `'false'` are values and
-     * are never normalised.
-     */
-    get(key: string): string | undefined;
-    get(key: string, opts: {
-        defaultValue: string;
-    }): string;
-    /** A transform that may answer nothing, with the `defaultValue` that then applies: the `defaultValue` fixes `R`. */
-    get<R>(key: string, opts: IApplicationEnvironmentDefaultedTransformOptions<R>): R;
-    /** What the transform makes of the raw string: `R` is inferred from the transform. */
-    get<R>(key: string, opts: IApplicationEnvironmentTransformOptions<R>): R;
-    /**
-     * A variable the app cannot run without: it is set and not blank (the rule `get` applies to a `defaultValue`), or this throws an error naming the key. The check runs before `transform`, so `transform` receives a `string`; a `transform` that answers null or undefined throws too. A required value has no `defaultValue`.
-     */
-    getRequired(key: string): string;
-    getRequired<R>(key: string, opts: {
-        transform: (raw: string) => TNullable<R>;
-    }): R;
-    set(key: string, value: string | undefined): void;
-    merge(opts: {
-        envs: Record<string, string | undefined>;
-    }): void;
-    isDevelopment(): boolean;
-    keys(): string[];
-}
-```
-
-Source: `packages/helpers/src/modules/env/app-env.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#applicationenvironment-1)
 
 ## `BaseCryptoAlgorithm`
 
-*class*
-
-Base for the symmetric algorithms: validates the algorithm name and derives a key of a given length from a secret with PBKDF2.
-
-```ts
-export declare abstract class BaseCryptoAlgorithm<AlgorithmType extends string, EncryptInputType = unknown, DecryptInputType = unknown, SecretKeyType = unknown, EncryptReturnType = unknown, DecryptReturnType = unknown, ExtraOptions = unknown> extends AbstractCryptoAlgorithm<AlgorithmType, EncryptInputType, DecryptInputType, SecretKeyType, EncryptReturnType, DecryptReturnType, ExtraOptions> {
-    /** What a caller that still passes a removed option is told: the option, and what replaced it. */
-    private static readonly REMOVED_OPTION_HINTS;
-    /**
-     * A caller that still passes a removed option is refused, not ignored, so nobody believes it still works.
-     * `doThrow: false` is gone: a failed encrypt or decrypt used to hand the input back, which a caller could take for
-     * ciphertext or plaintext. `iv` is gone from AES: a caller-chosen IV reused under GCM breaks confidentiality and integrity.
-     */
-    protected assertNoRemovedOptions(opts: {
-        method: string;
-        options?: object;
-        removed?: ReadonlyArray<string>;
-    }): void;
-    constructor(opts: {
-        scope: string;
-        algorithm: AlgorithmType;
-    });
-    validateAlgorithmName(opts: {
-        algorithm: AlgorithmType;
-    }): void;
-    /**
-     * Omit `kdfSalt`/`kdfIterations` for the shipped default (byte-identical to every prior release). Supplying either requires supplying the same value again on decrypt.
-     * Derived with PBKDF2 over `crypto.subtle`, once per secret: a second call, even one that starts while the first runs, shares its result.
-     */
-    normalizeSecretKey(opts: {
-        secret: string;
-        length: number;
-        kdfSalt?: string;
-        kdfIterations?: number;
-    }): Promise<Buffer>;
-    private derivePbkdf2;
-    /** Rejects a `kdfSalt` short enough to look configured while giving up most of the protection a salt exists for (NIST SP 800-132: 128-bit minimum). */
-    private validateKdfSalt;
-    getAlgorithmKeySize(): number;
-}
-```
-
-Source: `packages/helpers/src/modules/crypto/algorithms/base.algorithm.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#basecryptoalgorithm)
 
 ## `BaseLogger`
 
-*class*
-
-Provider-independent plumbing: scope, prefix, DEBUG gate, for(). Every level method funnels into ONE abstract write() sink; child() lets each provider keep its own caching policy.
-
-```ts
-export declare abstract class BaseLogger extends AbstractLogger {
-    protected readonly _scope: string;
-    protected readonly _formattedPrefix: string;
-    constructor(opts: {
-        scope: string;
-    });
-    protected abstract write(opts: {
-        level: TLogLevel;
-        message: string;
-        args: unknown[];
-    }): void;
-    protected abstract child(opts: {
-        scope: string;
-    }): ILogger;
-    debug(message: string, ...args: unknown[]): void;
-    info(message: string, ...args: unknown[]): void;
-    warn(message: string, ...args: unknown[]): void;
-    error(message: string, ...args: unknown[]): void;
-    emerg(message: string, ...args: unknown[]): void;
-    log(level: TLogLevel, message: string, ...args: unknown[]): void;
-    for(methodName: string): ILogger;
-}
-```
-
-Source: `packages/helpers/src/modules/logger/base/base.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#baselogger)
 
 ## `BaseNetworkTcpClient`
 
-*class*
-
-TCP or TLS client that opens its socket through `createClientFn`, reports connect, data, close and error to the `on*` callbacks, and reconnects when enabled.
-
-```ts
-export declare class BaseNetworkTcpClient<SocketClientOptions extends PlainConnectionOptions | TlsConnectionOptions, SocketClientType extends PlainSocketClient | TlsSocketClient> extends BaseHelper {
-    protected client?: SocketClientType | null;
-    protected options: SocketClientOptions;
-    protected reconnect?: boolean;
-    protected retry: {
-        maxReconnect: number;
-        currentReconnect: number;
-    };
-    protected reconnectTimeout?: ReturnType<typeof setTimeout> | null;
-    protected encoding?: BufferEncoding;
-    protected createClientFn: (options: SocketClientOptions, connectionListener?: () => void) => SocketClientType;
-    protected onConnected: (opts: {
-        client: SocketClientType;
-    }) => void;
-    protected onData: (opts: {
-        identifier: string;
-        message: string | Buffer;
-    }) => void;
-    protected onClosed?: (opts: {
-        client: SocketClientType;
-    }) => void;
-    protected onError?: (error: unknown) => void;
-    constructor(opts: INetworkTcpClientProps<SocketClientOptions, SocketClientType>);
-    getClient(): SocketClientType | null | undefined;
-    /** Redacts before logging - a TLS client's options ARE its private key (`key`/`cert`/`passphrase`). */
-    protected getLoggableOptions(): unknown;
-    handleConnected(): void;
-    handleData(_opts: {
-        identifier: string;
-        message: string | Buffer;
-    }): void;
-    handleClosed(): void;
-    handleError(error: unknown): void;
-    connect(opts: {
-        resetReconnectCounter: boolean;
-    }): void;
-    disconnect(): void;
-    forceReconnect(): void;
-    isConnected(): boolean | null | undefined;
-    emit(opts: {
-        payload: Buffer | string;
-    }): void;
-}
-```
-
-Source: `packages/helpers/src/modules/network/tcp-socket/base-tcp-client.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#basenetworktcpclient)
 
 ## `BaseNetworkTcpServer`
 
-*class*
-
-TCP or TLS server that tracks connected clients by id, with an optional authentication window, and reports connection events to the `onClient*` and `onServer*` callbacks.
-
-```ts
-export declare class BaseNetworkTcpServer<SocketServerOptions extends ServerOpts = ServerOpts, SocketServerType extends SocketServer = SocketServer, SocketClientType extends SocketClient = SocketClient> extends BaseHelper {
-    protected serverOptions: Partial<SocketServerOptions>;
-    protected listenOptions: Partial<ListenOptions>;
-    protected authenticateOptions: {
-        required: boolean;
-        duration?: number;
-    };
-    protected clients: Record<string, ITcpSocketClient<SocketClientType>>;
-    protected server: SocketServerType;
-    protected extraEvents: Record<string, (opts: {
-        id: string;
-        socket: SocketClientType;
-        args: unknown;
-    }) => ValueOrPromise<void>>;
-    protected createServerFn: (options: Partial<SocketServerOptions>, connectionListener: (socket: SocketClientType) => void) => SocketServerType;
-    protected onServerReady?: (opts: {
-        server: SocketServerType;
-    }) => void;
-    protected onClientConnected?: (opts: {
-        id: string;
-        socket: SocketClientType;
-    }) => void;
-    protected onClientData?: (opts: {
-        id: string;
-        socket: SocketClientType;
-        data: Buffer | string;
-    }) => void;
-    protected onClientClose?: (opts: {
-        id: string;
-        socket: SocketClientType;
-    }) => void;
-    protected onClientError?: (opts: {
-        id: string;
-        socket: SocketClientType;
-        error: Error;
-    }) => void;
-    protected onServerError?: (opts: {
-        server: SocketServerType;
-        error: Error;
-    }) => void;
-    constructor(opts: ITcpSocketServerOptions<SocketServerOptions, SocketServerType, SocketClientType>);
-    protected invokeHook(opts: {
-        scope: string;
-        execution: () => void;
-    }): void;
-    configure(): void;
-    onNewConnection(opts: {
-        socket: SocketClientType;
-    }): void;
-    getClients(): Record<string, ITcpSocketClient<SocketClientType>>;
-    getClient(opts: {
-        id: string;
-    }): ITcpSocketClient<SocketClientType>;
-    getServer(): SocketServerType;
-    /** Clears timers and destroys all client sockets before closing the listener - `server.close()` alone never settles while a socket stays attached. Idempotent; safe if never listened. */
-    shutdown(): Promise<void>;
-    doAuthenticate(opts: {
-        id: string;
-        state: TTcpClientState;
-    }): void;
-    emit(opts: {
-        clientId: string;
-        payload: Buffer | string;
-    }): void;
-}
-```
-
-Source: `packages/helpers/src/modules/network/tcp-socket/base-tcp-server.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#basenetworktcpserver)
 
 ## `BaseStorageHelper`
 
-*class*
-
-Shared base for storage helpers: MIME lookup, name and path validation, and upload naming. Concrete helpers implement the backend calls.
-
-```ts
-export declare abstract class BaseStorageHelper extends BaseHelper implements IStorageHelper {
-    constructor(opts: {
-        scope: string;
-        identifier: string;
-    });
-    getMimeType(opts: {
-        filename: string;
-    }): string;
-    static readonly DEFAULT_MAX_FOLDER_DEPTH = 2;
-    private static readonly UTF8;
-    private static readonly DANGEROUS_NAME_CHARACTERS;
-    /** Control characters, lone surrogates, the line and paragraph separators (U+2028, U+2029) and the bidirectional marks and overrides: never part of a file name or a key (the overrides make `gpj.exe` display as `exe.jpg`), and a control character or a surrogate cannot be encoded into a header. */
-    private static readonly UNSAFE_NAME_CHARACTERS;
-    /** Every way a segment can be refused, first match wins. */
-    private static readonly SEGMENT_RULES;
-    /** One path segment or file name: at most 255 UTF-8 bytes, no separator, no traversal, no control or shell character. */
-    isValidSegment(opts: {
-        segment: string;
-    }): boolean;
-    /** A bucket name is one segment; a separator in it would silently address a different bucket. */
-    isValidBucketName(opts: {
-        bucket: IBucketRef;
-    }): boolean;
-    /** A whole object key: every segment valid, no trailing `/`, and no deeper than `maxDepth` folders. */
-    isValidObjectKey(opts: {
-        object: IObjectRef;
-        maxDepth?: number;
-    }): boolean;
-    /** The shared rule behind `isValidObjectKey` and the folder check inside `upload`. */
-    protected isValidKeyPath(opts: {
-        path: string;
-        maxDepth?: number;
-    }): boolean;
-    getMediaType(opts: {
-        mimeType: string;
-    }): string;
-    /** Public URL prefix; keeps its trailing slash. */
-    protected abstract get defaultLinkPrefix(): string;
-    /** Backend write step; owns its metadata and error handling. */
-    protected abstract writeObject(opts: IObjectLocation & {
-        file: IUploadFile;
-    }): Promise<void>;
-    /** The key `upload` writes when no naming hook is given: lowercase, spaces become `_`, under the folder when there is one. Public so a naming hook can start from the very key the helper would have written. */
-    static normalizeObjectName(opts: {
-        file: TUploadNaming;
-    }): string;
-    protected normalizeObjectLink(opts: IObjectLocation): string;
-    /** An original name that is only metadata - the key is resolved elsewhere and validated on its own. */
-    protected isValidOriginalName(opts: {
-        name: string;
-    }): boolean;
-    /** `isKeyResolvedByCaller`: a `normalizeNameFn` decides the key, so the original name is metadata and meets the metadata rule, not the key rule. */
-    protected validateUploadFiles(opts: {
-        files: IUploadFile[];
-        maxFolderDepth?: number;
-        isKeyResolvedByCaller?: boolean;
-    }): void;
-    private validateUploadFile;
-    upload(opts: IUploadOptions): Promise<IUploadResult[]>;
-    getObjectStream(_opts: TObjectStreamOptions): Promise<ReadableStream<Uint8Array>>;
-    /**
-     * Correct anywhere, and the wrong path to stay on: it buffers, so a backend whose transport takes
-     * a stream overrides it. `BunS3Helper` does.
-     */
-    writeStream(opts: IWriteStreamOptions): Promise<void>;
-    /** Bounded fan-out on the shared limiter; unbounded exhausts sockets and gets rate limited. */
-    protected mapWithConcurrency<Item, Result>(opts: {
-        items: Item[];
-        limit?: number;
-        task: (taskOptions: {
-            item: Item;
-            index: number;
-        }) => Promise<Result>;
-    }): Promise<Result[]>;
-    /** A "not there" failure becomes a catalogued 404; every other failure passes through unchanged. */
-    protected asStorageError(opts: IObjectLocation & {
-        error: unknown;
-        operation: string;
-    }): unknown;
-    /** For a backend with no ETag or versions to condition a read on: refusing is honest, ignoring would read unpinned. */
-    protected refuseReadCondition(opts: {
-        condition: IStorageReadCondition;
-        operation: string;
-    }): void;
-    /** The error of an operation this helper has no transport for: throwing beats returning undefined, which reads as a valid empty result. */
-    private unsupported;
-    copyObject(_opts: ICopyObjectOptions): Promise<void>;
-    presignPost(_opts: IPresignPostOptions): Promise<IPostPolicy>;
-    presignPut(_opts: IPresignPutOptions): Promise<string>;
-    presignGet(_opts: IPresignGetOptions): Promise<string>;
-    getObjectTags(_opts: IObjectLocation): Promise<Record<string, string>>;
-    replaceObjectTags(_opts: IObjectLocation & {
-        tags: Record<string, string>;
-    }): Promise<void>;
-    abstract hasBucket(opts: {
-        bucket: IBucketRef;
-    }): Promise<boolean>;
-    abstract getBuckets(): Promise<IBucketInfo[]>;
-    abstract getBucket(opts: {
-        bucket: IBucketRef;
-    }): Promise<IBucketInfo | null>;
-    abstract createBucket(opts: {
-        bucket: IBucketRef;
-    }): Promise<IBucketInfo | null>;
-    abstract removeBucket(opts: {
-        bucket: IBucketRef;
-    }): Promise<boolean>;
-    abstract getObject(opts: IObjectLocation & {
-        options?: unknown;
-    }): Promise<Readable>;
-    abstract getStat(opts: IObjectLocation): Promise<IFileStat>;
-    abstract removeObject(opts: IObjectLocation): Promise<void>;
-    abstract removeObjects(opts: {
-        bucket: IBucketRef;
-        objects: IObjectRef[];
-    }): Promise<void>;
-    abstract listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]>;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/base.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#basestoragehelper)
 
 ## `BaseWorkerBusHelper`
 
-*class*
-
-A `MessagePort` bus that forwards the port's message, error, exit and close events to a handler. A throwing hook is logged, not rethrown.
-
-```ts
-export declare class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends AbstractWorkerBusHelper<IConsumePayload, IPublishPayload> {
-    constructor(opts: {
-        scope: string;
-        port: MessagePort;
-        busHandler: IWorkerMessageBusHandler<IConsumePayload>;
-    });
-    /** Bus handlers run inside MessagePort listeners; a sync throw there is uncaught and kills the worker thread, so wrap it - voidExecution alone can't catch a throw evaluated before it's called. */
-    protected invokeHook(opts: {
-        scope: string;
-        execution: () => ValueOrPromise<void>;
-    }): void;
-    onBeforePostMessage?(opts: {
-        message: IPublishPayload;
-    }): ValueOrPromise<void>;
-    onAfterPostMessage?(opts: {
-        message: IPublishPayload;
-    }): ValueOrPromise<void>;
-    postMessage(opts: {
-        message: IPublishPayload;
-        transferList: readonly Transferable[] | undefined;
-    }): ValueOrPromise<void>;
-}
-```
-
-Source: `packages/helpers/src/modules/worker-thread/bus/base.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#baseworkerbushelper)
 
 ## `BaseWorkerHelper`
 
-*class*
-
-Starts a `Worker` from `path` and routes its events to `eventHandlers`, or logs them when no handler is given. A throwing handler is logged, not rethrown.
-
-```ts
-export declare class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageType> {
-    protected eventHandlers?: Partial<Pick<IWorker<MessageType>, 'onOnline' | 'onExit' | 'onError' | 'onMessage' | 'onMessageError'>>;
-    constructor(opts: {
-        scope?: string;
-        identifier: string;
-        path: string | URL;
-        options: WorkerOptions;
-        eventHandlers?: Partial<Pick<IWorker<MessageType>, 'onOnline' | 'onExit' | 'onError' | 'onMessage' | 'onMessageError'>>;
-    });
-    /** User handlers run inside worker listeners; a sync throw there is uncaught and kills the process, so wrap it - voidExecution alone can't catch a throw evaluated before it's called. */
-    protected invokeHook(opts: {
-        scope: string;
-        execution: () => ValueOrPromise<void>;
-    }): void;
-    onOnline(): ValueOrPromise<void>;
-    onExit(opts: {
-        code: string | number;
-    }): ValueOrPromise<void>;
-    onError(opts: {
-        error: Error;
-    }): ValueOrPromise<void>;
-    onMessage(opts: {
-        message: MessageType;
-    }): ValueOrPromise<void>;
-    onMessageError(opts: {
-        error: Error;
-    }): ValueOrPromise<void>;
-    binding(): void;
-}
-```
-
-Source: `packages/helpers/src/modules/worker-thread/worker/base.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#baseworkerhelper)
 
 ## `BaseWorkerMessageBusHandlerHelper`
 
-*class*
-
-Bus handler built from callbacks. Only `onMessage` is required; a missing `onClose` does nothing, a missing `onExit` or `onError` logs.
-
-```ts
-export declare class BaseWorkerMessageBusHandlerHelper<IConsumePayload> extends AbstractWorkerMessageBusHandlerHelper<IConsumePayload> {
-    constructor(opts: {
-        scope: string;
-        onMessage: (opts: {
-            message: IConsumePayload;
-        }) => ValueOrPromise<void>;
-        onClose?: () => ValueOrPromise<void>;
-        onError?: (opts: {
-            error: Error;
-        }) => ValueOrPromise<void>;
-        onExit?: (opts: {
-            exitCode: number | string;
-        }) => ValueOrPromise<void>;
-    });
-}
-```
-
-Source: `packages/helpers/src/modules/worker-thread/bus/handler/base.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#baseworkermessagebushandlerhelper)
 
 ## `BaseWorkerThreadHelper`
 
-*class*
-
-Holds the message buses of a worker thread by key. Throws when constructed on the main thread.
-
-```ts
-export declare class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {
-    constructor(opts: {
-        scope: string;
-    });
-    bindWorkerBus<IC, IP>(opts: {
-        key: string;
-        bus: IWorkerBus<IC, IP>;
-    }): void;
-    unbindWorkerBus(opts: {
-        key: string;
-    }): void;
-    getWorkerBus<IC, IP>(opts: {
-        key: string;
-    }): IWorkerBus<IC, IP>;
-}
-```
-
-Source: `packages/helpers/src/modules/worker-thread/thread/base.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#baseworkerthreadhelper)
 
 ## `BullMQDefaults`
 
-*class*
-
-What a BullMQ helper uses when its options leave a field out.
-
-```ts
-export declare class BullMQDefaults {
-    static readonly NUMBER_OF_WORKER = 1;
-    /** How long a worker holds a job's lock: 90 minutes, in milliseconds. */
-    static readonly LOCK_DURATION_MS: number;
-}
-```
-
-Source: `packages/helpers/src/modules/queue/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#bullmqdefaults)
 
 ## `BullQueueRoles`
 
-*class*
-
-What a BullMQ helper is: the QUEUE that jobs are added to, or the WORKER that runs them.
-
-```ts
-export declare class BullQueueRoles {
-    static readonly QUEUE = "queue";
-    static readonly WORKER = "worker";
-}
-```
-
-Source: `packages/helpers/src/modules/queue/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#bullqueueroles)
 
 ## `Child`
 
-*type*
-
-Kept out of the `./common` barrel because `hono/jsx` types reach DOM-dependent JSX intrinsics; `hono` is an optional peer, so a Worker or hono-less consumer of `./common` must not have this file in its type graph. Re-exported directly from the root barrel (`src/index.ts`) instead, so `Child`/`FC`/`PropsWithChildren` stay publicly reachable from `@venizia/ignis-helpers`.
-
-```ts
-type Child = string | Promise<string> | number | JSXNode | null | undefined | boolean | Child[]
-```
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-1#child)
 
 ## `COMBINING_MARKS_PATTERN`
 
-*const*
-
-Marks left behind by NFD normalization. Written as escapes, not literal codepoints - a pasted
-combining mark is invisible in editors and gets silently dropped by copy/paste.
-
-```ts
-export declare const COMBINING_MARKS_PATTERN: RegExp;
-```
-
-Source: `packages/helpers/src/modules/slug/common/constants.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-1#combining-marks-pattern)
 
 ## `CredentialAlgorithms`
 
-*class*
-
-Password-hash schemes `CredentialUtility` accepts. `isValid` narrows a string to `TCredentialAlgorithm`.
-
-```ts
-export declare class CredentialAlgorithms extends ConstClass {
-    /** What `Bun.password` writes with its default parameters; the scheme `hash` uses unless told otherwise. */
-    static readonly ARGON2ID = "argon2id";
-    static readonly BCRYPT = "bcrypt";
-}
-```
-
-Source: `packages/helpers/src/modules/crypto/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#credentialalgorithms)
 
 ## `CredentialUtility`
 
-*class*
-
-Storing and checking a credential (a password) over `Bun.password`. `hash` writes an argon2id hash (Bun's
-default parameters), or bcrypt when `algorithm: 'bcrypt'` asks for it (`$2b$`, 60 characters, the stored
-format of the `bcrypt` package). `verify` reads every existing bcrypt and argon2 hash, whichever
-algorithm `hash` wrote, so a stored password is never rehashed or migrated. Needs Bun: it throws on
-another runtime.
-
-Passwords longer than 72 bytes are where Bun and the `bcrypt` package differ, and it only matters for
-bcrypt. The package keeps only the first 72 bytes; Bun keeps all of them, by hashing a longer password
-before bcrypt sees it. Two things follow, and they are the whole truth about "the same format":
-
-- A hash `hash` writes for a password longer than 72 bytes is read by Bun only. The `bcrypt` package
-  cannot verify it, so rolling back to that package, or another service reading the same column, locks
-  those users out. Up to 72 bytes the two read each other's hashes.
-- A hash the `bcrypt` package wrote for a longer password fails a plain `Bun.password.verify` with the full
-  password. `verify` therefore retries a bcrypt hash with the first 72 bytes when the password is longer.
-  That retry is for the legacy hashes. A hash `hash` wrote never needs it, because Bun reads its own hash on
-  the first attempt. The retry has one price: a hash of a password of exactly 72 bytes also accepts that
-  password followed by anything, the way bcrypt itself always has.
-
-```ts
-export declare class CredentialUtility {
-    /**
-     * A hash of `password`: argon2id (Bun's default parameters), or bcrypt with `algorithm: 'bcrypt'`.
-     * For bcrypt, `cost` (4 to 31) is the work factor, `2 ** cost` rounds. `cost` with argon2id
-     * is refused rather than ignored: a caller who tuned a cost is told the default changed.
-     */
-    static hash(opts: {
-        password: string;
-        /**
-         * The hashing scheme.
-         * @default DEFAULT_CREDENTIAL_ALGORITHM
-         */
-        algorithm?: TCredentialAlgorithm;
-        /**
-         * The bcrypt work factor; refused with argon2id.
-         * @default 10
-         */
-        cost?: number;
-    }): Promise<string>;
-    /**
-     * Whether `password` matches `hash`. Nothing to match is `false`: an empty or non-string password, an empty
-     * or non-string hash. A stored value that is not a password hash is a server fault (500), so a corrupt row is
-     * never answered like a wrong password, and the runtime's own message stays out of it.
-     */
-    static verify(opts: {
-        password: string;
-        hash: string;
-    }): Promise<boolean>;
-    private static verifyHash;
-    private static assertBun;
-}
-```
-
-Source: `packages/helpers/src/modules/crypto/algorithms/credential.algorithm.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-1#credentialutility)
 
 ## `D_STROKE_REPLACEMENTS`
 
-*const*
-
-`đ`/`Đ` carry no combining mark, so NFD leaves them intact - hence this explicit map. `d` is
-deliberate: the `slugify` npm package romanizes them to `dj` (Serbo-Croatian), producing
-`djuong-trang` for `Đường trắng`. Do not "fix" this to match that library.
-
-```ts
-export declare const D_STROKE_REPLACEMENTS: ReadonlyArray<{
-    pattern: RegExp;
-    replacement: string;
-}>;
-```
-
-Source: `packages/helpers/src/modules/slug/common/constants.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-1#d-stroke-replacements)
 
 ## `DEFAULT_CIPHER_BITS`
 
-*const*
-
-Key size in bits assumed when an algorithm name carries no size suffix (see `getAlgorithmKeySize`).
-
-```ts
-export declare const DEFAULT_CIPHER_BITS = 256;
-```
-
-Source: `packages/helpers/src/modules/crypto/common/constants.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-1#default-cipher-bits)
 
 ## `DEFAULT_CREDENTIAL_ALGORITHM`
 
-*const*
-
-Scheme `CredentialUtility.hash` uses when `algorithm` is omitted.
-
-```ts
-export declare const DEFAULT_CREDENTIAL_ALGORITHM: TCredentialAlgorithm;
-```
-
-Source: `packages/helpers/src/modules/crypto/common/constants.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-1#default-credential-algorithm)
 
 ## `DEFAULT_HASH_OUTPUT_ENCODING`
 
-*const*
-
-Encoding used when `outputEncoding` is omitted.
-
-```ts
-export declare const DEFAULT_HASH_OUTPUT_ENCODING: THashOutputEncoding;
-```
-
-Source: `packages/helpers/src/modules/crypto/common/constants.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-1#default-hash-output-encoding)
 
 ## `DEFAULT_KDF_DIGEST`
 
-*const*
-
-PBKDF2 digest for key derivation; it is not configurable per call.
-
-```ts
-export declare const DEFAULT_KDF_DIGEST = "sha256";
-```
-
-Source: `packages/helpers/src/modules/crypto/common/constants.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-1#default-kdf-digest)
 
 ## `DEFAULT_KDF_ITERATIONS`
 
-*const*
-
-PBKDF2 iteration count used when `kdfIterations` is omitted. Changing it makes ciphertext encrypted under the old count undecryptable.
-
-```ts
-export declare const DEFAULT_KDF_ITERATIONS = 100000;
-```
-
-Source: `packages/helpers/src/modules/crypto/common/constants.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-1#default-kdf-iterations)
 
 ## `DEFAULT_KDF_SALT`
 
-*const*
-
-Public and identical across every deployment, so it stops a bare dictionary attack but not a
-table precomputed against this value - pass `kdfSalt` for per-deployment isolation. Never
-change this: every ciphertext already encrypted under it becomes undecryptable.
-
-```ts
-export declare const DEFAULT_KDF_SALT = "ignis-kdf-salt-v1";
-```
-
-Source: `packages/helpers/src/modules/crypto/common/constants.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-1#default-kdf-salt)
 
 ## `DiskHelper`
 
-*class*
-
-Storage backed by the local filesystem: each bucket is a directory under `basePath`, each object a file whose key is its relative path. Names are validated and resolved paths must stay inside the bucket.
-
-```ts
-export declare class DiskHelper extends BaseStorageHelper {
-    readonly storageType = "disk";
-    private basePath;
-    /** The `code` a file-system error carries, such as `ENOENT`. */
-    private static errnoCode;
-    constructor(options: IDiskHelperOptions);
-    private getBucketPath;
-    /**
-     * Whether `target`, with every symbolic link followed, lies inside the real storage root. A target that does not exist
-     * yet is judged by its nearest existing parent (a write creates the rest beneath it); a link whose own target is
-     * missing is refused, because writing through it would create the file where the link points.
-     */
-    private isInsideRoot;
-    /** The real path of `target`; a failure leaves as {@link DiskHelper.toRealPathError} answers it. */
-    private realpathOrFail;
-    /**
-     * What a failed `realpath` is reported as: the code, never the path. Node's message holds the absolute path of the
-     * server, and a refusal reaches the caller of the storage API. The full error stays in the log.
-     */
-    private toRealPathError;
-    /** `null` when nothing is there (or it cannot be read): the caller walks up to the parent and judges that. */
-    private lstatOrNull;
-    /** A directory that exists AND lies inside the real root: a bucket that is a link leading outside is not one. */
-    private isReachableBucketPath;
-    /** The path of an object after the checks of {@link DiskHelper.resolveObjectPath} and the real-path containment check. */
-    private resolveContainedObjectPath;
-    /** Validates the name AND the resolved path: containment survives a naming rule we get wrong. */
-    private resolveObjectPath;
-    /** `null` means not there. Anything but ENOENT is logged: it may exist and be unreadable. */
-    private statOrNull;
-    private exists;
-    /** An object is a regular file: a directory under the same path is not one, so it reads as not found. */
-    private isFile;
-    /** One `stat` answers existence and type. */
-    hasBucket(opts: {
-        bucket: IBucketRef;
-    }): Promise<boolean>;
-    getBuckets(): Promise<IBucketInfo[]>;
-    getBucket(opts: {
-        bucket: IBucketRef;
-    }): Promise<IBucketInfo | null>;
-    createBucket(opts: {
-        bucket: IBucketRef;
-    }): Promise<IBucketInfo | null>;
-    removeBucket(opts: {
-        bucket: IBucketRef;
-    }): Promise<boolean>;
-    protected get defaultLinkPrefix(): string;
-    protected writeObject(opts: IObjectLocation & {
-        file: IUploadFile;
-    }): Promise<void>;
-    getObject(opts: IObjectLocation & {
-        options?: unknown;
-    }): Promise<Readable>;
-    /** `createReadStream` seeks natively, so a range never reads the bytes before it. */
-    getObjectStream(opts: TObjectStreamOptions): Promise<ReadableStream<Uint8Array>>;
-    getStat(opts: IObjectLocation): Promise<IFileStat>;
-    removeObject(opts: IObjectLocation): Promise<void>;
-    removeObjects(opts: {
-        bucket: IBucketRef;
-        objects: IObjectRef[];
-    }): Promise<void>;
-    listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]>;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/disk/helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-2#diskhelper)
 
 ## `Environment`
 
-*class*
-
-Adds the `NODE_ENV` reads to {@link EnvironmentNames}. Every name and set is inherited, so `Environment.PRODUCTION`, `Environment.COMMON_ENVS` and `Environment.DEVELOPMENT_ENVS` keep resolving here; only these two members need a `process`.
-
-```ts
-export declare class Environment extends EnvironmentNames {
-    /** `NODE_ENV` exactly as the host has it, `undefined` when unset. Destructured on purpose: `bun build` rewrites `process.env.NODE_ENV` to a literal at build time, a destructured read stays a runtime read. */
-    static get ambient(): string | undefined;
-    static get current(): string;
-    static is(opts: {
-        name: string;
-    }): boolean;
-}
-```
-
-Source: `packages/helpers/src/modules/env/app-env.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-2#environment)
 
 ## `ErrorPrettier`
 
-*class*
-
-Turns a thrown value into something a human can read in a console - log this, never the raw error.
-
-```ts
-export declare class ErrorPrettier {
-    /** Bounds a pathological or cyclic `cause` chain. */
-    static readonly DEFAULT_MAX_CAUSE_DEPTH = 5;
-    /** The throw site is near the top; the tail is identical framework plumbing for every request. */
-    static readonly DEFAULT_MAX_STACK_FRAMES = 10;
-    /** Driver diagnostics that are actionable and absent from `message` - `pg` supplies all four. */
-    private static readonly DIAGNOSTIC_KEYS;
-    /** A stack frame line in every V8 stack: `    at fn (file:line:col)`. */
-    private static readonly FRAME_PATTERN;
-    /** A frame inside an installed package - `node_modules/` covers bun's `.bun/` store too. */
-    private static readonly DEPENDENCY_FRAME_PATTERN;
-    /** `getError` sits on top of every `ApplicationError` stack and names no call site. Installed, it is also the FIRST dependency frame, so the keep-the-first rule would preserve exactly the wrong one. Anchored on `inversion` so an application's own `modules/error/app-error` is not swallowed with it. */
-    private static readonly ERROR_FACTORY_FRAME_PATTERN;
-    /** Issues rendered from a ZodError before the rest are counted off. */
-    private static readonly MAX_ZOD_ISSUES;
-    /** Members of an `AggregateError` rendered before the rest are counted off. */
-    private static readonly MAX_AGGREGATED_ERRORS;
-    private static readonly INSPECT_OPTIONS;
-    private static extractFrames;
-    /** A ZodError's `message` is its issue array as pretty JSON - dozens of lines for one bad field. Render `path: reason` instead. */
-    private static compressZodMessage;
-    private static summarizeNode;
-    private static pushDiagnostics;
-    /** Under whichever node collected them - a wrapped `AggregateError` is the common shape. */
-    private static pushAggregatedErrors;
-    /** Reduces any thrown value to {@link IErrorSummary} - always a summary, never a bare primitive. */
-    static summarize(opts: {
-        error: unknown;
-        includeStack?: boolean;
-        maxCauseDepth?: number;
-        maxStackFrames?: number;
-    }): IErrorSummary;
-    /** Resolved per call, not at module load, so a test passes a value instead of mutating the environment. */
-    private static resolveFormat;
-    /** `JSON.stringify` throws on a cycle, and `format` runs inside the error handler - a throw there turns a handled failure into an unhandled one. `redactSecrets` breaks cycles on its own, but it is switched off by `APP_ENV_LOGGER_DO_REDACT=false`, so structural safety cannot lean on it. A repeated reference reads as `[Circular]` too: the first occurrence still carries the data. */
-    private static safeStringify;
-    /** One line, so a log monitor keeps the error as ONE record instead of one per bullet. */
-    private static renderJson;
-    private static renderText;
-    /** Renders {@link summarize}. `text` returns a block whose newlines survive `%s`; `json` returns one line. */
-    static format(opts: {
-        error: unknown;
-        messageCode?: string;
-        extra?: unknown;
-        includeStack?: boolean;
-        maxStackFrames?: number;
-        format?: TLoggerFormat;
-        inspectOptions?: util.InspectOptions;
-    }): string;
-}
-```
-
-Source: `packages/helpers/src/modules/logger/formatting/error-prettier.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-2#errorprettier)
 
 ## `ErrorUtility`
 
-*class*
-
-Helpers for values caught in `catch` blocks.
-
-```ts
-export declare class ErrorUtility {
-    /** Normalize an unknown thrown value into an Error instance - an ApplicationError when it was not one. */
-    static toError(opts: {
-        error: unknown;
-    }): Error;
-}
-```
-
-Source: `packages/helpers/src/utilities/error.utility.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-2#errorutility)
 
 ## `FC`
 
-*type*
-
-Kept out of the `./common` barrel because `hono/jsx` types reach DOM-dependent JSX intrinsics; `hono` is an optional peer, so a Worker or hono-less consumer of `./common` must not have this file in its type graph. Re-exported directly from the root barrel (`src/index.ts`) instead, so `Child`/`FC`/`PropsWithChildren` stay publicly reachable from `@venizia/ignis-helpers`.
-
-```ts
-type FC<P = Props> = { (props: P): FunctionComponentResult; defaultProps?: Partial<P> | undefined; displayName?: string | undefined; }
-```
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-2#fc)
 
 ## `Hash`
 
-*class*
-
-One-way message digests and keyed HMACs. Unlike `AES`/`RSA` this has no `decrypt` - a digest
-cannot be reversed, so `digest`/`hmac` are the only operations, not `ICryptoAlgorithm`.
-
-```ts
-export declare class Hash extends BaseHelper {
-    algorithm: THashAlgorithm;
-    constructor(opts: {
-        algorithm: THashAlgorithm;
-    });
-    /** Memoized - `BaseHelper`'s constructor resolves a logger on every allocation (~50ns), and downstream token code calls `withAlgorithm` per request. */
-    private static readonly instances;
-    static withAlgorithm(algorithm: THashAlgorithm): Hash;
-    validateAlgorithmName(opts: {
-        algorithm: THashAlgorithm;
-    }): void;
-    /**
-     * Plain digest, no secret. `message` is text (UTF-8), bytes, or several parts hashed in order as ONE message: a git
-     * blob is the header text "blob <size>" and a NUL byte, then the bytes, so its parts are the header and the bytes. MD5/SHA1
-     * are broken/weak - see {@link HashAlgorithms} - never use for security decisions.
-     */
-    digest(opts: {
-        message: THashInput | ReadonlyArray<THashInput>;
-        opts?: IHashExtraOptions;
-    }): string;
-    /**
-     * Keyed HMAC. `message` and `secret` are text (UTF-8) or bytes: a `Buffer` or `Uint8Array` key gives the same output
-     * as the text of the same bytes, so a token printed with one keeps verifying with the other. `secret` is mandatory and
-     * validated non-empty so a request for an HMAC never silently degrades into an unkeyed digest.
-     */
-    hmac(opts: {
-        message: THashInput;
-        secret: THashInput;
-        opts?: IHashExtraOptions;
-    }): string;
-    /**
-     * Compares two strings exactly as given, in constant time: the byte length first, then `crypto.timingSafeEqual`. For
-     * two digests that are both already in hand, such as an idempotency fingerprint against a saved one, where
-     * {@link Hash.verify} has nothing to hash. `false` for any difference, never a throw, and `false` too for a value that
-     * is not a string. Two empty strings are equal. The text is compared, not the bytes it stands for: hex in upper case
-     * does not equal hex in lower case.
-     */
-    static equals(opts: {
-        value: string;
-        expected: string;
-    }): boolean;
-    /**
-     * Checks a received digest against the one `value` produces, in constant time. Use it for a webhook signature or a
-     * payment callback instead of `===`, which stops at the first differing character and so tells an attacker how many
-     * leading characters of a forged value were right.
-     *
-     * `value` is hashed the way {@link Hash.digest} does, or keyed with `secret` the way {@link Hash.hmac} does, then
-     * written in `outputEncoding` (hex by default) and compared with `expected` by {@link Hash.equals}. A different length
-     * answers `false` without comparing, and the answer is `false`, never a throw, for any mismatch. `expected` is exact
-     * text: hex in upper case does not equal hex in lower case, and an unpadded or URL-safe form of the same base64 digest
-     * is refused. Pass the matching `outputEncoding` (`base64url`), or normalise the text first.
-     */
-    verify(opts: {
-        value: THashInput;
-        expected: string;
-        secret?: THashInput;
-        opts?: IHashExtraOptions;
-    }): boolean;
-}
-
-/** Text is hashed as UTF-8, bytes as they are. */
-type THashInput = string | Uint8Array;
-
-interface IHashExtraOptions {
-    outputEncoding?: THashOutputEncoding;
-}
-```
-
-Source: `packages/helpers/src/modules/crypto/algorithms/hash.algorithm.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-2#hash)
 
 ## `HashAlgorithms`
 
-*class*
-
-Digest names the hash algorithm accepts. `isValid` narrows a string to `THashAlgorithm`.
-
-```ts
-export declare class HashAlgorithms extends ConstClass {
-    /** Cryptographically broken - kept only for wire-protocol compatibility (VNPay checksums); never use for security decisions. */
-    static readonly MD5 = "md5";
-    /** Cryptographically weak - kept for wire-protocol compatibility with legacy integrations; never use for security decisions. */
-    static readonly SHA1 = "sha1";
-    static readonly SHA256 = "sha256";
-    static readonly SHA384 = "sha384";
-    static readonly SHA512 = "sha512";
-}
-```
-
-Source: `packages/helpers/src/modules/crypto/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-2#hashalgorithms)
 
 ## `HashOutputEncodings`
 
-*class*
-
-Text encodings a digest can be written in. `isValid` narrows a string to `THashOutputEncoding`.
-
-```ts
-export declare class HashOutputEncodings extends ConstClass {
-    static readonly HEX = "hex";
-    static readonly BASE64 = "base64";
-    static readonly BASE64URL = "base64url";
-}
-```
-
-Source: `packages/helpers/src/modules/crypto/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-2#hashoutputencodings)
 
 ## `HF_MESSAGE_MAX_BYTES`
 
-*const*
-
-Max message size in UTF-8 BYTES (not characters); longer messages truncate silently.
-
-```ts
-export declare const HF_MESSAGE_MAX_BYTES = 213;
-```
-
-Source: `packages/helpers/src/modules/logger/hf/common/constants.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-2#hf-message-max-bytes)
 
 ## `HF_SCOPE_MAX_BYTES`
 
-*const*
-
-Max scope size in UTF-8 BYTES (not characters - a multibyte scope truncates by byte).
-
-```ts
-export declare const HF_SCOPE_MAX_BYTES = 32;
-```
-
-Source: `packages/helpers/src/modules/logger/hf/common/constants.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-2#hf-scope-max-bytes)
 
 ## `HfLogFlusher`
 
-*class*
-
-Drains the ring in bounded batches, yielding between them - see the spec's lap accounting.
-
-```ts
-export declare class HfLogFlusher {
-    private static readonly textDecoder;
-    private flushIndex;
-    private inFlightDrain;
-    private timer;
-    private readonly sink;
-    private readonly batchSize;
-    constructor(options?: IHfLogFlusherOptions);
-    private static renderEntry;
-    private static buildDefaultSink;
-    flush(): Promise<void>;
-    private drain;
-    private deliverBatch;
-    start(intervalMs?: number): void;
-    stop(): void;
-}
-```
-
-Source: `packages/helpers/src/modules/logger/hf/flusher.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-2#hflogflusher)
 
 ## `HfLogger`
 
-*class*
-
-Ring-buffer logger for hot paths; extends AbstractLogger, NOT BaseLogger - BaseLogger's string-sink plumbing is exactly the cost this implementation exists to avoid.
-
-```ts
-export declare class HfLogger extends AbstractLogger {
-    private static readonly textEncoder;
-    private static readonly scopeCache;
-    private static cache;
-    private static messageCache;
-    private readonly scope;
-    private readonly scopeBytes;
-    private readonly scopeLength;
-    private readonly ring;
-    private constructor();
-    private static encodeScope;
-    static get(scope: string): HfLogger;
-    /** Pre-encode a message at initialization time; the cache is FIFO-bounded so dynamic strings can't grow it without limit. */
-    static encodeMessage(message: string): Uint8Array;
-    private static evictOldestMessage;
-    private writeEntry;
-    private writeString;
-    debug(message: string, ...args: unknown[]): void;
-    info(message: string, ...args: unknown[]): void;
-    warn(message: string, ...args: unknown[]): void;
-    error(message: string, ...args: unknown[]): void;
-    emerg(message: string, ...args: unknown[]): void;
-    log(level: TLogLevel, message: string, ...args: unknown[]): void;
-    log(level: TLogLevel, messageBytes: Uint8Array): void;
-    for(methodName: string): ILogger;
-}
-```
-
-Source: `packages/helpers/src/modules/logger/hf/logger.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-2#hflogger)
 
 ## `HookUtility`
 
-*class*
-
-Runs user-supplied hooks so a throw or rejection is logged and never breaks the caller.
-
-```ts
-export declare class HookUtility {
-    /** Fire-and-forget a hook from inside an event listener. Takes a thunk because `PromiseUtility.voidExecution` takes a VALUE - a synchronous throw would escape the guard and, inside an emitter callback, take the process down. Rejections still route to the logger. */
-    static invoke(opts: {
-        logger: ILogger;
-        scope: string;
-        execution: () => ValueOrPromise<unknown>;
-    }): void;
-    /** Await a user-supplied hook, absorbing sync throws and rejections without breaking the caller's state machine. */
-    static execute(opts: {
-        logger: ILogger;
-        scope: string;
-        execution: () => ValueOrPromise<unknown>;
-    }): Promise<void>;
-}
-```
-
-Source: `packages/helpers/src/modules/queue/common/hook.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-2#hookutility)
 
 ## `HrTimeUtility`
 
-*class*
-
-Elapsed-time measurement from the Node high-resolution clock.
-
-```ts
-export declare class HrTimeUtility {
-    /**
-     * Seconds from the process's high-resolution clock, to nine decimals - for measuring, not for dates.
-     * A file of its own: `process.hrtime` is Node-only, and `performance.utility` ships on `/core`.
-     */
-    static getSeconds(): number;
-}
-```
-
-Source: `packages/helpers/src/utilities/hr-time.utility.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-2#hrtimeutility)
 
 ## `IAESKeyringEntry`
 
-*interface*
-
-One key in a keyring: `id` is written into the ciphertext so decrypt can pick the matching `secret`.
-
-```ts
-export interface IAESKeyringEntry {
-    id: string;
-    secret: string;
-}
-```
-
-Source: `packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iaeskeyringentry)
 
 ## `IApplicationEnvironment`
 
-*interface*
-
-Read and write contract of the application environment store. Every value is a string: `get` answers the raw string (or `undefined`), the `defaultValue` of a string read, or what a `transform` makes of the raw string.
-
-```ts
-export interface IApplicationEnvironment {
-    get(key: string): string | undefined;
-    get(key: string, opts: {
-        defaultValue: string;
-    }): string;
-    /** A transform that may answer nothing, with the `defaultValue` that then applies: the `defaultValue` fixes `R`. */
-    get<R>(key: string, opts: IApplicationEnvironmentDefaultedTransformOptions<R>): R;
-    /** What the transform makes of the raw string: `R` is inferred from the transform. */
-    get<R>(key: string, opts: IApplicationEnvironmentTransformOptions<R>): R;
-    getRequired(key: string): string;
-    getRequired<R>(key: string, opts: {
-        transform: (raw: string) => TNullable<R>;
-    }): R;
-    set(key: string, value: string | undefined): void;
-}
-```
-
-Source: `packages/helpers/src/modules/env/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iapplicationenvironment)
 
 ## `IApplicationEnvironmentDefaultedTransformOptions`
 
-*interface*
-
-A `transform` that may answer null or undefined, with the `defaultValue` that then applies: the read answers `R`.
-
-```ts
-export interface IApplicationEnvironmentDefaultedTransformOptions<R> {
-    transform: (raw: string | undefined) => TNullable<R>;
-    defaultValue: R;
-}
-```
-
-Source: `packages/helpers/src/modules/env/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iapplicationenvironmentdefaultedtransformoptions)
 
 ## `IApplicationEnvironmentTransformOptions`
 
-*interface*
-
-Options of `get` that run a `transform` over the raw value; `defaultValue` applies when the value is absent or the transform answers null or undefined.
-
-```ts
-export interface IApplicationEnvironmentTransformOptions<R> {
-    transform: (raw: string | undefined) => R;
-    defaultValue?: R;
-}
-```
-
-Source: `packages/helpers/src/modules/env/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iapplicationenvironmenttransformoptions)
 
 ## `IBucketInfo`
 
-*interface*
-
-A bucket as `getBuckets`, `getBucket` and `createBucket` report it.
-
-```ts
-export interface IBucketInfo {
-    name: string;
-    creationDate: Date;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#ibucketinfo)
 
 ## `IBucketRef`
 
-*interface*
-
-One bucket.
-
-```ts
-export interface IBucketRef {
-    name: string;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#ibucketref)
 
 ## `IBunServer`
 
-*interface*
-
-The subset of a Bun server the WebSocket helper uses to publish to topics.
-
-```ts
-export interface IBunServer {
-    readonly pendingWebSockets: number;
-    publish(topic: string, data: string | ArrayBuffer | SharedArrayBuffer | Uint8Array | DataView, compress?: boolean): number;
-}
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/server.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#ibunserver)
 
 ## `IBunWebSocketConfig`
 
-*interface*
-
-Bun WebSocket native configuration options
-
-```ts
-export interface IBunWebSocketConfig {
-    perMessageDeflate?: boolean;
-    maxPayloadLength?: number;
-    idleTimeout?: number;
-    backpressureLimit?: number;
-    closeOnBackpressureLimit?: boolean;
-    sendPings?: boolean;
-    publishToSelf?: boolean;
-}
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/server.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#ibunwebsocketconfig)
 
 ## `IBunWebSocketHandler`
 
-*interface*
-
-Return type for getBunWebSocketHandler - handlers + config spread for server.reload()
-
-```ts
-export interface IBunWebSocketHandler extends IBunWebSocketConfig {
-    open: (socket: IWebSocket<IWebSocketData>) => void;
-    message: (socket: IWebSocket<IWebSocketData>, message: string | Buffer) => void;
-    close: (socket: IWebSocket<IWebSocketData>, code: number, reason: string) => void;
-    drain: (socket: IWebSocket<IWebSocketData>) => void;
-}
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/server.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#ibunwebsockethandler)
 
 ## `IByteRange`
 
-*interface*
-
-A byte window of an object. `end` is inclusive, like the HTTP `Range` header.
-
-```ts
-export interface IByteRange {
-    start: number;
-    end?: number;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#ibyterange)
 
 ## `IClock`
 
-*interface*
-
-Injectable clock so tests advance time deterministically.
-
-```ts
-export interface IClock {
-    now(): number;
-}
-```
-
-Source: `packages/helpers/src/modules/secrets/common/types/timer.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iclock)
 
 ## `ICopyObjectOptions`
 
-*interface*
-
-`copyObject`: a copy within one bucket.
-
-```ts
-export interface ICopyObjectOptions {
-    bucket: IBucketRef;
-    source: IObjectRef;
-    destination: IObjectRef;
-    /** Copy only if the source still has this ETag; otherwise `StorageErrors.PRECONDITION_FAILED`. */
-    ifMatch?: string;
-    /** Copy this exact version of the source. */
-    sourceVersionId?: string;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#icopyobjectoptions)
 
 ## `ICryptoAlgorithm`
 
-*interface*
-
-Contract of an encryption algorithm: `encrypt` and `decrypt` take one options object holding `message`, `secret` and optional algorithm-specific `opts`. The type parameters set the input, secret and return types of each side.
-
-```ts
-export interface ICryptoAlgorithm<AlgorithmNameType extends string, EncryptInputType = unknown, DecryptInputType = unknown, SecretKeyType = unknown, EncryptReturnType = unknown, DecryptReturnType = unknown, ExtraOptions = unknown> {
-    algorithm: AlgorithmNameType;
-    encrypt(opts: {
-        message: EncryptInputType;
-        secret: SecretKeyType;
-        opts?: ExtraOptions;
-    }): EncryptReturnType;
-    decrypt(opts: {
-        message: DecryptInputType;
-        secret: SecretKeyType;
-        opts?: ExtraOptions;
-    }): DecryptReturnType;
-}
-```
-
-Source: `packages/helpers/src/modules/crypto/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#icryptoalgorithm)
 
 ## `IDiskHelperOptions`
 
-*interface*
-
-Options for `DiskHelper`; `basePath` is created when missing.
-
-```ts
-export interface IDiskHelperOptions extends IStorageHelperOptions {
-    /** Base directory every bucket lives under. */
-    basePath: string;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/disk/helper.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#idiskhelperoptions)
 
 ## `IDotenvSecretsRegistration`
 
-*interface*
-
-Registers a dotenv vault file; `config` is optional.
-
-```ts
-export interface IDotenvSecretsRegistration extends ISecretsRegistrationBase {
-    provider: typeof SecretProviders.DOTENV_VAULT;
-    config?: TRegistrationConfig<IDotenvVaultHelperOptions>;
-}
-
-/** What every registration carries, whatever its provider. */
-interface ISecretsRegistrationBase {
-    hydrate?: Array<ISecretHydrateEntry>;
-    lease?: Array<ISecretLeaseEntry>;
-    /**
-     * Renew a lease at ttl * ratio.
-     *
-     * @default 0.66
-     */
-    renewBeforeRatio?: number;
-    /**
-     * TTL (seconds) for the static get/getBundle cache.
-     *
-     * @default 300
-     */
-    cacheTtlSeconds?: number;
-}
-
-/** The helper options a registration's `config` fills; the registration owns the identifier, the cache TTL and the renewal ratio. */
-type TRegistrationConfig<Options> = Omit<Options, 'identifier' | 'cacheTtlSeconds' | 'renewBeforeRatio'>;
-```
-
-Source: `packages/helpers/src/modules/secrets/common/types/registration.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#idotenvsecretsregistration)
 
 ## `IErrorSummary`
 
-*interface*
-
-Useful-only projection of an error: a driver's `query`/`params` repeat the message and are dropped.
-
-```ts
-export interface IErrorSummary {
-    name?: string;
-    message?: string;
-    /** The error's OWN code - a driver's `23505`, a gRPC `14`. Belongs with the name, not with the message. */
-    code?: string | number;
-    /** An `ApplicationError`'s `normalized.code` - the identifier an application filters on. `MessageCode.DEFAULT` never surfaces. */
-    messageCode?: string;
-    /** Frames ONLY - V8's `Error: <message>` header is stripped so the message is not repeated. */
-    stack?: string;
-    hint?: string;
-    detail?: string;
-    table?: string;
-    constraint?: string;
-    /** Values for the `%{placeholder}` tokens left unresolved in `message` - i18n resolves them downstream, so the log must carry them or the message names no field. */
-    args?: Record<string, unknown>;
-    /** An `ApplicationError`'s caller context - the one unmodelled payload worth keeping. */
-    extra?: Record<string, unknown>;
-    cause?: IErrorSummary;
-    /** Every reason an `AggregateError` collected. Its own message names none of them, so without this the log says only that something failed. */
-    errors?: Array<IErrorSummary>;
-}
-```
-
-Source: `packages/helpers/src/modules/logger/formatting/error-prettier.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#ierrorsummary)
 
 ## `IFileStat`
 
-*interface*
-
-What `getStat` reports for one object. `size` is in bytes.
-
-```ts
-export interface IFileStat {
-    size: number;
-    metadata: IObjectMetadata;
-    lastModified?: Date;
-    etag?: string;
-    versionId?: string;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#ifilestat)
 
 ## `IGetSecretOptions`
 
-*interface*
-
-Selects a secret: the `path` of a bundle and optionally one `key` in it. `defaultValue` is returned when the key is absent.
-
-```ts
-export interface IGetSecretOptions<TValue = string> {
-    path: string;
-    key?: string;
-    defaultValue?: TValue;
-}
-```
-
-Source: `packages/helpers/src/modules/secrets/common/types/helper.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#igetsecretoptions)
 
 ## `IHashiCorpSecretsRegistration`
 
-*interface*
-
-Registers HashiCorp Vault; `config` carries the endpoint and the auth.
-
-```ts
-export interface IHashiCorpSecretsRegistration extends ISecretsRegistrationBase {
-    provider: typeof SecretProviders.HASHICORP_VAULT;
-    config: TRegistrationConfig<IHashiCorpVaultHelperOptions>;
-}
-
-/** What every registration carries, whatever its provider. */
-interface ISecretsRegistrationBase {
-    hydrate?: Array<ISecretHydrateEntry>;
-    lease?: Array<ISecretLeaseEntry>;
-    /**
-     * Renew a lease at ttl * ratio.
-     *
-     * @default 0.66
-     */
-    renewBeforeRatio?: number;
-    /**
-     * TTL (seconds) for the static get/getBundle cache.
-     *
-     * @default 300
-     */
-    cacheTtlSeconds?: number;
-}
-
-/** The helper options a registration's `config` fills; the registration owns the identifier, the cache TTL and the renewal ratio. */
-type TRegistrationConfig<Options> = Omit<Options, 'identifier' | 'cacheTtlSeconds' | 'renewBeforeRatio'>;
-```
-
-Source: `packages/helpers/src/modules/secrets/common/types/registration.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#ihashicorpsecretsregistration)
 
 ## `IHfLogFlusherOptions`
 
-*interface*
-
-Where the high-frequency logger flusher delivers batches: a custom `sink`, a `filePath`, or stdout when neither is set.
-
-```ts
-export interface IHfLogFlusherOptions {
-    /** Full custom delivery. Overrides filePath. */
-    sink?: THfSink;
-    /** File the default sink appends to instead of writing to stdout. */
-    filePath?: string;
-    /**
-     * Entries rendered per batch before yielding.
-     * @default HF_DEFAULT_BATCH_SIZE
-     */
-    batchSize?: number;
-}
-```
-
-Source: `packages/helpers/src/modules/logger/hf/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#ihflogflusheroptions)
 
 ## `IListObjectsOptions`
 
-*interface*
-
-Filters for `listObjects`. `maxKeys` caps the result, and `0` returns nothing.
-
-```ts
-export interface IListObjectsOptions {
-    bucket: IBucketRef;
-    prefix?: string;
-    /**
-     * Whether the listing descends into folders.
-     *
-     * @default false
-     */
-    useRecursive?: boolean;
-    maxKeys?: number;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#ilistobjectsoptions)
 
 ## `INetworkTcpClientProps`
 
-*interface*
-
-Options of a TCP client. `createClientFn` opens the socket, so one client type serves plain and TLS.
-
-```ts
-export interface INetworkTcpClientProps<SocketClientOptions extends PlainConnectionOptions | TlsConnectionOptions, SocketClientType extends PlainSocketClient | TlsSocketClient> {
-    identifier: string;
-    scope?: string;
-    options: SocketClientOptions;
-    /**
-     * Retries after a close, up to `maxRetry` times.
-     * @default false
-     */
-    reconnect?: boolean;
-    /**
-     * How many reconnects `reconnect` attempts.
-     * @default 5
-     */
-    maxRetry?: number;
-    /** When set, `onData` receives strings in this encoding instead of buffers. */
-    encoding?: BufferEncoding;
-    createClientFn: (options: SocketClientOptions, connectionListener?: () => void) => SocketClientType;
-    onConnected?: (opts: {
-        client: SocketClientType;
-    }) => ValueOrPromise<void>;
-    onData?: (opts: {
-        identifier: string;
-        message: string | Buffer;
-    }) => ValueOrPromise<void>;
-    onClosed?: (opts: {
-        client: SocketClientType;
-    }) => void;
-    onError?: (error: unknown) => void;
-}
-```
-
-Source: `packages/helpers/src/modules/network/tcp-socket/base-tcp-client.helper.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#inetworktcpclientprops)
 
 ## `IObjectInfo`
 
-*interface*
-
-One entry of `listObjects`. `name` is the full object key.
-
-```ts
-export interface IObjectInfo {
-    name?: string;
-    size?: number;
-    lastModified?: Date;
-    etag?: string;
-    prefix?: string;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iobjectinfo)
 
 ## `IObjectLocation`
 
-*interface*
-
-Which bucket, which object.
-
-```ts
-export interface IObjectLocation {
-    bucket: IBucketRef;
-    object: IObjectRef;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iobjectlocation)
 
 ## `IObjectMetadata`
 
-*interface*
-
-`mimetype` is named because consumers persist it; `any` let it be renamed silently.
-
-```ts
-export interface IObjectMetadata {
-    mimetype?: string;
-    [key: string]: unknown;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iobjectmetadata)
 
 ## `IObjectRef`
 
-*interface*
-
-One object. `key` is the S3 term.
-
-```ts
-export interface IObjectRef {
-    key: string;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iobjectref)
 
 ## `IParsedMultipartBody`
 
-*interface*
-
-Files and the text fields posted beside them - dropping the second silently loses what the client sent.
-
-```ts
-export interface IParsedMultipartBody {
-    files: IParsedFile[];
-    fields: Record<string, string>;
-}
-
-interface IParsedFile {
-    fieldname: string;
-    originalname: string;
-    encoding: string;
-    mimetype: string;
-    size: number;
-    buffer?: Buffer;
-    filename?: string;
-    path?: string;
-}
-```
-
-Source: `packages/helpers/src/utilities/request.utility.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iparsedmultipartbody)
 
 ## `IPostPolicy`
 
-*interface*
-
-What `presignPost` hands a browser: where to post, the fields to post with it, and when the grant dies.
-
-```ts
-export interface IPostPolicy {
-    postURL: string;
-    formData: Record<string, string>;
-    expiresAt: string;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#ipostpolicy)
 
 ## `IPresignGetOptions`
 
-*interface*
-
-`presignGet`.
-
-```ts
-export interface IPresignGetOptions extends IObjectLocation {
-    expiresIn?: IDuration;
-    responseContentType?: string;
-    responseContentDisposition?: string;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#ipresigngetoptions)
 
 ## `IPresignPostOptions`
 
-*interface*
-
-`presignPost`: the one object a browser form may be posted under, and its size ceiling.
-
-```ts
-export interface IPresignPostOptions extends IObjectLocation {
-    maxBytes: number;
-    contentType?: string;
-    expiresIn?: IDuration;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#ipresignpostoptions)
 
 ## `IPresignPutOptions`
 
-*interface*
-
-`presignPut`. Every option is SIGNED - the client must send it back unchanged.
-
-```ts
-export interface IPresignPutOptions extends IObjectLocation {
-    expiresIn?: IDuration;
-    /** The object's tag set, written at the moment it is stored. */
-    tagging?: Record<string, string>;
-    /** Pins the body to EXACTLY this many bytes. A retry at a different size is refused. */
-    contentLength?: number;
-    /** Pins the stored content type. Unsigned, the uploader picks what is stored - and the stored type is what a browser later renders. */
-    contentType?: string;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#ipresignputoptions)
 
 ## `IQueueCallback`
 
-*interface*
-
-Hooks of a sequential queue.
-
-```ts
-export interface IQueueCallback<TElementPayload> {
-    /**
-     * Whether {@link SequentialQueueHelper} dispatches an element on its own.
-     * @default true
-     */
-    autoDispatch?: boolean;
-    onMessage?: (opts: {
-        identifier: string;
-        queueElement: TQueueElement<TElementPayload>;
-    }) => ValueOrPromise<void>;
-    onDataEnqueue?: (opts: {
-        identifier: string;
-        queueElement: TQueueElement<TElementPayload>;
-    }) => ValueOrPromise<void>;
-    onDataDequeue?: (opts: {
-        identifier: string;
-        queueElement: TQueueElement<TElementPayload>;
-    }) => ValueOrPromise<void>;
-    onStateChange?: (opts: {
-        identifier: string;
-        from: TQueueStatus;
-        to: TQueueStatus;
-    }) => ValueOrPromise<void>;
-}
-```
-
-Source: `packages/helpers/src/modules/queue/internal/sequential/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iqueuecallback)
 
 ## `IRedisClusterHelperOptions`
 
-*interface*
-
-Options for `RedisClusterHelper`: connection props, lifecycle callbacks and an optional `ioredis` module.
-
-```ts
-export interface IRedisClusterHelperOptions extends IRedisClusterHelperProps, IRedisHelperCallbacks, IRedisModuleOption {
-}
-```
-
-Source: `packages/helpers/src/modules/redis/cluster/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iredisclusterhelperoptions)
 
 ## `IRedisClusterHelperProps`
 
-*interface*
-
-Connection settings for a Redis Cluster: the startup `nodes` and one credential pair for every node, plus raw ioredis `clusterOptions` that override the helper defaults. The credentials go through `redisOptions`, so nodes found after startup get them too.
-
-```ts
-export interface IRedisClusterHelperProps extends IRedisCredentials {
-    name: string;
-    nodes: IRedisNode[];
-    /**
-     * Same meaning as on single and sentinel: `false` holds the client open for a later `connect()`.
-     *
-     * @default true
-     */
-    autoConnect?: boolean;
-    /** Reconnect attempts: `0` never reconnects, `-1` never gives up; any other value is refused. `clusterOptions` still overrides. @default RedisDefaults.MAX_RETRY (5) */
-    maxRetry?: number;
-    clusterOptions?: ClusterOptions;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/cluster/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iredisclusterhelperprops)
 
 ## `IRedisCommand`
 
-*interface*
-
-Escape hatch to run any Redis command by name.
-
-```ts
-export interface IRedisCommand {
-    execute<R>(command: string, parameters?: Array<string | number | Buffer>): Promise<R>;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/common/interfaces.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#irediscommand)
 
 ## `IRedisConnection`
 
-*interface*
-
-Client access and connection lifecycle of a Redis helper. `connect` and `disconnect` resolve `false` when the client status makes the call a no-op.
-
-```ts
-export interface IRedisConnection {
-    getClient(): TRedisClient;
-    duplicateClient(): TRedisClient;
-    ping(): Promise<string>;
-    connect(): Promise<boolean>;
-    disconnect(): Promise<boolean>;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/common/interfaces.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iredisconnection)
 
 ## `IRedisCredentials`
 
-*interface*
-
-An ACL user and its password. Omit both to authenticate as the `default` user with no password.
-
-```ts
-export interface IRedisCredentials {
-    /** The Redis ACL user, with `password`. Omit it to authenticate as the `default` user. */
-    username?: string;
-    /** Omit it for a Redis with no password. */
-    password?: string;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#irediscredentials)
 
 ## `IRedisHash`
 
-*interface*
-
-Hash commands (`HSET`, `HGET`, ...) on one key.
-
-```ts
-export interface IRedisHash {
-    hSet<T extends Record<string, unknown>>(opts: {
-        key: string;
-        value: T;
-        options?: {
-            log?: boolean;
-        };
-    }): Promise<number>;
-    hGetAll(opts: {
-        key: string;
-        transform?: <T, R>(input: T) => R;
-    }): Promise<unknown>;
-    hGet(opts: {
-        key: string;
-        field: string;
-    }): Promise<string | null>;
-    hDel(opts: {
-        key: string;
-        fields: Array<string>;
-    }): Promise<number>;
-    hExists(opts: {
-        key: string;
-        field: string;
-    }): Promise<boolean>;
-    hKeys(opts: {
-        key: string;
-    }): Promise<string[]>;
-    hVals(opts: {
-        key: string;
-    }): Promise<string[]>;
-    hIncrBy(opts: {
-        key: string;
-        field: string;
-        value: number;
-    }): Promise<number>;
-    hLen(opts: {
-        key: string;
-    }): Promise<number>;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/common/interfaces.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iredishash)
 
 ## `IRedisHelperCallbacks`
 
-*interface*
-
-Lifecycle hooks a Redis helper calls; each receives the helper name and the helper itself.
-
-```ts
-export interface IRedisHelperCallbacks {
-    onInitialized?: (opts: {
-        name: string;
-        helper: IRedisHelper;
-    }) => void;
-    onConnected?: (opts: {
-        name: string;
-        helper: IRedisHelper;
-    }) => void;
-    onReady?: (opts: {
-        name: string;
-        helper: IRedisHelper;
-    }) => void;
-    onError?: (opts: {
-        name: string;
-        helper: IRedisHelper;
-        error: unknown;
-    }) => void;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iredishelpercallbacks)
 
 ## `IRedisJson`
 
-*interface*
-
-RedisJSON commands (`JSON.SET`, `JSON.GET`, ...); the Redis server needs the JSON module.
-
-```ts
-export interface IRedisJson {
-    jSet<T>(opts: {
-        key: string;
-        path: string;
-        value: T;
-    }): Promise<string | null>;
-    jGet<T>(opts: {
-        key: string;
-        /** @default '$' */
-        path?: string;
-    }): Promise<T | null>;
-    jDelete(opts: {
-        key: string;
-        /** @default '$' */
-        path?: string;
-    }): Promise<number>;
-    jNumberIncreaseBy(opts: {
-        key: string;
-        path: string;
-        value: number;
-    }): Promise<string | null>;
-    jStringAppend(opts: {
-        key: string;
-        path: string;
-        value: string;
-    }): Promise<number[] | null>;
-    jPush<T>(opts: {
-        key: string;
-        path: string;
-        value: T;
-    }): Promise<number[] | null>;
-    jPop<T>(opts: {
-        key: string;
-        path: string;
-    }): Promise<T | null>;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/common/interfaces.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iredisjson)
 
 ## `IRedisKey`
 
-*interface*
-
-Key-level commands: existence, expiry, TTL and counters.
-
-```ts
-export interface IRedisKey {
-    exists(opts: {
-        keys: Array<string>;
-    }): Promise<number>;
-    expire(opts: {
-        key: string;
-        seconds: number;
-    }): Promise<boolean>;
-    expireAt(opts: {
-        key: string;
-        atEpochSeconds: number;
-    }): Promise<boolean>;
-    ttl(opts: {
-        key: string;
-    }): Promise<number>;
-    persist(opts: {
-        key: string;
-    }): Promise<boolean>;
-    incr(opts: {
-        key: string;
-    }): Promise<number>;
-    decr(opts: {
-        key: string;
-    }): Promise<number>;
-    incrBy(opts: {
-        key: string;
-        value: number;
-    }): Promise<number>;
-    decrBy(opts: {
-        key: string;
-        value: number;
-    }): Promise<number>;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/common/interfaces.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#irediskey)
 
 ## `IRedisKeyValue`
 
-*interface*
-
-String value commands, including JSON-serialised object reads and batch get and set. `set` `expiresIn` is in milliseconds.
-
-```ts
-export interface IRedisKeyValue {
-    set<T>(opts: {
-        key: string;
-        value: T;
-        options?: {
-            log?: boolean;
-            expiresIn?: number;
-        };
-    }): Promise<void>;
-    get<T = string>(opts: {
-        key: string;
-        transform?: (input: string) => T;
-    }): Promise<T | null>;
-    del(opts: {
-        keys: Array<string>;
-    }): Promise<number>;
-    keys(opts: {
-        key: string;
-    }): Promise<Array<string>>;
-    getString(opts: {
-        key: string;
-    }): Promise<string | null>;
-    getStrings(opts: {
-        keys: Array<string>;
-    }): Promise<(string | null)[]>;
-    getObject<T>(opts: {
-        key: string;
-    }): Promise<T | null>;
-    getObjects(opts: {
-        keys: Array<string>;
-    }): Promise<(unknown | null)[]>;
-    mSet<T>(opts: {
-        payload: Array<{
-            key: string;
-            value: T;
-        }>;
-        options?: {
-            log?: boolean;
-        };
-    }): Promise<void>;
-    mGet<T = string>(opts: {
-        keys: Array<string>;
-        transform?: (input: string) => T;
-    }): Promise<(T | null)[]>;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/common/interfaces.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#irediskeyvalue)
 
 ## `IRedisList`
 
-*interface*
-
-List commands (`LPUSH`, `LRANGE`, ...) on one key.
-
-```ts
-export interface IRedisList {
-    lPush(opts: {
-        key: string;
-        values: Array<string | number>;
-    }): Promise<number>;
-    rPush(opts: {
-        key: string;
-        values: Array<string | number>;
-    }): Promise<number>;
-    lPop(opts: {
-        key: string;
-    }): Promise<string | null>;
-    rPop(opts: {
-        key: string;
-    }): Promise<string | null>;
-    lRange(opts: {
-        key: string;
-        start: number;
-        stop: number;
-    }): Promise<string[]>;
-    lLen(opts: {
-        key: string;
-    }): Promise<number>;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/common/interfaces.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iredislist)
 
 ## `IRedisModuleOption`
 
-*interface*
-
-`ioredis` is an optional peer, loaded when a client is built. A `bun build --compile` binary
-carries no `node_modules` to load it from: pass the module here, or register it once with
-`ModuleUtility.register({ modules: { ioredis } })` at the entry.
-
-```ts
-export interface IRedisModuleOption {
-    module?: typeof import('ioredis');
-}
-```
-
-Source: `packages/helpers/src/modules/redis/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iredismoduleoption)
 
 ## `IRedisNode`
 
-*interface*
-
-The address of one Redis node. A node has no credentials of its own: ioredis reads only the host and port of a Sentinel endpoint, and applies a cluster node's credentials to the startup nodes only.
-
-```ts
-export interface IRedisNode {
-    host: string;
-    /** @default RedisDefaults.PORT (6379), or RedisSentinelDefaults.PORT (26379) for a Sentinel node */
-    port?: string | number;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iredisnode)
 
 ## `IRedisPubSub`
 
-*interface*
-
-Publish to many topics and subscribe on the helper client. `publish` serialises the payload as JSON and deflates it when `useCompress` is set.
-
-```ts
-export interface IRedisPubSub {
-    publish<T>(opts: {
-        topics: Array<string>;
-        payload: T;
-        useCompress?: boolean;
-    }): Promise<void>;
-    subscribe(opts: {
-        topic: string;
-    }): void;
-    unsubscribe(opts: {
-        topic: string;
-    }): void;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/common/interfaces.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iredispubsub)
 
 ## `IRedisSentinelHelperOptions`
 
-*interface*
-
-Options for `RedisSentinelHelper`: connection props, lifecycle callbacks and an optional `ioredis` module.
-
-```ts
-export interface IRedisSentinelHelperOptions extends IRedisSentinelHelperProps, IRedisHelperCallbacks, IRedisModuleOption {
-}
-```
-
-Source: `packages/helpers/src/modules/redis/sentinel/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-2#iredissentinelhelperoptions)
 
 ## `IRedisSentinelHelperProps`
 
-*interface*
-
-Connection settings for Redis behind Sentinel. Top-level `username` and `password` are the data nodes' (master and replica) credentials; everything Sentinel-specific is in `sentinel`. Precedence (low -> high): the helper defaults, `redisOptions`, then the first-class fields; an auth field left unset falls back to `redisOptions`.
-
-```ts
-export interface IRedisSentinelHelperProps extends IRedisCredentials {
-    name: string;
-    /** The monitored group, which side to read, the Sentinel processes' own credentials and their addresses. `username` and `password` here are the Sentinel processes' (ioredis `sentinelUsername`, `sentinelPassword`), never the data nodes'. */
-    sentinel: IRedisCredentials & {
-        /** The group name in sentinel.conf (`sentinel monitor <masterName> ...`). Maps to ioredis `name`. */
-        masterName: string;
-        /** Connect to the master or to a replica. @default RedisSentinelRoles.MASTER */
-        role?: TRedisSentinelRole;
-        nodes: IRedisNode[];
-    };
-    /** @default 0 */
-    database?: number;
-    /** @default true */
-    autoConnect?: boolean;
-    /** Reconnect attempts: `0` never reconnects, `-1` never gives up; any other value is refused. @default RedisDefaults.MAX_RETRY (5) */
-    maxRetry?: number;
-    redisOptions?: Partial<RedisOptions>;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/sentinel/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iredissentinelhelperprops)
 
 ## `IRedisSet`
 
-*interface*
-
-Set commands (`SADD`, `SMEMBERS`, ...) on one key.
-
-```ts
-export interface IRedisSet {
-    sAdd(opts: {
-        key: string;
-        members: Array<string | number>;
-    }): Promise<number>;
-    sRem(opts: {
-        key: string;
-        members: Array<string | number>;
-    }): Promise<number>;
-    sMembers(opts: {
-        key: string;
-    }): Promise<string[]>;
-    sIsMember(opts: {
-        key: string;
-        member: string | number;
-    }): Promise<boolean>;
-    sCard(opts: {
-        key: string;
-    }): Promise<number>;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/common/interfaces.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iredisset)
 
 ## `IRedisSingleHelperOptions`
 
-*interface*
-
-Options for `RedisSingleHelper`: connection props, lifecycle callbacks and an optional `ioredis` module.
-
-```ts
-export interface IRedisSingleHelperOptions extends IRedisSingleHelperProps, IRedisHelperCallbacks, IRedisModuleOption {
-}
-```
-
-Source: `packages/helpers/src/modules/redis/single/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iredissinglehelperoptions)
 
 ## `IRedisSingleHelperProps`
 
-*interface*
-
-Connection settings for a single Redis node.
-
-```ts
-export interface IRedisSingleHelperProps extends IRedisNode, IRedisCredentials {
-    name: string;
-    /** @default 0 */
-    database?: number;
-    /** @default true */
-    autoConnect?: boolean;
-    /** Reconnect attempts: `0` never reconnects, `-1` never gives up; any other value is refused. @default RedisDefaults.MAX_RETRY (5) */
-    maxRetry?: number;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/single/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iredissinglehelperprops)
 
 ## `IRedisSocketMessage`
 
-*interface*
-
-Internal Redis pub/sub message envelope
-
-```ts
-export interface IRedisSocketMessage<DataType = unknown> {
-    serverId: string;
-    type: TWebSocketMessageType;
-    target?: string;
-    event: string;
-    data: DataType;
-    exclude?: string[];
-}
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/message.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iredissocketmessage)
 
 ## `IRequestedRemark`
 
-*interface*
-
-A request remark: `id`, `url` and `method`, plus any extra keys.
-
-```ts
-export interface IRequestedRemark {
-    id: string;
-    url: string;
-    method: string;
-    [extra: string | symbol]: unknown;
-}
-```
-
-Source: `packages/helpers/src/utilities/request.utility.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#irequestedremark)
 
 ## `ISecretHydrateEntry`
 
-*interface*
-
-A bundle at `path` to copy into environment variables; keys map by `prefix` or by explicit `keys`.
-
-```ts
-export interface ISecretHydrateEntry {
-    path: string;
-    prefix?: string;
-    /** Explicit vaultKey -> envKey overrides. Takes precedence over `prefix`. */
-    keys?: Record<string, string>;
-}
-```
-
-Source: `packages/helpers/src/modules/secrets/common/types/registration.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#isecrethydrateentry)
 
 ## `ISecretLease`
 
-*interface*
-
-A dynamic, lease-bearing secret (e.g. Vault `database/creds/...`).
-
-```ts
-export interface ISecretLease {
-    value: Record<string, string>;
-    leaseId: string;
-    ttlSeconds: number;
-    renewable: boolean;
-}
-```
-
-Source: `packages/helpers/src/modules/secrets/common/types/lease.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#isecretlease)
 
 ## `ISecretLeaseEntry`
 
-*interface*
-
-A leased secret at `path`, registered under the consumer binding `key`.
-
-```ts
-export interface ISecretLeaseEntry {
-    /** Logical/binding key of the consuming datasource, e.g. 'datasources.postgres'. */
-    key: string;
-    path: string;
-}
-```
-
-Source: `packages/helpers/src/modules/secrets/common/types/registration.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#isecretleaseentry)
 
 ## `ISecretRotatable`
 
-*interface*
-
-A live consumer (pool holder) that rebuilds gracefully when its secret rotates.
-
-```ts
-export interface ISecretRotatable {
-    onSecretRotated(opts: {
-        key: string;
-        secret: Record<string, string>;
-    }): Promise<void>;
-}
-```
-
-Source: `packages/helpers/src/modules/secrets/common/types/lease.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#isecretrotatable)
 
 ## `ISecretRotationEvent`
 
-*interface*
-
-Passed to rotation handlers: the `key` that rotated and its new lease.
-
-```ts
-export interface ISecretRotationEvent {
-    key: string;
-    lease: ISecretLease;
-}
-```
-
-Source: `packages/helpers/src/modules/secrets/common/types/lease.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#isecretrotationevent)
 
 ## `ISecretsHelper`
 
-*interface*
-
-Contract of a secrets provider: cached reads, dynamic leases with rotation handlers, and shutdown.
-
-```ts
-export interface ISecretsHelper extends IConfigurable {
-    get<TValue = string>(opts: IGetSecretOptions<TValue>): Promise<TValue>;
-    getBundle(opts: {
-        path: string;
-    }): Promise<Record<string, string>>;
-    lease(opts: {
-        path: string;
-        key: string;
-    }): Promise<ISecretLease>;
-    onRotate(handler: TSecretRotationHandler): void;
-    registerRotatable(opts: {
-        key: string;
-        target: ISecretRotatable;
-    }): void;
-    shutdown(): Promise<void>;
-}
-```
-
-Source: `packages/helpers/src/modules/secrets/common/types/helper.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#isecretshelper)
 
 ## `ISecretsHelperOptions`
 
-*interface*
-
-Constructor options of a secrets provider. `clock` and `timers` can be replaced in tests.
-
-```ts
-export interface ISecretsHelperOptions {
-    scope: string;
-    identifier?: string;
-    /**
-     * TTL in seconds of the get/getBundle cache.
-     *
-     * @default 300
-     */
-    cacheTtlSeconds?: number;
-    /**
-     * Renew a lease at ttl * ratio; must be within (0, 1].
-     *
-     * @default 0.66
-     */
-    renewBeforeRatio?: number;
-    clock?: IClock;
-    timers?: ITimerAdapter;
-}
-```
-
-Source: `packages/helpers/src/modules/secrets/common/types/helper.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#isecretshelperoptions)
 
 ## `isPromiseLike`
 
-*const*
-
-Check if a value is a promise.
-
-```ts
-export declare const isPromiseLike: <T>(value: T | PromiseLike<T>) => value is PromiseLike<T>;
-```
-
-Source: `packages/helpers/src/utilities/promise.utility.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-3#ispromiselike)
 
 ## `isRedisHelper`
 
-*const*
-
-Brand check, never `instanceof`: two installed copies of this package are two distinct classes, so a helper built by one is rejected by the other. `Symbol.for` is realm-keyed and survives that.
-
-```ts
-export declare const isRedisHelper: (value: unknown) => value is AbstractRedisHelper;
-```
-
-Source: `packages/helpers/src/modules/redis/base/abstract.helper.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-3#isredishelper)
 
 ## `IStorageHelper`
 
-*interface*
-
-The contract every storage backend (disk, in-memory, S3) implements. Buckets and objects are addressed by `IBucketRef` and `IObjectRef`.
-
-```ts
-export interface IStorageHelper {
-    /** The backend this helper writes to. The helpers IGNIS ships declare it; a custom helper may leave it out. */
-    readonly storageType?: TStorageType;
-    isValidSegment(opts: {
-        segment: string;
-    }): boolean;
-    isValidBucketName(opts: {
-        bucket: IBucketRef;
-    }): boolean;
-    isValidObjectKey(opts: {
-        object: IObjectRef;
-        maxDepth?: number;
-    }): boolean;
-    hasBucket(opts: {
-        bucket: IBucketRef;
-    }): Promise<boolean>;
-    getBuckets(): Promise<IBucketInfo[]>;
-    getBucket(opts: {
-        bucket: IBucketRef;
-    }): Promise<IBucketInfo | null>;
-    createBucket(opts: {
-        bucket: IBucketRef;
-    }): Promise<IBucketInfo | null>;
-    removeBucket(opts: {
-        bucket: IBucketRef;
-    }): Promise<boolean>;
-    getObject(opts: IObjectLocation & {
-        options?: unknown;
-    }): Promise<Readable>;
-    /** A web stream, what a `Response` body wants. `range` includes `end`, like the HTTP header. */
-    getObjectStream(opts: TObjectStreamOptions): Promise<ReadableStream<Uint8Array>>;
-    getStat(opts: IObjectLocation): Promise<IFileStat>;
-    listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]>;
-    upload(opts: IUploadOptions): Promise<IUploadResult[]>;
-    /**
-     * Writes an object from a stream, so a large body never lands in this process. A backend whose
-     * transport takes a stream overrides it; the default buffers, which is the thing to avoid.
-     */
-    writeStream(opts: IWriteStreamOptions): Promise<void>;
-    /** Copies within one bucket, server side - the bytes never travel through this process. */
-    copyObject(opts: ICopyObjectOptions): Promise<void>;
-    removeObject(opts: IObjectLocation): Promise<void>;
-    removeObjects(opts: {
-        bucket: IBucketRef;
-        objects: IObjectRef[];
-    }): Promise<void>;
-    /**
-     * The form a browser posts straight to the storage, good for exactly ONE object: the policy signs
-     * `object.key` as it stands, and `formData` carries that key, so the client does not add it.
-     * Unlike a presigned PUT, a policy carries `content-length-range`, so "at most N bytes" is
-     * expressible - a signed PUT binds the length to one exact value.
-     */
-    presignPost(opts: IPresignPostOptions): Promise<IPostPolicy>;
-    /** A URL a browser may PUT one object to. Every option is SIGNED; a pinned size is exact, never a ceiling - for a ceiling use {@link IStorageHelper.presignPost}. */
-    presignPut(opts: IPresignPutOptions): Promise<string>;
-    presignGet(opts: IPresignGetOptions): Promise<string>;
-    getObjectTags(opts: IObjectLocation): Promise<Record<string, string>>;
-    replaceObjectTags(opts: IObjectLocation & {
-        tags: Record<string, string>;
-    }): Promise<void>;
-    getMediaType(opts: {
-        mimeType: string;
-    }): string;
-    getMimeType(opts: {
-        filename: string;
-    }): string;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#istoragehelper)
 
 ## `IStorageHelperOptions`
 
-*interface*
-
-Logger `scope` and `identifier` for a storage helper.
-
-```ts
-export interface IStorageHelperOptions {
-    scope?: string;
-    identifier?: string;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#istoragehelperoptions)
 
 ## `IStorageReadCondition`
 
-*interface*
-
-What a read may require of the object: its ETag, or an exact version. A read that finds other content fails with `StorageErrors.PRECONDITION_FAILED`. A backend that cannot honour it refuses the read.
-
-```ts
-export interface IStorageReadCondition {
-    ifMatch?: string;
-    versionId?: string;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#istoragereadcondition)
 
 ## `ISystemEnvsSecretsRegistration`
 
-*interface*
-
-Registers the process environment as the provider; it takes no `config`.
-
-```ts
-export interface ISystemEnvsSecretsRegistration extends ISecretsRegistrationBase {
-    provider: typeof SecretProviders.SYSTEM_ENVS;
-    config?: undefined;
-}
-
-/** What every registration carries, whatever its provider. */
-interface ISecretsRegistrationBase {
-    hydrate?: Array<ISecretHydrateEntry>;
-    lease?: Array<ISecretLeaseEntry>;
-    /**
-     * Renew a lease at ttl * ratio.
-     *
-     * @default 0.66
-     */
-    renewBeforeRatio?: number;
-    /**
-     * TTL (seconds) for the static get/getBundle cache.
-     *
-     * @default 300
-     */
-    cacheTtlSeconds?: number;
-}
-```
-
-Source: `packages/helpers/src/modules/secrets/common/types/registration.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#isystemenvssecretsregistration)
 
 ## `ITcpSocketClient`
 
-*interface*
-
-A client connected to `BaseNetworkTcpServer`: its `id`, `socket`, authentication `state`, `subscriptions` and `storage` (connect and authenticate times, the pending authenticate timer).
-
-```ts
-export interface ITcpSocketClient<SocketClientType> {
-    id: string;
-    socket: SocketClientType;
-    state: TTcpClientState;
-    subscriptions: Set<string>;
-    storage: {
-        connectedAt: Date;
-        authenticatedAt: Date | null;
-        authenticateTimeout?: ReturnType<typeof setTimeout> | null;
-        [additionField: symbol | string]: unknown;
-    };
-}
-```
-
-Source: `packages/helpers/src/modules/network/tcp-socket/base-tcp-server.helper.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#itcpsocketclient)
 
 ## `ITcpSocketServerOptions`
 
-*interface*
-
-Options of `BaseNetworkTcpServer`. With `authenticateOptions.required`, `duration` (milliseconds, greater than 0) is how long a client has to authenticate before its socket is ended; the constructor throws without it. `createServerFn` builds the server, so one class serves plain and TLS.
-
-```ts
-export interface ITcpSocketServerOptions<SocketServerOptions extends ServerOpts = ServerOpts, SocketServerType extends SocketServer = SocketServer, SocketClientType extends SocketClient = SocketClient> {
-    scope?: string;
-    identifier: string;
-    serverOptions: Partial<SocketServerOptions>;
-    listenOptions: Partial<ListenOptions>;
-    authenticateOptions: {
-        required: boolean;
-        duration?: number;
-    };
-    extraEvents?: Record<string, (opts: {
-        id: string;
-        socket: SocketClientType;
-        args: unknown;
-    }) => ValueOrPromise<void>>;
-    createServerFn: (options: Partial<SocketServerOptions>, connectionListener: (socket: SocketClientType) => void) => SocketServerType;
-    onServerReady?: (opts: {
-        server: SocketServerType;
-    }) => void;
-    onClientConnected?: (opts: {
-        id: string;
-        socket: SocketClientType;
-    }) => void;
-    onClientData?: (opts: {
-        id: string;
-        socket: SocketClientType;
-        data: Buffer | string;
-    }) => void;
-    onClientClose?: (opts: {
-        id: string;
-        socket: SocketClientType;
-    }) => void;
-    onClientError?: (opts: {
-        id: string;
-        socket: SocketClientType;
-        error: Error;
-    }) => void;
-    onServerError?: (opts: {
-        server: SocketServerType;
-        error: Error;
-    }) => void;
-}
-```
-
-Source: `packages/helpers/src/modules/network/tcp-socket/base-tcp-server.helper.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#itcpsocketserveroptions)
 
 ## `ITimerAdapter`
 
-*interface*
-
-Injectable timer seam so tests fire renewals without real waits.
-
-```ts
-export interface ITimerAdapter {
-    set(handler: () => void, ms: number): TTimerHandle;
-    clear(handle: TTimerHandle): void;
-}
-```
-
-Source: `packages/helpers/src/modules/secrets/common/types/timer.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#itimeradapter)
 
 ## `IUploadFile`
 
-*interface*
-
-One file handed to `upload`. `buffer` is the whole body; `folderPath`, when set, nests the object under that folder and is depth-checked.
-
-```ts
-export interface IUploadFile {
-    originalName: string;
-    mimetype: string;
-    buffer: Buffer;
-    size: number;
-    encoding?: string;
-    folderPath?: string;
-    [key: string | symbol]: unknown;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iuploadfile)
 
 ## `IUploadOptions`
 
-*interface*
-
-`upload`: the files, and the rules their names and keys must meet.
-
-```ts
-export interface IUploadOptions {
-    bucket: IBucketRef;
-    files: IUploadFile[];
-    /**
-     * Folders the caller's `folderPath` may carry.
-     *
-     * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
-     */
-    maxFolderDepth?: number;
-    /**
-     * Folders the finished key may carry, a scope the `normalizeNameFn` adds included.
-     *
-     * @default `maxFolderDepth`
-     */
-    maxKeyDepth?: number;
-    normalizeNameFn?: (opts: {
-        file: TUploadNaming;
-    }) => string;
-    normalizeLinkFn?: (opts: IObjectLocation) => string;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iuploadoptions)
 
 ## `IUploadResult`
 
-*interface*
-
-`metaLink` is a union: the old pair allowed both present, or neither.
-
-```ts
-export interface IUploadResult {
-    bucket: IBucketRef;
-    object: IObjectRef & {
-        size: number;
-        contentType: string;
-    };
-    link: string;
-    metaLink?: {
-        data: unknown;
-    } | {
-        error: string;
-    };
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iuploadresult)
 
 ## `IWebSocket`
 
-*interface*
-
-The subset of a Bun server WebSocket the helpers use; `data` holds the per-connection data attached at upgrade.
-
-```ts
-export interface IWebSocket<T = unknown> {
-    readonly data: T;
-    readonly remoteAddress: string;
-    readonly readyState: number;
-    send(data: string | ArrayBuffer | SharedArrayBuffer | Uint8Array | DataView, compress?: boolean): number;
-    subscribe(topic: string): void;
-    unsubscribe(topic: string): void;
-    isSubscribed(topic: string): boolean;
-    close(code?: number, reason?: string): void;
-    cork(callback: (ws: IWebSocket<T>) => void): void;
-}
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/client.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iwebsocket)
 
 ## `IWebSocketClient`
 
-*interface*
-
-A connected WebSocket client as tracked by the server helper. `connectedAt` and `lastActivity` are timestamps; `backpressured` is set while the socket cannot accept more data.
-
-```ts
-export interface IWebSocketClient<MetadataType extends Record<string, unknown> = Record<string, unknown>> {
-    id: string;
-    userId?: string;
-    socket: IWebSocket;
-    state: TWebSocketClientState;
-    rooms: Set<string>;
-    backpressured: boolean;
-    encrypted: boolean;
-    connectedAt: number;
-    lastActivity: number;
-    metadata?: MetadataType;
-    serverPublicKey?: string;
-    salt?: string;
-    authTimer?: ReturnType<typeof setTimeout>;
-}
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/client.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iwebsocketclient)
 
 ## `IWebSocketData`
 
-*interface*
-
-Per-connection data attached to a socket when it is upgraded, linking it back to its client record.
-
-```ts
-export interface IWebSocketData<MetadataType extends Record<string, unknown> = Record<string, unknown>> {
-    clientId: string;
-    userId?: string;
-    metadata?: MetadataType;
-}
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/client.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iwebsocketdata)
 
 ## `IWebSocketEmitterOptions`
 
-*interface*
-
-Options for `WebSocketEmitter`.
-
-```ts
-export interface IWebSocketEmitterOptions {
-    identifier?: string;
-    redisConnection: IRedisHelper;
-}
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/server.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iwebsocketemitteroptions)
 
 ## `IWebSocketMessage`
 
-*interface*
-
-Client &lt;-> Server message envelope
-
-```ts
-export interface IWebSocketMessage<DataType = unknown> {
-    event: string;
-    data?: DataType;
-    id?: string;
-}
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/message.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iwebsocketmessage)
 
 ## `IWebSocketRecordAuthOptions`
 
-*interface*
-
-Authentication without a schema: the hooks receive the object the client sent.
-
-```ts
-export interface IWebSocketRecordAuthOptions<MetadataType extends Record<string, unknown> = Record<string, unknown>> {
-    authenticate: {
-        schema?: undefined;
-        fn: TWebSocketAuthenticateFn<Record<string, unknown>, MetadataType>;
-    };
-    /** Required when `requireEncryption` is true. */
-    handshake?: {
-        fn: TWebSocketHandshakeFn;
-    };
-}
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iwebsocketrecordauthoptions)
 
 ## `IWebSocketSchemaAuthOptions`
 
-*interface*
-
-Authentication checked by a schema: the server refuses what `schema` refuses, and the hooks receive what it answers.
-
-```ts
-export interface IWebSocketSchemaAuthOptions<AuthDataType extends Record<string, unknown>, MetadataType extends Record<string, unknown> = Record<string, unknown>> {
-    authenticate: {
-        schema: z.ZodType<AuthDataType>;
-        fn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
-    };
-    /** Required when `requireEncryption` is true. */
-    handshake?: {
-        fn: TWebSocketHandshakeFn<AuthDataType>;
-    };
-}
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iwebsocketschemaauthoptions)
 
 ## `IWebSocketServerBaseOptions`
 
-*interface*
-
-The options of `WebSocketServerHelper` that do not concern authentication. Timeouts and intervals are milliseconds.
-
-```ts
-export interface IWebSocketServerBaseOptions<MetadataType extends Record<string, unknown> = Record<string, unknown>> {
-    identifier: string;
-    /** @default '/ws' */
-    path?: string;
-    redisConnection: IRedisHelper;
-    server: IBunServer;
-    /** @default [WebSocketDefaults.ROOM, WebSocketDefaults.NOTIFICATION_ROOM] */
-    defaultRooms?: string[];
-    serverOptions?: IBunWebSocketConfig;
-    /**
-     * Time a client has to authenticate before it is disconnected.
-     *
-     * @default 5_000
-     */
-    authTimeout?: number;
-    /**
-     * Time between heartbeats.
-     *
-     * @default 30_000
-     */
-    heartbeatInterval?: number;
-    /**
-     * Time without a heartbeat before the client is disconnected (3 missed heartbeats at the default interval).
-     *
-     * @default 90_000
-     */
-    heartbeatTimeout?: number;
-    /**
-     * Maximum concurrent encryption operations.
-     *
-     * @default 10
-     */
-    encryptedBatchLimit?: number;
-    /**
-     * When true, clients must complete the handshake during authentication or are rejected (4004).
-     *
-     * @default false
-     */
-    requireEncryption?: boolean;
-    validateRoomFn?: TWebSocketValidateRoomFn;
-    clientConnectedFn?: TWebSocketClientConnectedFn<MetadataType>;
-    clientDisconnectedFn?: TWebSocketClientDisconnectedFn;
-    messageHandler?: TWebSocketMessageHandler;
-    outboundTransformer?: TWebSocketOutboundTransformer<unknown, MetadataType>;
-}
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/server.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iwebsocketserverbaseoptions)
 
 ## `IWorker`
 
-*interface*
-
-A managed `Worker` and the hooks fired for its lifecycle events.
-
-```ts
-export interface IWorker<MessageType> {
-    worker: Worker;
-    options: WorkerOptions;
-    onOnline(): ValueOrPromise<void>;
-    onExit(opts: {
-        code: string | number;
-    }): ValueOrPromise<void>;
-    onError(opts: {
-        error: Error;
-    }): ValueOrPromise<void>;
-    onMessage(opts: {
-        message: MessageType;
-    }): ValueOrPromise<void>;
-    onMessageError(opts: {
-        error: Error;
-    }): ValueOrPromise<void>;
-}
-```
-
-Source: `packages/helpers/src/modules/worker-thread/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iworker)
 
 ## `IWorkerBus`
 
-*interface*
-
-A message channel over a `MessagePort`: `handler` receives incoming messages, `postMessage` sends outgoing ones, with optional hooks around each send.
-
-```ts
-export interface IWorkerBus<IConsumePayload, IPublishPayload> {
-    port: MessagePort;
-    handler: IWorkerMessageBusHandler<IConsumePayload>;
-    onBeforePostMessage?(opts: {
-        message: IPublishPayload;
-    }): ValueOrPromise<void>;
-    onAfterPostMessage?(opts: {
-        message: IPublishPayload;
-    }): ValueOrPromise<void>;
-    postMessage(opts: {
-        message: IPublishPayload;
-        transferList: readonly Transferable[] | undefined;
-    }): ValueOrPromise<void>;
-}
-```
-
-Source: `packages/helpers/src/modules/worker-thread/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iworkerbus)
 
 ## `IWorkerMessageBusHandler`
 
-*interface*
-
-The callbacks a bus invokes for the events of its port.
-
-```ts
-export interface IWorkerMessageBusHandler<IConsumePayload> {
-    onMessage: (opts: {
-        message: IConsumePayload;
-    }) => ValueOrPromise<void>;
-    onClose: () => ValueOrPromise<void>;
-    onError: (opts: {
-        error: Error;
-    }) => ValueOrPromise<void>;
-    onExit: (opts: {
-        exitCode: number | string;
-    }) => ValueOrPromise<void>;
-}
-```
-
-Source: `packages/helpers/src/modules/worker-thread/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iworkermessagebushandler)
 
 ## `IWorkerThread`
 
-*interface*
-
-Message buses held by a worker thread, keyed by name.
-
-```ts
-export interface IWorkerThread {
-    buses: {
-        [workerKey: string | symbol]: IWorkerBus<never, never>;
-    };
-}
-```
-
-Source: `packages/helpers/src/modules/worker-thread/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iworkerthread)
 
 ## `IWriteStreamOptions`
 
-*interface*
-
-`writeStream`: one object written from a stream, so a large body never lands in this process.
-
-```ts
-export interface IWriteStreamOptions extends IObjectLocation {
-    source: ReadableStream<Uint8Array> | Blob | Response | Request;
-    contentType?: string;
-    /**
-     * Folder nesting the key may carry, as `upload` takes it.
-     *
-     * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
-     */
-    maxFolderDepth?: number;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#iwritestreamoptions)
 
 ## `LEADING_OR_TRAILING_HYPHENS_PATTERN`
 
-*const*
-
-Matches hyphens at the start or end of a string, so replacing it with an empty string trims them.
-
-```ts
-export declare const LEADING_OR_TRAILING_HYPHENS_PATTERN: RegExp;
-```
-
-Source: `packages/helpers/src/modules/slug/common/constants.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-3#leading-or-trailing-hyphens-pattern)
 
 ## `LogFormatUtility`
 
-*class*
-
-Renders a log message and its arguments to one string, redacting secret keys and inspecting objects to a bounded depth (`APP_ENV_LOGGER_INSPECT_DEPTH`, default 5).
-
-```ts
-export declare class LogFormatUtility {
-    private static resolveDepth;
-    private static buildInspectOptions;
-    /** Formats like `util.format`, but `%s` inspects to configured depth instead of Node's hard-coded `depth: 0` (no inspect option overrides that), and `%j` is projected into a JSON-safe shape first. Per-placeholder only - handing `%j` the widened STRING would emit a JSON-quoted inspect dump instead of an object. */
-    static formatMessage(opts: {
-        message: string;
-        args: Array<unknown>;
-        inspectOptions?: util.InspectOptions;
-    }): string;
-}
-```
-
-Source: `packages/helpers/src/modules/logger/formatting/deep-splat.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-3#logformatutility)
 
 ## `LoggerConfigUtility`
 
-*class*
-
-Resolves logger settings (level, color) from configured values and the environment.
-
-```ts
-export declare class LoggerConfigUtility {
-    /** The logger's own level, below which a line never reaches ANY transport. Defaults to `debug` - level gating belongs to the wrapper and each transport, and a stricter default here would silently drop lines the wrapper already let through. */
-    static resolveLevel(opts: {
-        configured?: string;
-    }): TLogLevel;
-    /**
-     * Whether log lines may carry ANSI color, resolved at CALL time. First match wins:
-     *
-     * 1. `APP_ENV_LOGGER_COLOR` - an explicit yes or no from the operator, in the words `ParseUtility.toBoolean` reads.
-     * 2. `NO_COLOR`, set to anything non-empty - the no-color.org convention.
-     * 3. `NODE_ENV` outside {@link Environment.DEVELOPMENT_ENVS} - production, staging, uat and any
-     *    unrecognized name. Fail-closed, the same boundary the error sanitizer draws: colors are a
-     *    terminal affordance, and in a deployed environment the same bytes land in a file or an
-     *    aggregator as escape noise every grep then has to strip.
-     *
-     * `undefined` means the framework has no opinion, so a provider that detects a terminal itself
-     * keeps deciding - which is why the pino path forwards nothing in that case.
-     */
-    static resolveColorize(opts?: {
-        configured?: string;
-        environment?: string;
-    }): boolean | undefined;
-}
-```
-
-Source: `packages/helpers/src/modules/logger/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-3#loggerconfigutility)
 
 ## `LoggerDebugGate`
 
-*class*
-
-The rule that decides whether `debug` lines are written: off unless `DEBUG` is set to something but a false word and the environment is allowed
-(`NODE_ENV` unset, or one of the common names, or one `APP_ENV_EXTRA_LOG_ENVS` adds). Every provider shares it, so a
-console, a winston and a pino logger agree.
-
-Pure: it takes the environment as an argument and reads `process` only through a guarded `globalThis` read, because a
-browser has none and there the default is off. `LoggerFactory.use({ level })` overrides it.
-
-```ts
-export declare class LoggerDebugGate {
-    /** The override lives on globalThis, so `use({ level })` in one copy of the module opens or closes debug in the other. */
-    private static readonly FORCED_SLOT;
-    private static resolved?;
-    /**
-     * A false word of a boolean setting, as `z.stringbool()` reads it, or a blank text; in any case, space around it
-     * allowed. `ParseUtility` reads it too: it lives here because this module is in the graph of `BaseHelper`, in a
-     * browser bundle with a byte ceiling. No two `\s*` meet, so a long header costs linear time.
-     */
-    static readonly FALSE_WORDS: RegExp;
-    /** The environment the host has, `{}` where there is no `process`. */
-    static readEnvironment(): TEnvironment;
-    /**
-     * The rule itself, for any environment: a pure function of `env`. `DEBUG` is a namespace pattern other libraries
-     * share (`app:*`), not a boolean: only a blank value or a false word turns it off, and nothing is refused.
-     */
-    static evaluate(opts: {
-        env: TEnvironment;
-    }): boolean;
-    /** Whether `debug` is written now: the override when `use` set one, else the rule on the host's environment, read once. */
-    static isOpen(): boolean;
-    /** `LoggerFactory.use({ level })` calls it: an explicit level turns debug on or off whatever the environment says. */
-    static force(opts: {
-        isOpen: boolean | undefined;
-    }): void;
-}
-
-type TEnvironment = Record<string, string | undefined>;
-```
-
-Source: `packages/helpers/src/modules/logger/common/debug-gate.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-3#loggerdebuggate)
 
 ## `LoggerFormats`
 
-*class*
-
-Output shapes of a log line. `isValid` narrows a string to `TLoggerFormat`.
-
-```ts
-export declare class LoggerFormats extends ConstClass {
-    static readonly JSON = "json";
-    static readonly TEXT = "text";
-}
-```
-
-Source: `packages/helpers/src/modules/logger/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-3#loggerformats)
 
 ## `MemoryStorageHelper`
 
-*class*
-
-An in-process keyed container, NOT an `IStorageHelper`: it stores values, not objects in a bucket.
-
-```ts
-export declare class MemoryStorageHelper<T extends object = Record<string, unknown>> extends BaseHelper {
-    private container;
-    constructor(opts?: {
-        scope?: string;
-    });
-    static newInstance<T extends object = Record<string, unknown>>(): MemoryStorageHelper<T>;
-    isBound(key: keyof T): boolean;
-    get<K extends keyof T>(key: K): T[K] | undefined;
-    set<K extends keyof T>(key: K, value: T[K]): void;
-    /** `false` when the key was not bound, so a caller can tell a removal from a no-op. */
-    unset(key: keyof T): boolean;
-    keys(): Array<keyof T>;
-    get size(): number;
-    clear(): void;
-    /** A COPY: handing out the live map let a caller mutate this helper's state behind its back. */
-    getContainer(): Record<string, unknown>;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/in-memory/helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-3#memorystoragehelper)
 
 ## `MINIMUM_KDF_SALT_BYTES`
 
-*const*
-
-NIST SP 800-132 minimum recommended salt size (128 bits) for a caller-supplied `kdfSalt`.
-
-```ts
-export declare const MINIMUM_KDF_SALT_BYTES = 16;
-```
-
-Source: `packages/helpers/src/modules/crypto/common/constants.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-3#minimum-kdf-salt-bytes)
 
 ## `MINIMUM_RSA_MODULUS_BITS`
 
-*const*
-
-NIST SP 800-57 Part 1 floor for RSA past 2030.
-
-```ts
-export declare const MINIMUM_RSA_MODULUS_BITS = 2048;
-```
-
-Source: `packages/helpers/src/modules/crypto/common/constants.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-3#minimum-rsa-modulus-bits)
 
 ## `ModuleUtility`
 
-*class*
-
-Loads an optional peer without letting `Bun.build` see it: every specifier stays a parameter, so there is no literal (nor a `minify.syntax`-folded const) for the bundler to resolve.
-
-```ts
-export declare class ModuleUtility {
-    /**
-     * Peers handed over by the application, keyed by specifier. Checked before any filesystem lookup. The map lives in a globalThis slot because a process (or a compiled bundle) can carry two copies of this module, and a peer registered through one copy must be found by the other.
-     *
-     * The one deliberate `any` of this class: a module's shape is whatever the peer is, and `load<T>`/`loadSync<T>` hand it back as the `T` the caller names, as `import()` and `require()` do (both answer `any`).
-     */
-    private static readonly registered;
-    private static sharedRegistry;
-    /** Called by the application once it knows its root (`configs.projectRoot` or the cwd); every peer lookup below follows it. Delegates to `ProjectRootRegistry`, which a browser Worker host reaches too through `/core` - the two must share ONE slot. */
-    static setProjectRoot(opts: {
-        projectRoot: string;
-    }): void;
-    static getProjectRoot(): string;
-    /** Resolves peers against the APP's node_modules (under the project root), not this package's own `dist/` location. */
-    private static appRequire;
-    private static fail;
-    /**
-     * Hands the framework a peer the application already holds, so no filesystem lookup is needed.
-     * A `bun build --compile` binary ships without `node_modules`, which leaves runtime resolution
-     * nothing to resolve against: the application imports such a peer statically - that import is
-     * what gets it into the binary - and registers it here before the consuming component boots.
-     *
-     * Deliberately does not log. It runs at the entrypoint of exactly the deployment that has no
-     * logger provider yet, where `LoggerFactory` throws - and a throw mid-loop would drop every
-     * module after the first.
-     */
-    static register(opts: {
-        modules: Record<string, unknown>;
-    }): void;
-    /**
-     * The file `module` resolves to from the project root under the ES module conditions (`import`), so
-     * the peer is the very instance an application's own `import` of it gets. `undefined` when it does not
-     * resolve there or the runtime has no resolver: the caller falls back to a plain `import()`.
-     */
-    private static resolveEsmFile;
-    /**
-     * Loads the module as an ES module, resolved from the project root: a peer that ships both builds
-     * (`bullmq`, `socket.io-client`) is loaded as the copy the application's own `import` gets, not a second
-     * one. A module handed over with {@link register} wins; one that does not resolve from the project root is
-     * imported by name as before. Use this everywhere except a constructor, which cannot await - see {@link preload}.
-     */
-    static load<T = unknown>(opts: {
-        module: string;
-    }): Promise<T>;
-    /**
-     * The explicit register path for what a constructor needs: loads each module with {@link load} and
-     * registers it, so the synchronous {@link loadSync} returns that ES module copy afterwards. Call it once
-     * at the entrypoint, before the helpers are constructed. A module already registered is kept; every module
-     * is loaded before any is registered, so one that is missing registers nothing.
-     */
-    static preload(opts: {
-        modules: Array<string>;
-    }): Promise<void>;
-    /**
-     * Sync twin of {@link load}, for a constructor or any path that cannot await. It resolves with
-     * `require`, so a peer that ships both builds comes back as its CommonJS copy - a second instance next to
-     * the one an application's `import` holds, and `instanceof` across the two fails. `await preload(...)` at the
-     * entrypoint registers the ES module copy first, and this returns that.
-     */
-    static loadSync<T = unknown>(opts: {
-        module: string;
-    }): T;
-    /**
-     * Presence check only - throws naming what to install, without executing the module.
-     *
-     * `allowRegistered` must be set only where {@link load} or {@link loadSync} is what finally loads
-     * the module. Where the consumer resolves the specifier itself - `pino.transport()` inside a
-     * worker thread, or any caller with its own `createRequire` - the registry cannot reach it, and
-     * counting a registration as installed would replace this precise error with an opaque one.
-     */
-    static assertInstalled(opts: {
-        modules: Array<string>;
-        scope?: string;
-        allowRegistered?: boolean;
-    }): void;
-}
-```
-
-Source: `packages/helpers/src/utilities/module.utility.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-3#moduleutility)
 
 ## `MultipartStorages`
 
-*class*
-
-Where `RequestUtility.parseMultipartBody` keeps an uploaded file: MEMORY (a buffer) or DISK (spooled to `uploadDir`).
-
-```ts
-export declare class MultipartStorages extends ConstClass {
-    static readonly MEMORY = "memory";
-    static readonly DISK = "disk";
-}
-```
-
-Source: `packages/helpers/src/utilities/request.utility.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-3#multipartstorages)
 
 ## `NetworkTcpClient`
 
-*class*
-
-`BaseNetworkTcpClient` over a plain `node:net` socket.
-
-```ts
-export declare class NetworkTcpClient extends BaseNetworkTcpClient<TcpSocketConnectOpts, Socket> {
-    constructor(opts: Omit<INetworkTcpClientProps<TcpSocketConnectOpts, Socket>, 'createClientFn'>);
-    static newInstance(opts: Omit<INetworkTcpClientProps<TcpSocketConnectOpts, Socket>, 'createClientFn'>): NetworkTcpClient;
-}
-```
-
-Source: `packages/helpers/src/modules/network/tcp-socket/network-tcp-client.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-3#networktcpclient)
 
 ## `NetworkTcpServer`
 
-*class*
-
-Plain TCP server (`node:net`) on top of the shared base server; adds no behavior of its own.
-
-```ts
-export declare class NetworkTcpServer extends BaseNetworkTcpServer<ServerOpts, SocketServer, SocketClient> {
-    constructor(opts: Omit<ITcpSocketServerOptions, 'createServerFn'>);
-    static newInstance(opts: Omit<ITcpSocketServerOptions, 'createServerFn'>): NetworkTcpServer;
-}
-```
-
-Source: `packages/helpers/src/modules/network/tcp-socket/network-tcp-server.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-3#networktcpserver)
 
 ## `NetworkTlsTcpClient`
 
-*class*
-
-TLS TCP client (`node:tls` `connect`) on top of the shared base client; `options` are `tls.ConnectionOptions`.
-
-```ts
-export declare class NetworkTlsTcpClient extends BaseNetworkTcpClient<ConnectionOptions, TLSSocket> {
-    constructor(opts: Omit<INetworkTcpClientProps<ConnectionOptions, TLSSocket>, 'createClientFn'>);
-    static newInstance(opts: Omit<INetworkTcpClientProps<ConnectionOptions, TLSSocket>, 'createClientFn'>): NetworkTlsTcpClient;
-}
-```
-
-Source: `packages/helpers/src/modules/network/tcp-socket/network-tls-tcp-client.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-3#networktlstcpclient)
 
 ## `NetworkTlsTcpServer`
 
-*class*
-
-TLS TCP server (`node:tls`) on top of the shared base server; `serverOptions` are `tls.TlsOptions`.
-
-```ts
-export declare class NetworkTlsTcpServer extends BaseNetworkTcpServer<TlsOptions, Server, SocketClient> {
-    constructor(opts: TTlsTcpServerOptions);
-    static newInstance(opts: TTlsTcpServerOptions): NetworkTlsTcpServer;
-}
-
-type TTlsTcpServerOptions = Omit<ITcpSocketServerOptions<TlsOptions, Server, SocketClient>, 'createServerFn'>;
-```
-
-Source: `packages/helpers/src/modules/network/tcp-socket/network-tls-tcp-server.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-3#networktlstcpserver)
 
 ## `NetworkUdpClient`
 
-*class*
-
-UDP (`udp4`) socket that binds to `host`/`port` and optionally joins multicast groups.
-Port `0` asks the OS for a port; a negative or non-integer port is logged and ignored. Without `onConnected`/`onData`/`onClosed`/`onError`, the built-in handlers log.
-
-```ts
-export declare class NetworkUdpClient extends BaseHelper {
-    private host?;
-    private port;
-    private reuseAddr?;
-    private multicastAddress?;
-    private onConnected;
-    private onData;
-    private onClosed?;
-    private onError?;
-    private onBind?;
-    private client?;
-    constructor(opts: INetworkUdpClientProps);
-    static newInstance(opts: INetworkUdpClientProps): NetworkUdpClient;
-    getClient(): dgram.Socket | null | undefined;
-    handleConnected(): void;
-    handleData(opts: {
-        identifier: string;
-        message: string | Buffer;
-        remoteInfo: dgram.RemoteInfo;
-    }): void;
-    handleClosed(): void;
-    handleError(opts: {
-        identifier: string;
-        error: Error;
-    }): void;
-    connect(): void;
-    private invokeHook;
-    disconnect(): void;
-    isConnected(): dgram.Socket | null | undefined;
-}
-
-interface INetworkUdpClientProps {
-    identifier: string;
-    host?: string;
-    port: number;
-    reuseAddr?: boolean;
-    multicastAddress?: {
-        groups?: Array<string>;
-        interface?: string;
-    };
-    onConnected?: (opts: {
-        identifier: string;
-        host?: string;
-        port: number;
-    }) => void;
-    onData?: (opts: {
-        identifier: string;
-        message: string | Buffer;
-        remoteInfo: dgram.RemoteInfo;
-    }) => void;
-    onClosed?: (opts: {
-        identifier: string;
-        host?: string;
-        port: number;
-    }) => void;
-    onError?: (opts: {
-        identifier: string;
-        host?: string;
-        port: number;
-        error: Error;
-    }) => void;
-    onBind?: (opts: {
-        identifier: string;
-        socket: dgram.Socket;
-        host?: string;
-        port: number;
-        reuseAddr?: boolean;
-        multicastAddress?: {
-            groups?: Array<string>;
-            interface?: string;
-        };
-    }) => ValueOrPromise<void>;
-}
-```
-
-Source: `packages/helpers/src/modules/network/udp-socket/network-udp-client.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-3#networkudpclient)
 
 ## `NON_SLUG_CHARACTERS_PATTERN`
 
-*const*
-
-Any run of characters outside the slug alphabet collapses to one hyphen.
-
-```ts
-export declare const NON_SLUG_CHARACTERS_PATTERN: RegExp;
-```
-
-Source: `packages/helpers/src/modules/slug/common/constants.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-3#non-slug-characters-pattern)
 
 ## `PropsWithChildren`
 
-*type*
-
-Kept out of the `./common` barrel because `hono/jsx` types reach DOM-dependent JSX intrinsics; `hono` is an optional peer, so a Worker or hono-less consumer of `./common` must not have this file in its type graph. Re-exported directly from the root barrel (`src/index.ts`) instead, so `Child`/`FC`/`PropsWithChildren` stay publicly reachable from `@venizia/ignis-helpers`.
-
-```ts
-type PropsWithChildren<P = unknown> = P & { children?: Child | undefined; }
-```
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-3#propswithchildren)
 
 ## `QueueStatuses`
 
-*class*
-
-Lifecycle states of a sequential queue; the numeric prefix orders them.
-
-```ts
-export declare class QueueStatuses {
-    static readonly WAITING = "000_WAITING";
-    static readonly PROCESSING = "100_PROCESSING";
-    static readonly LOCKED = "200_LOCKED";
-    static readonly SETTLED = "300_SETTLED";
-}
-```
-
-Source: `packages/helpers/src/modules/queue/internal/sequential/common/types.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-3#queuestatuses)
 
 ## `REDIS_HELPER_BRAND`
 
-*const*
-
-Registry symbol that marks an instance as a Redis helper; `isRedisHelper` tests for it.
-
-```ts
-export declare const REDIS_HELPER_BRAND: unique symbol;
-```
-
-Source: `packages/helpers/src/modules/redis/base/abstract.helper.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-3#redis-helper-brand)
 
 ## `RedisClusterHelper`
 
-*class*
-
-Redis helper over an ioredis `Cluster`. `autoConnect: false` creates the client with `lazyConnect`; `clusterOptions` is applied last and overrides the defaults.
-
-```ts
-export declare class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
-    private startupNodes;
-    private clusterOpts;
-    private ioredis;
-    constructor(opts: IRedisClusterHelperOptions);
-    duplicateClient(): Cluster;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/cluster/cluster.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-3#redisclusterhelper)
 
 ## `RedisConcurrency`
 
-*class*
-
-Ceiling on a caller-sized fan-out over one connection; a burst larger than this queues rather than piles up.
-
-```ts
-export declare class RedisConcurrency {
-    static readonly PUBLISH_LIMIT = 32;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-3#redisconcurrency)
 
 ## `RedisDefaults`
 
-*class*
-
-Reconnect defaults of a Redis helper.
-
-```ts
-export declare class RedisDefaults {
-    /** The port of a data node when none is given. */
-    static readonly PORT = 6379;
-    /** Reconnect attempts before the helper gives up: `0` never reconnects, `RETRY_FOREVER` never stops. */
-    static readonly MAX_RETRY = 5;
-    static readonly RETRY_FOREVER = -1;
-    /** The wait before reconnect attempt N, computed by `RetryUtility.computeBackoffDelayMs`. */
-    static readonly RECONNECT_BACKOFF: {
-        strategy: "exponential";
-        initialDelayMs: number;
-        multiplier: number;
-        maxDelayMs: number;
-        jitter: "equal";
-    };
-}
-```
-
-Source: `packages/helpers/src/modules/redis/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-3#redisdefaults)
 
 ## `RedisHelperFactory`
 
-*class*
-
-Creates the Redis helper of one topology: `single`, `cluster` or `sentinel`. Each returns its concrete helper type.
-
-```ts
-export declare class RedisHelperFactory {
-    static single(opts: IRedisSingleHelperOptions): RedisSingleHelper;
-    static cluster(opts: IRedisClusterHelperOptions): RedisClusterHelper;
-    static sentinel(opts: IRedisSentinelHelperOptions): RedisSentinelHelper;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/factory.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#redishelperfactory)
 
 ## `RedisSentinelDefaults`
 
-*class*
-
-Defaults of the Sentinel helper.
-
-```ts
-export declare class RedisSentinelDefaults {
-    /** The port of a Sentinel process when none is given. */
-    static readonly PORT = 26379;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/sentinel/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#redissentineldefaults)
 
 ## `RedisSentinelHelper`
 
-*class*
-
-Redis helper for a master and replicas behind Sentinel. `redisOptions` overrides the helper defaults; the first-class fields override `redisOptions`.
-
-```ts
-export declare class RedisSentinelHelper extends AbstractRedisHelper<Redis> {
-    constructor(opts: IRedisSentinelHelperOptions);
-}
-```
-
-Source: `packages/helpers/src/modules/redis/sentinel/sentinel.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#redissentinelhelper)
 
 ## `RedisSentinelRoles`
 
-*class*
-
-Role of the node a Sentinel-backed client connects to.
-
-```ts
-export declare class RedisSentinelRoles {
-    static readonly MASTER = "master";
-    static readonly SLAVE = "slave";
-}
-```
-
-Source: `packages/helpers/src/modules/redis/sentinel/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#redissentinelroles)
 
 ## `RedisSingleHelper`
 
-*class*
-
-Redis helper over one ioredis `Redis` client connected to a single node.
-
-```ts
-export declare class RedisSingleHelper extends AbstractRedisHelper<Redis> {
-    constructor(opts: IRedisSingleHelperOptions);
-}
-```
-
-Source: `packages/helpers/src/modules/redis/single/single.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#redissinglehelper)
 
 ## `RedisUtility`
 
-*class*
-
-Static helpers for working with ioredis clients.
-
-```ts
-export declare class RedisUtility {
-    /** Resolves once the client reaches `ready`; rejects on the first client error or when `timeoutMs` elapses. */
-    static waitForReady(opts: {
-        client: TRedisClient;
-        timeoutMs?: number;
-    }): Promise<void>;
-    /** Kicks off connection for clients still parked in `wait` - duplicated clients inherit `lazyConnect` from their parent and never dial on their own. */
-    static ensureConnecting(opts: {
-        clients: TRedisClient[];
-        logger?: ILogger;
-        scope: string;
-    }): void;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/utility.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#redisutility)
 
 ## `RequestUtility`
 
-*class*
-
-Multipart body parsing and `Content-Disposition` header building and parsing for requests and uploads.
-
-```ts
-export declare class RequestUtility {
-    /** Built on first use: a helper opens a logger, which is work an import alone should not do. */
-    private static uploadTokens?;
-    /** Uniqueness for a spooled filename, not a secret; the helper's 16-byte floor is the shortest it makes. */
-    private static getUploadTokens;
-    static parseMultipartBody<C extends IMultipartContext = IMultipartContext>(opts: IParseMultipartOptions<C>): Promise<IParsedMultipartBody>;
-    private static removeSpooled;
-    private static readParts;
-    /** Sanitizes a filename by removing path components and dangerous characters. The result is printable ASCII. */
-    static sanitizeFilename(opts: {
-        filename: string;
-    }): string;
-    static encodeRfc5987(opts: {
-        filename: string;
-    }): string;
-    static buildContentDispositionHeader(opts: {
-        filename: string;
-        type: TContentDispositionType;
-    }): string;
-}
-
-/** The part of a request context a multipart body is read from: its `formData()`. A Hono context satisfies it. */
-interface IMultipartContext {
-    req: {
-        formData: () => Promise<FormData>;
-    };
-}
-
-interface IParseMultipartOptions<C extends IMultipartContext = IMultipartContext> {
-    storage?: TMultipartStorage;
-    uploadDir?: string;
-    /** The most file parts one request may carry; more is refused (413) before anything is spooled. Unset: no limit. */
-    maxFiles?: number;
-    context: C;
-}
-```
-
-Source: `packages/helpers/src/utilities/request.utility.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#requestutility)
 
 ## `RSA`
 
-*class*
-
-`generateDERKeyPair`, `encrypt` and `decrypt` are async: they run over `crypto.subtle`.
-
-```ts
-export declare class RSA extends BaseCryptoAlgorithm<RSAAlgorithmType, string, string, string, Promise<string>, Promise<string>, IRSAExtraOptions> {
-    constructor(opts: {
-        algorithm: RSAAlgorithmType;
-    });
-    static withAlgorithm(): RSA;
-    /**
-     * Rejects a modulus below `MINIMUM_RSA_MODULUS_BITS` rather than generating it - a weak key still
-     * works, signs, and verifies, so this is the only point where the size is ever checked.
-     */
-    generateDERKeyPair(opts?: {
-        modulus: number;
-    }): Promise<{
-        publicKey: Buffer<ArrayBuffer>;
-        privateKey: Buffer<ArrayBuffer>;
-    }>;
-    encrypt(opts: {
-        message: string;
-        secret: string;
-        opts?: IRSAExtraOptions;
-    }): Promise<string>;
-    decrypt(opts: {
-        message: string;
-        secret: string;
-        opts?: IRSAExtraOptions;
-    }): Promise<string>;
-}
-
-interface IRSAExtraOptions {
-    inputEncoding?: {
-        key: BufferEncoding;
-        message: BufferEncoding;
-    };
-    outputEncoding?: BufferEncoding;
-}
-```
-
-Source: `packages/helpers/src/modules/crypto/algorithms/rsa.algorithm.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#rsa)
 
 ## `RSAAlgorithmType`
 
-*type*
-
-The algorithm name `RSA` reports as its `algorithm`.
-
-```ts
-export type RSAAlgorithmType = 'rsa';
-```
-
-Source: `packages/helpers/src/modules/crypto/algorithms/rsa.algorithm.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#rsaalgorithmtype)
 
 ## `S3Audiences`
 
-*class*
-
-Which host a signed artifact names. `host` is inside every SigV4 signature, so this is decided at signing time and cannot be patched afterwards.
-
-```ts
-export declare class S3Audiences {
-    /** The host THIS process talks to: every bucket operation, copy and tagging call. */
-    static readonly SERVER = "server";
-    /** The host a BROWSER is handed: presigned URLs and POST policies. */
-    static readonly BROWSER = "browser";
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#s3audiences)
 
 ## `S3Defaults`
 
-*class*
-
-S3 values the helper falls back to or recognises.
-
-```ts
-export declare class S3Defaults {
-    static readonly REGION = "us-east-1";
-    /** What S3 answers as the version id of an object in a bucket where versioning is off or suspended. */
-    static readonly NULL_VERSION_ID = "null";
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#s3defaults)
 
 ## `S3Headers`
 
-*class*
-
-The `x-amz-*` request and response headers the S3 helper reads and sends.
-
-```ts
-export declare class S3Headers {
-    static readonly COPY_SOURCE = "x-amz-copy-source";
-    static readonly COPY_SOURCE_IF_MATCH = "x-amz-copy-source-if-match";
-    static readonly VERSION_ID = "x-amz-version-id";
-    static readonly TAGGING = "x-amz-tagging";
-    static readonly CONTENT_SHA256 = "x-amz-content-sha256";
-    static readonly DATE = "x-amz-date";
-    static readonly SECURITY_TOKEN = "x-amz-security-token";
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#s3headers)
 
 ## `S3Signing`
 
-*class*
-
-The fixed words of an AWS Signature V4 signature for S3.
-
-```ts
-export declare class S3Signing {
-    static readonly ALGORITHM = "AWS4-HMAC-SHA256";
-    static readonly SERVICE = "s3";
-    static readonly REQUEST_TYPE = "aws4_request";
-    static readonly UNSIGNED_PAYLOAD = "UNSIGNED-PAYLOAD";
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#s3signing)
 
 ## `SecretProviders`
 
-*class*
-
-Secret backends a secrets registration can select.
-
-```ts
-export declare class SecretProviders extends ConstClass {
-    static readonly SYSTEM_ENVS = "system-envs";
-    static readonly HASHICORP_VAULT = "hashicorp-vault";
-    static readonly DOTENV_VAULT = "dotenv-vault";
-}
-```
-
-Source: `packages/helpers/src/modules/secrets/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#secretproviders)
 
 ## `SecretsHelperFactory`
 
-*class*
-
-Builds the `ISecretsHelper` for a registration by its `provider`. Throws when the provider is unknown, or when the provider package is neither installed, registered, nor injected through the config.
-
-```ts
-export declare class SecretsHelperFactory {
-    static create(opts: TSecretsRegistration & {
-        identifier?: string;
-    }): Promise<ISecretsHelper>;
-}
-```
-
-Source: `packages/helpers/src/modules/secrets/factory.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#secretshelperfactory)
 
 ## `SequentialQueueHelper`
 
-*class*
-
-In-memory FIFO queue that hands one element at a time to `onMessage`.
-A throwing handler is logged and its element dropped, so the queue keeps moving.
-
-```ts
-export declare class SequentialQueueHelper<TElementPayload> extends BaseHelper {
-    storage: Array<TQueueElement<TElementPayload>>;
-    protected processingEvents: Set<TQueueElement<TElementPayload>>;
-    protected generator: Generator;
-    protected totalEvent: number;
-    protected autoDispatch: boolean;
-    protected state: TQueueStatus;
-    protected isSettleRequested: boolean;
-    private onMessage?;
-    private onDataEnqueue?;
-    private onDataDequeue?;
-    private onStateChange?;
-    constructor(opts: IQueueCallback<TElementPayload> & {
-        identifier: string;
-    });
-    /** Announce a state transition, awaiting the hook but never letting it break the caller. */
-    protected notifyStateChange(opts: {
-        scope: string;
-        from: TQueueStatus;
-    }): Promise<void>;
-    /** Announce a state transition from a synchronous caller (lock/unlock/settle) - fire-and-forget. */
-    protected notifyStateChangeAsync(opts: {
-        scope: string;
-        from: TQueueStatus;
-    }): void;
-    protected handleMessage(): Promise<void>;
-    private _messageListener;
-    nextMessage(): void;
-    enqueue(payload: TElementPayload): Promise<void>;
-    dequeue(): TQueueElement<TElementPayload> | undefined;
-    lock(): void;
-    unlock(opts: {
-        shouldProcessNextElement?: boolean;
-    }): void;
-    settle(): void;
-    isSettled(): boolean;
-    close(): void;
-    getElementAt(position: number): TQueueElement<TElementPayload>;
-    getState(): TQueueStatus;
-    getTotalEvent(): number;
-    getProcessingEvents(): Set<TQueueElement<TElementPayload>>;
-}
-```
-
-Source: `packages/helpers/src/modules/queue/internal/sequential/helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#sequentialqueuehelper)
 
 ## `StorageConcurrency`
 
-*class*
-
-Concurrent object operations. Unbounded exhausts sockets and gets rate limited.
-
-```ts
-export declare class StorageConcurrency {
-    static readonly DEFAULT_LIMIT = 16;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#storageconcurrency)
 
 ## `StorageErrors`
 
-*const*
-
-Codes a caller branches on for a storage failure that is the request's fault, not the backend's.
-
-```ts
-export declare const StorageErrors: {
-    readonly OBJECT_NOT_FOUND: {
-        readonly message: {
-            readonly text: "Object not found";
-            readonly code: "core.storage.object_not_found";
-        };
-        readonly statusCode: 404;
-        readonly category: "business";
-    };
-    /** A read or copy that named the content it expects (an ETag or a version) found other content. */
-    readonly PRECONDITION_FAILED: {
-        readonly message: {
-            readonly text: "The object no longer matches what was expected";
-            readonly code: "core.storage.precondition_failed";
-        };
-        readonly statusCode: 412;
-        readonly category: "business";
-    };
-    /** An upload named a folder the storage refuses: a segment it cannot hold, or an empty path. */
-    readonly FOLDER_PATH_INVALID: {
-        readonly message: {
-            readonly text: "Invalid folder path";
-            readonly code: "core.storage.folder_path_invalid";
-        };
-        readonly statusCode: 400;
-        readonly category: "validation";
-    };
-    readonly FOLDER_DEPTH_EXCEEDED: {
-        readonly message: {
-            readonly text: "Folder path exceeds the maximum depth";
-            readonly code: "core.storage.folder_depth_exceeded";
-        };
-        readonly statusCode: 400;
-        readonly category: "validation";
-    };
-};
-```
-
-Source: `packages/helpers/src/modules/storage/common/errors.ts`
+*const* - [Declaration](/references/api/venizia-ignis-helpers--part-4#storageerrors)
 
 ## `StorageLimits`
 
-*class*
-
-Size ceilings the storage helpers enforce: a name or key in UTF-8 bytes, and the keys one S3 listing call returns.
-
-```ts
-export declare class StorageLimits {
-    static readonly MAX_SEGMENT_BYTES = 255;
-    static readonly MAX_KEY_BYTES = 1024;
-    static readonly MAX_LIST_KEYS = 1000;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#storagelimits)
 
 ## `StoragePresignDefaults`
 
-*class*
-
-Presign expiry defaults - a PUT or a POST form carries a file and needs more time; a GET is a redirect.
-
-```ts
-export declare class StoragePresignDefaults {
-    static readonly PUT_EXPIRES_IN: IDuration;
-    static readonly GET_EXPIRES_IN: IDuration;
-    /** A browser upload form: the user has to pick the file and the bytes have to travel. */
-    static readonly POST_EXPIRES_IN: IDuration;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#storagepresigndefaults)
 
 ## `StoragePresignLimits`
 
-*class*
-
-SigV4 refuses a presigned URL valid for longer than 7 days.
-
-```ts
-export declare class StoragePresignLimits {
-    static readonly MAX_EXPIRES_IN_SECONDS: number;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#storagepresignlimits)
 
 ## `StorageTypes`
 
-*class*
-
-The backend a storage helper writes to. A helper declares its own, so a caller never tells one apart with `instanceof`.
-
-```ts
-export declare class StorageTypes {
-    static readonly DISK = "disk";
-    static readonly BUN_S3 = "bun-s3";
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#storagetypes)
 
 ## `StorageUtility`
 
-*class*
-
-Backend-neutral checks shared by storage helpers: recognising a "not found" error and turning an `IDuration` into presign seconds.
-
-```ts
-export declare class StorageUtility {
-    /** "Not there", across SDKs. Both minio and Bun report `S3Error` in `name`, so `code` and status decide. */
-    static isNotFoundError(opts: {
-        error: unknown;
-    }): boolean;
-    /** A version id that names a version. S3 and MinIO answer the literal `null`, or nothing, for an object in a bucket where versioning is off or suspended. */
-    static realVersionId(opts: {
-        value?: string | null;
-    }): string | undefined;
-    /** "The expected content is gone", across SDKs: S3 and MinIO answer 412. */
-    static isPreconditionFailedError(opts: {
-        error: unknown;
-    }): boolean;
-    private static hasStatus;
-    /** S3 presigns in whole seconds. An unknown unit is refused; `null` would read as "no expiry". */
-    static toExpirySeconds(opts: {
-        expiresIn: IDuration;
-        operation: string;
-    }): number;
-}
-```
-
-Source: `packages/helpers/src/modules/storage/common/utility.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#storageutility)
 
 ## `SystemEnvsHelper`
 
-*class*
-
-Secrets provider that serves the current `process.env` entries. Dynamic leases are not supported: `lease()` throws.
-
-```ts
-export declare class SystemEnvsHelper extends AbstractSecretsHelper {
-    constructor(opts: {
-        identifier?: string;
-        clock?: IClock;
-        timers?: ITimerAdapter;
-    });
-    protected fetchRaw(): Promise<{
-        value: Record<string, string>;
-    }>;
-    protected renewRaw(): Promise<null>;
-    protected revokeRaw(): Promise<void>;
-    lease(_opts: {
-        path: string;
-        key: string;
-    }): Promise<ISecretLease>;
-}
-```
-
-Source: `packages/helpers/src/modules/secrets/system-envs/system-envs.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#systemenvshelper)
 
 ## `TAESSecret`
 
-*type*
-
-A single secret string, or a keyring. Encrypt uses the first keyring entry; decrypt uses the entry whose `id` matches the ciphertext.
-
-```ts
-export type TAESSecret = string | IAESKeyringEntry[];
-```
-
-Source: `packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#taessecret)
 
 ## `TBullQueueRole`
 
-*type*
-
-Valid BullMQ queue role values.
-
-```ts
-export type TBullQueueRole = TConstValue<typeof BullQueueRoles>;
-```
-
-Source: `packages/helpers/src/modules/queue/common/constants.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#tbullqueuerole)
 
 ## `TcpClientStates`
 
-*class*
-
-Where a TCP client is in the authentication handshake.
-
-```ts
-export declare class TcpClientStates {
-    static readonly UNAUTHORIZED = "unauthorized";
-    static readonly AUTHENTICATING = "authenticating";
-    static readonly AUTHENTICATED = "authenticated";
-}
-```
-
-Source: `packages/helpers/src/modules/network/tcp-socket/base-tcp-server.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#tcpclientstates)
 
 ## `TCredentialAlgorithm`
 
-*type*
-
-One of the `CredentialAlgorithms` values.
-
-```ts
-export type TCredentialAlgorithm = TConstValue<typeof CredentialAlgorithms>;
-```
-
-Source: `packages/helpers/src/modules/crypto/common/constants.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#tcredentialalgorithm)
 
 ## `THashAlgorithm`
 
-*type*
-
-One of the `HashAlgorithms` values.
-
-```ts
-export type THashAlgorithm = TConstValue<typeof HashAlgorithms>;
-```
-
-Source: `packages/helpers/src/modules/crypto/common/constants.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#thashalgorithm)
 
 ## `THashOutputEncoding`
 
-*type*
-
-One of the `HashOutputEncodings` values.
-
-```ts
-export type THashOutputEncoding = TConstValue<typeof HashOutputEncodings>;
-```
-
-Source: `packages/helpers/src/modules/crypto/common/constants.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#thashoutputencoding)
 
 ## `THfLogLevel`
 
-*type*
-
-The levels the high-frequency logger writes: the shared log levels.
-
-```ts
-export type THfLogLevel = TLogLevel;
-```
-
-Source: `packages/helpers/src/modules/logger/hf/common/types.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#thfloglevel)
 
 ## `THfSink`
 
-*type*
-
-Declared `=> void` ON PURPOSE: TS's void-return exemption lets both sync and `async` sinks assign to it (`void | Promise<void>` would reject the sync form); the flusher still awaits a returned thenable, so a rejection is caught and logged, never unhandled.
-
-```ts
-export type THfSink = (batch: THfSinkBatch) => void;
-```
-
-Source: `packages/helpers/src/modules/logger/hf/common/types.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#thfsink)
 
 ## `THfSinkBatch`
 
-*type*
-
-One batch handed to a sink: the rendered `lines`, and `dropped`, the number of entries overwritten in the ring before they could be read.
-
-```ts
-export type THfSinkBatch = {
-    lines: Array<string>;
-    dropped: number;
-};
-```
-
-Source: `packages/helpers/src/modules/logger/hf/common/types.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#thfsinkbatch)
 
 ## `TLoggerFormat`
 
-*type*
-
-One of the `LoggerFormats` values.
-
-```ts
-export type TLoggerFormat = TConstValue<typeof LoggerFormats>;
-```
-
-Source: `packages/helpers/src/modules/logger/common/constants.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#tloggerformat)
 
 ## `TMultipartStorage`
 
-*type*
-
-Valid multipart storage values.
-
-```ts
-export type TMultipartStorage = TConstValue<typeof MultipartStorages>;
-```
-
-Source: `packages/helpers/src/utilities/request.utility.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#tmultipartstorage)
 
 ## `TObjectStreamOptions`
 
-*type*
-
-`getObjectStream`: one object, an optional byte window, and what the object must still be.
-
-```ts
-export type TObjectStreamOptions = IObjectLocation & {
-    range?: IByteRange;
-} & IStorageReadCondition;
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#tobjectstreamoptions)
 
 ## `TQueueElement`
 
-*type*
-
-One queued item: `payload`, plus `isLocked` while a handler holds it.
-
-```ts
-export type TQueueElement<T> = {
-    isLocked: boolean;
-    payload: T;
-};
-```
-
-Source: `packages/helpers/src/modules/queue/internal/sequential/common/types.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#tqueueelement)
 
 ## `TQueueStatus`
 
-*type*
-
-A {@link QueueStatuses} value.
-
-```ts
-export type TQueueStatus = TConstValue<typeof QueueStatuses>;
-```
-
-Source: `packages/helpers/src/modules/queue/internal/sequential/common/types.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#tqueuestatus)
 
 ## `TRedisClient`
 
-*type*
-
-The ioredis client a helper wraps: a single or Sentinel `Redis`, or a `Cluster`.
-
-```ts
-export type TRedisClient = Redis | Cluster;
-```
-
-Source: `packages/helpers/src/modules/redis/common/types.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#tredisclient)
 
 ## `TRedisSentinelRole`
 
-*type*
-
-Union of the `RedisSentinelRoles` values.
-
-```ts
-export type TRedisSentinelRole = TConstValue<typeof RedisSentinelRoles>;
-```
-
-Source: `packages/helpers/src/modules/redis/sentinel/constants.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#tredissentinelrole)
 
 ## `TS3Audience`
 
-*type*
-
-The host a signed artifact names: `server` (the host this process talks to) or `browser` (the host a browser is handed).
-
-```ts
-export type TS3Audience = TConstValue<typeof S3Audiences>;
-```
-
-Source: `packages/helpers/src/modules/storage/common/constants.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#ts3audience)
 
 ## `TSecretProvider`
 
-*type*
-
-Union of the `SecretProviders` values.
-
-```ts
-export type TSecretProvider = TConstValue<typeof SecretProviders>;
-```
-
-Source: `packages/helpers/src/modules/secrets/common/constants.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#tsecretprovider)
 
 ## `TSecretRotationHandler`
 
-*type*
-
-Callback run when a leased secret is renewed with new values; may be async.
-
-```ts
-export type TSecretRotationHandler = (event: ISecretRotationEvent) => ValueOrPromise<void>;
-```
-
-Source: `packages/helpers/src/modules/secrets/common/types/lease.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#tsecretrotationhandler)
 
 ## `TSecretsRegistration`
 
-*type*
-
-Declares a secrets provider with the bundles to hydrate and the secrets to lease: the `provider` selects the shape of `config`.
-
-```ts
-export type TSecretsRegistration = ISystemEnvsSecretsRegistration | IHashiCorpSecretsRegistration | IDotenvSecretsRegistration;
-```
-
-Source: `packages/helpers/src/modules/secrets/common/types/registration.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#tsecretsregistration)
 
 ## `TStorageType`
 
-*type*
-
-One of the `StorageTypes` values.
-
-```ts
-export type TStorageType = TConstValue<typeof StorageTypes>;
-```
-
-Source: `packages/helpers/src/modules/storage/common/constants.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#tstoragetype)
 
 ## `TTask`
 
-*type*
-
-An async task as `executeWithLimit` takes it.
-
-```ts
-export type TTask<T> = (...args: never[]) => Promise<T>;
-```
-
-Source: `packages/helpers/src/utilities/promise.utility.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#ttask)
 
 ## `TTcpClientState`
 
-*type*
-
-Valid TCP client state values.
-
-```ts
-export type TTcpClientState = TConstValue<typeof TcpClientStates>;
-```
-
-Source: `packages/helpers/src/modules/network/tcp-socket/base-tcp-server.helper.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#ttcpclientstate)
 
 ## `TTimerHandle`
 
-*type*
-
-Opaque handle returned by `ITimerAdapter.set`.
-
-```ts
-export type TTimerHandle = ReturnType<typeof setTimeout> | number | object;
-```
-
-Source: `packages/helpers/src/modules/secrets/common/types/timer.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#ttimerhandle)
 
 ## `TUploadNaming`
 
-*type*
-
-The parts of an upload a naming hook needs; `IUploadFile` already declares both.
-
-```ts
-export type TUploadNaming = Pick<IUploadFile, 'originalName' | 'folderPath'>;
-```
-
-Source: `packages/helpers/src/modules/storage/common/types.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#tuploadnaming)
 
 ## `TVaultAuthMethod`
 
-*type*
-
-Union of the `VaultAuthMethods` values.
-
-```ts
-export type TVaultAuthMethod = TConstValue<typeof VaultAuthMethods>;
-```
-
-Source: `packages/helpers/src/modules/secrets/common/constants.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#tvaultauthmethod)
 
 ## `TWebSocketAuthenticateFn`
 
-*type*
-
-Verifies the data a client sends to authenticate. Resolves `{ userId, metadata }` to accept, or `null` or `false` to reject.
-
-```ts
-export type TWebSocketAuthenticateFn<AuthDataType extends Record<string, unknown> = Record<string, unknown>, MetadataType extends Record<string, unknown> = Record<string, unknown>> = (opts: AuthDataType) => ValueOrPromise<{
-    userId?: string;
-    metadata?: MetadataType;
-} | null | false>;
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#twebsocketauthenticatefn)
 
 ## `TWebSocketAuthOptions`
 
-*type*
-
-How a client authenticates. The server refuses authentication data that is not an object, with or without a schema.
-
-```ts
-export type TWebSocketAuthOptions<AuthDataType extends Record<string, unknown> = Record<string, unknown>, MetadataType extends Record<string, unknown> = Record<string, unknown>> = IWebSocketSchemaAuthOptions<AuthDataType, MetadataType> | IWebSocketRecordAuthOptions<MetadataType>;
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#twebsocketauthoptions)
 
 ## `TWebSocketClientConnectedFn`
 
-*type*
-
-Called after a client has authenticated.
-
-```ts
-export type TWebSocketClientConnectedFn<MetadataType extends Record<string, unknown> = Record<string, unknown>> = (opts: {
-    clientId: string;
-    userId?: string;
-    metadata?: MetadataType;
-}) => ValueOrPromise<void>;
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#twebsocketclientconnectedfn)
 
 ## `TWebSocketClientDisconnectedFn`
 
-*type*
-
-Called after a client has disconnected.
-
-```ts
-export type TWebSocketClientDisconnectedFn = (opts: {
-    clientId: string;
-    userId?: string;
-}) => ValueOrPromise<void>;
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#twebsocketclientdisconnectedfn)
 
 ## `TWebSocketClientState`
 
-*type*
-
-One of the `WebSocketClientStates` values.
-
-```ts
-export type TWebSocketClientState = TConstValue<typeof WebSocketClientStates>;
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/client.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#twebsocketclientstate)
 
 ## `TWebSocketEvent`
 
-*type*
-
-One of the `WebSocketEvents` values.
-
-```ts
-export type TWebSocketEvent = TConstValue<typeof WebSocketEvents>;
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/constants.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#twebsocketevent)
 
 ## `TWebSocketHandshakeFn`
 
-*type*
-
-Produces the server public key and salt for an encrypted session during authentication. Resolves `null` or `false` to refuse the handshake.
-
-```ts
-export type TWebSocketHandshakeFn<AuthDataType extends Record<string, unknown> = Record<string, unknown>> = (opts: {
-    clientId: string;
-    userId?: string;
-    data: AuthDataType;
-}) => ValueOrPromise<{
-    serverPublicKey: string;
-    salt: string;
-} | null | false>;
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#twebsockethandshakefn)
 
 ## `TWebSocketMessageHandler`
 
-*type*
-
-Handles a message received from an authenticated client.
-
-```ts
-export type TWebSocketMessageHandler = (opts: {
-    clientId: string;
-    userId?: string;
-    message: IWebSocketMessage;
-}) => ValueOrPromise<void>;
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#twebsocketmessagehandler)
 
 ## `TWebSocketMessageType`
 
-*type*
-
-One of the `WebSocketMessageTypes` values.
-
-```ts
-export type TWebSocketMessageType = TConstValue<typeof WebSocketMessageTypes>;
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/constants.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#twebsocketmessagetype)
 
 ## `TWebSocketOutboundTransformer`
 
-*type*
-
-Rewrites an outbound event before it is sent to an encrypted client. Resolving `null` or `undefined` sends the original event and data.
-
-```ts
-export type TWebSocketOutboundTransformer<DataType = unknown, MetadataType extends Record<string, unknown> = Record<string, unknown>> = (opts: {
-    client: IWebSocketClient<MetadataType>;
-    event: string;
-    data: DataType;
-}) => ValueOrPromise<TNullable<{
-    event: string;
-    data: DataType;
-}>>;
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#twebsocketoutboundtransformer)
 
 ## `TWebSocketServerOptions`
 
-*type*
-
-Options for `WebSocketServerHelper`. `handshake` is required when `requireEncryption` is true.
-
-```ts
-export type TWebSocketServerOptions<AuthDataType extends Record<string, unknown> = Record<string, unknown>, MetadataType extends Record<string, unknown> = Record<string, unknown>> = IWebSocketServerBaseOptions<MetadataType> & TWebSocketAuthOptions<AuthDataType, MetadataType>;
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/server.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#twebsocketserveroptions)
 
 ## `TWebSocketValidateRoomFn`
 
-*type*
-
-Returns the subset of the requested `rooms` the client may join; when none is allowed, the join is rejected.
-
-```ts
-export type TWebSocketValidateRoomFn = (opts: {
-    clientId: string;
-    userId?: string;
-    rooms: string[];
-}) => ValueOrPromise<string[]>;
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
+*type* - [Declaration](/references/api/venizia-ignis-helpers--part-4#twebsocketvalidateroomfn)
 
 ## `UrlGuard`
 
-*class*
-
-The server half of the url guard, the one name for it. As a fetcher's engine: `new NativeFetcher({ ..., guardEngine: UrlGuard })`, then `guard: {}` (or a policy)
-on a call. Per hop the host is resolved ONCE, every answer is checked, and the request connects to those addresses and
-to no other, so a DNS answer that changes after the check (DNS rebinding) is never looked up again.
-
-```ts
-export declare class UrlGuard {
-    static createRoute(opts: {
-        policy: IUrlSafetyPolicy;
-    }): IFetchGuardRoute;
-    /**
-     * Resolves `hostname` once and returns every address it answered, refusing the host when ANY of them is non-public.
-     * Checking only the first walks straight into a host that publishes one public A record beside an internal one.
-     * An IP literal answers itself. `allowPrivateAddress` skips the check and returns an empty list: nothing to pin to.
-     *
-     * With `trusted` (the caller has judged the origin trusted AND every hop before it was trusted too) a private answer
-     * is accepted, and the addresses are still returned to pin to. A cloud metadata address is accepted only when the trusted origin's host IS
-     * that literal; a trusted host NAME that resolves to one is refused.
-     */
-    static resolvePublicAddresses(opts: {
-        hostname: string;
-        trusted?: boolean;
-        policy?: IUrlSafetyPolicy;
-        signal?: AbortSignal;
-    }): Promise<string[]>;
-    /**
-     * Rejects when ANY resolved address is non-public.
-     *
-     * A rebinding window remains when this is called on its own: the address can change between this check and a
-     * later connect. a fetcher call with a `guard` closes it by connecting to the address it vetted.
-     */
-    static assertPublicHost(opts: {
-        hostname: string;
-        trusted?: boolean;
-        policy?: IUrlSafetyPolicy;
-    }): Promise<void>;
-    /** Both halves, in the order they must run: shape first, then the network. */
-    static assertReachableUrl(opts: {
-        url: string;
-        policy?: IUrlSafetyPolicy;
-    }): Promise<URL>;
-    /** Settles with `work`, or rejects with the signal's reason when the deadline passes first: a slow resolver must not outlive it. */
-    private static withDeadline;
-}
-```
-
-Source: `packages/helpers/src/modules/network/utilities/url-safety/guard.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#urlguard)
 
 ## `UrlSafetyRefusals`
 
-*class*
-
-Telling a url-guard refusal from a failure worth another attempt.
-
-```ts
-export declare class UrlSafetyRefusals {
-    /** Whether `error` is a refusal that repeats: the guard's `URL_REFUSED` (an address, a scheme, a hop count) or a `BODY_TOO_LARGE`. A caller that retries must drop it. */
-    static is(opts: {
-        error: unknown;
-    }): boolean;
-    /** Whether `error` is a body over the cap, as against an address the guard refused. */
-    static isBodyTooLarge(opts: {
-        error: unknown;
-    }): boolean;
-}
-```
-
-Source: `packages/helpers/src/modules/network/utilities/url-safety/common/errors.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#urlsafetyrefusals)
 
 ## `VaultAuthMethods`
 
-*class*
-
-Ways a Vault provider can authenticate.
-
-```ts
-export declare class VaultAuthMethods extends ConstClass {
-    static readonly TOKEN = "token";
-    static readonly APP_ROLE = "app-role";
-    static readonly KUBERNETES = "kubernetes";
-}
-```
-
-Source: `packages/helpers/src/modules/secrets/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#vaultauthmethods)
 
 ## `WebSocketChannels`
 
-*class*
-
-Redis channel names used to route WebSocket messages across server instances; the `for*` methods build a channel from an id, and the `for*Pattern` methods build the matching subscription pattern.
-
-```ts
-export declare class WebSocketChannels {
-    static readonly BROADCAST = "ws:broadcast";
-    static readonly ROOM_PREFIX = "ws:room:";
-    static readonly CLIENT_PREFIX = "ws:client:";
-    static readonly USER_PREFIX = "ws:user:";
-    static forRoom(opts: {
-        room: string;
-    }): string;
-    static forClient(opts: {
-        clientId: string;
-    }): string;
-    static forUser(opts: {
-        userId: string;
-    }): string;
-    static forRoomPattern(): string;
-    static forClientPattern(): string;
-    static forUserPattern(): string;
-}
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#websocketchannels)
 
 ## `WebSocketClientStates`
 
-*class*
-
-Connection states of a WebSocket client. `isValid` narrows a string to one of them.
-
-```ts
-export declare class WebSocketClientStates extends ConstClass {
-    static readonly UNAUTHORIZED = "unauthorized";
-    static readonly AUTHENTICATING = "authenticating";
-    static readonly AUTHENTICATED = "authenticated";
-    static readonly DISCONNECTED = "disconnected";
-}
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#websocketclientstates)
 
 ## `WebSocketDefaults`
 
-*class*
-
-Default WebSocket server settings. Timeouts of `AUTH_TIMEOUT`, `HEARTBEAT_INTERVAL` and `HEARTBEAT_TIMEOUT` are milliseconds, `IDLE_TIMEOUT` is seconds, and payload and backpressure limits are bytes.
-
-```ts
-export declare class WebSocketDefaults {
-    static readonly PATH = "/ws";
-    static readonly ROOM = "ws-default";
-    static readonly NOTIFICATION_ROOM = "ws-notification";
-    static readonly BROADCAST_TOPIC = "ws:internal:broadcast";
-    static readonly MAX_PAYLOAD_LENGTH: number;
-    static readonly IDLE_TIMEOUT = 60;
-    static readonly BACKPRESSURE_LIMIT: number;
-    static readonly SEND_PINGS = true;
-    static readonly PUBLISH_TO_SELF = false;
-    static readonly AUTH_TIMEOUT = 5000;
-    static readonly HEARTBEAT_INTERVAL = 30000;
-    static readonly HEARTBEAT_TIMEOUT = 90000;
-    static readonly ENCRYPTED_BATCH_LIMIT = 10;
-}
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#websocketdefaults)
 
 ## `WebSocketEmitter`
 
-*class*
-
-Publishes WebSocket messages to clients on any server instance through Redis, without holding connections itself. `configure()` must run first.
-
-```ts
-export declare class WebSocketEmitter extends BaseHelper {
-    private redisPub;
-    constructor(opts: IWebSocketEmitterOptions);
-    private initRedisClient;
-    configure(): Promise<void>;
-    private publish;
-    toClient(opts: {
-        clientId: string;
-        event: string;
-        data: unknown;
-    }): Promise<void>;
-    toUser(opts: {
-        userId: string;
-        event: string;
-        data: unknown;
-    }): Promise<void>;
-    toRoom(opts: {
-        room: string;
-        event: string;
-        data: unknown;
-        exclude?: string[];
-    }): Promise<void>;
-    broadcast(opts: {
-        event: string;
-        data: unknown;
-    }): Promise<void>;
-    shutdown(): Promise<void>;
-}
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/emitter/helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#websocketemitter)
 
 ## `WebSocketEvents`
 
-*class*
-
-Event names of the WebSocket protocol. `isValid` narrows a string to one of them.
-
-```ts
-export declare class WebSocketEvents extends ConstClass {
-    static readonly AUTHENTICATE = "authenticate";
-    static readonly CONNECTED = "connected";
-    static readonly DISCONNECT = "disconnect";
-    static readonly JOIN = "join";
-    static readonly LEAVE = "leave";
-    static readonly ERROR = "error";
-    static readonly HEARTBEAT = "heartbeat";
-    static readonly ENCRYPTED = "encrypted";
-}
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#websocketevents)
 
 ## `WebSocketMessageTypes`
 
-*class*
-
-Delivery target types of a WebSocket message. `isValid` narrows a string to one of them.
-
-```ts
-export declare class WebSocketMessageTypes extends ConstClass {
-    static readonly CLIENT = "client";
-    static readonly USER = "user";
-    static readonly ROOM = "room";
-    static readonly BROADCAST = "broadcast";
-}
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#websocketmessagetypes)
 
 ## `WebSocketServerHelper`
 
-*class*
-
-WebSocket server for Bun with authentication, rooms, heartbeats, optional encrypted sessions, and Redis fan-out
-across instances. Clients must authenticate through `authenticate.fn` within `authTimeout`.
-
-`AuthDataType` is what `authenticate.schema` answers and is inferred from it; leave it out when there is no schema,
-where the hooks receive `Record<string, unknown>` whatever it names.
-
-```ts
-export declare class WebSocketServerHelper<AuthDataType extends Record<string, unknown> = Record<string, unknown>, MetadataType extends Record<string, unknown> = Record<string, unknown>> extends BaseHelper {
-    /**
-     * Narrows an untrusted room payload to the strings it actually contains.
-     *
-     * `payload as { rooms?: string[] }` is a claim, not a check: the value comes off the wire, so
-     * `{"rooms":"lobby"}` satisfied the `rooms?.length` test (a string has one) and the next line
-     * called `rooms.filter`, which a string does not have. Under `Bun.serve` that TypeError is thrown
-     * inside the message callback and exits the process.
-     */
-    private static toRoomList;
-    private path;
-    private serverId;
-    private clients;
-    private users;
-    private rooms;
-    private delivery;
-    private redisPub;
-    private redisSub;
-    /** Checks authentication data and binds the hooks to it; `undefined` refuses the client. */
-    private openAuthSession;
-    private validateRoomFn?;
-    private onClientConnected?;
-    private onClientDisconnected?;
-    private messageHandler?;
-    private defaultRooms;
-    private serverOptions;
-    private authTimeout;
-    private heartbeatInterval;
-    private heartbeatTimeout;
-    private heartbeatTimer;
-    private requireEncryption;
-    /** TypeScript narrows a union by its own properties only, and the schema is one level down. */
-    private static hasNoSchema;
-    /** Checks authentication data, then binds the hooks to it: with a schema to what it answers, without one to the object as it came. */
-    private static authSessionOf;
-    /** With `authenticate.schema`, the hooks receive what it answers, typed from it. */
-    constructor(opts: IWebSocketServerBaseOptions<MetadataType> & IWebSocketSchemaAuthOptions<AuthDataType, MetadataType>);
-    /** Without a schema, the hooks receive the object as it came. */
-    constructor(opts: IWebSocketServerBaseOptions<MetadataType> & IWebSocketRecordAuthOptions<MetadataType>);
-    /** For options built beforehand as `TWebSocketServerOptions`. */
-    constructor(opts: TWebSocketServerOptions<AuthDataType, MetadataType>);
-    private initRedisClients;
-    getClients(opts?: {
-        id?: string;
-    }): IWebSocketClient<MetadataType> | Map<string, IWebSocketClient<MetadataType>> | undefined;
-    getClientsByUser(opts: {
-        userId: string;
-    }): IWebSocketClient<MetadataType>[];
-    getClientsByRoom(opts: {
-        room: string;
-    }): IWebSocketClient<MetadataType>[];
-    getPath(): string;
-    /** Hooks run inside Bun socket handlers - a sync throw there kills the process; voidExecution only catches promise rejections since its argument is evaluated before the try/catch runs. */
-    protected invokeHook(opts: {
-        scope: string;
-        execution: () => ValueOrPromise<void>;
-    }): void;
-    configure(): Promise<void>;
-    private setupRedisSubscriptions;
-    /** A peer's message off Redis. Type guard, so it keeps its positional `value`; `data` is the application's own. */
-    private static isRedisMessage;
-    private onRedisMessage;
-    private publishToRedis;
-    getBunWebSocketHandler(): IBunWebSocketHandler;
-    onClientConnect(opts: {
-        clientId: string;
-        socket: IWebSocket;
-    }): void;
-    onClientMessage(opts: {
-        clientId: string;
-        raw: string;
-    }): void;
-    onClientDisconnect(opts: {
-        clientId: string;
-    }): void;
-    joinRoom(opts: {
-        clientId: string;
-        room: string;
-    }): void;
-    leaveRoom(opts: {
-        clientId: string;
-        room: string;
-    }): void;
-    /** Unsubscribes the client from Bun native topics so `server.publish()` can't reach it - encrypted clients get messages only via the outbound transformer. */
-    enableClientEncryption(opts: {
-        clientId: string;
-    }): void;
-    private handleAuthenticate;
-    private handleJoin;
-    private handleLeave;
-    /** Local delivery and fan-out live in WebSocketDeliveryHelper - kept public here by delegation. */
-    sendToClient(opts: {
-        clientId: string;
-        event: string;
-        data: unknown;
-        doLog?: boolean;
-    }): void;
-    sendToUser(opts: {
-        userId: string;
-        event: string;
-        data: unknown;
-    }): void;
-    sendToRoom(opts: {
-        room: string;
-        event: string;
-        data: unknown;
-        exclude?: string[];
-    }): void;
-    broadcast(opts: {
-        event: string;
-        data: unknown;
-        exclude?: string[];
-    }): void;
-    send<T = unknown>(opts: {
-        destination?: string;
-        payload: {
-            topic: string;
-            data: T;
-        };
-        doLog?: boolean;
-        callback?: () => void;
-    }): void;
-    private startHeartbeatTimer;
-    private heartbeatAll;
-    shutdown(): Promise<void>;
-}
-```
-
-Source: `packages/helpers/src/modules/socket/websocket/server/helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#websocketserverhelper)
 
 ## `WorkerPoolHelper`
 
-*class*
-
-Registry of workers by key. `register` refuses a worker once the pool holds one per CPU core, unless `ignoreMaxWarning` is set, and refuses a duplicate key; `getInstance()` returns the shared pool.
-
-```ts
-export declare class WorkerPoolHelper extends BaseHelper {
-    private static instance;
-    protected registry: Map<string | symbol, IWorker<unknown>>;
-    private numberOfCPUs;
-    private ignoreMaxWarning;
-    constructor(opts?: {
-        ignoreMaxWarning?: boolean;
-    });
-    static getInstance(): WorkerPoolHelper;
-    size(): number;
-    get<MessageType>(opts: {
-        key: string;
-    }): IWorker<MessageType> | undefined;
-    has(opts: {
-        key: string;
-    }): boolean;
-    register<MessageType>(opts: {
-        key: string;
-        worker: IWorker<MessageType>;
-    }): boolean;
-    unregister(opts: {
-        key: string;
-    }): Promise<void>;
-}
-```
-
-Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#workerpoolhelper)
 
 ## Re-exported
 

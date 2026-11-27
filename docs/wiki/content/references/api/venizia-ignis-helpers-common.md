@@ -437,14 +437,54 @@ Source: `packages/helpers/src/common/constants/grpc.ts`
 
 ## `HTTP`
 
-*class*
+*namespace*
 
-HTTP constants: header names, CORS headers, header values, methods, protocols and status codes. Header names, methods and protocols are lowercase.
+HTTP constants, by group: `Headers`, `CorsHeaders`, `HeaderValues`, `Methods`, `Protocols` and `ResultCodes`. Header
+names, methods and protocols are lowercase. A module namespace: a bundle keeps only the groups it reads.
 
 ```ts
-export declare class HTTP {
+export declare namespace HTTP {
+    /**
+     * The headers IGNIS adds to a request and to a response, for a CORS configuration that lists them
+     * by hand: spread `ALLOW` into the allowed request headers and `EXPOSE` into the exposed ones, so
+     * a header IGNIS adds later needs no change there.
+     */
+    const CorsHeaders: {
+        readonly ALLOW: readonly ["x-request-id", "x-request-count", "x-request-extra", "x-request-channel", "x-device-info"];
+        readonly EXPOSE: readonly ["content-range", "x-request-id", "x-response-count", "x-response-format", "x-response-extra"];
+    };
+    /** Common MIME / Content-Type values. */
+    const HeaderValues: {
+        readonly APPLICATION_FORM_URLENCODED: "application/x-www-form-urlencoded";
+        readonly APPLICATION_GRAPHQL_JSON: "application/graphql+json";
+        readonly APPLICATION_GZIP: "application/gzip";
+        readonly APPLICATION_JAVASCRIPT: "application/javascript";
+        readonly APPLICATION_JSON: "application/json";
+        /** A JSON body with its charset named, the value a client sends by default. */
+        readonly APPLICATION_JSON_UTF8: "application/json; charset=utf-8";
+        readonly APPLICATION_MSGPACK: "application/msgpack";
+        readonly APPLICATION_NDJSON: "application/x-ndjson";
+        readonly APPLICATION_OCTET_STREAM: "application/octet-stream";
+        readonly APPLICATION_PDF: "application/pdf";
+        readonly APPLICATION_PROTOBUF: "application/x-protobuf";
+        readonly APPLICATION_XML: "application/xml";
+        readonly APPLICATION_ZIP: "application/zip";
+        readonly MULTIPART_FORM_DATA: "multipart/form-data";
+        readonly TEXT_CSS: "text/css";
+        readonly TEXT_CSV: "text/csv";
+        readonly TEXT_EVENT_STREAM: "text/event-stream";
+        readonly TEXT_HTML: "text/html";
+        readonly TEXT_PLAIN: "text/plain";
+        readonly TEXT_XML: "text/xml";
+        readonly IMAGE_GIF: "image/gif";
+        readonly IMAGE_JPEG: "image/jpeg";
+        readonly IMAGE_PNG: "image/png";
+        readonly IMAGE_SVG: "image/svg+xml";
+        readonly IMAGE_WEBP: "image/webp";
+        readonly RANGE_UNIT_BYTES: "bytes";
+    };
     /** Standard and common HTTP headers (lowercase per HTTP/2 convention). */
-    static readonly Headers: {
+    const Headers: {
         readonly CONTENT_DISPOSITION: "content-disposition";
         readonly CONTENT_ENCODING: "content-encoding";
         readonly CONTENT_LENGTH: "content-length";
@@ -509,47 +549,8 @@ export declare class HTTP {
         readonly TIMEZONE: "timezone";
         readonly TIMEZONE_OFFSET: "timezone-offset";
     };
-    /**
-     * The headers IGNIS adds to a request and to a response, for a CORS configuration that lists them
-     * by hand: spread `ALLOW` into the allowed request headers and `EXPOSE` into the exposed ones, so
-     * a header IGNIS adds later needs no change there.
-     */
-    static readonly CorsHeaders: {
-        readonly ALLOW: readonly ["x-request-id", "x-request-count", "x-request-extra", "x-request-channel", "x-device-info"];
-        readonly EXPOSE: readonly ["content-range", "x-request-id", "x-response-count", "x-response-format", "x-response-extra"];
-    };
-    /** Common MIME / Content-Type values. */
-    static readonly HeaderValues: {
-        readonly APPLICATION_FORM_URLENCODED: "application/x-www-form-urlencoded";
-        readonly APPLICATION_GRAPHQL_JSON: "application/graphql+json";
-        readonly APPLICATION_GZIP: "application/gzip";
-        readonly APPLICATION_JAVASCRIPT: "application/javascript";
-        readonly APPLICATION_JSON: "application/json";
-        /** A JSON body with its charset named, the value a client sends by default. */
-        readonly APPLICATION_JSON_UTF8: "application/json; charset=utf-8";
-        readonly APPLICATION_MSGPACK: "application/msgpack";
-        readonly APPLICATION_NDJSON: "application/x-ndjson";
-        readonly APPLICATION_OCTET_STREAM: "application/octet-stream";
-        readonly APPLICATION_PDF: "application/pdf";
-        readonly APPLICATION_PROTOBUF: "application/x-protobuf";
-        readonly APPLICATION_XML: "application/xml";
-        readonly APPLICATION_ZIP: "application/zip";
-        readonly MULTIPART_FORM_DATA: "multipart/form-data";
-        readonly TEXT_CSS: "text/css";
-        readonly TEXT_CSV: "text/csv";
-        readonly TEXT_EVENT_STREAM: "text/event-stream";
-        readonly TEXT_HTML: "text/html";
-        readonly TEXT_PLAIN: "text/plain";
-        readonly TEXT_XML: "text/xml";
-        readonly IMAGE_GIF: "image/gif";
-        readonly IMAGE_JPEG: "image/jpeg";
-        readonly IMAGE_PNG: "image/png";
-        readonly IMAGE_SVG: "image/svg+xml";
-        readonly IMAGE_WEBP: "image/webp";
-        readonly RANGE_UNIT_BYTES: "bytes";
-    };
     /** Standard HTTP methods (lowercase). */
-    static readonly Methods: {
+    const Methods: {
         readonly GET: "get";
         readonly POST: "post";
         readonly PUT: "put";
@@ -560,12 +561,12 @@ export declare class HTTP {
         readonly QUERY: "query";
     };
     /** Standard HTTP protocols (lowercase). */
-    static readonly Protocols: {
+    const Protocols: {
         readonly HTTP: "http";
         readonly HTTPS: "https";
     };
     /** HTTP status codes grouped by class (1xx - 5xx). */
-    static readonly ResultCodes: {
+    const ResultCodes: {
         /** 1xx - Informational. */
         readonly RS_1: {
             readonly Continue: 100;
@@ -636,7 +637,7 @@ export declare class HTTP {
 }
 ```
 
-Source: `packages/helpers/src/common/constants/http.ts`
+Source: `packages/helpers/src/common/constants/http-groups.ts`
 
 ## `IConfigurable`
 
@@ -1037,200 +1038,6 @@ An HTTP method from `HTTP.Methods`, in lowercase or uppercase.
 
 ```ts
 export type THttpMethod = ValueOf<typeof HTTP.Methods> | Uppercase<ValueOf<typeof HTTP.Methods>>;
-
-/** HTTP constants: header names, CORS headers, header values, methods, protocols and status codes. Header names, methods and protocols are lowercase. */
-export declare class HTTP {
-    /** Standard and common HTTP headers (lowercase per HTTP/2 convention). */
-    static readonly Headers: {
-        readonly CONTENT_DISPOSITION: "content-disposition";
-        readonly CONTENT_ENCODING: "content-encoding";
-        readonly CONTENT_LENGTH: "content-length";
-        readonly CONTENT_TYPE: "content-type";
-        readonly CONTENT_RANGE: "content-range";
-        readonly CONTENT_SECURITY_POLICY: "content-security-policy";
-        readonly ACCEPT_RANGES: "accept-ranges";
-        readonly RANGE: "range";
-        readonly ACCEPT: "accept";
-        readonly ACCEPT_ENCODING: "accept-encoding";
-        readonly ACCEPT_LANGUAGE: "accept-language";
-        readonly AUTHORIZATION: "authorization";
-        readonly COOKIE: "cookie";
-        readonly HOST: "host";
-        readonly IF_MATCH: "if-match";
-        readonly IF_MODIFIED_SINCE: "if-modified-since";
-        readonly IF_NONE_MATCH: "if-none-match";
-        readonly ORIGIN: "origin";
-        readonly REFERER: "referer";
-        readonly USER_AGENT: "user-agent";
-        readonly ALLOW: "allow";
-        readonly CACHE_CONTROL: "cache-control";
-        readonly ETAG: "etag";
-        readonly LAST_MODIFIED: "last-modified";
-        readonly LOCATION: "location";
-        readonly RETRY_AFTER: "retry-after";
-        readonly SET_COOKIE: "set-cookie";
-        readonly VARY: "vary";
-        readonly WWW_AUTHENTICATE: "www-authenticate";
-        readonly ACCESS_CONTROL_ALLOW_CREDENTIALS: "access-control-allow-credentials";
-        readonly ACCESS_CONTROL_ALLOW_HEADERS: "access-control-allow-headers";
-        readonly ACCESS_CONTROL_ALLOW_METHODS: "access-control-allow-methods";
-        readonly ACCESS_CONTROL_ALLOW_ORIGIN: "access-control-allow-origin";
-        readonly ACCESS_CONTROL_EXPOSE_HEADERS: "access-control-expose-headers";
-        readonly ACCESS_CONTROL_MAX_AGE: "access-control-max-age";
-        readonly ACCESS_CONTROL_REQUEST_HEADERS: "access-control-request-headers";
-        readonly ACCESS_CONTROL_REQUEST_METHOD: "access-control-request-method";
-        readonly CONNECTION: "connection";
-        readonly TRANSFER_ENCODING: "transfer-encoding";
-        readonly UPGRADE: "upgrade";
-        readonly STRICT_TRANSPORT_SECURITY: "strict-transport-security";
-        readonly X_CONTENT_TYPE_OPTIONS: "x-content-type-options";
-        readonly X_FRAME_OPTIONS: "x-frame-options";
-        readonly FORWARDED: "forwarded";
-        readonly X_FORWARDED_FOR: "x-forwarded-for";
-        readonly X_FORWARDED_HOST: "x-forwarded-host";
-        readonly X_FORWARDED_PROTO: "x-forwarded-proto";
-        readonly X_REAL_IP: "x-real-ip";
-        readonly X_RATELIMIT_LIMIT: "x-ratelimit-limit";
-        readonly X_RATELIMIT_REMAINING: "x-ratelimit-remaining";
-        readonly X_RATELIMIT_RESET: "x-ratelimit-reset";
-        readonly REQUEST_TRACING_ID: "x-request-id";
-        readonly REQUEST_DEVICE_INFO: "x-device-info";
-        readonly REQUEST_CHANNEL: "x-request-channel";
-        readonly REQUEST_COUNT_DATA: "x-request-count";
-        readonly REQUEST_EXTRA: "x-request-extra";
-        readonly RESPONSE_COUNT_DATA: "x-response-count";
-        readonly RESPONSE_FORMAT: "x-response-format";
-        readonly RESPONSE_EXTRA: "x-response-extra";
-        readonly AUTH_PROVIDER: "x-auth-provider";
-        readonly LOCALE: "x-locale";
-        readonly TIMEZONE: "timezone";
-        readonly TIMEZONE_OFFSET: "timezone-offset";
-    };
-    /**
-     * The headers IGNIS adds to a request and to a response, for a CORS configuration that lists them
-     * by hand: spread `ALLOW` into the allowed request headers and `EXPOSE` into the exposed ones, so
-     * a header IGNIS adds later needs no change there.
-     */
-    static readonly CorsHeaders: {
-        readonly ALLOW: readonly ["x-request-id", "x-request-count", "x-request-extra", "x-request-channel", "x-device-info"];
-        readonly EXPOSE: readonly ["content-range", "x-request-id", "x-response-count", "x-response-format", "x-response-extra"];
-    };
-    /** Common MIME / Content-Type values. */
-    static readonly HeaderValues: {
-        readonly APPLICATION_FORM_URLENCODED: "application/x-www-form-urlencoded";
-        readonly APPLICATION_GRAPHQL_JSON: "application/graphql+json";
-        readonly APPLICATION_GZIP: "application/gzip";
-        readonly APPLICATION_JAVASCRIPT: "application/javascript";
-        readonly APPLICATION_JSON: "application/json";
-        /** A JSON body with its charset named, the value a client sends by default. */
-        readonly APPLICATION_JSON_UTF8: "application/json; charset=utf-8";
-        readonly APPLICATION_MSGPACK: "application/msgpack";
-        readonly APPLICATION_NDJSON: "application/x-ndjson";
-        readonly APPLICATION_OCTET_STREAM: "application/octet-stream";
-        readonly APPLICATION_PDF: "application/pdf";
-        readonly APPLICATION_PROTOBUF: "application/x-protobuf";
-        readonly APPLICATION_XML: "application/xml";
-        readonly APPLICATION_ZIP: "application/zip";
-        readonly MULTIPART_FORM_DATA: "multipart/form-data";
-        readonly TEXT_CSS: "text/css";
-        readonly TEXT_CSV: "text/csv";
-        readonly TEXT_EVENT_STREAM: "text/event-stream";
-        readonly TEXT_HTML: "text/html";
-        readonly TEXT_PLAIN: "text/plain";
-        readonly TEXT_XML: "text/xml";
-        readonly IMAGE_GIF: "image/gif";
-        readonly IMAGE_JPEG: "image/jpeg";
-        readonly IMAGE_PNG: "image/png";
-        readonly IMAGE_SVG: "image/svg+xml";
-        readonly IMAGE_WEBP: "image/webp";
-        readonly RANGE_UNIT_BYTES: "bytes";
-    };
-    /** Standard HTTP methods (lowercase). */
-    static readonly Methods: {
-        readonly GET: "get";
-        readonly POST: "post";
-        readonly PUT: "put";
-        readonly PATCH: "patch";
-        readonly DELETE: "delete";
-        readonly HEAD: "head";
-        readonly OPTIONS: "options";
-        readonly QUERY: "query";
-    };
-    /** Standard HTTP protocols (lowercase). */
-    static readonly Protocols: {
-        readonly HTTP: "http";
-        readonly HTTPS: "https";
-    };
-    /** HTTP status codes grouped by class (1xx - 5xx). */
-    static readonly ResultCodes: {
-        /** 1xx - Informational. */
-        readonly RS_1: {
-            readonly Continue: 100;
-            readonly SwitchingProtocols: 101;
-            readonly EarlyHints: 103;
-        };
-        /** 2xx - Success. */
-        readonly RS_2: {
-            readonly Ok: 200;
-            readonly Created: 201;
-            readonly Accepted: 202;
-            readonly NonAuthoritativeInformation: 203;
-            readonly NoContent: 204;
-            readonly ResetContent: 205;
-            readonly PartialContent: 206;
-            readonly MultiStatus: 207;
-        };
-        /** 3xx - Redirection. */
-        readonly RS_3: {
-            readonly MovedPermanently: 301;
-            readonly Found: 302;
-            readonly NotModified: 304;
-            readonly TemporaryRedirect: 307;
-            readonly PermanentRedirect: 308;
-        };
-        /** 4xx - Client error. */
-        readonly RS_4: {
-            readonly BadRequest: 400;
-            readonly Unauthorized: 401;
-            readonly PaymentRequired: 402;
-            readonly Forbidden: 403;
-            readonly NotFound: 404;
-            readonly MethodNotAllowed: 405;
-            readonly NotAcceptable: 406;
-            readonly RequestTimeout: 408;
-            readonly Conflict: 409;
-            readonly Gone: 410;
-            readonly LengthRequired: 411;
-            readonly PreconditionFailed: 412;
-            readonly ContentTooLarge: 413;
-            readonly URITooLong: 414;
-            readonly UnsupportedMediaType: 415;
-            readonly RangeNotSatisfiable: 416;
-            readonly ExpectationFailed: 417;
-            readonly UnprocessableEntity: 422;
-            readonly Locked: 423;
-            readonly FailedDependency: 424;
-            readonly TooEarly: 425;
-            readonly UpgradeRequired: 426;
-            readonly PreconditionRequired: 428;
-            readonly TooManyRequests: 429;
-            readonly RequestHeaderFieldsTooLarge: 431;
-            readonly UnavailableForLegalReasons: 451;
-        };
-        /** 5xx - Server error. */
-        readonly RS_5: {
-            readonly InternalServerError: 500;
-            readonly NotImplemented: 501;
-            readonly BadGateway: 502;
-            readonly ServiceUnavailable: 503;
-            readonly GatewayTimeout: 504;
-            readonly HTTPVersionNotSupported: 505;
-            readonly InsufficientStorage: 507;
-            readonly LoopDetected: 508;
-            readonly NetworkAuthenticationRequired: 511;
-        };
-    };
-}
 ```
 
 Source: `packages/helpers/src/common/constants/http.ts`
@@ -1243,200 +1050,6 @@ An HTTP protocol from `HTTP.Protocols`, in lowercase or uppercase.
 
 ```ts
 export type THttpProtocol = ValueOf<typeof HTTP.Protocols> | Uppercase<ValueOf<typeof HTTP.Protocols>>;
-
-/** HTTP constants: header names, CORS headers, header values, methods, protocols and status codes. Header names, methods and protocols are lowercase. */
-export declare class HTTP {
-    /** Standard and common HTTP headers (lowercase per HTTP/2 convention). */
-    static readonly Headers: {
-        readonly CONTENT_DISPOSITION: "content-disposition";
-        readonly CONTENT_ENCODING: "content-encoding";
-        readonly CONTENT_LENGTH: "content-length";
-        readonly CONTENT_TYPE: "content-type";
-        readonly CONTENT_RANGE: "content-range";
-        readonly CONTENT_SECURITY_POLICY: "content-security-policy";
-        readonly ACCEPT_RANGES: "accept-ranges";
-        readonly RANGE: "range";
-        readonly ACCEPT: "accept";
-        readonly ACCEPT_ENCODING: "accept-encoding";
-        readonly ACCEPT_LANGUAGE: "accept-language";
-        readonly AUTHORIZATION: "authorization";
-        readonly COOKIE: "cookie";
-        readonly HOST: "host";
-        readonly IF_MATCH: "if-match";
-        readonly IF_MODIFIED_SINCE: "if-modified-since";
-        readonly IF_NONE_MATCH: "if-none-match";
-        readonly ORIGIN: "origin";
-        readonly REFERER: "referer";
-        readonly USER_AGENT: "user-agent";
-        readonly ALLOW: "allow";
-        readonly CACHE_CONTROL: "cache-control";
-        readonly ETAG: "etag";
-        readonly LAST_MODIFIED: "last-modified";
-        readonly LOCATION: "location";
-        readonly RETRY_AFTER: "retry-after";
-        readonly SET_COOKIE: "set-cookie";
-        readonly VARY: "vary";
-        readonly WWW_AUTHENTICATE: "www-authenticate";
-        readonly ACCESS_CONTROL_ALLOW_CREDENTIALS: "access-control-allow-credentials";
-        readonly ACCESS_CONTROL_ALLOW_HEADERS: "access-control-allow-headers";
-        readonly ACCESS_CONTROL_ALLOW_METHODS: "access-control-allow-methods";
-        readonly ACCESS_CONTROL_ALLOW_ORIGIN: "access-control-allow-origin";
-        readonly ACCESS_CONTROL_EXPOSE_HEADERS: "access-control-expose-headers";
-        readonly ACCESS_CONTROL_MAX_AGE: "access-control-max-age";
-        readonly ACCESS_CONTROL_REQUEST_HEADERS: "access-control-request-headers";
-        readonly ACCESS_CONTROL_REQUEST_METHOD: "access-control-request-method";
-        readonly CONNECTION: "connection";
-        readonly TRANSFER_ENCODING: "transfer-encoding";
-        readonly UPGRADE: "upgrade";
-        readonly STRICT_TRANSPORT_SECURITY: "strict-transport-security";
-        readonly X_CONTENT_TYPE_OPTIONS: "x-content-type-options";
-        readonly X_FRAME_OPTIONS: "x-frame-options";
-        readonly FORWARDED: "forwarded";
-        readonly X_FORWARDED_FOR: "x-forwarded-for";
-        readonly X_FORWARDED_HOST: "x-forwarded-host";
-        readonly X_FORWARDED_PROTO: "x-forwarded-proto";
-        readonly X_REAL_IP: "x-real-ip";
-        readonly X_RATELIMIT_LIMIT: "x-ratelimit-limit";
-        readonly X_RATELIMIT_REMAINING: "x-ratelimit-remaining";
-        readonly X_RATELIMIT_RESET: "x-ratelimit-reset";
-        readonly REQUEST_TRACING_ID: "x-request-id";
-        readonly REQUEST_DEVICE_INFO: "x-device-info";
-        readonly REQUEST_CHANNEL: "x-request-channel";
-        readonly REQUEST_COUNT_DATA: "x-request-count";
-        readonly REQUEST_EXTRA: "x-request-extra";
-        readonly RESPONSE_COUNT_DATA: "x-response-count";
-        readonly RESPONSE_FORMAT: "x-response-format";
-        readonly RESPONSE_EXTRA: "x-response-extra";
-        readonly AUTH_PROVIDER: "x-auth-provider";
-        readonly LOCALE: "x-locale";
-        readonly TIMEZONE: "timezone";
-        readonly TIMEZONE_OFFSET: "timezone-offset";
-    };
-    /**
-     * The headers IGNIS adds to a request and to a response, for a CORS configuration that lists them
-     * by hand: spread `ALLOW` into the allowed request headers and `EXPOSE` into the exposed ones, so
-     * a header IGNIS adds later needs no change there.
-     */
-    static readonly CorsHeaders: {
-        readonly ALLOW: readonly ["x-request-id", "x-request-count", "x-request-extra", "x-request-channel", "x-device-info"];
-        readonly EXPOSE: readonly ["content-range", "x-request-id", "x-response-count", "x-response-format", "x-response-extra"];
-    };
-    /** Common MIME / Content-Type values. */
-    static readonly HeaderValues: {
-        readonly APPLICATION_FORM_URLENCODED: "application/x-www-form-urlencoded";
-        readonly APPLICATION_GRAPHQL_JSON: "application/graphql+json";
-        readonly APPLICATION_GZIP: "application/gzip";
-        readonly APPLICATION_JAVASCRIPT: "application/javascript";
-        readonly APPLICATION_JSON: "application/json";
-        /** A JSON body with its charset named, the value a client sends by default. */
-        readonly APPLICATION_JSON_UTF8: "application/json; charset=utf-8";
-        readonly APPLICATION_MSGPACK: "application/msgpack";
-        readonly APPLICATION_NDJSON: "application/x-ndjson";
-        readonly APPLICATION_OCTET_STREAM: "application/octet-stream";
-        readonly APPLICATION_PDF: "application/pdf";
-        readonly APPLICATION_PROTOBUF: "application/x-protobuf";
-        readonly APPLICATION_XML: "application/xml";
-        readonly APPLICATION_ZIP: "application/zip";
-        readonly MULTIPART_FORM_DATA: "multipart/form-data";
-        readonly TEXT_CSS: "text/css";
-        readonly TEXT_CSV: "text/csv";
-        readonly TEXT_EVENT_STREAM: "text/event-stream";
-        readonly TEXT_HTML: "text/html";
-        readonly TEXT_PLAIN: "text/plain";
-        readonly TEXT_XML: "text/xml";
-        readonly IMAGE_GIF: "image/gif";
-        readonly IMAGE_JPEG: "image/jpeg";
-        readonly IMAGE_PNG: "image/png";
-        readonly IMAGE_SVG: "image/svg+xml";
-        readonly IMAGE_WEBP: "image/webp";
-        readonly RANGE_UNIT_BYTES: "bytes";
-    };
-    /** Standard HTTP methods (lowercase). */
-    static readonly Methods: {
-        readonly GET: "get";
-        readonly POST: "post";
-        readonly PUT: "put";
-        readonly PATCH: "patch";
-        readonly DELETE: "delete";
-        readonly HEAD: "head";
-        readonly OPTIONS: "options";
-        readonly QUERY: "query";
-    };
-    /** Standard HTTP protocols (lowercase). */
-    static readonly Protocols: {
-        readonly HTTP: "http";
-        readonly HTTPS: "https";
-    };
-    /** HTTP status codes grouped by class (1xx - 5xx). */
-    static readonly ResultCodes: {
-        /** 1xx - Informational. */
-        readonly RS_1: {
-            readonly Continue: 100;
-            readonly SwitchingProtocols: 101;
-            readonly EarlyHints: 103;
-        };
-        /** 2xx - Success. */
-        readonly RS_2: {
-            readonly Ok: 200;
-            readonly Created: 201;
-            readonly Accepted: 202;
-            readonly NonAuthoritativeInformation: 203;
-            readonly NoContent: 204;
-            readonly ResetContent: 205;
-            readonly PartialContent: 206;
-            readonly MultiStatus: 207;
-        };
-        /** 3xx - Redirection. */
-        readonly RS_3: {
-            readonly MovedPermanently: 301;
-            readonly Found: 302;
-            readonly NotModified: 304;
-            readonly TemporaryRedirect: 307;
-            readonly PermanentRedirect: 308;
-        };
-        /** 4xx - Client error. */
-        readonly RS_4: {
-            readonly BadRequest: 400;
-            readonly Unauthorized: 401;
-            readonly PaymentRequired: 402;
-            readonly Forbidden: 403;
-            readonly NotFound: 404;
-            readonly MethodNotAllowed: 405;
-            readonly NotAcceptable: 406;
-            readonly RequestTimeout: 408;
-            readonly Conflict: 409;
-            readonly Gone: 410;
-            readonly LengthRequired: 411;
-            readonly PreconditionFailed: 412;
-            readonly ContentTooLarge: 413;
-            readonly URITooLong: 414;
-            readonly UnsupportedMediaType: 415;
-            readonly RangeNotSatisfiable: 416;
-            readonly ExpectationFailed: 417;
-            readonly UnprocessableEntity: 422;
-            readonly Locked: 423;
-            readonly FailedDependency: 424;
-            readonly TooEarly: 425;
-            readonly UpgradeRequired: 426;
-            readonly PreconditionRequired: 428;
-            readonly TooManyRequests: 429;
-            readonly RequestHeaderFieldsTooLarge: 431;
-            readonly UnavailableForLegalReasons: 451;
-        };
-        /** 5xx - Server error. */
-        readonly RS_5: {
-            readonly InternalServerError: 500;
-            readonly NotImplemented: 501;
-            readonly BadGateway: 502;
-            readonly ServiceUnavailable: 503;
-            readonly GatewayTimeout: 504;
-            readonly HTTPVersionNotSupported: 505;
-            readonly InsufficientStorage: 507;
-            readonly LoopDetected: 508;
-            readonly NetworkAuthenticationRequired: 511;
-        };
-    };
-}
 ```
 
 Source: `packages/helpers/src/common/constants/http.ts`
@@ -1449,200 +1062,6 @@ A numeric HTTP status code from any class in `HTTP.ResultCodes`.
 
 ```ts
 export type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>;
-
-/** HTTP constants: header names, CORS headers, header values, methods, protocols and status codes. Header names, methods and protocols are lowercase. */
-export declare class HTTP {
-    /** Standard and common HTTP headers (lowercase per HTTP/2 convention). */
-    static readonly Headers: {
-        readonly CONTENT_DISPOSITION: "content-disposition";
-        readonly CONTENT_ENCODING: "content-encoding";
-        readonly CONTENT_LENGTH: "content-length";
-        readonly CONTENT_TYPE: "content-type";
-        readonly CONTENT_RANGE: "content-range";
-        readonly CONTENT_SECURITY_POLICY: "content-security-policy";
-        readonly ACCEPT_RANGES: "accept-ranges";
-        readonly RANGE: "range";
-        readonly ACCEPT: "accept";
-        readonly ACCEPT_ENCODING: "accept-encoding";
-        readonly ACCEPT_LANGUAGE: "accept-language";
-        readonly AUTHORIZATION: "authorization";
-        readonly COOKIE: "cookie";
-        readonly HOST: "host";
-        readonly IF_MATCH: "if-match";
-        readonly IF_MODIFIED_SINCE: "if-modified-since";
-        readonly IF_NONE_MATCH: "if-none-match";
-        readonly ORIGIN: "origin";
-        readonly REFERER: "referer";
-        readonly USER_AGENT: "user-agent";
-        readonly ALLOW: "allow";
-        readonly CACHE_CONTROL: "cache-control";
-        readonly ETAG: "etag";
-        readonly LAST_MODIFIED: "last-modified";
-        readonly LOCATION: "location";
-        readonly RETRY_AFTER: "retry-after";
-        readonly SET_COOKIE: "set-cookie";
-        readonly VARY: "vary";
-        readonly WWW_AUTHENTICATE: "www-authenticate";
-        readonly ACCESS_CONTROL_ALLOW_CREDENTIALS: "access-control-allow-credentials";
-        readonly ACCESS_CONTROL_ALLOW_HEADERS: "access-control-allow-headers";
-        readonly ACCESS_CONTROL_ALLOW_METHODS: "access-control-allow-methods";
-        readonly ACCESS_CONTROL_ALLOW_ORIGIN: "access-control-allow-origin";
-        readonly ACCESS_CONTROL_EXPOSE_HEADERS: "access-control-expose-headers";
-        readonly ACCESS_CONTROL_MAX_AGE: "access-control-max-age";
-        readonly ACCESS_CONTROL_REQUEST_HEADERS: "access-control-request-headers";
-        readonly ACCESS_CONTROL_REQUEST_METHOD: "access-control-request-method";
-        readonly CONNECTION: "connection";
-        readonly TRANSFER_ENCODING: "transfer-encoding";
-        readonly UPGRADE: "upgrade";
-        readonly STRICT_TRANSPORT_SECURITY: "strict-transport-security";
-        readonly X_CONTENT_TYPE_OPTIONS: "x-content-type-options";
-        readonly X_FRAME_OPTIONS: "x-frame-options";
-        readonly FORWARDED: "forwarded";
-        readonly X_FORWARDED_FOR: "x-forwarded-for";
-        readonly X_FORWARDED_HOST: "x-forwarded-host";
-        readonly X_FORWARDED_PROTO: "x-forwarded-proto";
-        readonly X_REAL_IP: "x-real-ip";
-        readonly X_RATELIMIT_LIMIT: "x-ratelimit-limit";
-        readonly X_RATELIMIT_REMAINING: "x-ratelimit-remaining";
-        readonly X_RATELIMIT_RESET: "x-ratelimit-reset";
-        readonly REQUEST_TRACING_ID: "x-request-id";
-        readonly REQUEST_DEVICE_INFO: "x-device-info";
-        readonly REQUEST_CHANNEL: "x-request-channel";
-        readonly REQUEST_COUNT_DATA: "x-request-count";
-        readonly REQUEST_EXTRA: "x-request-extra";
-        readonly RESPONSE_COUNT_DATA: "x-response-count";
-        readonly RESPONSE_FORMAT: "x-response-format";
-        readonly RESPONSE_EXTRA: "x-response-extra";
-        readonly AUTH_PROVIDER: "x-auth-provider";
-        readonly LOCALE: "x-locale";
-        readonly TIMEZONE: "timezone";
-        readonly TIMEZONE_OFFSET: "timezone-offset";
-    };
-    /**
-     * The headers IGNIS adds to a request and to a response, for a CORS configuration that lists them
-     * by hand: spread `ALLOW` into the allowed request headers and `EXPOSE` into the exposed ones, so
-     * a header IGNIS adds later needs no change there.
-     */
-    static readonly CorsHeaders: {
-        readonly ALLOW: readonly ["x-request-id", "x-request-count", "x-request-extra", "x-request-channel", "x-device-info"];
-        readonly EXPOSE: readonly ["content-range", "x-request-id", "x-response-count", "x-response-format", "x-response-extra"];
-    };
-    /** Common MIME / Content-Type values. */
-    static readonly HeaderValues: {
-        readonly APPLICATION_FORM_URLENCODED: "application/x-www-form-urlencoded";
-        readonly APPLICATION_GRAPHQL_JSON: "application/graphql+json";
-        readonly APPLICATION_GZIP: "application/gzip";
-        readonly APPLICATION_JAVASCRIPT: "application/javascript";
-        readonly APPLICATION_JSON: "application/json";
-        /** A JSON body with its charset named, the value a client sends by default. */
-        readonly APPLICATION_JSON_UTF8: "application/json; charset=utf-8";
-        readonly APPLICATION_MSGPACK: "application/msgpack";
-        readonly APPLICATION_NDJSON: "application/x-ndjson";
-        readonly APPLICATION_OCTET_STREAM: "application/octet-stream";
-        readonly APPLICATION_PDF: "application/pdf";
-        readonly APPLICATION_PROTOBUF: "application/x-protobuf";
-        readonly APPLICATION_XML: "application/xml";
-        readonly APPLICATION_ZIP: "application/zip";
-        readonly MULTIPART_FORM_DATA: "multipart/form-data";
-        readonly TEXT_CSS: "text/css";
-        readonly TEXT_CSV: "text/csv";
-        readonly TEXT_EVENT_STREAM: "text/event-stream";
-        readonly TEXT_HTML: "text/html";
-        readonly TEXT_PLAIN: "text/plain";
-        readonly TEXT_XML: "text/xml";
-        readonly IMAGE_GIF: "image/gif";
-        readonly IMAGE_JPEG: "image/jpeg";
-        readonly IMAGE_PNG: "image/png";
-        readonly IMAGE_SVG: "image/svg+xml";
-        readonly IMAGE_WEBP: "image/webp";
-        readonly RANGE_UNIT_BYTES: "bytes";
-    };
-    /** Standard HTTP methods (lowercase). */
-    static readonly Methods: {
-        readonly GET: "get";
-        readonly POST: "post";
-        readonly PUT: "put";
-        readonly PATCH: "patch";
-        readonly DELETE: "delete";
-        readonly HEAD: "head";
-        readonly OPTIONS: "options";
-        readonly QUERY: "query";
-    };
-    /** Standard HTTP protocols (lowercase). */
-    static readonly Protocols: {
-        readonly HTTP: "http";
-        readonly HTTPS: "https";
-    };
-    /** HTTP status codes grouped by class (1xx - 5xx). */
-    static readonly ResultCodes: {
-        /** 1xx - Informational. */
-        readonly RS_1: {
-            readonly Continue: 100;
-            readonly SwitchingProtocols: 101;
-            readonly EarlyHints: 103;
-        };
-        /** 2xx - Success. */
-        readonly RS_2: {
-            readonly Ok: 200;
-            readonly Created: 201;
-            readonly Accepted: 202;
-            readonly NonAuthoritativeInformation: 203;
-            readonly NoContent: 204;
-            readonly ResetContent: 205;
-            readonly PartialContent: 206;
-            readonly MultiStatus: 207;
-        };
-        /** 3xx - Redirection. */
-        readonly RS_3: {
-            readonly MovedPermanently: 301;
-            readonly Found: 302;
-            readonly NotModified: 304;
-            readonly TemporaryRedirect: 307;
-            readonly PermanentRedirect: 308;
-        };
-        /** 4xx - Client error. */
-        readonly RS_4: {
-            readonly BadRequest: 400;
-            readonly Unauthorized: 401;
-            readonly PaymentRequired: 402;
-            readonly Forbidden: 403;
-            readonly NotFound: 404;
-            readonly MethodNotAllowed: 405;
-            readonly NotAcceptable: 406;
-            readonly RequestTimeout: 408;
-            readonly Conflict: 409;
-            readonly Gone: 410;
-            readonly LengthRequired: 411;
-            readonly PreconditionFailed: 412;
-            readonly ContentTooLarge: 413;
-            readonly URITooLong: 414;
-            readonly UnsupportedMediaType: 415;
-            readonly RangeNotSatisfiable: 416;
-            readonly ExpectationFailed: 417;
-            readonly UnprocessableEntity: 422;
-            readonly Locked: 423;
-            readonly FailedDependency: 424;
-            readonly TooEarly: 425;
-            readonly UpgradeRequired: 426;
-            readonly PreconditionRequired: 428;
-            readonly TooManyRequests: 429;
-            readonly RequestHeaderFieldsTooLarge: 431;
-            readonly UnavailableForLegalReasons: 451;
-        };
-        /** 5xx - Server error. */
-        readonly RS_5: {
-            readonly InternalServerError: 500;
-            readonly NotImplemented: 501;
-            readonly BadGateway: 502;
-            readonly ServiceUnavailable: 503;
-            readonly GatewayTimeout: 504;
-            readonly HTTPVersionNotSupported: 505;
-            readonly InsufficientStorage: 507;
-            readonly LoopDetected: 508;
-            readonly NetworkAuthenticationRequired: 511;
-        };
-    };
-}
 ```
 
 Source: `packages/helpers/src/common/constants/http.ts`

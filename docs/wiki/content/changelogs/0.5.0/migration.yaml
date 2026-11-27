@@ -1266,3 +1266,19 @@ crud-create-declares-201:
     steps:
       - "Pin @venizia/ignis-kernel and @venizia/ignis to the release before this one."
   data: Nothing stored changes.
+
+http-namespace:
+  symbols: [HTTP]
+  upgrade:
+    before: |-
+      class Statuses extends HTTP {}
+    after: |-
+      import { HTTP } from '@venizia/ignis-helpers/common';
+
+      const statuses = HTTP.ResultCodes;
+    steps:
+      - "Run your typecheck. Replace a class use of HTTP (extends, new, instanceof) by the group you meant."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-helpers to the release before this one."
+  data: Nothing stored changes.

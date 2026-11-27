@@ -9,1583 +9,312 @@ description: "Every export of @venizia/ignis/mail, from the built declarations (
 
 77 exports, 77 with TSDoc.
 
+The declarations are on 2 pages; each export below links to its own.
+
 ## `AmazonSesTransportHelper`
 
-*class*
-
-Amazon SES transport over the HTTPS API (`@aws-sdk/client-sesv2`), sending each message as a raw MIME body.
-
-```ts
-export declare class AmazonSesTransportHelper extends BaseHelper implements IMailTransport {
-    private client;
-    private sendEmailCommandConstructor;
-    private getAccountCommandConstructor;
-    private module?;
-    constructor(opts: {
-        config: TAmazonSesConfig;
-        module?: TAmazonSesModule;
-    });
-    send(message: IMailMessage): Promise<IMailSendResult>;
-    verify(): Promise<boolean>;
-    close(): Promise<void>;
-    configure(config: TAmazonSesConfig): void;
-    protected buildClient(config: TAmazonSesConfig): TAmazonSesClient;
-    private validateConfig;
-}
-```
-
-Source: `packages/core-server/src/components/mail/helpers/transporters/amazon-ses-transporter.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#amazonsestransporthelper)
 
 ## `BullMQExecutorModes`
 
-*class*
-
-Values of `IBullMQMailExecutorOpts.mode`: `queue-only` enqueues jobs without starting workers, `worker-only` starts workers without a queue, `both` does each.
-
-```ts
-export declare class BullMQExecutorModes {
-    static readonly QUEUE_ONLY = "queue-only";
-    static readonly WORKER_ONLY = "worker-only";
-    static readonly BOTH = "both";
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#bullmqexecutormodes)
 
 ## `BullMQMailExecutorHelper`
 
-*class*
-
-Mail queue executor backed by BullMQ. The `mode` option decides whether this process holds the queue, the workers, or both; a processor returning `success: false` fails the job so BullMQ retries it.
-
-```ts
-export declare class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {
-    private queueIdentifier;
-    private queueName;
-    private prefix?;
-    private mode;
-    private queueHelper?;
-    private workerHelpers;
-    private redisConnection;
-    private readonly bullmqModule?;
-    private jobIdCounter;
-    private processor?;
-    constructor(opts: IBullMQMailExecutorOpts);
-    initQueue(queue: {
-        identifier: string;
-        name: string;
-        prefix?: string;
-    }): void;
-    setProcessor(processor: (email: string) => Promise<IMailProcessorResult>, opts?: {
-        numberOfWorkers?: number;
-        concurrencyPerWorker?: number;
-        lockDuration?: number;
-    }): Promise<void>;
-    addWorker(opts: {
-        workerIdentifier: string;
-        concurrency?: number;
-        lockDuration?: number;
-    }): void;
-    removeWorker(index: number): Promise<boolean>;
-    /** Closes every worker without stopping at the first failure, always empties the list, and returns failures instead of throwing so teardown can continue. */
-    private closeWorkers;
-    clearWorkers(): Promise<void>;
-    /** Closes the workers, then the queue. Every step runs even if an earlier one failed; failures are reported once, at the end. The Redis helper is the application's, so it stays open. */
-    close(): Promise<void>;
-    getWorkerCount(): number;
-    getMode(): TConstValue<typeof BullMQExecutorModes>;
-    enqueueVerificationEmail(email: string, options?: IMailQueueOptions): Promise<IMailQueueResult>;
-}
-```
-
-Source: `packages/core-server/src/components/mail/helpers/executors/bull-mq-executor.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#bullmqmailexecutorhelper)
 
 ## `DefaultVerificationDataGenerator`
 
-*class*
-
-Builds `IVerificationData` from the bound code and token generators, with every timestamp taken at call time.
-
-```ts
-export declare class DefaultVerificationDataGenerator extends BaseHelper implements IVerificationDataGenerator {
-    private codeGenerator;
-    private tokenGenerator;
-    constructor(codeGenerator: IVerificationCodeGenerator, tokenGenerator: IVerificationTokenGenerator);
-    generateVerificationData(options: IVerificationGenerationOptions): IVerificationData;
-}
-```
-
-Source: `packages/core-server/src/components/mail/services/generators/verification-data.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#defaultverificationdatagenerator)
 
 ## `DirectMailExecutorHelper`
 
-*class*
-
-Mail queue executor with no queue: runs the processor inline and returns its result. `options` are ignored.
-
-```ts
-export declare class DirectMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {
-    private processor?;
-    constructor();
-    setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): void;
-    enqueueVerificationEmail(email: string, _options?: IMailQueueOptions): Promise<IMailQueueResult>;
-}
-```
-
-Source: `packages/core-server/src/components/mail/helpers/executors/direct-executor.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#directmailexecutorhelper)
 
 ## `IAmazonSesClient`
 
-*interface*
-
-The part of an `@aws-sdk/client-sesv2` client the transport calls; `send` resolves with the command's output.
-
-```ts
-export interface IAmazonSesClient {
-    send(command: object): Promise<unknown>;
-    destroy?(): void;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/options.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#iamazonsesclient)
 
 ## `IAmazonSesMailOptions`
 
-*interface*
-
-Mail options for the `amazon-ses` provider (SES HTTPS API); use `nodemailer` for SES over SMTP.
-
-```ts
-export interface IAmazonSesMailOptions extends IBaseMailOptions {
-    provider: 'amazon-ses';
-    config: TAmazonSesConfig;
-    module?: TAmazonSesModule;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/options.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#iamazonsesmailoptions)
 
 ## `IAmazonSesSendEmailInput`
 
-*interface*
-
-The input of a `SendEmailCommand`: the sender, the recipients and the raw MIME body.
-
-```ts
-export interface IAmazonSesSendEmailInput {
-    FromEmailAddress?: string;
-    Destination: {
-        ToAddresses: string[];
-        CcAddresses?: string[];
-        BccAddresses?: string[];
-    };
-    ReplyToAddresses?: string[];
-    Content: {
-        Raw: {
-            Data: Uint8Array;
-        };
-    };
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/options.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#iamazonsessendemailinput)
 
 ## `IBaseMailOptions`
 
-*interface*
-
-Options shared by every mail provider.
-
-```ts
-export interface IBaseMailOptions {
-    /**
-     * Sender used when a message sets none.
-     *
-     * @default MailDefaults.FALLBACK_FROM
-     */
-    from?: string;
-    fromName?: string;
-    /**
-     * The only directory an `attachment.path` may be read from; `path` is resolved against it and
-     * refused if it lands outside, symlinks included. Unset, every `path` is refused.
-     */
-    attachmentRoot?: string;
-    /**
-     * Bytes of attachment content one message may carry, all attachments together.
-     *
-     * @default MailDefaults.MAX_ATTACHMENT_BYTES
-     */
-    maxAttachmentBytes?: number;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/options.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#ibasemailoptions)
 
 ## `IBullMQMailExecutorOpts`
 
-*interface*
-
-Options of the BullMQ mail executor: the Redis helper, the queue `identifier` and BullMQ `name`, and which of queue and workers this process runs.
-
-```ts
-export interface IBullMQMailExecutorOpts {
-    /**
-     * A ready single, cluster or sentinel helper. The queue and each worker duplicate its client, and the
-     * application closes it: the executor never disconnects a connection it did not create. On a cluster
-     * the queue name is wrapped in a `{hash tag}` so its keys share one slot.
-     */
-    redis: IRedisHelper;
-    /** `prefix` is the Redis key prefix of the queue and of every worker the executor builds; unset is BullMQ's own `bull`. Switching it strands the jobs under the old one: see the queue helper's migration notes. */
-    queue: {
-        identifier: string;
-        name: string;
-        prefix?: string;
-    };
-    mode: TConstValue<typeof BullMQExecutorModes>;
-    /** `bullmq` itself, for a `bun build --compile` binary that has no `node_modules` to load it from. */
-    module?: typeof import('bullmq');
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/queue.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#ibullmqmailexecutoropts)
 
 ## `ICustomMailOptions`
 
-*interface*
-
-Mail options for the `custom` provider; `config` is the transport to use as is.
-
-```ts
-export interface ICustomMailOptions extends IBaseMailOptions {
-    provider: 'custom';
-    config: IMailTransport;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/options.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#icustommailoptions)
 
 ## `IGenericMailOptions`
 
-*interface*
-
-Mail options with an arbitrary provider name and config; accepted by the type, but the transport provider throws on a name it does not support.
-
-```ts
-export interface IGenericMailOptions extends IBaseMailOptions {
-    provider: string;
-    config: Record<string, unknown>;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/options.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#igenericmailoptions)
 
 ## `IInternalQueueMailExecutorOpts`
 
-*interface*
-
-Options of the in-process queue executor; `identifier` names its queue.
-
-```ts
-export interface IInternalQueueMailExecutorOpts {
-    identifier: string;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/queue.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#iinternalqueuemailexecutoropts)
 
 ## `IMailAttachment`
 
-*interface*
-
-One attachment on an `IMailMessage`. Give `content` or `path`; `cid` makes the part inline, referenced as `cid:<value>` from the HTML body.
-
-```ts
-export interface IMailAttachment {
-    filename?: string;
-    contentType?: string;
-    /** A file under the mail options' `attachmentRoot`; refused when no root is set. */
-    path?: string;
-    content?: string | Buffer | Uint8Array | Readable | ReadableStream<Uint8Array>;
-    encoding?: BufferEncoding;
-    cid?: string;
-    [key: string]: unknown;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/message.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#imailattachment)
 
 ## `IMailgunMailOptions`
 
-*interface*
-
-Mail options for the `mailgun` provider; `config` needs `username`, `key` and `domain`, and `module` hands over the `mailgun.js` module.
-
-```ts
-export interface IMailgunMailOptions extends IBaseMailOptions {
-    provider: 'mailgun';
-    config: TMailgunConfig;
-    module?: TMailgunModule;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/options.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#imailgunmailoptions)
 
 ## `IMailgunMessagesClient`
 
-*interface*
-
-The part of the `mailgun.js` messages client the transport calls.
-
-```ts
-export interface IMailgunMessagesClient {
-    create(domain: string, message: object): Promise<IMailgunSendResult>;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/options.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#imailgunmessagesclient)
 
 ## `IMailgunSendResult`
 
-*interface*
-
-The result of one `mailgun.js` send; `id` is the message id.
-
-```ts
-export interface IMailgunSendResult {
-    id?: string;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/options.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#imailgunsendresult)
 
 ## `IMailMessage`
 
-*interface*
-
-A mail to send. `to` needs at least one recipient, `subject` is required, and at least one of `text` or `html` must be set; `from` falls back to the options' `from` (with `fromName`).
-
-```ts
-export interface IMailMessage {
-    /**
-     * Sender of this message.
-     *
-     * @default the mail options' `from` with `fromName`, else `MailDefaults.FALLBACK_FROM`
-     */
-    from?: string;
-    to: string | string[];
-    cc?: string | string[];
-    bcc?: string | string[];
-    replyTo?: string;
-    subject: string;
-    text?: string;
-    html?: string;
-    attachments?: IMailAttachment[];
-    headers?: Record<string, string>;
-    requireValidate?: boolean;
-    /** What a template does with a placeholder the data does not have. @default MailTemplateMissingModes.EMPTY */
-    missing?: TMailTemplateMissing;
-    [key: string]: unknown;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/message.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#imailmessage)
 
 ## `IMailProcessorResult`
 
-*interface*
-
-Result a queue processor returns for one verification mail; returning `success: false` marks the job failed so it is retried.
-
-```ts
-export interface IMailProcessorResult {
-    success: boolean;
-    message: string;
-    expiresInMinutes: number;
-    nextResendAt?: string;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/queue.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#imailprocessorresult)
 
 ## `IMailQueueExecutor`
 
-*interface*
-
-Queues verification mails and runs them through the processor registered with `setProcessor`.
-
-```ts
-export interface IMailQueueExecutor {
-    enqueueVerificationEmail(email: string, options?: IMailQueueOptions): Promise<IMailQueueResult>;
-    setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): ValueOrPromise<void>;
-    /** Releases what the executor holds: timers, workers, the queue. The application stop hook calls it. */
-    close?(): Promise<void>;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/queue.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#imailqueueexecutor)
 
 ## `IMailQueueOptions`
 
-*interface*
-
-Per-job options for a queued verification mail. `delay` and `backoff.delay` are milliseconds; `attempts` is the total number of tries, first included.
-
-```ts
-export interface IMailQueueOptions {
-    priority?: number;
-    delay?: number;
-    attempts?: number;
-    backoff?: {
-        type: TMailBackoffType;
-        delay: number;
-    };
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/queue.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#imailqueueoptions)
 
 ## `IMailQueueResult`
 
-*interface*
-
-Result of enqueueing a verification mail; `queued` is `false` and `result` is set when the executor ran the mail inline.
-
-```ts
-export interface IMailQueueResult {
-    jobId?: string;
-    queued: boolean;
-    message: string;
-    result?: IMailProcessorResult;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/queue.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#imailqueueresult)
 
 ## `IMailSendResult`
 
-*interface*
-
-Outcome of one send: `success` plus the provider `messageId`, or an `error` string when the send failed.
-
-```ts
-export interface IMailSendResult {
-    success: boolean;
-    messageId?: string;
-    response?: unknown;
-    error?: string;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/message.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#imailsendresult)
 
 ## `IMailService`
 
-*interface*
-
-The service callers use to send mail; wraps the configured `IMailTransport`.
-
-```ts
-export interface IMailService {
-    send(message: IMailMessage): Promise<IMailSendResult>;
-    sendBatch(messages: IMailMessage[], options?: {
-        concurrency?: number;
-    }): Promise<IMailSendResult[]>;
-    sendTemplate(opts: {
-        templateName: string;
-        data: Record<string, unknown>;
-        recipients: string | string[];
-        options?: Partial<IMailMessage>;
-    }): Promise<IMailSendResult>;
-    verify(): Promise<boolean>;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/message.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#imailservice)
 
 ## `IMailTemplateEngine`
 
-*interface*
-
-Stores and renders mail templates. Render with a registered `templateName` or inline `templateData`.
-
-```ts
-export interface IMailTemplateEngine {
-    render(opts: {
-        templateData?: string;
-        templateName?: string;
-        data: Record<string, unknown>;
-        /** Every key of the template is checked first and the render refuses when any is missing, naming them all; sections are not checked (an absent one is an optional block). */
-        requireValidate?: boolean;
-        /** What a missing placeholder renders; `THROW` refuses at the first one. @default MailTemplateMissingModes.EMPTY */
-        missing?: TMailTemplateMissing;
-        /** @default MailTemplateFormats.HTML */
-        format?: TMailTemplateFormat;
-    }): string;
-    registerTemplate(opts: {
-        name: string;
-        content: string;
-    }): void;
-    validateTemplateData(opts: {
-        template: string;
-        data: Record<string, unknown>;
-    }): {
-        isValid: boolean;
-        missingKeys: string[];
-        allKeys: string[];
-    };
-    getTemplate(name: string): ITemplate | undefined;
-    listTemplates(): ITemplate[];
-    hasTemplate(name: string): boolean;
-    removeTemplate(name: string): boolean;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/template.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#imailtemplateengine)
 
 ## `IMailTransport`
 
-*interface*
-
-A mail provider backend. `verify` checks the connection or credentials; `close`, when present, releases the client.
-
-```ts
-export interface IMailTransport {
-    send(message: IMailMessage): Promise<IMailSendResult>;
-    verify(): Promise<boolean>;
-    close?(): Promise<void>;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/message.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#imailtransport)
 
 ## `INodemailerMailOptions`
 
-*interface*
-
-Mail options for the `nodemailer` provider; `module` hands over the `nodemailer` module instead of loading it by name.
-
-```ts
-export interface INodemailerMailOptions extends IBaseMailOptions {
-    provider: 'nodemailer';
-    config: TNodemailerConfig;
-    module?: TNodemailerModule;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/options.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#inodemailermailoptions)
 
 ## `INodemailerTransporter`
 
-*interface*
-
-The part of a `nodemailer` transporter the transport calls.
-
-```ts
-export interface INodemailerTransporter {
-    sendMail(mailOptions: object): Promise<{
-        messageId?: string;
-        response?: unknown;
-    }>;
-    verify(): Promise<unknown>;
-    close(): void;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/options.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#inodemailertransporter)
 
 ## `InternalQueueMailExecutorHelper`
 
-*class*
-
-In-process mail queue executor: jobs are lost on restart. Supports `delay`, `attempts` and `backoff`; call `close` to clear pending timers.
-
-```ts
-export declare class InternalQueueMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {
-    private queue;
-    private jobIdCounter;
-    private delayedJobs;
-    /** Set by `close`: a job that fails afterwards must not arm a retry timer nobody will clear. */
-    private isClosed;
-    private processor?;
-    constructor(opts: IInternalQueueMailExecutorOpts);
-    setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): void;
-    enqueueVerificationEmail(email: string, options?: IMailQueueOptions): Promise<IMailQueueResult>;
-    /** Releases every pending delayed/backoff timer - a live `setTimeout` holds the event loop open past the executor. */
-    close(): Promise<void>;
-    private processJob;
-    private calculateBackoff;
-}
-```
-
-Source: `packages/core-server/src/components/mail/helpers/executors/internal-queue-executor.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#internalqueuemailexecutorhelper)
 
 ## `IQueueJobPayload`
 
-*interface*
-
-Envelope every queue-backed executor stores for one pending verification email.
-
-```ts
-export interface IQueueJobPayload {
-    id: string;
-    email: string;
-    options?: IMailQueueOptions;
-    attempts: number;
-    scheduledAt: number;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/queue.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#iqueuejobpayload)
 
 ## `ITemplate`
 
-*interface*
-
-A registered mail template: `content` is the body, `subject` and `description` are optional.
-
-```ts
-export interface ITemplate {
-    name: string;
-    content?: string;
-    subject?: string;
-    description?: string;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/template.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#itemplate)
 
 ## `IVerificationCodeGenerator`
 
-*interface*
-
-Generates a numeric verification code.
-
-```ts
-export interface IVerificationCodeGenerator {
-    generateCode(length: number): string;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/verification.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#iverificationcodegenerator)
 
 ## `IVerificationData`
 
-*interface*
-
-A verification code and token with their generation and expiry times (ISO 8601 strings) and the failed-attempt count.
-
-```ts
-export interface IVerificationData {
-    verificationCode: string;
-    codeGeneratedAt: string;
-    codeExpiresAt: string;
-    codeAttempts: number;
-    verificationToken: string;
-    tokenGeneratedAt: string;
-    tokenExpiresAt: string;
-    lastCodeSentAt: string;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/verification.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#iverificationdata)
 
 ## `IVerificationDataGenerator`
 
-*interface*
-
-Generates a full `IVerificationData` (code, token, timestamps) from the given sizes and lifetimes.
-
-```ts
-export interface IVerificationDataGenerator {
-    generateVerificationData(options: IVerificationGenerationOptions): IVerificationData;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/verification.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#iverificationdatagenerator)
 
 ## `IVerificationGenerationOptions`
 
-*interface*
-
-Sizes and lifetimes for generated verification data: code digits, token bytes, code lifetime in minutes, token lifetime in hours.
-
-```ts
-export interface IVerificationGenerationOptions {
-    codeLength: number;
-    /** Random bytes of the verification token; an integer of at least 16 (128 bits), or generation throws. */
-    tokenBytes: number;
-    codeExpiryMinutes: number;
-    tokenExpiryHours: number;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/verification.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#iverificationgenerationoptions)
 
 ## `IVerificationTokenGenerator`
 
-*interface*
-
-Generates a random verification token.
-
-```ts
-export interface IVerificationTokenGenerator {
-    generateToken(bytes: number): string;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/verification.ts`
+*interface* - [Declaration](/references/api/venizia-ignis-mail--part-1#iverificationtokengenerator)
 
 ## `MailAddressUtility`
 
-*class*
-
-Helpers for mailbox address strings.
-
-```ts
-export declare class MailAddressUtility {
-    /**
-     * Splits one or more RFC 5322 mailbox strings into individual addresses. A caller-supplied `to`
-     * is frequently a single comma-separated string (`"a@x.com, b@y.com"`), not an array - treating
-     * it as one opaque address turns it into a single malformed recipient. Splitting only at
-     * top-level commas (outside a quoted display name) keeps `"Doe, Jane" <jane@x.com>` intact while
-     * still separating `"Doe, Jane" <jane@x.com>, bob@y.com` into its two mailboxes.
-     */
-    static splitList(opts: {
-        value: string | string[];
-    }): string[];
-}
-```
-
-Source: `packages/core-server/src/components/mail/utilities/address.utility.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailaddressutility)
 
 ## `MailBackoffTypes`
 
-*class*
-
-How the delay between two attempts to send a queued mail grows: FIXED stays the same, EXPONENTIAL doubles.
-
-```ts
-export declare class MailBackoffTypes {
-    static readonly FIXED = "fixed";
-    static readonly EXPONENTIAL = "exponential";
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailbackofftypes)
 
 ## `MailComponent`
 
-*class*
-
-Registers the mail transport, queue executor, template engine, `MailService` and verification generators under `MailKeys`. Options come from `MailKeys.MAIL_OPTIONS` or from the options passed to `application.component`; boot throws when they are missing or when `attachmentRoot` or `maxAttachmentBytes` is invalid.
-
-```ts
-export declare class MailComponent extends BaseComponent<TMailOptions> {
-    private application;
-    constructor(application: BaseApplication);
-    /** `application.component(MailComponent, { options })` lands here; the call site outranks a key bound earlier. */
-    configure(opts?: TMailOptions): Promise<void>;
-    binding(): void | Promise<void>;
-    initGenerators(): void;
-    initProviders(): void;
-    initServices(): void;
-    /** A bad limit or root would otherwise surface on every send, as a 400 that blames the caller. */
-    private validateAttachmentOptions;
-    createAndBindInstances(): void;
-}
-```
-
-Source: `packages/core-server/src/components/mail/component.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailcomponent)
 
 ## `MailDefaults`
 
-*class*
-
-Fallbacks for mail sending: the batch concurrency, the `from` address used when neither the message nor the options set one, and the attachment size cap.
-
-```ts
-export declare class MailDefaults {
-    static readonly BATCH_CONCURRENCY = 5;
-    static readonly FALLBACK_FROM = "noreply@example.com";
-    /** Bytes of attachment content one message may carry, all attachments together. */
-    static readonly MAX_ATTACHMENT_BYTES: number;
-    /** The subject of a template mail that has none of its own. */
-    static readonly SUBJECT = "No Subject";
-    /** Tries per queued mail, the first included, unless the job options say otherwise. */
-    static readonly ATTEMPTS = 3;
-    static readonly BACKOFF_DELAY_MS = 1000;
-    /** How long a failed BullMQ mail job stays in Redis (it holds a recipient address), and the most that stay. */
-    static readonly FAILED_JOB_RETENTION: {
-        age: number;
-        count: number;
-    };
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#maildefaults)
 
 ## `MailErrorCodes`
 
-*class*
-
-The codes of the server-side failures, which are not in the 4xx `MailErrors` catalog. Built via {@link MessageCode.build}: `ApplicationError` lower-cases codes, so a SCREAMING_CASE literal would reach the client in a spelling no const here matches.
-
-```ts
-export declare class MailErrorCodes {
-    static readonly SEND_FAILED: string;
-    static readonly VERIFICATION_FAILED: string;
-    static readonly BATCH_SEND_FAILED: string;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailerrorcodes)
 
 ## `MailErrors`
 
-*const*
-
-Codes are LITERAL strings, deliberately not `MailErrorCodes.*`: `MessageCode.build()` returns `string`, which erases the literal type `TRegisterErrors` is built on and silently kills autocomplete. `MailErrorCodes` holds only the codes of the server-side failures, which are not in this 4xx catalog: every code string has one home. They are a public contract and must not shift.
-
-```ts
-export declare const MailErrors: {
-    readonly TEMPLATE_NOT_FOUND: {
-        readonly message: {
-            readonly text: "Mail template not found";
-            readonly code: "core.mail.template_not_found";
-        };
-        readonly statusCode: 404;
-        readonly category: "business";
-    };
-    readonly INVALID_CONFIGURATION: {
-        readonly message: {
-            readonly text: "Invalid mail configuration";
-            readonly code: "core.mail.invalid_configuration";
-        };
-        readonly statusCode: 400;
-        readonly category: "validation";
-    };
-    readonly INVALID_RECIPIENT: {
-        readonly message: {
-            readonly text: "Invalid mail recipient";
-            readonly code: "core.mail.invalid_recipient";
-        };
-        readonly statusCode: 400;
-        readonly category: "validation";
-    };
-    /** One answer for every refused source - outside the root, missing, not a file - so a caller cannot probe which files exist. */
-    readonly ATTACHMENT_PATH_REFUSED: {
-        readonly message: {
-            readonly text: "Mail attachment path refused";
-            readonly code: "core.mail.attachment_path_refused";
-        };
-        readonly statusCode: 400;
-        readonly category: "validation";
-    };
-    readonly ATTACHMENT_TOO_LARGE: {
-        readonly message: {
-            readonly text: "Mail attachments are larger than the maximum allowed";
-            readonly code: "core.mail.attachment_too_large";
-        };
-        readonly statusCode: 413;
-        readonly category: "validation";
-    };
-    /** An address, the subject or a header holds a line break or another control character, or a header name is not printable ASCII: it would break out of its header line. */
-    readonly INVALID_HEADER: {
-        readonly message: {
-            readonly text: "Invalid mail header";
-            readonly code: "core.mail.invalid_header";
-        };
-        readonly statusCode: 400;
-        readonly category: "validation";
-    };
-    /** A template that is malformed (a section left open, a closing tag that does not match), uses a tag this renderer does not have (a partial, a delimiter change), or reads a function or an object where text goes. */
-    readonly TEMPLATE_INVALID: {
-        readonly message: {
-            readonly text: "Invalid mail template";
-            readonly code: "core.mail.template_invalid";
-        };
-        readonly statusCode: 400;
-        readonly category: "validation";
-    };
-    readonly BODY_SOURCE_REFUSED: {
-        readonly message: {
-            readonly text: "Mail body must be text";
-            readonly code: "core.mail.body_source_refused";
-        };
-        readonly statusCode: 400;
-        readonly category: "validation";
-    };
-};
-```
-
-Source: `packages/core-server/src/components/mail/common/errors.ts`
+*const* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailerrors)
 
 ## `MailExecutorErrors`
 
-*class*
-
-Messages thrown by the mail queue executors.
-
-```ts
-export declare class MailExecutorErrors {
-    static readonly PROCESSOR_NOT_SET = "Processor not set. Call setProcessor() first.";
-    static readonly CLOSED = "The executor is closed and takes no more jobs.";
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailexecutorerrors)
 
 ## `MailgunTransportHelper`
 
-*class*
-
-Mailgun transport (`mailgun.js`). The constructor throws when `username`, `key` or `domain` is missing.
-
-```ts
-export declare class MailgunTransportHelper extends BaseHelper implements IMailTransport {
-    private client;
-    private domain;
-    private module?;
-    constructor(opts: {
-        config: TMailgunConfig;
-        module?: TMailgunModule;
-    });
-    configure(config: TMailgunConfig): void;
-    /** Credentials and domain are checked here, not on the first send; the error never echoes a credential value back. */
-    private validateConfig;
-    /** Client factory seam - overridden in tests to run the helper without the mailgun.js peer. */
-    protected buildClient(config: TMailgunConfig): IMailgunMessagesClient;
-    send(message: IMailMessage): Promise<IMailSendResult>;
-    verify(): Promise<boolean>;
-}
-```
-
-Source: `packages/core-server/src/components/mail/helpers/transporters/mailgun-transporter.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailguntransporthelper)
 
 ## `MailHeaderUtility`
 
-*class*
-
-The one place a message is checked for header injection, before any transport sees it. A transport called directly skips it.
-
-```ts
-export declare class MailHeaderUtility {
-    /** `value` is `unknown`: the message types end in `[key: string]: unknown`, so nothing stops a controller forwarding a request body from putting an array where a string is declared. */
-    static assertValue(opts: {
-        field: string;
-        value: unknown;
-    }): void;
-    /** Every address field, the subject and the custom headers, names included. */
-    static assert(opts: {
-        message: IMailMessage;
-    }): void;
-}
-```
-
-Source: `packages/core-server/src/components/mail/utilities/header.utility.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailheaderutility)
 
 ## `MailKeys`
 
-*class*
-
-DI binding keys the mail component registers and reads: options, queue executor config, transport and queue provider/instance, services and verification generators.
-
-```ts
-export declare class MailKeys {
-    static readonly MAIL_OPTIONS: import("@venizia/ignis-inversion").TBindingKey<TMailOptions>;
-    static readonly MAIL_QUEUE_EXECUTOR_CONFIG: import("@venizia/ignis-inversion").TBindingKey<TMailQueueExecutorConfig>;
-    static readonly MAIL_TRANSPORT_PROVIDER: import("@venizia/ignis-inversion").TBindingKey<TGetMailTransportFn>;
-    static readonly MAIL_TRANSPORT_INSTANCE: import("@venizia/ignis-inversion").TBindingKey<IMailTransport>;
-    static readonly MAIL_TEMPLATE_ENGINE: import("@venizia/ignis-inversion").TBindingKey<TemplateEngineService>;
-    static readonly MAIL_SERVICE: import("@venizia/ignis-inversion").TBindingKey<MailService>;
-    static readonly MAIL_VERIFICATION_CODE_GENERATOR: import("@venizia/ignis-inversion").TBindingKey<IVerificationCodeGenerator>;
-    static readonly MAIL_VERIFICATION_TOKEN_GENERATOR: import("@venizia/ignis-inversion").TBindingKey<IVerificationTokenGenerator>;
-    static readonly MAIL_VERIFICATION_DATA_GENERATOR: import("@venizia/ignis-inversion").TBindingKey<IVerificationDataGenerator>;
-    static readonly MAIL_QUEUE_EXECUTOR_PROVIDER: import("@venizia/ignis-inversion").TBindingKey<TGetMailQueueExecutorFn>;
-    static readonly MAIL_QUEUE_EXECUTOR_INSTANCE: import("@venizia/ignis-inversion").TBindingKey<IMailQueueExecutor>;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/keys.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailkeys)
 
 ## `MailMimeUtility`
 
-*class*
-
-Builds the MIME pieces the Amazon SES transport sends: the raw message and RFC 5322 address headers.
-
-```ts
-export declare class MailMimeUtility {
-    /** Escapes `\` and `"` so a value can sit inside a quoted string: a display name, a MIME parameter. */
-    static escapeQuotedString(opts: {
-        value: string;
-    }): string;
-    /** Formats a `to`/`cc`/`from`/`replyTo` field as one RFC 5322 address list: splits a
-     * comma-separated string or array into individual mailboxes, RFC 2047-encodes each display name,
-     * and rejoins with `, ` - the same shape whether the caller passed a string or an array. */
-    static formatAddressHeader(opts: {
-        value: string | string[];
-    }): string;
-    /**
-     * Builds a raw RFC 822 message with zero external dependencies - Amazon SES's `SendEmailCommand`
-     * `Content.Simple` shape has no attachment field, so attachments require a raw MIME body. Written
-     * by hand instead of depending on `nodemailer`'s `MailComposer` so the `ses` provider never needs
-     * the `nodemailer` peer installed at all.
-     *
-     * Inline (`cid`) attachments nest under `multipart/related` next to the body - a mail client
-     * only renders `cid:` references inline when they share a `multipart/related` parent with the
-     * body; under `multipart/mixed` they show up as ordinary downloadable attachments instead. Plain
-     * file attachments (no `cid`) stay under `multipart/mixed`, alongside the body or the
-     * `multipart/related` group when both kinds are present.
-     */
-    static buildRawMessage(opts: {
-        message: IMailMessage;
-    }): Promise<Buffer>;
-}
-```
-
-Source: `packages/core-server/src/components/mail/utilities/mime.utility.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailmimeutility)
 
 ## `MailProviders`
 
-*class*
-
-Values of `TMailOptions.provider`, naming the transport the mail component builds.
-
-```ts
-export declare class MailProviders {
-    static readonly NODEMAILER = "nodemailer";
-    static readonly MAILGUN = "mailgun";
-    static readonly CUSTOM = "custom";
-    static readonly AMAZON_SES = "amazon-ses";
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailproviders)
 
 ## `MailQueueExecutorProvider`
 
-*class*
-
-Provides the `TGetMailQueueExecutorFn` factory bound at `MailKeys.MAIL_QUEUE_EXECUTOR_PROVIDER`.
-
-```ts
-export declare class MailQueueExecutorProvider extends BaseProvider<TGetMailQueueExecutorFn> {
-    constructor();
-    value(_container: Container): TGetMailQueueExecutorFn;
-}
-```
-
-Source: `packages/core-server/src/components/mail/providers/mail-queue-executor.provider.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailqueueexecutorprovider)
 
 ## `MailQueueExecutorTypes`
 
-*class*
-
-Values of `TMailQueueExecutorConfig.type`, selecting how verification mails are queued: sent inline, held in process, or handed to BullMQ.
-
-```ts
-export declare class MailQueueExecutorTypes {
-    static readonly DIRECT = "direct";
-    static readonly INTERNAL_QUEUE = "internal-queue";
-    static readonly BULLMQ = "bullmq";
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailqueueexecutortypes)
 
 ## `MailQueueJobNames`
 
-*class*
-
-Names of the jobs the BullMQ mail executor adds.
-
-```ts
-export declare class MailQueueJobNames {
-    static readonly SEND_VERIFICATION_EMAIL = "send-verification-email";
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailqueuejobnames)
 
 ## `MailService`
 
-*class*
-
-Sends mail through the bound transport. `send` validates the message, applies the attachment policy and defaults `from`; failures are thrown as application errors with a mail message code, except `sendBatch`, which reports each failure in its result.
-
-```ts
-export declare class MailService extends BaseService implements IMailService {
-    protected options: TMailOptions;
-    protected transport: IMailTransport;
-    protected templateEngine?: IMailTemplateEngine | undefined;
-    constructor(options: TMailOptions, transport: IMailTransport, templateEngine?: IMailTemplateEngine | undefined);
-    send(message: IMailMessage): Promise<IMailSendResult>;
-    sendBatch(messages: IMailMessage[], options?: {
-        concurrency?: number;
-    }): Promise<IMailSendResult[]>;
-    sendTemplate(opts: {
-        templateName: string;
-        data: Record<string, unknown>;
-        recipients: string | string[];
-        options?: Partial<IMailMessage>;
-    }): Promise<IMailSendResult>;
-    verify(): Promise<boolean>;
-    protected validateMessage(message: IMailMessage): void;
-    protected getDefaultFrom(): string;
-}
-```
-
-Source: `packages/core-server/src/components/mail/services/mail.service.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailservice)
 
 ## `MailTemplateFormats`
 
-*class*
-
-Where a rendered template is going: `HTML` escapes every double-brace placeholder, `TEXT` (a subject, a plain-text part) inserts it as it is. A triple-brace placeholder is raw in both.
-
-```ts
-export declare class MailTemplateFormats {
-    static readonly HTML = "html";
-    static readonly TEXT = "text";
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailtemplateformats)
 
 ## `MailTemplateMissingModes`
 
-*class*
-
-What a template does with a placeholder the data does not have: `EMPTY` renders nothing, `KEEP` leaves the tag as written, `THROW` refuses the render.
-
-```ts
-export declare class MailTemplateMissingModes {
-    static readonly EMPTY = "empty";
-    static readonly KEEP = "keep";
-    static readonly THROW = "throw";
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/constants.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailtemplatemissingmodes)
 
 ## `MailTemplateRenderer`
 
-*class*
-
-Renders placeholders (escaped, raw and dotted) and sections (a list, a flag, its inverse): no partial, no lambda, no delimiter change, no code.
-
-```ts
-export declare class MailTemplateRenderer {
-    private static invalid;
-    /** Splits a template into text, values and sections; a closing tag that does not match, a section left open and a tag this renderer does not have throw. */
-    private static parse;
-    /** The keys a template reads outside any section, and the keys of its sections (a section body reads the item first, so its keys are not the data's to check). */
-    static readKeys(opts: {
-        template: string;
-    }): {
-        valueKeys: string[];
-        sectionKeys: string[];
-    };
-    /** Own properties only, so a key such as `constructor` or `__proto__.x` never reaches the prototype chain. The first segment picks the innermost scope that has it. */
-    private static lookup;
-    /** The value of `key` in `data` (own properties only), or `undefined`. */
-    static read(opts: {
-        data: Record<string, unknown>;
-        key: string;
-    }): unknown;
-    static render(opts: {
-        template: string;
-        data: Record<string, unknown>;
-        format?: TMailTemplateFormat;
-        missing?: TMailTemplateMissing;
-        /** Called with the key of every placeholder that rendered empty because the data had no value (never the value). */
-        onEmpty?: (key: string) => void;
-    }): string;
-    private static renderNodes;
-}
-```
-
-Source: `packages/core-server/src/components/mail/utilities/template-renderer.utility.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailtemplaterenderer)
 
 ## `MailTransportProvider`
 
-*class*
-
-Provides the `TGetMailTransportFn` factory bound at `MailKeys.MAIL_TRANSPORT_PROVIDER`.
-
-```ts
-export declare class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
-    constructor();
-    value(_container: Container): TGetMailTransportFn;
-    private createNodemailerTransport;
-    private createMailgunTransport;
-    private createAmazonSesTransport;
-    private createCustomTransport;
-    private isNodemailerOptions;
-    private isMailgunOptions;
-    private isAmazonSesOptions;
-    private isCustomOptions;
-}
-```
-
-Source: `packages/core-server/src/components/mail/providers/mail-transporter.provider.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailtransportprovider)
 
 ## `MailTypeUtility`
 
-*class*
-
-Type guards for the mail component. Each takes its value as a positional parameter, not an options
-object (V-C-02): a type predicate narrows its own parameter, so `{ value }` could not narrow the
-caller's variable.
-
-```ts
-export declare class MailTypeUtility {
-    /** Whether `value` is a transport: `send` and `verify` are functions, and `close` is a function or absent. */
-    static isTransport(value: unknown): value is IMailTransport;
-    /** Whether `options` has a string `provider` and a truthy `config`; the shape of `config` is not checked. */
-    static isValidOptions(options: unknown): options is TMailOptions;
-}
-```
-
-Source: `packages/core-server/src/components/mail/utilities/type.utility.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailtypeutility)
 
 ## `MailVerificationUtility`
 
-*class*
-
-Computes expiry timestamps for verification data from now.
-
-```ts
-export declare class MailVerificationUtility {
-    static getExpiryTime(opts: {
-        minutes: number;
-    }): Date;
-    static getExpiryTimeInHours(opts: {
-        hours: number;
-    }): Date;
-}
-```
-
-Source: `packages/core-server/src/components/mail/utilities/verification.utility.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#mailverificationutility)
 
 ## `NodemailerTransportHelper`
 
-*class*
-
-SMTP transport on `nodemailer`, with its file and URL access switched off.
-
-```ts
-export declare class NodemailerTransportHelper extends BaseHelper implements IMailTransport {
-    private transporter;
-    private module?;
-    constructor(opts: {
-        config: TNodemailerConfig;
-        module?: TNodemailerModule;
-    });
-    configure(config: TNodemailerConfig): void;
-    /** Client factory seam - overridden in tests to run the helper without a real SMTP client. */
-    protected buildTransporter(config: TNodemailerConfig): INodemailerTransporter;
-    send(message: IMailMessage): Promise<IMailSendResult>;
-    verify(): Promise<boolean>;
-    close(): Promise<void>;
-}
-```
-
-Source: `packages/core-server/src/components/mail/helpers/transporters/nodemail-transporter.helper.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#nodemailertransporthelper)
 
 ## `NumericCodeGenerator`
 
-*class*
-
-Generates zero-padded numeric codes through `NumericUidHelper`, uniformly distributed. `generateCode` throws unless `10 ** length` is an integer up to 2 ** 48.
-
-```ts
-export declare class NumericCodeGenerator extends BaseHelper implements IVerificationCodeGenerator {
-    constructor();
-    generateCode(length: number): string;
-}
-```
-
-Source: `packages/core-server/src/components/mail/services/generators/numeric-code.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#numericcodegenerator)
 
 ## `RandomTokenGenerator`
 
-*class*
-
-Generates base64url tokens from random bytes, through `TokenUidHelper`. `generateToken` throws
-unless `bytes` is an integer of at least 16 (128 bits): a shorter token can be guessed offline.
-
-```ts
-export declare class RandomTokenGenerator extends BaseHelper implements IVerificationTokenGenerator {
-    constructor();
-    generateToken(bytes: number): string;
-}
-```
-
-Source: `packages/core-server/src/components/mail/services/generators/random-token.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-1#randomtokengenerator)
 
 ## `TAmazonSesClient`
 
-*type*
-
-An Amazon SES client with the command classes the transport sends and verifies with.
-
-```ts
-export type TAmazonSesClient = Pick<TAmazonSesModule, 'SendEmailCommand' | 'GetAccountCommand'> & {
-    client: IAmazonSesClient;
-};
-```
-
-Source: `packages/core-server/src/components/mail/common/types/options.ts`
+*type* - [Declaration](/references/api/venizia-ignis-mail--part-1#tamazonsesclient)
 
 ## `TAmazonSesConfig`
 
-*type*
-
-Amazon SES client configuration: `region` is required; `credentials` and `endpoint` are optional.
-
-```ts
-export type TAmazonSesConfig = {
-    region: string;
-    credentials?: {
-        accessKeyId: string;
-        secretAccessKey: string;
-        sessionToken?: string;
-    };
-    endpoint?: string;
-};
-```
-
-Source: `packages/core-server/src/components/mail/common/types/options.ts`
+*type* - [Declaration](/references/api/venizia-ignis-mail--part-1#tamazonsesconfig)
 
 ## `TAmazonSesModule`
 
-*type*
-
-Same story as {@link TNodemailerModule} - a compiled binary hands this over explicitly since there is no `node_modules` to resolve `@aws-sdk/client-sesv2` against.
-
-```ts
-export type TAmazonSesModule<TConfig = TAmazonSesConfig, TClient extends IAmazonSesClient = IAmazonSesClient> = {
-    SESv2Client: new (config: TConfig) => TClient;
-    SendEmailCommand: new (input: IAmazonSesSendEmailInput) => object;
-    GetAccountCommand: new (input: object) => object;
-};
-```
-
-Source: `packages/core-server/src/components/mail/common/types/options.ts`
+*type* - [Declaration](/references/api/venizia-ignis-mail--part-1#tamazonsesmodule)
 
 ## `TemplateEngineService`
 
-*class*
-
-In-memory template store and renderer. Templates registered here are lost on restart.
-
-```ts
-export declare class TemplateEngineService extends BaseService implements IMailTemplateEngine {
-    private templates;
-    constructor();
-    registerTemplate(opts: {
-        name: string;
-        content: string;
-        options?: Partial<ITemplate>;
-    }): void;
-    render(opts: {
-        templateData?: string;
-        templateName?: string;
-        data: Record<string, unknown>;
-        requireValidate?: boolean;
-        missing?: TMailTemplateMissing;
-        format?: TMailTemplateFormat;
-    }): string;
-    getTemplate(name: string): ITemplate | undefined;
-    listTemplates(): ITemplate[];
-    hasTemplate(name: string): boolean;
-    removeTemplate(name: string): boolean;
-    clearTemplates(): void;
-    validateTemplateData(opts: {
-        template: string;
-        data: Record<string, unknown>;
-    }): {
-        isValid: boolean;
-        missingKeys: string[];
-        allKeys: string[];
-    };
-    renderSimpleTemplate(template: string, data: Record<string, unknown>, opts?: {
-        requireValidate?: boolean;
-        missing?: TMailTemplateMissing;
-        format?: TMailTemplateFormat;
-    }): string;
-}
-```
-
-Source: `packages/core-server/src/components/mail/services/template.service.ts`
+*class* - [Declaration](/references/api/venizia-ignis-mail--part-2#templateengineservice)
 
 ## `TGetMailQueueExecutorFn`
 
-*type*
-
-Builds the queue executor for a config; throws when the config for its `type` is missing or the type is unknown.
-
-```ts
-export type TGetMailQueueExecutorFn = (config: TMailQueueExecutorConfig) => IMailQueueExecutor;
-```
-
-Source: `packages/core-server/src/components/mail/providers/mail-queue-executor.provider.ts`
+*type* - [Declaration](/references/api/venizia-ignis-mail--part-2#tgetmailqueueexecutorfn)
 
 ## `TGetMailTransportFn`
 
-*type*
-
-Builds the transport for the given mail options; throws on an unsupported provider.
-
-```ts
-export type TGetMailTransportFn = (options: TMailOptions) => IMailTransport;
-```
-
-Source: `packages/core-server/src/components/mail/providers/mail-transporter.provider.ts`
+*type* - [Declaration](/references/api/venizia-ignis-mail--part-2#tgetmailtransportfn)
 
 ## `TMailBackoffType`
 
-*type*
-
-Valid mail backoff type values.
-
-```ts
-export type TMailBackoffType = TConstValue<typeof MailBackoffTypes>;
-```
-
-Source: `packages/core-server/src/components/mail/common/constants.ts`
+*type* - [Declaration](/references/api/venizia-ignis-mail--part-2#tmailbackofftype)
 
 ## `TMailgunConfig`
 
-*type*
-
-Mailgun client options (`mailgun.js`) plus the sending `domain`; the transport throws on a missing `username`, `key` or `domain`.
-
-```ts
-export type TMailgunConfig = {
-    username: string;
-    key: string;
-    domain: string;
-    url?: string;
-    [option: string]: unknown;
-};
-```
-
-Source: `packages/core-server/src/components/mail/common/types/options.ts`
+*type* - [Declaration](/references/api/venizia-ignis-mail--part-2#tmailgunconfig)
 
 ## `TMailgunModule`
 
-*type*
-
-The `mailgun.js` class, as a constructor taking the form-data implementation.
-
-```ts
-export type TMailgunModule = new (formData: typeof FormData) => {
-    client(config: object): {
-        messages: IMailgunMessagesClient;
-    };
-};
-```
-
-Source: `packages/core-server/src/components/mail/common/types/options.ts`
+*type* - [Declaration](/references/api/venizia-ignis-mail--part-2#tmailgunmodule)
 
 ## `TMailOptions`
 
-*type*
-
-Options passed to the mail component, discriminated by `provider`.
-
-```ts
-export type TMailOptions = INodemailerMailOptions | IAmazonSesMailOptions | IMailgunMailOptions | ICustomMailOptions | IGenericMailOptions;
-```
-
-Source: `packages/core-server/src/components/mail/common/types/options.ts`
+*type* - [Declaration](/references/api/venizia-ignis-mail--part-2#tmailoptions)
 
 ## `TMailProvider`
 
-*type*
-
-Union of the `MailProviders` values.
-
-```ts
-export type TMailProvider = TConstValue<typeof MailProviders>;
-```
-
-Source: `packages/core-server/src/components/mail/common/constants.ts`
+*type* - [Declaration](/references/api/venizia-ignis-mail--part-2#tmailprovider)
 
 ## `TMailQueueExecutorConfig`
 
-*type*
-
-Selects and configures the mail queue executor: `type` picks one of three, and the options its executor needs are required by the types.
-
-```ts
-export type TMailQueueExecutorConfig = {
-    type: typeof MailQueueExecutorTypes.DIRECT;
-    options?: never;
-} | {
-    type: typeof MailQueueExecutorTypes.INTERNAL_QUEUE;
-    options: IInternalQueueMailExecutorOpts;
-} | {
-    type: typeof MailQueueExecutorTypes.BULLMQ;
-    options: IBullMQMailExecutorOpts;
-};
-```
-
-Source: `packages/core-server/src/components/mail/common/types/queue.ts`
+*type* - [Declaration](/references/api/venizia-ignis-mail--part-2#tmailqueueexecutorconfig)
 
 ## `TMailTemplateFormat`
 
-*type*
-
-Union of the `MailTemplateFormats` values.
-
-```ts
-export type TMailTemplateFormat = TConstValue<typeof MailTemplateFormats>;
-```
-
-Source: `packages/core-server/src/components/mail/common/constants.ts`
+*type* - [Declaration](/references/api/venizia-ignis-mail--part-2#tmailtemplateformat)
 
 ## `TMailTemplateMissing`
 
-*type*
-
-Union of the `MailTemplateMissingModes` values.
-
-```ts
-export type TMailTemplateMissing = TConstValue<typeof MailTemplateMissingModes>;
-```
-
-Source: `packages/core-server/src/components/mail/common/constants.ts`
+*type* - [Declaration](/references/api/venizia-ignis-mail--part-2#tmailtemplatemissing)
 
 ## `TNodemailerConfig`
 
-*type*
-
-Nodemailer `createTransport` argument: a transport instance, SMTP options or a connection URL.
-
-```ts
-export type TNodemailerConfig = SMTPTransport | SMTPTransport.Options | string;
-```
-
-Source: `packages/core-server/src/components/mail/common/types/options.ts`
+*type* - [Declaration](/references/api/venizia-ignis-mail--part-2#tnodemailerconfig)
 
 ## `TNodemailerModule`
 
-*type*
-
-The peer module itself, handed over by an application that already holds it. A `bun build
---compile` binary carries no `node_modules`, so the runtime lookup these transports fall back to
-has nothing to resolve against - passing the module through the options is what a compiled
-application does instead. Typed as the shape each transport actually uses, so a wrong module is
-a compile error rather than a boot crash.
-
-```ts
-export type TNodemailerModule = {
-    createTransport(config: TNodemailerConfig): INodemailerTransporter;
-};
-```
-
-Source: `packages/core-server/src/components/mail/common/types/options.ts`
+*type* - [Declaration](/references/api/venizia-ignis-mail--part-2#tnodemailermodule)
