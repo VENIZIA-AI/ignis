@@ -117,6 +117,15 @@ const forwarded = (context: TContextOf<typeof CREATE>) => {
   return read(context);
 };
 
+/** `Parameters` and `ReturnType` read the last overload of `valid`: a target of the request, answering `unknown`. */
+const readByUtilityTypes = () => {
+  type TValid = TContextOf<typeof CREATE>['req']['valid'];
+  type TTarget = 'json' | 'query' | 'param' | 'header' | 'cookie' | 'form';
+
+  check<TSame<Parameters<TValid>, [target: TTarget]>>();
+  check<TSame<ReturnType<TValid>, unknown>>();
+};
+
 type TAppEnv = { Variables: { tenant: string } };
 
 /** A route context goes where Hono's own context or middleware, with an explicit `Env`, is asked for. */
@@ -178,8 +187,8 @@ describe('TContextOf', () => {
     const payload = await answer.json();
 
     expect(payload).toEqual({ name: 'pen' });
-    expect([typed, forms, untypedParts, forwarded, handedToHono, handedWithAnAppEnv]).toHaveLength(
-      6,
-    );
+    const typeTests = [typed, forms, untypedParts, forwarded, handedToHono, handedWithAnAppEnv];
+
+    expect([...typeTests, readByUtilityTypes]).toHaveLength(7);
   });
 });
