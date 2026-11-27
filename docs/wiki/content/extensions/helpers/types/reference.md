@@ -488,7 +488,7 @@ The five value kinds a stored field can hold.
 
 `Source ->` [`constants/http.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/http.ts)
 
-The `HTTP` class groups all HTTP-related constants into nested objects: `Headers`, `HeaderValues`, `Methods`, `Protocols`, and `ResultCodes`.
+`HTTP` is a module namespace of the HTTP constant groups: `Headers`, `CorsHeaders`, `HeaderValues`, `Methods`, `Protocols` and `ResultCodes`. Read a group as `HTTP.Methods`: a bundle then keeps only the groups it names.
 
 #### HTTP.Headers
 
