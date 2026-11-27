@@ -1338,3 +1338,18 @@ claims-source-verify-typed:
     steps:
       - "Pin @venizia/ignis to the release before this one."
   data: Nothing stored changes.
+
+bun-compile-target-checked:
+  symbols: [BunCompiler]
+  upgrade:
+    before: |-
+      await BunCompiler.compile({ target: 'bun-linux-x64-musl-baseline' });
+    after: |-
+      await BunCompiler.compile({ target: 'bun-linux-x64-baseline-musl' });
+    steps:
+      - "Check the target of your compile script and BUN_TARGET: write it as bun-<darwin|linux|windows>-<x64|arm64|aarch64>, then -<baseline|modern>, then, on linux, -<glibc|musl>, in that order."
+      - "A target that pins a Bun version is refused: remove the version."
+  downgrade:
+    steps:
+      - "Pin @venizia/dev-configs to the release before this one."
+  data: Nothing stored changes.

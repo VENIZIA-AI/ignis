@@ -2,6 +2,13 @@ const DEFAULT_ENTRYPOINT = './dist/index.js';
 const DEFAULT_OUTFILE = './dist/bin';
 const DEFAULT_COMPILE_TARGET = 'bun-linux-x64';
 
+/** The compile targets Bun's own type names: an operating system, an architecture, and for some a libc or a SIMD level. */
+const COMPILE_TARGET_PATTERN =
+  /^bun-(darwin-(x64|arm64|aarch64)(-(baseline|modern))?|linux-(x64|arm64|aarch64)(-(baseline|modern))?(-(glibc|musl))?|windows-(x64|arm64|aarch64)|windows-x64-(baseline|modern))$/;
+
+const isCompileTarget = (value: string): value is Bun.Build.CompileTarget =>
+  COMPILE_TARGET_PATTERN.test(value);
+
 /** Bundles and compiles a single Bun executable: minified, linked sourcemaps, target read from `BUN_TARGET`. */
 export class BunCompiler {
   /**
@@ -33,6 +40,13 @@ export class BunCompiler {
       check = false,
     } = opts;
 
+    if (!isCompileTarget(target)) {
+      // eslint-disable-next-line @venizia/no-new-error -- getError would be a dev-configs -> inversion cycle
+      throw new Error(
+        `[BunCompiler] "${target}" is not a compile target | expected bun-<darwin|linux|windows>-<x64|arm64>, with -<baseline|modern> or, on linux, -<glibc|musl>`,
+      );
+    }
+
     const built = await Bun.build({
       entrypoints: [entrypoint, ...workers],
       target: 'bun',
@@ -40,8 +54,7 @@ export class BunCompiler {
       sourcemap: 'linked',
       throw: false,
       compile: {
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the target is text from an option or BUN_TARGET; Bun.build throws on one it does not know
-        target: target as Bun.Build.CompileTarget,
+        target,
         outfile,
       },
       define,
