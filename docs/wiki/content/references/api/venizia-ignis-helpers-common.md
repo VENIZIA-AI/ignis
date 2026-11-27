@@ -79,7 +79,7 @@ export declare class ContentDispositionTypes extends ConstClass {
 }
 ```
 
-Source: `packages/helpers/src/common/constants/http.ts`
+Source: `packages/helpers/src/common/constants/content-disposition.ts`
 
 ## `ContentTypes`
 
@@ -826,7 +826,7 @@ Valid Content-Disposition type values.
 export type TContentDispositionType = TConstValue<typeof ContentDispositionTypes>;
 ```
 
-Source: `packages/helpers/src/common/constants/http.ts`
+Source: `packages/helpers/src/common/constants/content-disposition.ts`
 
 ## `TContentType`
 
