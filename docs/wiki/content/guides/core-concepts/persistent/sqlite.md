@@ -47,6 +47,7 @@ import type { TAnyDataSourceSchema, ValueOrPromise } from '@venizia/ignis';
 import { BaseSqliteDataSource } from '@venizia/ignis-connectors/sqlite';
 import type { ISqliteDataSourceSettings } from '@venizia/ignis-connectors/sqlite';
 import { LibSqlDriver } from '@venizia/ignis-connectors/sqlite/libsql';
+import { applicationEnvironment } from '@venizia/ignis-helpers';
 
 @datasource({ driver: LibSqlDriver })
 export class SqliteDataSource extends BaseSqliteDataSource<
@@ -58,7 +59,7 @@ export class SqliteDataSource extends BaseSqliteDataSource<
   constructor() {
     super({
       name: SqliteDataSource.name,
-      config: { url: process.env.APP_ENV_SQLITE_URL ?? 'file:./data.db' },
+      config: { url: applicationEnvironment.get('APP_ENV_SQLITE_URL') ?? 'file:./data.db' },
     });
   }
 

@@ -135,13 +135,13 @@ export type TTodo = TEntityObject<typeof Todo>;
 Environment variables store configuration outside code (in `.env` files). Benefits: security (no passwords in Git), flexibility (different values per environment).
 
 ```typescript
+import { applicationEnvironment } from '@venizia/ignis-helpers';
+
 // ❌ BAD: Hardcoded values
-const password = "secret123";  // In Git history forever!
+const hardcodedPassword = "secret123";  // In Git history forever!
 
 // ✅ GOOD: Environment variable with APP_ENV_ prefix
-const password = process.env.APP_ENV_DB_PASSWORD;
-// or
-const password = Bun.env.APP_ENV_DB_PASSWORD;
+const password = applicationEnvironment.get('APP_ENV_DB_PASSWORD');
 ```
 
 IGNIS uses `APP_ENV_` prefix to prevent conflicts with system variables.
@@ -181,6 +181,7 @@ import {
 } from '@venizia/ignis';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
+import { applicationEnvironment } from '@venizia/ignis-helpers';
 
 interface IDataSourceConfigs {
   host: string;
@@ -204,11 +205,11 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
     super({
       name: PostgresDataSource.name,
       config: {
-        host: process.env.APP_ENV_POSTGRES_HOST ?? 'localhost',
-        port: +(process.env.APP_ENV_POSTGRES_PORT ?? 5432),
-        database: process.env.APP_ENV_POSTGRES_DATABASE ?? 'todo_db',
-        user: process.env.APP_ENV_POSTGRES_USERNAME ?? 'postgres',
-        password: process.env.APP_ENV_POSTGRES_PASSWORD ?? '',
+        host: applicationEnvironment.get('APP_ENV_POSTGRES_HOST') ?? 'localhost',
+        port: +(applicationEnvironment.get('APP_ENV_POSTGRES_PORT') ?? 5432),
+        database: applicationEnvironment.get('APP_ENV_POSTGRES_DATABASE') ?? 'todo_db',
+        user: applicationEnvironment.get('APP_ENV_POSTGRES_USERNAME') ?? 'postgres',
+        password: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD') ?? '',
       },
       // NO schema property - auto-discovered from @repository bindings!
     });
@@ -408,6 +409,7 @@ Create `src/migration.ts`:
 ```typescript
 // src/migration.ts
 import { defineConfig } from 'drizzle-kit';
+import { applicationEnvironment } from '@venizia/ignis-helpers';
 
 export default defineConfig({
   schema: './src/models/todo.model.ts',  // Where your model definitions are
@@ -415,11 +417,11 @@ export default defineConfig({
   dialect: 'postgresql',                  // Database type
   dbCredentials: {
     // Use the same .env values as your datasource
-    host: process.env.APP_ENV_POSTGRES_HOST!,
-    port: +(process.env.APP_ENV_POSTGRES_PORT ?? 5432),
-    user: process.env.APP_ENV_POSTGRES_USERNAME,
-    password: process.env.APP_ENV_POSTGRES_PASSWORD,
-    database: process.env.APP_ENV_POSTGRES_DATABASE!,
+    host: applicationEnvironment.getRequired('APP_ENV_POSTGRES_HOST'),
+    port: +(applicationEnvironment.get('APP_ENV_POSTGRES_PORT') ?? 5432),
+    user: applicationEnvironment.get('APP_ENV_POSTGRES_USERNAME'),
+    password: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD'),
+    database: applicationEnvironment.getRequired('APP_ENV_POSTGRES_DATABASE'),
   },
 });
 ```

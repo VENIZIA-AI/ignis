@@ -70,11 +70,13 @@ No `driver` in the decorator, and that is not an omission. A relational datasour
 Configured through `IMeilisearchDataSourceSettings`:
 
 ```typescript
+import { applicationEnvironment } from '@venizia/ignis-helpers';
+
 new ArticleSearchDataSource({
   name: 'search',
   config: {
-    host: process.env.APP_ENV_MEILISEARCH_HOST,
-    apiKey: process.env.APP_ENV_MEILISEARCH_API_KEY,
+    host: applicationEnvironment.get('APP_ENV_MEILISEARCH_HOST'),
+    apiKey: applicationEnvironment.get('APP_ENV_MEILISEARCH_API_KEY'),
     taskTimeoutMs: 5 * 60_000,
   },
 });

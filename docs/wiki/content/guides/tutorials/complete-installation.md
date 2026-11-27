@@ -364,7 +364,7 @@ Create `src/index.ts` - this starts your application:
 ```typescript
 import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
 import { Application, appConfigs } from './application';
-import { LoggerFactory } from '@venizia/ignis-helpers';
+import { applicationEnvironment, LoggerFactory } from '@venizia/ignis-helpers';
 
 const logger = LoggerFactory.getLogger(['main']);
 
@@ -374,7 +374,7 @@ const main = async () => {
     config: appConfigs,
   });
 
-  const applicationName = process.env.APP_ENV_APPLICATION_NAME?.toUpperCase() ?? 'My-App';
+  const applicationName = applicationEnvironment.get('APP_ENV_APPLICATION_NAME')?.toUpperCase() ?? 'My-App';
   logger.info('[main] Getting ready to start up %s Application...', applicationName);
 
   await BuildInfoStamp.register();

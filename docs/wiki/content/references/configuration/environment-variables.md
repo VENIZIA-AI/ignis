@@ -26,13 +26,14 @@ POSTGRES_HOST=localhost
 ### Accessing Environment Variables
 
 ```typescript
-// Direct access
-const host = process.env.APP_ENV_POSTGRES_HOST;
-
-// Using applicationEnvironment helper (recommended)
-import { applicationEnvironment } from '@venizia/ignis-helpers';
 import { EnvironmentKeys } from '@venizia/ignis';
-const host = applicationEnvironment.get(EnvironmentKeys.APP_ENV_POSTGRES_HOST);
+import { applicationEnvironment } from '@venizia/ignis-helpers';
+
+// 1. By name
+const host = applicationEnvironment.get('APP_ENV_POSTGRES_HOST');
+
+// 2. By a key constant (recommended)
+const sameHost = applicationEnvironment.get(EnvironmentKeys.APP_ENV_POSTGRES_HOST);
 ```
 
 
@@ -170,6 +171,7 @@ import { datasource, ValueOrPromise } from '@venizia/ignis';
 import { BaseDataSource } from '@venizia/ignis-connectors/postgres';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
+import { applicationEnvironment } from '@venizia/ignis-helpers';
 
 interface IDataSourceConfigs {
   host: string;
@@ -185,11 +187,11 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
     super({
       name: PostgresDataSource.name,
       config: {
-        host: process.env.APP_ENV_POSTGRES_HOST ?? 'localhost',
-        port: +(process.env.APP_ENV_POSTGRES_PORT ?? 5432),
-        database: process.env.APP_ENV_POSTGRES_DATABASE ?? 'mydb',
-        user: process.env.APP_ENV_POSTGRES_USERNAME ?? 'postgres',
-        password: process.env.APP_ENV_POSTGRES_PASSWORD ?? '',
+        host: applicationEnvironment.get('APP_ENV_POSTGRES_HOST') ?? 'localhost',
+        port: +(applicationEnvironment.get('APP_ENV_POSTGRES_PORT') ?? 5432),
+        database: applicationEnvironment.get('APP_ENV_POSTGRES_DATABASE') ?? 'mydb',
+        user: applicationEnvironment.get('APP_ENV_POSTGRES_USERNAME') ?? 'postgres',
+        password: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD') ?? '',
       },
     });
   }
@@ -403,7 +405,7 @@ NODE_ENV=production
 ## Secrets & Vault
 
 - **A `.env` file is one option, not a requirement.** IGNIS can load these variables from a vault (HashiCorp Vault, an encrypted `.env.vault`, or plain `process.env`). It **hydrates** them into the same `APP_ENV_*` keys at boot.
-- **Hydration is transparent to your code.** Code that reads `process.env.APP_ENV_*` keeps working unchanged - the values arrive from the vault instead of a file.
+- **Hydration is transparent to your code.** Code that reads `applicationEnvironment.get` or `process.env` is unchanged - the values arrive from the vault instead of a file.
 - **Hydration runs before datasources are configured** (after `preConfigure()`, before `registerDataSources()`), so a hydrated `APP_ENV_DB_PASSWORD` is available exactly where a file-based one would be.
 - **Vault values take precedence over `process.env`** when the provider is live - a hydrated key overwrites whatever was already in `process.env`.
 

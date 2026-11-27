@@ -248,7 +248,9 @@ APP_ENV_SERVER_PORT=3000
 ```
 
 ```typescript
-const host = process.env.APP_ENV_POSTGRES_HOST;
+import { applicationEnvironment } from '@venizia/ignis-helpers';
+
+const host = applicationEnvironment.get('APP_ENV_POSTGRES_HOST');
 ```
 
 **Related:** [Environment Variables Reference](../../references/configuration/environment-variables)
