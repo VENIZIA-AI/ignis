@@ -1283,8 +1283,13 @@ export declare class ZodSchemaConventionRule {
     private static definitionOf;
     /** The name zod exports what an import binds, when the import is zod's: `''` for a default or a namespace. */
     private static zodImport;
-    /** Whether `expression` builds a schema; `seen` stops a declaration that refers to itself. */
+    /**
+     * Whether `expression` builds a schema; `seen` stops a declaration that refers to itself. `isNameTrusted` also takes
+     * an import named `...Schema` for one.
+     */
     private static isSchema;
+    /** Whether a declaration is a const or a variable that holds a schema. */
+    private static isSchemaConst;
     /** `saleOrder`, `SALE_ORDER` and `SaleOrder` are all `SaleOrder`. */
     private static toPascalCase;
     /** The name of the schema a type alias infers from, and by which inference; `undefined` for any other type. */

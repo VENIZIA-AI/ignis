@@ -246,13 +246,17 @@ export class ZodSchemaConventionRule {
       : undefined;
   }
 
-  /** Whether `expression` builds a schema; `seen` stops a declaration that refers to itself. */
+  /**
+   * Whether `expression` builds a schema; `seen` stops a declaration that refers to itself. `isNameTrusted` also takes
+   * an import named `...Schema` for one.
+   */
   private static isSchema(opts: {
     context: Rule.RuleContext;
     expression: unknown;
     seen: Set<unknown>;
+    isNameTrusted: boolean;
   }): boolean {
-    const { context, expression, seen } = opts;
+    const { context, expression, seen, isNameTrusted } = opts;
     const chain = ZodSchemaConventionRule.chainOf({ expression });
 
     if (chain === undefined || seen.has(expression)) {
@@ -272,10 +276,23 @@ export class ZodSchemaConventionRule {
 
       // The derivation is the first call: what a call before it answers is not followed.
       return (
+        isNameTrusted &&
         ZodSchemaConventionRule.IMPORTED_SCHEMA.test(name) &&
         ZodSchemaConventionRule.DERIVATIONS.has(chain.firstCall)
       );
     }
+
+    return ZodSchemaConventionRule.isSchemaConst({ context, definition, seen, isNameTrusted });
+  }
+
+  /** Whether a declaration is a const or a variable that holds a schema. */
+  private static isSchemaConst(opts: {
+    context: Rule.RuleContext;
+    definition: Scope.Definition | undefined;
+    seen: Set<unknown>;
+    isNameTrusted: boolean;
+  }): boolean {
+    const { context, definition, seen, isNameTrusted } = opts;
 
     return (
       definition?.type === 'Variable' &&
@@ -283,6 +300,7 @@ export class ZodSchemaConventionRule {
         context,
         expression: AstNode.readField({ node: definition.node, key: 'init' }),
         seen,
+        isNameTrusted,
       })
     );
   }
@@ -409,6 +427,7 @@ export class ZodSchemaConventionRule {
             context,
             expression: AstNode.readField({ node, key: 'init' }),
             seen: new Set(),
+            isNameTrusted: true,
           })
         ) {
           return;
@@ -463,30 +482,20 @@ export class ZodSchemaConventionRule {
         return name === undefined ? imported !== undefined : imported === name;
       };
 
-      /** Whether `target` is a schema: a chain that builds one, a const that holds one, or an import named as one. */
-      const isSchemaTarget = (target: unknown) => {
+      /** Whether the file proves `target` a zod schema: a chain or a local const that starts at zod, never a name. */
+      const isProvenSchema = (target: unknown) => {
+        const proof = { context, seen: new Set<unknown>(), isNameTrusted: false };
+
         if (
           !AstNode.isNode(target) ||
           AstNode.getType({ node: target }) !== AstNodeTypes.IDENTIFIER
         ) {
-          return ZodSchemaConventionRule.isSchema({ context, expression: target, seen: new Set() });
+          return ZodSchemaConventionRule.isSchema({ ...proof, expression: target });
         }
 
         const definition = ZodSchemaConventionRule.definitionOf({ context, node: target });
-        const name = ZodSchemaConventionRule.readString({ node: target, path: ['name'] });
 
-        if (definition?.type === 'ImportBinding') {
-          return ZodSchemaConventionRule.IMPORTED_SCHEMA.test(name);
-        }
-
-        return (
-          definition?.type === 'Variable' &&
-          ZodSchemaConventionRule.isSchema({
-            context,
-            expression: AstNode.readField({ node: definition.node, key: 'init' }),
-            seen: new Set(),
-          })
-        );
+        return ZodSchemaConventionRule.isSchemaConst({ ...proof, definition });
       };
 
       /** `z.coerce.number()`, or `coerce.number()` where `coerce` is imported from zod. */
@@ -556,7 +565,7 @@ export class ZodSchemaConventionRule {
         const method = ZodSchemaConventionRule.readString({ node: property, path: ['name'] });
 
         if (isPassthroughChecked && isMember && method === 'passthrough') {
-          if (isSchemaTarget(root)) {
+          if (isProvenSchema(root)) {
             context.report({ node, messageId: 'passthrough' });
           }
         }

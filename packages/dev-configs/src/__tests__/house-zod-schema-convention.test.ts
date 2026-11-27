@@ -265,6 +265,16 @@ describe('@venizia/zod-schema-convention: strict calls, passthrough and coerce',
     ['a loose object', 'const ASchema = z.looseObject({}); const BSchema = z.object({}).loose();'],
     ['strict() of something else', 'const ASchema = z.string(); other.object({}).strict();'],
     ['passthrough() of something else', 'const a = stream.passthrough();'],
+    ['passthrough() of a local value', 'const user = build(); const a = user.passthrough();'],
+    [
+      'passthrough() of an import named like a schema',
+      "import { UserSchema } from './user';\nUserSchema.passthrough();",
+    ],
+    [
+      'passthrough() of a const derived from such an import',
+      "import { UserSchema } from './user';\nconst ASchema = UserSchema.pick({}); ASchema.passthrough();",
+    ],
+    ['strict() on a z that is not zod', 'function f(z: Lib) { return z.object({}).strict(); }'],
   ])('says nothing on %s', (_, code) => {
     expect(zod(Z + code).messages).toEqual([]);
   });
@@ -273,8 +283,8 @@ describe('@venizia/zod-schema-convention: strict calls, passthrough and coerce',
     ['an object', 'const ASchema = z.object({}).passthrough();'],
     ['a local schema', 'const ASchema = z.object({}); const BSchema = ASchema.passthrough();'],
     [
-      'an imported schema',
-      "import { BaseSchema } from './base';\nconst BSchema = BaseSchema.passthrough();",
+      'a chain of local consts',
+      'const ASchema = z.object({}); const BSchema = ASchema.extend({}); BSchema.passthrough();',
     ],
   ])('reports passthrough() on %s', (_, code) => {
     const result = zod(Z + code);
@@ -297,6 +307,14 @@ describe('@venizia/zod-schema-convention: strict calls, passthrough and coerce',
     const code = `${Z}const a = other.coerce.number();`;
 
     expect(zod(code, { noCoercePaths: ['src/**'] }).messages).toEqual([]);
+  });
+
+  test('reports object().strict() of an imported object() and rewrites nothing', () => {
+    const code = "import { object } from 'zod';\nconst ASchema = object({}).strict();";
+    const result = zod(code);
+
+    expect(result.messages).toEqual([strictCall]);
+    expect(result.fixed).toBe(code);
   });
 
   test('each check switches off', () => {
