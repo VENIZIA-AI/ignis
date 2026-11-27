@@ -49,6 +49,11 @@ type TContextBase<RouteEnv extends Env> = Omit<Context<RouteEnv>, 'req' | 'json'
 type TRequestBase<RouteEnv extends Env> = Omit<Context<RouteEnv>['req'], 'valid'>;
 
 export interface IRouteRequest<RouteConfig, RouteEnv extends Env> extends TRequestBase<RouteEnv> {
+  /**
+   * No call matches it. It keeps a context assignable to Hono's `Context`, whose `valid()` answers `never`: TypeScript
+   * compares overloads with their generics erased, and neither one below answers `never`.
+   */
+  valid(target: never): never;
   /** The validated request part, typed from the route's schema. */
   valid<Target extends TValidTarget>(target: Target): TValidOf<RouteConfig, Target>;
   /** A type of your own: it also keeps a context assignable to `TRouteContext` parameters. */

@@ -9,6 +9,7 @@ import type {
 import { OpenApiResponses } from '@/base/models';
 import { z } from '@hono/zod-openapi';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { Context, Env, MiddlewareHandler } from 'hono';
 import { describe, expect, test } from 'bun:test';
 
 type TSame<Left, Right> =
@@ -116,6 +117,18 @@ const forwarded = (context: TContextOf<typeof CREATE>) => {
   return read(context);
 };
 
+/** A route context goes where Hono's own context or middleware is asked for, as an application's helper takes it. */
+const handedToHono = (
+  context: TContextOf<typeof CREATE>,
+  plain: TRouteContext,
+  middleware: MiddlewareHandler<Env, string>,
+  read: (any: Context<Env, string, {}>) => string,
+) => {
+  const next = async () => {};
+
+  return [read(context), read(plain), middleware(context, next), middleware(plain, next)];
+};
+
 class OrderController extends BaseRestController {
   constructor() {
     super({ scope: OrderController.name, path: '/orders' });
@@ -158,6 +171,6 @@ describe('TContextOf', () => {
     const payload = await answer.json();
 
     expect(payload).toEqual({ name: 'pen' });
-    expect([typed, forms, untypedParts, forwarded]).toHaveLength(4);
+    expect([typed, forms, untypedParts, forwarded, handedToHono]).toHaveLength(5);
   });
 });

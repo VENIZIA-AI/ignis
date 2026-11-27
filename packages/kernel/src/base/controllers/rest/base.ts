@@ -223,7 +223,12 @@ export abstract class BaseRestController<
       context: TContextOf<RouteConfig, RouteEnv>,
     ) => ValueOrPromise<Response | TypedResponse<unknown>>;
   }) {
-    return opts.handler as Parameters<OpenAPIHono<RouteEnv>['openapi']>[1];
+    // Nothing checks this assertion: widened to `object` first, because TypeScript no longer finds the two contexts
+    // comparable. A route context must be a Hono `Context` where an application passes it on, which asks `valid()` to
+    // answer `never`; the comparison the other way asks the opposite for Hono's generic input.
+    const handler: object = opts.handler;
+
+    return handler as Parameters<OpenAPIHono<RouteEnv>['openapi']>[1];
   }
 
   /** Creates a fluent binding for registering a route (call .to() to attach handler). */

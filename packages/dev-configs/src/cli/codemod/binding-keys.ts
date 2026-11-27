@@ -994,8 +994,10 @@ export class BindingKeysCommand {
     typescript: typeof import('typescript');
     root: string;
     files: string[];
+    /** Text to read in place of what a file holds. */
+    contents?: ReadonlyMap<string, string>;
   }): import('typescript').Program {
-    const { typescript: ts, root, files } = opts;
+    const { typescript: ts, root, files, contents } = opts;
     const configPath = ts.findConfigFile(root, (path) => ts.sys.fileExists(path), 'tsconfig.json');
     const read =
       configPath === undefined
@@ -1018,7 +1020,11 @@ export class BindingKeysCommand {
       allowJs: false,
     };
 
-    return ts.createProgram({ rootNames: files, options });
+    const host = ts.createCompilerHost(options);
+    const readFile = host.readFile.bind(host);
+    host.readFile = (fileName) => contents?.get(fileName) ?? readFile(fileName);
+
+    return ts.createProgram({ rootNames: files, options, host });
   }
 
   static async run(opts: { root: string; args: string[] }): Promise<number> {
