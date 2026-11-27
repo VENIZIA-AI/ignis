@@ -117,7 +117,9 @@ const forwarded = (context: TContextOf<typeof CREATE>) => {
   return read(context);
 };
 
-/** A route context goes where Hono's own context or middleware is asked for, as an application's helper takes it. */
+type TAppEnv = { Variables: { tenant: string } };
+
+/** A route context goes where Hono's own context or middleware, with an explicit `Env`, is asked for. */
 const handedToHono = (
   context: TContextOf<typeof CREATE>,
   plain: TRouteContext,
@@ -128,6 +130,11 @@ const handedToHono = (
 
   return [read(context), read(plain), middleware(context, next), middleware(plain, next)];
 };
+
+const handedWithAnAppEnv = (
+  context: TContextOf<typeof CREATE, TAppEnv>,
+  read: (any: Context<TAppEnv>) => string,
+) => read(context);
 
 class OrderController extends BaseRestController {
   constructor() {
@@ -171,6 +178,8 @@ describe('TContextOf', () => {
     const payload = await answer.json();
 
     expect(payload).toEqual({ name: 'pen' });
-    expect([typed, forms, untypedParts, forwarded, handedToHono]).toHaveLength(5);
+    expect([typed, forms, untypedParts, forwarded, handedToHono, handedWithAnAppEnv]).toHaveLength(
+      6,
+    );
   });
 });

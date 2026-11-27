@@ -24,7 +24,7 @@ where, without it, the call answers unknown (the route config carries no schema 
 error (your type differs from the schema's). The codemod asks the types of each file's project (its nearest
 tsconfig.json), so upgrade the packages first.
 An import or a local type that the rewrite leaves unused is removed. Every type error a rewritten file still has is
-listed as "check by hand". Asking the types takes about as long as your typecheck.
+listed as "check by hand". Asking the types takes about twice as long as your typecheck.
 
 A config declared as IAuthRouteConfig, or in a Record of it, carries no schema type: change it to
 "satisfies" first (the lint rule @venizia/typed-route-context reports each one). A handler of such a config declared
@@ -665,7 +665,9 @@ class RouteContextFile {
         const body = holders.get(current.expression.expression.getText(this.file));
         const [value] = current.arguments;
 
-        if (body !== undefined && value && !ts.isSatisfiesExpression(value)) {
+        const isCheckable = value && !ts.isSatisfiesExpression(value) && !ts.isSpreadElement(value);
+
+        if (body !== undefined && isCheckable) {
           this.writeSatisfies({ value, body });
         }
       }
@@ -821,21 +823,31 @@ class RouteContextFile {
           continue;
         }
 
-        const start = statement.getFullStart();
+        // Its own text and its JSDoc: a comment above that belongs to the file or to a section stays.
+        const start = statement.getStart(this.file, true);
+        const end = this.pastLineBreak(statement.getEnd());
         const isExported = statement.modifiers?.some(
           (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
         );
 
-        const isDropped = this.edits.has(`${start}:${statement.getEnd()}`);
+        const isDropped = this.edits.has(`${start}:${end}`);
 
         if (isExported || isDropped || !this.isLeftUnused(statement.name.text)) {
           continue;
         }
 
-        this.replace({ start, end: statement.getEnd(), text: '' });
+        this.replace({ start, end, text: '' });
         isChanged = true;
       }
     }
+  }
+
+  /** The position after the line break at `position`, or `position` when none is there. */
+  private pastLineBreak(position: number): number {
+    const { source } = this.options;
+    const found = ['\r\n', '\n'].find((lineBreak) => source.startsWith(lineBreak, position));
+
+    return position + (found?.length ?? 0);
   }
 
   /**
@@ -883,20 +895,28 @@ class RouteContextFile {
       }
 
       if (names.length === 0 && !clause.name) {
-        const end = statement.getEnd();
         this.replace({
           start: statement.getStart(this.file),
-          end: source[end] === '\n' ? end + 1 : end,
+          end: this.pastLineBreak(statement.getEnd()),
           text: '',
         });
         continue;
       }
 
+      // A default import stays without the braces and the comma before them.
+      if (names.length === 0 && clause.name) {
+        this.replace({ start: clause.name.getEnd(), end: bindings.getEnd(), text: '' });
+        continue;
+      }
+
+      const lineBreak = source.includes('\r\n') ? '\r\n' : '\n';
       const isSpread = bindings.getText(this.file).includes('\n');
       this.replace({
         start: bindings.getStart(this.file),
         end: bindings.getEnd(),
-        text: isSpread ? `{\n  ${names.join(',\n  ')},\n}` : `{ ${names.join(', ')} }`,
+        text: isSpread
+          ? `{${lineBreak}  ${names.join(`,${lineBreak}  `)},${lineBreak}}`
+          : `{ ${names.join(', ')} }`,
       });
     }
   }
@@ -998,6 +1018,7 @@ export class TypedRouteContext {
         root: project,
         files: owned,
         contents,
+        withProjectFiles: true,
       });
 
       return owned.map((file) => ({ file, program }));

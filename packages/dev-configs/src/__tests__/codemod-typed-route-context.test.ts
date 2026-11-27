@@ -348,7 +348,7 @@ describe('devz codemod typed-route-context: what the rewrite leaves unused', () 
 
 /** The types the command asks: `valid()` answers the config's `body`, and `unknown` for a config that holds none. */
 const FRAMEWORK = `export type TRouteContext = TContextOf<object>;
-export type TContextOf<C extends object> = {
+export type TContextOf<C extends object, E = unknown> = {
   req: {
     valid<K extends string>(target: K): C extends { body: infer B } ? B : unknown;
     valid<T = unknown>(target: string): T;
@@ -415,6 +415,116 @@ describe('devz codemod typed-route-context: a config that carries no schema type
     expect(warn.mock.calls.flat().join('\n')).toMatch(
       /check by hand {2}controller\.ts:\d+ {2}TS2322/,
     );
+  });
+});
+
+describe('devz codemod typed-route-context: the text around what it removes', () => {
+  const method = [
+    'class C {',
+    '  @post({ configs: Routes.A })',
+    "  a(context: TRouteContext) { return context.req.valid<TFirst>('json'); }",
+    '}',
+  ];
+
+  test("a comment that is not the removed type's own stays; its JSDoc goes with it", () => {
+    const result = rewrite([
+      '// License header',
+      '/* eslint-disable no-console */',
+      IMPORT,
+      ROUTES,
+      '',
+      '// ---- section ----',
+      '/** The body. */',
+      'type TFirst = { a: string };',
+      ...method,
+    ]);
+
+    expect(result.output).toStartWith('// License header\n/* eslint-disable no-console */\n');
+    expect(result.output).toContain('// ---- section ----\nclass C {');
+    expect(result.output).not.toContain('The body.');
+    expect(result.output).not.toContain('TFirst');
+  });
+
+  test('a default import is left without empty braces', () => {
+    const result = rewrite([
+      IMPORT,
+      ROUTES,
+      "import extra, { type TFirst } from './extra';",
+      ...method,
+      'extra();',
+    ]);
+
+    expect(result.output).toContain("import extra from './extra';");
+  });
+
+  test('a CRLF file keeps its line breaks, and a whole import leaves no blank line', () => {
+    const source = [
+      'import {',
+      '  post,',
+      '  type TRouteContext,',
+      "} from '@venizia/ignis';",
+      ROUTES,
+      "import type { TFirst } from './first';",
+      ...method,
+    ].join('\r\n');
+    const result = TypedRouteContext.rewrite({
+      typescript: ts,
+      fileName: 'controller.ts',
+      source,
+    });
+
+    expect(result.output.split('\r\n').join('')).not.toContain('\n');
+    expect(result.output).toContain(`${ROUTES}\r\nclass C {`);
+  });
+
+  test('json() of spread arguments takes no satisfies', () => {
+    const result = rewrite([
+      "import type { TRouteContext } from '@venizia/ignis';",
+      'const a = (c: TRouteContext<AppEnv, TSale>) => c.json(...rest);',
+    ]);
+
+    expect(result.output).toContain('c.json(...rest);');
+  });
+});
+
+describe('devz codemod typed-route-context: a type only the project declares', () => {
+  test('a global type of the tsconfig is read, so no argument is kept for it', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'typed-route-global-'));
+
+    const write = (path: string, lines: string[]) => {
+      mkdirSync(join(root, path, '..'), { recursive: true });
+      writeFileSync(join(root, path), lines.join('\n'));
+    };
+
+    write('node_modules/@venizia/ignis/package.json', [
+      JSON.stringify({ name: '@venizia/ignis', types: 'index.d.ts' }),
+    ]);
+    write('node_modules/@venizia/ignis/index.d.ts', [FRAMEWORK]);
+    write('tsconfig.json', [
+      JSON.stringify({
+        compilerOptions: { experimentalDecorators: true, strict: true },
+        include: ['*.ts', 'types'],
+      }),
+    ]);
+    write('types/global.d.ts', ['type AppEnv = { name: string };']);
+    write('routes.ts', ['export const Typed = { body: { name: 1 } };']);
+    write('controller.ts', [
+      "import { post, type TRouteContext } from '@venizia/ignis';",
+      "import { Typed } from './routes';",
+      'export class C {',
+      '  @post({ configs: Typed })',
+      "  a(context: TRouteContext<AppEnv>): number { return context.req.valid<{ name: number }>('json').name; }",
+      '}',
+    ]);
+    using warn = spyOn(CliOutput, 'warn').mockImplementation(() => {});
+    using _log = spyOn(CliOutput, 'log').mockImplementation(() => {});
+
+    await CodemodCommand.run({ root, args: ['typed-route-context', 'controller.ts', '--write'] });
+    const output = readFileSync(join(root, 'controller.ts'), 'utf8');
+    rmSync(root, { recursive: true, force: true });
+
+    expect(output).toContain("context.req.valid('json').name;");
+    expect(warn.mock.calls).toHaveLength(0);
   });
 });
 
