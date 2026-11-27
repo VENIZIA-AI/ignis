@@ -23,6 +23,7 @@ const assemble = (
 ): IAuthRouteConfig => {
   const { method, path, params, query, contentType, body, responses } = opts;
   const request: TRequest = {};
+  // eslint-disable-next-line @venizia/typed-route-context -- built step by step from run-time options, so no literal schema exists to keep
   const config: IAuthRouteConfig = { method, path, responses };
 
   if (params) {

@@ -14,6 +14,7 @@ tags: [packages, kernel, browser, isomorphic, di]
 - [The seams core fills in](#the-seams-core-fills-in)
 - [One default middleware stack](#one-default-middleware-stack)
 - [Container and MetadataRegistry](#container-and-metadataregistry)
+- [Typed route context](#typed-route-context)
 - [Generated bulk routes take `where` in the query or the body](#generated-bulk-routes-take-where-in-the-query-or-the-body)
 - [TEntityId (`base/models/`)](#tentityid-basemodels)
 - [Repositories, datasources, and the query schemas](#repositories-datasources-and-the-query-schemas)
@@ -197,6 +198,15 @@ out of that map rather than answering with whichever registered last - two model
 table would otherwise apply the wrong `properties.hidden`/`access`. A relation carries only its schema, and
 a lookup by SQL table name missed every model whose table name differed from its registered name -
 `include` then dropped its `properties.hidden` and `access`.
+
+## Typed route context
+
+`TContextOf<typeof CONFIG, Env?>` types `req.valid()` from a route config; `defineRoute` and `bindRoute().to` handlers
+need no annotation. The helper types live in `base/controllers/common/types/context.internal.ts`, which no barrel
+re-exports. Public signatures write the handler inline with `TContextOf`: naming an internal alias there breaks
+declaration emit downstream (TS2883). An undeclared part, a wide config and an array of header schemas answer
+`unknown`. `valid<T>()` stays as an overload; the lint rule `@venizia/typed-route-context` reports it where the
+context is typed. `json()` is not typed against response schemas.
 
 ## Generated bulk routes take `where` in the query or the body
 

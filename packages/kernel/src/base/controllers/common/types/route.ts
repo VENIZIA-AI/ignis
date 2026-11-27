@@ -2,9 +2,9 @@ import type { TAuthMode, TAuthStrategy } from '@/base/auth/authenticate/common/c
 import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
 import type { OpenAPIHono, z } from '@hono/zod-openapi';
-import type { HTTP, ValueOf } from '@venizia/ignis-helpers/common';
-import type { Env, MiddlewareHandler, Schema } from 'hono';
-import type { TRouteHandler } from './context';
+import type { HTTP, ValueOf, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { Env, MiddlewareHandler, Schema, TypedResponse } from 'hono';
+import type { TContextOf } from './context';
 
 /** Registered route with its configuration and router instance. */
 export interface IDefineRouteOptions<
@@ -13,7 +13,10 @@ export interface IDefineRouteOptions<
   RouteSchema extends Schema = {},
   BasePath extends string = '/',
 > {
-  /** The config given, typed as given; at run time it also carries what the framework added to register the route. */
+  /**
+   * The config given, typed as given; at run time it is what the framework registered: without `authenticate` and
+   * `authorize`, with the middleware, tags and security it added.
+   */
   configs: RouteConfig;
   route: OpenAPIHono<RouteEnv, RouteSchema, BasePath>;
 }
@@ -26,8 +29,10 @@ export interface IBindRouteOptions<
   BasePath extends string = '/',
 > {
   configs: RouteConfig;
-  to: <ResponseType = unknown>(opts: {
-    handler: TRouteHandler<ResponseType, RouteEnv>;
+  to: (opts: {
+    handler: (
+      context: TContextOf<RouteConfig, RouteEnv>,
+    ) => ValueOrPromise<Response | TypedResponse<unknown>>;
   }) => IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 }
 
@@ -125,18 +130,6 @@ export type TResponseHeaderObject = {
 
 /** OpenAPI response headers format */
 export type TResponseHeaders = Record<string, TResponseHeaderObject>;
-
-// Response body types derived from route definitions; a distributive conditional applies z.infer to each schema of the union separately.
-type TInferDistributive<S> = S extends z.ZodType ? z.infer<S> : never;
-type TJsonSchemaOf<Response> = Response extends {
-  content: { 'application/json': { schema: infer JsonSchema } };
-}
-  ? JsonSchema
-  : never;
-/** The JSON response body type of a route config `R`: the union of the schemas under `application/json` across all its response codes. */
-export type TResponseBodyOf<R extends { responses: object }> = TInferDistributive<
-  TJsonSchemaOf<R['responses'][keyof R['responses']]>
->;
 
 /** What a CRUD route lets a caller override: auth, the request schemas (params, query, body, headers) and the response schema and headers. */
 export type TCustomizableRouteConfig = TRouteAuthConfig & {

@@ -1,9 +1,4 @@
-import {
-  BaseRestController,
-  controller,
-  OpenApiResponses,
-  type TRouteContext,
-} from '@venizia/ignis';
+import { BaseRestController, controller, OpenApiResponses } from '@venizia/ignis';
 import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
 
@@ -26,7 +21,7 @@ export class StatusController extends BaseRestController {
 
   override binding(): ValueOrPromise<void> {
     this.bindRoute({ configs: RouteConfigs.ROOT }).to({
-      handler: (context: TRouteContext) => {
+      handler: (context) => {
         return context.json({ status: 'ok', uptime: Math.floor(process.uptime()) }, 200);
       },
     });

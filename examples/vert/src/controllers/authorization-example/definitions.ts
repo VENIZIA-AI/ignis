@@ -2,7 +2,7 @@ import { z } from '@hono/zod-openapi';
 import { AuthenticateStrategy, type IAuthRouteConfig, OpenApiResponses } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
-export const RouteConfigs: Record<string, IAuthRouteConfig> = {
+export const RouteConfigs = {
   // Public - no authentication, no authorization
   ['/public']: {
     path: '/public',
@@ -73,4 +73,4 @@ export const RouteConfigs: Record<string, IAuthRouteConfig> = {
       }),
     },
   },
-} as const;
+} satisfies Record<string, IAuthRouteConfig>;

@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-0 exports, 0 with TSDoc. 71 more are re-exported from other entries (listed at the end).
+0 exports, 0 with TSDoc. 72 more are re-exported from other entries (listed at the end).
 
 ## Re-exported
 
@@ -79,6 +79,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 - `TSwitchCaseBracesMode` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `TUnusedArgsMode` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `TUnusedVarsScope` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
+- `TypedRouteContextRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `UnusedArgsModes` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `UnusedVarsScopes` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `ZodSchemaConventionRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)

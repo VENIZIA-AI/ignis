@@ -12,6 +12,7 @@ import {
   post,
   type TRouteContext,
   BindingKeys,
+  type TContextOf,
 } from '@venizia/ignis';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
@@ -30,11 +31,9 @@ const CreateNoteSchema = z.object({
   isPrivate: z.boolean().optional(),
 });
 
-type TCreateNote = z.infer<typeof CreateNoteSchema>;
-
 const authenticated: IAuthRouteConfig['authenticate'] = { strategies: [AuthenticateStrategy.JWT] };
 
-const RouteConfigs: Record<string, IAuthRouteConfig> = {
+const RouteConfigs = {
   ['/']: {
     method: HTTP.Methods.GET,
     path: '/',
@@ -78,7 +77,7 @@ const RouteConfigs: Record<string, IAuthRouteConfig> = {
       schema: z.object({ data: z.array(NoteSchema), count: z.number().int() }),
     }),
   },
-};
+} satisfies Record<string, IAuthRouteConfig>;
 
 @controller({ path: '/notes' })
 export class NoteController extends BaseRestController {
@@ -112,23 +111,23 @@ export class NoteController extends BaseRestController {
   }
 
   @get({ configs: RouteConfigs['/'] })
-  async find(context: TRouteContext) {
+  async find(context: TContextOf<(typeof RouteConfigs)['/']>) {
     const data = await this.noteService.find({ claims: this.getClaims(context) });
 
     return context.json({ data, count: data.length }, HTTP.ResultCodes.RS_2.Ok);
   }
 
   @post({ configs: RouteConfigs['/create'] })
-  async create(context: TRouteContext) {
-    const body = context.req.valid<TCreateNote>('json');
+  async create(context: TContextOf<(typeof RouteConfigs)['/create']>) {
+    const body = context.req.valid('json');
     const data = await this.noteService.create({ claims: this.getClaims(context), data: body });
 
     return context.json(data, HTTP.ResultCodes.RS_2.Ok);
   }
 
   @del({ configs: RouteConfigs['/delete'] })
-  async deleteById(context: TRouteContext) {
-    const { id } = context.req.valid<{ id: string }>('param');
+  async deleteById(context: TContextOf<(typeof RouteConfigs)['/delete']>) {
+    const { id } = context.req.valid('param');
     const rs = await this.noteService.deleteById({ claims: this.getClaims(context), id });
 
     return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
@@ -136,7 +135,7 @@ export class NoteController extends BaseRestController {
 
   /** No authentication, no auth context, no RLS. Deliberately - it is the control group. */
   @get({ configs: RouteConfigs['/unscoped'] })
-  async findUnscoped(context: TRouteContext) {
+  async findUnscoped(context: TContextOf<(typeof RouteConfigs)['/unscoped']>) {
     const data = await this.noteService.findUnscoped();
 
     return context.json({ data, count: data.length }, HTTP.ResultCodes.RS_2.Ok);

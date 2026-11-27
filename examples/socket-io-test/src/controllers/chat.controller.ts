@@ -6,7 +6,6 @@ import {
   CoreBindings,
   inject,
   OpenApiResponses,
-  type TRouteContext,
 } from '@venizia/ignis';
 import { SocketIOBindingKeys } from '@venizia/ignis/socket-io';
 import { getError, HTTP } from '@venizia/ignis-helpers';
@@ -14,7 +13,6 @@ import { SocketIOConstants, type SocketIOServerHelper } from '@venizia/ignis-hel
 
 const MessageRequestSchema = z.object({ message: z.string().min(1) });
 const MessageResponseSchema = z.object({ sent: z.boolean(), room: z.string() });
-type TMessageRequest = z.infer<typeof MessageRequestSchema>;
 
 const RouteConfigs = {
   SEND: {
@@ -63,8 +61,8 @@ export class ChatController extends BaseRestController {
 
   override binding(): void {
     this.bindRoute({ configs: RouteConfigs.SEND }).to({
-      handler: (context: TRouteContext) => {
-        const { message } = context.req.valid<TMessageRequest>('json');
+      handler: (context) => {
+        const { message } = context.req.valid('json');
 
         // `send()` always goes through the Redis emitter, so this reaches the room even when the
         // client is connected to a different server instance.

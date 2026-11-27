@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-364 exports, 364 with TSDoc. 89 more are re-exported from other entries (listed at the end).
+363 exports, 363 with TSDoc. 89 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -204,9 +204,9 @@ export declare abstract class AbstractRestController<RouteEnv extends Env = Env,
         configs: RouteConfig;
     }): IBindRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
     /** Defines and registers a route with its handler in a single call. */
-    abstract defineRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
+    abstract defineRoute<RouteConfig extends IAuthRouteConfig>(opts: {
         configs: RouteConfig;
-        handler: TRouteHandler<ResponseType, RouteEnv>;
+        handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
         hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
     }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 }
@@ -1618,24 +1618,24 @@ export declare abstract class BaseRestController<RouteEnv extends Env = Env, Rou
         offset: number;
         total: number;
     })): void;
-    /** TRouteHandler's TRouteContext is a lightweight custom shape (different `json`/`req.valid` signatures) built on Hono's real Context, not a subtype of the RouteHandler `.openapi()` expects - genuinely different handler types bridged here. */
-    toHonoHandler<ResponseType = unknown>(opts: {
-        handler: TRouteHandler<ResponseType, RouteEnv>;
+    /** A route handler's context is a lightweight custom shape (different `json`/`req.valid` signatures) built on Hono's real Context, not a subtype of the RouteHandler `.openapi()` expects - genuinely different handler types bridged here. */
+    toHonoHandler<RouteConfig extends IAuthRouteConfig = IAuthRouteConfig>(opts: {
+        handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
     }): Parameters<OpenAPIHono<RouteEnv>["openapi"]>[1];
     /** Creates a fluent binding for registering a route (call .to() to attach handler). */
     bindRoute<RouteConfig extends IAuthRouteConfig>(opts: {
         configs: RouteConfig;
     }): IBindRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
     /** Defines and registers a route with its handler in a single call. */
-    defineRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
+    defineRoute<RouteConfig extends IAuthRouteConfig>(opts: {
         configs: RouteConfig;
-        handler: TRouteHandler<ResponseType, RouteEnv>;
+        handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
         hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
     }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
     /** Defines a JSX route that renders server-side HTML via c.html(). */
-    defineJSXRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
+    defineJSXRoute<RouteConfig extends IAuthRouteConfig>(opts: {
         configs: RouteConfig;
-        handler: TRouteHandler<ResponseType, RouteEnv>;
+        handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
         hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
     }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 }
@@ -2211,20 +2211,20 @@ export declare class CrudControllerFactory extends BaseHelper {
                 offset: number;
                 total: number;
             })): void;
-            toHonoHandler<ResponseType = unknown>(opts: {
-                handler: import("../index.js").TRouteHandler<ResponseType, RouteEnv>;
+            toHonoHandler<RouteConfig extends import("../index.js").IAuthRouteConfig = import("../index.js").IAuthRouteConfig>(opts: {
+                handler: (context: import("../index.js").TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
             }): import("hono").Handler<RouteEnv, string, import("hono").Input, (Response | Promise<Response>) | (import("@hono/zod-openapi").RouteConfigToTypedResponse<import("@hono/zod-openapi").RouteConfig> | Promise<import("@hono/zod-openapi").RouteConfigToTypedResponse<import("@hono/zod-openapi").RouteConfig>>)>;
             bindRoute<RouteConfig extends import("../index.js").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
             }): import("../index.js").IBindRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
-            defineRoute<RouteConfig extends import("../index.js").IAuthRouteConfig, ResponseType = unknown>(opts: {
+            defineRoute<RouteConfig extends import("../index.js").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
-                handler: import("../index.js").TRouteHandler<ResponseType, RouteEnv>;
+                handler: (context: import("../index.js").TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
                 hook?: import("@hono/zod-openapi").Hook<any, RouteEnv, string, any> | undefined;
             }): import("../index.js").IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
-            defineJSXRoute<RouteConfig extends import("../index.js").IAuthRouteConfig, ResponseType = unknown>(opts: {
+            defineJSXRoute<RouteConfig extends import("../index.js").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
-                handler: import("../index.js").TRouteHandler<ResponseType, RouteEnv>;
+                handler: (context: import("../index.js").TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
                 hook?: import("@hono/zod-openapi").Hook<any, RouteEnv, string, any> | undefined;
             }): import("../index.js").IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
             isConfigured: boolean;
@@ -3273,8 +3273,8 @@ Fluent binding for two-step route registration: bindRoute({ configs }).to({ hand
 ```ts
 export interface IBindRouteOptions<RouteConfig extends IAuthRouteConfig, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/'> {
     configs: RouteConfig;
-    to: <ResponseType = unknown>(opts: {
-        handler: TRouteHandler<ResponseType, RouteEnv>;
+    to: (opts: {
+        handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
     }) => IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 }
 ```
@@ -3496,9 +3496,9 @@ export interface IController<RouteEnv extends Env = Env, RouteSchema extends Sch
         configs: RouteConfig;
     }): IBindRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
     /** Defines and registers a route with its handler in a single call. */
-    defineRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
+    defineRoute<RouteConfig extends IAuthRouteConfig>(opts: {
         configs: RouteConfig;
-        handler: TRouteHandler<ResponseType, RouteEnv>;
+        handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
         hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
     }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 }
@@ -3726,7 +3726,10 @@ Registered route with its configuration and router instance.
 
 ```ts
 export interface IDefineRouteOptions<RouteConfig extends IAuthRouteConfig, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/'> {
-    /** The config given, typed as given; at run time it also carries what the framework added to register the route. */
+    /**
+     * The config given, typed as given; at run time it is what the framework registered: without `authenticate` and
+     * `authorize`, with the middleware, tags and security it added.
+     */
     configs: RouteConfig;
     route: OpenAPIHono<RouteEnv, RouteSchema, BasePath>;
 }
@@ -5124,25 +5127,6 @@ export interface ITransactionOptions {
 
 Source: `packages/kernel/src/base/datasources/common/types.ts`
 
-## `IValidRequestProps`
-
-*interface*
-
-Typed validation results for route handlers.
-
-```ts
-export interface IValidRequestProps<JsonType = unknown, QueryType = unknown, ParamType = unknown, HeaderType = unknown, CookieType = unknown, FormType = unknown> {
-    json?: JsonType;
-    query?: QueryType;
-    param?: ParamType;
-    header?: HeaderType;
-    cookie?: CookieType;
-    form?: FormType;
-}
-```
-
-Source: `packages/kernel/src/base/controllers/common/types/context.ts`
-
 ## `IWithReadRetry`
 
 *interface*
@@ -6434,9 +6418,9 @@ export declare class RouteConfigResolver {
         selectSchema: FindByIdSchema;
     }): {
         request: {
-            params: z.ZodObject<{
+            params: TAnyObjectSchema | z.ZodObject<{
                 id: z.ZodString;
-            }, z.core.$strip> | TAnyObjectSchema | z.ZodObject<{
+            }, z.core.$strip> | z.ZodObject<{
                 id: z.ZodCoercedNumber<unknown>;
             }, z.core.$strip>;
             query: TAnyObjectSchema | z.ZodObject<{
@@ -6694,9 +6678,9 @@ export declare class RouteConfigResolver {
             };
             authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
             request: {
-                params: z.ZodObject<{
+                params: TAnyObjectSchema | z.ZodObject<{
                     id: z.ZodString;
-                }, z.core.$strip> | TAnyObjectSchema | z.ZodObject<{
+                }, z.core.$strip> | z.ZodObject<{
                     id: z.ZodCoercedNumber<unknown>;
                 }, z.core.$strip>;
                 headers: TAnyObjectSchema | z.ZodObject<{
@@ -6879,9 +6863,9 @@ export declare class RouteConfigResolver {
             };
             authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
             request: {
-                params: z.ZodObject<{
+                params: TAnyObjectSchema | z.ZodObject<{
                     id: z.ZodString;
-                }, z.core.$strip> | TAnyObjectSchema | z.ZodObject<{
+                }, z.core.$strip> | z.ZodObject<{
                     id: z.ZodCoercedNumber<unknown>;
                 }, z.core.$strip>;
                 headers: TAnyObjectSchema | z.ZodObject<{
@@ -7791,6 +7775,20 @@ export type TContext<RouteEnv extends Env = Env, ValidTargetKey extends string =
     };
     json<TStatusCode extends ContentfulStatusCode = 200>(body: ResponseBody, status?: TStatusCode): TJsonResponse<ResponseBody, TStatusCode>;
 };
+```
+
+Source: `packages/kernel/src/base/controllers/common/types/context.ts`
+
+## `TContextOf`
+
+*type*
+
+The context of a handler of the route `RouteConfig`: `req.valid(target)` is typed from the config's request schemas,
+and is `unknown` for a part the config does not declare. Write it where TypeScript cannot read the config itself,
+as on a decorated method: `context: TContextOf<typeof Routes.CREATE>`.
+
+```ts
+export type TContextOf<RouteConfig extends object, RouteEnv extends Env = Env> = IRouteContext<RouteConfig, RouteEnv>;
 ```
 
 Source: `packages/kernel/src/base/controllers/common/types/context.ts`
@@ -8814,30 +8812,6 @@ export type TRequestContextResolver = () => Context | undefined;
 
 Source: `packages/kernel/src/base/request-context/common/types.ts`
 
-## `TResponseBodyOf`
-
-*type*
-
-The JSON response body type of a route config `R`: the union of the schemas under `application/json` across all its response codes.
-
-```ts
-export type TResponseBodyOf<R extends {
-    responses: object;
-}> = TInferDistributive<TJsonSchemaOf<R['responses'][keyof R['responses']]>>;
-
-type TInferDistributive<S> = S extends z.ZodType ? z.infer<S> : never;
-
-type TJsonSchemaOf<Response> = Response extends {
-    content: {
-        'application/json': {
-            schema: infer JsonSchema;
-        };
-    };
-} ? JsonSchema : never;
-```
-
-Source: `packages/kernel/src/base/controllers/common/types/route.ts`
-
 ## `TResponseExtra`
 
 *type*
@@ -8957,10 +8931,10 @@ Source: `packages/kernel/src/base/controllers/common/types/route.ts`
 
 *type*
 
-A `TContext` whose `req.valid()` targets are the keys of `IValidRequestProps` (`json`, `query`, `param`, `header`, `cookie`, `form`).
+The context of a route whose config is not named: `req.valid()` answers the type you give it, else `unknown`.
 
 ```ts
-export type TRouteContext<RouteEnv extends Env = Env, ResponseBody = unknown> = TContext<RouteEnv, keyof IValidRequestProps, ResponseBody>;
+export type TRouteContext<RouteEnv extends Env = Env> = TContextOf<IAuthRouteConfig, RouteEnv>;
 ```
 
 Source: `packages/kernel/src/base/controllers/common/types/context.ts`
@@ -8969,10 +8943,10 @@ Source: `packages/kernel/src/base/controllers/common/types/context.ts`
 
 *type*
 
-Lightweight handler type using TTypedContext to avoid heavy RouteHandler inference.
+A handler of a route whose config is not named.
 
 ```ts
-export type TRouteHandler<ResponseType = unknown, RouteEnv extends Env = Env> = (context: TRouteContext<RouteEnv, ResponseType>) => ValueOrPromise<Response | TypedResponse<ResponseType>>;
+export type TRouteHandler<RouteEnv extends Env = Env> = (context: TRouteContext<RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
 ```
 
 Source: `packages/kernel/src/base/controllers/common/types/context.ts`

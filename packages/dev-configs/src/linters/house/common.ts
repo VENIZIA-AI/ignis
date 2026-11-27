@@ -13,6 +13,7 @@ export class AstNodeTypes {
   static readonly IMPORT_SPECIFIER = 'ImportSpecifier';
   static readonly IMPORT_EXPRESSION = 'ImportExpression';
   static readonly CLASS_DECLARATION = 'ClassDeclaration';
+  static readonly CLASS_BODY = 'ClassBody';
   static readonly INTERFACE_DECLARATION = 'TSInterfaceDeclaration';
   static readonly UNION_TYPE = 'TSUnionType';
   static readonly AWAIT_EXPRESSION = 'AwaitExpression';
@@ -50,6 +51,7 @@ export class AstNodeTypes {
   static readonly PRIVATE_IDENTIFIER = 'PrivateIdentifier';
   static readonly PROGRAM = 'Program';
   static readonly PROPERTY = 'Property';
+  static readonly PROPERTY_DEFINITION = 'PropertyDefinition';
   static readonly SATISFIES_EXPRESSION = 'TSSatisfiesExpression';
   static readonly SEQUENCE_EXPRESSION = 'SequenceExpression';
   static readonly SPREAD_ELEMENT = 'SpreadElement';

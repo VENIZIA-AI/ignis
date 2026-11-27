@@ -98,9 +98,9 @@ Defines and registers a JSX/HTML route in a single call - the JSX counterpart of
 `Source ->` [`packages/kernel/src/base/controllers/rest/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/rest/base.ts)
 
 ```typescript
-defineJSXRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
+defineJSXRoute<RouteConfig extends IAuthRouteConfig>(opts: {
   configs: RouteConfig;
-  handler: TRouteHandler<ResponseType, RouteEnv>;
+  handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
 }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>
 ```
 
@@ -109,7 +109,7 @@ An optional `hook` (Hono's validation `Hook`) is also accepted, see the table.
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `configs` | `RouteConfig` (extends `IAuthRouteConfig`) | Yes | Route config, same fields `defineRoute` accepts |
-| `handler` | `TRouteHandler<ResponseType, RouteEnv>` | Yes | Receives the route context (`TRouteContext`); return `context.html(<Component />)` |
+| `handler` | `(context: TContextOf<RouteConfig, RouteEnv>) => ...` | Yes | Receives the route context; return `context.html(<Component />)` |
 | `hook` | `Hook<...>` | No | Same validation hook `defineRoute` accepts |
 
 `configs` carries `path`, `method`, `responses`, plus the same `authenticate`/`authorize`/`request`/`middleware` fields `defineRoute` accepts.

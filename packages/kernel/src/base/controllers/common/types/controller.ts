@@ -3,8 +3,8 @@ import type { TAuthMode, TAuthStrategy } from '@/base/auth/authenticate/common/c
 import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
 import type { IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { Hook, OpenAPIHono } from '@hono/zod-openapi';
-import type { Env, Schema } from 'hono';
-import type { TRouteHandler } from './context';
+import type { Env, Schema, TypedResponse } from 'hono';
+import type { TContextOf } from './context';
 import type {
   IAuthRouteConfig,
   IBindRouteOptions,
@@ -26,9 +26,11 @@ export interface IController<
   }): IBindRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 
   /** Defines and registers a route with its handler in a single call. */
-  defineRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
+  defineRoute<RouteConfig extends IAuthRouteConfig>(opts: {
     configs: RouteConfig;
-    handler: TRouteHandler<ResponseType, RouteEnv>;
+    handler: (
+      context: TContextOf<RouteConfig, RouteEnv>,
+    ) => ValueOrPromise<Response | TypedResponse<unknown>>;
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
   }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 }
