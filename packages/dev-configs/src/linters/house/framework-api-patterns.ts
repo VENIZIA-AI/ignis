@@ -5,12 +5,13 @@ export type TFrameworkApiMatch =
   | TBrowserApiMatch
   /**
    * A member of a global object read or called: `localStorage.getItem`; `window.` in front is the same object. With
-   * `property`, the source of a regular expression, only a member whose name matches it.
+   * `property`, the source of a regular expression, only a member whose name matches it. With `isReadOnly`, an
+   * assignment to it and a `delete` of it pass.
    */
-  | { type: 'member'; objects: ReadonlyArray<string>; property?: string }
+  | { type: 'member'; objects: ReadonlyArray<string>; property?: string; isReadOnly?: boolean }
   /**
    * A string or a template whose text matches `pattern`, the source of a regular expression. With `isFallbackOnly`, only
-   * where it stands in for a missing value: after `??` or `||`, a parameter default, or a `default`, `defaultValue` or
+   * where it stands in for a missing value: after `??`, `||`, `??=` or `||=`, a parameter default, or a `default`, `defaultValue` or
    * `fallback` property.
    */
   | { type: 'literal'; pattern: string; isFallbackOnly?: boolean }
@@ -52,7 +53,7 @@ export class FrameworkApiPatterns {
     {
       id: 'process-env',
       // Only the names `applicationEnvironment` keeps: it drops a key without its prefix, such as `PORT`.
-      match: { type: 'member', objects: ['process.env'], property: '^APP_ENV_' },
+      match: { type: 'member', objects: ['process.env'], property: '^APP_ENV_', isReadOnly: true },
       message:
         "Read an `APP_ENV_` name with `applicationEnvironment.get(key)`, not `process.env`: `import { applicationEnvironment } from '@venizia/ignis-helpers';`",
       dependsOn: '@venizia/ignis',
@@ -74,7 +75,7 @@ export class FrameworkApiPatterns {
         isFallbackOnly: true,
       },
       message:
-        'Require the value instead: a `localhost` URL as a fallback is used wherever the setting is missing.',
+        "Require the value instead, a `localhost` URL as a fallback is used wherever the setting is missing: `applicationEnvironment.getRequired(key)` (`import { applicationEnvironment } from '@venizia/ignis-helpers';`) or `RuntimeConfig.getRequired({ key })` (`import { RuntimeConfig } from '@venizia/ardor-kernel';`).",
     },
   ];
 }

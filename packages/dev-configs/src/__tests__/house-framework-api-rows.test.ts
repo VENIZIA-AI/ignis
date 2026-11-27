@@ -37,9 +37,15 @@ const BARE = project({});
 
 const lint = (
   code: string,
-  opts: { root?: string; hooks?: boolean; ignore?: string[]; extra?: IFrameworkApiPattern[] } = {},
+  opts: {
+    root?: string;
+    entry?: Linter.RuleEntry;
+    hooks?: boolean;
+    ignore?: string[];
+    extra?: IFrameworkApiPattern[];
+  } = {},
 ) => {
-  const { root = IGNIS, ...options } = opts;
+  const { root = IGNIS, entry, ...options } = opts;
 
   return new Linter({ cwd: root })
     .verify(
@@ -49,7 +55,7 @@ const lint = (
           files: ['**/*.ts'],
           languageOptions: { parser: tseslint.parser as Linter.Parser },
           plugins: { '@venizia': houseEslintPlugin },
-          rules: { [NAME]: PreferFrameworkApiRule.build(options) },
+          rules: { [NAME]: entry ?? PreferFrameworkApiRule.build(options) },
         },
       ],
       { filename: join(root, 'src/subject.ts') },
@@ -76,6 +82,10 @@ describe('@venizia/prefer-framework-api, rows outside React', () => {
     }
   });
 
+  test('a read on the right of an assignment is still reported', () => {
+    expect(lint('process.env.APP_ENV_A = process.env.APP_ENV_B;')).toHaveLength(1);
+  });
+
   test('web storage is reported on a member of it', () => {
     for (const code of [
       "localStorage.getItem('a');",
@@ -97,9 +107,11 @@ describe('@venizia/prefer-framework-api, rows outside React', () => {
       "const a = { fallback: 'http://localhost:3001/#/x' };",
       "const a = { defaultValue: 'http://127.0.0.1:54321' };",
       'const a = url ?? `http://localhost:${port}`;',
+      "options.url ??= 'http://localhost:3000';",
+      "url ||= 'http://127.0.0.1';",
     ]) {
       expect(lint(code, { root: BARE })).toEqual([
-        'Require the value instead: a `localhost` URL as a fallback is used wherever the setting is missing.',
+        "Require the value instead, a `localhost` URL as a fallback is used wherever the setting is missing: `applicationEnvironment.getRequired(key)` (`import { applicationEnvironment } from '@venizia/ignis-helpers';`) or `RuntimeConfig.getRequired({ key })` (`import { RuntimeConfig } from '@venizia/ardor-kernel';`).",
       ]);
     }
   });
@@ -112,6 +124,10 @@ describe('@venizia/prefer-framework-api, rows outside React', () => {
     ['a name held in a variable', 'const a = process.env[APP_ENV_PORT];'],
     ['an env of its own', 'const a = config.env.APP_ENV_PORT;'],
     ['a process of its own', 'function f(process) { return process.env.APP_ENV_PORT; }'],
+    ['an assignment to a name', "process.env.APP_ENV_PORT = '1';"],
+    ['a default written to a name', "process.env.APP_ENV_PORT ??= '1';"],
+    ['a delete of a name', 'delete process.env.APP_ENV_PORT;'],
+    ['a plain assignment of a localhost URL', "url = 'http://localhost:3000';"],
     ['a storage of its own', 'function f(localStorage) { return localStorage.getItem(1); }'],
     ['a storage guard', "const a = typeof localStorage === 'undefined';"],
     ['a localhost URL that is not a fallback', "const a = 'http://localhost:3000';"],
@@ -125,9 +141,9 @@ describe('@venizia/prefer-framework-api, rows outside React', () => {
 
   test('an extra row that lacks the field of its type is refused', () => {
     for (const match of [{ type: 'literal' }, { type: 'member' }, { type: 'selector' }]) {
-      const row: object = { id: 'broken', message: 'Broken.', match };
+      const row = { id: 'broken', message: 'Broken.', match };
 
-      expect(() => lint("const a = 'text';", { extra: [row as IFrameworkApiPattern] })).toThrow();
+      expect(() => lint("const a = 'text';", { entry: ['error', { extra: [row] }] })).toThrow();
     }
   });
 
@@ -155,6 +171,16 @@ describe('@venizia/prefer-framework-api, rows outside React', () => {
 
     expect(lint(code)).toHaveLength(2);
     expect(lint(code, { hooks: false })).toHaveLength(1);
+  });
+
+  test('ignis-inversion, which writes isApplicationError, is not reported for instanceof', () => {
+    const inversion = project({
+      name: '@venizia/ignis-inversion',
+      dependencies: ['@venizia/ignis-helpers'],
+    });
+
+    expect(lint('const a = error instanceof ApplicationError;', { root: inversion })).toEqual([]);
+    expect(lint('const a = process.env.APP_ENV_PORT;', { root: inversion })).toHaveLength(1);
   });
 
   test('ignore takes the id of a row', () => {

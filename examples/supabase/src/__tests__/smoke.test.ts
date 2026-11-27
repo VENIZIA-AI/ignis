@@ -78,6 +78,7 @@ describe('supabase-example', async () => {
           APP_ENV_SUPABASE_POOL_MAX: '',
           APP_ENV_JWT_SECRET: JWT_SECRET,
           APP_ENV_JWT_EXPIRES_IN: '3600',
+          APP_ENV_JWT_ISSUER: 'http://127.0.0.1:54321/auth/v1',
         },
       });
 

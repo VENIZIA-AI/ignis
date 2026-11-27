@@ -959,6 +959,8 @@ export declare class PreferFrameworkApiRule {
     private static isRow;
     /** The schema of the `match` of an `extra` row: one shape per type, each with its own field required. */
     private static matchSchema;
+    /** Whether `node` is assigned to or deleted, rather than read. */
+    private static isWritten;
     private static readonly FALLBACK_KEYS;
     /** Whether `node` is the value used when another is missing. */
     private static isFallback;
@@ -966,7 +968,6 @@ export declare class PreferFrameworkApiRule {
     private static isTypeOnly;
     /** One listener object: two rows that visit the same node both run. */
     private static merge;
-    private static isListener;
     static readonly RULE: Rule.RuleModule;
     /**
      * `hooks: false` leaves out the rows of `BrowserApiPatterns`, for code that is not React: a `use...` function of another
@@ -1170,16 +1171,18 @@ How a hand-written form shows up in code.
 export type TFrameworkApiMatch = TBrowserApiMatch
 /**
  * A member of a global object read or called: `localStorage.getItem`; `window.` in front is the same object. With
- * `property`, the source of a regular expression, only a member whose name matches it.
+ * `property`, the source of a regular expression, only a member whose name matches it. With `isReadOnly`, an
+ * assignment to it and a `delete` of it pass.
  */
  | {
     type: 'member';
     objects: ReadonlyArray<string>;
     property?: string;
+    isReadOnly?: boolean;
 }
 /**
  * A string or a template whose text matches `pattern`, the source of a regular expression. With `isFallbackOnly`, only
- * where it stands in for a missing value: after `??` or `||`, a parameter default, or a `default`, `defaultValue` or
+ * where it stands in for a missing value: after `??`, `||`, `??=` or `||=`, a parameter default, or a `default`, `defaultValue` or
  * `fallback` property.
  */
  | {

@@ -16,28 +16,28 @@ boot, so there is no separate migrate step. Browse the API at `http://localhost:
 
 ## What it shows
 
-| File | What it does |
-|---|---|
-| `src/models/note.model.ts` | The table, its four RLS policies, and `owner_id default auth.uid()` |
-| `src/datasources/supabase.datasource.ts` | `postgres-js` instead of `pg`; pooler-mode presets from `@venizia/ignis-connectors/postgres/supabase` |
-| `src/services/note.service.ts` | `SupabaseRls.withAuthContext` - opens a transaction, stamps the caller's claims into it, then issues an ordinary repository call |
-| `src/controllers/note.controller.ts` | Reads the verified token as claims and hands them to the service; no `where owner_id = ...` anywhere |
-| `src/token.ts` | Mints a test token with the app's own secret, standing in for a token Supabase Auth would issue |
-| `db/init/01-auth-shim.sql` | The `authenticated` role and `auth.uid()` function a real Supabase project already has |
+| File                                     | What it does                                                                                                                     |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `src/models/note.model.ts`               | The table, its four RLS policies, and `owner_id default auth.uid()`                                                              |
+| `src/datasources/supabase.datasource.ts` | `postgres-js` instead of `pg`; pooler-mode presets from `@venizia/ignis-connectors/postgres/supabase`                            |
+| `src/services/note.service.ts`           | `SupabaseRls.withAuthContext` - opens a transaction, stamps the caller's claims into it, then issues an ordinary repository call |
+| `src/controllers/note.controller.ts`     | Reads the verified token as claims and hands them to the service; no `where owner_id = ...` anywhere                             |
+| `src/token.ts`                           | Mints a test token with the app's own secret, standing in for a token Supabase Auth would issue                                  |
+| `db/init/01-auth-shim.sql`               | The `authenticated` role and `auth.uid()` function a real Supabase project already has                                           |
 
 ## Endpoints
 
 Every route sits under `/api`. `/notes` needs `Authorization: Bearer <token>`; `/notes/unscoped`
 deliberately accepts none - it is the control group.
 
-| Method | Path | Does |
-|---|---|---|
-| `GET` | `/health` | Liveness check |
-| `GET` | `/notes` | The caller's own notes, scoped by RLS |
-| `POST` | `/notes` | Create a note; `ownerId` is not in the body |
-| `DELETE` | `/notes/{id}` | Delete one note; someone else's id matches nothing |
-| `GET` | `/notes/unscoped` | Every note in the table - the control group, no auth context |
-| `GET` | `/doc/openapi.json` | The OpenAPI document |
+| Method   | Path                | Does                                                         |
+| -------- | ------------------- | ------------------------------------------------------------ |
+| `GET`    | `/health`           | Liveness check                                               |
+| `GET`    | `/notes`            | The caller's own notes, scoped by RLS                        |
+| `POST`   | `/notes`            | Create a note; `ownerId` is not in the body                  |
+| `DELETE` | `/notes/{id}`       | Delete one note; someone else's id matches nothing           |
+| `GET`    | `/notes/unscoped`   | Every note in the table - the control group, no auth context |
+| `GET`    | `/doc/openapi.json` | The OpenAPI document                                         |
 
 ## Prove that RLS is doing the work
 
@@ -76,28 +76,28 @@ for two users the same way, and checks each sees only their own notes. It skips 
 
 Copy `.env.example` to `.env`. The keys:
 
-| Variable | Meaning |
-|---|---|
-| `APP_ENV_SUPABASE_DATABASE_URL` | The Postgres connection string. Local docker maps the container to host port `15433` |
-| `APP_ENV_SUPABASE_POOLER_MODE` | `direct` (the default), `session` or `transaction` - see below |
-| `APP_ENV_SUPABASE_POOL_MAX` | Passed to postgres-js only when set. Blank keeps the postgres-js default |
-| `APP_ENV_JWT_SECRET` | The HS256 secret the app verifies tokens with, and mints test tokens with (`bun run token`). On a real Supabase project, the project's JWT secret |
-| `APP_ENV_JWT_EXPIRES_IN` | Lifetime of the tokens this app mints (`3600` in `.env.example`) |
-| `APP_ENV_JWT_ISSUER` | The `iss` the app requires of a token, and stamps on its test tokens. Supabase Auth writes `https://<project>.supabase.co/auth/v1`. Defaults to the local Supabase CLI's `http://127.0.0.1:54321/auth/v1` |
-| `APP_ENV_JWT_AUDIENCE` | The `aud` the app requires. Supabase Auth writes `authenticated`, the default |
-| `APP_ENV_APPLICATION_NAME` | The application name |
-| `APP_ENV_LOGGER_FOLDER_PATH` | Where file logs go. Unset: console only |
-| `PORT` | The HTTP port (`3000`) |
+| Variable                        | Meaning                                                                                                                                                                                                                        |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `APP_ENV_SUPABASE_DATABASE_URL` | The Postgres connection string. Local docker maps the container to host port `15433`                                                                                                                                           |
+| `APP_ENV_SUPABASE_POOLER_MODE`  | `direct` (the default), `session` or `transaction` - see below                                                                                                                                                                 |
+| `APP_ENV_SUPABASE_POOL_MAX`     | Passed to postgres-js only when set. Blank keeps the postgres-js default                                                                                                                                                       |
+| `APP_ENV_JWT_SECRET`            | The HS256 secret the app verifies tokens with, and mints test tokens with (`bun run token`). On a real Supabase project, the project's JWT secret                                                                              |
+| `APP_ENV_JWT_EXPIRES_IN`        | Lifetime of the tokens this app mints (`3600` in `.env.example`)                                                                                                                                                               |
+| `APP_ENV_JWT_ISSUER`            | The `iss` the app requires of a token, and stamps on its test tokens. Supabase Auth writes `https://<project>.supabase.co/auth/v1`. Required; `.env.example` carries the local Supabase CLI's `http://127.0.0.1:54321/auth/v1` |
+| `APP_ENV_JWT_AUDIENCE`          | The `aud` the app requires. Supabase Auth writes `authenticated`, the default                                                                                                                                                  |
+| `APP_ENV_APPLICATION_NAME`      | The application name                                                                                                                                                                                                           |
+| `APP_ENV_LOGGER_FOLDER_PATH`    | Where file logs go. Unset: console only                                                                                                                                                                                        |
+| `PORT`                          | The HTTP port (`3000`)                                                                                                                                                                                                         |
 
 ## Choose a pooler mode
 
 `APP_ENV_SUPABASE_POOLER_MODE` decides whether postgres-js uses server-side prepared statements.
 
-| Mode | Port on Supabase | Prepared statements |
-|---|---|---|
-| `direct` | `5432` | on |
-| `session` | `5432` | on |
-| `transaction` | `6543` | off - postgres-js gets `prepare: false` |
+| Mode          | Port on Supabase | Prepared statements                     |
+| ------------- | ---------------- | --------------------------------------- |
+| `direct`      | `5432`           | on                                      |
+| `session`     | `5432`           | on                                      |
+| `transaction` | `6543`           | off - postgres-js gets `prepare: false` |
 
 Transaction mode hands the backend connection to another client after each transaction, so a
 prepared statement from one transaction is gone on the next. There `prepare: false` is required, not

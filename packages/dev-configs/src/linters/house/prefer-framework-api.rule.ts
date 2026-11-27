@@ -265,6 +265,7 @@ export class PreferFrameworkApiRule {
         key: string;
         accepts: (bare: string) => boolean;
         property?: RegExp;
+        isReadOnly?: boolean;
       }) => {
         listeners.push([
           AstNodeTypes.MEMBER_EXPRESSION,
@@ -275,6 +276,7 @@ export class PreferFrameworkApiRule {
 
             if (
               path !== undefined &&
+              !(given.isReadOnly === true && PreferFrameworkApiRule.isWritten({ node })) &&
               (given.property === undefined ||
                 given.property.test(PreferFrameworkApiRule.memberName({ node }))) &&
               given.accepts(PreferFrameworkApiRule.withoutGlobalRoot({ path })) &&
@@ -297,6 +299,7 @@ export class PreferFrameworkApiRule {
             key: 'object',
             accepts: (bare) => match.objects.includes(bare),
             property: match.property === undefined ? undefined : new RegExp(match.property),
+            isReadOnly: match.isReadOnly,
           });
           break;
         }
@@ -405,7 +408,7 @@ export class PreferFrameworkApiRule {
     const flag = { type: 'boolean' } as const;
     const shapes: Array<{ type: string; more?: Record<string, typeof text | typeof flag> }> = [
       { type: 'path' },
-      { type: 'member', more: { property: text } },
+      { type: 'member', more: { property: text, isReadOnly: flag } },
       { type: 'selector' },
       { type: 'literal', more: { isFallbackOnly: flag } },
       { type: 'import' },
@@ -426,6 +429,22 @@ export class PreferFrameworkApiRule {
     };
   }
 
+  /** Whether `node` is assigned to or deleted, rather than read. */
+  private static isWritten(opts: { node: Rule.Node }): boolean {
+    const { node } = opts;
+    const parent: unknown = AstNode.readField({ node, key: 'parent' });
+    const type = AstNode.getType({ node: parent });
+
+    if (type === AstNodeTypes.ASSIGNMENT_EXPRESSION) {
+      return AstNode.readField({ node: parent, key: 'left' }) === node;
+    }
+
+    return (
+      type === AstNodeTypes.UNARY_EXPRESSION &&
+      AstNode.readField({ node: parent, key: 'operator' }) === 'delete'
+    );
+  }
+
   private static readonly FALLBACK_KEYS = new Set<unknown>(['default', 'defaultValue', 'fallback']);
 
   /** Whether `node` is the value used when another is missing. */
@@ -441,6 +460,12 @@ export class PreferFrameworkApiRule {
 
     if (type === AstNodeTypes.ASSIGNMENT_PATTERN) {
       return isRight;
+    }
+
+    if (type === AstNodeTypes.ASSIGNMENT_EXPRESSION) {
+      const operator = AstNode.readField({ node: parent, key: 'operator' });
+
+      return isRight && (operator === '??=' || operator === '||=');
     }
 
     return (
@@ -469,13 +494,13 @@ export class PreferFrameworkApiRule {
   }
 
   /** One listener object: two rows that visit the same node both run. */
-  private static merge(opts: { listeners: Array<[string, unknown]> }): Rule.RuleListener {
+  private static merge(opts: {
+    listeners: Array<[string, (node: Rule.Node) => void]>;
+  }): Rule.RuleListener {
     const byKey = new Map<string, Array<(node: Rule.Node) => void>>();
 
     for (const [key, listener] of opts.listeners) {
-      if (PreferFrameworkApiRule.isListener(listener)) {
-        byKey.set(key, [...(byKey.get(key) ?? []), listener]);
-      }
+      byKey.set(key, [...(byKey.get(key) ?? []), listener]);
     }
 
     return Object.fromEntries(
@@ -488,10 +513,6 @@ export class PreferFrameworkApiRule {
         },
       ]),
     );
-  }
-
-  private static isListener(value: unknown): value is (node: Rule.Node) => void {
-    return typeof value === 'function';
   }
 
   static readonly RULE: Rule.RuleModule = {
@@ -568,7 +589,7 @@ export class PreferFrameworkApiRule {
         });
       };
 
-      const hooks: Rule.RuleListener = {
+      const hooks: Record<string, (node: Rule.Node) => void> = {
         // `window.matchMedia`, `window.innerWidth`, `navigator.onLine`, `navigator.clipboard.writeText`...
         [AstNodeTypes.MEMBER_EXPRESSION]: (node: Rule.Node) => {
           const path = PreferFrameworkApiRule.pathOf({ node });
@@ -690,11 +711,20 @@ export class PreferFrameworkApiRule {
     } = {},
   ): Linter.RuleEntry {
     const { severity = 'error', hooks, ignore, extra } = opts;
-    const options = {
-      ...(hooks !== undefined && { hooks }),
-      ...(ignore && { ignore: [...ignore] }),
-      ...(extra && { extra: [...extra] }),
-    };
+    // Only what was given: the option schema refuses a key whose value is `undefined`.
+    const options: Record<string, unknown> = {};
+
+    if (hooks !== undefined) {
+      options.hooks = hooks;
+    }
+
+    if (ignore !== undefined) {
+      options.ignore = [...ignore];
+    }
+
+    if (extra !== undefined) {
+      options.extra = [...extra];
+    }
 
     return Object.keys(options).length === 0 ? [severity] : [severity, options];
   }
