@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { REDACTED, RedactUtility } from '@/common/redact';
 import { LogFormatUtility } from '@/modules/logger';
 
-/** Both fetchers log the request config (headers may carry a bearer token/api key/cookie) at INFO on every call; tests assert on the rendered LOG LINE, not the redactor's return value - re-redacting the fixture would prove nothing about the call site. */
+/** A request config an application logs (headers may carry a bearer token, an api key, a cookie) is redacted. Tests assert on the rendered LOG LINE. The fetchers' own debug line writes header names only. */
 const buildRequestConfig = () => {
   return {
     method: 'POST',
@@ -45,7 +45,7 @@ describe('fetcher request-config logging', () => {
   });
 
   test('even a config passed RAW to the logger is redacted - redaction is systemic now', () => {
-    // The call site still pre-redacts, but redaction also lives in formatLogMessage itself: a raw config handed straight to the deep-inspect path never renders its bearer token or api key.
+    // Redaction lives in formatLogMessage itself: a raw config handed straight to the deep-inspect path never renders its bearer token or api key.
     const line = LogFormatUtility.formatMessage({
       message: 'Props: %s',
       args: [buildRequestConfig()],

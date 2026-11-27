@@ -501,22 +501,19 @@ A client that sends a JSON filter passes `{ nested: 'json' }`, through `NativeFe
 
 ### Request Logging and Redaction
 
-Neither fetcher logs anything by default. `send()` and every shortcut accept an **optional** `logger` as the second argument, guarded internally with `logger?.debug(...)` (the axios fetcher keeps `logger?.for(...)` and `info`). Pass a logger to get a line per request - typically `this.logger`, whether the caller is a `BaseHelper` subclass or extends `BaseNetworkRequest` directly:
+Neither fetcher logs anything by default. `send()` and every shortcut accept an **optional** `logger` as the second argument. With one, each request writes one `debug` line, in both fetchers. Pass a logger to get it - typically `this.logger`, whether the caller is a `BaseHelper` subclass or extends `BaseNetworkRequest` directly:
 
 ```typescript
 await this.getNetworkService().post({ url, body }, this.logger);
 ```
 
-Whenever a logger is passed, IGNIS runs the assembled request config through `RedactUtility.redactSecrets()` before the log line is written. That covers `url`, `method`, `headers`, `body`/`data`, and any other option. Redaction matches by key name, case-insensitively, at any depth, against `SECRET_KEY_PATTERN`:
+The line holds the url, the timeout and `{ method, headerNames, body }`:
 
-- **Options-object (camelCase):** `pass`, `password`, `passphrase`, `secret`, `token`, `apiKey`, `accessKey`, `secretKey`, `privateKey`, `key`, `cert`, `ca`, `pfx`, `credential`, `credentials`, `authorization`, `auth`, `jwtSecret`, `applicationSecret`, `connectionString`.
-- **Options-object (snake_case):** `api_key`, `access_key`, `secret_key`, `private_key`.
-- **Prefixed suffix rules:** any key ending in `_token` / `Token`, `_secret` / `Secret`, `_password` / `Password`, or `_credential(s)` / `Credential(s)` (`dbCredential`, `webhookSecret`, `admin_password`).
-- **HTTP header spellings:** `cookie`, `set-cookie`, `proxy-authorization`, `www-authenticate`, and any `(x-)?(api\|auth\|access\|secret\|session\|csrf\|xsrf)-(key\|token\|secret\|id)` pattern (for example `x-api-key`, `x-auth-token`, `x-csrf-token`).
-
-Source: [`redact.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/redact.ts) `SECRET_KEY_PATTERN`.
-
-A matched value is replaced with `'[REDACTED]'`. `Buffer`/typed-array values under a non-matching key are summarized as `'[Binary N bytes]'` rather than serialized. There is nothing to configure beyond passing the logger - you never call `redactSecrets()` yourself at the call site.
+| Part | What is written |
+|---|---|
+| `headerNames` | The header names. No header value is written. |
+| `body` | `[body N chars]` for a string, `[body]` for anything else, nothing when there is none. |
+| url | The url as the call gave it. IGNIS's log formatter masks a url password and credential-like query parameters; a logger of your own receives the url whole. |
 
 ---
 

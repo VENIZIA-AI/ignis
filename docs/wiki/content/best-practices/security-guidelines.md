@@ -54,7 +54,7 @@ String values are scrubbed as well: the password of a url (`scheme://user:passwo
 
 It also handles the shapes naive redaction breaks on. An `Error` is reprojected so its non-enumerable `message`/`stack` survive. Cycles become `'[Circular]'`, and buffers/typed arrays are summarized as `[Binary N bytes]` instead of serialized.
 
-These are the primitives the framework itself uses. Outbound HTTP request configs (`NativeFetcher`/`AxiosFetcher`, see [Network Helper](/extensions/helpers/network/)) and MQTT broker URLs (`MQTTClientHelper`, see [Queue Helper](/extensions/helpers/queue/)) are both redacted this way before they reach a log line.
+These are the primitives the framework itself uses. MQTT broker URLs (`MQTTClientHelper`, see [Queue Helper](/extensions/helpers/queue/)) are redacted this way before they reach a log line. The outbound HTTP fetchers (`NativeFetcher`/`AxiosFetcher`, see [Network Helper](/extensions/helpers/network/)) write header names and no header value. They pass the URL whole: IGNIS's log formatter masks a URL password and credential-like query parameters, a logger of your own does not.
 
 > [!WARNING]
 > `APP_ENV_LOGGER_DO_REDACT=false` turns both functions into the identity function. It is a local-debugging kill-switch and must never be set in production. The check is fail-closed - only the literal string `false` disables redaction - and is read per call, so it can be flipped at runtime.
@@ -547,7 +547,7 @@ Deliberate `getError` messages are always returned verbatim, in every environmen
 - Admin actions
 
 > [!NOTE]
-> When logging a request or connection config that might carry credentials, wrap it in `RedactUtility.redactSecrets()` (or `RedactUtility.redactUrlCredentials()` for a URL) rather than logging it raw. See [Redaction at Log Time](#redaction-at-log-time) above. This is what the framework's own outbound HTTP and MQTT logging already does automatically.
+> When logging a request or connection config that might carry credentials, wrap it in `RedactUtility.redactSecrets()` (or `RedactUtility.redactUrlCredentials()` for a URL) rather than logging it raw. See [Redaction at Log Time](#redaction-at-log-time) above. The framework's MQTT logging does this; its outbound HTTP logging writes no header value.
 
 ## Security Checklist
 
