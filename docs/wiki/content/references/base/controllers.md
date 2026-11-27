@@ -328,14 +328,23 @@ Casts a `TRouteHandler` to Hono's OpenAPI handler type.
 
 ### `IAuthRouteConfig`
 
-Route configuration extended with optional authentication and authorization fields. Extends Hono's `RouteConfig`.
+A route of a controller: the OpenAPI operation, its request and responses, and the framework's `authenticate` and `authorize`. It is IGNIS's own type and does not extend Hono's `RouteConfig`, so that type checking a config never compares zod types structurally; the framework converts it where it registers the route. A member it does not name is a type error under `satisfies`.
 
+<!-- docs-code: off -->
 ```typescript
-interface IAuthRouteConfig extends HonoRouteConfig {
+/** Abbreviated: see the API reference for every member. */
+interface IAuthRouteConfig {
+  method: 'get' | 'post' | 'put' | 'patch' | 'delete' | 'head' | 'options' | 'trace';
+  path: string;
+  request?: { params?; query?; cookies?; headers?; body? };
+  responses: Record<string | number, ...>; // by status, range ('4XX') or 'default'
+  // summary, description, tags, operationId, deprecated, security, hide, externalDocs,
+  // servers, parameters, callbacks, middleware, and `x-*` extensions
   authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
 }
 ```
+<!-- docs-code: on -->
 
 ### `IControllerOptions`
 
@@ -670,12 +679,12 @@ this.defineJSXRoute({
 
 ## `IAuthRouteConfig` Options
 
-The `configs` object extends the OpenAPI 3.0 `RouteConfig` from `@hono/zod-openapi`.
+The `configs` object is an `IAuthRouteConfig`, which follows an OpenAPI operation as `@hono/zod-openapi` takes it, without `requestBody` (write `request.body`) and without the `query` method.
 
 | Property | Type | Description |
 | :--- | :--- | :--- |
 | `path` | `string` | Route path relative to the controller's base path (e.g., `/{id}`) |
-| `method` | `'get' \| 'post' \| 'put' \| 'patch' \| 'delete'` | HTTP method (auto-set by `@get`, `@post`, etc.) |
+| `method` | `'get' \| 'post' \| 'put' \| 'patch' \| 'delete' \| 'head' \| 'options' \| 'trace'` | HTTP method (auto-set by `@get`, `@post`, etc.) |
 | `request` | `object` | Request definition: `params`, `query`, `body`, `headers` (Zod schemas) |
 | `responses` | `object` | HTTP status code to response description/schema mapping |
 | `tags` | `string[]` | OpenAPI tags. The controller's `scope` is automatically appended |

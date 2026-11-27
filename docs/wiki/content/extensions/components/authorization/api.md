@@ -1506,7 +1506,8 @@ buildRouteMiddlewares<RouteConfig extends IAuthRouteConfig>(opts: { configs: Rou
 ```
 
 ```typescript
-interface IAuthRouteConfig extends HonoRouteConfig {
+interface IAuthRouteConfig {
+  // ...the route's own members: method, path, request, responses and the rest
   authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
 }

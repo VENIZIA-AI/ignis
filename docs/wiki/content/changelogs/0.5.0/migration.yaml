@@ -1147,3 +1147,36 @@ to-boolean-words:
     steps:
       - "Pin the @venizia/ignis packages and @venizia/dev-configs to the release before this one."
   data: Nothing stored changes.
+
+light-route-config:
+  symbols: [IAuthRouteConfig, IDefineRouteOptions, IBindRouteOptions]
+  upgrade:
+    before: |-
+      const route = { method: 'post', path: '/', requestBody: body, responses } satisfies IAuthRouteConfig;
+      const path = this.defineRoute({ configs: route, handler }).configs.getRoutingPath();
+    after: |-
+      const route = { method: 'post', path: '/', request: { body }, responses } satisfies IAuthRouteConfig;
+      const path = route.path;
+    steps:
+      - "Run your typecheck. Move requestBody to request.body, and register a query route as post or get."
+      - "Remove a member the type does not name, or write it as an x- extension."
+      - "Where you called getRoutingPath() on configs, use the path you declared, converted the way you need it."
+      - "Where you pass an IAuthRouteConfig to createRoute or another Hono API, convert the type there."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-kernel and @venizia/ignis to the release before this one."
+  data: Nothing stored changes.
+
+crud-create-declares-201:
+  symbols: [RouteConfigResolver, CrudControllerFactory]
+  upgrade:
+    before: |-
+      // generated client: create answers 200
+    after: |-
+      // generated client: create answers 201
+    steps:
+      - "Regenerate clients from the OpenAPI document, and update a test that reads the 200 entry of a create route."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-kernel and @venizia/ignis to the release before this one."
+  data: Nothing stored changes.

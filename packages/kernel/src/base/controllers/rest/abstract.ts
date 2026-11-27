@@ -10,6 +10,7 @@ import { RoutePathScopes, type TRoutePathScope } from '@/base/controllers/common
 import { OpenApiResponses } from '@/base/models/common';
 import type { Hook } from '@hono/zod-openapi';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import type { RouteConfig as HonoRouteConfig } from '@hono/zod-openapi';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { Env, Schema } from 'hono';
@@ -22,6 +23,7 @@ import type {
   IDefineRouteOptions,
   TRouteHandler,
 } from '../common/types';
+import { RouteConfigUtility } from './route-config.utility';
 
 // Loading this module makes the application's routers `OpenAPIHono` (see `RouterFactories`).
 RouterFactories.registerOpenApi({
@@ -199,37 +201,44 @@ export abstract class AbstractRestController<
   }
 
   /** Processes route config, injecting auth middleware and OpenAPI security specs. */
-  getRouteConfigs<RouteConfig extends IAuthRouteConfig>(opts: { configs: RouteConfig }) {
+  getRouteConfigs<RouteConfig extends IAuthRouteConfig>(opts: {
+    configs: RouteConfig;
+  }): RouteConfig & HonoRouteConfig & { getRoutingPath(): string } {
     const { restConfig, security, mws } = this.buildRouteMiddlewares(opts);
     const { tags = [] } = restConfig;
 
-    // `restConfig` already omitted `authenticate`/`authorize` (this library's fields, not Hono's `createRoute` ones); reassembled with the injected middleware/tags/security it no longer structurally overlaps RouteConfig enough to assert directly.
-    return createRoute<string, RouteConfig>(
-      Object.assign({}, restConfig, {
-        middleware: mws,
-        tags: [...tags, this.scope],
-        security,
-      }) as any,
+    // `restConfig` already omits `authenticate`/`authorize`; the injected middleware, tags and security replace its own.
+    return createRoute(
+      RouteConfigUtility.toHono({
+        config: Object.assign({}, opts.configs, restConfig, {
+          middleware: mws,
+          tags: [...tags, this.scope],
+          security,
+        }),
+      }),
     );
   }
 
   /** Like getRouteConfigs but adds HTML response schema for JSX rendering. */
-  getJSXRouteConfigs<RouteConfig extends IAuthRouteConfig>(opts: { configs: RouteConfig }) {
+  getJSXRouteConfigs<RouteConfig extends IAuthRouteConfig>(opts: {
+    configs: RouteConfig;
+  }): RouteConfig & HonoRouteConfig & { getRoutingPath(): string } {
     const { restConfig, security, mws } = this.buildRouteMiddlewares(opts);
     const { responses, tags = [] } = restConfig;
 
-    // Same reassembled-vs-RouteConfig boundary as getRouteConfigs above.
-    return createRoute<string, RouteConfig>(
-      Object.assign({}, restConfig, {
-        middleware: mws,
-        responses: Object.assign(
-          {},
-          OpenApiResponses.htmlResponse({ description: 'HTML page' }),
-          responses,
-        ),
-        tags: [...tags, this.scope],
-        security,
-      }) as any,
+    return createRoute(
+      RouteConfigUtility.toHono({
+        config: Object.assign({}, opts.configs, restConfig, {
+          middleware: mws,
+          responses: Object.assign(
+            {},
+            OpenApiResponses.htmlResponse({ description: 'HTML page' }),
+            responses,
+          ),
+          tags: [...tags, this.scope],
+          security,
+        }),
+      }),
     );
   }
   /** Override to register routes using bindRoute or defineRoute. */
