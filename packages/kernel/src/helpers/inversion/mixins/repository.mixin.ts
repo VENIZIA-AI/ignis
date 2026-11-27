@@ -16,9 +16,10 @@ import type {
   IResolvedRepositoryMetadata,
   TRepositoryMetadata,
 } from '../common/types';
+import { StaticTableName } from './static-table-name';
 
 /** A model class read for the statics `@model` entities carry; each is optional, so any class fits. */
-type TStaticReadableModelClass = TClass<unknown> & IEntityStatics & { TABLE_NAME?: string };
+type TStaticReadableModelClass = TClass<unknown> & IEntityStatics;
 
 export const RepositoryMetadataMixin = <
   BaseClass extends TMixinTarget<
@@ -220,9 +221,9 @@ export const RepositoryMetadataMixin = <
     resolveModelKey(opts: { modelClass: TClass<unknown> }): string {
       const { modelClass } = opts;
       const modelMetadata = this.getModelMetadata({ target: modelClass });
-      const statics: TStaticReadableModelClass = modelClass;
+      const staticName = StaticTableName.read({ modelClass });
 
-      return [modelMetadata?.tableName, statics.TABLE_NAME].find(Boolean) ?? modelClass.name;
+      return [modelMetadata?.tableName, staticName].find(Boolean) ?? modelClass.name;
     }
 
     /** Assembles table schemas + relations for a datasource's registered models. */

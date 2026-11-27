@@ -7,6 +7,7 @@ import {
   LogLevels,
   MessageCode,
   MessageTemplate,
+  RecordUtility,
 } from '@venizia/ignis-helpers/core';
 import { HTTP, RedactUtility } from '@venizia/ignis-helpers/common';
 import type { IProvider } from '@venizia/ignis-inversion';
@@ -39,7 +40,7 @@ const DEFAULT_UNEXPECTED_STACK_FRAMES = 10;
 export type TErrorLogFormatter = (opts: {
   error: unknown;
   messageCode?: string;
-  extra?: Record<string, unknown>;
+  extra?: unknown;
   includeStack?: boolean;
   maxStackFrames?: number;
 }) => string;
@@ -145,7 +146,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
   protected formatError(opts: {
     error: unknown;
     messageCode?: string;
-    extra?: Record<string, unknown>;
+    extra?: unknown;
     includeStack?: boolean;
     maxStackFrames?: number;
   }): string {
@@ -162,20 +163,22 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
   private renderErrorForLog(opts: {
     error: unknown;
     messageCode?: string;
-    extra?: Record<string, unknown>;
+    extra?: unknown;
     includeStack?: boolean;
     maxStackFrames?: number;
   }): string {
     const { error, messageCode, extra, includeStack = true, maxStackFrames } = opts;
-    const thrown = error as TNullable<Partial<Error>>;
+    // Anything can be thrown, a function included.
+    const thrown: { name?: unknown; message?: unknown; stack?: unknown } =
+      RecordUtility.isRecord(error) || typeof error === 'function' ? error : {};
     const lines: Array<string> = [];
 
-    if (typeof thrown?.name === 'string') {
+    if (typeof thrown.name === 'string') {
       lines.push(`name: ${thrown.name}`);
     }
 
     lines.push(
-      `message: ${typeof thrown?.message === 'string' ? thrown.message : renderValue({ value: error })}`,
+      `message: ${typeof thrown.message === 'string' ? thrown.message : renderValue({ value: error })}`,
     );
 
     if (messageCode) {
@@ -186,7 +189,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
       lines.push(`extra: ${renderValue({ value: extra })}`);
     }
 
-    if (includeStack && typeof thrown?.stack === 'string') {
+    if (includeStack && typeof thrown.stack === 'string') {
       const frames = thrown.stack.split('\n').filter((line) => line.trimStart().startsWith('at '));
       const capped = maxStackFrames === undefined ? frames : frames.slice(0, maxStackFrames);
 
@@ -301,7 +304,11 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     // Fallback for a FOREIGN error that sets its own code; an ApplicationError reports via `normalized`.
     const code =
       messageCode ??
-      MessageCode.resolve('messageCode' in error ? (error.messageCode as string) : undefined);
+      MessageCode.resolve(
+        'messageCode' in error && typeof error.messageCode === 'string'
+          ? error.messageCode
+          : undefined,
+      );
 
     // An error wrapped from a foreign value keeps that value's text in `normalized`: the response must carry the answer chosen
     // here (generic in production), never the wrapped text.
@@ -363,7 +370,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
 
   /** A throw site may set `logLevel` via `getError`; anything unset or malformed logs at `error`. */
   private resolveLogLevel(opts: { error: TThrown }): TLogLevel {
-    const candidate = (opts.error as { logLevel?: unknown }).logLevel;
+    const candidate = 'logLevel' in opts.error ? opts.error.logLevel : undefined;
 
     if (typeof candidate === 'string' && LogLevels.isValid(candidate)) {
       return candidate as TLogLevel;
@@ -394,7 +401,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
         error,
         // The default code means "no code" - logging it on every error would be a noise line.
         messageCode: messageCode === MessageCode.DEFAULT ? undefined : messageCode,
-        extra: 'extra' in error ? (error.extra as Record<string, unknown>) : undefined,
+        extra: 'extra' in error ? error.extra : undefined,
         includeStack: true,
         // An intentional error still needs its throw site; it just does not need the caller chain behind it.
         maxStackFrames:
@@ -479,20 +486,19 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
   private pickCorrelationIds(opts: { extra: unknown }): Record<string, unknown> | undefined {
     const { extra } = opts;
 
-    if (typeof extra !== 'object' || extra === null) {
+    if (!RecordUtility.isRecord(extra)) {
       return undefined;
     }
 
-    const source = extra as Record<string, unknown>;
     const isId = (value: unknown): value is string =>
       typeof value === 'string' && value.length <= 128;
     const picked: Record<string, unknown> = {};
 
-    if (isId(source.requestId)) {
-      picked.requestId = source.requestId;
+    if (isId(extra.requestId)) {
+      picked.requestId = extra.requestId;
     }
 
-    const chain = source.upstreamRequestIds;
+    const chain = extra.upstreamRequestIds;
 
     if (Array.isArray(chain) && chain.length <= 32 && chain.every(isId)) {
       picked.upstreamRequestIds = chain;

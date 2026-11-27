@@ -127,6 +127,9 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
       });
     }
 
+    // Read before the `switch` narrows `handler` to `never` for the message of an unknown type.
+    const type: unknown = handler.type;
+
     switch (handler.type) {
       case EventHandlerTypes.BINDING_KEY: {
         const { key } = handler;
@@ -160,7 +163,7 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
 
       default: {
         throw getError({
-          message: `[EventBus][register] Unknown handler.type | name: ${name} | Expected one of: ${EventHandlerTypes.values().join(', ')} | Got: ${(handler as { type?: unknown }).type}`,
+          message: `[EventBus][register] Unknown handler.type | name: ${name} | Expected one of: ${EventHandlerTypes.values().join(', ')} | Got: ${type}`,
         });
       }
     }

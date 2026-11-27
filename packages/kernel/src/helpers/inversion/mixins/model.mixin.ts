@@ -13,6 +13,7 @@ import type {
   TDecoratorModelTarget,
   TModelClass,
 } from '../common/types';
+import { StaticTableName } from './static-table-name';
 
 /** Registered models that declare an authorize setting, in registry order. */
 const collectAuthorizeEntries = (opts: {
@@ -91,10 +92,9 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
       // Decorator target is always a class constructor at runtime
       const modelClass = target as TModelClass<Model>;
 
-      // Table name precedence: explicit metadata > static TABLE_NAME > class name. TABLE_NAME is deliberately outside IEntityStatics (not part of the neutral contract) but still honored here via a local cast.
-      const tableName =
-        [metadata.tableName, (modelClass as { TABLE_NAME?: string }).TABLE_NAME].find(Boolean) ??
-        modelClass.name;
+      // Table name precedence: explicit metadata > static TABLE_NAME > class name.
+      const staticName = StaticTableName.read({ modelClass });
+      const tableName = [metadata.tableName, staticName].find(Boolean) ?? modelClass.name;
 
       // Resolver, not resolved value - executed lazily in buildSchema() once all models are loaded
       const relationsResolver = modelClass.relations;

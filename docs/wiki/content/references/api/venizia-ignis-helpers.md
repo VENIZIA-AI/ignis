@@ -1406,7 +1406,7 @@ export declare class ErrorPrettier {
     static format(opts: {
         error: unknown;
         messageCode?: string;
-        extra?: Record<string, unknown>;
+        extra?: unknown;
         includeStack?: boolean;
         maxStackFrames?: number;
         format?: TLoggerFormat;

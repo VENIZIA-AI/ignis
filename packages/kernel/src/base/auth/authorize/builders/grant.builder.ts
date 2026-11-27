@@ -1,6 +1,6 @@
 import { SingletonRealm } from '@/helpers/singleton-realm';
 import type { IdType } from '@/base';
-import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import { BaseHelper, getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { type TNullable } from '@venizia/ignis-helpers/common';
 import {
   AuthorizationActions,
@@ -79,11 +79,11 @@ export class GrantBuilder extends BaseHelper {
   parseCustomGrantMetadata(opts: { metadata: unknown }): { ops: string[] } | null {
     const decoded = this.decodeMetadata(opts);
 
-    if (typeof decoded !== 'object' || decoded === null || Array.isArray(decoded)) {
+    if (!RecordUtility.isPlainRecord(decoded)) {
       return null;
     }
 
-    const ops = (decoded as { ops?: unknown }).ops;
+    const { ops } = decoded;
 
     if (!Array.isArray(ops) || ops.length === 0) {
       return null;

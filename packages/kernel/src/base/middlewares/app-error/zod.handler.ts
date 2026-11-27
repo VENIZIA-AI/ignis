@@ -1,4 +1,4 @@
-import { MessageCode } from '@venizia/ignis-helpers/core';
+import { MessageCode, RecordUtility } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { HTTPResponseError } from 'hono/types';
 import type { IZodIssueLike } from './common';
@@ -6,9 +6,19 @@ import type { IZodIssueLike } from './common';
 export class ZodErrorHandler {
   private static readonly DEFAULT_VALIDATION_MESSAGE = 'ValidationError';
 
+  /** Type guard, so it keeps its positional `value`. `code` and `params` are `unknown`, checked where they are read. */
+  private static isIssue(value: unknown): value is IZodIssueLike {
+    return (
+      RecordUtility.isRecord(value) &&
+      Array.isArray(value.path) &&
+      typeof value.message === 'string'
+    );
+  }
+
   /** Returns a schema-author-supplied code (`issue.params.code`) when it is a non-empty string. */
   private static extractIssueCode(opts: { issue: IZodIssueLike }) {
-    const paramsCode = opts.issue?.params?.code;
+    const { params } = opts.issue;
+    const paramsCode = RecordUtility.isRecord(params) ? params.code : undefined;
 
     if (typeof paramsCode === 'string' && paramsCode.length > 0) {
       return paramsCode;
@@ -36,7 +46,9 @@ export class ZodErrorHandler {
       validationErrors = error;
     }
 
-    const issues = Array.isArray(validationErrors) ? (validationErrors as IZodIssueLike[]) : null;
+    const issues = Array.isArray(validationErrors)
+      ? validationErrors.filter((entry) => ZodErrorHandler.isIssue(entry))
+      : null;
 
     // Prefer the first issue with a custom `params.code`, else its raw Zod code.
     let messageCode: string | undefined;
@@ -46,7 +58,8 @@ export class ZodErrorHandler {
       const primaryIssue =
         issues.find((issue) => ZodErrorHandler.extractIssueCode({ issue }) !== undefined) ??
         issues[0];
-      messageCode = ZodErrorHandler.extractIssueCode({ issue: primaryIssue }) ?? primaryIssue.code;
+      const zodCode = typeof primaryIssue.code === 'string' ? primaryIssue.code : undefined;
+      messageCode = ZodErrorHandler.extractIssueCode({ issue: primaryIssue }) ?? zodCode;
       message = primaryIssue.message;
     }
 
@@ -69,7 +82,7 @@ export class ZodErrorHandler {
             ? issues.map((el) => ({
                 path: el.path.join('.') || 'root',
                 message: el.message,
-                code: el.code,
+                code: typeof el.code === 'string' ? el.code : undefined,
                 expected: el.expected,
                 received: el.received,
               }))
