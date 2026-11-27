@@ -78,23 +78,38 @@ const NON_CODE_SUBPATH = './package.json';
 
 type TExportsTarget = string | Record<string, string>;
 
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isExportsTarget = (value: unknown): value is TExportsTarget =>
+  typeof value === 'string' ||
+  (isObject(value) && Object.values(value).every((file) => typeof file === 'string'));
+
+const isExportsMap = (value: unknown): value is Record<string, TExportsTarget> =>
+  isObject(value) && Object.values(value).every((target) => isExportsTarget(target));
+
 const readExportsMap = (opts: {
   root: string;
   package: string;
 }): Record<string, TExportsTarget> => {
   const manifestPath = join(opts.root, 'packages', opts.package, 'package.json');
-  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
-    exports?: Record<string, TExportsTarget>;
-  };
+  const manifest: unknown = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  const exportsMap = isObject(manifest) ? manifest.exports : undefined;
 
-  if (!manifest.exports) {
+  if (!exportsMap) {
     throw purityError(
       `[purity][manifest] '${opts.package}' claims browser purity but publishes no \`exports\` map ` +
         `| There is nothing to derive rows from - remove the claim or add the map`,
     );
   }
 
-  return manifest.exports;
+  if (!isExportsMap(exportsMap)) {
+    throw purityError(
+      `[purity][manifest] '${opts.package}' has an \`exports\` map this check cannot read | Expected each sub-path to name a file, or an object of condition names to files`,
+    );
+  }
+
+  return exportsMap;
 };
 
 /**

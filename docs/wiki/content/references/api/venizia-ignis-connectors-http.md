@@ -19,7 +19,7 @@ Reads an IGNIS REST server through the repository contract. Targets IGNIS, not a
 export declare class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
     name: string;
     settings: IHttpDataSourceSettings;
-    schema: never;
+    schema: {};
     /** Normalised once: every request copies these, never re-parses `settings.headers`. */
     protected configuredHeaders: Headers;
     constructor(opts: IHttpDataSourceSettings & {

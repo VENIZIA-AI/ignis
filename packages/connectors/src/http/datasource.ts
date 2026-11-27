@@ -27,7 +27,7 @@ import { HttpWire } from './common/wire';
 export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
   override name: string;
   override settings: IHttpDataSourceSettings;
-  override schema = {} as never;
+  override schema = {};
 
   /** Normalised once: every request copies these, never re-parses `settings.headers`. */
   protected configuredHeaders: Headers;

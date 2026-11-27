@@ -61,6 +61,28 @@ type TDatabaseClientError = ReturnType<typeof DatabaseErrorHandler.isDatabaseCli
  * it refuses yields that marker rather than a throw - this is the last-resort error handler, where a
  * throw turns a handled failure into an unhandled one.
  */
+/**
+ * What a thrown value carries as `normalized`, read before it is trusted: without a text the `fallback` answers; a
+ * missing `code` or `args` takes the fallback's, and any other member is kept.
+ */
+const readNormalized = (opts: {
+  carried: unknown;
+  fallback: IResolvedApplicationError['normalized'];
+}): IResolvedApplicationError['normalized'] => {
+  const { carried, fallback } = opts;
+
+  if (!RecordUtility.isPlainRecord(carried) || typeof carried.text !== 'string') {
+    return fallback;
+  }
+
+  return {
+    ...carried,
+    text: carried.text,
+    code: typeof carried.code === 'string' ? carried.code : fallback.code,
+    args: RecordUtility.isPlainRecord(carried.args) ? carried.args : fallback.args,
+  };
+};
+
 const renderValue = (opts: { value: unknown }): string => {
   const { value } = opts;
 
@@ -312,10 +334,9 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
 
     // An error wrapped from a foreign value keeps that value's text in `normalized`: the response must carry the answer chosen
     // here (generic in production), never the wrapped text.
-    const normalized =
-      'normalized' in error && !(UNEXPECTED_ERROR_MARKER in error)
-        ? (error.normalized as IResolvedApplicationError['normalized'])
-        : { text: message, code, args: {} };
+    const carried =
+      'normalized' in error && !(UNEXPECTED_ERROR_MARKER in error) ? error.normalized : undefined;
+    const normalized = readNormalized({ carried, fallback: { text: message, code, args: {} } });
 
     return { statusCode, message, normalized, type };
   }

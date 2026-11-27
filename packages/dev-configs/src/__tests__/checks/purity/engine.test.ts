@@ -406,3 +406,17 @@ describe('devz check purity', () => {
     expect(result).toBe(2);
   });
 });
+
+describe('PurityManifest.deriveEntries and an exports map it cannot read', () => {
+  test.each([
+    ['nested conditions', { '.': { import: { default: './a.js' } } }],
+    ['a null target', { '.': null }],
+    ['a list target', { '.': ['./a.js'] }],
+  ])('refuses %s, naming the package', (_, exports) => {
+    const root = repository({ odd: { exports } });
+
+    expect(() => PurityManifest.deriveEntries({ claim: { package: 'odd' }, root })).toThrow(
+      "'odd' has an `exports` map this check cannot read",
+    );
+  });
+});
