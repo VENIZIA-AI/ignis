@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-0 exports, 0 with TSDoc. 66 more are re-exported from other entries (listed at the end).
+0 exports, 0 with TSDoc. 67 more are re-exported from other entries (listed at the end).
 
 ## Re-exported
 
@@ -77,3 +77,4 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 - `TUnusedVarsScope` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `UnusedArgsModes` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `UnusedVarsScopes` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
+- `ZodSchemaSuffixRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)

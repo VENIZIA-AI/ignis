@@ -21,6 +21,7 @@ export * from './no-unbraced-case.rule';
 export * from './prefer-framework-api.rule';
 export * from './prefer-promise-sleep.rule';
 export * from './prefer-tnullable.rule';
+export * from './zod-schema-suffix.rule';
 export * from './plugin';
 export * from './promise-chain-support';
 export * from './configs';

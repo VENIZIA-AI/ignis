@@ -17,6 +17,7 @@ import { NoUnbracedCaseRule } from './no-unbraced-case.rule';
 import { PreferFrameworkApiRule } from './prefer-framework-api.rule';
 import { PreferPromiseSleepRule } from './prefer-promise-sleep.rule';
 import { PreferTNullableRule } from './prefer-tnullable.rule';
+import { ZodSchemaSuffixRule } from './zod-schema-suffix.rule';
 
 /** The ESLint plugin that carries the house rules oxlint cannot express, registered as `@venizia`. */
 export const houseEslintPlugin: ESLint.Plugin = {
@@ -39,5 +40,6 @@ export const houseEslintPlugin: ESLint.Plugin = {
     'prefer-framework-api': PreferFrameworkApiRule.RULE,
     'prefer-promise-sleep': PreferPromiseSleepRule.RULE,
     'prefer-tnullable': PreferTNullableRule.RULE,
+    'zod-schema-suffix': ZodSchemaSuffixRule.RULE,
   },
 };

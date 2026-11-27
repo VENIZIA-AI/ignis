@@ -82,6 +82,7 @@ Every lint preset (backend, browser and React) lives here, and ARDOR consumes th
 |---|---|---|
 | `max-params-own` | `houseConfigs`, `reactHouseConfigs` | At most 5 positional parameters on a function we write |
 | `no-new-error` | both | `getError`, never `new Error` / `Error()`; off in tests |
+| `zod-schema-suffix` | both | a `const` whose call chain starts at an import of `zod`/`zod/*`, or `z` of `@hono/zod-openapi`, ends in `Schema` (`_SCHEMA` if upper-case; `schema`/`SCHEMA` pass); not a chain from another schema, nor parse results and other non-schema reads; options `ignoreTests` (true), `ignore`; no fix |
 | `prefer-tnullable` | both | `X \| null \| undefined` is `TNullable<X>`; fixer adds the import; option `source` (`null` = no fix); the `TNullable` definition itself is skipped |
 | `prefer-promise-sleep` | both; off in tests | the exact `new Promise(r => setTimeout(r, n))` shape is `PromiseUtility.sleep({ ms: n })`; fixer adds the import; option `source` |
 | `no-shadow-framework-type` | both; off in tests | a type alias or interface named like a type exported by a `@venizia/*` dependency (names read from the installed `.d.ts`, memoized per package); message only; options `allow`, `minLength` (4); the package's own declarations are skipped. Kernel allows its `TInjectOptions` wrapper |

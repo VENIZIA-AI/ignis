@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs/linters, from the built decla
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-35 exports, 35 with TSDoc. 30 more are re-exported from other entries (listed at the end).
+36 exports, 36 with TSDoc. 30 more are re-exported from other entries (listed at the end).
 
 ## `AstNode`
 
@@ -1091,6 +1091,49 @@ export type TBrowserApiMatch =
 ```
 
 Source: `packages/dev-configs/src/linters/house/browser-api-patterns.ts`
+
+## `ZodSchemaSuffixRule`
+
+*class*
+
+`@venizia/zod-schema-suffix`. A `const` that holds a schema built from `zod` ends in `Schema`, or in `_SCHEMA` when
+the name is upper-case, so the value and the type inferred from it do not share a name. The schema is recognised by
+what it starts from: a call chain whose first identifier is bound by an import of `zod` (or one of its sub-paths),
+or of `z` from `@hono/zod-openapi`, whatever that binding is called. A chain that starts from another schema
+(`BaseSchema.extend(...)`) is not followed.
+
+```ts
+export declare class ZodSchemaSuffixRule {
+    static readonly NAME = "@venizia/zod-schema-suffix";
+    static readonly SUFFIX = "Schema";
+    static readonly UPPER_SUFFIX = "_SCHEMA";
+    private static readonly UPPER_NAME;
+    private static readonly ZOD_SOURCE;
+    /** Re-exports `z` next to its own functions (`createRoute`), so only its `z` is zod. */
+    private static readonly HONO_SOURCE;
+    private static readonly TEST_FILE;
+    /** A chain through one of these answers a value, an error report or a part of a schema, not a schema. */
+    private static readonly NOT_A_SCHEMA;
+    /** The wrappers a type adds around an expression. */
+    private static readonly WRAPPERS;
+    /** The identifier a call chain starts from, when it has a call and reads nothing that leaves the schema. */
+    private static rootOf;
+    /** Whether the binding an import declares is zod: anything of `zod` that can build a schema, or hono's `z`. */
+    private static isZodBinding;
+    /** Whether the identifier resolves to a value import of zod. */
+    private static isZodImport;
+    /** The name the const should have, or `undefined` when its name is already one. */
+    private static suggest;
+    static readonly RULE: Rule.RuleModule;
+    static build(opts?: {
+        severity?: TRuleSeverity;
+        ignoreTests?: boolean;
+        ignore?: string[];
+    }): Linter.RuleEntry;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/zod-schema-suffix.rule.ts`
 
 ## Re-exported
 

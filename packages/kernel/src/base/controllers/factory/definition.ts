@@ -126,7 +126,7 @@ export class RouteConfigResolver {
     isStrict: boolean;
   }) {
     const { config, isStrict } = opts;
-    const defaultQuery = z
+    const defaultQuerySchema = z
       .object({
         where: isStrict
           ? WhereSchema
@@ -136,7 +136,7 @@ export class RouteConfigResolver {
 
     return {
       request: {
-        query: config?.request?.query ?? defaultQuery,
+        query: config?.request?.query ?? defaultQuerySchema,
         headers: config?.request?.headers ?? trackableHeaders,
       },
       response: {
@@ -293,7 +293,7 @@ export class RouteConfigResolver {
     serverStampedKeys: string[];
   }) {
     const { config, selectSchema, updateSchema, serverStampedKeys } = opts;
-    const defaultQuery = z.object({ where: WhereSchema.optional() }).openapi({
+    const defaultQuerySchema = z.object({ where: WhereSchema.optional() }).openapi({
       description:
         'Where condition selecting the records to update - here or in the body, not both',
     });
@@ -317,7 +317,7 @@ export class RouteConfigResolver {
 
     return {
       request: {
-        query: config?.request?.query ?? defaultQuery,
+        query: config?.request?.query ?? defaultQuerySchema,
         body: config?.request?.body ?? buildDefaultBody(),
         headers: config?.request?.headers ?? defaultRequestHeaders,
       },
@@ -354,7 +354,7 @@ export class RouteConfigResolver {
     SelectSchema extends TAnyObjectSchema,
   >(opts: { config: C; selectSchema: SelectSchema }) {
     const { config, selectSchema } = opts;
-    const defaultQuery = z.object({ where: WhereSchema.optional() }).openapi({
+    const defaultQuerySchema = z.object({ where: WhereSchema.optional() }).openapi({
       description:
         'Where condition selecting the records to delete - here or in the body, not both',
     });
@@ -362,7 +362,7 @@ export class RouteConfigResolver {
 
     return {
       request: {
-        query: config?.request?.query ?? defaultQuery,
+        query: config?.request?.query ?? defaultQuerySchema,
         // No DEFAULT body schema. Declaring one makes `@hono/zod-openapi` gate the media type, and a
         // client that sends `content-type: application/json` with no body then gets 400 where it used
         // to get 200. The handler reads the body itself; name one here to get the Swagger editor.
@@ -402,14 +402,14 @@ export class RouteConfigResolver {
     SelectSchema extends TAnyObjectSchema,
   >(opts: { config: C; selectSchema: SelectSchema }) {
     const { config, selectSchema } = opts;
-    const defaultQuery = z.object({ where: WhereSchema.optional() }).openapi({
+    const defaultQuerySchema = z.object({ where: WhereSchema.optional() }).openapi({
       description: 'Where condition selecting the deleted records to restore',
     });
     const defaultSchema = RouteConfigResolver.conditionalCountResponse(z.array(selectSchema));
 
     return {
       request: {
-        query: config?.request?.query ?? defaultQuery,
+        query: config?.request?.query ?? defaultQuerySchema,
         headers: config?.request?.headers ?? defaultRequestHeaders,
       },
       response: {
