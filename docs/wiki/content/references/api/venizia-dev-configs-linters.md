@@ -980,6 +980,8 @@ export declare class PreferFrameworkApiRule {
      * one-off call a hook cannot make.
      */
     private static isInReact;
+    /** A dev tool's own configuration: what it names never reaches a browser or a deployment (a dev server's proxy target). */
+    private static readonly DEV_TOOL_CONFIG;
     /** The rows that apply in a file of this package: the table and `extra`, less the ignored ones. */
     private static rowsFor;
     /** The listeners the rows outside React need, by node type or selector. */
