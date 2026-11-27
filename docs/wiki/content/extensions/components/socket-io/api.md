@@ -111,10 +111,10 @@ const DEFAULT_SERVER_OPTIONS: Partial<IServerOptions> = {
 Bind custom server options before registering the component:
 
 ```typescript
-import { SocketIOBindingKeys } from '@venizia/ignis/socket-io';
-import type { ServerOptions } from 'socket.io';
+import { type IServerOptions, SocketIOBindingKeys } from '@venizia/ignis/socket-io';
 
-const customOptions: Partial<ServerOptions> = {
+const customOptions: Partial<IServerOptions> = {
+  identifier: 'notification-server',
   path: '/socket.io',
   cors: { origin: ['https://myapp.com'], methods: ['GET', 'POST'], credentials: true },
   pingTimeout: 60000,
@@ -122,7 +122,7 @@ const customOptions: Partial<ServerOptions> = {
   maxHttpBufferSize: 1e6, // 1MB
 };
 
-this.bind<Partial<ServerOptions>>({ key: SocketIOBindingKeys.SERVER_OPTIONS }).toValue(customOptions);
+this.bind({ key: SocketIOBindingKeys.SERVER_OPTIONS }).toValue(customOptions);
 this.component(SocketIOComponent);
 ```
 
@@ -133,7 +133,7 @@ this.component(SocketIOComponent);
 
 | Binding key | Constant | Type | Required | Default |
 |---|---|---|---|---|
-| `@app/socket-io/server-options` | `SERVER_OPTIONS` | `Partial<ServerOptions>` | No | [Default server options](#default-server-options) |
+| `@app/socket-io/server-options` | `SERVER_OPTIONS` | `Partial<IServerOptions>` | No | [Default server options](#default-server-options) |
 | `@app/socket-io/redis-connection` | `REDIS_CONNECTION` | `IRedisHelper` (`RedisSingleHelper` / `RedisClusterHelper` / `RedisSentinelHelper`) | **Yes** | `null` |
 | `@app/socket-io/authenticate-handler` | `AUTHENTICATE_HANDLER` | `TSocketIOAuthenticateFn` | **Yes** | `null` |
 | `@app/socket-io/validate-room-handler` | `VALIDATE_ROOM_HANDLER` | `TSocketIOValidateRoomFn` | No | `null` |

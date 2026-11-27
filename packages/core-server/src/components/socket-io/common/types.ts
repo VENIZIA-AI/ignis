@@ -11,8 +11,11 @@ export interface IServerOptions extends ServerOptions {
   identifier: string;
 }
 
+/** The server helper's name when the bound options give none. */
+export const DEFAULT_SERVER_IDENTIFIER = 'SOCKET_IO_SERVER';
+
 export const DEFAULT_SERVER_OPTIONS: Partial<IServerOptions> = {
-  identifier: 'SOCKET_IO_SERVER',
+  identifier: DEFAULT_SERVER_IDENTIFIER,
   path: '/io',
   cors: {
     origin: '*',
