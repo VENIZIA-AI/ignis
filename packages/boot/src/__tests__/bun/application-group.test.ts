@@ -72,6 +72,18 @@ describe('the application group', () => {
   });
 });
 
+describe('an ignore list that mixes literals and names', () => {
+  test('is refused', () => {
+    expect(() =>
+      IgnisArtifactsPlugin.rewriteGroups({
+        filePath: GROUPS_FILE,
+        source:
+          "import { ArtifactGroup } from '@venizia/ignis-kernel';\nconst pattern = 'services/**';\nexport const Own = ArtifactGroup.application({ ignore: ['models/**', pattern] });\n",
+      }),
+    ).toThrow(/ignore is not an array of string literals/);
+  });
+});
+
 describe('the auto module\x27s root', () => {
   test('is the entry module\x27s package, whatever the working directory', () => {
     const run = Bun.spawnSync(['bun', '--preload', STUB, resolve(APP, 'src', 'entry.ts')], {
