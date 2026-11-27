@@ -155,7 +155,8 @@ describe('NativeFetcher - logging', () => {
     captureRequest();
     const lines: string[] = [];
     const logger = {
-      debug: (message: string, ...args: unknown[]) => lines.push(`${message} ${args.map(String)}`),
+      debug: (message: string, ...args: unknown[]) =>
+        lines.push(`${message} ${JSON.stringify(args)}`),
       info: () => undefined,
     };
 

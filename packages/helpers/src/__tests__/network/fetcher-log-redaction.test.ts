@@ -45,7 +45,7 @@ describe('fetcher request-config logging', () => {
   });
 
   test('even a config passed RAW to the logger is redacted - redaction is systemic now', () => {
-    // The call site still pre-redacts, but redaction also lives in formatLogMessage itself: a raw config handed straight to the deep-inspect path never renders its bearer token or api key.
+    // Redaction lives in formatLogMessage itself: a raw config handed straight to the deep-inspect path never renders its bearer token or api key.
     const line = LogFormatUtility.formatMessage({
       message: 'Props: %s',
       args: [buildRequestConfig()],

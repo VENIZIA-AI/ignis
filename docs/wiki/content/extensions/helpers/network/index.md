@@ -95,9 +95,9 @@ class PaymentGateway extends AxiosNetworkRequest {
 | `withCredentials` | `true` |
 | `timeout` | `60000` ms |
 
-### Log a request with secrets redacted
+### Log a request
 
-Pass a logger as the second argument to `send()` or any shortcut method - typically `this.logger` from a `BaseHelper` subclass. The fetcher then logs the URL and config at `info` level. It runs the config through `RedactUtility.redactSecrets()` first, so values like `Authorization` or `X-API-Key` reach the log as `'[REDACTED]'`. Without a logger argument, nothing is logged.
+Pass a logger as the second argument to `send()` or any shortcut method - typically `this.logger` from a `BaseHelper` subclass. The fetcher then writes one `debug` line: the url, the timeout, the method, the header names and the body's size. No header value is written. IGNIS's log formatter masks a credential in the url; a logger of your own receives the url whole. Without a logger argument, nothing is logged.
 
 ```typescript
 async charge(amount: number, currency: string) {
