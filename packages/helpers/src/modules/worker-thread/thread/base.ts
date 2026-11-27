@@ -60,6 +60,7 @@ export class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {
       });
     }
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the payload types are a contract between two threads that only the caller knows
     return rs as IWorkerBus<IC, IP>;
   }
 }

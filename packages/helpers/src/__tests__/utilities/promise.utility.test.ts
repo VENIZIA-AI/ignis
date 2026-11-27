@@ -203,13 +203,9 @@ describe('getDeepProperty', () => {
   test('traverses a dotted path', () => {
     const source = { a: { b: { c: 42 } }, list: [{ id: 1 }] };
 
-    expect(ParseUtility.getDeepProperty<typeof source, number>({ source, path: 'a.b.c' })).toBe(42);
-    expect(ParseUtility.getDeepProperty<typeof source, number>({ source, path: 'list.0.id' })).toBe(
-      1,
-    );
-    expect(
-      ParseUtility.getDeepProperty<typeof source, undefined>({ source, path: 'a.missing' }),
-    ).toBeUndefined();
+    expect(ParseUtility.getDeepProperty({ source, path: 'a.b.c' })).toBe(42);
+    expect(ParseUtility.getDeepProperty({ source, path: 'list.0.id' })).toBe(1);
+    expect(ParseUtility.getDeepProperty({ source, path: 'a.missing' })).toBeUndefined();
   });
 
   test('throws when the path runs through a nullish value', () => {

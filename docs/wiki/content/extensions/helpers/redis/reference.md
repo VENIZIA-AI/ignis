@@ -529,7 +529,8 @@ const dedicated = redis.duplicateClient();
   | Method group | Behavior |
   |---|---|
   | `set`, `mSet`, `jSet`, `jPush` | `JSON.stringify` before writing |
-  | `getObject`, `getObjects`, `jGet` | `JSON.parse` on read |
+  | `getObject`, `getObjects` | `JSON.parse` on read |
+  | `jGet`, `jPop` | Answer the JSON text; parse it yourself |
   | `get`, `mGet` | Return the raw string, unless you pass `transform` |
 
 - **TTL units differ by field.**
@@ -571,7 +572,7 @@ const dedicated = redis.duplicateClient();
 | Method | Signature | Behavior |
 |--------|-----------|----------|
 | `set<T>` | `(opts: { key: string; value: T; options?: { log?: boolean; expiresIn?: number } }): Promise<void>` | JSON-serializes `value` and writes it; `expiresIn` is in **milliseconds** (uses `PX`); `log: true` emits an info log |
-| `get<T>` | `(opts: { key: string; transform?: (input: string) => T }): Promise<T \| null>` | Returns raw string or applies `transform`; `null` if key missing |
+| `get` | `(opts: { key: string }): Promise<string \| null>`, or `get<T>(opts: { key: string; transform: (input: string) => T }): Promise<T \| null>` | Returns the raw string, or what `transform` answers; `null` if key missing |
 | `del` | `(opts: { keys: string[] }): Promise<number>` | Deletes one or more keys; empty `keys` returns `0` |
 | `keys` | `(opts: { key: string }): Promise<string[]>` | Runs Redis `KEYS` with a glob pattern; avoid on large keyspaces - prefer `SCAN` via `execute` |
 | `getString` | `(opts: { key: string }): Promise<string \| null>` | Alias for `get` without transform |
@@ -579,7 +580,7 @@ const dedicated = redis.duplicateClient();
 | `getObject<T>` | `(opts: { key: string }): Promise<T \| null>` | `get` with `JSON.parse` transform |
 | `getObjects` | `(opts: { keys: string[] }): Promise<(unknown \| null)[]>` | `mGet` with `JSON.parse` transform |
 | `mSet<T>` | `(opts: { payload: Array<{ key: string; value: T }>; options?: { log?: boolean } }): Promise<void>` | Bulk write; each value is JSON-serialized; empty `payload` is a no-op |
-| `mGet<T>` | `(opts: { keys: string[]; transform?: (input: string) => T }): Promise<(T \| null)[]>` | Bulk read with optional transform; empty `keys` returns `[]` |
+| `mGet` | `(opts: { keys: string[] }): Promise<(string \| null)[]>`, or `mGet<T>(opts: { keys: string[]; transform: (input: string) => T }): Promise<(T \| null)[]>` | Bulk read with optional transform; empty `keys` returns `[]` |
 
 ### IRedisHash - hash maps
 
@@ -650,28 +651,26 @@ Requires the [RedisJSON module](https://redis.io/docs/stack/json/) on the server
 | Method | Signature | Behavior |
 |--------|-----------|----------|
 | `jSet<T>` | `(opts: { key: string; path: string; value: T }): Promise<string \| null>` | Sets a JSON document at `path` (`JSON.SET`); value is `JSON.stringify`-ed |
-| `jGet<T>` | `(opts: { key: string; path?: string }): Promise<T \| null>` | Retrieves the document or sub-path (`JSON.GET`); `path` defaults to `'$'` |
+| `jGet` | `(opts: { key: string; path?: string }): Promise<unknown>` | Answers the JSON text of the document or sub-path (`JSON.GET`), or `null`; `path` defaults to `'$'` |
 | `jDelete` | `(opts: { key: string; path?: string }): Promise<number>` | Deletes the document or sub-path (`JSON.DEL`); `path` defaults to `'$'`; returns count deleted |
 | `jNumberIncreaseBy` | `(opts: { key: string; path: string; value: number }): Promise<string \| null>` | Increments a numeric field by `value` (`JSON.NUMINCRBY`) |
 | `jStringAppend` | `(opts: { key: string; path: string; value: string }): Promise<number[] \| null>` | Appends `value` to a string field (`JSON.STRAPPEND`); returns new string lengths |
 | `jPush<T>` | `(opts: { key: string; path: string; value: T }): Promise<number[] \| null>` | Appends `value` to an array field (`JSON.ARRAPPEND`); value is `JSON.stringify`-ed; returns new array lengths |
-| `jPop<T>` | `(opts: { key: string; path: string }): Promise<T \| null>` | Pops the last element from an array field (`JSON.ARRPOP`) |
+| `jPop` | `(opts: { key: string; path: string }): Promise<unknown>` | Pops the last element from an array field (`JSON.ARRPOP`) and answers its JSON text, or `null` |
 
 ### IRedisCommand - raw escape hatch
 
 | Method | Signature | Behavior |
 |--------|-----------|----------|
-| `execute<R>` | `(command: string, parameters?: Array<string \| number \| Buffer>): Promise<R>` | Calls any ioredis command directly via `client.call(command, parameters)` |
+| `execute` | `(command: string, parameters?: Array<string \| number \| Buffer>): Promise<unknown>` | Calls any ioredis command directly via `client.call(command, parameters)`; check the reply before you use it |
 
 ```typescript
 // Use SCAN instead of KEYS on large keyspaces
-const [cursor, keys] = await redis.execute<[string, string[]]>(
-  'SCAN',
-  [0, 'MATCH', 'user:*', 'COUNT', 100],
-);
+// The reply is unknown: check it before you use it
+const reply = await redis.execute('SCAN', [0, 'MATCH', 'user:*', 'COUNT', 100]);
 
 // Fetch server info
-const info = await redis.execute<string>('INFO');
+const info = String(await redis.execute('INFO'));
 ```
 
 ## Using the Helper Across IGNIS

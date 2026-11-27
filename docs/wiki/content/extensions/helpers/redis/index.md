@@ -63,7 +63,8 @@ console.log(session); // { userId: 42, active: true }
 | Method group | Behavior |
 |---|---|
 | `set`, `mSet`, `jSet`, `jPush` | `JSON.stringify` before writing |
-| `getObject`, `getObjects`, `jGet` | `JSON.parse` on read |
+| `getObject`, `getObjects` | `JSON.parse` on read |
+| `jGet`, `jPop` | Answer the JSON text; parse it yourself |
 | `get`, `mGet` | Return the raw stored string, unless you pass `transform` |
 
 Wrote a value with `set`? Read it back with `getObject`/`getObjects`.
@@ -135,13 +136,8 @@ await redis.lPush({ key: 'queue:emails', values: ['welcome@example.com'] });
 `execute` calls any ioredis command directly. Reach for it when the typed API doesn't cover a command, like `SCAN`. Prefer `SCAN` over `keys()` in production - `keys()` blocks the server on large keyspaces.
 
 ```typescript
-const [cursor, matched] = await redis.execute<[string, string[]]>('SCAN', [
-  0,
-  'MATCH',
-  'user:*',
-  'COUNT',
-  100,
-]);
+// The reply is unknown: check it before you use it
+const reply = await redis.execute('SCAN', [0, 'MATCH', 'user:*', 'COUNT', 100]);
 ```
 
 ### Run in a compiled binary

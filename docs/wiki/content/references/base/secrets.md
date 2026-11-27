@@ -54,7 +54,7 @@ The renewal scheduler, TTL cache, lease registry, and `onRotate` dispatch all li
 ```typescript
 interface ISecretsHelper extends IConfigurable {
   // One-shot read of a static / KV value (TTL-cached).
-  get<TValue = string>(opts: { path: string; key?: string; defaultValue?: TValue }): Promise<TValue>;
+  get(opts: { path: string; key?: string; defaultValue?: unknown }): Promise<unknown>;
 
   // Whole KV bundle at a path - hydration merges this into AppEnvs.
   getBundle(opts: { path: string }): Promise<Record<string, string>>;

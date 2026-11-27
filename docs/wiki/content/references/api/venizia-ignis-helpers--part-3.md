@@ -228,7 +228,8 @@ Contract of a secrets provider: cached reads, dynamic leases with rotation handl
 
 ```ts
 export interface ISecretsHelper extends IConfigurable {
-    get<TValue = string>(opts: IGetSecretOptions<TValue>): Promise<TValue>;
+    /** The value of `key` (the whole bundle without one), or `defaultValue`. Check what you read. */
+    get(opts: IGetSecretOptions<unknown>): Promise<unknown>;
     getBundle(opts: {
         path: string;
     }): Promise<Record<string, string>>;

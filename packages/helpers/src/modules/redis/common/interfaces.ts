@@ -29,7 +29,8 @@ export interface IRedisKeyValue {
     value: T;
     options?: { log?: boolean; expiresIn?: number };
   }): Promise<void>;
-  get<T = string>(opts: { key: string; transform?: (input: string) => T }): Promise<T | null>;
+  get(opts: { key: string }): Promise<string | null>;
+  get<T>(opts: { key: string; transform: (input: string) => T }): Promise<T | null>;
 
   del(opts: { keys: Array<string> }): Promise<number>;
 
@@ -46,10 +47,8 @@ export interface IRedisKeyValue {
     options?: { log?: boolean };
   }): Promise<void>;
 
-  mGet<T = string>(opts: {
-    keys: Array<string>;
-    transform?: (input: string) => T;
-  }): Promise<(T | null)[]>;
+  mGet(opts: { keys: Array<string> }): Promise<(string | null)[]>;
+  mGet<T>(opts: { keys: Array<string>; transform: (input: string) => T }): Promise<(T | null)[]>;
 }
 
 /** Hash commands (`HSET`, `HGET`, ...) on one key. */
@@ -98,11 +97,12 @@ export interface IRedisPubSub {
 /** RedisJSON commands (`JSON.SET`, `JSON.GET`, ...); the Redis server needs the JSON module. */
 export interface IRedisJson {
   jSet<T>(opts: { key: string; path: string; value: T }): Promise<string | null>;
-  jGet<T>(opts: {
+  /** The JSON text Redis answers, or `null`. */
+  jGet(opts: {
     key: string;
     /** @default '$' */
     path?: string;
-  }): Promise<T | null>;
+  }): Promise<unknown>;
   jDelete(opts: {
     key: string;
     /** @default '$' */
@@ -111,12 +111,12 @@ export interface IRedisJson {
   jNumberIncreaseBy(opts: { key: string; path: string; value: number }): Promise<string | null>;
   jStringAppend(opts: { key: string; path: string; value: string }): Promise<number[] | null>;
   jPush<T>(opts: { key: string; path: string; value: T }): Promise<number[] | null>;
-  jPop<T>(opts: { key: string; path: string }): Promise<T | null>;
+  jPop(opts: { key: string; path: string }): Promise<unknown>;
 }
 
 /** Escape hatch to run any Redis command by name. */
 export interface IRedisCommand {
-  execute<R>(command: string, parameters?: Array<string | number | Buffer>): Promise<R>;
+  execute(command: string, parameters?: Array<string | number | Buffer>): Promise<unknown>;
 }
 
 /** Full surface of a Redis helper, composed from the command-group interfaces; `name` is the identifier it was created with. */

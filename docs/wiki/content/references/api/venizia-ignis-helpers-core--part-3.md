@@ -141,10 +141,10 @@ export declare class ParseUtility {
         input: unknown;
     }): string;
     /** Traverse a dotted property path on an object. */
-    static getDeepProperty<T, V>(opts: {
-        source: T;
+    static getDeepProperty(opts: {
+        source: unknown;
         path: string;
-    }): V;
+    }): unknown;
 }
 ````
 

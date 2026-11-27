@@ -111,9 +111,12 @@ export declare class AbstractRedisHelper<ClientType extends TRedisClient = TRedi
             expiresIn?: number;
         };
     }): Promise<void>;
-    get<T = string>(opts: {
+    get(opts: {
         key: string;
-        transform?: (input: string) => T;
+    }): Promise<string | null>;
+    get<T>(opts: {
+        key: string;
+        transform: (input: string) => T;
     }): Promise<T | null>;
     del(opts: {
         keys: Array<string>;
@@ -139,9 +142,12 @@ export declare class AbstractRedisHelper<ClientType extends TRedisClient = TRedi
             log?: boolean;
         };
     }): Promise<void>;
-    mGet<T = string>(opts: {
+    mGet(opts: {
         keys: Array<string>;
-        transform?: (input: string) => T;
+    }): Promise<(string | null)[]>;
+    mGet<T>(opts: {
+        keys: Array<string>;
+        transform: (input: string) => T;
     }): Promise<(T | null)[]>;
     keys(opts: {
         key: string;
@@ -228,10 +234,10 @@ export declare class AbstractRedisHelper<ClientType extends TRedisClient = TRedi
         path: string;
         value: T;
     }): Promise<string | null>;
-    jGet<T>(opts: {
+    jGet(opts: {
         key: string;
         path?: string;
-    }): Promise<T | null>;
+    }): Promise<unknown>;
     jDelete(opts: {
         key: string;
         path?: string;
@@ -251,11 +257,13 @@ export declare class AbstractRedisHelper<ClientType extends TRedisClient = TRedi
         path: string;
         value: T;
     }): Promise<number[] | null>;
-    jPop<T>(opts: {
+    jPop(opts: {
         key: string;
         path: string;
-    }): Promise<T | null>;
-    execute<R>(command: string, parameters?: Array<string | number | Buffer>): Promise<R>;
+    }): Promise<unknown>;
+    execute(command: string, parameters?: Array<string | number | Buffer>): Promise<unknown>;
+    /** The reply of a RedisJSON command, whose shape Redis fixes. */
+    private reply;
     publish<T>(opts: {
         topics: Array<string>;
         payload: T;
@@ -309,8 +317,7 @@ export declare abstract class AbstractSecretsHelper extends BaseHelper implement
     getBundle(opts: {
         path: string;
     }): Promise<Record<string, string>>;
-    get(opts: IGetSecretOptions<string>): Promise<string>;
-    get<TValue>(opts: IGetSecretOptions<TValue>): Promise<TValue>;
+    get(opts: IGetSecretOptions<unknown>): Promise<unknown>;
     lease(opts: {
         path: string;
         key: string;

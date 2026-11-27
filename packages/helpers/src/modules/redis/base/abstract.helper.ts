@@ -244,10 +244,12 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     this.logger.for(this.set.name).info('Set key: %s | value: %s', key, serialized);
   }
 
-  async get<T = string>(opts: {
+  get(opts: { key: string }): Promise<string | null>;
+  get<T>(opts: { key: string; transform: (input: string) => T }): Promise<T | null>;
+  async get<T>(opts: {
     key: string;
     transform?: (input: string) => T;
-  }): Promise<T | null> {
+  }): Promise<T | string | null> {
     const { key, transform } = opts;
 
     const value = await this.client.get(key);
@@ -256,7 +258,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
       return null;
     }
 
-    return transform ? transform(value) : (value as T);
+    return transform ? transform(value) : value;
   }
 
   del(opts: { keys: Array<string> }): Promise<number> {
@@ -319,10 +321,12 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     this.logger.for(this.mSet.name).info('Payload: %j', serialized);
   }
 
-  async mGet<T = string>(opts: {
+  mGet(opts: { keys: Array<string> }): Promise<(string | null)[]>;
+  mGet<T>(opts: { keys: Array<string>; transform: (input: string) => T }): Promise<(T | null)[]>;
+  async mGet<T>(opts: {
     keys: Array<string>;
     transform?: (input: string) => T;
-  }): Promise<(T | null)[]> {
+  }): Promise<(T | string | null)[]> {
     const { keys, transform } = opts;
 
     if (!keys.length) {
@@ -335,7 +339,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
       return [];
     }
 
-    return values.map((el) => (el ? (transform ? transform(el) : (el as T)) : null));
+    return values.map((el) => (el ? (transform ? transform(el) : el) : null));
   }
 
   keys(opts: { key: string }): Promise<string[]> {
@@ -513,53 +517,59 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
   jSet<T>(opts: { key: string; path: string; value: T }): Promise<string | null> {
     const { key, path, value } = opts;
 
-    return this.execute<string | null>('JSON.SET', [key, path, JSON.stringify(value)]);
+    return this.reply<string | null>('JSON.SET', [key, path, JSON.stringify(value)]);
   }
 
-  jGet<T>(opts: { key: string; path?: string }): Promise<T | null> {
+  jGet(opts: { key: string; path?: string }): Promise<unknown> {
     const { key, path = '$' } = opts;
 
-    return this.execute<T | null>('JSON.GET', [key, path]);
+    return this.execute('JSON.GET', [key, path]);
   }
 
   jDelete(opts: { key: string; path?: string }): Promise<number> {
     const { key, path = '$' } = opts;
 
-    return this.execute<number>('JSON.DEL', [key, path]);
+    return this.reply<number>('JSON.DEL', [key, path]);
   }
 
   jNumberIncreaseBy(opts: { key: string; path: string; value: number }): Promise<string | null> {
     const { key, path, value } = opts;
 
-    return this.execute<string | null>('JSON.NUMINCRBY', [key, path, value]);
+    return this.reply<string | null>('JSON.NUMINCRBY', [key, path, value]);
   }
 
   jStringAppend(opts: { key: string; path: string; value: string }): Promise<number[] | null> {
     const { key, path, value } = opts;
 
-    return this.execute<number[] | null>('JSON.STRAPPEND', [key, path, value]);
+    return this.reply<number[] | null>('JSON.STRAPPEND', [key, path, value]);
   }
 
   jPush<T>(opts: { key: string; path: string; value: T }): Promise<number[] | null> {
     const { key, path, value } = opts;
 
-    return this.execute<number[] | null>('JSON.ARRAPPEND', [key, path, JSON.stringify(value)]);
+    return this.reply<number[] | null>('JSON.ARRAPPEND', [key, path, JSON.stringify(value)]);
   }
 
-  jPop<T>(opts: { key: string; path: string }): Promise<T | null> {
+  jPop(opts: { key: string; path: string }): Promise<unknown> {
     const { key, path } = opts;
 
-    return this.execute<T | null>('JSON.ARRPOP', [key, path]);
+    return this.execute('JSON.ARRPOP', [key, path]);
   }
 
   // --- Raw command (IRedisCommand) ---
 
-  execute<R>(command: string, parameters?: Array<string | number | Buffer>): Promise<R> {
+  execute(command: string, parameters?: Array<string | number | Buffer>): Promise<unknown> {
     if (!parameters?.length) {
-      return this.client.call(command) as Promise<R>;
+      return this.client.call(command);
     }
 
-    return this.client.call(command, parameters) as Promise<R>;
+    return this.client.call(command, parameters);
+  }
+
+  /** The reply of a RedisJSON command, whose shape Redis fixes. */
+  private reply<R>(command: string, parameters: Array<string | number | Buffer>): Promise<R> {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Redis defines the reply of each RedisJSON command; the client types every raw reply as `unknown`
+    return this.execute(command, parameters) as Promise<R>;
   }
 
   // --- Pub/Sub (IRedisPubSub) ---
