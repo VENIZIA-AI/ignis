@@ -17,7 +17,7 @@ tags: [conventions, gotchas, debugging]
 - [A purity verdict can change with the Bun version, and a waiver is exact both ways](#a-purity-verdict-can-change-with-the-bun-version-and-a-waiver-is-exact-both-ways)
 - [`bun update` rewrites peerDependencies floors, not only devDependencies](#bun-update-rewrites-peerdependencies-floors-not-only-devdependencies)
 - [Kernel state is realm-anchored, so never reach for `instanceof` across packages](#kernel-state-is-realm-anchored-so-never-reach-for-instanceof-across-packages)
-- [The PGlite pin lives in the root package.json](#the-pglite-pin-lives-in-the-root-packagejson)
+- [One PGlite version for the whole workspace](#one-pglite-version-for-the-whole-workspace)
 - [RedisClusterHelper deliberately skips buildDefaultOpts](#redisclusterhelper-deliberately-skips-builddefaultopts)
 - [Every constructor parameter needs @inject](#every-constructor-parameter-needs-inject)
 - [An error catalog code must be a literal, not MessageCode.build()](#an-error-catalog-code-must-be-a-literal-not-messagecodebuild)
@@ -34,7 +34,7 @@ tags: [conventions, gotchas, debugging]
 - [A self-refreshing cache must gate its retry on the last attempt, not the last success](#a-self-refreshing-cache-must-gate-its-retry-on-the-last-attempt-not-the-last-success)
 - [A const-value alias without the empty intersection widens to string](#a-const-value-alias-without-the-empty-intersection-widens-to-string)
 - [bun-types 1.4 types binary data as typed arrays and DataView, never a bare ArrayBufferView](#bun-types-14-types-binary-data-as-typed-arrays-and-dataview-never-a-bare-arraybufferview)
-- [Four transitive advisories stay by decision - do not "fix" them with an override](#four-transitive-advisories-stay-by-decision---do-not-fix-them-with-an-override)
+- [Some transitive advisories stay by decision - do not "fix" them with an override](#some-transitive-advisories-stay-by-decision---do-not-fix-them-with-an-override)
 - [A middleware never reads a request body it does not own](#a-middleware-never-reads-a-request-body-it-does-not-own)
 - [Outside development, only the request spy's JSON check parses a body](#outside-development-only-the-request-spys-json-check-parses-a-body)
 - [Under `path.isStrict: false`, a route declared with a trailing slash is unreachable](#under-pathisstrict-false-a-route-declared-with-a-trailing-slash-is-unreachable)
@@ -99,9 +99,9 @@ Traps worth knowing before you hit them yourself. Look for yours here first.
 **Dependencies and pinning**
 
 - [`bun update` rewrites peerDependencies floors](#bun-update-rewrites-peerdependencies-floors-not-only-devdependencies)
-- [The PGlite pin lives in the root `package.json`](#the-pglite-pin-lives-in-the-root-packagejson)
+- [One PGlite version for the whole workspace](#one-pglite-version-for-the-whole-workspace)
 - [`RedisClusterHelper` deliberately skips `buildDefaultOpts`](#redisclusterhelper-deliberately-skips-builddefaultopts)
-- [Four transitive advisories stay by decision](#four-transitive-advisories-stay-by-decision---do-not-fix-them-with-an-override)
+- [Some transitive advisories stay by decision](#some-transitive-advisories-stay-by-decision---do-not-fix-them-with-an-override)
 
 **Correctness and security**
 
@@ -250,7 +250,7 @@ The probe spawns the `bun` on `PATH`, so the bundler's own bugs are part of the 
 1.4.0 emitted `connectors/postgres/supabase` under `--target=browser` with the `drizzle-orm/supabase`
 re-exports listed but unbound, and the row was waived as impure; Bun 1.4.1 binds them, and the same
 waiver failed a connectors release with "STALE WAIVER" because the workflow then installed
-`bun-version: latest`; the release workflow now pins `'1.4.5'` and `ci.yml` installs `latest`. Before a
+`bun-version: latest`; every workflow now pins `'1.4.5'`. Before a
 release, run `make purity-<package>` on the Bun version the release workflow pins, and when a waiver goes stale, delete it rather than loosening the gate.
 
 ## `bun update` rewrites peerDependencies floors, not only devDependencies
@@ -312,15 +312,12 @@ twice through `require` plus `delete require.cache[path]` - a `?query` import do
 The brand goes where the check looks: `static readonly [BRAND] = true` when the check receives a
 CLASS (`isDataSourceClass`), an instance field when it receives an INSTANCE (`isRedisHelper`).
 
-## The PGlite pin lives in the root package.json
+## One PGlite version for the whole workspace
 
-The root `package.json` carries `"overrides": { "@electric-sql/pglite": "0.5.8" }`, an exact version,
-repository-wide. It looks like something to relax or delete. It is not.
-
-Pinning it in one package alone forks `drizzle-orm` into two Bun store entries, because Bun keys a
-store entry by resolved peer set and PGlite is one of Drizzle's optional peers. Two entries break
-Drizzle type identity across a package boundary. `examples/browser-bff` does not install without the
-override.
+PGlite is one of Drizzle's optional peers, and Bun keys a store entry by the resolved peer set: two
+PGlite versions in the lockfile fork `drizzle-orm` into two entries, and Drizzle's types stop matching
+across a package boundary. The root `package.json` pinned one version with `overrides` until
+2026-11-27; the manifests now resolve to one version without it. If two appear, pin it there again.
 
 ## RedisClusterHelper deliberately skips buildDefaultOpts
 
@@ -547,15 +544,13 @@ declares `data: string | ArrayBufferView | ArrayBuffer` (`IWebSocket.send`, `IBu
 core-server fails to build. Mirror Bun with concrete types: `string | ArrayBuffer | SharedArrayBuffer |
 Uint8Array | DataView`. Narrowing a parameter keeps older bun-types assignable (contravariance).
 
-## Four transitive advisories stay by decision - do not "fix" them with an override
+## Some transitive advisories stay by decision - do not "fix" them with an override
 
-`bun audit` reports `decode-uri-component` (now through `query-string`, no longer through `minio`, which
-`@venizia/ignis-helpers` dropped with `MinioHelper`; `stream-json` went with it) and `esbuild`/`vite` 5 under
-`vitepress` and `drizzle-kit`. The patched release of `decode-uri-component` is ESM-only while its
-consumer uses `require()`. A workspace-wide
-`esbuild` override forces `vite` 5 onto an esbuild it does not support, and `vitepress` 1.6.4 is the
-latest and pins `vite` 5. All four are dev-server or self-built-input exposures; the changelog
-`2026-09-04-dependency-floors-raised` carries the reasoning. A new advisory beyond these six is a real finding.
+`bun audit` still reports packages that a dependent's range holds back: `esbuild` and `vite` 5 under
+`vitepress` and `drizzle-kit`, `katex` under the docs site's `mermaid`, `js-yaml` and `minimatch` under
+`openapi-typescript`, and `csv-parse` and `minimatch` under `casbin`. A workspace-wide `esbuild` override
+forces `vite` 5 onto an esbuild it does not support, and `vitepress` 1.6.4 is the latest and pins
+`vite` 5. Refresh what the ranges allow with `bun audit fix`; a package outside this list is a new finding.
 
 ## A middleware never reads a request body it does not own
 

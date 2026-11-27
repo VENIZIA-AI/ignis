@@ -15,7 +15,11 @@ import {
   type IApplicationInfo,
   type TAnyDataSourceSchema,
 } from '@venizia/ignis-kernel';
-import { afterEach, describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, setDefaultTimeout, test } from 'bun:test';
+
+// A PGlite instance starts a Postgres in WebAssembly: over bun's 5 s default in a parallel run on a small CI runner
+// (up to 10 s measured).
+setDefaultTimeout(30_000);
 
 @datasource({ driver: PGliteDriver, autoDiscovery: false })
 class StopProbeDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {

@@ -1,5 +1,5 @@
 import { PGlite } from '@electric-sql/pglite';
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 import type { SQL } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { jsonb, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
@@ -7,6 +7,10 @@ import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
 import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
 import { StubDataSource } from '../repositories/stub-data-source';
+
+// A PGlite instance starts a Postgres in WebAssembly: over bun's 5 s default in a parallel run on a small CI runner
+// (up to 10 s measured).
+setDefaultTimeout(30_000);
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 

@@ -11,7 +11,11 @@ import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { PGlite } from '@electric-sql/pglite';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, setDefaultTimeout, test } from 'bun:test';
+
+// A PGlite instance starts a Postgres in WebAssembly: over bun's 5 s default in a parallel run on a small CI runner
+// (up to 10 s measured).
+setDefaultTimeout(30_000);
 
 /** Records which path shut it down: its driver's `end()`, or its own `close()`. */
 class RecordingClient {

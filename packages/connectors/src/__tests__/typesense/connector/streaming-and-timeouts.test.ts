@@ -1,7 +1,10 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, setDefaultTimeout, test } from 'bun:test';
 import { TypesenseImportActions } from '@/search/typesense/common';
 import { TypesenseConnector } from '@/search/typesense/connector';
 import { createFakeClient, makeHelper } from './fake-client';
+
+// Tests here wait out real timeouts, up to 4.4 s measured on a CI runner: too close to bun's 5 s default.
+setDefaultTimeout(15_000);
 
 const collect = async (opts: { lines: AsyncIterable<string> }): Promise<string[]> => {
   const lines: string[] = [];
