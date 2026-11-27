@@ -49,13 +49,13 @@ export class UserController extends BaseRestController {
   }
 
   @api({ configs: RouteConfigs.GET_USERS })
-  list(context: TRouteContext) {
+  list(context: TContextOf<typeof RouteConfigs.GET_USERS>) {
     return context.json({ users: [] }, HTTP.ResultCodes.RS_2.Ok);
   }
 
   @api({ configs: RouteConfigs.GET_USER_BY_ID })
-  getById(context: TRouteContext) {
-    const { id } = context.req.valid<{ id: string }>('param');
+  getById(context: TContextOf<typeof RouteConfigs.GET_USER_BY_ID>) {
+    const { id } = context.req.valid('param');
     return context.json({ id, name: 'User' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
@@ -96,7 +96,7 @@ export class HealthCheckController extends BaseRestController {
     this.defineRoute({
       configs: RouteConfigs.POST_PING,
       handler: context => {
-        const { message } = context.req.valid<{ message: string }>('json');
+        const { message } = context.req.valid('json');
         return context.json({ echo: message }, HTTP.ResultCodes.RS_2.Ok);
       },
     });

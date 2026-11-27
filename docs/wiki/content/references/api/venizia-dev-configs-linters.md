@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs/linters, from the built decla
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-40 exports, 40 with TSDoc. 30 more are re-exported from other entries (listed at the end).
+41 exports, 41 with TSDoc. 30 more are re-exported from other entries (listed at the end).
 
 ## `AstNode`
 
@@ -52,6 +52,7 @@ export declare class AstNodeTypes {
     static readonly IMPORT_SPECIFIER = "ImportSpecifier";
     static readonly IMPORT_EXPRESSION = "ImportExpression";
     static readonly CLASS_DECLARATION = "ClassDeclaration";
+    static readonly CLASS_BODY = "ClassBody";
     static readonly INTERFACE_DECLARATION = "TSInterfaceDeclaration";
     static readonly UNION_TYPE = "TSUnionType";
     static readonly AWAIT_EXPRESSION = "AwaitExpression";
@@ -89,6 +90,7 @@ export declare class AstNodeTypes {
     static readonly PRIVATE_IDENTIFIER = "PrivateIdentifier";
     static readonly PROGRAM = "Program";
     static readonly PROPERTY = "Property";
+    static readonly PROPERTY_DEFINITION = "PropertyDefinition";
     static readonly SATISFIES_EXPRESSION = "TSSatisfiesExpression";
     static readonly SEQUENCE_EXPRESSION = "SequenceExpression";
     static readonly SPREAD_ELEMENT = "SpreadElement";
@@ -1237,6 +1239,30 @@ export type TFrameworkApiMatch = TBrowserApiMatch
 ```
 
 Source: `packages/dev-configs/src/linters/house/framework-api-patterns.ts`
+
+## `TypedRouteContextRule`
+
+*class*
+
+`@venizia/typed-route-context`: reports what compiles and still leaves a route handler unchecked. It reads syntax
+only, so a context passed on to another file, stored, or passed further than one method is not followed.
+
+- a route config object declared as `IAuthRouteConfig` (or in a `Record` of it) instead of `satisfies`;
+- `valid<T>()` with a type argument on a context typed from its route;
+- a decorated method whose `TContextOf` names another route than its decorator;
+- a handler that passes its context straight to a method of the same class typed for another route.
+
+```ts
+export declare class TypedRouteContextRule {
+    static readonly NAME = "@venizia/typed-route-context";
+    static readonly RULE: Rule.RuleModule;
+    static build(opts?: {
+        severity?: TRuleSeverity;
+    }): Linter.RuleEntry;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/typed-route-context.rule.ts`
 
 ## `ZodSchemaConventionRule`
 

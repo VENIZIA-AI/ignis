@@ -6,7 +6,6 @@ import {
   CoreBindings,
   inject,
   OpenApiResponses,
-  type TRouteContext,
 } from '@venizia/ignis';
 import { WebSocketBindingKeys } from '@venizia/ignis/websocket';
 import {
@@ -18,7 +17,6 @@ import {
 
 const MessageRequestSchema = z.object({ message: z.string().min(1) });
 const MessageResponseSchema = z.object({ sent: z.boolean(), room: z.string() });
-type TMessageRequest = z.infer<typeof MessageRequestSchema>;
 
 const RouteConfigs = {
   SEND: {
@@ -67,8 +65,8 @@ export class ChatController extends BaseRestController {
 
   override binding(): void {
     this.bindRoute({ configs: RouteConfigs.SEND }).to({
-      handler: (context: TRouteContext) => {
-        const { message } = context.req.valid<TMessageRequest>('json');
+      handler: (context) => {
+        const { message } = context.req.valid('json');
 
         // `send()` finds the room locally in this single-process example and also publishes to
         // Redis, so the call is the one a multi-instance deployment would make too.

@@ -1,8 +1,8 @@
 import { Authentication, BaseRestController, controller, get, post } from '@venizia/ignis';
-import type { TRouteContext, ValueOrPromise } from '@venizia/ignis';
+import type { ValueOrPromise, TContextOf } from '@venizia/ignis';
 import { Environment, HTTP } from '@venizia/ignis-helpers';
 import { UuidV7Generator } from '@venizia/ignis-helpers/uuid';
-import { RouteConfigs, type TRoute5Body } from './definitions';
+import { RouteConfigs } from './definitions';
 
 @controller({ path: '/test', when: () => !Environment.is({ name: Environment.PRODUCTION }) })
 export class TestController extends BaseRestController {
@@ -41,9 +41,7 @@ export class TestController extends BaseRestController {
 
   // Example 4: Using '@get' decorator to register a route from RouteConfigs
   @get({ configs: RouteConfigs['/4'] })
-  getWithDecorator(context: TRouteContext) {
-    // `RouteConfigs` is typed `Record<string, IAuthRouteConfig>`, so the decorator cannot narrow
-    // to this one route's literal shape: `context` is the hand-written `TRouteContext`, not inferred.
+  getWithDecorator(context: TContextOf<(typeof RouteConfigs)['/4']>) {
     return context.json(
       { message: 'Hello from decorator', method: 'GET' },
       HTTP.ResultCodes.RS_2.Ok,
@@ -52,10 +50,9 @@ export class TestController extends BaseRestController {
 
   // Example 5: Using '@post' decorator with a validated request body
   @post({ configs: RouteConfigs['/5'] })
-  createWithDecorator(context: TRouteContext) {
-    // The body's compile-time type comes from this explicit generic, not inference - the request
-    // is still validated against `Route5BodySchema` at runtime regardless.
-    const body = context.req.valid<TRoute5Body>('json');
+  createWithDecorator(context: TContextOf<(typeof RouteConfigs)['/5']>) {
+    // `body` is typed from the route's body schema, through `TContextOf`.
+    const body = context.req.valid('json');
 
     return context.json(
       {

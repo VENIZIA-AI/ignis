@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-108 exports, 108 with TSDoc. 1020 more are re-exported from other entries (listed at the end).
+108 exports, 108 with TSDoc. 1019 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -335,20 +335,20 @@ export declare class AuthControllerFactory {
                 offset: number;
                 total: number;
             })): void;
-            toHonoHandler<ResponseType = unknown>(opts: {
-                handler: import("@venizia/ignis-kernel").TRouteHandler<ResponseType, import("hono").Env>;
+            toHonoHandler<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig = import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {
+                handler: (context: import("@venizia/ignis-kernel").TContextOf<RouteConfig, import("hono").Env>) => ValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
             }): import("hono").Handler<import("hono").Env, string, import("hono").Input, (Response | Promise<Response>) | (import("@hono/zod-openapi").RouteConfigToTypedResponse<import("@hono/zod-openapi").RouteConfig> | Promise<import("@hono/zod-openapi").RouteConfigToTypedResponse<import("@hono/zod-openapi").RouteConfig>>)>;
             bindRoute<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
             }): import("@venizia/ignis-kernel").IBindRouteOptions<RouteConfig, import("hono").Env, {}, "/">;
-            defineRoute<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig, ResponseType = unknown>(opts: {
+            defineRoute<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
-                handler: import("@venizia/ignis-kernel").TRouteHandler<ResponseType, import("hono").Env>;
+                handler: (context: import("@venizia/ignis-kernel").TContextOf<RouteConfig, import("hono").Env>) => ValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
                 hook?: import("@hono/zod-openapi").Hook<any, import("hono").Env, string, any> | undefined;
             }): import("@venizia/ignis-kernel").IDefineRouteOptions<RouteConfig, import("hono").Env, {}, "/">;
-            defineJSXRoute<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig, ResponseType = unknown>(opts: {
+            defineJSXRoute<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
-                handler: import("@venizia/ignis-kernel").TRouteHandler<ResponseType, import("hono").Env>;
+                handler: (context: import("@venizia/ignis-kernel").TContextOf<RouteConfig, import("hono").Env>) => ValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
                 hook?: import("@hono/zod-openapi").Hook<any, import("hono").Env, string, any> | undefined;
             }): import("@venizia/ignis-kernel").IDefineRouteOptions<RouteConfig, import("hono").Env, {}, "/">;
             isConfigured: boolean;
@@ -3749,7 +3749,6 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `IUrlSafetyPolicy` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IUrlTrustedHosts` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IUuidInspection` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `IValidRequestProps` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IWalkAsyncOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IWalkOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IWebSocket` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -3992,6 +3991,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TContentDispositionType` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TContentType` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TContext` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `TContextOf` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TControllerMetadata` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TControllerTransport` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TCoreErrorCode` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -4168,7 +4168,6 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TRequestFilterPart` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TRequestFilterPiece` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
-- `TResponseBodyOf` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TResponsedError` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TResponseExtra` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TResponseFormat` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)

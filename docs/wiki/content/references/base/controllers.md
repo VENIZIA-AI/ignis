@@ -274,22 +274,22 @@ The one `Content-Range` formatter, exported from `@venizia/ignis-kernel`: `recor
 
 Sets `X-Response-Count` from `payload.count` and returns the whole envelope, or only `payload.data` when the request carried `x-request-count: false`.
 
-### `defineRoute<RouteConfig, ResponseType>(opts)`
+### `defineRoute<RouteConfig>(opts)`
 
 Defines and registers a route with its handler in a single call.
 
 <!-- docs-code: off -->
 ```typescript
-defineRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
+defineRoute<RouteConfig extends IAuthRouteConfig>(opts: {
   configs: RouteConfig;
-  handler: TRouteHandler<ResponseType, RouteEnv>;
+  handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
   hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
 }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>
 ```
 <!-- docs-code: on -->
 
 - **`configs`**: Route configuration including path, method, request/response schemas, and optional auth
-- **`handler`**: Route handler function `(context: TRouteContext) => Response`
+- **`handler`**: The route handler. Leave its parameter unannotated: `context.req.valid()` is typed from `configs`
 - **`hook`**: Optional Hono hook for validation error handling
 
 Returns `{ configs, route }`.
@@ -306,23 +306,23 @@ bindRoute<RouteConfig extends IAuthRouteConfig>(opts: {
 
 Returns `{ configs, to }` where `to({ handler })` completes the registration and returns `{ configs, route }`.
 
-### `defineJSXRoute<RouteConfig, ResponseType>(opts)`
+### `defineJSXRoute<RouteConfig>(opts)`
 
 Defines a route that renders server-side HTML via `context.html()`. Same signature as `defineRoute` but uses `getJSXRouteConfigs` instead of `getRouteConfigs`, which automatically adds an HTML response schema.
 
 <!-- docs-code: off -->
 ```typescript
-defineJSXRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
+defineJSXRoute<RouteConfig extends IAuthRouteConfig>(opts: {
   configs: RouteConfig;
-  handler: TRouteHandler<ResponseType, RouteEnv>;
+  handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
   hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
 }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>
 ```
 <!-- docs-code: on -->
 
-### `toHonoHandler<ResponseType>(opts: { handler })`
+### `toHonoHandler<RouteConfig>(opts: { handler })`
 
-Casts a `TRouteHandler` to Hono's OpenAPI handler type.
+Casts a route handler to Hono's OpenAPI handler type.
 
 ## Key Types
 
@@ -356,47 +356,81 @@ interface IControllerOptions {
 }
 ```
 
+### `TContextOf`
+
+The context of a handler of one route. `context.req.valid(target)` is typed from the config's request schemas:
+
+| Target | Read from |
+|---|---|
+| `json` | `request.body.content['application/json']` |
+| `form` | the `multipart/form-data` or `application/x-www-form-urlencoded` content |
+| `query`, `param`, `header`, `cookie` | `request.query`, `.params`, `.headers`, `.cookies` |
+
+<!-- docs-code: off -->
+```typescript
+type TContextOf<RouteConfig extends object, RouteEnv extends Env = Env>;
+
+@post({ configs: SaleRoutes.CREATE })
+create(context: TContextOf<typeof SaleRoutes.CREATE>) {
+  const body = context.req.valid('json'); // the output type of the body schema
+}
+```
+<!-- docs-code: on -->
+
+A handler of `defineRoute` or `bindRoute().to` needs no annotation. A decorated method does, because TypeScript cannot read a method's parameter type from its decorator.
+
+A part answers `unknown` when the config does not declare it, when `request.headers` is an array of schemas, and when the config's type no longer carries its schemas. That last case is what a `: IAuthRouteConfig` or `Record<string, IAuthRouteConfig>` annotation does: write `satisfies` instead. `response` bodies are not typed: `context.json()` takes any value.
+
+`valid<T>(target)` still compiles and answers `T`, so code can move one route at a time. TypeScript does not stop a context typed for one route from being passed to a method typed for another. The lint rule [`@venizia/typed-route-context`](/best-practices/code-style-standards/tooling) reports these; it reads syntax only, so it does not follow a context stored, passed further than one method, or handled in another file.
+
+**Declaration files.** In a package that emits `.d.ts` files, an exported value whose type TypeScript infers and that holds `context.req` or `context.req.valid` fails with TS2883. Write the type: `TContextOf<typeof CONFIG>['req']`, or `TContextOf<typeof CONFIG>['req']['valid']`.
+
+`bun node_modules/.bin/devz codemod typed-route-context [paths...] --write` moves decorated methods, and methods that serve one route's handlers, to `TContextOf`. It leaves CRUD overrides alone.
+
 ### `TRouteContext`
 
-Lightweight typed context that provides type-safe `req.valid()` calls:
+The context of a handler written for no route in particular, such as a CRUD override or a helper shared by routes: `valid()` answers `unknown`, or the type you give it.
 
+<!-- docs-code: off -->
 ```typescript
-type TRouteContext<RouteEnv extends Env = Env, ResponseBody = unknown> = TContext<
-  RouteEnv,
-  keyof IValidRequestProps,
-  ResponseBody
->;
+type TRouteContext<RouteEnv extends Env = Env> = TContextOf<IAuthRouteConfig, RouteEnv>;
 ```
-
-Where `IValidRequestProps` supports: `json`, `query`, `param`, `header`, `cookie`, `form`.
+<!-- docs-code: on -->
 
 ### `TRouteHandler`
 
+<!-- docs-code: off -->
 ```typescript
-type TRouteHandler<ResponseType = unknown, RouteEnv extends Env = Env> = (
-  context: TRouteContext<RouteEnv, ResponseType>,
-) => ValueOrPromise<Response | TypedResponse<ResponseType>>;
+type TRouteHandler<RouteEnv extends Env = Env> = (
+  context: TRouteContext<RouteEnv>,
+) => ValueOrPromise<Response | TypedResponse<unknown>>;
 ```
+<!-- docs-code: on -->
 
 ### `IBindRouteOptions`
 
+<!-- docs-code: off -->
 ```typescript
 interface IBindRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath> {
   configs: RouteConfig;
-  to: <ResponseType = unknown>(opts: {
-    handler: TRouteHandler<ResponseType, RouteEnv>;
+  to: (opts: {
+    handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
   }) => IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 }
 ```
+<!-- docs-code: on -->
 
 ### `IDefineRouteOptions`
 
+<!-- docs-code: off -->
 ```typescript
 interface IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath> {
-  configs: ReturnType<typeof createRoute<string, RouteConfig>>;
+  /** Typed as the config you gave; at run time without `authenticate`/`authorize`, with the added middleware, tags and security. */
+  configs: RouteConfig;
   route: OpenAPIHono<RouteEnv, RouteSchema, BasePath>;
 }
 ```
+<!-- docs-code: on -->
 
 ### `IController`
 
@@ -407,7 +441,7 @@ interface IController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions>
   extends IConfigurable<ConfigurableOptions, OpenAPIHono<RouteEnv, RouteSchema, BasePath>> {
   router: OpenAPIHono<RouteEnv, RouteSchema, BasePath>;
   bindRoute<RouteConfig>(opts: { configs: RouteConfig }): IBindRouteOptions<...>;
-  defineRoute<RouteConfig, ResponseType>(opts: { configs; handler; hook? }): IDefineRouteOptions<...>;
+  defineRoute<RouteConfig>(opts: { configs; handler; hook? }): IDefineRouteOptions<...>;
 }
 ```
 

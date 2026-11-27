@@ -1129,6 +1129,48 @@ zod-strict-and-passthrough:
       - "Pin @venizia/dev-configs to the release before this one, or set strictCall and noPassthrough to false."
   data: Nothing stored changes.
 
+typed-route-context:
+  symbols: [TContextOf, TRouteContext, TRouteHandler, IValidRequestProps, TResponseBodyOf]
+  upgrade:
+    before: |-
+      @post({ configs: SaleRoutes.CREATE })
+      create(context: TRouteContext<AppEnv, TSale>) {
+        const body: TSaleInput = context.req.valid('json');
+      }
+    after: |-
+      @post({ configs: SaleRoutes.CREATE })
+      create(context: TContextOf<typeof SaleRoutes.CREATE, AppEnv>) {
+        const body = context.req.valid('json');
+      }
+    steps:
+      - "Change a route config declared as : IAuthRouteConfig, or Record<string, IAuthRouteConfig>, to satisfies: your lint reports each one."
+      - "Run bun node_modules/.bin/devz codemod typed-route-context [paths...] --write on files git has saved."
+      - "Run your typecheck. Where a type you wrote by hand differs from the schema, correct the one that is wrong."
+      - "Where the codemod left a handler (a CRUD override, a method serving several routes), keep valid<T>() with TRouteContext, or add the type argument where a line relied on its annotation."
+      - "Drop the second argument of TRouteContext and the response argument of TRouteHandler, defineRoute, defineJSXRoute, bindRoute().to and toHonoHandler."
+      - "In a package that emits .d.ts files, where TS2883 names context.internal, write the type of the exported value: TRouteContext['req'] or TContextOf<typeof CONFIG>['req'] (add ['valid'] for the method)."
+      - "Replace TResponseBodyOf with z.output of your response schema. IValidRequestProps has no replacement: write the targets you need."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-kernel and @venizia/ignis to the release before this one, and write TContextOf<typeof CONFIG> back to TRouteContext with the type arguments on valid()."
+  data: Nothing stored changes.
+  codemod: typed-route-context
+
+typed-route-context-rule:
+  symbols: [TypedRouteContextRule, houseConfigs, reactHouseConfigs]
+  upgrade:
+    before: |-
+      const SaleRoutes: Record<string, IAuthRouteConfig> = { CREATE: { method: 'post', path: '/', responses } };
+    after: |-
+      const SaleRoutes = { CREATE: { method: 'post', path: '/', responses } } satisfies Record<string, IAuthRouteConfig>;
+    steps:
+      - "Run your lint and fix what @venizia/typed-route-context reports."
+      - "Where a config is built step by step at run time, disable the rule on that line with the reason."
+  downgrade:
+    steps:
+      - "Pin @venizia/dev-configs to the release before this one, or turn @venizia/typed-route-context off."
+  data: Nothing stored changes.
+
 http-datasource-resolvers:
   symbols: [IHttpDataSourceSettings, HttpDataSource]
   upgrade:
@@ -1183,7 +1225,7 @@ light-route-config:
       const path = this.defineRoute({ configs: route, handler }).configs.getRoutingPath();
     after: |-
       const route = { method: 'post', path: '/{id}', request: { body }, responses } satisfies IAuthRouteConfig;
-      const path = route.path.replace(/\{(\w+)\}/g, ':$1'); // getRoutingPath() answered '/:id'
+      const path = route.path.replace(/\{([^}]+)\}/g, ':$1'); // getRoutingPath() answered '/:id'
     steps:
       - "Run your typecheck. Move requestBody to request.body, and register a query route as post or get."
       - "Remove a member the type does not name, or write it as an x- extension."

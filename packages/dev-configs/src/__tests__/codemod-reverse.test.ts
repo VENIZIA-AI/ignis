@@ -299,6 +299,7 @@ describe('devz codemod --list and --reverse', () => {
         'binding-keys',
         'class-renames',
         'function-to-arrow',
+        'typed-route-context',
       ].join('\n'),
     ]);
     expect(errors).toEqual([]);

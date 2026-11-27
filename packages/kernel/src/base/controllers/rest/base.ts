@@ -4,7 +4,7 @@ import type { TDataRange } from '@/base/repositories/common/types';
 import type { TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { LoggerFactory, PerformanceUtility, ParseUtility } from '@venizia/ignis-helpers/core';
-import type { Env, Schema } from 'hono';
+import type { Env, Schema, TypedResponse } from 'hono';
 import { ResponseFormats } from '../common/constants';
 import type { TResponseFormat } from '../common/constants';
 import type {
@@ -12,7 +12,7 @@ import type {
   IBindRouteOptions,
   IDefineRouteOptions,
   TRouteContext,
-  TRouteHandler,
+  TContextOf,
 } from '../common/types';
 import { AbstractRestController } from './abstract';
 import type { IRequestedExtra, TResponseExtra } from './extras';
@@ -217,8 +217,12 @@ export abstract class BaseRestController<
     context.header(HTTP.Headers.RESPONSE_FORMAT, ResponseFormats.ARRAY);
   }
 
-  /** TRouteHandler's TRouteContext is a lightweight custom shape (different `json`/`req.valid` signatures) built on Hono's real Context, not a subtype of the RouteHandler `.openapi()` expects - genuinely different handler types bridged here. */
-  toHonoHandler<ResponseType = unknown>(opts: { handler: TRouteHandler<ResponseType, RouteEnv> }) {
+  /** A route handler's context is a lightweight custom shape (different `json`/`req.valid` signatures) built on Hono's real Context, not a subtype of the RouteHandler `.openapi()` expects - genuinely different handler types bridged here. */
+  toHonoHandler<RouteConfig extends IAuthRouteConfig = IAuthRouteConfig>(opts: {
+    handler: (
+      context: TContextOf<RouteConfig, RouteEnv>,
+    ) => ValueOrPromise<Response | TypedResponse<unknown>>;
+  }) {
     return opts.handler as Parameters<OpenAPIHono<RouteEnv>['openapi']>[1];
   }
 
@@ -240,9 +244,11 @@ export abstract class BaseRestController<
   }
 
   /** Defines and registers a route with its handler in a single call. */
-  defineRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
+  defineRoute<RouteConfig extends IAuthRouteConfig>(opts: {
     configs: RouteConfig;
-    handler: TRouteHandler<ResponseType, RouteEnv>;
+    handler: (
+      context: TContextOf<RouteConfig, RouteEnv>,
+    ) => ValueOrPromise<Response | TypedResponse<unknown>>;
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
   }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath> {
     const routeConfigs = this.getRouteConfigs<RouteConfig>({ configs: opts.configs });
@@ -251,16 +257,18 @@ export abstract class BaseRestController<
       configs: routeConfigs,
       route: this.router.openapi(
         routeConfigs,
-        this.toHonoHandler<ResponseType>({ handler: opts.handler }),
+        this.toHonoHandler<RouteConfig>({ handler: opts.handler }),
         opts.hook,
       ),
     };
   }
 
   /** Defines a JSX route that renders server-side HTML via c.html(). */
-  defineJSXRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
+  defineJSXRoute<RouteConfig extends IAuthRouteConfig>(opts: {
     configs: RouteConfig;
-    handler: TRouteHandler<ResponseType, RouteEnv>;
+    handler: (
+      context: TContextOf<RouteConfig, RouteEnv>,
+    ) => ValueOrPromise<Response | TypedResponse<unknown>>;
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
   }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath> {
     const routeConfigs = this.getJSXRouteConfigs<RouteConfig>({ configs: opts.configs });
@@ -269,7 +277,7 @@ export abstract class BaseRestController<
       configs: routeConfigs,
       route: this.router.openapi(
         routeConfigs,
-        this.toHonoHandler<ResponseType>({ handler: opts.handler }),
+        this.toHonoHandler<RouteConfig>({ handler: opts.handler }),
         opts.hook,
       ),
     };

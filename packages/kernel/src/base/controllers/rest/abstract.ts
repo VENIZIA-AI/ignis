@@ -13,7 +13,7 @@ import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import type { RouteConfig as HonoRouteConfig } from '@hono/zod-openapi';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
-import type { Env, Schema } from 'hono';
+import type { Env, Schema, TypedResponse } from 'hono';
 import { RouterFactories } from '@/base/applications/router-factory';
 import type {
   IAuthRouteConfig,
@@ -22,6 +22,7 @@ import type {
   IControllerOptions,
   IDefineRouteOptions,
   TRouteHandler,
+  TContextOf,
 } from '../common/types';
 import { RouteConfigUtility } from './route-config.utility';
 
@@ -117,7 +118,7 @@ export abstract class AbstractRestController<
       }
 
       this.bindRoute({ configs: routeConfigs }).to({
-        handler: (handler as TRouteHandler<unknown, RouteEnv>).bind(this),
+        handler: (handler as TRouteHandler<RouteEnv>).bind(this),
       });
     }
   }
@@ -253,9 +254,11 @@ export abstract class AbstractRestController<
   }): IBindRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 
   /** Defines and registers a route with its handler in a single call. */
-  abstract defineRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
+  abstract defineRoute<RouteConfig extends IAuthRouteConfig>(opts: {
     configs: RouteConfig;
-    handler: TRouteHandler<ResponseType, RouteEnv>;
+    handler: (
+      context: TContextOf<RouteConfig, RouteEnv>,
+    ) => ValueOrPromise<Response | TypedResponse<unknown>>;
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
   }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 }

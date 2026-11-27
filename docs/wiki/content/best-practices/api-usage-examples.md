@@ -112,7 +112,7 @@ export class TestController extends BaseRestController {
       configs: RouteConfigs.CREATE_ITEM,
     }).to({
       handler: context => {
-        const body = context.req.valid<{ name: string; age: number }>('json');
+        const body = context.req.valid('json');
         return context.json(
           { id: crypto.randomUUID(), ...body },
           HTTP.ResultCodes.RS_2.Ok,

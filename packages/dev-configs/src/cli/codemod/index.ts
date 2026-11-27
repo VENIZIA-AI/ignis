@@ -8,6 +8,7 @@ import { EnvGetCommand } from './env-get';
 import { FunctionToArrowCommand } from './function-to-arrow';
 import { DropRedundantCastsCommand } from './drop-redundant-casts';
 import { NamespaceFunctionsCommand } from './namespace-functions';
+import { TypedRouteContextCommand } from './typed-route-context';
 import { CliOutput } from '../../common/cli-output';
 
 const USAGE = [
@@ -21,6 +22,7 @@ const USAGE = [
   BindingKeysCommand.USAGE,
   ClassRenamesCommand.USAGE,
   FunctionToArrowCommand.USAGE,
+  TypedRouteContextCommand.USAGE,
 ].join('\n\n');
 
 /** The codemods `devz codemod <name>` runs. */
@@ -35,6 +37,7 @@ const NAME_LIST = [
   'binding-keys',
   'class-renames',
   'function-to-arrow',
+  'typed-route-context',
 ];
 const NAMES = NAME_LIST.join(', ');
 
@@ -50,6 +53,7 @@ const NOT_REVERSIBLE = new Set([
   'any-aliases',
   'binding-keys',
   'function-to-arrow',
+  'typed-route-context',
 ]);
 
 /** `devz codemod <name> [args]`: hands the arguments to the codemod called `name`. */
@@ -104,6 +108,10 @@ export class CodemodCommand {
 
     if (name === 'function-to-arrow') {
       return FunctionToArrowCommand.run({ root: opts.root, args: rest });
+    }
+
+    if (name === 'typed-route-context') {
+      return TypedRouteContextCommand.run({ root: opts.root, args: rest });
     }
 
     if (name === 'class-renames') {

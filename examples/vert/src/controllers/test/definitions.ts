@@ -3,10 +3,9 @@ import { AuthenticateStrategy, type IAuthRouteConfig, OpenApiResponses } from '@
 import { HTTP } from '@venizia/ignis-helpers';
 
 const Route5BodySchema = z.object({ name: z.string(), age: z.number().int().positive() });
-export type TRoute5Body = z.infer<typeof Route5BodySchema>;
 
-// Define route configs as const for type inference
-export const RouteConfigs: Record<string, IAuthRouteConfig> = {
+// `satisfies` keeps each route's schemas in its type, which types the handlers
+export const RouteConfigs = {
   ['/1']: {
     path: '/1',
     method: 'get',
@@ -61,4 +60,4 @@ export const RouteConfigs: Record<string, IAuthRouteConfig> = {
       schema: z.object({ id: z.string(), name: z.string(), age: z.number() }),
     }),
   },
-} as const;
+} satisfies Record<string, IAuthRouteConfig>;

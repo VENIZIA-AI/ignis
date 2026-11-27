@@ -203,9 +203,7 @@ export class AuthControllerFactory {
             authenticate: { strategies: [Authentication.STRATEGY_JWT] },
           },
           handler: async (context) => {
-            const { withUserInformation = false } = context.req.valid<{
-              withUserInformation?: boolean;
-            }>('query');
+            const { withUserInformation = false } = context.req.valid('query');
 
             const currentUser = context.get(Authentication.CURRENT_USER);
             let rs = currentUser;

@@ -1,23 +1,8 @@
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { Context, Env, TypedResponse } from 'hono';
 import type { ContentfulStatusCode, StatusCode } from 'hono/utils/http-status';
-
-/** Typed validation results for route handlers. */
-export interface IValidRequestProps<
-  JsonType = unknown,
-  QueryType = unknown,
-  ParamType = unknown,
-  HeaderType = unknown,
-  CookieType = unknown,
-  FormType = unknown,
-> {
-  json?: JsonType;
-  query?: QueryType;
-  param?: ParamType;
-  header?: HeaderType;
-  cookie?: CookieType;
-  form?: FormType;
-}
+import type { IRouteContext } from './context.internal';
+import type { IAuthRouteConfig } from './route';
 
 /** A Hono JSON `Response` typed with its body and status code. */
 export type TJsonResponse<
@@ -41,14 +26,20 @@ export type TContext<
   ): TJsonResponse<ResponseBody, TStatusCode>;
 };
 
-/** A `TContext` whose `req.valid()` targets are the keys of `IValidRequestProps` (`json`, `query`, `param`, `header`, `cookie`, `form`). */
-export type TRouteContext<RouteEnv extends Env = Env, ResponseBody = unknown> = TContext<
-  RouteEnv,
-  keyof IValidRequestProps,
-  ResponseBody
+/**
+ * The context of a handler of the route `RouteConfig`: `req.valid(target)` is typed from the config's request schemas,
+ * and is `unknown` for a part the config does not declare. Write it where TypeScript cannot read the config itself,
+ * as on a decorated method: `context: TContextOf<typeof Routes.CREATE>`.
+ */
+export type TContextOf<RouteConfig extends object, RouteEnv extends Env = Env> = IRouteContext<
+  RouteConfig,
+  RouteEnv
 >;
 
-/** Lightweight handler type using TTypedContext to avoid heavy RouteHandler inference. */
-export type TRouteHandler<ResponseType = unknown, RouteEnv extends Env = Env> = (
-  context: TRouteContext<RouteEnv, ResponseType>,
-) => ValueOrPromise<Response | TypedResponse<ResponseType>>;
+/** The context of a route whose config is not named: `req.valid()` answers the type you give it, else `unknown`. */
+export type TRouteContext<RouteEnv extends Env = Env> = TContextOf<IAuthRouteConfig, RouteEnv>;
+
+/** A handler of a route whose config is not named. */
+export type TRouteHandler<RouteEnv extends Env = Env> = (
+  context: TRouteContext<RouteEnv>,
+) => ValueOrPromise<Response | TypedResponse<unknown>>;

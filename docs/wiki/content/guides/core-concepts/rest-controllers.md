@@ -114,15 +114,15 @@ export class MyItemsController extends BaseRestController {
   }
 
   @get({ configs: TestRoutes.GET_DATA })
-  getData(context: TRouteContext) {
-    // The request is validated against the route's schemas; `context` is typed by `TRouteContext`
+  getData(context: TContextOf<typeof TestRoutes.GET_DATA>) {
+    // The request is validated against the route's schemas; `context` is typed from the route config
     return context.json({ message: 'Hello from decorator', method: 'GET' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
   @post({ configs: TestRoutes.CREATE_ITEM })
-  createItem(context: TRouteContext) {
-    // Name the body's type: it is not read from the config
-    const body = context.req.valid<{ name: string; value: number }>('json');
+  createItem(context: TContextOf<typeof TestRoutes.CREATE_ITEM>) {
+    // `body` has the type of the route's body schema
+    const body = context.req.valid('json');
 
     // The response body is not checked against the config's response schema
     return context.json(
@@ -165,10 +165,10 @@ When using this method, you will override the `binding()` method in your control
 
 ### `defineRoute`
 
-Use this method for defining a single API endpoint with all its configurations and handler. It also benefits from type inference when used with `TRouteContext`.
+Use this method for defining a single API endpoint with all its configurations and handler. Leave the handler's parameter unannotated: `context.req.valid()` is typed from `configs`.
 
 ```typescript
-import { Authentication, OpenApiResponses, TRouteContext } from '@venizia/ignis';
+import { Authentication, OpenApiResponses } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
 
@@ -186,7 +186,7 @@ const GetUsersRoute = {
 
 this.defineRoute({
   configs: GetUsersRoute,
-  handler: (context: TRouteContext) => {
+  handler: (context) => {
     return context.json([{ id: 1, name: 'John Doe' }], HTTP.ResultCodes.RS_2.Ok);
   },
 });
@@ -194,10 +194,10 @@ this.defineRoute({
 
 ### `bindRoute`
 
-This method offers a fluent API for defining routes, similar to `defineRoute`, but structured for chaining. It also benefits from `TRouteContext` for type safety.
+This method offers a fluent API for defining routes, similar to `defineRoute`, but structured for chaining. Its handler is typed from `configs` in the same way.
 
 ```typescript
-import { OpenApiResponses, TRouteContext } from '@venizia/ignis';
+import { OpenApiResponses } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
 
@@ -206,6 +206,7 @@ import { z } from '@hono/zod-openapi';
 const GetUserByIdRoute = {
   path: '/{id}',
   method: 'get',
+  request: { params: z.object({ id: z.string() }) },
   responses: OpenApiResponses.jsonResponse({
     description: 'A single user',
     schema: z.object({ id: z.string(), name: z.string() }),
@@ -215,8 +216,8 @@ const GetUserByIdRoute = {
 this.bindRoute({
   configs: GetUserByIdRoute,
 }).to({
-  handler: (context: TRouteContext) => {
-    const { id } = context.req.valid<{ id: string }>('param');  // Use valid<T>() for type-safe validated params
+  handler: (context) => {
+    const { id } = context.req.valid('param'); // typed from request.params
     return context.json({ id: id, name: 'John Doe' }, HTTP.ResultCodes.RS_2.Ok);
   },
 });
@@ -368,78 +369,41 @@ When you define Zod schemas in your route's `request` configuration (whether wit
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { OpenApiResponses, put, TRouteContext } from '@venizia/ignis';
+import { type IAuthRouteConfig, OpenApiResponses, put, type TContextOf } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
-// ... inside a controller class
+const UpdateUserSchema = z.object({ name: z.string(), email: z.string().email() });
 
-const UserSchema = z.object({ name: z.string(), email: z.string().email() });
-
-@put({
-  configs: {
-    path: '/{id}',
-    request: {
-      params: z.object({ id: z.string() }),
-      query: z.object({ notify: z.string().optional() }),
-      body: OpenApiResponses.jsonContent({ description: 'User fields to update', schema: UserSchema }),
-    },
-    // ... responses
-  },
-})
-updateUser(context: TRouteContext) {
-  // Access validated data from the request
-  const { id } = context.req.valid('param');
-  const { notify } = context.req.valid('query');
-  const userUpdateData = context.req.valid('json'); // for body
-
-  console.log(`Updating user ${id} with data:`, userUpdateData);
-  if (notify) {
-    console.log('Notification is enabled.');
-  }
-
-  return context.json({ success: true, id, ...userUpdateData }, HTTP.ResultCodes.RS_2.Ok);
-}
-```
-
-Using `context.req.valid()` is the recommended way to access request data as it ensures that the data conforms to the schema you've defined. For even better type safety, you can use the `TRouteContext` utility type.
-
-```typescript
-import { z } from '@hono/zod-openapi';
-import { OpenApiResponses, put, TRouteContext } from '@venizia/ignis';
-import { HTTP } from '@venizia/ignis-helpers';
-
-// ... inside a controller class
-
-const UpdateUserConfig = {
+const UpdateUserRoute = {
   path: '/{id}',
   request: {
     params: z.object({ id: z.string() }),
     query: z.object({ notify: z.string().optional() }),
-    body: OpenApiResponses.jsonContent({
-      description: 'User fields to update',
-      schema: z.object({ name: z.string(), email: z.string().email() }),
-    }),
+    body: OpenApiResponses.jsonContent({ description: 'User fields to update', schema: UpdateUserSchema }),
   },
-  // ... responses
-} as const; // Use 'as const' for strict type inference
+  responses: OpenApiResponses.jsonResponse({
+    description: 'The updated user',
+    schema: UpdateUserSchema.extend({ id: z.string() }),
+  }),
+} satisfies Omit<IAuthRouteConfig, 'method'>;
 
-@put({ configs: UpdateUserConfig })
-updateUser(context: TRouteContext) {
-  // Access validated data from the request with explicit types
-  const { id } = context.req.valid<{ id: string }>('param');
-  const { notify } = context.req.valid<{ notify?: string }>('query');
-  const userUpdateData = context.req.valid<{ name: string; email: string }>('json'); // for body
+// ... inside a controller class
 
-  console.log(`Updating user ${id} with data:`, userUpdateData);
+@put({ configs: UpdateUserRoute })
+updateUser(context: TContextOf<typeof UpdateUserRoute>) {
+  const { id } = context.req.valid('param'); // { id: string }
+  const { notify } = context.req.valid('query'); // { notify?: string }
+  const user = context.req.valid('json'); // { name: string; email: string }
+
   if (notify) {
-    console.log('Notification is enabled.');
+    this.logger.info('Notification is enabled');
   }
 
-  return context.json({ success: true, id, ...userUpdateData }, HTTP.ResultCodes.RS_2.Ok);
+  return context.json({ id, ...user }, HTTP.ResultCodes.RS_2.Ok);
 }
 ```
 
-Using `TRouteContext` provides a typed context object. By using `context.req.valid<T>()`, you ensure that the data you are accessing matches your expectations and provides autocomplete in your editor.
+A route handler of `defineRoute` or `bindRoute` needs no annotation; a decorated method names its route with `TContextOf<typeof CONFIG>`. Declare configs with `satisfies`, not a type annotation, which drops the schema types. See [`TContextOf`](/references/base/controllers#tcontextof).
 
 ## See Also
 
