@@ -53,17 +53,19 @@ export interface IHttpDataSourceSettings {
   /** Sent on every request. `x-request-count` is refused - the connector owns it. */
   headers?: THttpHeaders;
 
-  /**
-   * Headers for this request, run on every send (the 401 retry included); wins over `headers`, a call's own win over it. A throw
-   * fails the request; `x-request-count` is refused, and an `authorization` stands only when no token resolves.
-   */
-  headersResolver?: (context: IHttpRequestContext) => THttpHeaders | undefined;
-
-  /** Wins over `authTokenResolver`, and is sent whatever the request. */
+  /** Wins over `resolvers.authToken`, and is sent whatever the request. */
   authToken?: IAuthToken;
 
-  /** Run on every send, the 401 retry included. `undefined` means no token for this request. A throw fails the request with that error. */
-  authTokenResolver?: (context: IHttpRequestContext) => IAuthToken | undefined;
+  /** What is decided per send: each one runs on every send, the 401 retry included, and a throw fails the request with that error. */
+  resolvers?: {
+    /** The token for this request; `undefined` means none. */
+    authToken?: (context: IHttpRequestContext) => IAuthToken | undefined;
+    /**
+     * Headers for this request; wins over `headers`, a call's own win over it. `x-request-count` is refused, and an
+     * `authorization` stands only when no token resolves.
+     */
+    headers?: (context: IHttpRequestContext) => THttpHeaders | undefined;
+  };
 
   /** Runs on a 401: `true` retries once (re-resolving the token), `false` lets the 401 stand. `context` is the object the resolvers got for this call; `info.attempt` says which send failed. */
   onUnauthorized?: (

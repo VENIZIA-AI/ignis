@@ -310,7 +310,7 @@ remove-unused-network-exports:
       - "QueryStringNullishModes.EMPTY / .SKIP are the strings 'empty' / 'skip'; QueryStringNestedModes.DROP / .JSON are 'drop' / 'json'. Write the string; the option types are the literal unions."
       - "TQueryStringNullishMode and TQueryStringNestedMode: use NonNullable<IQueryStringOptions['nullish']> and NonNullable<IQueryStringOptions['nested']>."
       - "THttpFetch stays exported from @venizia/ignis-connectors/http, now an alias of TNativeFetchSender (same shape); nothing to change."
-      - "THttpHeadersResolver and TAuthTokenResolver: use NonNullable<IHttpDataSourceSettings['headersResolver']> and NonNullable<IHttpDataSourceSettings['authTokenResolver']>, both from @venizia/ignis-connectors/http. THttpQuery<E>: write { filter?: TFilter<E> }."
+      - "THttpHeadersResolver and TAuthTokenResolver: use NonNullable<NonNullable<IHttpDataSourceSettings['resolvers']>['headers']> and NonNullable<NonNullable<IHttpDataSourceSettings['resolvers']>['authToken']>, both from @venizia/ignis-connectors/http. THttpQuery<E>: write { filter?: TFilter<E> }."
       - "TFetchResult<RS, S>: write S extends z.ZodType ? IFetchParsed<z.infer<S>, RS> : RS, or type the call's answer from the fetcher method."
       - "TUrlScheme: use string; UrlSchemes.HTTP and UrlSchemes.HTTPS are still exported."
       - "BodyLimit.DEFAULT_MAX_BYTES: use UrlSafetyDefaults.MAX_BYTES."
@@ -1169,6 +1169,33 @@ typed-route-context-rule:
   downgrade:
     steps:
       - "Pin @venizia/dev-configs to the release before this one, or turn @venizia/typed-route-context off."
+  data: Nothing stored changes.
+
+http-datasource-resolvers:
+  symbols: [IHttpDataSourceSettings, HttpDataSource]
+  upgrade:
+    before: |-
+      new HttpDataSource({
+        baseUrl: '/api',
+        headersResolver: () => ({ 'x-locale': session.locale }),
+        authTokenResolver: () => session.token,
+      });
+    after: |-
+      new HttpDataSource({
+        baseUrl: '/api',
+        resolvers: {
+          headers: () => ({ 'x-locale': session.locale }),
+          authToken: () => session.token,
+        },
+      });
+    steps:
+      - "Move headersResolver to resolvers.headers and authTokenResolver to resolvers.authToken. Run your typecheck: a settings object literal with an old name is an excess-property error."
+      - "Search for the old names too: a settings object built by spread or typed loosely still compiles, and an old name in it is refused when the datasource is built."
+      - "Where the settings come from a library, such as super({ baseUrl, ...dataProvider.getDataSourceAuth() }) with ARDOR, take the release of that library that returns resolvers."
+      - "A subclass reading this.settings.headersResolver or .authTokenResolver reads this.settings.resolvers?.headers or ?.authToken."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-connectors and @venizia/ignis to the release before this one."
   data: Nothing stored changes.
 
 to-boolean-words:
