@@ -83,7 +83,7 @@ describe('platformaticRequirePlugin', () => {
     expect(result.hasInlinedModule).toBe(true);
   });
 
-  /** 2.20 loads `mnemonist/lru-cache.js` through a module-scope require() again. When upstream drops it, this test fails and the docs that ask for the plugin can say so. */
+  /** Since 2.17 the package loads `mnemonist/lru-cache.js` through a module-scope require(). When upstream drops it, this test fails and the docs that ask for the plugin can say so. */
   test('a compiled binary without the plugin dies on @platformatic/kafka 2.20', () => {
     const result = runProbe({ fixture: 'require-plugin-probe', args: ['--compile'] });
 

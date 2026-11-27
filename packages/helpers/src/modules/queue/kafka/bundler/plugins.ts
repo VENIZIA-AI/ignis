@@ -10,7 +10,7 @@ import {
 
 /** Every `@platformatic/kafka` fix needed by `bun build --compile`: a service compile script registers `build()` instead of tracking the individual plugins. */
 export class PlatformaticKafkaPlugins {
-  /** `@platformatic/kafka` resolves some dependencies through `createRequire(import.meta.url)` at module scope (2.8-2.9, and 2.20); `bun build --compile` cannot see through that, so the binary dies with "Cannot find package" before boot - this plugin hoists those calls to static imports of the file each `require` would load. A version with no such call is left as it is. */
+  /** `@platformatic/kafka` resolves some dependencies through `createRequire(import.meta.url)` at module scope (2.8-2.9, and 2.17 and later); `bun build --compile` cannot see through that, so the binary dies with "Cannot find module" before boot - this plugin hoists those calls to static imports of the file each `require` would load. A version with no such call is left as it is. */
   static buildRequirePlugin(): BunPlugin {
     return {
       name: KafkaBundlerPluginNames.PLATFORMATIC_REQUIRE,

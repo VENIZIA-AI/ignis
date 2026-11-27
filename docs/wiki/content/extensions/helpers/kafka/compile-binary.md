@@ -47,8 +47,8 @@ if (!built.success) {
 | Crash | Plugin that prevents it |
 |---|---|
 | `ENOENT: no such file or directory, open '/$bunfs/dist/native.wasm'` | `PlatformaticKafkaPlugins.buildWasmPlugin()` |
-| `Cannot find package 'ajv-draft-04' from '/$bunfs/root/index.js'` (2.8, 2.9) | `PlatformaticKafkaPlugins.buildRequirePlugin()` |
-| `Cannot find module 'mnemonist/lru-cache.js'` (2.20) | `PlatformaticKafkaPlugins.buildRequirePlugin()` |
+| `Cannot find module 'ajv-draft-04' from '/$bunfs/root/index.js'` (2.8, 2.9) | `PlatformaticKafkaPlugins.buildRequirePlugin()` |
+| `Cannot find module 'mnemonist/lru-cache.js'` (2.17 and later) | `PlatformaticKafkaPlugins.buildRequirePlugin()` |
 
 Both fire while the module graph is still loading, before the IGNIS application boots. No log line, no lifecycle hook, and no error handler of yours ever runs.
 
@@ -91,8 +91,8 @@ The static import names the file the `require()` would load, so a sub-path a pac
 | `@platformatic/kafka` | Module-scope `require()` | Without this plugin, a binary |
 |---|---|---|
 | 2.8, 2.9 | `ajv-draft-04`, the draft-06 meta schema | dies at boot |
-| 2.10 (platformatic/kafka#378) | none of those two | boots |
-| 2.20 | `mnemonist/lru-cache.js` | dies at boot |
+| 2.10-2.16 (platformatic/kafka#378 removed those two) | none | boots |
+| 2.17 and later | `mnemonist/lru-cache.js` | dies at boot |
 
 Keep `PlatformaticKafkaPlugins.build()` on every version: the wasm read above needs `buildWasmPlugin()` too.
 
