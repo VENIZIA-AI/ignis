@@ -8,8 +8,8 @@ import { BasePostgresEntity } from '@/relational/postgres/models';
 import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
 import { StubDataSource } from '../repositories/stub-data-source';
 
-// A PGlite instance starts a Postgres in WebAssembly: over bun's 5 s default in a parallel run on a small CI runner
-// (up to 10 s measured).
+// A PGlite instance starts a Postgres in WebAssembly. Set only on the files whose tests CI logs showed over the
+// threshold: up to 6.9 s here, in a parallel run on a small runner.
 setDefaultTimeout(30_000);
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));

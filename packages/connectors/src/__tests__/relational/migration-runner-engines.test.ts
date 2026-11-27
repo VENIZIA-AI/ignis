@@ -8,8 +8,8 @@ import type { IMigration } from '@/relational/core/migrations';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
 
-// A PGlite instance starts a Postgres in WebAssembly: over bun's 5 s default in a parallel run on a small CI runner
-// (up to 10 s measured).
+// A PGlite instance starts a Postgres in WebAssembly. Set only on the files whose tests CI logs showed over the
+// threshold: up to 9.1 s here, in a parallel run on a small runner.
 setDefaultTimeout(30_000);
 
 /**

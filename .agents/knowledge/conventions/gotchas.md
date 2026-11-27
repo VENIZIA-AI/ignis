@@ -546,11 +546,9 @@ Uint8Array | DataView`. Narrowing a parameter keeps older bun-types assignable (
 
 ## Some transitive advisories stay by decision - do not "fix" them with an override
 
-`bun audit` still reports packages that a dependent's range holds back: `esbuild` and `vite` 5 under
-`vitepress` and `drizzle-kit`, `katex` under the docs site's `mermaid`, `js-yaml` and `minimatch` under
-`openapi-typescript`, and `csv-parse` and `minimatch` under `casbin`. A workspace-wide `esbuild` override
-forces `vite` 5 onto an esbuild it does not support, and `vitepress` 1.6.4 is the latest and pins
-`vite` 5. Refresh what the ranges allow with `bun audit fix`; a package outside this list is a new finding.
+`bun audit` still reports packages that a dependent's range holds back; the list lives in the maintainers'
+private report. A workspace-wide override forces a dependent onto a version it does not support. Refresh
+what the ranges allow with `bun audit fix`; compare what is left with the report before calling it new.
 
 ## A middleware never reads a request body it does not own
 

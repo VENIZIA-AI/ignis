@@ -11,8 +11,8 @@ import { describe, expect, setDefaultTimeout, test } from 'bun:test';
 import { createFakePool } from '../postgres/drivers/fake-pg-client';
 import { createFakeSql } from '../postgres/drivers/fake-postgres-js-client';
 
-// A PGlite instance starts a Postgres in WebAssembly: over bun's 5 s default in a parallel run on a small CI runner
-// (up to 10 s measured).
+// A PGlite instance starts a Postgres in WebAssembly. Set only on the files whose tests CI logs showed over the
+// threshold: up to 9.1 s here, in a parallel run on a small runner.
 setDefaultTimeout(30_000);
 
 @datasource({ driver: PGliteDriver, autoDiscovery: false })
