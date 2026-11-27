@@ -6,7 +6,7 @@ import type {
   TSocketIOClientConnectedFn,
   TSocketIOValidateRoomFn,
 } from '@venizia/ignis-helpers/socket-io';
-import type { ServerOptions } from 'socket.io';
+import type { IServerOptions } from './types';
 
 /** Container keys of the Socket.IO component: the server instance, its options, the Redis connection and the handlers an application binds. */
 export class SocketIOBindingKeys {
@@ -14,7 +14,7 @@ export class SocketIOBindingKeys {
     key: '@app/socket-io/instance',
   });
 
-  static readonly SERVER_OPTIONS = BindingKeys.build<Partial<ServerOptions>>({
+  static readonly SERVER_OPTIONS = BindingKeys.build<Partial<IServerOptions>>({
     key: '@app/socket-io/server-options',
   });
 

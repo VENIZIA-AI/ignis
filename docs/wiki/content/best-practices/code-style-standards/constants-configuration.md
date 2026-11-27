@@ -144,7 +144,7 @@ const DEFAULT_SERVER_OPTIONS: Partial<IServerOptions> = {
 ```typescript
 // In component constructor or binding
 const extraServerOptions =
-  this.application.get<Partial<ServerOptions>>({
+  this.application.get<Partial<IServerOptions>>({
     key: SocketIOBindingKeys.SERVER_OPTIONS,
     isOptional: true,
   }) ?? {};

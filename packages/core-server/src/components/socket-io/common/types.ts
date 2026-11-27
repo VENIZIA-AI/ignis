@@ -6,12 +6,16 @@ import type {
 } from '@venizia/ignis-helpers/socket-io';
 import type { ServerOptions } from 'socket.io';
 
+/** Socket.IO's server options, plus the component's own `identifier` (default `SOCKET_IO_SERVER`): the server helper's name. */
 export interface IServerOptions extends ServerOptions {
   identifier: string;
 }
 
+/** The server helper's name when the bound options give none. */
+export const DEFAULT_SERVER_IDENTIFIER = 'SOCKET_IO_SERVER';
+
 export const DEFAULT_SERVER_OPTIONS: Partial<IServerOptions> = {
-  identifier: 'SOCKET_IO_SERVER',
+  identifier: DEFAULT_SERVER_IDENTIFIER,
   path: '/io',
   cors: {
     origin: '*',
