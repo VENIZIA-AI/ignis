@@ -10,8 +10,9 @@ import type { THttpHeaders, TNativeFetchSender } from '@venizia/ignis-helpers/co
 
 /** The replacements the migration of `remove-unused-network-exports` names must compile: this file is that check. */
 type TRepositoryOptions = NonNullable<Parameters<HttpRepository['existsWith']>[0]['options']>;
-type TAuthTokenResolver = NonNullable<IHttpDataSourceSettings['authTokenResolver']>;
-type THeadersResolver = NonNullable<IHttpDataSourceSettings['headersResolver']>;
+type TResolvers = NonNullable<IHttpDataSourceSettings['resolvers']>;
+type TAuthTokenResolver = NonNullable<TResolvers['authToken']>;
+type THeadersResolver = NonNullable<TResolvers['headers']>;
 
 describe('the replacement types of the removed connectors/http names', () => {
   test('compile, and THttpFetch is the helpers sender type', () => {

@@ -260,14 +260,16 @@ const response = await catalogDataSource.request({
 
 ### Settings that follow the session
 
-A browser app's headers and token change while it runs. Give the datasource hooks, not values. `headersResolver` and `authTokenResolver` run on every send, the 401 retry included; `onUnauthorized` runs on a 401. All three are told which request they serve (`{ paths, method, url, signal }`):
+A browser app's headers and token change while it runs. Give the datasource hooks, not values. `resolvers.headers` and `resolvers.authToken` run on every send, the 401 retry included; `onUnauthorized` runs on a 401. All three are told which request they serve (`{ paths, method, url, signal }`):
 
 ```typescript
 new HttpDataSource({
   baseUrl: '/api',
   errorRootKey: 'error',
-  headersResolver: () => ({ 'x-locale': session.locale }),
-  authTokenResolver: ({ paths }) => (paths[0] === 'auth' ? undefined : session.token),
+  resolvers: {
+    headers: () => ({ 'x-locale': session.locale }),
+    authToken: ({ paths }) => (paths[0] === 'auth' ? undefined : session.token),
+  },
   onUnauthorized: ({ paths }) => (paths[0] === 'auth' ? false : session.refresh()),
 });
 ```
@@ -277,8 +279,8 @@ new HttpDataSource({
 | `baseUrl` | An absolute URL, or a path from the page origin (`/api`) |
 | `errorRootKey` | The server's `error.rootKey`. Without it, a wrapped error envelope reads as `core.system_error`. |
 | `headers` | Sent on every request. |
-| `headersResolver` | Headers for this request. Wins over `headers`. |
-| `authToken` / `authTokenResolver` | The token. A fixed `authToken` wins and goes on every request; the resolver answering `undefined` sends none. |
+| `resolvers.headers` | Headers for this request. Wins over `headers`. |
+| `authToken` / `resolvers.authToken` | The token. A fixed `authToken` wins and goes on every request; the resolver answering `undefined` sends none. |
 | `onUnauthorized` | Runs on a 401; `true` retries once, `false` lets it stand. It gets the call's `context` (the same object the resolvers got, for every send of the call, so a session map may key on it) and `{ attempt }` as a second argument: 1, or 2 for the retry's own 401, when its answer is ignored and the 401 stands. A call whose `signal` aborted meanwhile is not retried. |
 | `fetch` | What sends a request: `(url, init) => Promise<Response>` |
 
@@ -293,7 +295,7 @@ const controller = new AbortController();
 await productRepository.find({ filter, options: { headers: { 'x-trace': id }, signal: controller.signal } });
 ```
 
-Header precedence, weakest first: `headers`, `headersResolver`, the call's own, then the connector's (`x-request-count`, `authorization`). A `FormData` body always carries the multipart content-type `fetch` writes, boundary included.
+Header precedence, weakest first: `headers`, `resolvers.headers`, the call's own, then the connector's (`x-request-count`, `authorization`). A `FormData` body always carries the multipart content-type `fetch` writes, boundary included.
 
 > [!WARNING]
 > Cross-origin, `count()` and `find({ options: { shouldQueryRange: true } })` read `Content-Range`, which a browser hides unless the server lists it in `Access-Control-Expose-Headers` (with `x-response-count` for writes).

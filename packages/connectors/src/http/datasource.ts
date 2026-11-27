@@ -23,6 +23,12 @@ import type {
 } from './common/types';
 import { HttpWire } from './common/wire';
 
+/** The removed settings, each with where it went: a settings object spread into the constructor still carries them. */
+const RemovedSettings = {
+  headersResolver: 'resolvers.headers',
+  authTokenResolver: 'resolvers.authToken',
+} as const;
+
 /** Reads an IGNIS REST server through the repository contract. Targets IGNIS, not any REST API. */
 export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
   override name: string;
@@ -36,6 +42,15 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
     super({ scope: opts.name ?? HttpDataSource.name });
 
     const { name = 'http', ...settings } = opts;
+
+    // Refused, not ignored: ignored, a request would go out without the token or the headers the hook gave.
+    for (const [removed, replacement] of Object.entries(RemovedSettings)) {
+      if (removed in settings) {
+        throw getError({
+          message: `[${name}] The ${removed} setting was removed | Pass it as ${replacement}`,
+        });
+      }
+    }
 
     const configured = HttpHeaders.merge({ layers: [settings.headers] });
     HttpWire.assertNoRequestCountHeader({ headers: configured, name });
@@ -54,12 +69,14 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
   }
 
   protected resolveAuthToken(opts: { context: IHttpRequestContext }): IAuthToken | undefined {
-    return this.settings.authToken ?? this.settings.authTokenResolver?.(opts.context);
+    return this.settings.authToken ?? this.settings.resolvers?.authToken?.(opts.context);
   }
 
   /** Re-run on every send, so a header the app changed since the last request is the one sent. */
   protected resolveHeaders(opts: { context: IHttpRequestContext }): Headers {
-    const headers = HttpHeaders.merge({ layers: [this.settings.headersResolver?.(opts.context)] });
+    const headers = HttpHeaders.merge({
+      layers: [this.settings.resolvers?.headers?.(opts.context)],
+    });
     HttpWire.assertNoRequestCountHeader({ headers, name: this.name });
 
     return headers;
