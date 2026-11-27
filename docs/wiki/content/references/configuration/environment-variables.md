@@ -5,7 +5,7 @@ Complete reference of all environment variables used by the IGNIS framework, gro
 **Files:**
 
 - [`packages/core-server/src/common/environments.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/common/environments.ts) - `EnvironmentKeys`
-- [`packages/helpers/src/modules/env/app-env.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/env/app-env.ts) - `applicationEnvironment`, `Environment`
+- [`packages/helpers/src/modules/env/app-env.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/env/app-env.ts) - `AppEnvs`, `Environment`
 - [`packages/core-server/src/base/applications/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/applications/base.ts) - `validateEnvs()`, `registerSecrets()`, `hydrateSecrets()`
 - [`packages/core-server/src/base/applications/server.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/applications/server.ts) - host/port resolution priority
 - [`packages/helpers/src/modules/secrets/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/secrets/common/constants.ts) - `SecretProviders`, `VaultAuthMethods`
@@ -27,13 +27,13 @@ POSTGRES_HOST=localhost
 
 ```typescript
 import { EnvironmentKeys } from '@venizia/ignis';
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 
 // 1. By name
-const host = applicationEnvironment.get('APP_ENV_POSTGRES_HOST');
+const host = AppEnvs.get('APP_ENV_POSTGRES_HOST');
 
 // 2. By a key constant (recommended)
-const sameHost = applicationEnvironment.get(EnvironmentKeys.APP_ENV_POSTGRES_HOST);
+const sameHost = AppEnvs.get(EnvironmentKeys.APP_ENV_POSTGRES_HOST);
 ```
 
 
@@ -171,7 +171,7 @@ import { datasource, ValueOrPromise } from '@venizia/ignis';
 import { BaseDataSource } from '@venizia/ignis-connectors/postgres';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 
 interface IDataSourceConfigs {
   host: string;
@@ -187,11 +187,11 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
     super({
       name: PostgresDataSource.name,
       config: {
-        host: applicationEnvironment.get('APP_ENV_POSTGRES_HOST') ?? 'localhost',
-        port: +(applicationEnvironment.get('APP_ENV_POSTGRES_PORT') ?? 5432),
-        database: applicationEnvironment.get('APP_ENV_POSTGRES_DATABASE') ?? 'mydb',
-        user: applicationEnvironment.get('APP_ENV_POSTGRES_USERNAME') ?? 'postgres',
-        password: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD') ?? '',
+        host: AppEnvs.get('APP_ENV_POSTGRES_HOST') ?? 'localhost',
+        port: +(AppEnvs.get('APP_ENV_POSTGRES_PORT') ?? 5432),
+        database: AppEnvs.get('APP_ENV_POSTGRES_DATABASE') ?? 'mydb',
+        user: AppEnvs.get('APP_ENV_POSTGRES_USERNAME') ?? 'postgres',
+        password: AppEnvs.get('APP_ENV_POSTGRES_PASSWORD', { defaultValue: '' }),
       },
     });
   }
@@ -405,7 +405,7 @@ NODE_ENV=production
 ## Secrets & Vault
 
 - **A `.env` file is one option, not a requirement.** IGNIS can load these variables from a vault (HashiCorp Vault, an encrypted `.env.vault`, or plain `process.env`). It **hydrates** them into the same `APP_ENV_*` keys at boot.
-- **Hydration is transparent to your code.** Code that reads `applicationEnvironment.get` or `process.env` is unchanged - the values arrive from the vault instead of a file.
+- **Hydration is transparent to your code.** Code that reads `AppEnvs.get` or `process.env` is unchanged - the values arrive from the vault instead of a file.
 - **Hydration runs before datasources are configured** (after `preConfigure()`, before `registerDataSources()`), so a hydrated `APP_ENV_DB_PASSWORD` is available exactly where a file-based one would be.
 - **Vault values take precedence over `process.env`** when the provider is live - a hydrated key overwrites whatever was already in `process.env`.
 
@@ -484,7 +484,7 @@ validation covers required values, for example the authentication component's `j
 > emptiness rejected, the value you need is `false` or `0`.
 
 `ALLOW_EMPTY_ENV_VALUE` carries no `APP_ENV` prefix, so it is read straight off `process.env` and
-never appears on `applicationEnvironment`. It is not a member of `EnvironmentKeys`.
+never appears on `AppEnvs`. It is not a member of `EnvironmentKeys`.
 
 
 ## Security Best Practices
@@ -546,7 +546,7 @@ APP_ENV_LOGGER_FOLDER_PATH=./logs
 
 ## See also
 
-- [Configuration Reference](./index.md) - `EnvironmentKeys` constants and the `applicationEnvironment` helper
+- [Configuration Reference](./index.md) - `EnvironmentKeys` constants and the `AppEnvs` helper
 - [Secrets & Vault Guide](/guides/core-concepts/secrets-vault) - setup walkthrough for vault-backed secrets
 - [Secrets & Vault Reference](/references/base/secrets) - full provider API (`registerSecrets`, `SecretProviders`, `VaultAuthMethods`)
 - [DataSources Guide](/guides/core-concepts/persistent/datasources) - wiring `APP_ENV_POSTGRES_*` into a DataSource

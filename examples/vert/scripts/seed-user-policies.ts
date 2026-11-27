@@ -16,28 +16,25 @@ import {
   AuthorizationDecisions,
   AuthorizationPolicyBuilder,
 } from '@venizia/ignis';
-import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
+import { AppEnvs, ParseUtility } from '@venizia/ignis-helpers';
 import { UuidV7Generator } from '@venizia/ignis-helpers/uuid';
 
 const pool = new Pool({
-  host:
-    ParseUtility.blankToUndefined({ input: applicationEnvironment.get('APP_ENV_POSTGRES_HOST') }) ??
-    '0.0.0.0',
+  host: ParseUtility.blankToUndefined({ input: AppEnvs.get('APP_ENV_POSTGRES_HOST') }) ?? '0.0.0.0',
   port: parseInt(
-    ParseUtility.blankToUndefined({ input: applicationEnvironment.get('APP_ENV_POSTGRES_PORT') }) ??
-      '5432',
+    ParseUtility.blankToUndefined({ input: AppEnvs.get('APP_ENV_POSTGRES_PORT') }) ?? '5432',
   ),
   database:
     ParseUtility.blankToUndefined({
-      input: applicationEnvironment.get('APP_ENV_POSTGRES_DATABASE'),
+      input: AppEnvs.get('APP_ENV_POSTGRES_DATABASE'),
     }) ?? 'db',
   user:
     ParseUtility.blankToUndefined({
-      input: applicationEnvironment.get('APP_ENV_POSTGRES_USERNAME'),
+      input: AppEnvs.get('APP_ENV_POSTGRES_USERNAME'),
     }) ?? 'postgres',
   password:
     ParseUtility.blankToUndefined({
-      input: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD'),
+      input: AppEnvs.get('APP_ENV_POSTGRES_PASSWORD'),
     }) ?? 'password',
 });
 

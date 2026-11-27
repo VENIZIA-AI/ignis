@@ -33,7 +33,7 @@ const loadWithPrefix = (opts: { prefix: string | undefined }) => {
     process.env.APPLICATION_ENV_PREFIX = previous;
   }
 
-  return loaded.applicationEnvironment;
+  return loaded.AppEnvs;
 };
 
 describe('the default environment prefix', () => {

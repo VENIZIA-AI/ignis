@@ -307,7 +307,7 @@ import {
 } from '@venizia/ignis';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 
 interface IDataSourceConfigs {
   host: string;
@@ -323,11 +323,11 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
     super({
       name: PostgresDataSource.name,
       config: {
-        host: applicationEnvironment.get('APP_ENV_POSTGRES_HOST') ?? 'localhost',
-        port: +(applicationEnvironment.get('APP_ENV_POSTGRES_PORT') ?? 5432),
-        database: applicationEnvironment.get('APP_ENV_POSTGRES_DATABASE') ?? 'ecommerce_db',
-        user: applicationEnvironment.get('APP_ENV_POSTGRES_USERNAME') ?? 'postgres',
-        password: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD') ?? '',
+        host: AppEnvs.get('APP_ENV_POSTGRES_HOST') ?? 'localhost',
+        port: +(AppEnvs.get('APP_ENV_POSTGRES_PORT') ?? 5432),
+        database: AppEnvs.get('APP_ENV_POSTGRES_DATABASE') ?? 'ecommerce_db',
+        user: AppEnvs.get('APP_ENV_POSTGRES_USERNAME') ?? 'postgres',
+        password: AppEnvs.get('APP_ENV_POSTGRES_PASSWORD', { defaultValue: '' }),
       },
     });
   }
@@ -867,7 +867,7 @@ export class OrderService extends BaseService {
 // src/services/payment.service.ts
 import { BaseService, service } from '@venizia/ignis';
 import Stripe from 'stripe';
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 
 @service()
 export class PaymentService extends BaseService {
@@ -876,7 +876,7 @@ export class PaymentService extends BaseService {
   constructor() {
     super({ scope: PaymentService.name });
 
-    const secretKey = applicationEnvironment.getRequired('APP_ENV_STRIPE_SECRET_KEY');
+    const secretKey = AppEnvs.getRequired('APP_ENV_STRIPE_SECRET_KEY');
     this._stripe = new Stripe(secretKey, {
       apiVersion: '2023-10-16',
     });
@@ -910,7 +910,7 @@ export class PaymentService extends BaseService {
   }
 
   async createWebhookEvent(opts: { payload: string; signature: string }) {
-    const webhookSecret = applicationEnvironment.getRequired('APP_ENV_STRIPE_WEBHOOK_SECRET');
+    const webhookSecret = AppEnvs.getRequired('APP_ENV_STRIPE_WEBHOOK_SECRET');
     return this._stripe.webhooks.constructEvent(opts.payload, opts.signature, webhookSecret);
   }
 }

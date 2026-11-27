@@ -9,7 +9,7 @@ With `directUpload` the bytes never touch your process. Your app signs a permiss
 
 ```ts
 import { Authentication } from '@venizia/ignis';
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 import type { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 import type { TStaticAssetComponentOptions } from '@venizia/ignis/static-asset';
 
@@ -24,7 +24,7 @@ export const buildUploads = (opts: { storage: BunS3Helper }): TStaticAssetCompon
     metaLink: { use: false },
     directUpload: {
       use: true,
-      secretKey: applicationEnvironment.getRequired('APP_ENV_UPLOAD_SECRET'),
+      secretKey: AppEnvs.getRequired('APP_ENV_UPLOAD_SECRET'),
       maxBytes: 100 * 1024 * 1024,
       validation: { use: false },
       resolvers: {

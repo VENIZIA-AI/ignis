@@ -9,7 +9,7 @@ import {
   BindingNamespaces,
   BindingKeys,
 } from '@venizia/ignis';
-import { applicationEnvironment, getError, LoggerFactory } from '@venizia/ignis-helpers';
+import { AppEnvs, getError, LoggerFactory } from '@venizia/ignis-helpers';
 import { UuidV7Generator } from '@venizia/ignis-helpers/uuid';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { drizzle } from 'drizzle-orm/node-postgres';
@@ -197,7 +197,7 @@ describe('vert', async () => {
     let seeded = { organizationId: '', roleId: '' };
 
     beforeAll(async () => {
-      applicationEnvironment.merge({ envs: TEST_ENV });
+      AppEnvs.merge({ envs: TEST_ENV });
 
       const pool = new Pool({
         host: HOST,

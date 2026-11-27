@@ -12,7 +12,7 @@ import {
   JOSEStandards,
   JWSAuthenticationStrategy,
 } from '@venizia/ignis';
-import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
+import { AppEnvs, ParseUtility } from '@venizia/ignis-helpers';
 import { getJwtClaims } from '@/common/jwt-claims';
 import appInfo from '../package.json';
 
@@ -36,11 +36,11 @@ export class Application extends BaseApplication {
     this.bind({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
       standard: JOSEStandards.JWS,
       options: {
-        jwtSecret: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_JWT_SECRET),
+        jwtSecret: AppEnvs.getRequired(EnvironmentKeys.APP_ENV_JWT_SECRET),
         claims: getJwtClaims(),
         getTokenExpiresFn: () =>
           ParseUtility.toInt({
-            input: applicationEnvironment.get(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN),
+            input: AppEnvs.get(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN),
           }),
       },
     });

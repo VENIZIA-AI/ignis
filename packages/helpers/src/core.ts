@@ -1,6 +1,6 @@
 export { BaseHelper } from './modules/base';
 // By name, never `export *` from `./modules/env`: that barrel also carries `Environment` and
-// `applicationEnvironment`, both of which read `process.env`.
+// `AppEnvs`, both of which read `process.env`.
 export { EnvironmentNames } from './modules/env/names';
 export * from './modules/error';
 export { LogLevels } from './modules/logger/common/types';

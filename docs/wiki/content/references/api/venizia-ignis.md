@@ -600,7 +600,7 @@ export declare abstract class BaseApplication extends ServerApplication implemen
     protected buildErrorMiddleware(): AppErrorMiddleware;
     /** Adds what only a listening server has, on top of the kernel's three - which stay in `RestApplication` so a browser Worker answers with the same envelope. */
     protected registerDefaultMiddlewares(): Promise<void>;
-    /** Lives here rather than on `AbstractApplication` - `applicationEnvironment` reads `process.env` at module load, so a kernel-pure ancestor cannot carry it; this is the layer that already depends on it. */
+    /** Lives here rather than on `AbstractApplication` - `AppEnvs` reads `process.env` at module load, so a kernel-pure ancestor cannot carry it; this is the layer that already depends on it. */
     protected validateEnvs(): void;
     /**
      * Version tripwire, body identical to `RestApplication.initialize()`: a stale kernel without
@@ -1024,7 +1024,7 @@ nobody consulted, so they went the same way. Before adding one here, know who re
 
 Two framework variables are deliberately ABSENT from this class, and adding them would be a trap:
 `APPLICATION_ENV_PREFIX` and `ALLOW_EMPTY_ENV_VALUE`. Neither carries the `APP_ENV` prefix, so
-`applicationEnvironment` never holds them - a read through `AppEnvs.get()` would answer `undefined`
+`AppEnvs` never holds them - a read through `AppEnvs.get()` would answer `undefined`
 forever. `APPLICATION_ENV_PREFIX` could not go through it in any case: it is what builds the
 filter. Both are bootstrap variables and are read straight off `process.env`, which is the one
 legitimate exception to "do not read process.env directly". Neither has to be declared or set:

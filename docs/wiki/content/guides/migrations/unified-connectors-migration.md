@@ -41,19 +41,19 @@ grep -rl 'ITransaction\|IExtraOptions' packages/*/src --include='*.ts' \
 
 Note: `options?.transaction?.connector` inside `DefaultCRUDRepository` (alias of `DefaultRelationalRepository`) subclasses needs NO change. The postgres tiers now default their options generic to `IDatabaseExtraOptions`, so that path stays typed automatically.
 
-### 2. `applicationEnvironment.get` - options object
+### 2. `AppEnvs.get` - options object
 
 The second positional argument became an options object (and gained `transform`):
 
 ```typescript
 // Before
-const port = applicationEnvironment.get(Keys.PORT, '3000');
+const port = AppEnvs.get(Keys.PORT, '3000');
 
 // After
-const port = applicationEnvironment.get(Keys.PORT, { defaultValue: '3000' });
+const port = AppEnvs.get(Keys.PORT, { defaultValue: '3000' });
 
 // New capability - transform raw env values in one read:
-const nodes = applicationEnvironment.get(Keys.NODES, {
+const nodes = AppEnvs.get(Keys.NODES, {
   defaultValue: [],
   transform: (raw) => ParseUtility.toDelimitedArray({ input: raw }),
 });
@@ -62,7 +62,7 @@ const nodes = applicationEnvironment.get(Keys.NODES, {
 Measured impact on a consumer: **5 call sites** use the positional form. They fail at compile time (not silently), so `tsc` will point at each one:
 
 ```bash
-grep -rnE "applicationEnvironment.get(<[^>]*>)?\([^,)]+, [^{]" packages/*/src --include='*.ts'
+grep -rnE "AppEnvs.get(<[^>]*>)?\([^,)]+, [^{]" packages/*/src --include='*.ts'
 ```
 
 New helpers: `ParseUtility.toDelimitedArray({ input, separator? })` (split + trim + drop empties) and `ParseUtility.toTrimmed({ input })` from `@venizia/ignis-helpers`.

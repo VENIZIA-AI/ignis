@@ -17,15 +17,15 @@ import {
   ValueOrPromise,
 } from '@venizia/ignis';
 import AutoArtifacts from '@venizia/ignis-boot/auto';
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 import packageJson from './../package.json';
 
 // Application configurations
 export const appConfigs: IApplicationConfigs = {
-  host: applicationEnvironment.get('APP_ENV_SERVER_HOST'),
-  port: +(applicationEnvironment.get('APP_ENV_SERVER_PORT') ?? 3000),
+  host: AppEnvs.get('APP_ENV_SERVER_HOST'),
+  port: +(AppEnvs.get('APP_ENV_SERVER_PORT') ?? 3000),
   path: {
-    base: applicationEnvironment.get('APP_ENV_SERVER_BASE_PATH') ?? '/',
+    base: AppEnvs.get('APP_ENV_SERVER_BASE_PATH') ?? '/',
     isStrict: true,
   },
   debug: {

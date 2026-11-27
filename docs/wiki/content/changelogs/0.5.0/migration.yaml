@@ -957,18 +957,18 @@ framework-api-rows:
 
       const secret = process.env.APP_ENV_JWT_SECRET;
     after: |-
-      import { applicationEnvironment } from '@venizia/ignis-helpers';
+      import { AppEnvs } from '@venizia/ignis-helpers';
       import { isApplicationError } from '@venizia/ignis-helpers/core';
 
       if (isApplicationError(error)) {
         return;
       }
 
-      const secret = applicationEnvironment.get('APP_ENV_JWT_SECRET');
+      const secret = AppEnvs.get('APP_ENV_JWT_SECRET');
     steps:
       - "Run your lint and replace each reported form with the one the message names. The rule has no fix."
-      - "applicationEnvironment copies process.env once, when it is first imported. A test or a loader that sets process.env.APP_ENV_* after that import calls applicationEnvironment.set or merge instead."
-      - "applicationEnvironment keeps only the names under APPLICATION_ENV_PREFIX (APP_ENV when unset). With another prefix, or where the process value is what you mean, switch the row off: { rules: { '@venizia/prefer-framework-api': ['error', { hooks: false, ignore: ['process-env'] }] } }."
+      - "AppEnvs copies process.env once, when it is first imported. A test or a loader that sets process.env.APP_ENV_* after that import calls AppEnvs.set or merge instead."
+      - "AppEnvs keeps only the names under APPLICATION_ENV_PREFIX (APP_ENV when unset). With another prefix, or where the process value is what you mean, switch the row off: { rules: { '@venizia/prefer-framework-api': ['error', { hooks: false, ignore: ['process-env'] }] } }."
       - "A config that sets options for this rule states hooks again: false for a backend, true for React."
       - |-
         An app made from an earlier IGNIS preset reads its address in src/application.ts, and lint reports the two APP_ENV_ reads. Replace this:

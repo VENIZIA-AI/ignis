@@ -1,10 +1,6 @@
 import { BaseApplication } from '@/base/applications/base';
 import { CoreBindings } from '@venizia/ignis-kernel';
-import {
-  applicationEnvironment,
-  SecretProviders,
-  type ISecretsRegistration,
-} from '@venizia/ignis-helpers';
+import { AppEnvs, SecretProviders, type ISecretsRegistration } from '@venizia/ignis-helpers';
 import { describe, expect, test } from 'bun:test';
 
 class HydrateApp extends BaseApplication {
@@ -29,13 +25,13 @@ class HydrateApp extends BaseApplication {
 }
 
 describe('hydrateSecrets', () => {
-  test('binds a provider at @app/config and merges mapped keys into applicationEnvironment', async () => {
+  test('binds a provider at @app/config and merges mapped keys into AppEnvs', async () => {
     process.env.SOURCE = 'hydrated';
     const app = new HydrateApp({ scope: 'probe', config: { path: { base: '', isStrict: false } } });
     await app.hydrateSecrets();
     const provider = app.get({ key: CoreBindings.APPLICATION_CONFIG, isOptional: false });
     expect(provider).toBeDefined();
-    expect(applicationEnvironment.get('APP_ENV_TARGET')).toBe('hydrated');
+    expect(AppEnvs.get('APP_ENV_TARGET')).toBe('hydrated');
     expect(process.env.APP_ENV_TARGET).toBe('hydrated');
   });
 });

@@ -1,6 +1,6 @@
 import { PGlite } from '@electric-sql/pglite';
 import { datasource, type TAnyDataSourceSchema } from '@venizia/ignis';
-import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
+import { AppEnvs, ParseUtility } from '@venizia/ignis-helpers';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { PGliteDriver } from '@venizia/ignis-connectors/postgres/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
@@ -29,7 +29,7 @@ export class PGliteDataSource extends BasePostgresDataSource<
       name: PGliteDataSource.name,
       config: {
         dataDir: ParseUtility.blankToUndefined({
-          input: applicationEnvironment.get('APP_ENV_PGLITE_DATA_DIR'),
+          input: AppEnvs.get('APP_ENV_PGLITE_DATA_DIR'),
         }),
       },
     });

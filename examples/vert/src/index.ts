@@ -1,5 +1,5 @@
 import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
-import { applicationEnvironment, LoggerFactory } from '@venizia/ignis-helpers';
+import { AppEnvs, LoggerFactory } from '@venizia/ignis-helpers';
 import { WinstonLogger } from '@venizia/ignis-helpers/winston';
 import { Application, beConfigs } from './application';
 
@@ -18,8 +18,7 @@ const main = async () => {
 
   application.init();
 
-  const applicationName =
-    applicationEnvironment.get('APP_ENV_APPLICATION_NAME')?.toUpperCase() ?? '';
+  const applicationName = AppEnvs.get('APP_ENV_APPLICATION_NAME')?.toUpperCase() ?? '';
   logger
     .for('runApplication')
     .info(' Getting ready to start up %s Application...', applicationName);

@@ -7,11 +7,7 @@ import {
   type ValueOrPromise,
 } from '@venizia/ignis';
 import { WebSocketBindingKeys, WebSocketComponent } from '@venizia/ignis/websocket';
-import {
-  applicationEnvironment,
-  RedisSingleHelper,
-  type TWebSocketAuthenticateFn,
-} from '@venizia/ignis-helpers';
+import { AppEnvs, RedisSingleHelper, type TWebSocketAuthenticateFn } from '@venizia/ignis-helpers';
 import appInfo from '../package.json';
 
 export class Application extends BaseApplication {
@@ -39,16 +35,16 @@ export class Application extends BaseApplication {
     // duplicates.
     this.redisHelper = new RedisSingleHelper({
       name: 'websocket-redis',
-      host: applicationEnvironment.get('APP_ENV_REDIS_HOST') ?? 'localhost',
-      port: Number(applicationEnvironment.get('APP_ENV_REDIS_PORT') ?? 16381),
-      password: applicationEnvironment.get('APP_ENV_REDIS_PASSWORD') ?? '',
+      host: AppEnvs.get('APP_ENV_REDIS_HOST') ?? 'localhost',
+      port: Number(AppEnvs.get('APP_ENV_REDIS_PORT') ?? 16381),
+      password: AppEnvs.get('APP_ENV_REDIS_PASSWORD') ?? '',
       autoConnect: false,
     });
     this.bind({ key: WebSocketBindingKeys.REDIS_CONNECTION }).toValue(this.redisHelper);
 
     // A client sends this token in its `authenticate` message before it can join a room or
     // exchange messages - the handshake IGNIS requires regardless of transport.
-    const expectedToken = applicationEnvironment.get('APP_ENV_AUTH_TOKEN') ?? 'demo-token';
+    const expectedToken = AppEnvs.get('APP_ENV_AUTH_TOKEN') ?? 'demo-token';
 
     const authenticateFn: TWebSocketAuthenticateFn = (data) => {
       const token = typeof data.token === 'string' ? data.token : undefined;

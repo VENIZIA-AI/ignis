@@ -407,7 +407,7 @@ The codemods are `drop-redundant-casts` (removes `as X` casts the compiler no lo
 `const-classes` (turns a string-literal union into a const class), `async-style` (applies the async style
 fixers and lists the rest), `namespace-functions` (moves calls of a function that moved into a class to the
 class form), `connector-imports` (moves `@venizia/ignis/<connector sub-path>` imports to
-`@venizia/ignis-connectors`), `class-renames` (renames the classes IGNIS renamed, such as `RejectionHelper` to `RejectionUtility`, at the import and every use) and `env-get` (strips the type arguments of `applicationEnvironment.get()`
+`@venizia/ignis-connectors`), `class-renames` (renames the classes IGNIS renamed, such as `RejectionHelper` to `RejectionUtility`, at the import and every use) and `env-get` (strips the type arguments of `AppEnvs.get()`
 for the string-reading `get()`; the receiver is a name the call's scope resolves to an import of `applicationEnvironment` or `AppEnvs` from the store module, or a const initialised from one; every other `get<...>(key)` call is listed as skipped, and a call it cannot place as manual, with its file and line) and `any-aliases` (replaces the removed `AnyType` and `AnyObject` aliases by what they stood for, `any` and `Record<string | symbol | number, any>`, so no type changes, and drops them from the imports; `--strict` writes `unknown` and `Record<string, unknown>` instead; it reads imports from `@venizia/ignis`, `-helpers`, `-inversion`, and from `@venizia/ardor` and `-kernel`, which re-exported them).
 
 ## Where it sits

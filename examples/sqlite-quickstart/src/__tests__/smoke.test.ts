@@ -4,7 +4,7 @@ import { z } from '@hono/zod-openapi';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import AutoArtifacts from '@venizia/ignis-boot/auto';
 import { Application } from '../application';
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 
 const HOST = '127.0.0.1';
 
@@ -36,7 +36,7 @@ describe('sqlite-quickstart', () => {
   beforeAll(async () => {
     // libsql treats a bare `:memory:` url as a local, file-protocol client, so transactions and
     // migrations behave exactly as they would against a file - the test never touches app_data/.
-    applicationEnvironment.set('APP_ENV_SQLITE_URL', ':memory:');
+    AppEnvs.set('APP_ENV_SQLITE_URL', ':memory:');
 
     application = new Application({
       scope: 'SmokeTest',

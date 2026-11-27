@@ -14,7 +14,7 @@ Pass the options at the call site, then inject `IMailService` anywhere to send:
 
 ```typescript
 import { BaseApplication, ValueOrPromise } from '@venizia/ignis';
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 import { MailComponent, MailProviders } from '@venizia/ignis/mail';
 
 export class Application extends BaseApplication {
@@ -27,7 +27,7 @@ export class Application extends BaseApplication {
           host: 'smtp.gmail.com',
           port: 465,
           secure: true,
-          auth: { user: applicationEnvironment.get('APP_ENV_MAIL_USER'), pass: applicationEnvironment.get('APP_ENV_MAIL_PASS') },
+          auth: { user: AppEnvs.get('APP_ENV_MAIL_USER'), pass: AppEnvs.get('APP_ENV_MAIL_PASS') },
         },
       },
     });
@@ -136,7 +136,7 @@ await this.mailService.sendTemplate({
 {
   provider: MailProviders.MAILGUN,
   from: 'noreply@example.com',
-  config: { username: 'api', key: applicationEnvironment.get('MAILGUN_API_KEY'), domain: 'mg.example.com' },
+  config: { username: 'api', key: AppEnvs.get('MAILGUN_API_KEY'), domain: 'mg.example.com' },
 }
 ```
 

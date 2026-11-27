@@ -24,15 +24,15 @@ import {
   TJWTTokenServiceOptions,
   ValueOrPromise,
 } from '@venizia/ignis';
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 
 export class Application extends BaseApplication {
   preConfigure(): ValueOrPromise<void> {
     this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
       standard: JOSEStandards.JWS,
       options: {
-        jwtSecret: applicationEnvironment.getRequired('APP_ENV_JWT_SECRET'),
-        getTokenExpiresFn: () => Number(applicationEnvironment.get('APP_ENV_JWT_EXPIRES_IN') || 86400),
+        jwtSecret: AppEnvs.getRequired('APP_ENV_JWT_SECRET'),
+        getTokenExpiresFn: () => Number(AppEnvs.get('APP_ENV_JWT_EXPIRES_IN') || 86400),
         claims: { issuer: 'my-api', audience: 'my-api' },
       },
     });
@@ -79,13 +79,13 @@ const SECURE_ROUTE = {
 **Configure JWS (symmetric JWT).** One shared secret signs and verifies.
 
 ```typescript
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 
 this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
   standard: JOSEStandards.JWS,
   options: {
-    jwtSecret: applicationEnvironment.getRequired('APP_ENV_JWT_SECRET'),
-    getTokenExpiresFn: () => Number(applicationEnvironment.get('APP_ENV_JWT_EXPIRES_IN') || 86400),
+    jwtSecret: AppEnvs.getRequired('APP_ENV_JWT_SECRET'),
+    getTokenExpiresFn: () => Number(AppEnvs.get('APP_ENV_JWT_EXPIRES_IN') || 86400),
     claims: { issuer: 'my-api', audience: 'my-api' },
   },
 });
@@ -96,7 +96,7 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
 **Configure JWKS Issuer (asymmetric JWT, microservice-friendly).** Signs with a private key, serves the public key at `/certs`.
 
 ```typescript
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 
 this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
   standard: JOSEStandards.JWKS,
@@ -105,7 +105,7 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
     algorithm: 'ES256',
     keys: { driver: JWKSKeyDrivers.FILE, format: JWKSKeyFormats.PEM, private: './keys/private.pem', public: './keys/public.pem' },
     kid: 'my-key-id-1',
-    getTokenExpiresFn: () => Number(applicationEnvironment.get('APP_ENV_JWT_EXPIRES_IN') || 86400),
+    getTokenExpiresFn: () => Number(AppEnvs.get('APP_ENV_JWT_EXPIRES_IN') || 86400),
     claims: { issuer: 'https://auth.example.com', audience: 'my-api' },
   },
 });

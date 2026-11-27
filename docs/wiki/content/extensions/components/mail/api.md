@@ -286,24 +286,24 @@ See [Attachments](./usage#attachments) for how both apply.
 ```typescript
 {
   provider: MailProviders.NODEMAILER,
-  from: applicationEnvironment.get('APP_ENV_MAIL_FROM', { defaultValue: 'noreply@example.com' }),
-  fromName: applicationEnvironment.get('APP_ENV_MAIL_FROM_NAME', { defaultValue: 'Example App' }),
+  from: AppEnvs.get('APP_ENV_MAIL_FROM', { defaultValue: 'noreply@example.com' }),
+  fromName: AppEnvs.get('APP_ENV_MAIL_FROM_NAME', { defaultValue: 'Example App' }),
   config: {
-    host: applicationEnvironment.get('APP_ENV_MAIL_HOST', { defaultValue: 'smtp.gmail.com' }),
-    port: Number(applicationEnvironment.get('APP_ENV_MAIL_PORT', { defaultValue: '465' })),
-    secure: ParseUtility.toBoolean({ input: applicationEnvironment.get('APP_ENV_MAIL_SECURE', { defaultValue: 'true' }) }),
+    host: AppEnvs.get('APP_ENV_MAIL_HOST', { defaultValue: 'smtp.gmail.com' }),
+    port: Number(AppEnvs.get('APP_ENV_MAIL_PORT', { defaultValue: '465' })),
+    secure: ParseUtility.toBoolean({ input: AppEnvs.get('APP_ENV_MAIL_SECURE', { defaultValue: 'true' }) }),
     auth: {
       type: 'oauth2',
-      user: applicationEnvironment.get('APP_ENV_MAIL_USER'),
-      clientId: applicationEnvironment.get('APP_ENV_MAIL_CLIENT_ID'),
-      clientSecret: applicationEnvironment.get('APP_ENV_MAIL_CLIENT_SECRET'),
-      refreshToken: applicationEnvironment.get('APP_ENV_MAIL_REFRESH_TOKEN'),
+      user: AppEnvs.get('APP_ENV_MAIL_USER'),
+      clientId: AppEnvs.get('APP_ENV_MAIL_CLIENT_ID'),
+      clientSecret: AppEnvs.get('APP_ENV_MAIL_CLIENT_SECRET'),
+      refreshToken: AppEnvs.get('APP_ENV_MAIL_REFRESH_TOKEN'),
     },
   },
 }
 ```
 
-`APP_ENV_MAIL_*` is an app-level convention, not a framework-defined env var. `applicationEnvironment.get()` reads whatever variables your wrapper component chooses to look up. A matching `.env`:
+`APP_ENV_MAIL_*` is an app-level convention, not a framework-defined env var. `AppEnvs.get()` reads whatever variables your wrapper component chooses to look up. A matching `.env`:
 
 ```
 APP_ENV_MAIL_HOST=smtp.gmail.com
@@ -327,7 +327,7 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
   fromName: 'Example App',
   config: {
     username: 'api',                        // required -- mailgun.js client username
-    key: applicationEnvironment.get('MAILGUN_API_KEY'),        // required -- Mailgun API key
+    key: AppEnvs.get('MAILGUN_API_KEY'),        // required -- Mailgun API key
     domain: 'mg.example.com',                // required
     host: 'api.eu.mailgun.net',              // optional -- EU region
   },
@@ -347,8 +347,8 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
   config: {
     region: 'ap-southeast-1',                 // required
     credentials: {                            // optional -- omit to use the ambient AWS credential chain
-      accessKeyId: applicationEnvironment.get('AWS_ACCESS_KEY_ID'),
-      secretAccessKey: applicationEnvironment.get('AWS_SECRET_ACCESS_KEY'),
+      accessKeyId: AppEnvs.get('AWS_ACCESS_KEY_ID'),
+      secretAccessKey: AppEnvs.get('AWS_SECRET_ACCESS_KEY'),
     },
     endpoint: 'https://email.ap-southeast-1.amazonaws.com', // optional
   },
@@ -374,7 +374,7 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
 {
   provider: 'sendgrid',
   from: 'noreply@example.com',
-  config: { apiKey: applicationEnvironment.get('SENDGRID_API_KEY') },
+  config: { apiKey: AppEnvs.get('SENDGRID_API_KEY') },
 }
 ```
 

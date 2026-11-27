@@ -62,7 +62,7 @@ node builtins - `node:fs`, `node:net`, `node:tls`, `node:worker_threads` among t
 bundles both entry points for a browser target and fails if that ever changes.
 
 `/core` is hand-curated one symbol at a time, never `export *` from a module barrel. `./modules/env`
-carries `applicationEnvironment`, which reads `process.env`, so only `EnvironmentNames` crosses over.
+carries `AppEnvs`, which reads `process.env`, so only `EnvironmentNames` crosses over.
 `UrlPolicy` crosses, its `UrlGuard` sibling does not, because `UrlGuard` reaches `node:dns`.
 
 ```typescript

@@ -6,21 +6,21 @@ difficulty: beginner
 
 # Environment
 
-`applicationEnvironment` is a singleton that filters `process.env` down to your app's prefix and reads it as strings. `Environment` reads the current deployment stage from `NODE_ENV`.
+`AppEnvs` is a singleton that filters `process.env` down to your app's prefix and reads it as strings. `Environment` reads the current deployment stage from `NODE_ENV`.
 
 ## In one example
 
 ```typescript
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 
-const jwtSecret = applicationEnvironment.get('APP_ENV_JWT_SECRET');
-const timeout = applicationEnvironment.get('APP_ENV_TIMEOUT', {
+const jwtSecret = AppEnvs.get('APP_ENV_JWT_SECRET');
+const timeout = AppEnvs.get('APP_ENV_TIMEOUT', {
   transform: (raw) => (raw === undefined ? undefined : Number(raw)),
   defaultValue: 5000,
 });
 ```
 
-The singleton is created once at module load. It reads only keys that start with `APP_ENV` (the default prefix) from `process.env`. `AppEnvs` is an exported alias for the same instance.
+The singleton is created once at module load. It reads only keys that start with `APP_ENV` (the default prefix) from `process.env`. `applicationEnvironment` is the same instance under an older name: use `AppEnvs`.
 
 ## How it works
 
@@ -64,7 +64,7 @@ All ten stages are in `Environment.COMMON_ENVS`, which the Logger uses to decide
 `defaultValue` goes inside the options object, not as a second positional argument.
 
 ```typescript
-const port = applicationEnvironment.get('APP_ENV_SERVER_PORT', { defaultValue: '3000' });
+const port = AppEnvs.get('APP_ENV_SERVER_PORT', { defaultValue: '3000' });
 ```
 
 ### Read a required variable
@@ -72,17 +72,17 @@ const port = applicationEnvironment.get('APP_ENV_SERVER_PORT', { defaultValue: '
 `get()` answers `string | undefined`, so a variable the app cannot start without is read with `getRequired()`. It answers the string, or throws an error naming the key (`<key> is not set`) when the variable is unset, empty or whitespace-only (the blank rule `get()` applies to a `defaultValue`).
 
 ```typescript
-const jwtSecret = applicationEnvironment.getRequired('APP_ENV_JWT_SECRET');
+const jwtSecret = AppEnvs.getRequired('APP_ENV_JWT_SECRET');
 ```
 
 Pass a `transform` to convert it. The blank check runs first, so `transform` receives a `string`, and a `transform` that answers `null` or `undefined` throws `<key> is not valid`. A required value has no `defaultValue`.
 
 ```typescript
-const port = applicationEnvironment.getRequired('APP_ENV_PORT', {
+const port = AppEnvs.getRequired('APP_ENV_PORT', {
   // Number('abc') is NaN, which is not nullish: answer undefined to refuse it
   transform: (raw) => (Number.isNaN(Number(raw)) ? undefined : Number(raw)),
 });
-const mode = applicationEnvironment.getRequired('APP_ENV_MODE', {
+const mode = AppEnvs.getRequired('APP_ENV_MODE', {
   transform: (raw) => (raw === 'a' || raw === 'b' ? raw : undefined),
 });
 ```
@@ -92,7 +92,7 @@ const mode = applicationEnvironment.getRequired('APP_ENV_MODE', {
 Pass `transform` to parse instead of casting.
 
 ```typescript
-const timeout = applicationEnvironment.get('APP_ENV_TIMEOUT', {
+const timeout = AppEnvs.get('APP_ENV_TIMEOUT', {
   transform: (raw) => (raw === undefined ? undefined : Number(raw)),
   defaultValue: 5000,
 });
@@ -103,8 +103,8 @@ const timeout = applicationEnvironment.get('APP_ENV_TIMEOUT', {
 `set()` writes a single key. `merge()` overwrites several keys at once. Both bypass the prefix filter - they write directly, with no `startsWith` check.
 
 ```typescript
-applicationEnvironment.set('APP_ENV_FEATURE_FLAG', 'enabled');
-applicationEnvironment.merge({ envs: { APP_ENV_REGION: 'ap-southeast-1' } });
+AppEnvs.set('APP_ENV_FEATURE_FLAG', 'enabled');
+AppEnvs.merge({ envs: { APP_ENV_REGION: 'ap-southeast-1' } });
 ```
 
 ### Branch on the deployment stage
@@ -129,7 +129,7 @@ MY_APP_ENV_SERVER_HOST=0.0.0.0
 ### List every filtered key
 
 ```typescript
-const allKeys = applicationEnvironment.keys();
+const allKeys = AppEnvs.keys();
 // e.g. ['APP_ENV_SERVER_HOST', 'APP_ENV_SERVER_PORT', 'APP_ENV_JWT_SECRET']
 ```
 
@@ -145,5 +145,5 @@ const allKeys = applicationEnvironment.keys();
 
 **Files:**
 
-- [`packages/helpers/src/modules/env/app-env.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/env/app-env.ts) - `Environment`, `ApplicationEnvironment`, the `applicationEnvironment` singleton
+- [`packages/helpers/src/modules/env/app-env.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/env/app-env.ts) - `Environment`, `ApplicationEnvironment`, the `AppEnvs` singleton
 - [`packages/helpers/src/modules/env/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/env/common/types.ts) - `IApplicationEnvironment` interface

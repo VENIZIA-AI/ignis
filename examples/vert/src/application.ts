@@ -21,7 +21,7 @@ import {
 } from '@venizia/ignis';
 import { StaticAssetComponent } from '@venizia/ignis/static-asset';
 import {
-  applicationEnvironment,
+  AppEnvs,
   ParseUtility,
   Environment,
   getError,
@@ -37,14 +37,12 @@ import { Organization, Permission, PolicyDefinition, Role } from './models/entit
 import { RepositoryTestService } from './services/repository-test.service';
 
 export const beConfigs: IApplicationConfigs = {
-  host: applicationEnvironment.get('APP_ENV_SERVER_HOST'),
+  host: AppEnvs.get('APP_ENV_SERVER_HOST'),
   port: ParseUtility.toInt({
-    input:
-      ParseUtility.blankToUndefined({ input: applicationEnvironment.get('APP_ENV_SERVER_PORT') }) ??
-      '3000',
+    input: ParseUtility.blankToUndefined({ input: AppEnvs.get('APP_ENV_SERVER_PORT') }) ?? '3000',
   }),
   path: {
-    base: applicationEnvironment.get('APP_ENV_SERVER_BASE_PATH') ?? '/v1/api',
+    base: AppEnvs.get('APP_ENV_SERVER_BASE_PATH') ?? '/v1/api',
     isStrict: true,
   },
   error: { rootKey: 'error' },
@@ -111,7 +109,7 @@ export class Application extends BaseApplication {
 
   /** The suites write, delete and lock rows, so they run only on request and never in production. */
   private async runRepositoryTests(): Promise<void> {
-    const isRequested = applicationEnvironment.get(EnvironmentKeys.APP_ENV_RUN_REPOSITORY_TESTS);
+    const isRequested = AppEnvs.get(EnvironmentKeys.APP_ENV_RUN_REPOSITORY_TESTS);
 
     if (isRequested !== 'true') {
       return;
@@ -156,11 +154,11 @@ export class Application extends BaseApplication {
 
     const redis = new RedisSingleHelper({
       name: 'authorization-cache',
-      host: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_HOST),
-      port: applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PORT),
-      password: applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PASSWORD),
+      host: AppEnvs.getRequired(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_HOST),
+      port: AppEnvs.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PORT),
+      password: AppEnvs.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PASSWORD),
       database: ParseUtility.toInt({
-        input: applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_DB, {
+        input: AppEnvs.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_DB, {
           defaultValue: '8',
         }),
       }),

@@ -11,28 +11,25 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import Redis from 'ioredis';
 import path from 'node:path';
 import { Pool } from 'pg';
-import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
+import { AppEnvs, ParseUtility } from '@venizia/ignis-helpers';
 import { UuidV7Generator } from '@venizia/ignis-helpers/uuid';
 
 const pool = new Pool({
-  host:
-    ParseUtility.blankToUndefined({ input: applicationEnvironment.get('APP_ENV_POSTGRES_HOST') }) ??
-    '0.0.0.0',
+  host: ParseUtility.blankToUndefined({ input: AppEnvs.get('APP_ENV_POSTGRES_HOST') }) ?? '0.0.0.0',
   port: parseInt(
-    ParseUtility.blankToUndefined({ input: applicationEnvironment.get('APP_ENV_POSTGRES_PORT') }) ??
-      '5432',
+    ParseUtility.blankToUndefined({ input: AppEnvs.get('APP_ENV_POSTGRES_PORT') }) ?? '5432',
   ),
   database:
     ParseUtility.blankToUndefined({
-      input: applicationEnvironment.get('APP_ENV_POSTGRES_DATABASE'),
+      input: AppEnvs.get('APP_ENV_POSTGRES_DATABASE'),
     }) ?? 'db',
   user:
     ParseUtility.blankToUndefined({
-      input: applicationEnvironment.get('APP_ENV_POSTGRES_USERNAME'),
+      input: AppEnvs.get('APP_ENV_POSTGRES_USERNAME'),
     }) ?? 'postgres',
   password:
     ParseUtility.blankToUndefined({
-      input: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD'),
+      input: AppEnvs.get('APP_ENV_POSTGRES_PASSWORD'),
     }) ?? 'password',
 });
 
@@ -132,20 +129,20 @@ const seed = async () => {
   try {
     const redisDb = parseInt(
       ParseUtility.blankToUndefined({
-        input: applicationEnvironment.get('APP_ENV_AUTHORZ_REDIS_DB'),
+        input: AppEnvs.get('APP_ENV_AUTHORZ_REDIS_DB'),
       }) ?? '8',
     );
     const redis = new Redis({
       host:
         ParseUtility.blankToUndefined({
-          input: applicationEnvironment.get('APP_ENV_AUTHORZ_REDIS_HOST'),
+          input: AppEnvs.get('APP_ENV_AUTHORZ_REDIS_HOST'),
         }) ?? '0.0.0.0',
       port: parseInt(
         ParseUtility.blankToUndefined({
-          input: applicationEnvironment.get('APP_ENV_AUTHORZ_REDIS_PORT'),
+          input: AppEnvs.get('APP_ENV_AUTHORZ_REDIS_PORT'),
         }) ?? '6379',
       ),
-      password: applicationEnvironment.get('APP_ENV_AUTHORZ_REDIS_PASSWORD') || undefined,
+      password: AppEnvs.get('APP_ENV_AUTHORZ_REDIS_PASSWORD') || undefined,
       db: redisDb,
       maxRetriesPerRequest: 1,
       connectTimeout: 3000,

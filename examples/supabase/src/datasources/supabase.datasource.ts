@@ -7,7 +7,7 @@ import {
   PoolerModes,
   type TPoolerMode,
 } from '@venizia/ignis-connectors/postgres/supabase';
-import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
+import { AppEnvs, ParseUtility } from '@venizia/ignis-helpers';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
@@ -35,20 +35,14 @@ export class SupabaseDataSource extends BasePostgresDataSource<
     super({
       name: SupabaseDataSource.name,
       config: {
-        url: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_SUPABASE_DATABASE_URL),
-        mode: applicationEnvironment.get<TPoolerMode>(
-          EnvironmentKeys.APP_ENV_SUPABASE_POOLER_MODE,
-          {
-            transform: (raw) =>
-              raw !== undefined && PoolerModes.isValid(raw) ? raw : PoolerModes.DIRECT,
-          },
-        ),
-        max: applicationEnvironment.get<number | undefined>(
-          EnvironmentKeys.APP_ENV_SUPABASE_POOL_MAX,
-          {
-            transform: (value) => (value ? ParseUtility.toInt({ input: value }) : undefined),
-          },
-        ),
+        url: AppEnvs.getRequired(EnvironmentKeys.APP_ENV_SUPABASE_DATABASE_URL),
+        mode: AppEnvs.get<TPoolerMode>(EnvironmentKeys.APP_ENV_SUPABASE_POOLER_MODE, {
+          transform: (raw) =>
+            raw !== undefined && PoolerModes.isValid(raw) ? raw : PoolerModes.DIRECT,
+        }),
+        max: AppEnvs.get<number | undefined>(EnvironmentKeys.APP_ENV_SUPABASE_POOL_MAX, {
+          transform: (value) => (value ? ParseUtility.toInt({ input: value }) : undefined),
+        }),
       },
       // NO schema property - auto-discovered from @repository bindings.
     });

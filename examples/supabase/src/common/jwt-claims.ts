@@ -1,6 +1,6 @@
 import { EnvironmentKeys } from '@/common/environments';
 import type { IJWTClaimsOptions } from '@venizia/ignis';
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 
 /**
  * The `iss` and `aud` this app requires of a token and stamps on the test tokens it mints. Supabase Auth
@@ -8,8 +8,8 @@ import { applicationEnvironment } from '@venizia/ignis-helpers';
  * `.env.example` carries the local Supabase CLI's.
  */
 export const getJwtClaims = (): IJWTClaimsOptions => ({
-  issuer: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_JWT_ISSUER),
-  audience: applicationEnvironment.get(EnvironmentKeys.APP_ENV_JWT_AUDIENCE, {
+  issuer: AppEnvs.getRequired(EnvironmentKeys.APP_ENV_JWT_ISSUER),
+  audience: AppEnvs.get(EnvironmentKeys.APP_ENV_JWT_AUDIENCE, {
     defaultValue: 'authenticated',
   }),
 });

@@ -5,7 +5,7 @@
 // `describe.skipIf` without a top-level await (this package stays CommonJS, like every other
 // example).
 import AutoArtifacts from '@venizia/ignis-boot/auto';
-import { applicationEnvironment, LoggerFactory } from '@venizia/ignis-helpers';
+import { AppEnvs, LoggerFactory } from '@venizia/ignis-helpers';
 import { UuidV4Generator } from '@venizia/ignis-helpers/uuid';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import postgres from 'postgres';
@@ -67,11 +67,11 @@ describe('supabase-example', async () => {
       });
 
     beforeAll(async () => {
-      // `applicationEnvironment` snapshots `process.env` once at import time (it is a singleton
+      // `AppEnvs` snapshots `process.env` once at import time (it is a singleton
       // shared across every copy of the module), so datasources that read through it - this one does
       // - never see a later `process.env.X = ...` assignment. `.merge()` is the sanctioned way to
       // update it after the fact.
-      applicationEnvironment.merge({
+      AppEnvs.merge({
         envs: {
           APP_ENV_SUPABASE_DATABASE_URL: DATABASE_URL,
           APP_ENV_SUPABASE_POOLER_MODE: 'direct',

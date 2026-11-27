@@ -388,14 +388,14 @@ server.use('/api/*', rateLimiter({ windowMs: 60 * 1000, max: 100 }));
 **Production Recommendation:** Use Redis-backed rate limiting for distributed deployments:
 
 ```typescript
-import { applicationEnvironment, RedisSingleHelper } from '@venizia/ignis-helpers';
+import { AppEnvs, RedisSingleHelper } from '@venizia/ignis-helpers';
 
 // Rate limiter with Redis for multi-instance deployments
 const redisHelper = new RedisSingleHelper({
   name: 'rate-limiter',
-  host: applicationEnvironment.get('APP_ENV_REDIS_HOST') ?? 'localhost',
-  port: applicationEnvironment.get('APP_ENV_REDIS_PORT') ?? '6379',
-  password: applicationEnvironment.get('APP_ENV_REDIS_PASSWORD') ?? '',
+  host: AppEnvs.get('APP_ENV_REDIS_HOST') ?? 'localhost',
+  port: AppEnvs.get('APP_ENV_REDIS_PORT') ?? '6379',
+  password: AppEnvs.get('APP_ENV_REDIS_PASSWORD', { defaultValue: '' }),
 });
 
 const distributedRateLimiter = async (opts: { key: string; max: number; windowSeconds: number }) => {

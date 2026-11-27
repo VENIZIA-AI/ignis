@@ -16,7 +16,7 @@ import {
 } from '@venizia/ignis';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 
 interface IDataSourceConfigs {
   host: string;
@@ -32,11 +32,11 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     super({
       name: PostgresDataSource.name,
       config: {
-        host: applicationEnvironment.get('APP_ENV_POSTGRES_HOST') ?? 'localhost',
-        port: +(applicationEnvironment.get('APP_ENV_POSTGRES_PORT') ?? 5432),
-        database: applicationEnvironment.get('APP_ENV_POSTGRES_DATABASE') ?? 'mydb',
-        user: applicationEnvironment.get('APP_ENV_POSTGRES_USERNAME') ?? 'postgres',
-        password: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD') ?? '',
+        host: AppEnvs.get('APP_ENV_POSTGRES_HOST') ?? 'localhost',
+        port: +(AppEnvs.get('APP_ENV_POSTGRES_PORT') ?? 5432),
+        database: AppEnvs.get('APP_ENV_POSTGRES_DATABASE') ?? 'mydb',
+        user: AppEnvs.get('APP_ENV_POSTGRES_USERNAME') ?? 'postgres',
+        password: AppEnvs.get('APP_ENV_POSTGRES_PASSWORD', { defaultValue: '' }),
       },
       // No schema needed - auto-discovered from @repository bindings!
     });
@@ -211,7 +211,7 @@ See [Registering artifacts](../application/bootstrapping). DataSources are bound
 import { BasePostgresDataSource, datasource, ValueOrPromise } from '@venizia/ignis';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { AppEnvs } from '@venizia/ignis-helpers';
 
 interface IDataSourceConfigs {
   host: string;
@@ -227,11 +227,11 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     super({
       name: PostgresDataSource.name,
       config: {
-        host: applicationEnvironment.get('APP_ENV_POSTGRES_HOST') ?? 'localhost',
-        port: +(applicationEnvironment.get('APP_ENV_POSTGRES_PORT') ?? 5432),
-        database: applicationEnvironment.get('APP_ENV_POSTGRES_DATABASE') ?? 'mydb',
-        user: applicationEnvironment.get('APP_ENV_POSTGRES_USERNAME') ?? 'postgres',
-        password: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD') ?? '',
+        host: AppEnvs.get('APP_ENV_POSTGRES_HOST') ?? 'localhost',
+        port: +(AppEnvs.get('APP_ENV_POSTGRES_PORT') ?? 5432),
+        database: AppEnvs.get('APP_ENV_POSTGRES_DATABASE') ?? 'mydb',
+        user: AppEnvs.get('APP_ENV_POSTGRES_USERNAME') ?? 'postgres',
+        password: AppEnvs.get('APP_ENV_POSTGRES_PASSWORD', { defaultValue: '' }),
       },
     });
   }
