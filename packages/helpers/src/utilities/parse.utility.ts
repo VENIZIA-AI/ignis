@@ -358,7 +358,7 @@ export class ParseUtility {
   }
 
   /** Traverse a dotted property path on an object. */
-  static getDeepProperty<T, V>(opts: { source: T; path: string }): V {
+  static getDeepProperty(opts: { source: unknown; path: string }): unknown {
     const keys = opts.path.split('.');
     let result: unknown = opts.source;
 
@@ -370,6 +370,6 @@ export class ParseUtility {
       result = Reflect.get(Object(result), key);
     }
 
-    return result as V;
+    return result;
   }
 }

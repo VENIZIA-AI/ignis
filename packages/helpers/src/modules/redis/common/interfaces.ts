@@ -29,7 +29,8 @@ export interface IRedisKeyValue {
     value: T;
     options?: { log?: boolean; expiresIn?: number };
   }): Promise<void>;
-  get<T = string>(opts: { key: string; transform?: (input: string) => T }): Promise<T | null>;
+  get<T>(opts: { key: string; transform: (input: string) => T }): Promise<T | null>;
+  get(opts: { key: string; transform?: undefined }): Promise<string | null>;
 
   del(opts: { keys: Array<string> }): Promise<number>;
 
@@ -38,18 +39,17 @@ export interface IRedisKeyValue {
   getString(opts: { key: string }): Promise<string | null>;
   getStrings(opts: { keys: Array<string> }): Promise<(string | null)[]>;
 
-  getObject<T>(opts: { key: string }): Promise<T | null>;
-  getObjects(opts: { keys: Array<string> }): Promise<(unknown | null)[]>;
+  /** The parsed JSON value, or `null`. Check it before you use it. */
+  getObject(opts: { key: string }): Promise<unknown>;
+  getObjects(opts: { keys: Array<string> }): Promise<unknown[]>;
 
   mSet<T>(opts: {
     payload: Array<{ key: string; value: T }>;
     options?: { log?: boolean };
   }): Promise<void>;
 
-  mGet<T = string>(opts: {
-    keys: Array<string>;
-    transform?: (input: string) => T;
-  }): Promise<(T | null)[]>;
+  mGet<T>(opts: { keys: Array<string>; transform: (input: string) => T }): Promise<(T | null)[]>;
+  mGet(opts: { keys: Array<string>; transform?: undefined }): Promise<(string | null)[]>;
 }
 
 /** Hash commands (`HSET`, `HGET`, ...) on one key. */
@@ -98,25 +98,36 @@ export interface IRedisPubSub {
 /** RedisJSON commands (`JSON.SET`, `JSON.GET`, ...); the Redis server needs the JSON module. */
 export interface IRedisJson {
   jSet<T>(opts: { key: string; path: string; value: T }): Promise<string | null>;
-  jGet<T>(opts: {
+  /** The JSON text Redis answers, or `null`. */
+  jGet(opts: {
     key: string;
     /** @default '$' */
     path?: string;
-  }): Promise<T | null>;
+  }): Promise<string | null>;
   jDelete(opts: {
     key: string;
     /** @default '$' */
     path?: string;
   }): Promise<number>;
   jNumberIncreaseBy(opts: { key: string; path: string; value: number }): Promise<string | null>;
-  jStringAppend(opts: { key: string; path: string; value: string }): Promise<number[] | null>;
-  jPush<T>(opts: { key: string; path: string; value: T }): Promise<number[] | null>;
-  jPop<T>(opts: { key: string; path: string }): Promise<T | null>;
+  /** A `$` path answers one length per match (`null` where the match has another type); a legacy path one length. */
+  jStringAppend(opts: {
+    key: string;
+    path: string;
+    value: string;
+  }): Promise<Array<number | null> | number | null>;
+  /** A `$` path answers one length per match (`null` where the match has another type); a legacy path one length. */
+  jPush<T>(opts: {
+    key: string;
+    path: string;
+    value: T;
+  }): Promise<Array<number | null> | number | null>;
+  jPop(opts: { key: string; path: string }): Promise<unknown>;
 }
 
 /** Escape hatch to run any Redis command by name. */
 export interface IRedisCommand {
-  execute<R>(command: string, parameters?: Array<string | number | Buffer>): Promise<R>;
+  execute(command: string, parameters?: Array<string | number | Buffer>): Promise<unknown>;
 }
 
 /** Full surface of a Redis helper, composed from the command-group interfaces; `name` is the identifier it was created with. */

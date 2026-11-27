@@ -769,10 +769,10 @@ Source: `packages/helpers/src/modules/storage/common/types.ts`
 Selects a secret: the `path` of a bundle and optionally one `key` in it. `defaultValue` is returned when the key is absent.
 
 ```ts
-export interface IGetSecretOptions<TValue = string> {
+export interface IGetSecretOptions {
     path: string;
     key?: string;
-    defaultValue?: TValue;
+    defaultValue?: unknown;
 }
 ```
 
@@ -1134,7 +1134,7 @@ Escape hatch to run any Redis command by name.
 
 ```ts
 export interface IRedisCommand {
-    execute<R>(command: string, parameters?: Array<string | number | Buffer>): Promise<R>;
+    execute(command: string, parameters?: Array<string | number | Buffer>): Promise<unknown>;
 }
 ```
 
@@ -1268,11 +1268,12 @@ export interface IRedisJson {
         path: string;
         value: T;
     }): Promise<string | null>;
-    jGet<T>(opts: {
+    /** The JSON text Redis answers, or `null`. */
+    jGet(opts: {
         key: string;
         /** @default '$' */
         path?: string;
-    }): Promise<T | null>;
+    }): Promise<string | null>;
     jDelete(opts: {
         key: string;
         /** @default '$' */
@@ -1283,20 +1284,22 @@ export interface IRedisJson {
         path: string;
         value: number;
     }): Promise<string | null>;
+    /** A `$` path answers one length per match (`null` where the match has another type); a legacy path one length. */
     jStringAppend(opts: {
         key: string;
         path: string;
         value: string;
-    }): Promise<number[] | null>;
+    }): Promise<Array<number | null> | number | null>;
+    /** A `$` path answers one length per match (`null` where the match has another type); a legacy path one length. */
     jPush<T>(opts: {
         key: string;
         path: string;
         value: T;
-    }): Promise<number[] | null>;
-    jPop<T>(opts: {
+    }): Promise<Array<number | null> | number | null>;
+    jPop(opts: {
         key: string;
         path: string;
-    }): Promise<T | null>;
+    }): Promise<unknown>;
 }
 ```
 
@@ -1362,10 +1365,14 @@ export interface IRedisKeyValue {
             expiresIn?: number;
         };
     }): Promise<void>;
-    get<T = string>(opts: {
+    get<T>(opts: {
         key: string;
-        transform?: (input: string) => T;
+        transform: (input: string) => T;
     }): Promise<T | null>;
+    get(opts: {
+        key: string;
+        transform?: undefined;
+    }): Promise<string | null>;
     del(opts: {
         keys: Array<string>;
     }): Promise<number>;
@@ -1378,12 +1385,13 @@ export interface IRedisKeyValue {
     getStrings(opts: {
         keys: Array<string>;
     }): Promise<(string | null)[]>;
-    getObject<T>(opts: {
+    /** The parsed JSON value, or `null`. Check it before you use it. */
+    getObject(opts: {
         key: string;
-    }): Promise<T | null>;
+    }): Promise<unknown>;
     getObjects(opts: {
         keys: Array<string>;
-    }): Promise<(unknown | null)[]>;
+    }): Promise<unknown[]>;
     mSet<T>(opts: {
         payload: Array<{
             key: string;
@@ -1393,10 +1401,14 @@ export interface IRedisKeyValue {
             log?: boolean;
         };
     }): Promise<void>;
-    mGet<T = string>(opts: {
+    mGet<T>(opts: {
         keys: Array<string>;
-        transform?: (input: string) => T;
+        transform: (input: string) => T;
     }): Promise<(T | null)[]>;
+    mGet(opts: {
+        keys: Array<string>;
+        transform?: undefined;
+    }): Promise<(string | null)[]>;
 }
 ```
 
@@ -1492,16 +1504,3 @@ export interface IRedisPubSub {
 ```
 
 Source: `packages/helpers/src/modules/redis/common/interfaces.ts`
-
-## `IRedisSentinelHelperOptions`
-
-*interface*
-
-Options for `RedisSentinelHelper`: connection props, lifecycle callbacks and an optional `ioredis` module.
-
-```ts
-export interface IRedisSentinelHelperOptions extends IRedisSentinelHelperProps, IRedisHelperCallbacks, IRedisModuleOption {
-}
-```
-
-Source: `packages/helpers/src/modules/redis/sentinel/types.ts`

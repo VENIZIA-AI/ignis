@@ -9,6 +9,19 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 Part 3 of 4 of [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers).
 
+## `IRedisSentinelHelperOptions`
+
+*interface*
+
+Options for `RedisSentinelHelper`: connection props, lifecycle callbacks and an optional `ioredis` module.
+
+```ts
+export interface IRedisSentinelHelperOptions extends IRedisSentinelHelperProps, IRedisHelperCallbacks, IRedisModuleOption {
+}
+```
+
+Source: `packages/helpers/src/modules/redis/sentinel/types.ts`
+
 ## `IRedisSentinelHelperProps`
 
 *interface*
@@ -228,7 +241,25 @@ Contract of a secrets provider: cached reads, dynamic leases with rotation handl
 
 ```ts
 export interface ISecretsHelper extends IConfigurable {
-    get<TValue = string>(opts: IGetSecretOptions<TValue>): Promise<TValue>;
+    /** The string under `key`, or `undefined`. */
+    get(opts: {
+        path: string;
+        key: string;
+        defaultValue?: undefined;
+    }): Promise<string | undefined>;
+    /** The string under `key`, or `defaultValue`. */
+    get<TDefault>(opts: {
+        path: string;
+        key: string;
+        defaultValue: TDefault;
+    }): Promise<string | TDefault>;
+    /** The whole bundle at `path`. */
+    get(opts: {
+        path: string;
+        key?: undefined;
+    }): Promise<Record<string, string>>;
+    /** Where the key may or may not be given: check what you read. */
+    get(opts: IGetSecretOptions): Promise<unknown>;
     getBundle(opts: {
         path: string;
     }): Promise<Record<string, string>>;
@@ -1417,32 +1448,6 @@ Ceiling on a caller-sized fan-out over one connection; a burst larger than this 
 ```ts
 export declare class RedisConcurrency {
     static readonly PUBLISH_LIMIT = 32;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/common/constants.ts`
-
-## `RedisDefaults`
-
-*class*
-
-Reconnect defaults of a Redis helper.
-
-```ts
-export declare class RedisDefaults {
-    /** The port of a data node when none is given. */
-    static readonly PORT = 6379;
-    /** Reconnect attempts before the helper gives up: `0` never reconnects, `RETRY_FOREVER` never stops. */
-    static readonly MAX_RETRY = 5;
-    static readonly RETRY_FOREVER = -1;
-    /** The wait before reconnect attempt N, computed by `RetryUtility.computeBackoffDelayMs`. */
-    static readonly RECONNECT_BACKOFF: {
-        strategy: "exponential";
-        initialDelayMs: number;
-        multiplier: number;
-        maxDelayMs: number;
-        jitter: "equal";
-    };
 }
 ```
 

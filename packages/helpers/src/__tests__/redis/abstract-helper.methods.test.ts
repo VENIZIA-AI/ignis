@@ -435,7 +435,7 @@ describe('get transform and getObject', () => {
   it('getObject JSON-parses the stored value', async () => {
     const { helper, mockClient } = buildHelper();
     mockClient.get = mock(() => Promise.resolve('{"a":1}'));
-    const result = await helper.getObject<{ a: number }>({ key: 'k' });
+    const result = await helper.getObject({ key: 'k' });
     expect(result).toEqual({ a: 1 });
   });
 

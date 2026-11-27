@@ -434,6 +434,7 @@ export class BullMQHelper<
             this.identifier,
           );
 
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a worker with no `onWorkerData` answers nothing, whatever result type the queue declares
         return undefined as TQueueResult;
       },
     });
