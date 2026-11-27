@@ -1,5 +1,6 @@
 import { type ValueOrPromise } from '@/common/types';
 import { type TNullable } from '@venizia/ignis-inversion';
+import type { z } from 'zod';
 import { type IWebSocketClient } from './client';
 import { type IWebSocketMessage } from './message';
 
@@ -10,6 +11,39 @@ export type TWebSocketAuthenticateFn<
 > = (
   opts: AuthDataType,
 ) => ValueOrPromise<{ userId?: string; metadata?: MetadataType } | null | false>;
+
+/** Authentication checked by a schema: the server refuses what `schema` refuses, and the hooks receive what it answers. */
+export interface IWebSocketSchemaAuthOptions<
+  AuthDataType extends Record<string, unknown>,
+  MetadataType extends Record<string, unknown> = Record<string, unknown>,
+> {
+  authenticate: {
+    schema: z.ZodType<AuthDataType>;
+    fn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
+  };
+  /** Required when `requireEncryption` is true. */
+  handshake?: { fn: TWebSocketHandshakeFn<AuthDataType> };
+}
+
+/** Authentication without a schema: the hooks receive the object the client sent. */
+export interface IWebSocketRecordAuthOptions<
+  MetadataType extends Record<string, unknown> = Record<string, unknown>,
+> {
+  authenticate: {
+    schema?: undefined;
+    fn: TWebSocketAuthenticateFn<Record<string, unknown>, MetadataType>;
+  };
+  /** Required when `requireEncryption` is true. */
+  handshake?: { fn: TWebSocketHandshakeFn };
+}
+
+/** How a client authenticates. The server refuses authentication data that is not an object, with or without a schema. */
+export type TWebSocketAuthOptions<
+  AuthDataType extends Record<string, unknown> = Record<string, unknown>,
+  MetadataType extends Record<string, unknown> = Record<string, unknown>,
+> =
+  | IWebSocketSchemaAuthOptions<AuthDataType, MetadataType>
+  | IWebSocketRecordAuthOptions<MetadataType>;
 
 /** Produces the server public key and salt for an encrypted session during authentication. Resolves `null` or `false` to refuse the handshake. */
 export type TWebSocketHandshakeFn<

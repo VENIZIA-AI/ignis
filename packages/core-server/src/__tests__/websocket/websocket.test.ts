@@ -79,6 +79,6 @@ describe('WebSocketBindingKeys', () => {
     const keys = Object.getOwnPropertyNames(WebSocketBindingKeys).filter(
       (k) => !['length', 'prototype', 'name'].includes(k),
     );
-    expect(keys).toHaveLength(10);
+    expect(keys).toHaveLength(11);
   });
 });

@@ -47,7 +47,7 @@ import {
 } from '@venizia/ignis-helpers';
 
 import type {
-  IWebSocketServerOptions,
+  TWebSocketServerOptions,
   IWebSocketEmitterOptions,
   IWebSocketClient,
   IWebSocketMessage,
@@ -65,7 +65,7 @@ import type {
 
 ## Configuration
 
-`WebSocketComponent`'s own `IServerOptions` interface is a **subset** of the helper's `IWebSocketServerOptions`. Before constructing the helper, the component fills in `server` and `redisConnection` from the running application, plus every callback function resolved from the DI container. It does not forward `authTimeout` or `encryptedBatchLimit` - see the note below.
+`WebSocketComponent`'s own `IServerOptions` interface is a **subset** of the helper's `TWebSocketServerOptions`. Before constructing the helper, the component fills in `server` and `redisConnection` from the running application, plus every callback function resolved from the DI container. It does not forward `authTimeout` or `encryptedBatchLimit` - see the note below.
 
 ```typescript
 interface IServerOptions {
@@ -83,7 +83,7 @@ interface IServerOptions {
 > `DEFAULT_SERVER_OPTIONS` in the core component only sets `identifier` and `path`. `defaultRooms`, `heartbeatInterval`, `heartbeatTimeout`, and `serverOptions` fall back to `WebSocketDefaults` inside the helper constructor, not the component.
 
 > [!NOTE]
-> `authTimeout` and `encryptedBatchLimit` belong to the helper's `IWebSocketServerOptions`, not the component's `IServerOptions`. There is no binding key for them - the component always passes the helper defaults (`5000` ms, `10`). Customize them only by constructing `WebSocketServerHelper` yourself outside the component.
+> `authTimeout` and `encryptedBatchLimit` belong to the helper's `TWebSocketServerOptions`, not the component's `IServerOptions`. There is no binding key for them - the component always passes the helper defaults (`5000` ms, `10`). Customize them only by constructing `WebSocketServerHelper` yourself outside the component.
 
 Bind a partial object to `SERVER_OPTIONS` before registering the component to override any field:
 
@@ -117,7 +117,7 @@ this.bind({ key: WebSocketBindingKeys.SERVER_OPTIONS }).toValue({
 | `HEARTBEAT_TIMEOUT` | `90000` (90 s) | Disconnect after 3 missed heartbeats |
 | `ENCRYPTED_BATCH_LIMIT` | `10` | Max concurrent encryption operations |
 
-`MAX_PAYLOAD_LENGTH`, `IDLE_TIMEOUT`, `BACKPRESSURE_LIMIT`, `SEND_PINGS`, and `PUBLISH_TO_SELF` are Bun-native settings passed via `serverOptions`. The rest are application-level settings read directly off `IWebSocketServerOptions`.
+`MAX_PAYLOAD_LENGTH`, `IDLE_TIMEOUT`, `BACKPRESSURE_LIMIT`, `SEND_PINGS`, and `PUBLISH_TO_SELF` are Bun-native settings passed via `serverOptions`. The rest are application-level settings read directly off `TWebSocketServerOptions`.
 
 ### `IBunWebSocketConfig`
 
@@ -141,6 +141,7 @@ Passed straight through to Bun's native WebSocket handler via `serverOptions` in
 |------------|----------|------|----------|---------|
 | `@app/websocket/server-options` | `WebSocketBindingKeys.SERVER_OPTIONS` | `Partial<IServerOptions>` | No | See [Configuration](#configuration) |
 | `@app/websocket/redis-connection` | `WebSocketBindingKeys.REDIS_CONNECTION` | `IRedisHelper` | **Yes** | `null` |
+| `@app/websocket/auth-schema` | `WebSocketBindingKeys.AUTH_SCHEMA` | `z.ZodType<Record<string, unknown>>` | No | `null` |
 | `@app/websocket/authenticate-handler` | `WebSocketBindingKeys.AUTHENTICATE_HANDLER` | `TWebSocketAuthenticateFn` | **Yes** | `null` |
 | `@app/websocket/validate-room-handler` | `WebSocketBindingKeys.VALIDATE_ROOM_HANDLER` | `TWebSocketValidateRoomFn` | No | `null` |
 | `@app/websocket/client-connected-handler` | `WebSocketBindingKeys.CLIENT_CONNECTED_HANDLER` | `TWebSocketClientConnectedFn` | No | `null` |
@@ -150,6 +151,7 @@ Passed straight through to Bun's native WebSocket handler via `serverOptions` in
 | `@app/websocket/handshake-handler` | `WebSocketBindingKeys.HANDSHAKE_HANDLER` | `TWebSocketHandshakeFn` | No* | `null` |
 | `@app/websocket/instance` | `WebSocketBindingKeys.WEBSOCKET_INSTANCE` | `WebSocketServerHelper` | -- | Set by the component |
 
+- `AUTH_SCHEMA` checks the data of the `authenticate` message before `AUTHENTICATE_HANDLER` and `HANDSHAKE_HANDLER` receive it. The bound hooks keep the `Record<string, unknown>` type; for hooks typed from the schema, construct `WebSocketServerHelper` yourself. See [authentication data](/extensions/helpers/websocket/api#authentication-data).
 - `HANDSHAKE_HANDLER` becomes required when `IServerOptions.requireEncryption` is `true` - it performs the ECDH key exchange during authentication.
 - `WEBSOCKET_INSTANCE` is never bound by application code - the component binds it automatically inside the post-start hook, after the server starts. Inject it lazily; see [Usage & Examples](./usage).
 
@@ -288,6 +290,7 @@ Reads all binding keys and validates the required ones, throwing before the post
 |---------|-----------|------------------|
 | `SERVER_OPTIONS` | Optional, merged with `DEFAULT_SERVER_OPTIONS` via `Object.assign()` | -- |
 | `REDIS_CONNECTION` | Must pass `isRedisHelper()` | `"Invalid instance of redisConnection ..."` |
+| `AUTH_SCHEMA` | Optional, `null` coerced to `undefined` | -- |
 | `AUTHENTICATE_HANDLER` | Must be truthy | `"Invalid authenticateFn to setup WebSocket server!"` |
 | `VALIDATE_ROOM_HANDLER` | Optional, `null` coerced to `undefined` | -- |
 | `CLIENT_CONNECTED_HANDLER` | Optional, `null` coerced to `undefined` | -- |
