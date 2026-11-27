@@ -402,7 +402,7 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.ACTIONS_PINNED_BY_COMMIT,
       edits: [
         {
-          find: 'actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0',
+          find: 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0',
           replace: 'actions/setup-node@v6.4.0',
           everywhere: true,
         },
@@ -1128,9 +1128,9 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.CHANGELOG_HISTORY_FOR_A_STABLE,
       edits: [
         {
-          find: 'reads the previous stable tag.\n      - name: Checkout\n        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3\n        with:\n          ref: ${{ github.sha }}\n          fetch-depth: 0\n',
+          find: 'reads the previous stable tag.\n      - name: Checkout\n        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n        with:\n          ref: ${{ github.sha }}\n          fetch-depth: 0\n',
           replace:
-            'reads the previous stable tag.\n      - name: Checkout\n        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3\n        with:\n          ref: ${{ github.sha }}\n          fetch-depth: 1\n',
+            'reads the previous stable tag.\n      - name: Checkout\n        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n        with:\n          ref: ${{ github.sha }}\n          fetch-depth: 1\n',
         },
       ],
     },
@@ -1304,9 +1304,9 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
       edits: [
         {
-          find: "# The tags the publish job pushed are fetched with the whole history; the commit to build is the tag's, not this one.\n      - name: Checkout\n        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3\n        with:\n          ref: ${{ github.sha }}\n          fetch-depth: 0\n          persist-credentials: false\n",
+          find: "# The tags the publish job pushed are fetched with the whole history; the commit to build is the tag's, not this one.\n      - name: Checkout\n        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n        with:\n          ref: ${{ github.sha }}\n          fetch-depth: 0\n          persist-credentials: false\n",
           replace:
-            "# The tags the publish job pushed are fetched with the whole history; the commit to build is the tag's, not this one.\n      - name: Checkout\n        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3\n        with:\n          ref: ${{ github.sha }}\n          fetch-depth: 0\n          persist-credentials: true\n",
+            "# The tags the publish job pushed are fetched with the whole history; the commit to build is the tag's, not this one.\n      - name: Checkout\n        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n        with:\n          ref: ${{ github.sha }}\n          fetch-depth: 0\n          persist-credentials: true\n",
         },
       ],
     },
@@ -1342,9 +1342,9 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
       edits: [
         {
-          find: "# The tags the publish job pushed are fetched with the whole history; the commit to build is the tag's, not this one.\n      - name: Checkout\n        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3\n        with:\n          ref: ${{ github.sha }}\n          fetch-depth: 0\n",
+          find: "# The tags the publish job pushed are fetched with the whole history; the commit to build is the tag's, not this one.\n      - name: Checkout\n        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n        with:\n          ref: ${{ github.sha }}\n          fetch-depth: 0\n",
           replace:
-            "# The tags the publish job pushed are fetched with the whole history; the commit to build is the tag's, not this one.\n      - name: Checkout\n        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3\n        with:\n          ref: ${{ github.sha }}\n          fetch-depth: 1\n",
+            "# The tags the publish job pushed are fetched with the whole history; the commit to build is the tag's, not this one.\n      - name: Checkout\n        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n        with:\n          ref: ${{ github.sha }}\n          fetch-depth: 1\n",
         },
       ],
     },
@@ -1539,7 +1539,7 @@ describe('one mutation per guard: removing the guard from a copy fails the check
         {
           find: '    steps:\n      - name: Dispatch the docs deploy\n',
           replace:
-            '    steps:\n      - name: Checkout\n        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3\n\n      - name: Dispatch the docs deploy\n',
+            '    steps:\n      - name: Checkout\n        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n\n      - name: Dispatch the docs deploy\n',
         },
       ],
     },
