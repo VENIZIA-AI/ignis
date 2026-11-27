@@ -1065,6 +1065,7 @@ export class ChatApp extends BaseApplication {
     this.bind({
       key: SocketIOBindingKeys.SERVER_OPTIONS,
     }).toValue({
+      identifier: 'chat-socket-server',
       path: '/io',
       cors: {
         origin: AppEnvs.get('APP_ENV_CORS_ORIGIN') ?? '*',
