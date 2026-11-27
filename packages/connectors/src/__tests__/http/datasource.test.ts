@@ -41,7 +41,7 @@ describe('the 401 retry re-resolves the token and rebuilds every header', () => 
     const dataSource = new HttpDataSource({
       baseUrl: 'https://api.example.com',
       onUnauthorized: () => true,
-      authTokenResolver: () => ({ value: tokens.shift() ?? 'exhausted' }),
+      resolvers: { authToken: () => ({ value: tokens.shift() ?? 'exhausted' }) },
     });
 
     await dataSource.read({ paths: ['tickets'] });
@@ -57,7 +57,7 @@ describe('the 401 retry re-resolves the token and rebuilds every header', () => 
     const dataSource = new HttpDataSource({
       baseUrl: 'https://api.example.com',
       onUnauthorized: () => true,
-      authTokenResolver: () => ({ value: 'token-without-provider' }),
+      resolvers: { authToken: () => ({ value: 'token-without-provider' }) },
     });
 
     await dataSource.read({ paths: ['tickets'] });
@@ -73,7 +73,7 @@ describe('the 401 retry re-resolves the token and rebuilds every header', () => 
     const dataSource = new HttpDataSource({
       baseUrl: 'https://api.example.com',
       onUnauthorized: () => true,
-      authTokenResolver: () => ({ value: 'v', provider: 'keycloak' }),
+      resolvers: { authToken: () => ({ value: 'v', provider: 'keycloak' }) },
     });
 
     await dataSource.read({ paths: ['tickets'] });
@@ -104,10 +104,12 @@ describe('an explicit token is never overridden by a lookup', () => {
     const dataSource = new HttpDataSource({
       baseUrl: 'https://api.example.com',
       authToken: { value: 'explicit' },
-      authTokenResolver: () => {
-        resolverCalls += 1;
+      resolvers: {
+        authToken: () => {
+          resolverCalls += 1;
 
-        return { value: 'from-resolver' };
+          return { value: 'from-resolver' };
+        },
       },
     });
 
@@ -172,7 +174,7 @@ describe('the recovery hook decides, not the transport', () => {
 
     const dataSource = new HttpDataSource({
       baseUrl: 'https://api.example.com',
-      authTokenResolver: () => ({ value: stored }),
+      resolvers: { authToken: () => ({ value: stored }) },
       onUnauthorized: () => {
         stored = 'refreshed';
 
@@ -272,14 +274,14 @@ describe('request() answers raw, with auth and retry intact', () => {
   });
 });
 
-describe('headersResolver runs on every send', () => {
+describe('resolvers.headers runs on every send', () => {
   test('a header the app changed between two requests is the one sent', async () => {
     const attempts = stubFetch([{ status: 200, contentRange: 'items 0-0/1' }]);
     let locale = 'en';
 
     const dataSource = new HttpDataSource({
       baseUrl: 'https://api.example.com',
-      headersResolver: () => ({ 'x-locale': locale }),
+      resolvers: { headers: () => ({ 'x-locale': locale }) },
     });
 
     await dataSource.read({ paths: ['tickets'] });
@@ -295,7 +297,7 @@ describe('headersResolver runs on every send', () => {
 
     const dataSource = new HttpDataSource({
       baseUrl: 'https://api.example.com',
-      headersResolver: () => ({ 'x-merchant-id': merchant }),
+      resolvers: { headers: () => ({ 'x-merchant-id': merchant }) },
       onUnauthorized: () => {
         merchant = 'after';
 
@@ -318,7 +320,9 @@ describe('headersResolver runs on every send', () => {
       baseUrl: 'https://api.example.com',
       authToken: { value: 'owned' },
       headers: { 'x-a': 'configured', 'x-b': 'configured', 'x-c': 'configured' },
-      headersResolver: () => ({ 'X-B': 'resolved', 'x-c': 'resolved', authorization: 'resolved' }),
+      resolvers: {
+        headers: () => ({ 'X-B': 'resolved', 'x-c': 'resolved', authorization: 'resolved' }),
+      },
     });
 
     await dataSource.request({ paths: ['tickets'], headers: { 'x-c': 'call' } });
@@ -335,7 +339,7 @@ describe('headersResolver runs on every send', () => {
     const dataSource = new HttpDataSource({
       baseUrl: 'https://api.example.com',
       headers: { 'x-tenant': 'acme' },
-      headersResolver: () => undefined,
+      resolvers: { headers: () => undefined },
     });
 
     await dataSource.read({ paths: ['tickets'] });
@@ -348,7 +352,7 @@ describe('headersResolver runs on every send', () => {
 
     const dataSource = new HttpDataSource({
       baseUrl: 'https://api.example.com',
-      headersResolver: () => ({ 'X-Request-Count': 'true' }),
+      resolvers: { headers: () => ({ 'X-Request-Count': 'true' }) },
     });
 
     await RejectionUtility.expectRejection({
@@ -366,15 +370,17 @@ describe('the hooks are told which request they serve', () => {
 
     const dataSource = new HttpDataSource({
       baseUrl: 'https://api.example.com',
-      headersResolver: (context) => {
-        seen.push({ hook: 'headers', context });
+      resolvers: {
+        headers: (context) => {
+          seen.push({ hook: 'headers', context });
 
-        return undefined;
-      },
-      authTokenResolver: (context) => {
-        seen.push({ hook: 'token', context });
+          return undefined;
+        },
+        authToken: (context) => {
+          seen.push({ hook: 'token', context });
 
-        return undefined;
+          return undefined;
+        },
       },
       onUnauthorized: (context) => {
         seen.push({ hook: 'unauthorized', context });
@@ -409,15 +415,17 @@ describe('the hooks are told which request they serve', () => {
 
     const dataSource = new HttpDataSource({
       baseUrl: 'https://api.example.com',
-      headersResolver: (context) => {
-        seen.push({ hook: 'headers', context });
+      resolvers: {
+        headers: (context) => {
+          seen.push({ hook: 'headers', context });
 
-        return undefined;
-      },
-      authTokenResolver: (context) => {
-        seen.push({ hook: 'token', context });
+          return undefined;
+        },
+        authToken: (context) => {
+          seen.push({ hook: 'token', context });
 
-        return undefined;
+          return undefined;
+        },
       },
       onUnauthorized: (context, { attempt }) => {
         seen.push({ hook: 'unauthorized', context });
@@ -448,10 +456,12 @@ describe('the hooks are told which request they serve', () => {
 
     const dataSource = new HttpDataSource({
       baseUrl: 'https://api.example.com',
-      authTokenResolver: (context) => {
-        contexts.push(context);
+      resolvers: {
+        authToken: (context) => {
+          contexts.push(context);
 
-        return undefined;
+          return undefined;
+        },
       },
     });
 
@@ -469,7 +479,7 @@ describe('the hooks are told which request they serve', () => {
 
     const dataSource = new HttpDataSource({
       baseUrl: 'https://api.example.com',
-      authTokenResolver: (context) => (isPublic(context) ? undefined : { value: 'session' }),
+      resolvers: { authToken: (context) => (isPublic(context) ? undefined : { value: 'session' }) },
       onUnauthorized: (context) => {
         if (isPublic(context)) {
           return false;
@@ -494,8 +504,9 @@ describe('the hooks are told which request they serve', () => {
 
     const dataSource = new HttpDataSource({
       baseUrl: 'https://api.example.com',
-      authTokenResolver: (context) =>
-        context.paths[0] === 'auth' ? undefined : { value: 'session' },
+      resolvers: {
+        authToken: (context) => (context.paths[0] === 'auth' ? undefined : { value: 'session' }),
+      },
     });
 
     await dataSource.read({ paths: ['tickets'] });
@@ -505,22 +516,22 @@ describe('the hooks are told which request they serve', () => {
 });
 
 describe('a throwing hook fails the request with its own error', () => {
-  const throwingHooks = {
-    headersResolver: () => {
-      throw new Error('session headers unavailable');
-    },
-    authTokenResolver: () => {
-      throw new Error('session headers unavailable');
-    },
+  const fail = (): never => {
+    throw new Error('session headers unavailable');
   };
 
-  for (const [hook, resolver] of Object.entries(throwingHooks)) {
+  const throwingResolvers = [
+    { hook: 'headers', resolvers: { headers: fail } },
+    { hook: 'authToken', resolvers: { authToken: fail } },
+  ];
+
+  for (const { hook, resolvers } of throwingResolvers) {
     test(`${hook}: the error reaches the caller and nothing is sent`, async () => {
       const attempts = stubFetch([{ status: 200, contentRange: 'items 0-0/1' }]);
 
       const dataSource = new HttpDataSource({
         baseUrl: 'https://api.example.com',
-        [hook]: resolver,
+        resolvers,
       });
 
       await RejectionUtility.expectRejection({

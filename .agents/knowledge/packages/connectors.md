@@ -110,11 +110,11 @@ from the no-header one, because the fix is the server's count, not a missing hea
 in the GET query string, and a server refuses a URL past ~16 KB with 431 (measured: 350 UUIDs in an
 `inq` pass, 400 do not); the error says so and carries the path and the URL's length, never the host or the query.
 
-Headers and the token are decided per send, not per datasource: `headersResolver` and
-`authTokenResolver` run inside `send()`, `onUnauthorized` on a 401, all three with an
+Headers and the token are decided per send, not per datasource: `resolvers.headers` and
+`resolvers.authToken` run inside `send()`, `onUnauthorized` on a 401, all three with an
 `IHttpRequestContext` (`paths`, `method`, `url`, `signal`). So the 401 retry sends what the session
 holds after the refresh, and a public route can answer no token and no refresh. The `signal` lets a
-hook stop waiting; it must not abort a refresh other calls share. Precedence, weakest first: `settings.headers`, `headersResolver`, the call's own
+hook stop waiting; it must not abort a refresh other calls share. Precedence, weakest first: `settings.headers`, `resolvers.headers`, the call's own
 headers, the connector's. A resolver throw fails the request; nothing is swallowed. Every verb's
 `options` carries `headers` and `signal` for one call. `extra` (`{ name: true | false | keys[] }`) - `options.extra` on `find`, top-level on `read`/`write` - becomes `x-request-extra` through kernel's `HttpExtraRequest.toHeader`; `find`'s result `extra` is typed from it (const generic). `{ data, extra }` is unwrapped ONLY when the response carries `x-response-extra` (kernel's `HttpResponseReader.readExtra`) - a row with `data`/`extra` columns is never misread - and `count` (both paths)/`existsWith`/`findOne` send `-*`, overriding any hand-set header, so defaults are not computed for reads that discard them. `TExtraResult` entries are optional; a ranged find that asked always carries `extra`.
 
@@ -141,7 +141,7 @@ resolves against `location.origin`, never `href`, so it does not follow the SPA 
 
 `onUnauthorized` is a hook, not a flag: it answers whether a retry can work, because recovery
 (refresh, logout, both) is the host policy, and a boolean could only have meant "ask the resolver
-again". `authTokenResolver` is a seam rather than a guard, and an explicit `authToken` wins over it.
+again". `resolvers.authToken` is a seam rather than a guard, and an explicit `authToken` wins over it.
 The 401 retry rebuilds headers through the SAME builder: a second header-building path is where
 `x-auth-provider` would be set unguarded, and `fetch` turns an `undefined` value into the literal
 string "undefined".

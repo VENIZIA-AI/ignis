@@ -54,12 +54,14 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
   }
 
   protected resolveAuthToken(opts: { context: IHttpRequestContext }): IAuthToken | undefined {
-    return this.settings.authToken ?? this.settings.authTokenResolver?.(opts.context);
+    return this.settings.authToken ?? this.settings.resolvers?.authToken?.(opts.context);
   }
 
   /** Re-run on every send, so a header the app changed since the last request is the one sent. */
   protected resolveHeaders(opts: { context: IHttpRequestContext }): Headers {
-    const headers = HttpHeaders.merge({ layers: [this.settings.headersResolver?.(opts.context)] });
+    const headers = HttpHeaders.merge({
+      layers: [this.settings.resolvers?.headers?.(opts.context)],
+    });
     HttpWire.assertNoRequestCountHeader({ headers, name: this.name });
 
     return headers;
