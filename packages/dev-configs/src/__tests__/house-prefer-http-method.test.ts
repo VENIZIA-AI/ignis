@@ -65,6 +65,7 @@ describe('prefer-http-method: where a method is written', () => {
         "const route = { method: 'get', path: '/' };",
         "const init = { method: 'post', body };",
         "fetch(url, { method: 'head' });",
+        "this.nativeFetch(url, { method: 'head' });",
         "new Request(url, { method: 'delete' });",
         "this.send({ verb: 'put', url });",
         "let method = 'get';",
@@ -74,7 +75,7 @@ describe('prefer-http-method: where a method is written', () => {
       ].join('\n'),
     });
 
-    expect(found).toHaveLength(10);
+    expect(found).toHaveLength(11);
   });
 
   test('a table of method names, another word and another key are left alone', () => {
@@ -85,6 +86,8 @@ describe('prefer-http-method: where a method is written', () => {
         "const other = { kind: 'get', path: '/' };",
         "const method = 'findOne';",
         "map.get('get');",
+        "prefetch(url, { method: 'get' });",
+        "fetchRecords(table, { method: 'get' });",
         "if (method === 'GET') {}",
       ].join('\n'),
     });
@@ -104,6 +107,27 @@ describe('prefer-http-method: the fix', () => {
         IMPORT,
         "export const a = { method: HTTP.Methods.PATCH, path: '/' };",
         'export const b = { method: HTTP.Methods.GET, url };',
+      ].join('\n'),
+    );
+  });
+
+  test('an `as const` on the string goes with it, and one on the object stays', () => {
+    const { fixed } = run({
+      code: [
+        "export const a = { method: 'get' as const, url };",
+        "export const b = { method: 'post', url } as const;",
+        "export let method = 'put' as const;",
+        "export const c = { method: 'head' satisfies string, url };",
+      ].join('\n'),
+    });
+
+    expect(fixed).toBe(
+      [
+        IMPORT,
+        'export const a = { method: HTTP.Methods.GET, url };',
+        'export const b = { method: HTTP.Methods.POST, url } as const;',
+        'export let method = HTTP.Methods.PUT;',
+        'export const c = { method: HTTP.Methods.HEAD satisfies string, url };',
       ].join('\n'),
     );
   });

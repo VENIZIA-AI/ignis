@@ -29,8 +29,8 @@ class HttpMethodSites {
     'url',
   ]);
 
-  /** A call that takes a request init: `fetch`, `fetchFn`, `new Request`. */
-  static readonly REQUEST_CALLEE = /fetch|^Request$/i;
+  /** A call that takes a request init: `fetch`, `fetchFn`, a name ending in `Fetch`, `new Request`. */
+  static readonly REQUEST_CALLEE = /^(?:fetch|fetchFn|Request)$|Fetch$/;
 
   static field(node: unknown, key: string): unknown {
     return AstNode.readField({ node, key });
@@ -66,6 +66,15 @@ class HttpMethodSites {
       type === AstNodeTypes.AS_EXPRESSION || type === AstNodeTypes.SATISFIES_EXPRESSION;
 
     return isWrapped ? HttpMethodSites.literalsOf(HttpMethodSites.field(node, 'expression')) : [];
+  }
+
+  /** What a fix replaces: the literal, or its `as const`, which TypeScript refuses on a member reference (TS1355). */
+  static replaced(node: Rule.Node): Rule.Node {
+    const parent = HttpMethodSites.field(node, 'parent');
+    const annotation = HttpMethodSites.field(parent, 'typeAnnotation');
+    const asserted = HttpMethodSites.nameOf(HttpMethodSites.field(annotation, 'typeName'));
+
+    return asserted === 'const' && AstNode.isNode(parent) ? parent : node;
   }
 
   /** Whether an object literal is a route config or a request: by a sibling property, or by the call it is passed to. */
@@ -173,7 +182,10 @@ export class PreferHttpMethodRule {
                 ImportSupport.importedAs({ context, name: 'HTTP', asValue: true }) ?? 'HTTP';
 
               return imports
-                ? [fixer.replaceText(node, `${local}.Methods.${member}`), ...imports]
+                ? [
+                    fixer.replaceText(HttpMethodSites.replaced(node), `${local}.Methods.${member}`),
+                    ...imports,
+                  ]
                 : null;
             },
           });
