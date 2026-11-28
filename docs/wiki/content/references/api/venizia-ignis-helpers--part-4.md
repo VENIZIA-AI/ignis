@@ -345,6 +345,10 @@ Source: `packages/helpers/src/modules/secrets/factory.ts`
 In-memory FIFO queue that hands one element at a time to `onMessage`.
 A throwing handler is logged and its element dropped, so the queue keeps moving.
 
+Each element is handled in the async context it was enqueued in, so a handler reads the store of the caller that
+enqueued it, not the one of the element before. An element pushed straight into `storage` is handled in the context
+the queue was built in.
+
 ```ts
 export declare class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     storage: Array<TQueueElement<TElementPayload>>;
@@ -354,6 +358,8 @@ export declare class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     protected autoDispatch: boolean;
     protected state: TQueueStatus;
     protected isSettleRequested: boolean;
+    private readonly elementContexts;
+    private readonly ownContext;
     private onMessage?;
     private onDataEnqueue?;
     private onDataDequeue?;
@@ -371,7 +377,12 @@ export declare class SequentialQueueHelper<TElementPayload> extends BaseHelper {
         scope: string;
         from: TQueueStatus;
     }): void;
+    /**
+     * Handles the element at the head, in its own context: the next dispatch is chained from the previous element's
+     * handling, whose context must not reach it.
+     */
     protected handleMessage(): Promise<void>;
+    private processHead;
     private _messageListener;
     nextMessage(): void;
     enqueue(payload: TElementPayload): Promise<void>;

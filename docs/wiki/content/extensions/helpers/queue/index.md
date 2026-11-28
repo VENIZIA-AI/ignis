@@ -66,6 +66,8 @@ const worker = BullMQHelper.newInstance({
 | `lock()` | Pauses processing at `LOCKED`. Elements still enqueue; nothing processes until `unlock()`. |
 | `settle()` / `close()` | Drains the queue, then moves to the terminal `SETTLED` state. |
 
+Each element is handled in the async context it was enqueued in: a handler that reads an `AsyncLocalStorage` store, such as the request context, sees the one of the caller that enqueued that element. An element pushed straight into `storage` is handled in the context the queue was built in.
+
 Full option tables, the complete state machine, and `HfQueueHelper` (the low-level FIFO primitive underneath) are in the [Full reference](/extensions/helpers/queue/reference).
 
 ## Common tasks
