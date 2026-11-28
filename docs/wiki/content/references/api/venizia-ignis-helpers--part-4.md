@@ -360,7 +360,7 @@ export declare class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     protected state: TQueueStatus;
     protected isSettleRequested: boolean;
     private readonly elementContexts;
-    private ownContext;
+    private readonly ownContext;
     private onMessage?;
     private onDataEnqueue?;
     private onDataDequeue?;

@@ -11,6 +11,8 @@ const MAX_WARNED = 100;
  */
 export class ExecutionFrames {
   private static readonly warnedHandOffs = new Set<string>();
+  /** A handler to its listener, and the listeners themselves, so a handler is wrapped once and can be removed. */
+  private static readonly listeners = new WeakMap<object, unknown>();
 
   /** Whether a runner is installed, so that frames exist at all. */
   static isInstalled(): boolean {
@@ -28,6 +30,10 @@ export class ExecutionFrames {
   static root<Result>(opts: { userId?: IExecutionFrame['userId']; task: () => Result }): Result {
     const { userId, task } = opts;
 
+    if (!ExecutionFrames.isInstalled()) {
+      return task();
+    }
+
     return ExecutionFrames.run({
       frame: Object.freeze({ mode: ExecutionModes.SCOPED, userId, values: Object.freeze({}) }),
       task,
@@ -36,20 +42,44 @@ export class ExecutionFrames {
 
   /**
    * A listener that starts a root frame at each call, so it never runs with the rights of whoever registered it or
-   * emitted to it. Its receiver, arguments and return value are the handler's.
+   * emitted to it. Its receiver, arguments and return value are the handler's. Without `userId`, a handler has one
+   * listener: asking again answers the same function, and a listener asked for is answered as it is.
    */
   static listener<This, Args extends unknown[], Result>(opts: {
     handler: (this: This, ...args: Args) => Result;
     userId?: () => IExecutionFrame['userId'];
   }): (this: This, ...args: Args) => Result {
     const { handler, userId } = opts;
+    const known = userId ? undefined : ExecutionFrames.listeners.get(handler);
 
-    return function (this: This, ...args: Args) {
+    if (ExecutionFrames.isListener<This, Args, Result>(known)) {
+      return known;
+    }
+
+    const listener = function (this: This, ...args: Args) {
+      if (!ExecutionFrames.isInstalled()) {
+        return handler.apply(this, args);
+      }
+
       return ExecutionFrames.root({
         userId: userId?.(),
         task: () => handler.apply(this, args),
       });
     };
+
+    if (!userId) {
+      ExecutionFrames.listeners.set(handler, listener);
+      ExecutionFrames.listeners.set(listener, listener);
+    }
+
+    return listener;
+  }
+
+  /** What the map holds under a handler is the listener made for it, so a function there has the handler's signature. */
+  private static isListener<This, Args extends unknown[], Result>(
+    value: unknown,
+  ): value is (this: This, ...args: Args) => Result {
+    return typeof value === 'function';
   }
 
   /**

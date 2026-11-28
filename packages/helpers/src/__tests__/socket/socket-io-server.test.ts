@@ -145,6 +145,7 @@ const createMockIOServer = () => {
     closed,
     io: {
       on: mock(() => {}),
+      off: mock(() => {}),
       adapter: mock(() => {}),
       close: mock((callback?: (error?: Error) => void) => {
         closed.push(() => {});
@@ -285,6 +286,9 @@ describe('SocketIOServerHelper | on', () => {
     }
 
     listener('payload');
+    helper.off({ topic: 'a-topic', handler });
+
+    expect(io.off).toHaveBeenCalledWith('a-topic', listener);
     expect(received).toEqual(['payload']);
   });
 });

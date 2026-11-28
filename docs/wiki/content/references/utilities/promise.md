@@ -84,7 +84,7 @@ declare module '@venizia/ignis' {
 | event bus handler | the publisher's request, user and values; never system |
 | sequential queue element | the user and values at enqueue; no request, never system |
 
-Work that needs every row opens its own system run where it is handled. A hand-off that drops system rights is logged once per queue or event name.
+Work that needs every row opens its own system run where it is handled. A hand-off that drops system rights is logged once per queue or event name. A queue job carries no identity by itself: pass it through the job metadata and open the frame in the processor. A listener you register on a client yourself (a Redis `message`, for one) opens its own frame.
 
 A frame does not change what a query sees yet: a model's `access` reads the request as before.
 

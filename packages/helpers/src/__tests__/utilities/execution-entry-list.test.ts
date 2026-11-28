@@ -1,120 +1,375 @@
 import { describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
+import ts from 'typescript';
+
+/** A call that registers something to be run later. */
+const METHODS = new Set([
+  'addEventListener',
+  'addListener',
+  'on',
+  'once',
+  'prependListener',
+  'psubscribe',
+  'subscribe',
+]);
+const SCHEDULERS = new Set([
+  'createClientFn',
+  'createServerFn',
+  'nextTick',
+  'queueMicrotask',
+  'setImmediate',
+  'setInterval',
+  'setTimeout',
+]);
+
+const calleeOf = (node: ts.CallExpression) => {
+  const target = node.expression;
+
+  if (ts.isIdentifier(target)) {
+    return target.text;
+  }
+
+  return ts.isPropertyAccessExpression(target) ? target.name.text : '';
+};
+
+/** Whether the call hands over something to run: a method needs a function among its arguments, or two of them. */
+const isRegistration = (node: ts.CallExpression, file: ts.SourceFile) => {
+  const name = calleeOf(node);
+
+  if (SCHEDULERS.has(name)) {
+    return true;
+  }
+
+  if (node.expression.getText(file) === 'CronJob.from') {
+    return true;
+  }
+
+  const hasFunction = node.arguments.some(
+    (item) => ts.isArrowFunction(item) || ts.isFunctionExpression(item),
+  );
+
+  return METHODS.has(name) && (hasFunction || node.arguments.length > 1);
+};
+
+const scan = (opts: { path: string; text: string }) => {
+  const file = ts.createSourceFile(opts.path, opts.text, ts.ScriptTarget.Latest, true);
+  const unframed: string[] = [];
+
+  const visit = (node: ts.Node): void => {
+    const isLoop = ts.isForOfStatement(node) && node.awaitModifier !== undefined;
+    const isCall = ts.isCallExpression(node) && isRegistration(node, file);
+
+    if ((isLoop || isCall) && !node.getText(file).includes('ExecutionFrames.')) {
+      let key = 'for await';
+
+      if (ts.isCallExpression(node)) {
+        const [first] = node.arguments;
+        const event =
+          first && ts.isStringLiteralLike(first)
+            ? first.text
+            : first && ts.isPropertyAccessExpression(first)
+              ? first.name.text
+              : '';
+        key = `${calleeOf(node)}(${event})`;
+      }
+
+      unframed.push(`${opts.path} | ${key}`);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(file);
+
+  return unframed;
+};
 
 /**
- * Every place the helpers register a listener or a timer, and the frame it runs in. An entry that opens no frame runs
- * in the frame of whoever started it, so a new registration is added here with its frame, or this test fails.
+ * The registrations that open no frame, each with why. Any other listener, timer or hand-off must open one through
+ * `ExecutionFrames` in the call itself: it would otherwise run with the rights of whoever started it.
  */
-const ENTRIES: Readonly<Record<string, { count: number; frame: string }>> = {
-  'modules/cron/helper.ts': { count: 1, frame: 'tick, onComplete and errorHandler: root' },
-  'modules/execution/execution.ts': {
-    count: 2,
-    frame: 'timers that resolve a promise of the caller: the caller frame',
-  },
-  'modules/logger/hf/flusher.ts': {
-    count: 2,
-    frame: 'flush interval: root; the yield inside a flush resolves the loop itself',
-  },
-  'modules/logger/winston/transports/dgram.transport.ts': {
-    count: 2,
-    frame: 'internal: no application code',
-  },
-  'modules/network/tcp-socket/base-tcp-client.helper.ts': {
-    count: 5,
-    frame: 'connect, data, close, error, reconnect: root',
-  },
-  'modules/network/tcp-socket/base-tcp-server.helper.ts': {
-    count: 7,
-    frame: 'connection, server error, data, close, error, extra events, auth timeout: root',
-  },
-  'modules/network/udp-socket/network-udp-client.helper.ts': {
-    count: 4,
-    frame: 'close, error, listening, message: root',
-  },
-  'modules/network/utilities/url-safety/guard.ts': {
+const UNFRAMED: Readonly<Record<string, { count: number; reason: string }>> = {
+  'core-server/base/applications/server.ts | on()': {
     count: 1,
-    frame: 'abort of a lookup the caller awaits: the caller frame',
+    reason: 'process signals: not framed, shutdown runs no request work',
   },
-  'modules/pool/abstract.ts': {
+  'core-server/base/applications/server.ts | setTimeout()': {
     count: 1,
-    frame: 'acquire timeout of one waiter: the waiter frame; the shared dispatch loop is root',
+    reason: 'stop timeout the caller awaits',
   },
-  'modules/queue/bullmq/helper.ts': {
-    count: 5,
-    frame: 'completed, failed (and the processor): root; error and end only log',
+  'core-server/base/controllers/grpc/adapter.ts | addEventListener(abort)': {
+    count: 1,
+    reason: 'internal: forwards the shutdown signal',
   },
-  'modules/queue/kafka/base.ts': {
-    count: 4,
-    frame: 'client events and a shutdown timer: not framed, they run no work of the application',
+  'core-server/base/controllers/grpc/adapter.ts | on(allowedMethods)': {
+    count: 1,
+    reason: 'not a registration',
   },
-  'modules/queue/kafka/consumer.ts': {
-    count: 12,
-    frame: 'each message and each error hook: root; client events are not framed',
+  'core-server/base/controllers/grpc/native/listener.helper.ts | on(connection)': {
+    count: 1,
+    reason: 'internal bookkeeping',
   },
-  'modules/queue/mqtt/helper.ts': {
-    count: 5,
-    frame: 'message: root; connect, disconnect, close, error are not framed',
+  'core-server/base/controllers/grpc/native/listener.helper.ts | on(error)': {
+    count: 1,
+    reason: 'logs only',
   },
-  'modules/redis/base/abstract.helper.ts': { count: 4, frame: 'connection state: not framed' },
-  'modules/redis/utility.ts': {
+  'core-server/base/controllers/grpc/native/listener.helper.ts | on(session)': {
+    count: 1,
+    reason: 'internal bookkeeping',
+  },
+  'core-server/base/controllers/grpc/native/listener.helper.ts | once(aborted)': {
+    count: 1,
+    reason: 'internal: aborts the call signal',
+  },
+  'core-server/base/controllers/grpc/native/listener.helper.ts | once(close)': {
+    count: 2,
+    reason: 'internal bookkeeping',
+  },
+  'core-server/base/controllers/grpc/native/listener.helper.ts | once(error)': {
+    count: 1,
+    reason: 'a bind failure the caller awaits',
+  },
+  'core-server/base/controllers/grpc/native/listener.helper.ts | setTimeout()': {
+    count: 1,
+    reason: 'stream timeout, internal',
+  },
+  'core-server/base/controllers/grpc/native/native.writer.ts | setImmediate()': {
+    count: 1,
+    reason: 'resets a refused stream',
+  },
+  'core-server/base/controllers/grpc/timeout.guard.ts | setTimeout()': {
+    count: 1,
+    reason: 'sets a timeout on the connection',
+  },
+  'core-server/components/mail/helpers/executors/internal-queue-executor.helper.ts | setTimeout()':
+    { count: 2, reason: 'feeds the sequential queue, which hands off' },
+  'core-server/components/mail/utilities/attachment.utility.ts | for await': {
+    count: 1,
+    reason: 'reads a stream the caller awaits',
+  },
+  'core-server/components/static-asset/models/base.model.ts | on(principalType)': {
+    count: 1,
+    reason: 'not a registration',
+  },
+  'helpers/modules/execution/execution.ts | setTimeout()': {
+    count: 2,
+    reason: 'timers the caller awaits',
+  },
+  'helpers/modules/logger/hf/flusher.ts | setImmediate()': {
+    count: 1,
+    reason: 'yield inside a flush that is already framed',
+  },
+  'helpers/modules/logger/winston/transports/dgram.transport.ts | on(error)': {
+    count: 1,
+    reason: 'logs only',
+  },
+  'helpers/modules/logger/winston/transports/dgram.transport.ts | setImmediate()': {
+    count: 1,
+    reason: 'internal event of the transport',
+  },
+  'helpers/modules/network/utilities/url-safety/guard.ts | addEventListener(abort)': {
+    count: 1,
+    reason: 'abort of a lookup the caller awaits',
+  },
+  'helpers/modules/pool/abstract.ts | setTimeout()': {
+    count: 1,
+    reason: 'acquire timeout of one waiter',
+  },
+  'helpers/modules/queue/bullmq/helper.ts | on(error)': { count: 2, reason: 'logs only' },
+  'helpers/modules/queue/bullmq/helper.ts | once(end)': {
+    count: 1,
+    reason: 'internal bookkeeping',
+  },
+  'helpers/modules/queue/kafka/base.ts | on(BROKER_CONNECT)': {
+    count: 1,
+    reason: 'client events: not framed, no work of the application',
+  },
+  'helpers/modules/queue/kafka/base.ts | on(BROKER_DISCONNECT)': {
+    count: 1,
+    reason: 'client events: not framed',
+  },
+  'helpers/modules/queue/kafka/base.ts | on(BROKER_FAILED)': {
+    count: 1,
+    reason: 'client events: not framed',
+  },
+  'helpers/modules/queue/kafka/base.ts | setTimeout()': {
+    count: 1,
+    reason: 'shutdown timeout the caller awaits',
+  },
+  'helpers/modules/queue/kafka/consumer.ts | on(BROKER_DISCONNECT)': {
+    count: 1,
+    reason: 'client events: not framed',
+  },
+  'helpers/modules/queue/kafka/consumer.ts | on(BROKER_FAILED)': {
+    count: 1,
+    reason: 'client events: not framed',
+  },
+  'helpers/modules/queue/kafka/consumer.ts | on(CONSUMER_GROUP_JOIN)': {
+    count: 1,
+    reason: 'client events: not framed',
+  },
+  'helpers/modules/queue/kafka/consumer.ts | on(CONSUMER_GROUP_LEAVE)': {
+    count: 1,
+    reason: 'client events: not framed',
+  },
+  'helpers/modules/queue/kafka/consumer.ts | on(CONSUMER_GROUP_REBALANCE)': {
+    count: 1,
+    reason: 'client events: not framed',
+  },
+  'helpers/modules/queue/kafka/consumer.ts | on(CONSUMER_HEARTBEAT_ERROR)': {
+    count: 1,
+    reason: 'client events: not framed',
+  },
+  'helpers/modules/queue/kafka/consumer.ts | on(CONSUMER_LAG)': {
+    count: 1,
+    reason: 'client events: not framed',
+  },
+  'helpers/modules/queue/kafka/consumer.ts | on(CONSUMER_LAG_ERROR)': {
+    count: 1,
+    reason: 'client events: not framed',
+  },
+  'helpers/modules/queue/kafka/consumer.ts | on(STREAM_ERROR)': {
+    count: 2,
+    reason: 'reported through reportStreamError, which frames the hook',
+  },
+  'helpers/modules/queue/kafka/consumer.ts | setTimeout()': {
+    count: 1,
+    reason: 'shutdown timeout the caller awaits',
+  },
+  'helpers/modules/queue/mqtt/helper.ts | on(close)': {
+    count: 1,
+    reason: 'connection state: not framed',
+  },
+  'helpers/modules/queue/mqtt/helper.ts | on(connect)': {
+    count: 1,
+    reason: 'connection state: not framed',
+  },
+  'helpers/modules/queue/mqtt/helper.ts | on(disconnect)': {
+    count: 1,
+    reason: 'connection state: not framed',
+  },
+  'helpers/modules/queue/mqtt/helper.ts | on(error)': {
+    count: 1,
+    reason: 'connection state: not framed',
+  },
+  'helpers/modules/queue/mqtt/helper.ts | subscribe()': {
+    count: 1,
+    reason: 'acknowledgement of the subscribe: logs only',
+  },
+  'helpers/modules/redis/base/abstract.helper.ts | on(connect)': {
+    count: 1,
+    reason: 'connection state: not framed',
+  },
+  'helpers/modules/redis/base/abstract.helper.ts | on(error)': {
+    count: 1,
+    reason: 'connection state: not framed',
+  },
+  'helpers/modules/redis/base/abstract.helper.ts | on(ready)': {
+    count: 1,
+    reason: 'connection state: not framed',
+  },
+  'helpers/modules/redis/base/abstract.helper.ts | on(reconnecting)': {
+    count: 1,
+    reason: 'connection state: not framed',
+  },
+  'helpers/modules/redis/base/abstract.helper.ts | subscribe()': {
+    count: 1,
+    reason: 'acknowledgement: logs only; an application frames its own message listener',
+  },
+  'helpers/modules/redis/utility.ts | once(error)': {
+    count: 1,
+    reason: 'a ready wait the caller awaits',
+  },
+  'helpers/modules/redis/utility.ts | once(ready)': {
+    count: 1,
+    reason: 'a ready wait the caller awaits',
+  },
+  'helpers/modules/redis/utility.ts | setTimeout()': {
+    count: 1,
+    reason: 'a ready wait the caller awaits',
+  },
+  'helpers/modules/secrets/base/abstract.helper.ts | setTimeout()': {
+    count: 1,
+    reason: 'the injected timer; the handler it gets is a framed listener',
+  },
+  'helpers/modules/socket/socket-io/server/helper.ts | on(error)': {
     count: 3,
-    frame: 'a ready wait the caller awaits: the caller frame',
+    reason: 'Redis errors: log only',
   },
-  'modules/secrets/base/abstract.helper.ts': {
+  'helpers/modules/socket/websocket/emitter/helper.ts | on(error)': {
     count: 1,
-    frame: 'renewal timer: root, and so is each rotation handler',
+    reason: 'Redis errors: log only',
   },
-  'modules/socket/socket-io/server/helper.ts': {
-    count: 12,
-    frame:
-      'connection, disconnect, authenticate, join, leave, on(), emit callback, timers: root; Redis errors only log',
+  'helpers/modules/socket/websocket/server/helper.ts | on(error)': {
+    count: 2,
+    reason: 'Redis errors: log only',
   },
-  'modules/socket/websocket/emitter/helper.ts': { count: 1, frame: 'Redis error: only logs' },
-  'modules/socket/websocket/server/helper.ts': {
-    count: 11,
-    frame:
-      'socket events (root with the client user), Redis fan-out, auth and heartbeat timers, emit callback: root',
+  'helpers/utilities/retry.utility.ts | addEventListener(abort)': {
+    count: 1,
+    reason: 'abort of work the caller awaits',
   },
-  'modules/worker-thread/bus/base.ts': { count: 5, frame: 'every port event: root' },
-  'modules/worker-thread/worker/base.ts': { count: 5, frame: 'every worker event: root' },
-  'utilities/retry.utility.ts': {
-    count: 3,
-    frame: 'backoff and timeout of work the caller awaits: the caller frame',
+  'helpers/utilities/retry.utility.ts | setTimeout()': {
+    count: 2,
+    reason: 'backoff and timeout of work the caller awaits',
+  },
+  'kernel/base/datasources/root.ts | setTimeout()': {
+    count: 1,
+    reason: 'close timeout the caller awaits',
+  },
+  'kernel/base/events/event-bus.ts | queueMicrotask()': {
+    count: 1,
+    reason: 'runs the handler through the hand-off captured at publish',
   },
 };
 
-const REGISTRATION =
-  /\.(on|once|addListener|addEventListener|psubscribe)\(|\b(setTimeout|setInterval|setImmediate|createServerFn|createClientFn)\(|CronJob\.from\(|\bfor await \(/g;
+const PACKAGES = join(import.meta.dir, '../../../..');
 
-const SOURCE = join(import.meta.dir, '../..');
-
-const countRegistrations = async () => {
+const unframedRegistrations = async () => {
   const counts: Record<string, number> = {};
 
-  for await (const path of new Bun.Glob('**/*.ts').scan({ cwd: SOURCE })) {
-    if (path.startsWith('__tests__') || path.includes('socket-io/client')) {
-      continue;
-    }
+  for (const name of ['core-server', 'helpers', 'kernel']) {
+    const source = join(PACKAGES, name, 'src');
 
-    const text = await Bun.file(join(SOURCE, path)).text();
-    const code = text.replace(/\/\*[\s\S]*?\*\/|^\s*\/\/.*$/gm, '');
-    const count = code.match(REGISTRATION)?.length ?? 0;
+    for await (const path of new Bun.Glob('**/*.{ts,tsx}').scan({ cwd: source })) {
+      if (path.startsWith('__tests__') || path.includes('socket-io/client')) {
+        continue;
+      }
 
-    if (count > 0) {
-      counts[path] = count;
+      const text = await Bun.file(join(source, path)).text();
+
+      for (const key of scan({ path: `${name}/${path}`, text })) {
+        counts[key] = (counts[key] ?? 0) + 1;
+      }
     }
   }
 
   return counts;
 };
 
-describe('the listener registrations of the helpers', () => {
-  test('each is listed with the frame it runs in', async () => {
-    const counts = await countRegistrations();
+describe('the listener registrations of the framework', () => {
+  test('each opens an execution frame, or is listed with why it does not', async () => {
+    const counts = await unframedRegistrations();
     const listed = Object.fromEntries(
-      Object.entries(ENTRIES).map(([path, entry]) => [path, entry.count]),
+      Object.entries(UNFRAMED).map(([key, entry]) => [key, entry.count]),
     );
 
     expect(counts).toEqual(listed);
+  });
+
+  test('the scan sees an unframed listener, whatever registers it', () => {
+    const text = [
+      "client.on('message', (message) => handle(message));",
+      'queueMicrotask(() => handle());',
+      'process.nextTick(handle);',
+      'stream.subscribe((value) => handle(value));',
+      "client.on('message', (m) => ExecutionFrames.root({ task: () => handle(m) }));",
+    ].join('\n');
+
+    expect(scan({ path: 'a.ts', text })).toEqual([
+      'a.ts | on(message)',
+      'a.ts | queueMicrotask()',
+      'a.ts | nextTick()',
+      'a.ts | subscribe()',
+    ]);
   });
 });

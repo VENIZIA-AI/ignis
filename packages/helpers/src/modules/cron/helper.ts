@@ -67,12 +67,14 @@ export class CronHelper extends BaseHelper {
           : onCompleted;
       this.instance = CronJob.from({
         cronTime: this.cronTime,
-        // Each call starts from nothing: never the rights of whoever built or started the job.
-        onTick: () => ExecutionFrames.root({ task: () => onTick() }),
+        // Each call starts from nothing: never the rights of whoever built or started the job. The receiver (the job)
+        // and the arguments the library passes are the handler's, as before.
+        onTick: function (...args) {
+          return ExecutionFrames.root({ task: () => Reflect.apply(onTick, this, args) });
+        },
         onComplete,
         start: this.autoStart,
-        errorHandler:
-          errorHandler && ((error) => ExecutionFrames.root({ task: () => errorHandler(error) })),
+        errorHandler: errorHandler && ExecutionFrames.listener({ handler: errorHandler }),
         timeZone: this.tz,
       });
     } catch (error) {

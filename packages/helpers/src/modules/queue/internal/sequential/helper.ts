@@ -34,7 +34,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
   protected isSettleRequested: boolean;
 
   private readonly elementContexts = new WeakMap<TQueueElement<TElementPayload>, TContextRunner>();
-  private ownContext!: TContextRunner;
+  private readonly ownContext: TContextRunner;
 
   private onMessage?: (opts: {
     identifier: string;
@@ -243,7 +243,8 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     await HookUtility.execute({
       logger: this.logger,
       scope: this.enqueue.name,
-      execution: () => this.onDataEnqueue?.({ identifier: this.identifier, queueElement }),
+      execution: () =>
+        run(() => this.onDataEnqueue?.({ identifier: this.identifier, queueElement })),
     });
 
     if (this.autoDispatch) {

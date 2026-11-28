@@ -34,6 +34,14 @@ describe('a listener of the framework', () => {
     expect(() => holder.listener(-1, 0)).toThrow('negative');
   });
 
+  test('a handler has one listener, so it can be removed and is never wrapped twice', () => {
+    const handler = () => Execution.current();
+    const listener = ExecutionFrames.listener({ handler });
+
+    expect(ExecutionFrames.listener({ handler })).toBe(listener);
+    expect(ExecutionFrames.listener({ handler: listener })).toBe(listener);
+  });
+
   test('names the user it runs for, read at each call', () => {
     let current: string | undefined = 'a';
     const listener = ExecutionFrames.listener({

@@ -1,4 +1,5 @@
 import type { OpenAPIHono } from '@hono/zod-openapi';
+import { ExecutionFrames } from '@venizia/ignis-helpers/core';
 import type { TBunServerInstance } from '@/base/applications';
 import type { ServerOptions } from 'socket.io';
 
@@ -43,7 +44,35 @@ export class SocketIOBunHandler {
         return honoServer.fetch(req, server);
       }
 
-      return engine.handleRequest(req, server) ?? new Response(null, { status: 404 });
+      // This path does not go through the application's middlewares, so it opens its own frame: without one, a
+      // request would run in whatever frame started the server.
+      return ExecutionFrames.root({
+        task: () => engine.handleRequest(req, server) ?? new Response(null, { status: 404 }),
+      });
     };
+  }
+
+  /** The engine's socket callbacks, each in a frame of its own, and so every listener of the application behind them. */
+  static createWebSocketHandler(opts: {
+    engineHandler: Awaited<ReturnType<typeof SocketIOBunHandler.createEngine>>['engineHandler'];
+  }) {
+    const { websocket } = opts.engineHandler;
+    const framed = { ...websocket };
+
+    for (const [key, callback] of Object.entries(websocket)) {
+      if (typeof callback !== 'function') {
+        continue;
+      }
+
+      Reflect.set(
+        framed,
+        key,
+        ExecutionFrames.listener({
+          handler: (...args: unknown[]) => Reflect.apply(callback, websocket, args),
+        }),
+      );
+    }
+
+    return framed;
   }
 }

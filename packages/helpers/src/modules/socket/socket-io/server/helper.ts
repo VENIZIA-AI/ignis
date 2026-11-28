@@ -155,6 +155,11 @@ export class SocketIOServerHelper extends BaseHelper {
     this.io.on(topic, ExecutionFrames.listener({ handler }));
   }
 
+  /** Removes a handler that `on` bound: what the server holds is its listener, not the handler itself. */
+  off<Args extends unknown[]>(opts: { topic: string; handler: (...args: Args) => unknown }) {
+    this.io?.off(opts.topic, ExecutionFrames.listener({ handler: opts.handler }));
+  }
+
   async configure() {
     const logger = this.logger.for(this.configure.name);
     logger.info('Configuring IO Server | id: %s | runtime: %s', this.identifier, this.runtime);

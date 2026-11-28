@@ -48,6 +48,21 @@ describe('listeners start from a root frame', () => {
     expect(frame).toEqual(ROOT);
   });
 
+  test('a cron tick keeps the job as its receiver and the argument the library passes', async () => {
+    const seen = gate<unknown[]>();
+    const job = new CronHelper({
+      cronTime: '0 0 1 1 *',
+      onTick: function (this: unknown, ...args: unknown[]) {
+        seen.open([this, args.length]);
+      },
+    });
+    await job.instance.fireOnTick();
+    const [receiver, count] = await seen.opened;
+
+    expect(receiver).toBe(job.instance);
+    expect(count).toBe(1);
+  });
+
   test('a worker bus message', async () => {
     const seen = gate<unknown>();
     const channel = new MessageChannel();
@@ -117,7 +132,7 @@ describe('hand-offs keep identity and drop rights', () => {
         new SequentialQueueHelper<string>({
           identifier: 'frames',
           onMessage: record,
-          onDataEnqueue: () => {},
+          onDataEnqueue: record,
           onDataDequeue: () => {
             record();
             done.open();
@@ -128,6 +143,7 @@ describe('hand-offs keep identity and drop rights', () => {
     await done.opened;
 
     expect(seen).toEqual([
+      { ...ROOT, userId: 'starter' },
       { ...ROOT, userId: 'starter' },
       { ...ROOT, userId: 'starter' },
     ]);
