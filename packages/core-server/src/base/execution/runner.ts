@@ -6,6 +6,7 @@ import {
   getError,
   type IExecutionFrame,
   type IExecutionRunner,
+  type IExecutionValues,
   type TExecutionRunOptions,
 } from '@venizia/ignis-helpers/core';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
@@ -148,23 +149,45 @@ export class ExecutionRunner extends BaseHelper implements IExecutionRunner {
     }
   }
 
-  /** A frozen copy: arrays and plain objects at any depth, so no task changes the values of the frame around it. */
-  private freezeValues<Value>(value: Value): Value {
-    if (Array.isArray(value)) {
-      const items = value.map((item: unknown) => this.freezeValues(item));
+  /**
+   * A frozen copy: the arrays and plain objects at any depth, so no task changes the values of the frame around it or
+   * the caller's. A function or a class instance is kept as it is.
+   */
+  private freezeValues(values: Partial<IExecutionValues>): Readonly<Partial<IExecutionValues>> {
+    const copy = { ...values };
+    const seen = new Map<object, object>();
 
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the copy holds the same items under the same shape; the compiler cannot say so for a generic
-      return Object.freeze(items) as Value;
+    for (const key of Object.keys(copy)) {
+      const item: unknown = Reflect.get(copy, key);
+      Reflect.set(copy, key, this.copyFrozen({ value: item, seen }));
     }
 
-    if (!RecordUtility.isPlainObject(value)) {
+    return Object.freeze(copy);
+  }
+
+  /** `seen` maps what was already copied to its copy, so a value that holds itself ends. */
+  private copyFrozen(opts: { value: unknown; seen: Map<object, object> }): unknown {
+    const { value, seen } = opts;
+    const isArray = Array.isArray(value);
+
+    if (!isArray && !RecordUtility.isPlainObject(value)) {
       return value;
     }
 
-    const entries = Object.entries(value).map(([key, item]) => [key, this.freezeValues(item)]);
+    const known = seen.get(value);
 
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the copy holds the same keys under the same shape; the compiler cannot say so for a generic
-    return Object.freeze(Object.fromEntries(entries)) as Value;
+    if (known) {
+      return known;
+    }
+
+    const copy = isArray ? new Array<unknown>(value.length) : {};
+    seen.set(value, copy);
+
+    for (const [key, item] of Object.entries(value)) {
+      Reflect.set(copy, key, this.copyFrozen({ value: item, seen }));
+    }
+
+    return Object.freeze(copy);
   }
 
   /**
@@ -177,7 +200,7 @@ export class ExecutionRunner extends BaseHelper implements IExecutionRunner {
     }
 
     const request = RequestContextRegistry.resolve();
-    const route = request && 'req' in request ? routePath(request, -1) : 'outside a request';
+    const route = request ? routePath(request, -1) : 'outside a request';
 
     if (this.warnedRoots.has(route)) {
       return;

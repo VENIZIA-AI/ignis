@@ -41,10 +41,20 @@ export class RequestContextRegistry {
     const frame = Execution.current();
 
     if (frame) {
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- helpers holds the request as unknown; only the server layer's request middleware puts one there, and it is a Hono context
-      return frame.request as Context | undefined;
+      return this.isContext(frame.request) ? frame.request : undefined;
     }
 
     return this.slot().resolver?.();
+  }
+
+  /** What a frame holds as its request is unknown to the layer that holds it: it is read only if it is a context. */
+  private static isContext(value: unknown): value is Context {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'req' in value &&
+      'get' in value &&
+      typeof value.get === 'function'
+    );
   }
 }
