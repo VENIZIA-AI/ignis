@@ -34,6 +34,7 @@ import type { IGrpcNativeOptions } from '@/base/controllers/grpc/native/common/t
 import { GrpcBindingKeys } from '@/components/controller/grpc';
 import { controller, useRequestContext } from '@/base/metadata';
 import type { GrpcNativeCallStore } from '@/base/controllers/grpc/native/call.store';
+import { GrpcListenerHelper } from '@/base/controllers/grpc/native/listener.helper';
 import { createFreshRegistry, TestAuthorizationEnforcer } from '../authorize/helpers';
 
 /** `greeter.v1.GreeterService`: unary `SayHello`, `ListHellos` (server), `Collect` (client), `Chat` (bidi). */
@@ -799,6 +800,35 @@ describe('native gRPC port - lifecycle', () => {
       await bad.stop();
     });
   }
+
+  test('a native toggle whose use is not a boolean stops the boot', async () => {
+    const bad = new NativeApplication(JSON.parse('{ "use": "false", "port": 0 }'));
+    bad.init();
+    const [outcome] = await Promise.allSettled([bad.start()]);
+    await bad.stop();
+
+    expect(outcome).toMatchObject({
+      status: 'rejected',
+      reason: { message: expect.stringContaining('option: [GrpcComponent] native |') },
+    });
+  });
+
+  test('a TLS toggle whose use is not a boolean is refused, never served as clear text', () => {
+    for (const use of ['"false"', '"true"']) {
+      const tls = JSON.parse(`{ "use": ${use}, "key": "k", "cert": "c" }`);
+
+      expect(
+        () =>
+          new GrpcListenerHelper({
+            options: { port: 0, tls },
+            routes: new Map(),
+            fetch: () => new Response(),
+            idleTimeoutMs: 0,
+            shutdown: new AbortController(),
+          }),
+      ).toThrow('option: [GrpcListenerHelper] native.tls |');
+    }
+  });
 
   test('TLS serves a client that trusts the certificate', async () => {
     const folder = mkdtempSync(path.join(tmpdir(), 'ignis-grpc-tls-'));

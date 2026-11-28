@@ -9,7 +9,7 @@ import type {
 import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IExtraOptions, TCount, TRepositoryLogOptions, TWhere } from '@venizia/ignis-kernel';
-import { RepositoryOperationScopes, ScopeOperations } from '@venizia/ignis-kernel';
+import { RepositoryOperationScopes, ScopeOperations, ToggleUtility } from '@venizia/ignis-kernel';
 import type { SQL } from 'drizzle-orm';
 import type {
   IRelationalExtraOptions,
@@ -117,7 +117,7 @@ export class PersistableRelationalRepository<
       });
     }
 
-    if (log?.use) {
+    if (ToggleUtility.isUsed(log, { name: `[${this.constructor.name}][_create] options.log` })) {
       this.logger.for('_create').log(log.level ?? 'info', 'Executing with opts: %j', opts);
     }
 
@@ -246,7 +246,7 @@ export class PersistableRelationalRepository<
       });
     }
 
-    if (log?.use) {
+    if (ToggleUtility.isUsed(log, { name: `[${this.constructor.name}][_upsert] options.log` })) {
       this.logger.for('_upsert').log(log.level ?? 'info', 'Executing with opts: %j', opts);
     }
 
@@ -403,7 +403,7 @@ export class PersistableRelationalRepository<
       });
     }
 
-    if (log?.use) {
+    if (ToggleUtility.isUsed(log, { name: `[${this.constructor.name}][_update] options.log` })) {
       this.logger.for('_update').log(log.level ?? 'info', 'Executing with opts: %j', opts);
     }
 
@@ -609,7 +609,7 @@ export class PersistableRelationalRepository<
       shouldSkipDefaultFilter,
     } = opts?.options ?? {};
 
-    if (log?.use) {
+    if (ToggleUtility.isUsed(log, { name: `[${this.constructor.name}][_delete] options.log` })) {
       this.logger.for('_delete').log(log.level ?? 'info', 'Executing with opts: %j', opts);
     }
 

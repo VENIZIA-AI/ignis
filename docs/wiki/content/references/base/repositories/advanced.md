@@ -407,6 +407,8 @@ await repository.create({
 // [_create] Executing with opts: { data: [...], options: {...} }
 ```
 
+`use` must be a boolean. A write with `log: null`, or a `use` such as `'false'`, throws before anything is written.
+
 | Level | Meaning |
 |---|---|
 | `debug` | Verbose - opts and intermediate state |

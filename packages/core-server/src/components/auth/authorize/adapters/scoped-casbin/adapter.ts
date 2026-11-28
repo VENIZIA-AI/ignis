@@ -1,7 +1,7 @@
 import type { IdType } from '@/base';
 import { type Model } from 'casbin';
 import { sql, type SQL } from 'drizzle-orm';
-import { GrantBuilder } from '@venizia/ignis-kernel';
+import { GrantBuilder, ToggleUtility } from '@venizia/ignis-kernel';
 import {
   AuthorizationActions,
   AuthorizationDecisions,
@@ -10,6 +10,7 @@ import {
 } from '@venizia/ignis-kernel';
 import { BaseFilteredAdapter } from '../base-filtered';
 import { CustomGrantExpander, type TCustomGrantRow } from '../custom-grant-expander';
+import { ScopedCasbinSoftDelete } from '../soft-delete.utility';
 import type { ICasbinPolicySource, IScopedCasbinEntities } from '../common';
 import { PrincipalPolicyEdges, type TPrincipalPolicyRow } from './policy-edges';
 import {
@@ -41,6 +42,10 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     resolveDomainEdges?: TResolveDomainEdgesFn;
   }) {
     super({ scope: ScopedCasbinAdapter.name, dataSource: opts.dataSource });
+    ScopedCasbinSoftDelete.assert({
+      scope: ScopedCasbinAdapter.name,
+      softDelete: opts.entities.softDelete,
+    });
     this.entities = opts.entities;
     this.resolveDomainEdges = opts.resolveDomainEdges;
     this.customGrantExpander = new CustomGrantExpander({
@@ -230,7 +235,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
   protected softDeleteClause(opts: { alias: string }): SQL {
     const sd = this.entities.softDelete;
 
-    if (!sd?.use) {
+    if (!ToggleUtility.isUsed(sd, { name: `[${ScopedCasbinAdapter.name}] entities.softDelete` })) {
       return sql.empty();
     }
 

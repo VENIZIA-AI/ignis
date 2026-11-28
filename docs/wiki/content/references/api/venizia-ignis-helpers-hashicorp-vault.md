@@ -17,8 +17,8 @@ Secrets provider backed by HashiCorp Vault via `node-vault`. `configure()` must 
 
 ```ts
 export declare class HashiCorpVaultHelper extends AbstractSecretsHelper {
-    private static readonly TOKEN_RENEWAL_RETRY_BASE_SECONDS;
-    private static readonly TOKEN_RENEWAL_RETRY_CAP_SECONDS;
+    private static readonly TOKEN_RENEWAL_RETRY_BASE_MS;
+    private static readonly TOKEN_RENEWAL_RETRY_CAP_MS;
     private readonly endpoint;
     private readonly auth;
     private client?;

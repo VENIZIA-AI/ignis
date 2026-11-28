@@ -1,5 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { getError } from '@/modules/error';
+import { RetryJitterModes } from '@/modules/retry/common/constants';
+import { RetryUtility } from '@/utilities/retry.utility';
 import { ModuleUtility } from '@/utilities/module.utility';
 import { AbstractSecretsHelper } from '../base';
 import { VaultAuthMethods, type IClock, type ITimerAdapter, type TTimerHandle } from '../common';
@@ -44,8 +46,8 @@ export interface IHashiCorpVaultHelperOptions {
 
 /** Secrets provider backed by HashiCorp Vault via `node-vault`. `configure()` must run before use; it logs in and schedules renewal of the Vault token when the token is renewable. */
 export class HashiCorpVaultHelper extends AbstractSecretsHelper {
-  private static readonly TOKEN_RENEWAL_RETRY_BASE_SECONDS = 1;
-  private static readonly TOKEN_RENEWAL_RETRY_CAP_SECONDS = 60;
+  private static readonly TOKEN_RENEWAL_RETRY_BASE_MS = 1_000;
+  private static readonly TOKEN_RENEWAL_RETRY_CAP_MS = 60_000;
 
   private readonly endpoint: string;
   private readonly auth: TVaultAuth;
@@ -206,18 +208,21 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
     }
 
     this.tokenRenewalRetryCount += 1;
-    const backoffSeconds = Math.min(
-      HashiCorpVaultHelper.TOKEN_RENEWAL_RETRY_CAP_SECONDS,
-      HashiCorpVaultHelper.TOKEN_RENEWAL_RETRY_BASE_SECONDS *
-        2 ** (this.tokenRenewalRetryCount - 1),
-    );
+    const delayMs = RetryUtility.computeBackoffDelayMs({
+      attempt: this.tokenRenewalRetryCount,
+      backoff: {
+        initialDelayMs: HashiCorpVaultHelper.TOKEN_RENEWAL_RETRY_BASE_MS,
+        maxDelayMs: HashiCorpVaultHelper.TOKEN_RENEWAL_RETRY_CAP_MS,
+        jitter: RetryJitterModes.NONE,
+      },
+    });
     this.tokenTimer = this.timers.set(() => {
       this.handleTokenRenewal().catch((error) => {
         this.logger
           .for(this.scheduleTokenRenewalRetry.name)
           .error('Token renewal retry handler crashed | error: %s', error);
       });
-    }, backoffSeconds * 1000);
+    }, delayMs);
   }
 
   private async handleTokenRenewal(): Promise<void> {

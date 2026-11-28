@@ -155,7 +155,8 @@ export class RetryUtility {
 
     delayMs = Math.min(delayMs, maxDelayMs);
 
-    if (delayMs <= 0) {
+    // `NaN` (a delay that is not a number, or 0 times a power past the number range) is no delay.
+    if (Number.isNaN(delayMs) || delayMs <= 0) {
       return 0;
     }
 

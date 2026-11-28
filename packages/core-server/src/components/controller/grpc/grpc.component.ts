@@ -37,7 +37,7 @@ export class GrpcComponent extends BaseComponent {
       isOptional: true,
     });
 
-    const native = ToggleUtility.pick(options?.native);
+    const native = ToggleUtility.pick(options?.native, { name: '[GrpcComponent] native' });
     const shutdown = new AbortController();
     /** `/package.Service/Method` to where the application mounts it: what the native port serves. */
     const routes = new Map<string, string>();

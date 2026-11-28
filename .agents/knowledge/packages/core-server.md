@@ -149,7 +149,8 @@ peers - `module` (bullmq) in `IBullMQMailExecutorOpts` and `module` (ioredis) in
 options - or registers them with `ModuleUtility.register({ modules: { ioredis, bullmq } })`. The
 executor's `redis` is a READY `IRedisHelper` (single, sentinel or cluster, never options): `BullMQHelper`
 duplicates its client per queue and worker and wraps a cluster queue name in a `{hash tag}`, and the
-executor never constructs, disconnects or closes the helper - the application owns it.
+executor never constructs, disconnects or closes the helper - the application owns it. The in-process
+executor caps both `options.delay` and its retry delay at the timer maximum (2147483647 ms).
 Mail attachments are resolved in ONE place, `MailService.send()` via `MailAttachmentUtility.resolve`
 (`mail/utilities/attachment.utility.ts`, internal - not in the `/mail` barrel): every attachment
 becomes `content` bytes and loses `path`/`href`/`raw`/`encoding` before any transport sees it.
@@ -190,12 +191,14 @@ An entry is `{ basePath, name?, bucket, helper, keyPrefix?, rawObjectPath?, link
 directUpload, metaLink, routes?, extend? }`. Every switch is a `TToggle<Options>`: `{ use: false }` or
 `{ use: true, ...options }`. `serverUpload`, `directUpload`, `metaLink` and `directUpload.validation` are
 REQUIRED (a missing one is a type error); `routes`, `auth.publicRead` and `extend` are optional. The only
-place `use` is read is `StaticAssetToggleUtility.isUsed`. `TToggle` and that utility live in the kernel
+place `use` is read is `StaticAssetToggleUtility.isUsed`, which throws on anything but a plain object with its own
+boolean `use` (a route entry is read whenever it is not `undefined`). `TToggle` and that utility live in the kernel
 (`ToggleUtility`, `src/utilities/toggle.utility.ts`, shared by components and controllers); static-asset
 re-exports them under the old names.
 `StaticAssetEntryUtility.resolve({ key, entry })` (`utilities/entry.utility.ts`) is the one place that reads
 the toggles, applies the defaults and makes the cross-checks the types cannot (plain JavaScript, a cast, a
-custom helper); every boot error is thrown with the entry's name. `name` is optional and derived from the
+custom helper); every boot error is thrown with the entry's name; a refused toggle names the entry and the field
+(`[<name>] <field>`, passed to `isUsed`/`pick`). `name` is optional and derived from the
 key (`staticAsset` -> `StaticAssetController`). The helper declares its backend: `helper.storageType`
 (`StorageTypes.DISK` or `BUN_S3`, from helpers; optional on `IStorageHelper`) replaces the old `storage`
 field, and the entry refuses a helper that declares neither. `StaticAssetControllerFactory.build<Schema>({

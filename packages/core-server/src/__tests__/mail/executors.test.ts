@@ -1,14 +1,24 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, test } from 'bun:test';
 import type { JobsOptions } from 'bullmq';
-import { BullMQExecutorModes, MailDefaults, MailExecutorErrors } from '@/components/mail/common';
-import type { IMailProcessorResult, IQueueJobPayload } from '@/components/mail/common';
+import {
+  BullMQExecutorModes,
+  MailBackoffTypes,
+  MailDefaults,
+  MailExecutorErrors,
+} from '@/components/mail/common';
+import type {
+  IMailProcessorResult,
+  IMailQueueOptions,
+  IQueueJobPayload,
+} from '@/components/mail/common';
 import {
   BullMQMailExecutorHelper,
   DirectMailExecutorHelper,
   InternalQueueMailExecutorHelper,
 } from '@/components/mail/helpers';
 import { LoggerFactory, type IRedisHelper } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 import { catchError, ProcessorCallTracker, successProcessorResult } from './fakes';
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -183,6 +193,101 @@ describe('InternalQueueMailExecutorHelper', () => {
     expect(executor['delayedJobs'].size).toBe(0);
     await sleep(10);
     expect(tracker.calls).toHaveLength(0);
+  });
+});
+
+describe('InternalQueueMailExecutorHelper - backoff', () => {
+  const TIMER_MAX_MS = 2_147_483_647;
+
+  const delayAfter = (opts: { attempts: number; backoff?: IMailQueueOptions['backoff'] }) => {
+    const executor = new InternalQueueMailExecutorHelper({ identifier: 'mail-backoff' });
+    const job: IQueueJobPayload = {
+      id: 'job',
+      email: 'a@b.com',
+      attempts: opts.attempts,
+      scheduledAt: 0,
+      options: { backoff: opts.backoff },
+    };
+
+    return executor['calculateBackoff'](job);
+  };
+
+  test('exponential doubles from the delay, with no jitter and no 30 s limit', () => {
+    const backoff: IMailQueueOptions['backoff'] = {
+      type: MailBackoffTypes.EXPONENTIAL,
+      delay: 1000,
+    };
+
+    expect([1, 2, 3, 7].map((attempts) => delayAfter({ attempts, backoff }))).toEqual([
+      1000, 2000, 4000, 64_000,
+    ]);
+  });
+
+  test('fixed keeps the delay, and no backoff is the default delay', () => {
+    const backoff: IMailQueueOptions['backoff'] = { type: MailBackoffTypes.FIXED, delay: 45_000 };
+
+    expect(delayAfter({ attempts: 3, backoff })).toBe(45_000);
+    expect(delayAfter({ attempts: 3 })).toBe(MailDefaults.BACKOFF_DELAY_MS);
+  });
+
+  test('a backoff that is not a number, or zero for very many attempts, is no delay', () => {
+    const fixed: IMailQueueOptions['backoff'] = { type: MailBackoffTypes.FIXED, delay: Number.NaN };
+    const exponential: IMailQueueOptions['backoff'] = {
+      type: MailBackoffTypes.EXPONENTIAL,
+      delay: 0,
+    };
+
+    expect(delayAfter({ attempts: 1, backoff: fixed })).toBe(0);
+    expect(delayAfter({ attempts: 2000, backoff: exponential })).toBe(0);
+  });
+
+  test('a delay never passes the longest delay a timer can hold', () => {
+    const exponential: IMailQueueOptions['backoff'] = {
+      type: MailBackoffTypes.EXPONENTIAL,
+      delay: 1000,
+    };
+    const fixed: IMailQueueOptions['backoff'] = { type: MailBackoffTypes.FIXED, delay: 2 ** 31 };
+
+    expect(delayAfter({ attempts: 40, backoff: exponential })).toBe(TIMER_MAX_MS);
+    expect(delayAfter({ attempts: 2000, backoff: exponential })).toBe(TIMER_MAX_MS);
+    expect(delayAfter({ attempts: 1, backoff: fixed })).toBe(TIMER_MAX_MS);
+  });
+
+  test('an enqueue delay past the timer limit waits, it does not fire at once', async () => {
+    const executor = new InternalQueueMailExecutorHelper({ identifier: 'mail-long-delay' });
+    const tracker = new ProcessorCallTracker();
+
+    executor.setProcessor(async (email: string) => {
+      tracker.record(email);
+
+      return successProcessorResult;
+    });
+
+    await executor.enqueueVerificationEmail('a@b.com', { delay: 2 ** 31 });
+    await sleep(50);
+    await executor.close();
+
+    expect(tracker.calls).toHaveLength(0);
+  });
+
+  test('a retry past the timer limit waits, it does not fire at once', async () => {
+    const executor = new InternalQueueMailExecutorHelper({ identifier: 'mail-long-backoff' });
+    const tracker = new ProcessorCallTracker();
+
+    executor.setProcessor(async (email: string) => {
+      tracker.record(email);
+      throw getError({ message: 'smtp down' });
+    });
+
+    await executor.enqueueVerificationEmail('a@b.com', {
+      attempts: 3,
+      backoff: { type: MailBackoffTypes.FIXED, delay: 2 ** 31 },
+    });
+    await tracker.waitFor({ expected: 1 });
+    await sleep(50);
+    await executor.close();
+
+    expect(tracker.calls).toHaveLength(1);
   });
 });
 

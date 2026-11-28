@@ -790,6 +790,8 @@ interface IMailQueueExecutor {
   | `type: 'fixed'` | the raw `delay` |
   | `type: 'exponential'` | `delay * 2 ** (attempt - 1)` |
 
+  Neither `options.delay` nor a retry delay passes `2147483647ms` (about 24.8 days), the longest a timer holds.
+
 - `close()` clears every pending delayed/retry `setTimeout`. Without that cleanup, a live timer keeps the event loop open past shutdown. After `close()` a failing job arms no new timer and `enqueueVerificationEmail()` throws.
 - No persistence across restarts.
 

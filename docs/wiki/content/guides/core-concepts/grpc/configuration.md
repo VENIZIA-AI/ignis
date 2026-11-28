@@ -47,7 +47,7 @@ All options are optional. Absent options keep the defaults below.
 | `native.shutdownTimeout` | `number` (ms) | `10_000` | positive, at most 2147483647 |
 | `native.limits.concurrentStreams` | `number` | `100` | integer 1 to 4294967295, per connection |
 
-A value outside these ranges stops the boot.
+A value outside these ranges stops the boot. `native.use` and `native.tls.use` are booleans: anything else stops the boot too.
 
 ## Application settings that affect gRPC
 

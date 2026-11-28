@@ -1443,12 +1443,22 @@ Reads the `{ use }` switches a component or controller option is written with.
 
 ```ts
 export declare class ToggleUtility {
-    /** The only place a toggle's `use` is read. Narrowing here is what lets every caller reach the options without a cast. */
-    static isUsed<Options extends object>(toggle: TToggle<Options> | undefined): toggle is Extract<TToggle<Options>, {
+    /**
+     * Whether a toggle is on: only `{ use: true }`; an absent one is off. Throws, with status 500, on anything but a plain
+     * object with its own boolean `use`: a truthy string from a config file must never switch a feature on, nor a refused
+     * one switch TLS off.
+     *
+     * @param opts.name - The option the toggle was written at, for the error message.
+     */
+    static isUsed<Options extends object>(toggle: TToggle<Options> | undefined, opts?: {
+        name: string;
+    }): toggle is Extract<TToggle<Options>, {
         use: true;
     }>;
-    /** The options of a toggle that is on, without `use`; `undefined` when it is off or absent. */
-    static pick<Options extends object>(toggle: TToggle<Options> | undefined): Omit<Extract<TToggle<Options>, {
+    /** The options of a toggle that is on, without `use`; `undefined` when it is off or absent. Throws where `isUsed` does. */
+    static pick<Options extends object>(toggle: TToggle<Options> | undefined, opts?: {
+        name: string;
+    }): Omit<Extract<TToggle<Options>, {
         use: true;
     }>, 'use'> | undefined;
 }
@@ -1639,15 +1649,3 @@ export type TRepositoryLogOptions = {
 ```
 
 Source: `packages/kernel/src/base/repositories/common/types/options.ts`
-
-## `TRepositoryMetadata`
-
-*type*
-
-What `@repository` accepts, discriminated on `type`.
-
-```ts
-export type TRepositoryMetadata<Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource> = IRepositoryMetadata<Model, DataSource> | IRemoteRepositoryMetadata<DataSource>;
-```
-
-Source: `packages/kernel/src/helpers/inversion/common/types/persistence.ts`
