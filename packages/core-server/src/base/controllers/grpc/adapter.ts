@@ -1,4 +1,4 @@
-import type { ConnectRouter, ContextKey, HandlerContext } from '@connectrpc/connect';
+import type { ConnectRouter, ContextKey, HandlerContext, Interceptor } from '@connectrpc/connect';
 import type { UniversalHandler } from '@connectrpc/connect/protocol';
 import { BaseHelper, getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { GRPC, HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
@@ -12,7 +12,7 @@ import { GrpcTimeoutGuard } from './timeout.guard';
 import { GrpcNativeCallStore } from './native/call.store';
 import type { IConnectNodeModule } from './native/common/types';
 import { GrpcNativeWriter } from './native/native.writer';
-import { AppErrorMiddleware } from '@/base/middlewares/app-error/app-error.middleware';
+import { GrpcErrorMiddleware } from './error.middleware';
 import type {
   IConnectAdapterResult,
   IConnectRpcModule,
@@ -53,11 +53,13 @@ interface IAdapterOptions<
     ServiceType,
     ConfigurableOptions
   >;
-  interceptors?: unknown[];
+  interceptors?: Interceptor[];
   module?: IConnectRpcModule;
   limits?: IGrpcLimits;
   /** Set when the native gRPC port is on: handlers of the gRPC protocol are built too. */
   native?: IGrpcNativeAdapterOptions;
+  /** Aborted when `stop()` runs out of time on the application port: every handler's `rpc.signal` follows it. */
+  shutdownSignal?: AbortSignal;
   /** The server's `idleTimeout` in seconds, given back to a connection when a call ends. */
   idleTimeout?: number;
 }
@@ -78,7 +80,7 @@ export class GrpcRequestAdapter<
   /** The Hono context of the call, as ConnectRPC carries it to the RPC handler. */
   private readonly honoContext: ContextKey<Context<RouteEnv> | undefined>;
   /** The server's default error handler: it decides the status and the message a client may read, and logs the error. */
-  private readonly handleError = new AppErrorMiddleware().value();
+  private readonly handleError = new GrpcErrorMiddleware().value();
 
   private constructor(
     private readonly options: IAdapterOptions<
@@ -322,7 +324,7 @@ export class GrpcRequestAdapter<
     (opts.router.service as Function)(service, handlers);
   }
 
-  /** The signal of the native handlers: it aborts with the listener's, carrying what the client should read. */
+  /** The signal a router hands its handlers: it aborts with a port's, carrying what the client should read. */
   private toShutdownSignal(opts: { signal: AbortSignal }) {
     const shutdown = new AbortController();
     opts.signal.addEventListener('abort', () => {
@@ -431,7 +433,11 @@ export class GrpcRequestAdapter<
       routerOpts.interceptors = opts.interceptors;
     }
 
-    const connectRouter = peers.connect.createConnectRouter(routerOpts);
+    const connectRouter = peers.connect.createConnectRouter({
+      ...routerOpts,
+      shutdownSignal:
+        opts.shutdownSignal && adapter.toShutdownSignal({ signal: opts.shutdownSignal }),
+    });
     const nativeRouter =
       opts.native &&
       peers.connect.createConnectRouter({

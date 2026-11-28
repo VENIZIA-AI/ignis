@@ -5,7 +5,7 @@ description: Protect a gRPC method with authenticate and authorize, and send the
 
 # gRPC auth
 
-gRPC auth in IGNIS is `authenticate` and `authorize`. A gRPC method takes the same `authenticate` and `authorize` settings as a REST route. A method with neither is public.
+gRPC auth in IGNIS is `authenticate` and `authorize`. A gRPC method takes the same `authenticate` and `authorize` settings as a REST route. A method with neither is public: leave `authenticate` out to say so. An `authenticate` that names no strategy stops the boot.
 
 ```typescript
 import { Authentication, unary } from '@venizia/ignis';
@@ -75,7 +75,7 @@ With an array, every spec must allow.
 
 | Field | Type | Default | Meaning |
 |---|---|---|---|
-| `authenticate.strategies` | `string[]` | none | Strategy names. Empty or absent adds no authentication |
+| `authenticate.strategies` | `string[]` | none | Strategy names. At least one when `authenticate` is set |
 | `authenticate.mode` | `'any' \| 'all'` | `'any'` | One strategy must succeed, or all of them |
 | `authorize` | spec or spec[] | none | Permissions checked after authentication |
 

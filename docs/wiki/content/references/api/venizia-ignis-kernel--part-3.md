@@ -322,6 +322,35 @@ export declare class DatabaseErrorCodes {
 
 Source: `packages/kernel/src/base/middlewares/app-error/definition.ts`
 
+## `DatabaseErrorHandler`
+
+*class*
+
+The database errors the error handler answers as the caller's: 400 for a request-caused one, 409 for a retryable conflict.
+
+```ts
+export declare class DatabaseErrorHandler {
+    /** True for a database error caused by the request (SQLSTATE class 22/23/44) -> HTTP 400; in production the detail/table/constraint context is suppressed so no row values or schema internals leak. */
+    static isDatabaseClientError(opts: {
+        error: Error;
+        isProduction: boolean;
+    }): {
+        isClientError: boolean;
+        message?: string;
+        messageCode?: TDatabaseErrorCode;
+    };
+    /** The code of a client-class SQLSTATE; `undefined` for any other, which then answers the default code. */
+    private static resolveMessageCode;
+    private static resolveClassMessageCode;
+    /** True for a transient, retryable transaction conflict (serialization failure / deadlock - SQLSTATE 40001 / 40P01) -> HTTP 409: the client can retry the same request. */
+    static isRetryableDatabaseError(opts: {
+        error: Error;
+    }): boolean;
+}
+```
+
+Source: `packages/kernel/src/base/middlewares/app-error/database.handler.ts`
+
 ## `DataSourceDrivers`
 
 *class*
@@ -978,40 +1007,3 @@ export interface IAuthorizationDomainSource {
 ```
 
 Source: `packages/kernel/src/base/auth/authorize/common/types/request.ts`
-
-## `IAuthorizationEnforcer`
-
-*interface*
-
-Builds rules and evaluates requests. Cache management (`invalidateUserCache`/`rebuildUserCache`) is OPTIONAL - only on per-user-caching enforcers; the registry feature-detects it at runtime.
-
-```ts
-export interface IAuthorizationEnforcer<E extends Env = Env, TAction = string, TResource = string, TRules = unknown, TBuildRulesReturn = ValueOrPromise<TRules>, TEvaluateReturn = ValueOrPromise<TAuthorizationDecision>> {
-    name: string;
-    configure(): ValueOrPromise<void>;
-    buildRules(opts: {
-        user: IAuthorizationUser;
-        context: TContext<E, string>;
-    }): TBuildRulesReturn;
-    evaluate(opts: {
-        rules: TRules;
-        request: IAuthorizationRequest<TAction, TResource>;
-        context: TContext<E, string>;
-    }): TEvaluateReturn;
-    /** Drop a user's cached policies. Implemented only by caching enforcers. */
-    invalidateUserCache?(opts: {
-        user: IAuthorizationUser;
-    }): Promise<{
-        invalidatedKeys: number;
-    }>;
-    /** Drop + rebuild a user's cached policies. Implemented only by caching enforcers. */
-    rebuildUserCache?(opts: {
-        user: IAuthorizationUser;
-    }): Promise<{
-        cacheKey: string;
-        lineCount: number;
-    }>;
-}
-```
-
-Source: `packages/kernel/src/base/auth/authorize/common/types/enforcer.ts`

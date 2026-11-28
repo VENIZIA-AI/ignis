@@ -9,6 +9,63 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 Part 5 of 9 of [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel).
 
+## `IModelAccessWriteSettings`
+
+*interface*
+
+What a restricted caller may write to the scope columns (`@model` settings.access.write).
+
+```ts
+export interface IModelAccessWriteSettings {
+    /**
+     * What a create, createAll or an update payload that names a scope column does when its value
+     * disagrees with the resolved scope. `reject` refuses the write and writes nothing - for
+     * `createAll` not even the valid rows. `assign` also fills a scope column that is ABSENT from a
+     * created row, when the scope is a single equality; a value that is present and disagrees is
+     * still refused.
+     *
+     * The scope's columns and allowed values are read from the resolved `where` (equality, `eq`, `inq`
+     * and arrays, `and`, and an `or` over one column). Any other shape cannot be checked, and the write
+     * is refused with its own message - never skipped. `ScopeFilters.UNRESTRICTED` bypasses the guard
+     * too, which is the deliberate way to write across scopes (system scope, an admin role).
+     *
+     * Not checked: an update that does not name the scope column (the row was already selected through
+     * the scoped `where`), and raw statements that bypass the repository.
+     *
+     * @default 'reject'
+     */
+    mode?: TScopeWriteGuard;
+    /**
+     * `true` lets a restricted caller write `null` to a scope column, or leave it out on create: the
+     * row has no owner and is shared. Without it, `null` is refused like any other value
+     * outside the scope, even when the resolved scope has a `null` branch (that branch lets the caller
+     * READ shared rows, a separate permission). Reads are scoped as before.
+     *
+     * @default false
+     */
+    sharedRows?: boolean;
+}
+```
+
+Source: `packages/kernel/src/helpers/inversion/common/types/model.ts`
+
+## `IModelAuthorizeSettings`
+
+*interface*
+
+The `authorize` settings of a model.
+
+```ts
+export interface IModelAuthorizeSettings {
+    /** The authorization principal name (resource/subject) for this model. */
+    principal: string;
+    /** Extensible - consumers can add any extra authorization metadata. */
+    [extra: string | symbol]: unknown;
+}
+```
+
+Source: `packages/kernel/src/helpers/inversion/common/types/model.ts`
+
 ## `IModelMetadata`
 
 *interface*
@@ -1354,87 +1411,6 @@ POST route decorator. Equivalent to @api but automatically sets method to 'post'
 
 ```ts
 export declare const post: <RestRouteConfigType extends Omit<IAuthRouteConfig, "method">>(opts: {
-    configs: RestRouteConfigType;
-}) => (target: object, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
-```
-
-Source: `packages/kernel/src/base/metadata/routes/rest.ts`
-
-## `PostgresErrorCodes`
-
-*const*
-
-PostgreSQL SQLSTATE codes representing a CLIENT error (HTTP 400) - caused by the request/data, not a server fault. @see https://www.postgresql.org/docs/current/errcodes-appendix.html
-
-```ts
-export declare const PostgresErrorCodes: {
-    readonly DATA_EXCEPTION: "22000";
-    readonly STRING_DATA_TOO_LONG: "22001";
-    readonly NUMERIC_VALUE_OUT_OF_RANGE: "22003";
-    readonly NULL_VALUE_NOT_ALLOWED: "22004";
-    readonly INVALID_DATETIME_FORMAT: "22007";
-    readonly DATETIME_FIELD_OVERFLOW: "22008";
-    readonly INVALID_TIME_ZONE_DISPLACEMENT_VALUE: "22009";
-    readonly SUBSTRING_ERROR: "22011";
-    readonly DIVISION_BY_ZERO: "22012";
-    readonly INVALID_PARAMETER_VALUE: "22023";
-    readonly INVALID_ESCAPE_SEQUENCE: "22025";
-    readonly STRING_DATA_LENGTH_MISMATCH: "22026";
-    readonly DUPLICATE_JSON_OBJECT_KEY_VALUE: "22030";
-    readonly INVALID_JSON_TEXT: "22032";
-    readonly FLOATING_POINT_EXCEPTION: "22P01";
-    readonly INVALID_TEXT_REPRESENTATION: "22P02";
-    readonly INVALID_BINARY_REPRESENTATION: "22P03";
-    readonly UNTRANSLATABLE_CHARACTER: "22P05";
-    readonly INTEGRITY_CONSTRAINT_VIOLATION: "23000";
-    readonly RESTRICT_VIOLATION: "23001";
-    readonly NOT_NULL_VIOLATION: "23502";
-    readonly FOREIGN_KEY_VIOLATION: "23503";
-    readonly UNIQUE_VIOLATION: "23505";
-    readonly CHECK_VIOLATION: "23514";
-    readonly EXCLUSION_VIOLATION: "23P01";
-    readonly WITH_CHECK_OPTION_VIOLATION: "44000";
-};
-```
-
-Source: `packages/kernel/src/base/middlewares/app-error/definition.ts`
-
-## `PostgresErrors`
-
-*class*
-
-Finds the Postgres error in a thrown value, through the `cause` chain an ORM builds around a driver error. The error handler uses it; so can your code.
-
-```ts
-export declare class PostgresErrors {
-    /** How many `cause` hops the walk follows: the thrown error is hop 0, so an error 10 hops down is found and one 11 hops down is not. */
-    static readonly MAX_DEPTH = 10;
-    /** Reads one property and never throws: a getter that throws, or a Proxy trap that does, reads as `undefined`. */
-    private static read;
-    /** The first spelling of a field that holds a string, or `undefined`. */
-    private static readString;
-    /** Normalizes one driver error into the result type, or `undefined` when its `code` is not a SQLSTATE. */
-    private static normalize;
-    /**
-     * Finds the Postgres error in a thrown value, looking through `cause` (an ORM wraps the driver error, sometimes more than once). The outermost error with a SQLSTATE `code` wins.
-     * Never throws: a value that is not an object, a cycle, a getter that throws and a Proxy all end in `undefined`.
-     */
-    static find(opts: {
-        error: unknown;
-    }): IPostgresError | undefined;
-}
-```
-
-Source: `packages/kernel/src/base/middlewares/app-error/postgres-errors.ts`
-
-## `put`
-
-*const*
-
-PUT route decorator. Equivalent to @api but automatically sets method to 'put'.
-
-```ts
-export declare const put: <RestRouteConfigType extends Omit<IAuthRouteConfig, "method">>(opts: {
     configs: RestRouteConfigType;
 }) => (target: object, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
 ```

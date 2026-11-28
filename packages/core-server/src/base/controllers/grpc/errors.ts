@@ -2,6 +2,7 @@ import { GRPC, HTTP, type TGrpcResultCode } from '@venizia/ignis-helpers/common'
 import { getError, isApplicationError, RecordUtility } from '@venizia/ignis-helpers/core';
 import type { Context, Env, ErrorHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import { DatabaseErrorCodes, DatabaseErrorHandler } from '@venizia/ignis-kernel';
 
 const CODES = new Map<number, TGrpcResultCode>([
   [HTTP.ResultCodes.RS_4.BadRequest, GRPC.ResultCodes.INVALID_ARGUMENT],
@@ -11,6 +12,13 @@ const CODES = new Map<number, TGrpcResultCode>([
   [HTTP.ResultCodes.RS_4.Conflict, GRPC.ResultCodes.ABORTED],
   [HTTP.ResultCodes.RS_4.UnprocessableEntity, GRPC.ResultCodes.INVALID_ARGUMENT],
   [HTTP.ResultCodes.RS_4.TooManyRequests, GRPC.ResultCodes.RESOURCE_EXHAUSTED],
+]);
+
+/** The database errors a REST request answers 400 for, whose gRPC code says more than `invalid_argument`. */
+const DATABASE_CODES = new Map<string, TGrpcResultCode>([
+  [DatabaseErrorCodes.UNIQUE_VIOLATION, GRPC.ResultCodes.ALREADY_EXISTS],
+  [DatabaseErrorCodes.FOREIGN_KEY_VIOLATION, GRPC.ResultCodes.FAILED_PRECONDITION],
+  [DatabaseErrorCodes.CONSTRAINT_VIOLATION, GRPC.ResultCodes.FAILED_PRECONDITION],
 ]);
 
 /**
@@ -53,9 +61,10 @@ export class GrpcErrors {
   }
 
   /**
-   * A client error (4xx) thrown as `getError`'s error or as Hono's `HTTPException` becomes a `ConnectError` of the
-   * loaded ConnectRPC module, with its code and public message. Anything else, a `ConnectError` the application threw
-   * included, is answered as it is: ConnectRPC keeps its own error and hides the rest behind `internal`.
+   * A client error (4xx) thrown as `getError`'s error or as Hono's `HTTPException`, and a database error a REST request
+   * answers 400 or 409 for, becomes a `ConnectError` of the loaded ConnectRPC module, with its code and public message.
+   * Anything else, a `ConnectError` the application threw included, is answered as it is: ConnectRPC keeps its own error
+   * and hides the rest behind `internal`.
    */
   static async toAnswer<RouteEnv extends Env>(opts: {
     error: unknown;
@@ -66,10 +75,19 @@ export class GrpcErrors {
     const { error, context, connect, handle } = opts;
     const ConnectError: unknown = Reflect.get(connect, 'ConnectError');
 
-    // Only the framework's own errors: another library's `statusCode` and text were not written for this caller.
-    const isFrameworkError = isApplicationError(error) || error instanceof HTTPException;
+    // The application's own choice of code stands, whatever its `cause` is.
+    if (typeof ConnectError !== 'function' || error instanceof ConnectError) {
+      return error;
+    }
 
-    if (typeof ConnectError !== 'function' || !isFrameworkError) {
+    // Only the framework's own errors and the database errors it classifies: another library's `statusCode` and text
+    // were not written for this caller.
+    const isAnswerable =
+      isApplicationError(error) ||
+      error instanceof HTTPException ||
+      (error instanceof Error && GrpcErrors.isDatabaseError({ error }));
+
+    if (!isAnswerable) {
       return error;
     }
 
@@ -84,8 +102,33 @@ export class GrpcErrors {
 
     const body: unknown = await response.json();
     const message = RecordUtility.isRecord(body) ? body.message : undefined;
-    const code = CODES.get(response.status) ?? GRPC.ResultCodes.FAILED_PRECONDITION;
+    const databaseCode =
+      response.status === HTTP.ResultCodes.RS_4.BadRequest
+        ? DATABASE_CODES.get(GrpcErrors.readMessageCode({ body }))
+        : undefined;
+    const code = databaseCode ?? CODES.get(response.status) ?? GRPC.ResultCodes.FAILED_PRECONDITION;
 
     return Reflect.construct(ConnectError, [String(message), code]);
+  }
+
+  /** True for a database error the error handler answers 400 or 409. */
+  private static isDatabaseError(opts: { error: Error }): boolean {
+    const { error } = opts;
+
+    // Only the classification is read here: the handler writes the message, for its own environment.
+    const { isClientError } = DatabaseErrorHandler.isDatabaseClientError({
+      error,
+      isProduction: true,
+    });
+
+    return isClientError || DatabaseErrorHandler.isRetryableDatabaseError({ error });
+  }
+
+  /** The `normalized.code` of an error response, or an empty string. */
+  private static readMessageCode(opts: { body: unknown }): string {
+    const normalized = RecordUtility.isRecord(opts.body) ? opts.body.normalized : undefined;
+    const code = RecordUtility.isRecord(normalized) ? normalized.code : undefined;
+
+    return typeof code === 'string' ? code : '';
   }
 }

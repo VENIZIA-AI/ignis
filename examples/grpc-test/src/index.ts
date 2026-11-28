@@ -23,7 +23,7 @@ const main = async () => {
   application.init();
   await application.start();
 
-  // SIGTERM and SIGINT: end the followed streams, drain the native port, close both servers and the database.
+  // SIGTERM and SIGINT: wait for the calls in flight, abort the rest, close both servers and the database.
   application.installShutdownSignals({ timeoutMs: 15_000 });
 };
 

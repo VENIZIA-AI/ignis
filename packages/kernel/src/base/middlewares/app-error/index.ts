@@ -1,4 +1,5 @@
 export * from './app-error.middleware';
+export { DatabaseErrorHandler } from './database.handler';
 export { DatabaseErrorCodes, PostgresErrorCodes } from './definition';
 export type { TDatabaseErrorCode } from './definition';
 export { PostgresErrors } from './postgres-errors';

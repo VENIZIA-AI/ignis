@@ -44,7 +44,7 @@ All options are optional. Absent options keep the defaults below.
 | `native.port` | `number` | required | integer 0 to 65535; 0 takes a free port |
 | `native.host` | `string` | `'127.0.0.1'` | an empty string means the default |
 | `native.tls` | `{ use: false }` or `{ use: true, key, cert }` | `{ use: false }` | `key` and `cert`: PEM `string` or `Buffer`, both required |
-| `native.shutdownTimeout` | `number` (ms) | `10_000` | positive, at most 2147483647 |
+| `native.shutdownTimeout` | `number` (ms) | `10_000` | positive, at most 2147483647. [Governs both ports](/guides/core-concepts/grpc/shutdown) |
 | `native.limits.concurrentStreams` | `number` | `100` | integer 1 to 4294967295, per connection |
 
 A value outside these ranges stops the boot.

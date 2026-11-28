@@ -62,4 +62,4 @@ Set `middlewares.cors` for your origin. See [browser clients](/guides/core-conce
 
 ## Shutdown hangs or exits with code 1
 
-An open stream on the application port holds `stop()`. [End it in a post-stop hook](/guides/core-concepts/grpc/shutdown#end-long-lived-streams-at-shutdown).
+A handler that ignores `rpc.signal` holds `stop()` on the application port. [Pass the signal to everything it waits on](/guides/core-concepts/grpc/shutdown#shutdown-of-the-application-port), and keep the signal `timeoutMs` above `shutdownTimeout`.

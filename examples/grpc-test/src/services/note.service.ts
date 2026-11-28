@@ -21,15 +21,9 @@ export interface INoteDraft {
 @service({ scope: BindingScopes.SINGLETON })
 export class NoteService extends BaseService {
   private readonly watchers = new Set<NoteWatcher>();
-  private isStopping = false;
 
   constructor(@inject({ target: NoteRepository }) private readonly noteRepository: NoteRepository) {
     super({ scope: NoteService.name });
-  }
-
-  /** Whether `close()` ran: a followed stream that ends now ends because the server stops. */
-  get isClosed() {
-    return this.isStopping;
   }
 
   countWatchers() {
@@ -68,8 +62,7 @@ export class NoteService extends BaseService {
   }
 
   /**
-   * The signed-in user's notes, oldest first (at most 100), then with `follow` each new one until the signal aborts or
-   * the service closes.
+   * The signed-in user's notes, oldest first (at most 100), then with `follow` each new one until the signal aborts.
    */
   async *watch(opts: { follow: boolean; signal: AbortSignal }): AsyncGenerator<TNote> {
     // Registered before the list is read, so a note created meanwhile is not lost.
@@ -85,10 +78,6 @@ export class NoteService extends BaseService {
       while (watcher) {
         const note = await watcher.next({ signal: opts.signal });
 
-        if (!note) {
-          return;
-        }
-
         if (!sent.has(note.id)) {
           yield note;
         }
@@ -100,22 +89,9 @@ export class NoteService extends BaseService {
     }
   }
 
-  /** Ends every followed stream, and any opened later. Called while the application stops. */
-  close() {
-    this.isStopping = true;
-
-    for (const watcher of this.watchers) {
-      watcher.end();
-    }
-  }
-
   private openWatcher() {
     const watcher = new NoteWatcher(CurrentUser.requireId());
     this.watchers.add(watcher);
-
-    if (this.isStopping) {
-      watcher.end();
-    }
 
     return watcher;
   }

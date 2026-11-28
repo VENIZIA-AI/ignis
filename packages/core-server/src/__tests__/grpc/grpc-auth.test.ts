@@ -158,6 +158,29 @@ describe('gRPC adapter - the real authenticate and authorize middleware', () => 
     expect(both.ran).toBe(1);
   });
 
+  const empty: IRpcMetadata['authenticate'][] = [
+    { strategies: [] },
+    {},
+    { mode: AuthenticationModes.ALL },
+  ];
+
+  for (const authenticate of empty) {
+    test(`authenticate ${JSON.stringify(authenticate)} names no strategy: boot is refused`, async () => {
+      const [outcome] = await Promise.allSettled([call({ configs: { authenticate } })]);
+
+      expect(outcome).toMatchObject({ status: 'rejected' });
+      expect(String(Reflect.get(outcome, 'reason'))).toContain(
+        '[GreeterController] RPC "sayHello": authenticate names no strategy',
+      );
+    });
+  }
+
+  test('a public RPC leaves authenticate out', async () => {
+    const result = await call({ configs: {} });
+
+    expect(result).toEqual({ status: 200, body: { message: 'hello' }, ran: 1 });
+  });
+
   test('an allowed action reaches the handler', async () => {
     useEnforcer();
     const result = await call({

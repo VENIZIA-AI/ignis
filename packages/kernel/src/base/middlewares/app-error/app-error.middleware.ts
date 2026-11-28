@@ -229,7 +229,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
           env,
           context.req.path,
           context.req.method,
-          context.req.url,
+          this.readLogUrl({ context }),
           this.formatError({ error }),
         );
       } else {
@@ -414,7 +414,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
   }
 
   /** A throw site may set `logLevel` via `getError`; anything unset or malformed logs at `error`. */
-  private resolveLogLevel(opts: { error: TThrown }): TLogLevel {
+  protected resolveLogLevel(opts: { error: TThrown; statusCode: number }): TLogLevel {
     const candidate = 'logLevel' in opts.error ? opts.error.logLevel : undefined;
 
     if (typeof candidate === 'string' && LogLevels.isValid(candidate)) {
@@ -422,6 +422,11 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     }
 
     return LogLevels.ERROR;
+  }
+
+  /** The URL a log line names. */
+  protected readLogUrl(opts: { context: Context }): string {
+    return opts.context.req.url;
   }
 
   /** The one place a thrown error reaches the log - called once the status is known, so it carries it. */
@@ -436,12 +441,12 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     const { error, context, requestId, statusCode, messageCode, type } = opts;
 
     this.logger.log(
-      this.resolveLogLevel({ error }),
+      this.resolveLogLevel({ error, statusCode }),
       '[%s] REQUEST ERROR | %s | %s %s\n%s',
       requestId,
       statusCode,
       context.req.method,
-      context.req.url,
+      this.readLogUrl({ context }),
       this.formatError({
         error,
         // The default code means "no code" - logging it on every error would be a noise line.

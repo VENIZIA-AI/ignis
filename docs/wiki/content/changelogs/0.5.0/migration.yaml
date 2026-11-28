@@ -1642,3 +1642,37 @@ execution-scope:
     steps:
       - "Pin the @venizia packages to the release before this one."
   data: Nothing stored changes.
+
+grpc-empty-strategies:
+  symbols: [BaseGrpcController, AbstractGrpcController, unary, serverStream, clientStream, bidiStream]
+  upgrade:
+    before: |-
+      @unary({ configs: { name: 'signIn', authenticate: { strategies: [] } } })
+    after: |-
+      // A public RPC has no authenticate.
+      @unary({ configs: { name: 'signIn' } })
+    steps:
+      - "Start the application: the error names the controller and the RPC whose authenticate names no strategy."
+      - "Remove authenticate where the RPC is meant to be public; name its strategies where it is not, and check which calls reached it without signing in."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis to the release before this one."
+  data: Nothing stored changes.
+
+grpc-interceptors-typed:
+  symbols: [IGrpcComponentConfig, AbstractGrpcController]
+  upgrade:
+    before: |-
+      const interceptors: unknown[] = [logInterceptor];
+      this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({ interceptors });
+    after: |-
+      import type { Interceptor } from '@connectrpc/connect';
+
+      const interceptors: Interceptor[] = [logInterceptor];
+      this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({ interceptors });
+    steps:
+      - "Type each interceptor, and the list that holds them, as Interceptor from @connectrpc/connect."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis to the release before this one."
+  data: Nothing stored changes.

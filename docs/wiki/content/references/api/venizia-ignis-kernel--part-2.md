@@ -284,7 +284,14 @@ export declare class BaseAppErrorMiddleware extends BaseHelper implements IProvi
     private build;
     private resolve;
     /** A throw site may set `logLevel` via `getError`; anything unset or malformed logs at `error`. */
-    private resolveLogLevel;
+    protected resolveLogLevel(opts: {
+        error: TThrown;
+        statusCode: number;
+    }): TLogLevel;
+    /** The URL a log line names. */
+    protected readLogUrl(opts: {
+        context: Context;
+    }): string;
     /** The one place a thrown error reaches the log - called once the status is known, so it carries it. */
     private logError;
     /** Only an intentional error's message is a catalog template; every other branch writes its own text, so it passes through as is. */
@@ -305,6 +312,8 @@ export declare class BaseAppErrorMiddleware extends BaseHelper implements IProvi
     private renderNormalized;
     value(): ErrorHandler;
 }
+
+type TThrown = Error | HTTPResponseError;
 ```
 
 Source: `packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts`

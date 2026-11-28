@@ -14,7 +14,10 @@ tags: [architecture, grpc]
   sending public stream is cut at about 4 s; from 5 up, keep it more than 4 s above the longest quiet gap (a stream at
   exactly 4 s above was cut in some runs). `server.timeout(request, 0)` avoids it.
 - `stop()`: post-stop hooks in registration order (the native listener's among them), then `Bun.serve` stop, which waits
-  for requests in flight and aborts no `rpc.signal`, then datasources.
+  for requests in flight, then datasources.
+- Application port stop: the `grpc.http.stop` hook, registered before the native one, starts an unref'd timer of
+  `native.shutdownTimeout` (default 10 000 ms, also with the native port off) that aborts the signal of the Connect
+  router: running handlers read `unavailable`. A handler that ignores `rpc.signal` still holds `Bun.serve`'s stop.
 - Native stop: GOAWAY, wait `shutdownTimeout`, abort the shutdown signal (clients read `unavailable`), 1 s grace,
   destroy sessions and sockets.
 

@@ -1,5 +1,5 @@
 import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { BaseHelper, getError, Execution } from '@venizia/ignis-helpers/core';
+import { ExecutionFrames, BaseHelper, getError, Execution } from '@venizia/ignis-helpers/core';
 import { ErrorPrettier } from '@venizia/ignis-helpers';
 import { ToggleUtility } from '@venizia/ignis-kernel';
 import type {
@@ -16,7 +16,6 @@ import { GrpcNativeWriter } from './native.writer';
 
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_CONCURRENT_STREAMS = 100;
-const DEFAULT_SHUTDOWN_TIMEOUT_MS = 10_000;
 /** What aborted calls get to write their answer before the connections are destroyed. */
 const ABORT_GRACE_MS = 1_000;
 const MAX_PORT = 65_535;
@@ -48,6 +47,9 @@ export interface IGrpcListenerOptions {
  * lets the RPC's route write the answer, trailers included, on the stream. Only RPC paths are served, with POST.
  */
 export class GrpcListenerHelper extends BaseHelper {
+  /** What `shutdownTimeout` is when it is not set, in milliseconds. */
+  static readonly DEFAULT_SHUTDOWN_TIMEOUT_MS = 10_000;
+
   private server?: Http2Server;
   private readonly sessions = new Set<ServerHttp2Session>();
   /** Every TCP connection, one that never finished its TLS handshake included: no session ever stands for it. */
@@ -163,14 +165,16 @@ export class GrpcListenerHelper extends BaseHelper {
       session.close();
     }
 
-    const timeout = this.listener.options.shutdownTimeout ?? DEFAULT_SHUTDOWN_TIMEOUT_MS;
+    const timeout =
+      this.listener.options.shutdownTimeout ?? GrpcListenerHelper.DEFAULT_SHUTDOWN_TIMEOUT_MS;
     await this.settle({ task: drained, ms: timeout });
 
     if (this.sessions.size > 0) {
       this.logger
         .for(this.stop.name)
         .warn('Native gRPC calls still running after %s ms | aborting them', timeout);
-      this.listener.shutdown.abort();
+      // A root frame: the `abort` listeners of a handler run inside this call.
+      ExecutionFrames.root({ task: () => this.listener.shutdown.abort() });
       await this.settle({ task: drained, ms: ABORT_GRACE_MS });
     }
 
@@ -273,7 +277,7 @@ export class GrpcListenerHelper extends BaseHelper {
       );
     }
 
-    const timeout = shutdownTimeout ?? DEFAULT_SHUTDOWN_TIMEOUT_MS;
+    const timeout = shutdownTimeout ?? GrpcListenerHelper.DEFAULT_SHUTDOWN_TIMEOUT_MS;
 
     if (!Number.isFinite(timeout) || timeout <= 0 || timeout > MAX_TIMEOUT_MS) {
       refuse(

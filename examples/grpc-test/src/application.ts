@@ -2,7 +2,6 @@ import { EnvKeys } from '@/common/env-keys';
 import { GrpcNativeSettings } from '@/common/grpc-native-settings';
 import { RpcLogInterceptor } from '@/interceptors/rpc-log.interceptor';
 import { RolePolicyEnforcer } from '@/security/role-policy.enforcer';
-import { NoteService } from '@/services/note.service';
 import { SeedService } from '@/services/seed.service';
 import { WebDemo } from '@/web/web-demo';
 import {
@@ -51,19 +50,6 @@ export class Application extends BaseApplication {
     });
 
     this.component(HealthCheckComponent);
-
-    // Registered here, so it runs before the hook that stops the native port: followed streams end at once on both
-    // ports, instead of holding the shutdown until its timeout.
-    this.registerPostStopHook({
-      identifier: 'notes.watchers.close',
-      hook: () => {
-        const key = BindingKeys.build<NoteService>({
-          namespace: BindingNamespaces.SERVICE,
-          key: NoteService.name,
-        });
-        this.get({ key }).close();
-      },
-    });
   }
 
   override async postConfigure(): Promise<void> {

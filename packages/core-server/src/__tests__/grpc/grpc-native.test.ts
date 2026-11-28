@@ -1,11 +1,12 @@
 import 'reflect-metadata';
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, spyOn, test } from 'bun:test';
+import { Logger } from '@venizia/ignis-helpers/winston';
 import { Code, ConnectError, createClient } from '@connectrpc/connect';
 import type { HandlerContext } from '@connectrpc/connect';
-import { createGrpcTransport } from '@connectrpc/connect-node';
+import { createConnectTransport, createGrpcTransport } from '@connectrpc/connect-node';
 import { fileDesc, serviceDesc } from '@bufbuild/protobuf/codegenv2';
 import { HTTP, type TClass, type ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { getError, Execution } from '@venizia/ignis-helpers/core';
+import { getError, Execution, ExecutionModes } from '@venizia/ignis-helpers/core';
 import {
   AuthenticationStrategyRegistry,
   bidiStream,
@@ -33,7 +34,7 @@ import { BaseGrpcController } from '@/base/controllers/grpc/base';
 import type { IGrpcNativeOptions } from '@/base/controllers/grpc/native/common/types';
 import { GrpcBindingKeys } from '@/components/controller/grpc';
 import { controller, useRequestContext } from '@/base/metadata';
-import type { GrpcNativeCallStore } from '@/base/controllers/grpc/native/call.store';
+import { GrpcNativeCallStore } from '@/base/controllers/grpc/native/call.store';
 import { createFreshRegistry, TestAuthorizationEnforcer } from '../authorize/helpers';
 
 /** `greeter.v1.GreeterService`: unary `SayHello`, `ListHellos` (server), `Collect` (client), `Chat` (bidi). */
@@ -64,18 +65,31 @@ AuthenticationStrategyRegistry.getInstance().register({
 });
 
 const GATE = { authenticate: { strategies: [KEY] } };
-const seen: { aborted: number; ip?: string | null } = { aborted: 0 };
+const seen: { aborted: number; abortFrames: unknown[]; ip?: string | null } = {
+  aborted: 0,
+  abortFrames: [],
+};
 const textOf = (request: unknown) => String(Reflect.get(Object(request), 'name'));
 
 /** Sleeps `ms`, or rejects when `signal` aborts. */
 const wait = (opts: { ms: number; signal: AbortSignal }) => {
   return new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(resolve, opts.ms);
-    opts.signal.addEventListener('abort', () => {
-      seen.aborted += 1;
-      clearTimeout(timer);
-      reject(opts.signal.reason);
-    });
+    const ended = new AbortController();
+    const timer = setTimeout(() => {
+      ended.abort();
+      resolve();
+    }, opts.ms);
+    // Removed when the sleep ends: ConnectRPC aborts the signal of a finished call too.
+    opts.signal.addEventListener(
+      'abort',
+      () => {
+        seen.aborted += 1;
+        seen.abortFrames.push(Execution.current());
+        clearTimeout(timer);
+        reject(opts.signal.reason);
+      },
+      { signal: ended.signal },
+    );
   });
 };
 
@@ -109,7 +123,10 @@ class GreeterController extends BaseGrpcController {
 
     opts.rpc.responseHeader.set('x-greeter', 'v2');
     opts.rpc.responseTrailer.set('x-cost', '3');
-    seen.ip = opts.context.env.requestIP()?.address;
+
+    if (GrpcNativeCallStore.read({ env: opts.context.env })) {
+      seen.ip = opts.context.env.requestIP()?.address;
+    }
 
     return { message: `hello ${text} context=${useRequestContext() !== undefined}` };
   }
@@ -690,6 +707,51 @@ describe('native gRPC port - authorize and public calls', () => {
   });
 });
 
+describe('native gRPC port - the log of a refused call', () => {
+  /** The `REQUEST ERROR` lines of one native call sent with this `:authority` and no credentials. */
+  const refusedWith = async (opts: { authority: string }) => {
+    const log = spyOn(Logger.prototype, 'log');
+    const session = connectHttp2(`http://${addressOf(application)}`);
+
+    try {
+      const stream = session.request({
+        ':method': 'POST',
+        ':path': '/greeter.v1.GreeterService/SayHello',
+        ':authority': opts.authority,
+        'content-type': 'application/grpc',
+      });
+      stream.resume();
+      // One empty gRPC message: no flag, length 0.
+      stream.end(Buffer.alloc(5));
+      await new Promise<void>((resolve) => stream.once('close', () => resolve()));
+
+      return log.mock.calls.filter(([, message]) => String(message).includes('REQUEST ERROR'));
+    } finally {
+      session.close();
+      log.mockRestore();
+    }
+  };
+
+  const PATH = '/api/grpc/greeter.v1.GreeterService/SayHello';
+
+  test('names the host the caller used, at warn for a 401', async () => {
+    const lines = await refusedWith({ authority: 'notes.example.com:50051' });
+
+    expect(lines).toHaveLength(1);
+    const [level, , , status, , url] = lines[0] ?? [];
+    expect([String(level), status]).toEqual(['warn', 401]);
+    expect(url).toBe(`grpc://notes.example.com:50051${PATH}`);
+  });
+
+  test('bounds the host and replaces what no host name carries', async () => {
+    const lines = await refusedWith({ authority: `a!b$c;d=${'x'.repeat(1_000)}` });
+
+    expect(lines).toHaveLength(1);
+    const url = String(lines[0]?.[5]);
+    expect(url).toBe(`grpc://a?b?c?d?${'x'.repeat(253)}${PATH}`);
+  });
+});
+
 describe('native gRPC port - lifecycle', () => {
   test('off: no listener is bound', async () => {
     const off = await start(undefined);
@@ -780,6 +842,130 @@ describe('native gRPC port - lifecycle', () => {
     const result = await failure;
     expect(result.code).toBe(Code.Unavailable);
   });
+
+  /** A Connect client of the application port, and one of its methods. */
+  const httpMethod = (opts: { application: NativeApplication; name: string }) => {
+    const transport = createConnectTransport({
+      baseUrl: `http://127.0.0.1:${opts.application.getServerPort()}/api/grpc`,
+      httpVersion: '1.1',
+    });
+    const method: unknown = Reflect.get(createClient(GreeterService, transport), opts.name);
+
+    if (typeof method !== 'function') {
+      throw getError({ message: 'no method' });
+    }
+
+    return method;
+  };
+
+  /** Stops the application and answers how long it took. */
+  const timedStop = async (opts: { application: NativeApplication }) => {
+    const startedAt = performance.now();
+    await opts.application.stop();
+
+    return performance.now() - startedAt;
+  };
+
+  test('stop() with no call running does not wait on the application port', async () => {
+    const idle = await start({ port: 0, shutdownTimeout: 5_000 });
+    await httpMethod({ application: idle, name: 'sayHello' })(
+      { name: 'a' },
+      { headers: SIGNED_IN },
+    );
+
+    const took = await timedStop({ application: idle });
+    expect(took).toBeLessThan(1_000);
+  });
+
+  test('stop() lets a call of the application port that ends in time answer', async () => {
+    const patient = await start({ port: 0, shutdownTimeout: 3_000 });
+    seen.aborted = 0;
+    const pending: Promise<unknown> = httpMethod({ application: patient, name: 'sayHello' })(
+      { name: 'sleep:300' },
+      { headers: SIGNED_IN },
+    );
+    await Execution.sleep({ ms: 100 });
+    const took = await timedStop({ application: patient });
+
+    const answer = await pending;
+    expect(answer).toHaveProperty('message', 'hello sleep:300 context=true');
+    expect(seen.aborted).toBe(0);
+    expect(took).toBeLessThan(2_000);
+  });
+
+  test('stop() aborts a call of the application port still running after shutdownTimeout', async () => {
+    const short = await start({ port: 0, shutdownTimeout: 300 });
+    seen.aborted = 0;
+    const pending: Promise<unknown> = httpMethod({ application: short, name: 'sayHello' })(
+      { name: 'sleep:4000' },
+      { headers: SIGNED_IN },
+    );
+    const failure = failureOf(pending);
+    await Execution.sleep({ ms: 100 });
+    const took = await timedStop({ application: short });
+
+    const result = await failure;
+    expect(result.code).toBe(Code.Unavailable);
+    expect(result.message).toContain('The server is shutting down');
+    expect(seen.aborted).toBe(1);
+    expect(took).toBeGreaterThanOrEqual(150);
+    expect(took).toBeLessThan(2_000);
+  }, 10_000);
+
+  test('an abort listener of a handler does not inherit the frame stop() was called in', async () => {
+    const both = await start({ port: 0, shutdownTimeout: 300 });
+    seen.abortFrames = [];
+    const method: unknown = Reflect.get(client({ url: `http://${addressOf(both)}` }), 'sayHello');
+
+    if (typeof method !== 'function') {
+      throw getError({ message: 'no method' });
+    }
+
+    const calls = [
+      failureOf(method({ name: 'sleep:5000' }, { headers: SIGNED_IN })),
+      failureOf(
+        httpMethod({ application: both, name: 'sayHello' })(
+          { name: 'sleep:5000' },
+          { headers: SIGNED_IN },
+        ),
+      ),
+    ];
+    await Execution.sleep({ ms: 100 });
+    await Execution.run({
+      mode: ExecutionModes.SYSTEM,
+      reason: 'stop',
+      task: () => both.stop(),
+    });
+    await Promise.all(calls);
+
+    const root = { mode: ExecutionModes.SCOPED, values: {} };
+    expect(seen.abortFrames).toEqual([root, root]);
+  }, 10_000);
+
+  test('both ports wait for their calls at the same time, not one after the other', async () => {
+    const both = await start({ port: 0, shutdownTimeout: 1_000 });
+    seen.aborted = 0;
+    const method: unknown = Reflect.get(client({ url: `http://${addressOf(both)}` }), 'sayHello');
+
+    if (typeof method !== 'function') {
+      throw getError({ message: 'no method' });
+    }
+
+    const native = failureOf(method({ name: 'sleep:5000' }, { headers: SIGNED_IN }));
+    const http = failureOf(
+      httpMethod({ application: both, name: 'sayHello' })(
+        { name: 'sleep:5000' },
+        { headers: SIGNED_IN },
+      ),
+    );
+    await Execution.sleep({ ms: 200 });
+    const took = await timedStop({ application: both });
+
+    const failures = await Promise.all([native, http]);
+    expect(failures.map((failure) => failure.code)).toEqual([Code.Unavailable, Code.Unavailable]);
+    expect(seen.aborted).toBe(2);
+    expect(took).toBeLessThan(1_700);
+  }, 10_000);
 
   for (const native of [
     { port: -1 },

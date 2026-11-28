@@ -7,7 +7,6 @@ const MAX_PENDING = 1_000;
 /** One followed `WatchNotes` call: the notes created for its owner, waiting to be sent. */
 export class NoteWatcher {
   private readonly pending: TNote[] = [];
-  private isEnded = false;
   private isOverflowed = false;
   private wake?: () => void;
 
@@ -23,14 +22,8 @@ export class NoteWatcher {
     this.wake?.();
   }
 
-  /** No more notes will come: `next()` answers `undefined` once the pending ones are read. */
-  end() {
-    this.isEnded = true;
-    this.wake?.();
-  }
-
-  /** The next note, or `undefined` at the end. Rejects with the signal's reason when the call is over. */
-  async next(opts: { signal: AbortSignal }): Promise<TNote | undefined> {
+  /** The next note. Rejects with the signal's reason when the call is over. */
+  async next(opts: { signal: AbortSignal }): Promise<TNote> {
     for (;;) {
       opts.signal.throwIfAborted();
 
@@ -43,7 +36,7 @@ export class NoteWatcher {
 
       const note = this.pending.shift();
 
-      if (note || this.isEnded) {
+      if (note) {
         return note;
       }
 
