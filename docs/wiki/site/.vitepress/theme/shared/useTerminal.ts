@@ -104,10 +104,10 @@ export const playTerminal = async (term: HTMLElement): Promise<void> => {
   term.classList.add('is-done');
 };
 
-/** Plays a scene and reports it when it stops; the page does not depend on it, so it is never thrown at the caller. */
+/** Plays a scene; one that stops is shown finished, and the page does not depend on it, so nothing is thrown. */
 const start = (term: HTMLElement): void => {
-  playTerminal(term).catch((error: unknown) => {
-    console.error('terminal: a scene stopped', error);
+  playTerminal(term).catch(() => {
+    term.classList.add('is-done');
   });
 };
 
