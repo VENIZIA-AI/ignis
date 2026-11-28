@@ -4,11 +4,6 @@ import type { TNullable } from '@venizia/ignis-helpers/common';
 /** A parent-child edge between two domain tokens, in the `<Type>_<id>` form, as returned by `TResolveDomainEdgesFn`. */
 export type TDomainHierarchyEdge = { child: string; parent: string };
 
-/** Filter passed to `ScopedCasbinAdapter.loadFilteredPolicy`: the one principal whose policy lines are loaded. */
-export interface IScopedCasbinPolicyFilter {
-  principal: { type: string; id: IdType };
-}
-
 /** A grant row as fetched, before it becomes casbin lines. Permission columns are null when the join misses. */
 export type TGrantRow = {
   subjectId: IdType;

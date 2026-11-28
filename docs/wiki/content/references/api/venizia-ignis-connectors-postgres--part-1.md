@@ -1098,10 +1098,6 @@ export type TTzEnricherResult<Opts extends TTzEnricherOptions | undefined = unde
 } : {} : {});
 
 type TIsoTimestampColumn = ReturnType<typeof isoTimestamp>;
-
-type TIsEnabled<T> = T extends {
-    enable: false;
-} ? false : T extends object ? true : undefined;
 ```
 
 Source: `packages/connectors/src/relational/postgres/models/enrichers/tz.enricher.ts`

@@ -1313,15 +1313,6 @@ where the hooks receive `Record<string, unknown>` whatever it names.
 
 ```ts
 export declare class WebSocketServerHelper<AuthDataType extends Record<string, unknown> = Record<string, unknown>, MetadataType extends Record<string, unknown> = Record<string, unknown>> extends BaseHelper {
-    /**
-     * Narrows an untrusted room payload to the strings it actually contains.
-     *
-     * `payload as { rooms?: string[] }` is a claim, not a check: the value comes off the wire, so
-     * `{"rooms":"lobby"}` satisfied the `rooms?.length` test (a string has one) and the next line
-     * called `rooms.filter`, which a string does not have. Under `Bun.serve` that TypeError is thrown
-     * inside the message callback and exits the process.
-     */
-    private static toRoomList;
     private path;
     private serverId;
     private clients;

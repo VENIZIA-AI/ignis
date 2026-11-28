@@ -152,13 +152,7 @@ export class KafkaConsumerHelper<
     opts: IKafkaConsumerOptions<KeyType, ValueType, HeaderKeyType, HeaderValueType>,
   ): Consumer<KeyType, ValueType, HeaderKeyType, HeaderValueType> {
     return new Consumer<KeyType, ValueType, HeaderKeyType, HeaderValueType>({
-      clientId: opts.clientId,
-      bootstrapBrokers: opts.bootstrapBrokers,
-      sasl: opts.sasl,
-      tls: opts.tls,
-      ssl: opts.ssl,
-      connectTimeout: opts.connectTimeout,
-      requestTimeout: opts.requestTimeout,
+      ...BaseKafkaHelper.buildConnectionOptions(opts),
       groupId: opts.groupId,
       groupInstanceId: opts.groupInstanceId,
       groupProtocol: opts.groupProtocol ?? KafkaDefaults.GROUP_PROTOCOL,
@@ -173,8 +167,6 @@ export class KafkaConsumerHelper<
       maxBytes: opts.maxBytes ?? KafkaDefaults.MAX_BYTES,
       maxWaitTime: opts.maxWaitTime ?? KafkaDefaults.MAX_WAIT_TIME,
       metadataMaxAge: opts.metadataMaxAge ?? KafkaDefaults.METADATA_MAX_AGE,
-      retries: opts.retries ?? KafkaDefaults.RETRIES,
-      retryDelay: opts.retryDelay ?? KafkaDefaults.RETRY_DELAY,
       registry: opts.registry,
     });
   }

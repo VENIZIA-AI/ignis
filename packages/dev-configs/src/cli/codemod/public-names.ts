@@ -10,6 +10,7 @@ One run for the public renames of types and type guards:
   - ValueOf -> TValueOf, ValueOrPromise -> TValueOrPromise, TConstructor -> TClass,
     TAbstractConstructor -> TAbstractClass, imported from @venizia/ignis-inversion, @venizia/ignis-helpers
     (and /common) or @venizia/ignis. An aliased import keeps its alias.
+  - IScopedCasbinPolicyFilter -> ICasbinPolicyFilter, imported from @venizia/ignis.
   - a type guard function becomes a static method of the same name, such as isPromiseLike(value) ->
     Execution.isPromiseLike(value). The table is in namespace-functions/mappings/guards.ts.
 
@@ -36,6 +37,11 @@ export class PublicNamesTable {
     { oldName: 'ValueOrPromise', newName: 'TValueOrPromise', packages: TYPE_PACKAGES },
     { oldName: 'TConstructor', newName: 'TClass', packages: TYPE_PACKAGES },
     { oldName: 'TAbstractConstructor', newName: 'TAbstractClass', packages: TYPE_PACKAGES },
+    {
+      oldName: 'IScopedCasbinPolicyFilter',
+      newName: 'ICasbinPolicyFilter',
+      packages: ['@venizia/ignis'],
+    },
   ];
 }
 

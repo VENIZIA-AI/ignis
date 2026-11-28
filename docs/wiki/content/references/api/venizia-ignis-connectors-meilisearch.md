@@ -484,11 +484,6 @@ export declare class MeilisearchQueryDialect extends BaseHelper implements ISear
     private assertBetweenTuple;
     private escapeBetween;
 }
-
-/** The non-raw search inputs the dialect translates; `raw` bypasses the dialect entirely. */
-type TTranslatableSearchInput = Exclude<TSearchInput, {
-    mode: typeof SearchModes.RAW;
-}>;
 ```
 
 Source: `packages/connectors/src/search/meilisearch/repositories/dialect/query-dialect.ts`

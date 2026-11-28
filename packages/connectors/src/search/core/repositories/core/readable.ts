@@ -20,15 +20,13 @@ import type { TSearchInput } from '@/search/core/repositories/common';
 import { SearchModes } from '@/search/core/repositories/common';
 import type { AbstractSearchDataSource } from '@/search/core/datasources';
 import { SearchBaseRepository } from './base';
+import type { TTranslatableSearchInput } from '@/search/core/internal';
 
 /** The match-everything term. `build()` already seeds `query` with it, so a filter-only listing reaches the engine as `q: '*'` - naming fields for a term that ignores fields would mean nothing. */
 const WILDCARD_QUERY = '*';
 
 /** The page size of `suggest()` when the caller gives none. */
 const SUGGEST_DEFAULT_LIMIT = 8;
-
-/** The inputs the dialect translates - `raw` has already returned by the time these are resolved, and `applySearchInput` accepts only this narrowed union. */
-type TTranslatableSearchInput = Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
 
 /** Read-only search-repository tier - translates filters via the datasource's dialect and executes through the connector. */
 export class ReadableSearchRepository<

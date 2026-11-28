@@ -435,8 +435,6 @@ type TPrincipalColumnDef<Discriminator extends string, IdType extends TIdSchemaT
 }) & {
     [K in `${Discriminator}Type`]: [NullableDiscriminator] extends [true] ? HasDefault<TSQLiteTextColumn> : NotNull<TSQLiteTextColumn>;
 };
-
-type TSQLiteTextColumn = SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>;
 ```
 
 Source: `packages/connectors/src/relational/sqlite/models/enrichers/principal.enricher.ts`
@@ -625,8 +623,8 @@ Adds `createdBy` and `modifiedBy` columns filled from the current audit user; `m
 ```ts
 export declare class SqliteUserAuditEnricher {
     static generateColumnDefs(opts?: TUserAuditEnricherOptions): {
-        createdBy: import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<SQLiteIntegerBuilderInitial<string>, number | null>>> | import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<SQLiteTextBuilderInitial<string, [string, ...string[]], number | undefined>, string | null>>>;
-        modifiedBy: import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<SQLiteIntegerBuilderInitial<string>, number | null>>> | import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<SQLiteTextBuilderInitial<string, [string, ...string[]], number | undefined>, string | null>>>;
+        createdBy: import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<SQLiteIntegerBuilderInitial<string>, number | null>>> | import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<import("drizzle-orm/sqlite-core").SQLiteTextBuilderInitial<string, [string, ...string[]], number | undefined>, string | null>>>;
+        modifiedBy: import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<SQLiteIntegerBuilderInitial<string>, number | null>>> | import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<import("drizzle-orm/sqlite-core").SQLiteTextBuilderInitial<string, [string, ...string[]], number | undefined>, string | null>>>;
     };
     static enrich<ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions>(opts: {
         baseSchema: ColumnDefinitions;
@@ -958,10 +956,6 @@ export type TTzEnricherResult<Opts extends TTzEnricherOptions | undefined = unde
 } : {} : {});
 
 type TIsoTimestampColumn = ReturnType<typeof isoTimestamp>;
-
-type TIsEnabled<T> = T extends {
-    enable: false;
-} ? false : T extends object ? true : undefined;
 ```
 
 Source: `packages/connectors/src/relational/sqlite/models/enrichers/tz.enricher.ts`
@@ -1011,8 +1005,6 @@ export type TUserAuditEnricherResult<ColumnDefinitions extends TColumnDefinition
     createdBy: SQLiteIntegerBuilderInitial<string> | TSQLiteTextColumn;
     modifiedBy: SQLiteIntegerBuilderInitial<string> | TSQLiteTextColumn;
 };
-
-type TSQLiteTextColumn = SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>;
 ```
 
 Source: `packages/connectors/src/relational/sqlite/models/enrichers/user-audit.enricher.ts`

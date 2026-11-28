@@ -1,20 +1,15 @@
 import { describe, expect, mock, test } from 'bun:test';
-import { SocketIOServerHelper } from '@/modules/socket/socket-io/server/helper';
+import { SocketRoomPayload } from '@/modules/socket/room-payload';
 import { WebSocketServerHelper } from '@/modules/socket/websocket/server/helper';
 
 describe('a room list off the wire', () => {
-  for (const [name, toRoomList] of [
-    ['SocketIOServerHelper', SocketIOServerHelper['toRoomList']],
-    ['WebSocketServerHelper', WebSocketServerHelper['toRoomList']],
-  ] as const) {
-    test(`${name} keeps the strings of a rooms array only`, () => {
-      expect(toRoomList({ rooms: ['a', 1, 'b'] })).toEqual(['a', 'b']);
+  test('keeps the strings of a rooms array only', () => {
+    expect(SocketRoomPayload.toRoomList({ rooms: ['a', 1, 'b'] })).toEqual(['a', 'b']);
 
-      for (const payload of [undefined, null, 'rooms', 7, {}, { rooms: 'lobby' }, []]) {
-        expect(toRoomList(payload)).toEqual([]);
-      }
-    });
-  }
+    for (const payload of [undefined, null, 'rooms', 7, {}, { rooms: 'lobby' }, []]) {
+      expect(SocketRoomPayload.toRoomList(payload)).toEqual([]);
+    }
+  });
 });
 
 describe('a Redis fan-out message', () => {

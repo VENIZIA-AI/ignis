@@ -5,16 +5,13 @@ import type {
   ISearchQuery,
   ISearchQueryDialect,
   TCompiledWhere,
-  TSearchInput,
 } from '@/search/core/repositories/common';
 import { SearchFilterOutcomes, SearchModes } from '@/search/core/repositories/common';
 import { SearchDialectUtility } from '@/search/core/repositories/common/dialect.utility';
+import type { TTranslatableSearchInput } from '@/search/core/internal';
 import type { ITypesenseSearchQuery } from '@/search/typesense/repositories/common';
 import { Sorts, QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
 import { BaseHelper, getError, RecordUtility } from '@venizia/ignis-helpers/core';
-
-/** The non-raw search inputs the dialect translates; `raw` bypasses the dialect entirely. */
-type TTranslatableSearchInput = Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
 
 /** Maximum number of `order` entries Typesense `sort_by` can express. */
 const MAX_SORT_FIELDS = 3;

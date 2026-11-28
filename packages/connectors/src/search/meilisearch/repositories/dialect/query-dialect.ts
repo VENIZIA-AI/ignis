@@ -5,16 +5,13 @@ import type {
   ISearchQuery,
   ISearchQueryDialect,
   TCompiledWhere,
-  TSearchInput,
 } from '@/search/core/repositories/common';
 import { SearchFilterOutcomes, SearchModes } from '@/search/core/repositories/common';
 import { SearchDialectUtility } from '@/search/core/repositories/common/dialect.utility';
+import type { TTranslatableSearchInput } from '@/search/core/internal';
 import { Sorts, QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
 import { BaseHelper, getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import type { IMeilisearchSearchQuery } from '../common';
-
-/** The non-raw search inputs the dialect translates; `raw` bypasses the dialect entirely. */
-type TTranslatableSearchInput = Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
 
 /** Names the engine in every rejection, so a caller reading the error knows it is the ENGINE CHOICE that decided it, not the operator. */
 const ENGINE = 'Meilisearch';

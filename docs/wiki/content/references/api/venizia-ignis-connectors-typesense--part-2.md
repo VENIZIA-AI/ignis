@@ -319,11 +319,6 @@ export declare class ReadableSearchRepository<TDocument extends object = object,
         data: null;
     }>;
 }
-
-/** The inputs the dialect translates - `raw` has already returned by the time these are resolved, and `applySearchInput` accepts only this narrowed union. */
-type TTranslatableSearchInput = Exclude<TSearchInput, {
-    mode: typeof SearchModes.RAW;
-}>;
 ```
 
 Source: `packages/connectors/src/search/core/repositories/core/readable.ts`

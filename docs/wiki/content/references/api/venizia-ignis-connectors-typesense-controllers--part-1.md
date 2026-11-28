@@ -417,13 +417,9 @@ What a function source is called with, whatever the document: the same context, 
 ```ts
 export interface ISearchSourceOptions<RouteEnv extends Env, TExtra extends object, Inject extends TInjectMap> {
     context: TRouteContext<RouteEnv>;
-    input: TNonRawInput & TExtra;
+    input: TTranslatableSearchInput & TExtra;
     injected: TInjected<Inject>;
 }
-
-type TNonRawInput = Exclude<TSearchInput, {
-    mode: typeof SearchModes.RAW;
-}>;
 ```
 
 Source: `packages/connectors/src/search/core/controllers/settings.ts`

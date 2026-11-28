@@ -164,16 +164,6 @@ export declare class SocketIOServerHelper extends BaseHelper {
     onClientAuthenticated(opts: {
         socket: IOSocket;
     }): void;
-    /**
-     * Narrows an untrusted room payload to the strings it actually contains.
-     *
-     * The listeners below run on data any authenticated client sends. Destructuring `{ rooms = [] }`
-     * out of an `any` and testing `rooms?.length` accepts a STRING - `{"rooms":"lobby"}` has a
-     * length of 5 - and the next line calls `rooms.map`, which a string does not have. socket.io
-     * dispatches on `process.nextTick` with no try/catch around the handler, so that TypeError
-     * escapes as an uncaught exception and takes the process with it.
-     */
-    private static toRoomList;
     private registerRoomHandlers;
     ping(opts: {
         socket: IOSocket;

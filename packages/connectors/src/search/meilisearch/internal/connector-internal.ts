@@ -1,5 +1,6 @@
 import { RecordUtility } from '@venizia/ignis-helpers/core';
 import type { ISearchFacetCount, ISearchResult } from '@/search/core';
+import { SearchConnectorInternal } from '@/search/core/internal';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type {
   FederatedMultiSearchParams,
@@ -43,25 +44,6 @@ export class MeilisearchInternal {
     return typeof causeCode === 'string' ? causeCode : undefined;
   }
 
-  /** The HTTP status of an API error, from whichever shape carries it. */
-  static getHttpStatus(opts: { error: unknown }): number | undefined {
-    const { error } = opts;
-
-    if (!RecordUtility.isRecord(error)) {
-      return undefined;
-    }
-
-    const responseStatus = RecordUtility.isRecord(error.response)
-      ? error.response.status
-      : undefined;
-
-    if (typeof responseStatus === 'number') {
-      return responseStatus;
-    }
-
-    return typeof error.httpStatus === 'number' ? error.httpStatus : undefined;
-  }
-
   static isNotFoundError(opts: { error: unknown }): boolean {
     const code = MeilisearchInternal.getErrorCode(opts);
 
@@ -72,7 +54,7 @@ export class MeilisearchInternal {
       return true;
     }
 
-    return MeilisearchInternal.getHttpStatus(opts) === HTTP.ResultCodes.RS_4.NotFound;
+    return SearchConnectorInternal.readHttpStatus(opts) === HTTP.ResultCodes.RS_4.NotFound;
   }
 
   static isAlreadyExistsError(opts: { error: unknown }): boolean {

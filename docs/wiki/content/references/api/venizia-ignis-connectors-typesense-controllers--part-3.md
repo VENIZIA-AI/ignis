@@ -199,7 +199,7 @@ export declare class SearchSettingsUtility {
     static resolveSource<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}>(opts: {
         source?: TSearchLooseSource<RouteEnv, TExtra, Inject>;
         context: TRouteContext<RouteEnv>;
-        input: TNonRawInput & TExtra;
+        input: TTranslatableSearchInput & TExtra;
         injected: TInjected<Inject>;
         query: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
         isFixed: boolean;
@@ -211,7 +211,7 @@ export declare class SearchSettingsUtility {
      * `serverTuning` is the part of `engineParams` the server chose.
      */
     static merge(opts: {
-        input: TNonRawInput;
+        input: TTranslatableSearchInput;
         fixed: ISearchLooseSettings;
         defaults: ISearchLooseSettings;
         catalog: ISearchFieldCatalog;
@@ -228,9 +228,9 @@ export declare class SearchSettingsUtility {
     static normalize<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}>(opts: {
         query: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
         context: TRouteContext<RouteEnv>;
-        input: TNonRawInput & TExtra;
+        input: TTranslatableSearchInput & TExtra;
         injected: TInjected<Inject>;
-    }): Promise<TNonRawInput & TExtra>;
+    }): Promise<TTranslatableSearchInput & TExtra>;
     /**
      * The input of a request with the controller's `query` settings applied. What the server chose is checked with the engine's
      * own converter before the repository runs, so a bad value (`numTypos: -1`) is the server's 500 and not the client's 400.
@@ -244,10 +244,6 @@ export declare class SearchSettingsUtility {
         dialect: ISearchQueryDialect;
     }): Promise<TSearchInput>;
 }
-
-type TNonRawInput = Exclude<TSearchInput, {
-    mode: typeof SearchModes.RAW;
-}>;
 ```
 
 Source: `packages/connectors/src/search/core/controllers/settings.ts`

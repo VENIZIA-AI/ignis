@@ -6,15 +6,13 @@ import {
   AuthorizationPermissionBuilder,
   AuthorizationPolicyVariants,
   GrantBuilder,
-  ToggleUtility,
   type TCustomGrantMetadata,
 } from '@venizia/ignis-kernel';
 import { sql, type SQL } from 'drizzle-orm';
 import { ScopedCasbinSoftDelete } from './soft-delete.utility';
 import { PolicyConnectorResolver } from './connector';
 import type { ICasbinPolicySource, IScopedCasbinEntities } from './common';
-
-const DEFAULT_SCHEMA = 'public';
+import { DEFAULT_SCHEMA } from './scoped-casbin/common/constants';
 
 /** A custom row that survived {@link CustomGrantExpander.rejectCustomRow}, ready for op-to-catalog resolution. */
 export type TCustomGrantRow = {
@@ -144,13 +142,11 @@ export class CustomGrantExpander extends BaseHelper {
 
   /** `AND <alias>.<col> IS NULL` when soft-delete is on, else empty. The alias is emitted raw to match the unquoted FROM alias - quoting folds it to a different case and breaks the join. */
   private softDeleteClause(opts: { alias: string }): SQL {
-    const sd = this.softDelete;
-
-    if (!ToggleUtility.isUsed(sd, { name: `[${CustomGrantExpander.name}] entities.softDelete` })) {
-      return sql.empty();
-    }
-
-    return sql` AND ${sql.raw(opts.alias)}.${sql.identifier(sd.columnName)} IS NULL`;
+    return ScopedCasbinSoftDelete.clause({
+      scope: CustomGrantExpander.name,
+      softDelete: this.softDelete,
+      alias: opts.alias,
+    });
   }
 
   /** Resolve `(subject, method)` pairs to catalogued operations. One query for the whole extraction. */

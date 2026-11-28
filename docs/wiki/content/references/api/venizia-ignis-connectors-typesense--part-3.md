@@ -535,11 +535,6 @@ export declare class TypesenseQueryDialect extends BaseHelper implements ISearch
     private assertBetweenTuple;
     private escapeBetween;
 }
-
-/** The non-raw search inputs the dialect translates; `raw` bypasses the dialect entirely. */
-type TTranslatableSearchInput = Exclude<TSearchInput, {
-    mode: typeof SearchModes.RAW;
-}>;
 ```
 
 Source: `packages/connectors/src/search/typesense/repositories/dialect/query-dialect.ts`
