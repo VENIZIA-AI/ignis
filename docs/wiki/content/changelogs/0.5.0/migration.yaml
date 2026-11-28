@@ -1638,6 +1638,7 @@ execution-scope:
       - "Run each in the frame it needs: scoped, with the values your resolve reads, or system with a reason."
       - "Check that resolve narrows by the request's user first and treats scope.values as a narrowing, never a replacement."
       - "Replace a hand-written system-scope store that returned UNRESTRICTED with a system run."
+      - "Where you call AuditUserResolver.resolveAuditUserId<T>(), drop the type argument, or call resolveAuditUserNumber or resolveAuditUserText."
   downgrade:
     steps:
       - "Pin the @venizia packages to the release before this one."

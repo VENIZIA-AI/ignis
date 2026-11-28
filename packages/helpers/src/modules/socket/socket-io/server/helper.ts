@@ -33,6 +33,12 @@ export class SocketIOServerHelper extends BaseHelper {
 
   private io: IOServer;
   private emitter: Emitter;
+  /** What `on` bound for each handler: the listener the server holds, per topic, so `off` can remove it. */
+  private readonly boundListeners = new WeakMap<
+    object,
+    Array<{ topic: string; listener: NonNullable<Parameters<IOServer['off']>[1]> }>
+  >();
+
   private clients: Map<string, ISocketIOClient> = new Map();
 
   private redisPub: TRedisClient;
@@ -152,12 +158,24 @@ export class SocketIOServerHelper extends BaseHelper {
       throw getError({ message: '[on] IOServer is not initialized yet!' });
     }
 
-    this.io.on(topic, ExecutionFrames.listener({ handler }));
+    const listener = ExecutionFrames.listener({ handler });
+    const bound = this.boundListeners.get(handler) ?? [];
+    this.boundListeners.set(handler, [...bound, { topic, listener }]);
+    this.io.on(topic, listener);
   }
 
   /** Removes a handler that `on` bound: what the server holds is its listener, not the handler itself. */
   off<Args extends unknown[]>(opts: { topic: string; handler: (...args: Args) => unknown }) {
-    this.io?.off(opts.topic, ExecutionFrames.listener({ handler: opts.handler }));
+    const { topic, handler } = opts;
+    const bound = this.boundListeners.get(handler) ?? [];
+    const index = bound.findLastIndex((entry) => entry.topic === topic);
+
+    if (index < 0) {
+      return;
+    }
+
+    this.io?.off(topic, bound[index].listener);
+    this.boundListeners.set(handler, bound.toSpliced(index, 1));
   }
 
   async configure() {

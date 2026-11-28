@@ -120,6 +120,8 @@ export declare class SocketIOServerHelper extends BaseHelper {
     private serverOptions;
     private io;
     private emitter;
+    /** What `on` bound for each handler: the listener the server holds, per topic, so `off` can remove it. */
+    private readonly boundListeners;
     private clients;
     private redisPub;
     private redisSub;

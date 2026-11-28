@@ -18,6 +18,8 @@ import { PreferFrameworkApiRule } from './prefer-framework-api.rule';
 import { PreferHttpMethodRule } from './prefer-http-method.rule';
 import { PreferExecutionSleepRule } from './prefer-execution-sleep.rule';
 import { PreferTNullableRule } from './prefer-tnullable.rule';
+import { RestrictExecutionCallSitesRule } from './restrict-execution-call-sites.rule';
+import { StaticExecutionReasonRule } from './static-execution-reason.rule';
 import { TypedRouteContextRule } from './typed-route-context.rule';
 import { ZodSchemaConventionRule } from './zod-schema-convention.rule';
 
@@ -43,6 +45,8 @@ export const houseEslintPlugin: ESLint.Plugin = {
     'prefer-http-method': PreferHttpMethodRule.RULE,
     'prefer-execution-sleep': PreferExecutionSleepRule.RULE,
     'prefer-tnullable': PreferTNullableRule.RULE,
+    'restrict-execution-call-sites': RestrictExecutionCallSitesRule.RULE,
+    'static-execution-reason': StaticExecutionReasonRule.RULE,
     'typed-route-context': TypedRouteContextRule.RULE,
     'zod-schema-convention': ZodSchemaConventionRule.RULE,
   },

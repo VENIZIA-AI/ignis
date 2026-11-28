@@ -57,22 +57,18 @@ export class SocketIOBunHandler {
     engineHandler: Awaited<ReturnType<typeof SocketIOBunHandler.createEngine>>['engineHandler'];
   }) {
     const { websocket } = opts.engineHandler;
-    const framed = { ...websocket };
 
-    for (const [key, callback] of Object.entries(websocket)) {
-      if (typeof callback !== 'function') {
-        continue;
-      }
-
-      Reflect.set(
-        framed,
-        key,
-        ExecutionFrames.listener({
-          handler: (...args: unknown[]) => Reflect.apply(callback, websocket, args),
-        }),
-      );
-    }
-
-    return framed;
+    return {
+      maxPayloadLength: websocket.maxPayloadLength,
+      open: ExecutionFrames.listener({
+        handler: (...args: Parameters<typeof websocket.open>) => websocket.open(...args),
+      }),
+      message: ExecutionFrames.listener({
+        handler: (...args: Parameters<typeof websocket.message>) => websocket.message(...args),
+      }),
+      close: ExecutionFrames.listener({
+        handler: (...args: Parameters<typeof websocket.close>) => websocket.close(...args),
+      }),
+    };
   }
 }

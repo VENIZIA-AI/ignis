@@ -63,7 +63,7 @@ IGNIS is a TypeScript framework that puts enterprise architecture patterns - dep
 <span class="stage-num">3</span>
 <h4>Understand the Framework</h4>
 </div>
-<p><a href="./core-concepts/application/">Application</a> → <a href="./core-concepts/rest-controllers">Controllers</a> → <a href="./core-concepts/services">Services</a> → <a href="./core-concepts/dependency-injection">DI</a> → <a href="./core-concepts/persistent/">Persistence</a> → <a href="./core-concepts/components">Components</a></p>
+<p><a href="./core-concepts/application/">Application</a> → <a href="./core-concepts/rest-controllers">Controllers</a> → <a href="./core-concepts/services">Services</a> → <a href="./core-concepts/execution">Execution frames</a> → <a href="./core-concepts/dependency-injection">DI</a> → <a href="./core-concepts/persistent/">Persistence</a> → <a href="./core-concepts/components">Components</a></p>
 <span class="stage-desc">Deep dive into core concepts and architecture patterns. Also: <a href="./core-concepts/grpc-controllers">gRPC</a>, <a href="./core-concepts/secrets-vault">secrets</a> and <a href="./core-concepts/browser-and-web-worker">running in a browser or Worker</a></span>
 </div>
 

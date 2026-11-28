@@ -8,6 +8,22 @@ import { io as connectClient } from 'socket.io-client';
 
 ExecutionRunner.install();
 
+describe('socket.io on Bun, the websocket handler', () => {
+  test('hands on every setting of the engine, with each callback of it framed', async () => {
+    const { engineHandler } = await SocketIOBunHandler.createEngine({ serverOptions: {} });
+    const { websocket } = engineHandler;
+    const framed = SocketIOBunHandler.createWebSocketHandler({ engineHandler });
+
+    // A setting or a callback a later engine adds would be dropped: this fails until it is handed on.
+    expect(Object.keys(framed).sort()).toEqual(Object.keys(websocket).sort());
+    expect(framed.maxPayloadLength).toBe(websocket.maxPayloadLength);
+
+    for (const key of ['open', 'message', 'close'] as const) {
+      expect(framed[key]).not.toBe(websocket[key]);
+    }
+  });
+});
+
 describe('socket.io on Bun, the server started inside a system run', () => {
   for (const transport of ['websocket', 'polling'] as const) {
     test(`application code on the ${transport} transport reads a root frame`, async () => {

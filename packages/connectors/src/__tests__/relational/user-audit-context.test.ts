@@ -566,3 +566,29 @@ describe.each(ROUTE_TIERS)('a generated CRUD route on $name stamps the signed-in
     expect(result2).toMatchObject({ code: 'KEEP', createdBy: 42, modifiedBy: 42 });
   });
 });
+
+describe('the user an audit column can hold', () => {
+  afterEach(() => {
+    RequestContextRegistry.clearResolver();
+  });
+
+  /** A request whose authentication set `user`, whatever it is. */
+  const requestOf = (user: unknown) => {
+    const context = new Context(new Request('http://localhost/'));
+    // A request carries whatever its authentication put there, typed or not.
+    Reflect.apply(context.set, context, [Authentication.AUDIT_USER_ID, user]);
+    RequestContextRegistry.setResolver({ resolver: () => context });
+  };
+
+  for (const tier of TIERS) {
+    test(`${tier.name}: a number column reads a number written as text, and refuses other text`, () => {
+      requestOf('42');
+      expect(stampCreatedBy({ table: tier.anonymous })).toBe(42);
+
+      for (const user of ['abc', '4.5', ' ', { id: 1 }, true]) {
+        requestOf(user);
+        expect(() => stampCreatedBy({ table: tier.anonymous })).toThrow(/audit user/);
+      }
+    });
+  }
+});
