@@ -1,6 +1,11 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import ts from 'typescript';
-import { AsyncContextRemoval } from '../cli/codemod/async-context';
+import { AsyncContextCommand, AsyncContextRemoval } from '../cli/codemod/async-context';
+import { CliOutput } from '../common/cli-output';
 
 const rewrite = (source: string) =>
   AsyncContextRemoval.rewrite({ typescript: ts, fileName: 'file.ts', source });
@@ -83,6 +88,18 @@ describe('devz codemod async-context', () => {
       expect(result.manual.map((entry) => entry.line)).toEqual([1]);
     });
   }
+
+  test('--check exits 1 while only a line for a person remains', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'async-context-'));
+    execFileSync('git', ['init', '-q'], { cwd: root });
+    writeFileSync(join(root, 'a.ts'), 'export const a = { port: 1, asyncContext: store };\n');
+    const log = spyOn(CliOutput, 'log').mockImplementation(() => {});
+    const code = await AsyncContextCommand.run({ root, args: ['--check'] });
+    log.mockRestore();
+    rmSync(root, { recursive: true, force: true });
+
+    expect(code).toBe(1);
+  });
 
   test('the config of an application is known by where it stands', () => {
     for (const source of [

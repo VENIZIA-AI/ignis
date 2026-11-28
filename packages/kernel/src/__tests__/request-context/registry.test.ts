@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
 /** Stands in for a Hono context - `resolve()` hands back whatever the resolver returned, untouched, so only identity matters here. */
 const buildContext = (opts: { marker: string }): Context => {
-  return { marker: opts.marker } as unknown as Context;
+  return { marker: opts.marker, req: {}, get: () => undefined } as unknown as Context;
 };
 
 /**
@@ -38,6 +38,12 @@ describe('RequestContextRegistry - an execution frame answers before the resolve
     store.frame = { mode: ExecutionModes.SCOPED, request, values: {} };
 
     expect(RequestContextRegistry.resolve()).toBe(request);
+  });
+
+  test('a frame whose request is no context answers none', () => {
+    store.frame = { mode: ExecutionModes.SCOPED, request: { marker: 'other' }, values: {} };
+
+    expect(RequestContextRegistry.resolve()).toBeUndefined();
   });
 
   test('a frame without a request answers none, whatever the resolver says', () => {

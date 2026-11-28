@@ -144,6 +144,8 @@ export declare class RequestContextRegistry {
     static clearResolver(): void;
     /** Inside a frame the frame alone answers, so a frame with no request has none; outside every frame, the resolver. */
     static resolve(): Context | undefined;
+    /** What a frame holds as its request is unknown to the layer that holds it: it is read only if it is a context. */
+    private static isContext;
 }
 ```
 

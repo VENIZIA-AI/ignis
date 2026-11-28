@@ -144,8 +144,13 @@ export declare class ExecutionRunner extends BaseHelper implements IExecutionRun
     private buildFrame;
     /** A frame from plain JavaScript, or from the framework's own entry, is held to the same rules as a typed call. */
     private assertFrame;
-    /** A frozen copy: arrays and plain objects at any depth, so no task changes the values of the frame around it. */
+    /**
+     * A frozen copy: the arrays and plain objects at any depth, so no task changes the values of the frame around it or
+     * the caller's. A function or a class instance is kept as it is.
+     */
     private freezeValues;
+    /** `seen` maps what was already copied to its copy, so a value that holds itself ends. */
+    private copyFrozen;
     /**
      * Once per route: a root frame drops the request, so the narrowing a request's user brings with it. The key is the
      * route of that request, never a stack.
