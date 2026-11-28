@@ -87,9 +87,8 @@ watch(query, async (text) => {
       picked.value = 0;
       state.value = 'done';
     }
-  } catch (error) {
-    console.error('[SearchBox] search failed', error);
-
+  } catch {
+    // The box says search is unavailable: that is the report.
     if (turn === asked) {
       hits.value = [];
       state.value = 'unavailable';
