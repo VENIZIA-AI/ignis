@@ -632,7 +632,8 @@ Without a frame user:
 | a context with one | a request with an authenticated user | stamps the id | stamps the id |
 
 core-server opens a frame for every request (`RequestFrameMiddleware`, in `registerDefaultMiddlewares()`) and installs
-`ExecutionRunner` when an application is constructed; the registry reads the frame.
+`ExecutionRunner` when an application is constructed; the registry reads the frame. A test that boots none uses
+`ExecutionTestHarness` from `@venizia/ignis/testing`.
 Both tiers reach `LoggerFactory` nowhere either: `drivers/libsql.ts`, `repositories/executor.ts` and
 `repositories/dialect/query.ts` all resolve their logger through `BaseHelper` from
 `@venizia/ignis-helpers/core`, so the ioredis edge that once failed `/sqlite` on `require('tls')` is

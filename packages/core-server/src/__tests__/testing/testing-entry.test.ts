@@ -27,8 +27,8 @@ const TESTING_EXPORTS = [
   'RepositoryDouble',
 ];
 
-/** What the entry adds beside the connectors' doubles. */
-const BOOT_EXPORTS = ['ApplicationBootAssertion'];
+/** What the entry adds beside the connectors' doubles: the boot probe and the frames of an unbooted test. */
+const BOOT_EXPORTS = ['ApplicationBootAssertion', 'ExecutionTestHarness'];
 
 const PACKAGE_ROOT = path.resolve(import.meta.dir, '../../..');
 
