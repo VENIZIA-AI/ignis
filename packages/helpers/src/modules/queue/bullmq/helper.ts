@@ -14,6 +14,7 @@ import type {
   WorkerOptions,
 } from 'bullmq';
 import { BullMQDefaults, BullQueueRoles, HookUtility, type TBullQueueRole } from '../common';
+import { ExecutionFrames } from '@/modules/execution';
 
 /** The key BullMQ stores in a job's `opts` for the metadata block: not the payload, so `job.data` is what the producer added. */
 const METADATA_OPTION = 'metadata';
@@ -415,45 +416,58 @@ export class BullMQHelper<
     const queueName = this.resolveQueueName();
     this.worker = this.buildWorker({
       queueName,
-      processor: async (job) => {
-        if (this.onWorkerData) {
-          return this.onWorkerData(job, {
-            metadata: BullMQHelper.readMetadata<TMetadata>({ job }),
+      // Each job starts from nothing: never the rights of whoever built the worker.
+      processor: ExecutionFrames.listener({
+        handler: async (job) => {
+          if (this.onWorkerData) {
+            return this.onWorkerData(job, {
+              metadata: BullMQHelper.readMetadata<TMetadata>({ job }),
+            });
+          }
+
+          const { id, name, data } = job;
+          this.logger
+            .for('onWorkerData')
+            .info(
+              'queue: %s | id: %s | name: %s | data: %j | ID: %s',
+              this.queueName,
+              id,
+              name,
+              data,
+              this.identifier,
+            );
+
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a worker with no `onWorkerData` answers nothing, whatever result type the queue declares
+          return undefined as TQueueResult;
+        },
+      }),
+    });
+
+    this.worker.on(
+      'completed',
+      ExecutionFrames.listener({
+        handler: (job, result) => {
+          HookUtility.invoke({
+            logger: this.logger,
+            scope: 'worker-completed',
+            execution: () => this.onWorkerDataCompleted?.(job, result),
           });
-        }
+        },
+      }),
+    );
 
-        const { id, name, data } = job;
-        this.logger
-          .for('onWorkerData')
-          .info(
-            'queue: %s | id: %s | name: %s | data: %j | ID: %s',
-            this.queueName,
-            id,
-            name,
-            data,
-            this.identifier,
-          );
-
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a worker with no `onWorkerData` answers nothing, whatever result type the queue declares
-        return undefined as TQueueResult;
-      },
-    });
-
-    this.worker.on('completed', (job, result) => {
-      HookUtility.invoke({
-        logger: this.logger,
-        scope: 'worker-completed',
-        execution: () => this.onWorkerDataCompleted?.(job, result),
-      });
-    });
-
-    this.worker.on('failed', (job, reason) => {
-      HookUtility.invoke({
-        logger: this.logger,
-        scope: 'worker-failed',
-        execution: () => this.onWorkerDataFail?.(job, reason),
-      });
-    });
+    this.worker.on(
+      'failed',
+      ExecutionFrames.listener({
+        handler: (job, reason) => {
+          HookUtility.invoke({
+            logger: this.logger,
+            scope: 'worker-failed',
+            execution: () => this.onWorkerDataFail?.(job, reason),
+          });
+        },
+      }),
+    );
 
     // An 'error' event without a listener is re-thrown by EventEmitter - a Redis hiccup would take the whole process down.
     this.worker.on('error', (error) => {

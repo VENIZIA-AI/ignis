@@ -5,6 +5,7 @@ import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import mqtt from 'mqtt';
 import { HookUtility } from '../common';
+import { ExecutionFrames } from '@/modules/execution';
 
 /** Options for {@link MQTTClientHelper}. `onMessage` is required; `options` go to the `mqtt` client as-is. */
 export interface IMQTTClientOptions {
@@ -96,7 +97,7 @@ export class MQTTClientHelper extends BaseHelper {
       HookUtility.invoke({
         logger: this.logger,
         scope: 'onMessage',
-        execution: () => this.onMessage?.({ topic, message }),
+        execution: () => ExecutionFrames.root({ task: () => this.onMessage?.({ topic, message }) }),
       });
     });
 

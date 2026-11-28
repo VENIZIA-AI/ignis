@@ -7,6 +7,7 @@ import {
   RetryBackoffStrategies,
   RetryUtility,
   RetryJitterModes,
+  ExecutionFrames,
 } from '@venizia/ignis-helpers/core';
 import { EventDispatchRetry, EventHandlerTypes } from './common/constants';
 import type {
@@ -250,11 +251,15 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
       return;
     }
 
+    // The handlers, retries included, run for whoever publishes: the request, the user and the values, never system
+    // rights.
+    const run = ExecutionFrames.handOff({ name, isRequestKept: true });
+
     for (const registration of registrations) {
       queueMicrotask(() => {
         // `dispatch` catches every failure path itself and never rejects - this `.catch` is an
         // unreachable backstop, kept (and logged) rather than left floating, for the day it isn't.
-        this.dispatch({ event, registration }).catch((error: unknown) => {
+        run(() => this.dispatch({ event, registration })).catch((error: unknown) => {
           this.logger.error(
             '[publish] Unexpected dispatch failure | name: %s | Error: %s',
             event.name,

@@ -10,6 +10,7 @@ import {
   type ConnectionOptions as TlsConnectionOptions,
   type TLSSocket as TlsSocketClient,
 } from 'node:tls';
+import { ExecutionFrames } from '@/modules/execution';
 
 const DEFAULT_MAX_RETRY = 5;
 
@@ -155,21 +156,26 @@ export class BaseNetworkTcpClient<
       return;
     }
 
-    this.reconnectTimeout = setTimeout(() => {
-      this.client?.destroy();
-      this.client = null;
+    this.reconnectTimeout = setTimeout(
+      ExecutionFrames.listener({
+        handler: () => {
+          this.client?.destroy();
+          this.client = null;
 
-      this.logger
-        .for(this.handleClosed.name)
-        .info(
-          '[%s] Retrying to establish TCP Connection | Options: %j',
-          this.identifier,
-          this.getLoggableOptions(),
-        );
+          this.logger
+            .for(this.handleClosed.name)
+            .info(
+              '[%s] Retrying to establish TCP Connection | Options: %j',
+              this.identifier,
+              this.getLoggableOptions(),
+            );
 
-      this.connect({ resetReconnectCounter: false });
-      this.retry.currentReconnect++;
-    }, 5000);
+          this.connect({ resetReconnectCounter: false });
+          this.retry.currentReconnect++;
+        },
+      }),
+      5000,
+    );
   }
 
   connect(opts: { resetReconnectCounter: boolean }) {
@@ -208,7 +214,7 @@ export class BaseNetworkTcpClient<
 
     // The listeners close over THIS socket: `this.client` is nulled by disconnect() and swapped by a reconnect, so reading it back would drop the close hook - or hand it the wrong socket.
     const client = this.createClientFn(this.options, () => {
-      this.onConnected?.({ client });
+      ExecutionFrames.root({ task: () => this.onConnected?.({ client }) });
     });
 
     this.client = client;
@@ -217,17 +223,32 @@ export class BaseNetworkTcpClient<
       client.setEncoding(this.encoding);
     }
 
-    client.on('data', (message: string | Buffer) => {
-      this.onData({ identifier: this.identifier, message });
-    });
+    client.on(
+      'data',
+      ExecutionFrames.listener({
+        handler: (message: string | Buffer) => {
+          this.onData({ identifier: this.identifier, message });
+        },
+      }),
+    );
 
-    client.on('close', () => {
-      this.onClosed?.({ client });
-    });
+    client.on(
+      'close',
+      ExecutionFrames.listener({
+        handler: () => {
+          this.onClosed?.({ client });
+        },
+      }),
+    );
 
-    client.on('error', (error) => {
-      this.onError?.(error);
-    });
+    client.on(
+      'error',
+      ExecutionFrames.listener({
+        handler: (error) => {
+          this.onError?.(error);
+        },
+      }),
+    );
   }
 
   disconnect() {

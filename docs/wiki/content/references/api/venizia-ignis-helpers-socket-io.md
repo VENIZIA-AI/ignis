@@ -147,6 +147,11 @@ export declare class SocketIOServerHelper extends BaseHelper {
         topic: string;
         handler: (...args: HandlerArgsType) => ValueOrPromise<HanderReturnType>;
     }): void;
+    /** Removes a handler that `on` bound: what the server holds is its listener, not the handler itself. */
+    off<Args extends unknown[]>(opts: {
+        topic: string;
+        handler: (...args: Args) => unknown;
+    }): void;
     configure(): Promise<void>;
     private initIOServer;
     onClientConnect(opts: {

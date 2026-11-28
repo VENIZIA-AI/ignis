@@ -5,7 +5,7 @@ import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { RedisUtility, type TRedisClient } from '@/modules/redis';
 import { UuidHelper } from '@/modules/uid';
-import { Execution } from '@/modules/execution';
+import { Execution, ExecutionFrames } from '@/modules/execution';
 import {
   type IBunWebSocketConfig,
   type IBunWebSocketHandler,
@@ -309,11 +309,11 @@ export class WebSocketServerHelper<
     ]);
 
     this.redisSub.on('message', (channel: string, raw: string) => {
-      this.onRedisMessage({ channel, raw });
+      ExecutionFrames.root({ task: () => this.onRedisMessage({ channel, raw }) });
     });
 
     this.redisSub.on('pmessage', (_pattern: string, channel: string, raw: string) => {
-      this.onRedisMessage({ channel, raw });
+      ExecutionFrames.root({ task: () => this.onRedisMessage({ channel, raw }) });
     });
 
     logger.info('Redis subscriptions configured');
@@ -443,12 +443,24 @@ export class WebSocketServerHelper<
   getBunWebSocketHandler(): IBunWebSocketHandler {
     const config = this.serverOptions;
 
+    // Each socket event starts from nothing but the user its client authenticated as.
+    const framed = <Rest extends unknown[]>(
+      handler: (socket: IWebSocket<IWebSocketData>, ...rest: Rest) => void,
+    ) => {
+      return (socket: IWebSocket<IWebSocketData>, ...rest: Rest) => {
+        ExecutionFrames.root({
+          userId: this.clients.get(socket.data.clientId)?.userId,
+          task: () => handler(socket, ...rest),
+        });
+      };
+    };
+
     return {
-      open: (socket: IWebSocket<IWebSocketData>) => {
+      open: framed((socket) => {
         const { clientId } = socket.data;
         this.onClientConnect({ clientId, socket });
-      },
-      message: (socket: IWebSocket<IWebSocketData>, message: string | Buffer) => {
+      }),
+      message: framed((socket, message: string | Buffer) => {
         const { clientId } = socket.data;
         const client = this.clients.get(clientId);
 
@@ -460,12 +472,12 @@ export class WebSocketServerHelper<
           clientId,
           raw: typeof message === 'string' ? message : message.toString(),
         });
-      },
-      close: (socket: IWebSocket<IWebSocketData>) => {
+      }),
+      close: framed((socket) => {
         const { clientId } = socket.data;
         this.onClientDisconnect({ clientId });
-      },
-      drain: (socket: IWebSocket<IWebSocketData>) => {
+      }),
+      drain: framed((socket) => {
         const { clientId } = socket.data;
         const client = this.clients.get(clientId);
 
@@ -473,7 +485,7 @@ export class WebSocketServerHelper<
           client.backpressured = false;
           this.logger.for('drain').debug('Backpressure cleared | id: %s', clientId);
         }
-      },
+      }),
       perMessageDeflate: config.perMessageDeflate,
       maxPayloadLength: config.maxPayloadLength,
       idleTimeout: config.idleTimeout,
@@ -513,14 +525,19 @@ export class WebSocketServerHelper<
     // Auto-join client's own room (same as Socket.IO: socket.id room)
     socket.subscribe(clientId);
 
-    client.authTimer = setTimeout(() => {
-      const c = this.clients.get(clientId);
+    client.authTimer = setTimeout(
+      ExecutionFrames.listener({
+        handler: () => {
+          const c = this.clients.get(clientId);
 
-      if (c?.state === WebSocketClientStates.UNAUTHORIZED) {
-        logger.warn('Auth timeout | id: %s', clientId);
-        c.socket.close(4001, 'Authentication timeout');
-      }
-    }, this.authTimeout);
+          if (c?.state === WebSocketClientStates.UNAUTHORIZED) {
+            logger.warn('Auth timeout | id: %s', clientId);
+            c.socket.close(4001, 'Authentication timeout');
+          }
+        },
+      }),
+      this.authTimeout,
+    );
   }
 
   onClientMessage(opts: { clientId: string; raw: string }) {
@@ -745,14 +762,19 @@ export class WebSocketServerHelper<
       clearTimeout(client.authTimer);
     }
 
-    client.authTimer = setTimeout(() => {
-      const c = this.clients.get(clientId);
+    client.authTimer = setTimeout(
+      ExecutionFrames.listener({
+        handler: () => {
+          const c = this.clients.get(clientId);
 
-      if (c?.state === WebSocketClientStates.AUTHENTICATING) {
-        logger.warn('Auth in-progress timeout | id: %s', clientId);
-        c.socket.close(4001, 'Authentication timeout');
-      }
-    }, this.authTimeout * 3);
+          if (c?.state === WebSocketClientStates.AUTHENTICATING) {
+            logger.warn('Auth in-progress timeout | id: %s', clientId);
+            c.socket.close(4001, 'Authentication timeout');
+          }
+        },
+      }),
+      this.authTimeout * 3,
+    );
 
     this.openAuthSession(payload)
       .then(async (session) => {
@@ -869,10 +891,14 @@ export class WebSocketServerHelper<
         this.invokeHook({
           scope: 'clientConnectedFn',
           execution: () =>
-            this.onClientConnected?.({
-              clientId,
+            ExecutionFrames.root({
               userId: client.userId,
-              metadata: client.metadata,
+              task: () =>
+                this.onClientConnected?.({
+                  clientId,
+                  userId: client.userId,
+                  metadata: client.metadata,
+                }),
             }),
         });
       })
@@ -1062,7 +1088,7 @@ export class WebSocketServerHelper<
     }
 
     if (callback) {
-      setTimeout(callback, 0);
+      setTimeout(ExecutionFrames.listener({ handler: callback }), 0);
     }
 
     if (doLog) {
@@ -1076,9 +1102,10 @@ export class WebSocketServerHelper<
   }
 
   private startHeartbeatTimer() {
-    this.heartbeatTimer = setInterval(() => {
-      this.heartbeatAll();
-    }, this.heartbeatInterval);
+    this.heartbeatTimer = setInterval(
+      ExecutionFrames.listener({ handler: () => this.heartbeatAll() }),
+      this.heartbeatInterval,
+    );
   }
 
   private heartbeatAll() {

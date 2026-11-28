@@ -124,7 +124,7 @@ export class SocketIOComponent extends BaseComponent {
 
         serverInstance!.reload({
           fetch: SocketIOBunHandler.createFetchHandler({ engine, enginePath, honoServer }),
-          websocket: engineHandler.websocket,
+          websocket: SocketIOBunHandler.createWebSocketHandler({ engineHandler }),
         });
 
         logger.info('SocketIO initialized for Bun runtime');

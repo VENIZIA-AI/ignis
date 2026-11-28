@@ -5,7 +5,7 @@ export const useExecutionRunner = (opts: { isInstalled: boolean }) => {
         read: () => undefined,
         capture: () => ({ values: {} }),
         run: async (options) => options.task(),
-        runFrame: async (options) => options.task(),
+        runFrame: (options) => options.task(),
       }
     : undefined;
 };

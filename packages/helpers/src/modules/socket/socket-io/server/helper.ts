@@ -6,7 +6,7 @@ import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { RedisUtility, type TRedisClient } from '@/modules/redis';
-import { Execution } from '@/modules/execution';
+import { Execution, ExecutionFrames } from '@/modules/execution';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { Emitter } from '@socket.io/redis-emitter';
 import { Server as IOServer, type Socket as IOSocket, type ServerOptions } from 'socket.io';
@@ -152,7 +152,12 @@ export class SocketIOServerHelper extends BaseHelper {
       throw getError({ message: '[on] IOServer is not initialized yet!' });
     }
 
-    this.io.on(topic, handler);
+    this.io.on(topic, ExecutionFrames.listener({ handler }));
+  }
+
+  /** Removes a handler that `on` bound: what the server holds is its listener, not the handler itself. */
+  off<Args extends unknown[]>(opts: { topic: string; handler: (...args: Args) => unknown }) {
+    this.io?.off(opts.topic, ExecutionFrames.listener({ handler: opts.handler }));
   }
 
   async configure() {
@@ -192,9 +197,12 @@ export class SocketIOServerHelper extends BaseHelper {
     this.emitter = new Emitter(this.redisEmitter);
     logger.info('SocketIO Server initialized Redis Emitter');
 
-    this.io.on(SocketIOConstants.EVENT_CONNECT, (socket: IOSocket) => {
-      this.onClientConnect({ socket });
-    });
+    this.io.on(
+      SocketIOConstants.EVENT_CONNECT,
+      ExecutionFrames.listener({
+        handler: (socket: IOSocket) => this.onClientConnect({ socket }),
+      }),
+    );
 
     logger.info(
       'SocketIO Server READY | path: %s | runtime: %s',
@@ -250,21 +258,27 @@ export class SocketIOServerHelper extends BaseHelper {
       id,
       socket,
       state: SocketIOClientStates.UNAUTHORIZED,
-      authenticateTimeout: setTimeout(() => {
-        const currentClient = this.clients.get(id);
+      authenticateTimeout: setTimeout(
+        ExecutionFrames.listener({
+          handler: () => {
+            const currentClient = this.clients.get(id);
 
-        if (currentClient?.state === SocketIOClientStates.AUTHENTICATED) {
-          return;
-        }
+            if (currentClient?.state === SocketIOClientStates.AUTHENTICATED) {
+              return;
+            }
 
-        this.disconnect({ socket });
-      }, this.authenticateTimeout),
+            this.disconnect({ socket });
+          },
+        }),
+        this.authenticateTimeout,
+      ),
     };
     this.clients.set(id, client);
 
-    socket.on(SocketIOConstants.EVENT_DISCONNECT, () => {
-      this.disconnect({ socket });
-    });
+    socket.on(
+      SocketIOConstants.EVENT_DISCONNECT,
+      ExecutionFrames.listener({ handler: () => this.disconnect({ socket }) }),
+    );
 
     this.registerAuthHandler({ socket, handshake, clientId: id });
   }
@@ -273,7 +287,7 @@ export class SocketIOServerHelper extends BaseHelper {
     const { socket, handshake, clientId: id } = opts;
     const authLogger = this.logger.for('onClientAuthenticate');
 
-    socket.on(SocketIOConstants.EVENT_AUTHENTICATE, () => {
+    const onAuthenticate = () => {
       const currentClient = this.clients.get(id);
 
       if (!currentClient) {
@@ -336,7 +350,12 @@ export class SocketIOServerHelper extends BaseHelper {
             message: 'Failed to authenticate connection! Please login again!',
           });
         });
-    });
+    };
+
+    socket.on(
+      SocketIOConstants.EVENT_AUTHENTICATE,
+      ExecutionFrames.listener({ handler: onAuthenticate }),
+    );
   }
 
   // The socket is connected to this process, so the notice goes out on it directly: routed through the Redis emitter it arrives after the disconnect and is dropped.
@@ -406,9 +425,10 @@ export class SocketIOServerHelper extends BaseHelper {
 
     this.registerRoomHandlers({ socket, clientId: id });
 
-    client.interval = setInterval(() => {
-      this.ping({ socket, doIgnoreAuth: true });
-    }, this.pingInterval);
+    client.interval = setInterval(
+      ExecutionFrames.listener({ handler: () => this.ping({ socket, doIgnoreAuth: true }) }),
+      this.pingInterval,
+    );
 
     this.send({
       destination: socket.id,
@@ -448,7 +468,8 @@ export class SocketIOServerHelper extends BaseHelper {
     const { socket, clientId: id } = opts;
 
     const joinLogger = this.logger.for(SocketIOConstants.EVENT_JOIN);
-    socket.on(SocketIOConstants.EVENT_JOIN, (payload: unknown) => {
+
+    const onJoin = (payload: unknown) => {
       const rooms = SocketIOServerHelper.toRoomList(payload);
 
       if (!rooms.length) {
@@ -500,10 +521,13 @@ export class SocketIOServerHelper extends BaseHelper {
             error,
           );
         });
-    });
+    };
+
+    socket.on(SocketIOConstants.EVENT_JOIN, ExecutionFrames.listener({ handler: onJoin }));
 
     const leaveLogger = this.logger.for(SocketIOConstants.EVENT_LEAVE);
-    socket.on(SocketIOConstants.EVENT_LEAVE, (payload: unknown) => {
+
+    const onLeave = (payload: unknown) => {
       const rooms = SocketIOServerHelper.toRoomList(payload);
 
       if (!rooms.length) {
@@ -527,7 +551,9 @@ export class SocketIOServerHelper extends BaseHelper {
             error,
           );
         });
-    });
+    };
+
+    socket.on(SocketIOConstants.EVENT_LEAVE, ExecutionFrames.listener({ handler: onLeave }));
   }
 
   ping(opts: { socket: IOSocket; doIgnoreAuth: boolean }) {
@@ -624,7 +650,7 @@ export class SocketIOServerHelper extends BaseHelper {
     }
 
     if (callback) {
-      setImmediate(callback);
+      setImmediate(ExecutionFrames.listener({ handler: callback }));
     }
 
     if (doLog) {

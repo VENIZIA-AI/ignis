@@ -92,7 +92,7 @@ describe('the frames of ExecutionRunner', () => {
 
   test('a framework frame that is system without a reason is refused', async () => {
     const failure = await failureOf(async () => {
-      await ExecutionFrames.run({
+      ExecutionFrames.run({
         frame: { mode: ExecutionModes.SYSTEM, values: {} },
         task: () => undefined,
       });

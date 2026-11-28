@@ -139,8 +139,8 @@ export declare class ExecutionRunner extends BaseHelper implements IExecutionRun
     run<Result>(opts: TExecutionRunOptions<Result>): Promise<Result>;
     runFrame<Result>(opts: {
         frame: IExecutionFrame;
-        task: () => ValueOrPromise<Result>;
-    }): Promise<Result>;
+        task: () => Result;
+    }): Result;
     private buildFrame;
     /** A frame from plain JavaScript, or from the framework's own entry, is held to the same rules as a typed call. */
     private assertFrame;

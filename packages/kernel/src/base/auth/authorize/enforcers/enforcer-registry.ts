@@ -1,7 +1,7 @@
 import { SingletonRealm } from '@/helpers/singleton-realm';
 import type { Container } from '@/helpers/inversion/container';
 import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, ExecutionFrames } from '@venizia/ignis-helpers/core';
 import type { IAuthUser } from '../../authenticate/common/types';
 import { AbstractAuthRegistry } from '../../base';
 import type {
@@ -128,7 +128,8 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
 
     // `Promise.resolve` because `configure()` is declared `ValueOrPromise<void>` - a synchronous
     // implementation returns plain `void`, which has no `.then`.
-    const pending = Promise.resolve(enforcer.configure())
+    // One configuration serves every caller waiting for it, so it starts from nothing.
+    const pending = Promise.resolve(ExecutionFrames.root({ task: () => enforcer.configure() }))
       .then(() => {
         this.configuredEnforcers.add(opts.name);
       })

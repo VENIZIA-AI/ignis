@@ -19,7 +19,7 @@ const buildRunner = (opts: { calls: string[]; userId: number }): IExecutionRunne
 
       return options.task();
     },
-    runFrame: async (options) => {
+    runFrame: (options) => {
       opts.calls.push(`frame ${options.frame.mode}`);
 
       return options.task();
@@ -63,7 +63,7 @@ describe('Execution without a runner', () => {
   });
 
   test('a framework frame passes through: the task runs as it is', async () => {
-    const answer = await ExecutionFrames.run({
+    const answer = ExecutionFrames.run({
       frame: { mode: ExecutionModes.SCOPED, values: {} },
       task: () => Execution.current() ?? 'unframed',
     });
@@ -79,7 +79,7 @@ describe('Execution with a runner', () => {
     Execution.setRunner({ runner: buildRunner({ calls, userId: 2 }) });
 
     await Execution.run({ mode: ExecutionModes.SCOPED, task: () => undefined });
-    await ExecutionFrames.run({
+    ExecutionFrames.run({
       frame: { mode: ExecutionModes.SYSTEM, values: {} },
       task: () => undefined,
     });

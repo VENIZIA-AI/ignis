@@ -1,5 +1,5 @@
 import { type ValueOrPromise } from '@/common/types';
-import { Execution } from '@/modules/execution';
+import { Execution, ExecutionFrames } from '@/modules/execution';
 import { type MessagePort, type Transferable } from 'node:worker_threads';
 import { type IWorkerMessageBusHandler } from '../common';
 import { AbstractWorkerBusHelper } from './abstract';
@@ -19,25 +19,53 @@ export class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends Abstr
     this.port = opts.port;
     this.handler = opts.busHandler;
 
-    this.port.on('message', (message) => {
-      this.invokeHook({ scope: 'onMessage', execution: () => this.handler.onMessage({ message }) });
-    });
+    this.port.on(
+      'message',
+      ExecutionFrames.listener({
+        handler: (message) => {
+          this.invokeHook({
+            scope: 'onMessage',
+            execution: () => this.handler.onMessage({ message }),
+          });
+        },
+      }),
+    );
 
-    this.port.on('error', (error) => {
-      this.invokeHook({ scope: 'onError', execution: () => this.handler.onError({ error }) });
-    });
+    this.port.on(
+      'error',
+      ExecutionFrames.listener({
+        handler: (error) => {
+          this.invokeHook({ scope: 'onError', execution: () => this.handler.onError({ error }) });
+        },
+      }),
+    );
 
-    this.port.on('messageerror', (error) => {
-      this.invokeHook({ scope: 'onError', execution: () => this.handler.onError({ error }) });
-    });
+    this.port.on(
+      'messageerror',
+      ExecutionFrames.listener({
+        handler: (error) => {
+          this.invokeHook({ scope: 'onError', execution: () => this.handler.onError({ error }) });
+        },
+      }),
+    );
 
-    this.port.on('exit', (exitCode) => {
-      this.invokeHook({ scope: 'onExit', execution: () => this.handler.onExit({ exitCode }) });
-    });
+    this.port.on(
+      'exit',
+      ExecutionFrames.listener({
+        handler: (exitCode) => {
+          this.invokeHook({ scope: 'onExit', execution: () => this.handler.onExit({ exitCode }) });
+        },
+      }),
+    );
 
-    this.port.on('close', () => {
-      this.invokeHook({ scope: 'onClose', execution: () => this.handler.onClose() });
-    });
+    this.port.on(
+      'close',
+      ExecutionFrames.listener({
+        handler: () => {
+          this.invokeHook({ scope: 'onClose', execution: () => this.handler.onClose() });
+        },
+      }),
+    );
   }
 
   /** Bus handlers run inside MessagePort listeners; a sync throw there is uncaught and kills the worker thread, so wrap it - fireAndForget alone can't catch a throw evaluated before it's called. */

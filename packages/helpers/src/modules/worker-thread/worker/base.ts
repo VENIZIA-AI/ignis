@@ -1,5 +1,5 @@
 import { ErrorUtility } from '@/utilities/error.utility';
-import { Execution } from '@/modules/execution';
+import { Execution, ExecutionFrames } from '@/modules/execution';
 import { Worker, type WorkerOptions } from 'node:worker_threads';
 
 import { type ValueOrPromise } from '@/common/types';
@@ -110,30 +110,58 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
       throw getError({ message: '[binding] Invalid worker instance to bind event handlers' });
     }
 
-    this.worker.on('online', () => {
-      this.invokeHook({ scope: this.binding.name, execution: () => this.onOnline() });
-    });
+    this.worker.on(
+      'online',
+      ExecutionFrames.listener({
+        handler: () => {
+          this.invokeHook({ scope: this.binding.name, execution: () => this.onOnline() });
+        },
+      }),
+    );
 
-    this.worker.on('exit', (code) => {
-      this.invokeHook({ scope: this.binding.name, execution: () => this.onExit({ code }) });
-    });
+    this.worker.on(
+      'exit',
+      ExecutionFrames.listener({
+        handler: (code) => {
+          this.invokeHook({ scope: this.binding.name, execution: () => this.onExit({ code }) });
+        },
+      }),
+    );
 
-    this.worker.on('error', (error) => {
-      this.invokeHook({
-        scope: this.binding.name,
-        execution: () => this.onError({ error: ErrorUtility.toError({ error }) }),
-      });
-    });
+    this.worker.on(
+      'error',
+      ExecutionFrames.listener({
+        handler: (error) => {
+          this.invokeHook({
+            scope: this.binding.name,
+            execution: () => this.onError({ error: ErrorUtility.toError({ error }) }),
+          });
+        },
+      }),
+    );
 
-    this.worker.on('message', (message) => {
-      this.invokeHook({ scope: this.binding.name, execution: () => this.onMessage({ message }) });
-    });
+    this.worker.on(
+      'message',
+      ExecutionFrames.listener({
+        handler: (message) => {
+          this.invokeHook({
+            scope: this.binding.name,
+            execution: () => this.onMessage({ message }),
+          });
+        },
+      }),
+    );
 
-    this.worker.on('messageerror', (error) => {
-      this.invokeHook({
-        scope: this.binding.name,
-        execution: () => this.onMessageError({ error }),
-      });
-    });
+    this.worker.on(
+      'messageerror',
+      ExecutionFrames.listener({
+        handler: (error) => {
+          this.invokeHook({
+            scope: this.binding.name,
+            execution: () => this.onMessageError({ error }),
+          });
+        },
+      }),
+    );
   }
 }

@@ -3,7 +3,7 @@ import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { ParseUtility } from '@/utilities/parse.utility';
-import { Execution } from '@/modules/execution';
+import { Execution, ExecutionFrames } from '@/modules/execution';
 import {
   type ListenOptions,
   type ServerOpts,
@@ -153,35 +153,45 @@ export class BaseNetworkTcpServer<
 
   configure() {
     this.server = this.createServerFn(this.serverOptions, (socket) => {
-      this.onNewConnection({ socket });
+      ExecutionFrames.root({ task: () => this.onNewConnection({ socket }) });
     });
 
     // Without this listener a failed listen - a port already in use is the commonest boot failure there is - emits an unhandled 'error' event, which takes the whole process down with it.
-    this.server.on('error', (error: Error) => {
-      this.logger
-        .for(this.configure.name)
-        .error('TCP Socket Server error | Options: %j | Error: %s', this.listenOptions, error);
+    this.server.on(
+      'error',
+      ExecutionFrames.listener({
+        handler: (error: Error) => {
+          this.logger
+            .for(this.configure.name)
+            .error('TCP Socket Server error | Options: %j | Error: %s', this.listenOptions, error);
 
-      this.invokeHook({
-        scope: this.configure.name,
-        execution: () => {
-          this.onServerError?.({ server: this.server, error });
+          this.invokeHook({
+            scope: this.configure.name,
+            execution: () => {
+              this.onServerError?.({ server: this.server, error });
+            },
+          });
         },
-      });
-    });
+      }),
+    );
 
-    this.server.listen(this.listenOptions, () => {
-      this.logger
-        .for(this.configure.name)
-        .info('TCP Socket Server is now listening | Options: %j', this.listenOptions);
+    this.server.listen(
+      this.listenOptions,
+      ExecutionFrames.listener({
+        handler: () => {
+          this.logger
+            .for(this.configure.name)
+            .info('TCP Socket Server is now listening | Options: %j', this.listenOptions);
 
-      this.invokeHook({
-        scope: this.configure.name,
-        execution: () => {
-          this.onServerReady?.({ server: this.server });
+          this.invokeHook({
+            scope: this.configure.name,
+            execution: () => {
+              this.onServerReady?.({ server: this.server });
+            },
+          });
         },
-      });
-    });
+      }),
+    );
   }
 
   onNewConnection(opts: { socket: SocketClientType }) {
@@ -189,60 +199,80 @@ export class BaseNetworkTcpServer<
 
     const id = ParseUtility.getUID();
 
-    socket.on('data', (data: Buffer | string) => {
-      this.invokeHook({
-        scope: 'onClientData',
-        execution: () => {
-          this.onClientData?.({ id, socket, data });
+    socket.on(
+      'data',
+      ExecutionFrames.listener({
+        handler: (data: Buffer | string) => {
+          this.invokeHook({
+            scope: 'onClientData',
+            execution: () => {
+              this.onClientData?.({ id, socket, data });
+            },
+          });
         },
-      });
-    });
+      }),
+    );
 
-    socket.on('error', (error: Error) => {
-      this.logger.for('onClientConnect').error('Socket Error | ID: %s | Error: %s', id, error);
+    socket.on(
+      'error',
+      ExecutionFrames.listener({
+        handler: (error: Error) => {
+          this.logger.for('onClientConnect').error('Socket Error | ID: %s | Error: %s', id, error);
 
-      this.invokeHook({
-        scope: 'onClientError',
-        execution: () => {
-          this.onClientError?.({ id, socket, error });
+          this.invokeHook({
+            scope: 'onClientError',
+            execution: () => {
+              this.onClientError?.({ id, socket, error });
+            },
+          });
+
+          socket.end();
         },
-      });
+      }),
+    );
 
-      socket.end();
-    });
+    socket.on(
+      'close',
+      ExecutionFrames.listener({
+        handler: (hasError: boolean) => {
+          this.logger
+            .for('onClientConnect')
+            .info('Socket Closed | ID: %s | hasError: %s', id, hasError);
 
-    socket.on('close', (hasError: boolean) => {
-      this.logger
-        .for('onClientConnect')
-        .info('Socket Closed | ID: %s | hasError: %s', id, hasError);
+          this.invokeHook({
+            scope: 'onClientClose',
+            execution: () => {
+              this.onClientClose?.({ id, socket });
+            },
+          });
 
-      this.invokeHook({
-        scope: 'onClientClose',
-        execution: () => {
-          this.onClientClose?.({ id, socket });
+          const authenticateTimeout = this.getClient({ id })?.storage?.authenticateTimeout;
+
+          if (authenticateTimeout) {
+            clearTimeout(authenticateTimeout);
+          }
+
+          // `delete`, not `omit`: omit rebuilds the WHOLE registry per disconnect, so a disconnect
+          // storm is O(n^2) - measured at 5000 clients, 2.3s of drain with a 2.2s worst-case stall.
+          delete this.clients[id];
         },
-      });
-
-      const authenticateTimeout = this.getClient({ id })?.storage?.authenticateTimeout;
-
-      if (authenticateTimeout) {
-        clearTimeout(authenticateTimeout);
-      }
-
-      // `delete`, not `omit`: omit rebuilds the WHOLE registry per disconnect, so a disconnect
-      // storm is O(n^2) - measured at 5000 clients, 2.3s of drain with a 2.2s worst-case stall.
-      delete this.clients[id];
-    });
+      }),
+    );
 
     for (const extraEvent in this.extraEvents) {
-      socket.on(extraEvent, (args) => {
-        Execution.fireAndForget({
-          logger: this.logger,
-          scope: 'onClientConnect',
-          // The async wrapper turns a SYNCHRONOUS throw from the handler into a rejection; calling it bare would throw out of this listener as an uncaught exception.
-          execution: (async () => this.extraEvents[extraEvent]({ id, socket, args }))(),
-        });
-      });
+      socket.on(
+        extraEvent,
+        ExecutionFrames.listener({
+          handler: (args) => {
+            Execution.fireAndForget({
+              logger: this.logger,
+              scope: 'onClientConnect',
+              // The async wrapper turns a SYNCHRONOUS throw from the handler into a rejection; calling it bare would throw out of this listener as an uncaught exception.
+              execution: (async () => this.extraEvents[extraEvent]({ id, socket, args }))(),
+            });
+          },
+        }),
+      );
     }
 
     this.clients[id] = {
@@ -279,22 +309,27 @@ export class BaseNetworkTcpServer<
       this.authenticateOptions.duration &&
       this.authenticateOptions.duration > 0
     ) {
-      const authenticateTimeout = setTimeout(() => {
-        const client = this.getClient({ id });
+      const authenticateTimeout = setTimeout(
+        ExecutionFrames.listener({
+          handler: () => {
+            const client = this.getClient({ id });
 
-        if (!client) {
-          return;
-        }
+            if (!client) {
+              return;
+            }
 
-        client.storage.authenticateTimeout = null;
+            client.storage.authenticateTimeout = null;
 
-        if (client.state === TcpClientStates.AUTHENTICATED) {
-          return;
-        }
+            if (client.state === TcpClientStates.AUTHENTICATED) {
+              return;
+            }
 
-        this.emit({ clientId: id, payload: 'Unauthorized Client' });
-        client.socket.end();
-      }, this.authenticateOptions.duration);
+            this.emit({ clientId: id, payload: 'Unauthorized Client' });
+            client.socket.end();
+          },
+        }),
+        this.authenticateOptions.duration,
+      );
 
       const client = this.getClient({ id });
 

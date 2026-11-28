@@ -74,6 +74,18 @@ declare module '@venizia/ignis' {
 }
 ```
 
+### Where the framework starts a frame
+
+| Work | Frame |
+|---|---|
+| web request, gRPC call | scoped, with the request |
+| queue job, cron tick, Kafka and MQTT message, socket, TCP, UDP and worker-thread event, secrets rotation | root: scoped, nothing of whoever started the listener |
+| websocket event | root, with the client's user |
+| event bus handler | the publisher's request, user and values; never system |
+| sequential queue element | the user and values at enqueue; no request, never system |
+
+Work that needs every row opens its own system run where it is handled. A hand-off that drops system rights is logged once per queue or event name. A queue job carries no identity by itself: pass it through the job metadata and open the frame in the processor. A listener you register on a client yourself (a Redis `message`, for one) opens its own frame.
+
 A frame does not change what a query sees yet: a model's `access` reads the request as before.
 
 A script or a test with no application calls `ExecutionRunner.install()` first. Without a runner, `run` throws and `current()` is `undefined`; the other methods work, a browser included.
