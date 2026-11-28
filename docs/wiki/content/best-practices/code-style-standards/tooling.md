@@ -383,6 +383,15 @@ Every codemod below is a dry run unless you pass `--write`, and `--check` exits 
 - It does not read `.js` files or `import('pkg').Name`, and does not follow a name through a barrel of your own. Run your typecheck afterwards.
 - `--write` needs a path, or `--all`, and refuses a file with local changes. `--check` exits 1 while a file would change or a line is left to you. There is no `--reverse`.
 
+**`devz codemod typed-route-context [paths...] [--write [--all] \| --check]`**
+
+- Writes a route config declared as `IAuthRouteConfig` with `satisfies`, so it keeps its schemas: `const A: IAuthRouteConfig = {...}` becomes `const A = {...} satisfies IAuthRouteConfig`. It covers `Record`, `Omit` and `Readonly` of it, a type alias of those in the same file, a `readonly` class property and `as IAuthRouteConfig` on an object literal.
+- Then, in the same run, types the route handlers from those configs with `TContextOf`. See [typed route handlers](/references/base/controllers).
+- Lists as `left`, with the reason, and keeps: `let`, `var`, a property that is not `readonly`, no initializer, a value that is no object literal, a destructuring pattern, an optional property, an assertion to another type, a declaration the lint rule is turned off on, a binding that is written to later, a `Record` indexed with a key that is not a literal (without `noImplicitAny`, also with one it does not hold), and a config whose rewrite adds a type error. An empty `{}` filled later is not listed.
+- It typechecks only the projects (`tsconfig.json`) of the files it reads, and a package that imports a rewritten config through its build output is read as it was last built. Rebuild, then typecheck the packages that import it. A `Readonly<...>` type is checked by `satisfies` but no longer makes the value read-only.
+- The run takes a few times as long as your typecheck.
+- `--write` needs a path, or `--all`, and refuses a file with local changes. `--check` exits 1 while a file would change; a config left as it is does not fail it. There is no `--reverse`.
+
 **`devz codemod env-get [paths...] [--write [--all] \| --check]`**
 
 - Rewrites the type arguments of `applicationEnvironment.get()` and `AppEnvs.get()` for the release where `get()` reads strings: `get<string>(key)` becomes `get(key)`, and `get<R, B>(key, { transform })` becomes `get<R>(key, { transform })`.

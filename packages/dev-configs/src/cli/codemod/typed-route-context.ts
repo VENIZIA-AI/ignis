@@ -3,12 +3,27 @@ import { dirname, relative, resolve } from 'node:path';
 import type TypeScript from 'typescript';
 import { BindingKeysCommand } from './binding-keys';
 import { CodemodFiles } from './files';
+import { SatisfiesRewrite, TextEdits, type ILeftConfig } from './typed-route-context-satisfies';
 import { CliOutput } from '../../common/cli-output';
 
 const USAGE = `Usage: devz codemod typed-route-context [paths...] [--write [--all] | --check]
 
-Types route handlers from their route config (TContextOf). In a file that imports the types from @venizia/ignis or
-@venizia/ignis-kernel:
+Types route handlers from their route config (TContextOf), in two steps of one run.
+
+First, a config declared wide is rewritten, so that it keeps its schemas:
+
+- const A: IAuthRouteConfig = {...} becomes const A = {...} satisfies IAuthRouteConfig, and the same for a Record,
+  Omit or Readonly of it, a type alias of those in the same file, a readonly class property and "as IAuthRouteConfig"
+  on an object literal.
+
+Listed as "left", with the reason, and kept: let, var, a property that is not readonly, no initializer, a value that
+is no object literal, a declaration the lint rule is turned off on, a binding that is written to later, a Record
+indexed with a key that is not a literal (without noImplicitAny, also with one it does not hold), and a declaration whose rewrite adds a type error to a project of the run.
+An empty object filled later is not listed, as the lint rule does not report it. Only the projects (tsconfig.json) of
+the files the codemod reads are checked, and a package that imports a rewritten config through its build output is
+read as it was last built: rebuild, then typecheck the packages that import it.
+
+Then, in a file that imports the types from @venizia/ignis or @venizia/ignis-kernel:
 
 - a decorated method (@api, @get, @post, @put, @patch, @del) whose configs is a name declared or imported in the
   file: its TRouteContext becomes TContextOf<typeof CONFIG>, and valid<T>() on it loses its type argument;
@@ -24,15 +39,14 @@ where, without it, the call answers unknown (the route config carries no schema 
 error (your type differs from the schema's). The codemod asks the types of each file's project (its nearest
 tsconfig.json), so upgrade the packages first.
 An import or a local type that the rewrite leaves unused is removed. Every type error a rewritten file still has is
-listed as "check by hand". Asking the types takes about twice as long as your typecheck.
+listed as "check by hand". Asking the types typechecks those projects several times: the run takes a few times as long as your typecheck.
 
-A config declared as IAuthRouteConfig, or in a Record of it, carries no schema type: change it to
-"satisfies" first (the lint rule @venizia/typed-route-context reports each one). A handler of such a config declared
-in the same file is left as it is; one imported from another file cannot be seen, so change those first.
+A config left declared as IAuthRouteConfig carries no schema type. A handler of such a config declared in the same
+file is left as it is; one imported from another file keeps the valid<T>() arguments that need it.
 
   --write    write the changed files (without it, nothing is written); it needs a path, or --all
   --all      with --write and no path: rewrite every source file under the working directory
-  --check    dry run that exits 1 while a file would change (for CI)
+  --check    dry run that exits 1 while a file would change (for CI); a config left as it is does not fail it
   --help     print this text and exit
 
 With no flag it lists what would change and writes nothing. Inside a git repository it reads the files git
@@ -994,14 +1008,14 @@ export class TypedRouteContext {
     return remaining;
   }
 
-  /** Each of `files` with the program of its own project (its nearest tsconfig.json), the rewritten text read. */
-  private static check(opts: {
+  /** The program of each project (a file's nearest tsconfig.json) among `files`, with `contents` read in their place. */
+  static programs(opts: {
     typescript: typeof TypeScript;
     root: string;
-    results: ReadonlyMap<string, ITypedRouteContextResult>;
     files: string[];
-  }): Array<{ file: string; program: TypeScript.Program }> {
-    const { typescript: ts, root, results, files } = opts;
+    contents: ReadonlyMap<string, string>;
+  }): Array<{ program: TypeScript.Program; owned: string[] }> {
+    const { typescript: ts, root, files, contents } = opts;
     const projects = new Map<string, string[]>();
 
     for (const file of files) {
@@ -1010,9 +1024,7 @@ export class TypedRouteContext {
       projects.set(project, [...(projects.get(project) ?? []), file]);
     }
 
-    const contents = new Map([...results].map(([file, result]) => [file, result.output]));
-
-    return [...projects].flatMap(([project, owned]) => {
+    return [...projects].map(([project, owned]) => {
       const program = BindingKeysCommand.createProgram({
         typescript: ts,
         root: project,
@@ -1021,8 +1033,23 @@ export class TypedRouteContext {
         withProjectFiles: true,
       });
 
-      return owned.map((file) => ({ file, program }));
+      return { program, owned };
     });
+  }
+
+  /** Each of `files` with the program of its own project, the rewritten text read. */
+  private static check(opts: {
+    typescript: typeof TypeScript;
+    root: string;
+    results: ReadonlyMap<string, ITypedRouteContextResult>;
+    files: string[];
+  }): Array<{ file: string; program: TypeScript.Program }> {
+    const { results } = opts;
+    const contents = new Map([...results].map(([file, result]) => [file, result.output]));
+
+    return TypedRouteContext.programs({ ...opts, contents }).flatMap(({ program, owned }) =>
+      owned.map((file) => ({ file, program })),
+    );
   }
 
   private static keptIn(opts: {
@@ -1073,6 +1100,57 @@ export class TypedRouteContext {
  */
 export class TypedRouteContextCommand {
   static readonly USAGE = USAGE;
+
+  /**
+   * The first step: per file, the text with its wide configs written as `satisfies`. A file in `dirtyFiles` is not
+   * rewritten (it is added to `refused`), so nothing is proved or typed against a text that will not be written.
+   */
+  private static satisfy(opts: {
+    typescript: typeof TypeScript;
+    root: string;
+    sources: ReadonlyMap<string, string>;
+    dirtyFiles: ReadonlySet<string>;
+    refused: Set<string>;
+  }): { files: Map<string, { output: string; rewritten: number }>; left: ILeftConfig[] } {
+    const { typescript, root, sources, dirtyFiles, refused } = opts;
+    const scanned = [...sources].map(([fileName, source]) =>
+      SatisfiesRewrite.scan({ typescript, fileName, source }),
+    );
+    const candidates = scanned
+      .flatMap((item) => item.candidates)
+      .filter(({ file }) => {
+        const isDirty = dirtyFiles.has(file);
+
+        if (isDirty) {
+          refused.add(file);
+        }
+
+        return !isDirty;
+      });
+    const proof = SatisfiesRewrite.prove({
+      typescript,
+      root,
+      sources,
+      candidates,
+      programs: (contents) =>
+        TypedRouteContext.programs({ typescript, root, files: [...sources.keys()], contents }).map(
+          ({ program }) => program,
+        ),
+    });
+    const { contents } = TextEdits.writeAll({ sources, candidates: proof.accepted });
+    const files = new Map(
+      [...contents].map(([file, output]) => {
+        const rewritten = proof.accepted.filter((candidate) => candidate.file === file).length;
+
+        return [file, { output, rewritten }];
+      }),
+    );
+    const left = [...scanned.flatMap((item) => item.left), ...proof.left].sort(
+      (a, b) => a.file.localeCompare(b.file) || a.line - b.line,
+    );
+
+    return { files, left };
+  }
 
   static async run(opts: { root: string; args: string[] }): Promise<number> {
     const { root, args } = opts;
@@ -1134,11 +1212,6 @@ export class TypedRouteContextCommand {
     }
 
     const targets = (paths.length > 0 ? paths : ['.']).map((path) => resolve(root, path));
-    let changedCount = 0;
-    let rewrittenCount = 0;
-    let refusedCount = 0;
-
-    const results = new Map<string, ITypedRouteContextResult>();
     const sources = new Map<string, string>();
     const dirtyFiles = new Set<string>();
 
@@ -1153,25 +1226,47 @@ export class TypedRouteContextCommand {
       }
 
       for (const file of files) {
-        const source = readFileSync(file, 'utf8');
-
-        if (!source.includes(CONTEXT) && !source.includes(HANDLER)) {
-          continue;
-        }
-
-        const result = TypedRouteContext.rewrite({ typescript, fileName: file, source });
-
-        if (!result.changed) {
-          continue;
-        }
-
-        sources.set(file, source);
-        results.set(file, result);
+        sources.set(file, readFileSync(file, 'utf8'));
 
         if (dirty?.has(file)) {
           dirtyFiles.add(file);
         }
       }
+    }
+
+    const refused = new Set<string>();
+    const satisfied = TypedRouteContextCommand.satisfy({
+      typescript,
+      root,
+      sources,
+      dirtyFiles,
+      refused,
+    });
+    const results = new Map<string, ITypedRouteContextResult>();
+    const inputs = new Map<string, string>();
+
+    for (const [file, original] of sources) {
+      const first = satisfied.files.get(file);
+      const source = first?.output ?? original;
+      const isRead = source.includes(CONTEXT) || source.includes(HANDLER);
+      const result = isRead
+        ? TypedRouteContext.rewrite({ typescript, fileName: file, source })
+        : undefined;
+
+      if (!result?.changed && !first) {
+        continue;
+      }
+
+      if (dirtyFiles.has(file)) {
+        refused.add(file);
+        continue;
+      }
+
+      inputs.set(file, source);
+      results.set(
+        file,
+        result?.changed ? result : { output: source, changed: true, rewritten: 0, dropped: [] },
+      );
     }
 
     const kept = TypedRouteContext.keptCalls({ typescript, root, results });
@@ -1185,7 +1280,7 @@ export class TypedRouteContextCommand {
           ? TypedRouteContext.rewrite({
               typescript,
               fileName: file,
-              source: sources.get(file) ?? '',
+              source: inputs.get(file) ?? '',
               keep,
             })
           : first,
@@ -1193,24 +1288,24 @@ export class TypedRouteContextCommand {
     }
 
     const remaining = TypedRouteContext.remainingErrors({ typescript, root, results: finals });
+    const show = (file: string) => relative(root, file).split('\\').join('/') || file;
+    let changedCount = 0;
+    let rewrittenCount = 0;
+
+    for (const file of refused) {
+      CliOutput.warn(
+        `refused  ${show(file)}  has local changes (commit, stash or "git add" them, then run again)`,
+      );
+    }
 
     for (const [file, result] of finals) {
       const keep = kept.get(file);
-      const shown = relative(root, file).split('\\').join('/') || file;
-
-      if (dirtyFiles.has(file)) {
-        refusedCount += 1;
-        CliOutput.warn(
-          `refused  ${shown}  has local changes (commit, stash or "git add" them, then run again)`,
-        );
-        continue;
-      }
+      const shown = show(file);
+      const rewritten = result.rewritten + (satisfied.files.get(file)?.rewritten ?? 0);
 
       changedCount += 1;
-      rewrittenCount += result.rewritten;
-      CliOutput.log(
-        `${isWrite ? 'changed' : 'would change'}  ${shown}  (${result.rewritten} place(s))`,
-      );
+      rewrittenCount += rewritten;
+      CliOutput.log(`${isWrite ? 'changed' : 'would change'}  ${shown}  (${rewritten} place(s))`);
 
       if (keep) {
         CliOutput.warn(
@@ -1228,8 +1323,16 @@ export class TypedRouteContextCommand {
       }
     }
 
+    for (const { file, line, name, reason } of satisfied.left) {
+      CliOutput.warn(`left     ${show(file)}:${line}  ${name}: ${reason}`);
+    }
+
+    const refusedCount = refused.size;
+    const leftCount = satisfied.left.length;
+
     CliOutput.log(
       `devz codemod typed-route-context: ${changedCount} file(s) ${isWrite ? 'changed' : 'would change'}, ${rewrittenCount} place(s) ${isWrite ? 'rewritten' : 'would be rewritten'}` +
+        (leftCount > 0 ? `, ${leftCount} config(s) left as declared` : '') +
         (refusedCount > 0 ? `, ${refusedCount} refused` : ''),
     );
 

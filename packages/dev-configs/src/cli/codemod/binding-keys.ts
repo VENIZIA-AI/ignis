@@ -1018,6 +1018,8 @@ export class BindingKeysCommand {
       noEmit: true,
       skipLibCheck: true,
       incremental: false,
+      // A composite project writes declarations, which `getDeclarationDiagnostics` must still be asked about.
+      declaration: parsed?.options.declaration ?? parsed?.options.composite,
       composite: false,
       allowJs: false,
     };
