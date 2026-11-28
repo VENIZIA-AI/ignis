@@ -24,6 +24,7 @@ import type { IResolvedApplicationError, TApplicationErrorType } from './common'
 import { ZodErrorHandler } from './zod.handler';
 
 const DEFAULT_INTERNAL_ERROR_MESSAGE = 'Internal Server Error';
+const MAX_ERROR_STATUS = 599;
 
 /**
  * Set by `ApplicationError.fromUnknown` on an error it wrapped from a value with no usable HTTP status. Read by registry key, so
@@ -169,7 +170,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
   }): string {
     const { error, messageCode, extra, includeStack = true, maxStackFrames } = opts;
     // Anything can be thrown, a function included.
-    const thrown: { name?: unknown; message?: unknown; stack?: unknown } =
+    const thrown: { name?: unknown; message?: unknown; stack?: unknown; normalized?: unknown } =
       RecordUtility.isRecord(error) || typeof error === 'function' ? error : {};
     const lines: Array<string> = [];
 
@@ -180,6 +181,13 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     lines.push(
       `message: ${typeof thrown.message === 'string' ? thrown.message : renderValue({ value: error })}`,
     );
+
+    const args = RecordUtility.isRecord(thrown.normalized) ? thrown.normalized.args : undefined;
+
+    // The values of the message's placeholders: a production 5xx response carries none, so the log is where they stay.
+    if (RecordUtility.isRecord(args) && Object.keys(args).length > 0) {
+      lines.push(`args: ${renderValue({ value: args })}`);
+    }
 
     if (messageCode) {
       lines.push(`code: ${messageCode}`);
@@ -280,15 +288,62 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     return isClientError ? error.status : undefined;
   }
 
-  /** `getError` sets `statusCode`, and it wins when a foreign error carries both. Neither usable is a 500. */
+  /** `getError` sets `statusCode`, and it wins when a foreign error carries both. Anything but an integer from 400 to 599 is a 500. */
   private readIntentionalStatus(opts: { error: TThrown }): number {
     const { error } = opts;
+    const status =
+      'statusCode' in error && typeof error.statusCode === 'number'
+        ? error.statusCode
+        : this.readClientErrorStatus({ error });
+    const isErrorStatus =
+      status !== undefined &&
+      Number.isInteger(status) &&
+      status >= HTTP.ResultCodes.RS_4.BadRequest &&
+      status <= MAX_ERROR_STATUS;
 
-    if ('statusCode' in error && typeof error.statusCode === 'number') {
-      return error.statusCode;
+    return isErrorStatus ? status : HTTP.ResultCodes.RS_5.InternalServerError;
+  }
+
+  /** A throw site's own answer. A server error (5xx) in production keeps its status and code only: the message is for the log. */
+  private resolveIntentional(opts: {
+    error: TThrown;
+    isProduction: boolean;
+  }): IResolvedApplicationError {
+    const { error, isProduction } = opts;
+    const resolved = this.build({
+      error,
+      type: ApplicationErrorTypes.INTENTIONAL,
+      statusCode: this.readIntentionalStatus({ error }),
+      message: error.message,
+    });
+
+    if (!isProduction || resolved.statusCode < HTTP.ResultCodes.RS_5.InternalServerError) {
+      return resolved;
     }
 
-    return this.readClientErrorStatus({ error }) ?? HTTP.ResultCodes.RS_5.InternalServerError;
+    // A foreign error's own `normalized` may be anything; its code is kept only when it is one.
+    const authored: unknown = resolved.normalized;
+    const code =
+      RecordUtility.isRecord(authored) && typeof authored.code === 'string'
+        ? authored.code
+        : this.readMessageCode({ error });
+
+    return {
+      ...resolved,
+      message: DEFAULT_INTERNAL_ERROR_MESSAGE,
+      normalized: { text: DEFAULT_INTERNAL_ERROR_MESSAGE, code, args: {} },
+    };
+  }
+
+  /** A foreign error's own `messageCode`, else the default one. */
+  private readMessageCode(opts: { error: TThrown }): string {
+    const { error } = opts;
+
+    return MessageCode.resolve(
+      'messageCode' in error && typeof error.messageCode === 'string'
+        ? error.messageCode
+        : undefined,
+    );
   }
 
   /** An ApplicationError's `normalized` is authoritative - a `transform` may have reworded `text`. */
@@ -302,13 +357,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     const { error, statusCode, message, type, messageCode } = opts;
 
     // Fallback for a FOREIGN error that sets its own code; an ApplicationError reports via `normalized`.
-    const code =
-      messageCode ??
-      MessageCode.resolve(
-        'messageCode' in error && typeof error.messageCode === 'string'
-          ? error.messageCode
-          : undefined,
-      );
+    const code = messageCode ?? this.readMessageCode({ error });
 
     // An error wrapped from a foreign value keeps that value's text in `normalized`: the response must carry the answer chosen
     // here (generic in production), never the wrapped text.
@@ -349,12 +398,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
       }
 
       case ApplicationErrorTypes.INTENTIONAL: {
-        return this.build({
-          error,
-          type,
-          statusCode: this.readIntentionalStatus({ error }),
-          message: error.message,
-        });
+        return this.resolveIntentional({ error, isProduction });
       }
 
       default: {

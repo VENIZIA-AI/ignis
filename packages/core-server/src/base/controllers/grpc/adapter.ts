@@ -5,9 +5,9 @@ import type {
   UniversalServerResponse,
 } from '@connectrpc/connect/protocol';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { BaseHelper, getError, RecordUtility } from '@venizia/ignis-helpers/core';
+import { BaseHelper, EnvironmentNames, getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { GRPC, HTTP } from '@venizia/ignis-helpers/common';
-import { ModuleUtility } from '@venizia/ignis-helpers';
+import { Environment, ErrorPrettier, ModuleUtility } from '@venizia/ignis-helpers';
 import type { Context, Env, Input, MiddlewareHandler, Schema } from 'hono';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { TRouteContext } from '@venizia/ignis-kernel';
@@ -169,6 +169,22 @@ export class GrpcRequestAdapter<
     (router.service as Function)(this.controller.service, handlers);
   }
 
+  /** What a client reads about a failed call: the thrown message in a development environment only, as for a REST request. */
+  private readFailureMessage(opts: { error: unknown; context: Context<RouteEnv> }): string {
+    const { error, context } = opts;
+    const bound = RecordUtility.isRecord(context.env) ? context.env.NODE_ENV : undefined;
+    const environment = [bound, Environment.ambient].find(Boolean);
+    const isDevelopment =
+      typeof environment === 'string' &&
+      EnvironmentNames.DEVELOPMENT_ENVS.has(environment.toLowerCase());
+
+    if (!isDevelopment) {
+      return 'Internal Server Error';
+    }
+
+    return error instanceof Error ? error.message : 'Internal gRPC error';
+  }
+
   /** Creates the Hono middleware that dispatches to ConnectRPC universal handlers. */
   private buildMiddleware(opts: {
     handlerMap: Map<string, UniversalHandler>;
@@ -206,7 +222,11 @@ export class GrpcRequestAdapter<
 
           return universalServerResponseToFetch(uRes);
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Internal gRPC error';
+          this.logger
+            .for(this.buildMiddleware.name)
+            .error('gRPC call failed | path: %s\n%s', pathname, ErrorPrettier.format({ error }));
+
+          const message = this.readFailureMessage({ error, context });
 
           // Preserve gRPC status code from ConnectError (duck-type check avoids peer dep coupling)
           const code =

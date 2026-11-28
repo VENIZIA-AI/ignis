@@ -274,8 +274,12 @@ export declare class BaseAppErrorMiddleware extends BaseHelper implements IProvi
     private classify;
     /** Hono's `HTTPException` carries `status`, not `statusCode`. Only a 4xx is the caller's fault; a 5xx stays unexpected, so its message is sanitized. */
     private readClientErrorStatus;
-    /** `getError` sets `statusCode`, and it wins when a foreign error carries both. Neither usable is a 500. */
+    /** `getError` sets `statusCode`, and it wins when a foreign error carries both. Anything but an integer from 400 to 599 is a 500. */
     private readIntentionalStatus;
+    /** A throw site's own answer. A server error (5xx) in production keeps its status and code only: the message is for the log. */
+    private resolveIntentional;
+    /** A foreign error's own `messageCode`, else the default one. */
+    private readMessageCode;
     /** An ApplicationError's `normalized` is authoritative - a `transform` may have reworded `text`. */
     private build;
     private resolve;

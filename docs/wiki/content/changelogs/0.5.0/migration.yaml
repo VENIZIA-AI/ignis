@@ -1414,3 +1414,21 @@ stylistic-6:
     steps:
       - "Pin @venizia/dev-configs to the release before this one."
   data: Nothing stored changes.
+
+error-response-policy:
+  symbols: [BaseAppErrorMiddleware, AppErrorMiddleware, getError, ApplicationError, fromError]
+  upgrade:
+    before: |-
+      throw getError({ statusCode: 503, message: 'Payments are closed' });
+    after: |-
+      throw getError({ statusCode: 503, message: 'Payments are closed', messageCode: 'app.payments.closed' });
+    steps:
+      - "This applies outside the development environments (local, debug, development, dev, sit): NODE_ENV=test, staging and an unset NODE_ENV answer the generic message too."
+      - "Where a client shows the message of a 5xx, give the error a messageCode and translate normalized.code. A test that asserts the message of a 5xx asserts normalized.code."
+      - "A 5xx carries no dynamic value there: normalized.args is empty, so a translation with placeholders (a retry time, for example) has nothing to fill. Where the caller needs the message or a value, answer a 4xx."
+      - "Between services: an error rebuilt with fromError from an upstream 5xx now reads Internal Server Error with empty args, and so does anything that stores its toFilledText(), such as the failure reason of a queue job. Find the cause in the upstream service's log, by requestId or extra.upstreamRequestIds."
+      - "Where an error is thrown with a status below 400 or above 599, it now answers 500: throw a 4xx or 5xx, or return the response from the route."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-kernel to the release before this one."
+  data: Nothing stored changes.

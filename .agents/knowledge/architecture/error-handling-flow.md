@@ -228,9 +228,14 @@ Production suppresses:
   `detail` echoes row values (`Key (email)=(a@b.com) already exists`) and `table`/`constraint` reveal
   schema internals.
 - **`stack` and `cause`.** Both are set on `details` only when `!isProduction`.
+- **The message of a 5xx.** A failed gRPC transport call answers the same generic message. An intentional error with a status of 500 or more keeps its status and
+  `normalized.code`; `message` and `normalized.text` become `'Internal Server Error'` and
+  `normalized.args` is empty. The log keeps the thrown message. A status that is not an integer from
+  400 to 599 answers 500.
 
-Note the asymmetry that makes this safe: an error you raised with `getError` keeps its message in
-production, because you chose that message deliberately. An error you did not raise never does.
+Note the asymmetry that makes this safe: a 4xx raised with `getError` keeps its message in
+production, because the throw site chose that answer for the caller. A 5xx and an error you did not
+raise never do.
 
 ## The response shape
 
@@ -293,7 +298,7 @@ must stay browser-safe, not as a duplicate to be consolidated away.
 
 `ApplicationError.fromUnknown({ error })` (inversion, `app-error.ts`) is the catch-block counterpart: it takes the `unknown` a `catch` binds and NEVER throws. A value that passes `isApplicationError` (or `instanceof`) comes back as the SAME instance; anything else becomes a new `ApplicationError` with the value as `cause`. Status kept: an integer `statusCode` in 400-599, else an integer `status` in 400-499 (a 5xx `status` is an upstream's); anything else is a 500 marked UNEXPECTED. Message: a non-blank string `message`, else the fixed `An unknown value was thrown`; control characters are escaped (the same set as `EchoUtility.toSafeEcho`) and the value is never `String()`-ed. Every property read goes through `Reflect.get` inside a try, so a throwing getter or Proxy trap reads as absent.
 
-The client sees the value's message ONLY when the value carried a valid status (the thrower chose to answer). Otherwise `fromUnknown` sets a private symbol, `Symbol.for('@venizia/ignis-inversion:unexpected-error')`, non-enumerable (never in JSON, `extra` or a response); `BaseAppErrorMiddleware.classify` reads it by registry key (kernel and inversion share no export), answers UNEXPECTED (generic message in production), and `build()` then ignores the wrapped error's `normalized.text`, which would otherwise carry the foreign message into the response body. The real message, `cause` and stack stay in the log. A call site that wants a client message of its own uses `getError`.
+The client sees the value's message ONLY when the value carried a valid status (the thrower chose to answer), and in production only for a 4xx. Otherwise `fromUnknown` sets a private symbol, `Symbol.for('@venizia/ignis-inversion:unexpected-error')`, non-enumerable (never in JSON, `extra` or a response); `BaseAppErrorMiddleware.classify` reads it by registry key (kernel and inversion share no export), answers UNEXPECTED (generic message in production), and `build()` then ignores the wrapped error's `normalized.text`, which would otherwise carry the foreign message into the response body. The real message, `cause` and stack stay in the log. A call site that wants a client message of its own uses `getError`.
 
 ## Related
 
