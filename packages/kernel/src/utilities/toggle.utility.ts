@@ -32,12 +32,12 @@ export class ToggleUtility {
 
     if (typeof use !== 'boolean') {
       const option = opts ? ` | option: ${opts.name}` : '';
-      const kind = toggle === null ? 'null' : Array.isArray(toggle) ? 'array' : typeof toggle;
+      const received = toggle === null ? 'null' : Array.isArray(toggle) ? 'array' : typeof toggle;
 
       // Types only: a toggle can carry a private key or a signing secret.
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: `[ToggleUtility] A toggle must be { use: true } or { use: false }${option} | toggle: ${kind} | use: ${typeof use}`,
+        message: `[ToggleUtility] A toggle must be { use: true } or { use: false }${option} | toggle: ${received} | use: ${typeof use}`,
       });
     }
 

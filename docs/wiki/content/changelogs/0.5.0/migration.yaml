@@ -1668,7 +1668,7 @@ toggle-boolean-use:
       - "Where you set entities.softDelete to { use: true }, give columnName a non-empty string: the scoped casbin adapter now checks it when it is built."
       - "A caller of ToggleUtility.isUsed or pick may pass { name } to have its own option path in the error. Nothing requires it."
       - "A test that expects status 400 for a toggle read by ToggleUtility expects 500 now."
-      - "A test that reads the value from a search toggle error reads the types now; its status is still 400."
+      - "A test that reads the value from a search toggle error reads the types now, and its status is 500."
   downgrade:
     steps:
       - "Pin the @venizia packages to the release before this one."

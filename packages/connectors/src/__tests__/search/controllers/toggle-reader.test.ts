@@ -14,6 +14,8 @@ describe('SearchToggles - a refusal', () => {
     expect(() => read(toggle)).toThrow(/^(?!.*SECRET)/s);
     expect(() => read('SECRET-value')).toThrow(/^(?!.*SECRET).*toggle: string/s);
     expect(() => read(null)).toThrow('toggle: null');
+
+    expect(() => read(toggle)).toThrow(expect.objectContaining({ statusCode: 500 }));
   });
 
   test('use must be an own property of a plain object', () => {

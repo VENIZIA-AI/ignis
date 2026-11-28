@@ -1,3 +1,4 @@
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError, RecordUtility } from '@venizia/ignis-helpers/core';
 
 /** Reads the `{ use }` switches of a search controller, for a caller whose types do not hold (plain JavaScript, a config file). */
@@ -17,11 +18,12 @@ export class SearchToggles {
       RecordUtility.isPlainObject(toggle) && Object.hasOwn(toggle, 'use') ? toggle.use : undefined;
 
     if (typeof use !== 'boolean') {
-      const kind = toggle === null ? 'null' : Array.isArray(toggle) ? 'array' : typeof toggle;
+      const received = toggle === null ? 'null' : Array.isArray(toggle) ? 'array' : typeof toggle;
 
       // Types only: the value can hold what must not reach a log.
       throw getError({
-        message: `[${scope}] ${name} must be { use: true } or { use: false } | toggle: ${kind} | use: ${typeof use}`,
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        message: `[${scope}] ${name} must be { use: true } or { use: false } | toggle: ${received} | use: ${typeof use}`,
       });
     }
 
