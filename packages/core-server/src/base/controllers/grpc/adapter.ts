@@ -25,6 +25,25 @@ type TConnectHandler<RequestType = unknown, ResponseType = unknown> = (
   context: HandlerContext,
 ) => ValueOrPromise<ResponseType>;
 
+/** What an adapter is built from. */
+interface IAdapterOptions<
+  RouteEnv extends Env,
+  RouteSchema extends Schema,
+  BasePath extends string,
+  ServiceType,
+  ConfigurableOptions extends object,
+> {
+  controller: AbstractGrpcController<
+    RouteEnv,
+    RouteSchema,
+    BasePath,
+    ServiceType,
+    ConfigurableOptions
+  >;
+  interceptors?: unknown[];
+  module?: IConnectRpcModule;
+}
+
 /**
  * Bridges IGNIS gRPC controllers with ConnectRPC: loads the peer deps with `ModuleUtility.load` (the ES module copy an
  * application's own import gets) and registers one Hono route per RPC, which hands the request to ConnectRPC's handler
@@ -37,41 +56,24 @@ export class GrpcRequestAdapter<
   ServiceType = Parameters<ConnectRouter['service']>[0],
   ConfigurableOptions extends object = {},
 > extends BaseHelper {
-  private connect: IConnectRpcModule['connect'];
-  private protocol: IConnectRpcModule['protocol'];
   /** The Hono context of the call, as ConnectRPC carries it to the RPC handler. */
   private readonly honoContext: ContextKey<Context<RouteEnv> | undefined>;
   /** The server's default error handler: it decides the status and the message a client may read, and logs the error. */
   private readonly handleError = new AppErrorMiddleware().value();
 
-  private controller: AbstractGrpcController<
-    RouteEnv,
-    RouteSchema,
-    BasePath,
-    ServiceType,
-    ConfigurableOptions
-  >;
-
-  private interceptors?: unknown[];
-
-  private constructor(opts: {
-    controller: AbstractGrpcController<
+  private constructor(
+    private readonly options: IAdapterOptions<
       RouteEnv,
       RouteSchema,
       BasePath,
       ServiceType,
       ConfigurableOptions
-    >;
-    interceptors?: unknown[];
-    module: IConnectRpcModule;
-  }) {
+    >,
+    private readonly peers: IConnectRpcModule,
+  ) {
     super({ scope: GrpcRequestAdapter.name });
 
-    this.controller = opts.controller;
-    this.interceptors = opts.interceptors;
-    this.connect = opts.module.connect;
-    this.protocol = opts.module.protocol;
-    this.honoContext = this.connect.createContextKey<Context<RouteEnv> | undefined>(undefined);
+    this.honoContext = peers.connect.createContextKey<Context<RouteEnv> | undefined>(undefined);
   }
 
   /**
@@ -87,19 +89,6 @@ export class GrpcRequestAdapter<
     ]);
 
     return { connect, protocol };
-  }
-
-  /** Wraps IGNIS RPC registrations into ConnectRPC's (request, context) => response signature. */
-  private buildConnectHandlers(opts: {
-    definitions: Record<string, IRpcRegistration<RouteEnv>>;
-  }): Record<string, TConnectHandler> {
-    const handlers: Record<string, TConnectHandler> = {};
-
-    for (const name in opts.definitions) {
-      handlers[name] = this.wrap({ name, definition: opts.definitions[name] });
-    }
-
-    return handlers;
   }
 
   /** One RPC: the middlewares, then the handler; a throw becomes the answer a gRPC client reads. */
@@ -130,7 +119,7 @@ export class GrpcRequestAdapter<
         const answer = await GrpcErrors.toAnswer({
           error,
           context: requestContext,
-          connect: this.connect,
+          connect: this.peers.connect,
           handle: this.handleError,
         });
         throw answer;
@@ -166,7 +155,7 @@ export class GrpcRequestAdapter<
 
   /** ConnectRPC drops a handler whose name the service does not declare, and the call then answers `unimplemented`: refused at boot instead. */
   private assertDeclaredRpcs() {
-    const service: unknown = this.controller.service;
+    const service: unknown = this.options.controller.service;
 
     if (
       !RecordUtility.isRecord(service) ||
@@ -179,25 +168,29 @@ export class GrpcRequestAdapter<
     const declared = service.methods.map((method: unknown) =>
       RecordUtility.isRecord(method) ? String(method.localName) : '',
     );
-    const unknownName = Object.keys(this.controller.definitions).find(
+    const unknownName = Object.keys(this.options.controller.definitions).find(
       (name) => !declared.includes(name),
     );
 
     if (unknownName !== undefined) {
       throw getError({
-        message: `[${this.controller.constructor.name}] ${String(service.typeName)} declares no RPC "${unknownName}" | declared: ${declared.join(', ')}`,
+        message: `[${this.options.controller.constructor.name}] ${String(service.typeName)} declares no RPC "${unknownName}" | declared: ${declared.join(', ')}`,
       });
     }
   }
 
-  /** Loose signature on purpose - the IGNIS `ServiceType` is opaque (`unknown`) while ConnectRPC expects `DescService`. */
-  private registerService(opts: {
-    router: ConnectRouter;
-    handlers: Record<string, TConnectHandler>;
-  }) {
-    const { router, handlers } = opts;
+  /** Registers every RPC of the controller on the ConnectRPC router, each wrapped into ConnectRPC's `(request, context) => response`. */
+  private registerService(opts: { router: ConnectRouter }) {
+    const { service, definitions } = this.options.controller;
+    const handlers = Object.fromEntries(
+      Object.entries(definitions).map(([name, definition]) => [
+        name,
+        this.wrap({ name, definition }),
+      ]),
+    );
+
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `router.service` takes a ConnectRPC `DescService`, while the controller's `ServiceType` is unbounded
-    (router.service as Function)(this.controller.service, handlers);
+    (opts.router.service as Function)(service, handlers);
   }
 
   /** The request ConnectRPC reads. A body an earlier middleware consumed is in Hono's cache: the request is rebuilt with it. */
@@ -226,14 +219,14 @@ export class GrpcRequestAdapter<
     const { context, handler } = opts;
     const request = await this.readRequest({ context });
 
-    const universalRequest = this.protocol.universalServerRequestFromFetch(request, {
+    const universalRequest = this.peers.protocol.universalServerRequestFromFetch(request, {
       httpVersion: '1.1',
     });
     const universalResponse = await handler({
       ...universalRequest,
-      contextValues: this.connect.createContextValues().set(this.honoContext, context),
+      contextValues: this.peers.connect.createContextValues().set(this.honoContext, context),
     });
-    const response = this.protocol.universalServerResponseToFetch(universalResponse);
+    const response = this.peers.protocol.universalServerResponseToFetch(universalResponse);
 
     return context.newResponse(response.body, response);
   }
@@ -245,47 +238,30 @@ export class GrpcRequestAdapter<
     BasePath extends string = '/',
     ServiceType = Parameters<ConnectRouter['service']>[0],
     ConfigurableOptions extends object = {},
-  >(opts: {
-    controller: AbstractGrpcController<
-      RouteEnv,
-      RouteSchema,
-      BasePath,
-      ServiceType,
-      ConfigurableOptions
-    >;
-    interceptors?: unknown[];
-    module?: IConnectRpcModule;
-  }): Promise<IConnectAdapterResult<RouteEnv>> {
-    let module = opts.module;
+  >(
+    opts: IAdapterOptions<RouteEnv, RouteSchema, BasePath, ServiceType, ConfigurableOptions>,
+  ): Promise<IConnectAdapterResult<RouteEnv>> {
+    let peers = opts.module;
 
-    if (!module) {
+    if (!peers) {
       const loaded = await GrpcRequestAdapter.loadModule();
-      module = loaded;
+      peers = loaded;
     }
 
-    const adapter = new GrpcRequestAdapter<
-      RouteEnv,
-      RouteSchema,
-      BasePath,
-      ServiceType,
-      ConfigurableOptions
-    >({ ...opts, module });
+    const adapter = new GrpcRequestAdapter(opts, peers);
 
     // `Bun.serve` sends no response trailers, so the gRPC protocol is off here.
     const routerOpts: Record<string, unknown> = { grpc: false };
 
-    if (adapter.interceptors?.length) {
-      routerOpts.interceptors = adapter.interceptors;
+    if (opts.interceptors?.length) {
+      routerOpts.interceptors = opts.interceptors;
     }
 
-    const connectRouter = adapter.connect.createConnectRouter(routerOpts);
+    const connectRouter = peers.connect.createConnectRouter(routerOpts);
 
-    if (adapter.controller.service) {
+    if (opts.controller.service) {
       adapter.assertDeclaredRpcs();
-      adapter.registerService({
-        router: connectRouter,
-        handlers: adapter.buildConnectHandlers({ definitions: adapter.controller.definitions }),
-      });
+      adapter.registerService({ router: connectRouter });
     }
 
     const router = new Hono<RouteEnv>();

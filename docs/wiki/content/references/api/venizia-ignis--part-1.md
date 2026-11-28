@@ -138,7 +138,6 @@ export declare abstract class AbstractGrpcController<RouteEnv extends Env = Env,
     /** ConnectRPC service definition from @controller metadata. */
     service: ServiceType;
     path: string;
-    basePath: string;
     /** Assigned by GrpcComponent from its options, before configure(). Absent means the adapter resolves the peer itself. */
     connectRpcModule?: IConnectRpcModule;
     /** ConnectRPC interceptors, assigned by GrpcComponent from its options before configure(). Applied to every RPC this controller registers. */

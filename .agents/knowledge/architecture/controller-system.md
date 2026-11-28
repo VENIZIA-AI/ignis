@@ -38,8 +38,8 @@ application does unless `configs.transports` says otherwise. Do not model it as 
 `AbstractRestController`, `BaseRestController`, `CrudControllerFactory` and the CRUD tiers all live in
 `@venizia/ignis-kernel`, under `packages/kernel/src/base/controllers`. gRPC is the one tier left in
 core, at `packages/core-server/src/base/controllers/grpc`, where a parallel `AbstractGrpcController` /
-`BaseGrpcController` pair sits: ConnectRPC reaches for `node:async_hooks` and `node:module`, so it
-can never be browser-pure. `packages/core-server/src/base/controllers/index.ts` re-exports the kernel
+`BaseGrpcController` pair sits: its peers are loaded through `node:module`, so it can never
+be browser-pure. `packages/core-server/src/base/controllers/index.ts` re-exports the kernel
 barrel, so `@/base/controllers` and the `@venizia/ignis` root entrypoint still resolve every moved
 symbol.
 

@@ -172,6 +172,12 @@ describe('gRPC adapter on the wire', () => {
     expect(response.status).toBe(HTTP.ResultCodes.RS_4.NotFound);
   });
 
+  test('another method on an RPC path is the application 404', async () => {
+    const response = await fetch(`http://127.0.0.1:${server.port}${PATH}`, { method: 'DELETE' });
+
+    expect(response.status).toBe(HTTP.ResultCodes.RS_4.NotFound);
+  });
+
   test('the adapter answers a router and the paths it serves', async () => {
     const adapter = await GrpcRequestAdapter.build({ controller, module: { connect, protocol } });
 

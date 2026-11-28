@@ -121,22 +121,18 @@ with the Hono context in its context values. Connect and gRPC-Web only: native g
 
 ```ts
 export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ServiceType = Parameters<ConnectRouter['service']>[0], ConfigurableOptions extends object = {}> extends BaseHelper {
-    private connect;
-    private protocol;
+    private readonly options;
+    private readonly peers;
     /** The Hono context of the call, as ConnectRPC carries it to the RPC handler. */
     private readonly honoContext;
     /** The server's default error handler: it decides the status and the message a client may read, and logs the error. */
     private readonly handleError;
-    private controller;
-    private interceptors?;
     private constructor();
     /**
      * The ConnectRPC peers, loaded as ES modules from the project root (or taken from `ModuleUtility.register`,
      * which is what a compiled binary has). A missing peer rejects with the error that names what to install.
      */
     private static loadModule;
-    /** Wraps IGNIS RPC registrations into ConnectRPC's (request, context) => response signature. */
-    private buildConnectHandlers;
     /** One RPC: the middlewares, then the handler; a throw becomes the answer a gRPC client reads. */
     private wrap;
     /**
@@ -146,7 +142,7 @@ export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema 
     private passMiddlewares;
     /** ConnectRPC drops a handler whose name the service does not declare, and the call then answers `unimplemented`: refused at boot instead. */
     private assertDeclaredRpcs;
-    /** Loose signature on purpose - the IGNIS `ServiceType` is opaque (`unknown`) while ConnectRPC expects `DescService`. */
+    /** Registers every RPC of the controller on the ConnectRPC router, each wrapped into ConnectRPC's `(request, context) => response`. */
     private registerService;
     /** The request ConnectRPC reads. A body an earlier middleware consumed is in Hono's cache: the request is rebuilt with it. */
     private readRequest;
@@ -156,11 +152,14 @@ export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema 
      */
     private serve;
     /** Validates peer deps and builds the controller's router: one route per RPC of its service. */
-    static build<RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ServiceType = Parameters<ConnectRouter['service']>[0], ConfigurableOptions extends object = {}>(opts: {
-        controller: AbstractGrpcController<RouteEnv, RouteSchema, BasePath, ServiceType, ConfigurableOptions>;
-        interceptors?: unknown[];
-        module?: IConnectRpcModule;
-    }): Promise<IConnectAdapterResult<RouteEnv>>;
+    static build<RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ServiceType = Parameters<ConnectRouter['service']>[0], ConfigurableOptions extends object = {}>(opts: IAdapterOptions<RouteEnv, RouteSchema, BasePath, ServiceType, ConfigurableOptions>): Promise<IConnectAdapterResult<RouteEnv>>;
+}
+
+/** What an adapter is built from. */
+interface IAdapterOptions<RouteEnv extends Env, RouteSchema extends Schema, BasePath extends string, ServiceType, ConfigurableOptions extends object> {
+    controller: AbstractGrpcController<RouteEnv, RouteSchema, BasePath, ServiceType, ConfigurableOptions>;
+    interceptors?: unknown[];
+    module?: IConnectRpcModule;
 }
 ```
 
@@ -1238,31 +1237,3 @@ export declare const JWTTokenPayloadSchema: z.ZodObject<{
 ```
 
 Source: `packages/core-server/src/components/auth/authenticate/controllers/factory.ts`
-
-## `MembershipRoleManager`
-
-*class*
-
-`g2` axis (`g2(r.sub, r.dom)`): membership holds when the user joined the request domain or any
-ancestor of it, walking the shared per-request domain-hierarchy overlay. Memberships are
-per-principal and rebuilt every request, so `clear()` wipes all.
-
-```ts
-export declare class MembershipRoleManager extends BaseRoleManager implements RoleManager {
-    private readonly overlay?;
-    private memberships;
-    constructor(opts: {
-        overlay?: Map<string, Set<string>>;
-    });
-    clear(): Promise<void>;
-    addLink(user: string, domain: string): Promise<void>;
-    deleteLink(user: string, domain: string): Promise<void>;
-    /** True when `name1` (user) joined `name2` (request domain) itself, or any ancestor of it. Walks UP from the request domain only - walking down from every joined domain would fan out over the whole subtree. */
-    syncedHasLink(name1: string, name2: string): boolean;
-    /** Local membership state only, not the shared graph - correct for hasLink, incomplete for casbin's management API. */
-    getRoles(name: string): Promise<string[]>;
-    getUsers(name: string): Promise<string[]>;
-}
-```
-
-Source: `packages/core-server/src/components/auth/authorize/role-managers/membership.ts`

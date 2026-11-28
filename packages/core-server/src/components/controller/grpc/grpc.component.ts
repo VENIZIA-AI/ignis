@@ -87,7 +87,6 @@ export class GrpcComponent extends BaseComponent {
           continue;
         }
 
-        instance.basePath = this.application.getProjectConfigs().path.base;
         instance.connectRpcModule = options?.module;
         instance.interceptors = options?.interceptors;
         await instance.configure();

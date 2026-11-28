@@ -524,7 +524,6 @@ The component registers a default (empty) config binding under the key `'@app/gr
 3. Validates each gRPC controller:
    - If `path` is missing, throws an error
    - If `service` is missing, logs a warning and skips the controller
-4. Sets `instance.basePath` from the application's `path.base` config
 5. Calls `configure()` on each controller instance
 6. Mounts the controller's router on the application's root router at the controller's path via `router.route(metadata.path, instance.getRouter())`
 

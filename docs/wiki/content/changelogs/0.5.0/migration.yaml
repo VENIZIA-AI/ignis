@@ -1455,7 +1455,7 @@ grpc-gate-ends-call:
   data: Nothing stored changes.
 
 grpc-adapter-routes:
-  symbols: [GrpcRequestAdapter, IConnectAdapterResult, IConnectRpcModule, BaseGrpcController, GrpcComponent]
+  symbols: [GrpcRequestAdapter, IConnectAdapterResult, IConnectRpcModule, BaseGrpcController, AbstractGrpcController, GrpcComponent]
   upgrade:
     before: |-
       this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({
@@ -1471,6 +1471,8 @@ grpc-adapter-routes:
       - "Where you build the module yourself, pass the whole modules, so createContextKey and createContextValues are there."
       - "Code that calls GrpcRequestAdapter.build() mounts the answer with router.route('/', adapter.router) instead of router.use('*', adapter.middleware)."
       - "A test that read the { message, code } body of a failure outside ConnectRPC reads the application error handler's answer."
+      - "Another HTTP method on an RPC path now answers 404 through the application, not an empty 405."
+      - "AbstractGrpcController.basePath is removed: read the base path from the application's configs (path.base)."
   downgrade:
     steps:
       - "Pin @venizia/ignis to the release before this one."
