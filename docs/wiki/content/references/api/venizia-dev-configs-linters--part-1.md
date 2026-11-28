@@ -1030,9 +1030,12 @@ Source: `packages/dev-configs/src/linters/house/prefer-framework-api.rule.ts`
 (`@venizia/ignis-helpers/common`). Read where the syntax says it is one: `method`, `verb` or `httpMethod` in a route
 config or a request, and a variable or parameter of those names.
 
-The fix is offered only for a string that is exactly the constant's value (lowercase), so what is sent does not
-change. Another spelling is reported only: the constants are lowercase, the framework's fetchers send a method
-uppercased, and the platform `fetch` does not uppercase `patch`. It applies in a project that depends on an IGNIS
+The fix is offered for a string that is exactly the constant's value (lowercase), so what is sent does not change,
+and for an uppercase one where the framework reads it (see `isFrameworkRead`). Anything else is reported only:
+the constants are lowercase, and the platform `fetch` does not uppercase `patch`.
+
+It reads syntax only. Another client reached through `require`, a dynamic `import()` or a sub-path of its package
+is not seen, and neither is a `send` on a client socket that carries a `path`: check the diff `--fix` makes. It applies in a project that depends on an IGNIS
 package. `source` is where `HTTP` is imported from; `null` turns the import, and so the fix, off.
 
 ```ts

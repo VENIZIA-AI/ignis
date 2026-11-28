@@ -140,6 +140,90 @@ describe('prefer-http-method: the fix', () => {
     expect(fixed).toBe(code);
   });
 
+  test('an uppercase method the framework sends is rewritten: a route config, an execute, send or request object', () => {
+    const { fixed } = run({
+      code: [
+        "export const a = { method: 'PATCH', path: '/', responses };",
+        "export const b = { configs: { method: 'GET', path: '/' } };",
+        "export const c = { method: 'POST', path: '/', responses } satisfies IAuthRouteConfig;",
+        "this.fetcher.send({ method: 'PUT', url });",
+        "client.request({ method: 'DELETE', path: '/a' });",
+        "source.execute({ method: isNew ? 'POST' : 'PATCH', baseUrl });",
+      ].join('\n'),
+    });
+
+    expect(fixed).toBe(
+      [
+        IMPORT,
+        "export const a = { method: HTTP.Methods.PATCH, path: '/', responses };",
+        "export const b = { configs: { method: HTTP.Methods.GET, path: '/' } };",
+        "export const c = { method: HTTP.Methods.POST, path: '/', responses } satisfies IAuthRouteConfig;",
+        'this.fetcher.send({ method: HTTP.Methods.PUT, url });',
+        "client.request({ method: HTTP.Methods.DELETE, path: '/a' });",
+        'source.execute({ method: isNew ? HTTP.Methods.POST : HTTP.Methods.PATCH, baseUrl });',
+      ].join('\n'),
+    );
+  });
+
+  for (const from of ['@venizia/ignis-connectors', '@venizia/ardor/repository']) {
+    test(`a repository execute with paths is rewritten | ${from}`, () => {
+      const code = [
+        `import { HttpRepository } from '${from}';`,
+        'export class Merchants extends HttpRepository {',
+        '  aggregate(id: string, data: IMerchant) {',
+        "    return this.execute({ paths: [RestEndpoints.MERCHANT, encodeURIComponent(String(id)), 'aggregate'], method: 'PATCH', body: data, schema: z.custom<IMerchant>() });",
+        '  }',
+        '}',
+      ].join('\n');
+
+      expect(run({ code }).fixed).toContain('method: HTTP.Methods.PATCH, body: data');
+    });
+  }
+
+  test('an object held under configs inside a fetch call is left as written', () => {
+    const code = "fetch(url, { configs: { method: 'PATCH' } });";
+
+    expect(run({ code }).fixed).toBe(code);
+  });
+
+  test('a send of a resource with the method in params is rewritten', () => {
+    const { fixed } = run({
+      code: "export const sent = provider.send({ resource: 'merchants', params: { method: 'POST', body } });",
+    });
+
+    expect(fixed).toContain('params: { method: HTTP.Methods.POST, body }');
+  });
+
+  for (const [name, code] of [
+    ['a fetch call that names responses', "fetch(url, { method: 'PATCH', responses });"],
+    [
+      'a typed init of a new Request',
+      "new Request(url, { method: 'PATCH', responses } satisfies RequestInit);",
+    ],
+    ['params of a send with no resource', "socket.send({ params: { method: 'PATCH', body } });"],
+    ['params outside a send', "const call = { resource: 'a', params: { method: 'PATCH', body } };"],
+    ['a fetch call', "fetch(url, { method: 'PATCH', body });"],
+    ['a wrapped fetch', "this.nativeFetch(url, { method: 'PATCH', body });"],
+    ['a new Request', "new Request(url, { method: 'PATCH', body });"],
+    ['an init held on its own', "const init = { method: 'PATCH', body };"],
+    ['a held method', "const method = 'PATCH';"],
+    ['a default parameter', "const send = (method = 'PATCH') => method;"],
+    ['a bare request call', "request(url, { method: 'PATCH', body });"],
+    ['a message with no target', "socket.send({ method: 'PATCH', data });"],
+    [
+      'a file that imports another HTTP client',
+      "import { Client } from 'undici';\nclient.request({ method: 'PATCH', path: '/a' });",
+    ],
+    ['a mixed spelling', "this.fetcher.send({ method: 'Patch', url });"],
+  ] as const) {
+    test(`an uppercase method is only reported: ${name}`, () => {
+      const { found, fixed } = run({ code });
+
+      expect(found).toEqual(['spelling']);
+      expect(fixed).toBe(code);
+    });
+  }
+
   test('no fix with source null, and none inside the package that owns HTTP', () => {
     const code = "export const a = { method: 'get', url };";
     const owner = buildProject({
