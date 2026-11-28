@@ -443,7 +443,9 @@ export declare class MeilisearchQueryDialect extends BaseHelper implements ISear
     /** Writes the mode dispatch and the hybrid/vector params onto `query`, and refuses any knob Meilisearch cannot honor. */
     applySearchInput(opts: {
         query: ISearchQuery;
-        input: TTranslatableSearchInput;
+        input: Exclude<TSearchInput, {
+            mode: typeof SearchModes.RAW;
+        }>;
     }): void;
     /**
      * returned `''` for it - indistinguishable from "no constraint", which is precisely how an empty

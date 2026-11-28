@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/postgres, from the built
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-53 exports, 53 with TSDoc. 27 more are re-exported from other entries (listed at the end).
+54 exports, 54 with TSDoc. 27 more are re-exported from other entries (listed at the end).
 
 The declarations are on 2 pages; each export below links to its own.
 
@@ -158,6 +158,10 @@ The declarations are on 2 pages; each export below links to its own.
 ## `TIdEnricherResult`
 
 *type* - [Declaration](/references/api/venizia-ignis-connectors-postgres--part-1#tidenricherresult)
+
+## `TIsEnabled`
+
+*type* - [Declaration](/references/api/venizia-ignis-connectors-postgres--part-1#tisenabled)
 
 ## `TIsolationLevel`
 

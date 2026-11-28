@@ -5,10 +5,10 @@ import type {
   ISearchQuery,
   ISearchQueryDialect,
   TCompiledWhere,
+  TSearchInput,
 } from '@/search/core/repositories/common';
 import { SearchFilterOutcomes, SearchModes } from '@/search/core/repositories/common';
 import { SearchDialectUtility } from '@/search/core/repositories/common/dialect.utility';
-import type { TTranslatableSearchInput } from '@/search/core/internal';
 import { Sorts, QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
 import { BaseHelper, getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import type { IMeilisearchSearchQuery } from '../common';
@@ -276,7 +276,10 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
   }
 
   /** Writes the mode dispatch and the hybrid/vector params onto `query`, and refuses any knob Meilisearch cannot honor. */
-  applySearchInput(opts: { query: ISearchQuery; input: TTranslatableSearchInput }): void {
+  applySearchInput(opts: {
+    query: ISearchQuery;
+    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
+  }): void {
     const { input } = opts;
     const searchQuery: IMeilisearchSearchQuery = opts.query;
 
@@ -436,7 +439,9 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
       : combined;
   }
 
-  private assertNoUnsupportedKnobs(opts: { input: TTranslatableSearchInput }): void {
+  private assertNoUnsupportedKnobs(opts: {
+    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
+  }): void {
     for (const knob of UNSUPPORTED_TUNING_KNOBS) {
       if (Reflect.get(opts.input, knob) === undefined) {
         continue;

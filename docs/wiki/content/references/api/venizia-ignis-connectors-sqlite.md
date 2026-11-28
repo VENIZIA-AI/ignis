@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/sqlite, from the built d
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-49 exports, 49 with TSDoc. 22 more are re-exported from other entries (listed at the end).
+49 exports, 49 with TSDoc. 23 more are re-exported from other entries (listed at the end).
 
 ## `AbstractSqliteDataSource`
 
@@ -425,15 +425,15 @@ export declare class SqlitePrincipalEnricher {
     static enrich<ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions, Discriminator extends string = string, IdType extends TIdSchemaType = TIdSchemaType, Nullable extends boolean = false, NullableDiscriminator extends boolean = true>(opts: {
         baseSchema: ColumnDefinitions;
         opts: TPrincipalEnricherOptions<Discriminator, IdType, Nullable, NullableDiscriminator>;
-    }): ColumnDefinitions & (IdType extends "number" ? { [K in `${Discriminator}Id`]: [Nullable] extends [true] ? SQLiteIntegerBuilderInitial<string> : NotNull<SQLiteIntegerBuilderInitial<string>>; } : { [K_1 in `${Discriminator}Id`]: [Nullable] extends [true] ? TSQLiteTextColumn : NotNull<TSQLiteTextColumn>; }) & { [K_2 in `${Discriminator}Type`]: [NullableDiscriminator] extends [true] ? HasDefault<TSQLiteTextColumn> : NotNull<TSQLiteTextColumn>; };
+    }): ColumnDefinitions & (IdType extends "number" ? { [K in `${Discriminator}Id`]: [Nullable] extends [true] ? SQLiteIntegerBuilderInitial<string> : NotNull<SQLiteIntegerBuilderInitial<string>>; } : { [K_1 in `${Discriminator}Id`]: [Nullable] extends [true] ? SQLiteTextBuilderInitial<string, [string, ...string[]], undefined> : NotNull<SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>>; }) & { [K_2 in `${Discriminator}Type`]: [NullableDiscriminator] extends [true] ? HasDefault<SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>> : NotNull<SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>>; };
 }
 
 type TPrincipalColumnDef<Discriminator extends string, IdType extends TIdSchemaType, Nullable extends boolean = false, NullableDiscriminator extends boolean = true> = (IdType extends 'number' ? {
     [K in `${Discriminator}Id`]: [Nullable] extends [true] ? SQLiteIntegerBuilderInitial<string> : NotNull<SQLiteIntegerBuilderInitial<string>>;
 } : {
-    [K in `${Discriminator}Id`]: [Nullable] extends [true] ? TSQLiteTextColumn : NotNull<TSQLiteTextColumn>;
+    [K in `${Discriminator}Id`]: [Nullable] extends [true] ? SQLiteTextBuilderInitial<string, [string, ...string[]], undefined> : NotNull<SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>>;
 }) & {
-    [K in `${Discriminator}Type`]: [NullableDiscriminator] extends [true] ? HasDefault<TSQLiteTextColumn> : NotNull<TSQLiteTextColumn>;
+    [K in `${Discriminator}Type`]: [NullableDiscriminator] extends [true] ? HasDefault<SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>> : NotNull<SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>>;
 };
 ```
 
@@ -623,8 +623,8 @@ Adds `createdBy` and `modifiedBy` columns filled from the current audit user; `m
 ```ts
 export declare class SqliteUserAuditEnricher {
     static generateColumnDefs(opts?: TUserAuditEnricherOptions): {
-        createdBy: import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<SQLiteIntegerBuilderInitial<string>, number | null>>> | import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<import("drizzle-orm/sqlite-core").SQLiteTextBuilderInitial<string, [string, ...string[]], number | undefined>, string | null>>>;
-        modifiedBy: import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<SQLiteIntegerBuilderInitial<string>, number | null>>> | import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<import("drizzle-orm/sqlite-core").SQLiteTextBuilderInitial<string, [string, ...string[]], number | undefined>, string | null>>>;
+        createdBy: import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<SQLiteIntegerBuilderInitial<string>, number | null>>> | import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<SQLiteTextBuilderInitial<string, [string, ...string[]], number | undefined>, string | null>>>;
+        modifiedBy: import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<SQLiteIntegerBuilderInitial<string>, number | null>>> | import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<SQLiteTextBuilderInitial<string, [string, ...string[]], number | undefined>, string | null>>>;
     };
     static enrich<ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions>(opts: {
         baseSchema: ColumnDefinitions;
@@ -1002,8 +1002,8 @@ The column definitions with `createdBy` and `modifiedBy` user columns added.
 
 ```ts
 export type TUserAuditEnricherResult<ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions> = ColumnDefinitions & {
-    createdBy: SQLiteIntegerBuilderInitial<string> | TSQLiteTextColumn;
-    modifiedBy: SQLiteIntegerBuilderInitial<string> | TSQLiteTextColumn;
+    createdBy: SQLiteIntegerBuilderInitial<string> | SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>;
+    modifiedBy: SQLiteIntegerBuilderInitial<string> | SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>;
 };
 ```
 
@@ -1028,6 +1028,7 @@ Source: `packages/connectors/src/relational/sqlite/models/enrichers/user-audit.e
 - `TDefinedEntityClass` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TDeletedAtColumn` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TEntityObject` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
+- `TIsEnabled` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TRecursiveTreeDirection` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TRelationDefinition` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TRelationDefinitions` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)

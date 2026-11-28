@@ -224,11 +224,17 @@ export declare class ReadableSearchRepository<TDocument extends object = object,
     }): Promise<R[]>;
     /** Documents lose their hidden fields on the way out, but a facet count or a match on one would still tell the caller what the field holds; so they are refused as `facetBy`, in `facetQuery`, as `queryBy`, as `groupBy` and in the highlight fields (a group key and a highlight snippet carry the value too). */
     protected assertNoHiddenFieldsNamed(opts: {
-        input: TTranslatableSearchInput;
+        input: Exclude<TSearchInput, {
+            mode: typeof SearchModes.RAW;
+        }>;
     }): void;
     protected withDefaultQueryBy(opts: {
-        input: TTranslatableSearchInput;
-    }): TTranslatableSearchInput;
+        input: Exclude<TSearchInput, {
+            mode: typeof SearchModes.RAW;
+        }>;
+    }): Exclude<TSearchInput, {
+        mode: typeof SearchModes.RAW;
+    }>;
     /** @throws Error - disabled in a read-only repository; unlocked progressively by Persistable/DefaultSearchRepository. */
     create(opts: {
         data: TDocument;

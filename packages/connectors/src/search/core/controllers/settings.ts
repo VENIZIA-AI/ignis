@@ -7,7 +7,6 @@ import type { TInjected, TInjectMap, TRouteContext } from '@venizia/ignis-kernel
 import type { Env } from 'hono';
 import { SearchFieldTypes } from '@/search/core/models';
 import { SearchEngineParams } from './engine-params';
-import type { TTranslatableSearchInput } from '@/search/core/internal';
 import type { ISearchQueryDialect, TSearchInput } from '@/search/core/repositories/common';
 import { SearchInputSchema, SearchModes } from '@/search/core/repositories/common';
 
@@ -26,7 +25,7 @@ export interface ISearchSourceOptions<
   Inject extends TInjectMap,
 > {
   context: TRouteContext<RouteEnv>;
-  input: TTranslatableSearchInput & TExtra;
+  input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }> & TExtra;
   injected: TInjected<Inject>;
 }
 
@@ -384,7 +383,7 @@ export class SearchSettingsUtility {
   >(opts: {
     source?: TSearchLooseSource<RouteEnv, TExtra, Inject>;
     context: TRouteContext<RouteEnv>;
-    input: TTranslatableSearchInput & TExtra;
+    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }> & TExtra;
     injected: TInjected<Inject>;
     query: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
     isFixed: boolean;
@@ -432,7 +431,7 @@ export class SearchSettingsUtility {
    * `serverTuning` is the part of `engineParams` the server chose.
    */
   static merge(opts: {
-    input: TTranslatableSearchInput;
+    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
     fixed: ISearchLooseSettings;
     defaults: ISearchLooseSettings;
     catalog: ISearchFieldCatalog;
@@ -608,9 +607,9 @@ export class SearchSettingsUtility {
   >(opts: {
     query: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
     context: TRouteContext<RouteEnv>;
-    input: TTranslatableSearchInput & TExtra;
+    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }> & TExtra;
     injected: TInjected<Inject>;
-  }): Promise<TTranslatableSearchInput & TExtra> {
+  }): Promise<Exclude<TSearchInput, { mode: typeof SearchModes.RAW }> & TExtra> {
     const { query, context, input, injected } = opts;
     const text = input.mode === SearchModes.SEMANTIC ? input.queryText : input.query;
 

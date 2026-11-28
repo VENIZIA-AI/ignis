@@ -5,10 +5,10 @@ import type {
   ISearchQuery,
   ISearchQueryDialect,
   TCompiledWhere,
+  TSearchInput,
 } from '@/search/core/repositories/common';
 import { SearchFilterOutcomes, SearchModes } from '@/search/core/repositories/common';
 import { SearchDialectUtility } from '@/search/core/repositories/common/dialect.utility';
-import type { TTranslatableSearchInput } from '@/search/core/internal';
 import type { ITypesenseSearchQuery } from '@/search/typesense/repositories/common';
 import { Sorts, QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
 import { BaseHelper, getError, RecordUtility } from '@venizia/ignis-helpers/core';
@@ -426,7 +426,10 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
   }
 
   /** Writes the mode dispatch, the vector clause and the `prefix` default onto `query`; everything engine-specific about a non-raw search lives here, so the repository tier stays neutral. */
-  applySearchInput(opts: { query: ISearchQuery; input: TTranslatableSearchInput }): void {
+  applySearchInput(opts: {
+    query: ISearchQuery;
+    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
+  }): void {
     const { input } = opts;
     const searchQuery: ITypesenseSearchQuery = opts.query;
 
@@ -530,7 +533,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
   /** Copies faceting/highlighting/grouping/tuning params (shared by keyword/semantic/hybrid, absent from `raw`) onto the query; arrays are comma-joined as `build` joins queryBy/fields. */
   private applyCommonParams(opts: {
     query: ITypesenseSearchQuery;
-    input: TTranslatableSearchInput;
+    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
   }): void {
     const { query, input } = opts;
 

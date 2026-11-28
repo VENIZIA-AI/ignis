@@ -20,7 +20,6 @@ import type { TSearchInput } from '@/search/core/repositories/common';
 import { SearchModes } from '@/search/core/repositories/common';
 import type { AbstractSearchDataSource } from '@/search/core/datasources';
 import { SearchBaseRepository } from './base';
-import type { TTranslatableSearchInput } from '@/search/core/internal';
 
 /** The match-everything term. `build()` already seeds `query` with it, so a filter-only listing reaches the engine as `q: '*'` - naming fields for a term that ignores fields would mean nothing. */
 const WILDCARD_QUERY = '*';
@@ -351,7 +350,9 @@ export class ReadableSearchRepository<
   }
 
   /** Documents lose their hidden fields on the way out, but a facet count or a match on one would still tell the caller what the field holds; so they are refused as `facetBy`, in `facetQuery`, as `queryBy`, as `groupBy` and in the highlight fields (a group key and a highlight snippet carry the value too). */
-  protected assertNoHiddenFieldsNamed(opts: { input: TTranslatableSearchInput }): void {
+  protected assertNoHiddenFieldsNamed(opts: {
+    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
+  }): void {
     const { input } = opts;
 
     if (this.hiddenFields.length === 0) {
@@ -412,8 +413,8 @@ export class ReadableSearchRepository<
   }
 
   protected withDefaultQueryBy(opts: {
-    input: TTranslatableSearchInput;
-  }): TTranslatableSearchInput {
+    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
+  }): Exclude<TSearchInput, { mode: typeof SearchModes.RAW }> {
     const { input } = opts;
 
     if (input.mode !== SearchModes.KEYWORD || input.queryBy) {

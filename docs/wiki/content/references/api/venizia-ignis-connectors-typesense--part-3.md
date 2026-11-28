@@ -493,7 +493,9 @@ export declare class TypesenseQueryDialect extends BaseHelper implements ISearch
     /** Writes the mode dispatch, the vector clause and the `prefix` default onto `query`; everything engine-specific about a non-raw search lives here, so the repository tier stays neutral. */
     applySearchInput(opts: {
         query: ISearchQuery;
-        input: TTranslatableSearchInput;
+        input: Exclude<TSearchInput, {
+            mode: typeof SearchModes.RAW;
+        }>;
     }): void;
     /** Builds Typesense's `<field>:([v1, v2, ...], k: N, alpha: A)` vector-search clause; an omitted `nearVector` emits an empty `[]`, Typesense's server-side auto-embed path, rather than requiring the caller to already hold a vector. */
     private buildVectorClause;

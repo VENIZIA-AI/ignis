@@ -3,8 +3,10 @@ import { CoreErrorCodes } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { HasDefault, NotNull } from 'drizzle-orm';
-import type { SQLiteIntegerBuilderInitial } from 'drizzle-orm/sqlite-core';
-import type { TSQLiteTextColumn } from '../common/text-column';
+import type {
+  SQLiteIntegerBuilderInitial,
+  SQLiteTextBuilderInitial,
+} from 'drizzle-orm/sqlite-core';
 import { integer, text } from 'drizzle-orm/sqlite-core';
 import type { TColumnDefinitions, TPrincipalEnricherOptions } from '../common/types';
 
@@ -24,12 +26,12 @@ type TPrincipalColumnDef<
     }
   : {
       [K in `${Discriminator}Id`]: [Nullable] extends [true]
-        ? TSQLiteTextColumn
-        : NotNull<TSQLiteTextColumn>;
+        ? SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>
+        : NotNull<SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>>;
     }) & {
   [K in `${Discriminator}Type`]: [NullableDiscriminator] extends [true]
-    ? HasDefault<TSQLiteTextColumn>
-    : NotNull<TSQLiteTextColumn>;
+    ? HasDefault<SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>>
+    : NotNull<SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>>;
 };
 
 /** Adds a polymorphic reference pair to a table: `{discriminator}Id` and `{discriminator}Type` columns. Any other `polymorphicIdType` than `number` or `string` throws. */
