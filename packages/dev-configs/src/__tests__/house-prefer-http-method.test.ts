@@ -165,7 +165,43 @@ describe('prefer-http-method: the fix', () => {
     );
   });
 
+  for (const from of ['@venizia/ignis-connectors', '@venizia/ardor/repository']) {
+    test(`a repository execute with paths is rewritten | ${from}`, () => {
+      const code = [
+        `import { HttpRepository } from '${from}';`,
+        'export class Merchants extends HttpRepository {',
+        '  aggregate(id: string, data: IMerchant) {',
+        "    return this.execute({ paths: [RestEndpoints.MERCHANT, encodeURIComponent(String(id)), 'aggregate'], method: 'PATCH', body: data, schema: z.custom<IMerchant>() });",
+        '  }',
+        '}',
+      ].join('\n');
+
+      expect(run({ code }).fixed).toContain('method: HTTP.Methods.PATCH, body: data');
+    });
+  }
+
+  test('an object held under configs inside a fetch call is left as written', () => {
+    const code = "fetch(url, { configs: { method: 'PATCH' } });";
+
+    expect(run({ code }).fixed).toBe(code);
+  });
+
+  test('a send of a resource with the method in params is rewritten', () => {
+    const { fixed } = run({
+      code: "export const sent = provider.send({ resource: 'merchants', params: { method: 'POST', body } });",
+    });
+
+    expect(fixed).toContain('params: { method: HTTP.Methods.POST, body }');
+  });
+
   for (const [name, code] of [
+    ['a fetch call that names responses', "fetch(url, { method: 'PATCH', responses });"],
+    [
+      'a typed init of a new Request',
+      "new Request(url, { method: 'PATCH', responses } satisfies RequestInit);",
+    ],
+    ['params of a send with no resource', "socket.send({ params: { method: 'PATCH', body } });"],
+    ['params outside a send', "const call = { resource: 'a', params: { method: 'PATCH', body } };"],
     ['a fetch call', "fetch(url, { method: 'PATCH', body });"],
     ['a wrapped fetch', "this.nativeFetch(url, { method: 'PATCH', body });"],
     ['a new Request', "new Request(url, { method: 'PATCH', body });"],
