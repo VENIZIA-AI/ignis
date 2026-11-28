@@ -591,6 +591,14 @@ export declare class BodyLimits {
         maxSize: number;
         onError?: (context: Context) => Response | Promise<Response>;
     }): MiddlewareHandler;
+    /**
+     * The marker of a route that reads its body itself: the limit of every route steps aside and no framework middleware
+     * reads the body first. It limits NOTHING: the route's handler must bound what it reads (an RPC route bounds each
+     * message). The host's own cap (`configs.server.maxRequestBodySize`) still holds.
+     */
+    static stream(): MiddlewareHandler;
+    /** Whether the route this request matched reads its body itself (`BodyLimits.stream`). */
+    static isStreamed(context: Context): boolean;
     /** Whether the route this request matched carries its own limit, so the default stands aside. */
     static hasRouteLimit(context: Context): boolean;
 }

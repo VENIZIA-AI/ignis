@@ -182,6 +182,8 @@ describe('gRPC adapter on the wire', () => {
     const adapter = await GrpcRequestAdapter.build({ controller, module: { connect, protocol } });
 
     expect(adapter.paths).toEqual(['/greeter.v1.GreeterService/SayHello']);
-    expect(adapter.router.routes.map((route) => route.path)).toEqual(adapter.paths);
+    // Each route is the body marker and the call.
+    const routed = new Set(adapter.router.routes.map((route) => route.path));
+    expect([...routed]).toEqual(adapter.paths);
   });
 });

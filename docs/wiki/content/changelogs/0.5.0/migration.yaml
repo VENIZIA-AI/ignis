@@ -1477,3 +1477,22 @@ grpc-adapter-routes:
     steps:
       - "Pin @venizia/ignis to the release before this one."
   data: Nothing stored changes.
+
+grpc-route-body:
+  symbols: [BodyLimits, GrpcComponent, IGrpcComponentConfig, RequestSpyMiddleware]
+  upgrade:
+    before: |-
+      middlewares: { bodyLimit: { maxSize: 20 * 1024 * 1024 } },
+    after: |-
+      this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({
+        limits: { messageSize: 20 * 1024 * 1024 },
+      });
+    steps:
+      - "Where middlewares.bodyLimit.maxSize was meant for RPCs too, set limits.messageSize in the gRPC component options; the default is 5 MiB."
+      - "A middleware of your own that reads the body of an RPC route is now bounded only by server.maxRequestBodySize."
+      - "A client or a test that expects HTTP 413 reads resource_exhausted; one that expects the REST 400 of malformed JSON reads invalid_argument."
+      - "To log RPC messages, use a ConnectRPC interceptor: the request spy no longer prints them."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis and @venizia/ignis-kernel to the release before this one."
+  data: Nothing stored changes.

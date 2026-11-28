@@ -143,6 +143,10 @@ calls `super()` and adds `contextStorage`, `RequestTrackerComponent` and the fav
 
 **The body limit is on by default.** Unset, `registerDefaultMiddlewares()` installs `BodyLimits.limiter` with `BodyLimits.DEFAULT_MAX_SIZE` (5 MiB) on every route; a configured `bodyLimit` replaces it, `enable: false` removes it, and the drift check (`assertBodyLimitUnchanged`) compares against the resolved default too. A route that takes larger bodies puts `BodyLimits.route({ maxSize })` in its `middleware`: the limiter is tagged with a registry symbol, the default limiter reads the tags of `context.req.matchedRoutes` and stands aside for a tagged route. The static-asset upload route tags itself (`maxFiles` files of `maxBytes` plus framing). Bun's own `maxRequestBodySize` (128 MiB by default) still answers first when it is lower.
 
+A route marked `BodyLimits.stream()` also skips the default limit, and `RequestSpyMiddleware` leaves its body unread
+(`BodyLimits.isStreamed`). The marker bounds nothing: the route does. Every gRPC route carries it and limits each
+message (`limits.messageSize`, default `BodyLimits.DEFAULT_MAX_SIZE`).
+
 `configs.middlewares.bodyLimit` (`IMiddlewareConfigs`, `IBodyLimitOptions`) is the only middleware
 config the framework installs by itself - every other key in `IMiddlewareConfigs` is a type only,
 for an application's own `setupMiddlewares()`. Set and `enable !== false` (a missing `enable` still

@@ -31,6 +31,12 @@ export interface IConnectRpcModule {
   };
 }
 
+/** Size limits of the RPCs of a controller. */
+export interface IGrpcLimits {
+  /** The largest message a client may send, decoded, in bytes. Default 5 MiB (`BodyLimits.DEFAULT_MAX_SIZE`). */
+  messageSize?: number;
+}
+
 /** Configuration options for gRPC controller instantiation. */
 export interface IGrpcControllerOptions {
   scope: string;

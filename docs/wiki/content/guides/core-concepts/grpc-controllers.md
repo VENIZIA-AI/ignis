@@ -107,6 +107,18 @@ async sayHello(opts: { request: SayHelloRequest; context: TRouteContext; rpc: Ha
 
 A deadline is a signal, not a kill: a handler that ignores `rpc.signal` runs on and answers. `rpc.timeoutMs()` gives the time left, and `rpc.requestHeader` the request headers.
 
+## Request size
+
+An RPC route reads its own body: the application's body limit (`middlewares.bodyLimit`) does not apply to it, and the request spy does not read or log it. Each message is limited instead, decompressed, to 5 MiB by default. A larger one answers `resource_exhausted`.
+
+```typescript
+this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({
+  limits: { messageSize: 10 * 1024 * 1024 },
+});
+```
+
+The whole request is still held to the server's own cap, `server.maxRequestBodySize` (Bun's default is 128 MiB). A middleware of your own that reads the body of an RPC route is bounded only by that cap.
+
 ## RPC Method Decorators
 
 IGNIS provides a decorator for each gRPC method type:

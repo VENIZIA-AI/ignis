@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-108 exports, 108 with TSDoc. 1019 more are re-exported from other entries (listed at the end).
+108 exports, 108 with TSDoc. 1020 more are re-exported from other entries (listed at the end).
 
 The declarations are on 3 pages; each export below links to its own.
 
@@ -761,6 +761,7 @@ The declarations are on 3 pages; each export below links to its own.
 - `IFileStat` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IGetSecretOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IGrpcControllerMetadata` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `IGrpcLimits` from [`@venizia/ignis/grpc`](/references/api/venizia-ignis-grpc)
 - `IHashiCorpSecretsRegistration` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IHeightWhereOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IHfLogFlusherOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)

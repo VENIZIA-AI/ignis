@@ -1,3 +1,4 @@
+import { BodyLimits } from '@venizia/ignis-kernel';
 import * as connect from '@connectrpc/connect';
 import 'reflect-metadata';
 import { afterAll, afterEach, beforeEach, describe, expect, test } from 'bun:test';
@@ -431,17 +432,21 @@ describe('BaseGrpcController - interceptors from the component options', () => {
     const second = () => {};
 
     const result = await buildController([first, second]);
-    expect(result).toEqual({ grpc: false, interceptors: [first, second] });
+    expect(result).toEqual({
+      grpc: false,
+      readMaxBytes: BodyLimits.DEFAULT_MAX_SIZE,
+      interceptors: [first, second],
+    });
   });
 
   test('an empty list passes no interceptors', async () => {
     const result = await buildController([]);
-    expect(result).toEqual({ grpc: false });
+    expect(result).toEqual({ grpc: false, readMaxBytes: BodyLimits.DEFAULT_MAX_SIZE });
   });
 
   test('no interceptors passes none', async () => {
     const result = await buildController();
-    expect(result).toEqual({ grpc: false });
+    expect(result).toEqual({ grpc: false, readMaxBytes: BodyLimits.DEFAULT_MAX_SIZE });
   });
 });
 

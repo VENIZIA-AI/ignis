@@ -160,6 +160,7 @@ interface IAdapterOptions<RouteEnv extends Env, RouteSchema extends Schema, Base
     controller: AbstractGrpcController<RouteEnv, RouteSchema, BasePath, ServiceType, ConfigurableOptions>;
     interceptors?: unknown[];
     module?: IConnectRpcModule;
+    limits?: IGrpcLimits;
 }
 ```
 

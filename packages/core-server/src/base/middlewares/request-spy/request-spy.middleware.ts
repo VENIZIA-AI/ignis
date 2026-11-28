@@ -1,3 +1,4 @@
+import { BodyLimits } from '@venizia/ignis-kernel';
 import { NetworkUtility } from '@/utilities/network.utility';
 import { Environment } from '@venizia/ignis-helpers';
 import { BaseHelper, EnvironmentNames, getError } from '@venizia/ignis-helpers/core';
@@ -7,6 +8,8 @@ import { createMiddleware } from 'hono/factory';
 import type { MiddlewareHandler } from 'hono/types';
 import { REQUEST_ID_KEY, RequestErrors, type TContext } from '@venizia/ignis-kernel';
 
+/** What the debug log shows for the body of a route that reads it itself. */
+const STREAMED_BODY_LABEL = '<read by the route>';
 const TEXT_CONTENT_TYPE_PREFIX = 'text/';
 
 /** Logs incoming/outgoing request details. The BODY is parsed and logged only in a recognised development environment - see the constructor for why that test is fail-closed; elsewhere only a JSON body is parsed, for its malformed-body 400. */
@@ -118,8 +121,17 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
         }),
       );
 
+      // A route that reads its body itself (an RPC) keeps it: reading it here would buffer it without its limit.
+      const isStreamed = BodyLimits.isStreamed(context);
+
       if (this.isDebugMode) {
-        const body = await this.parseBody({ req });
+        let body: unknown = STREAMED_BODY_LABEL;
+
+        if (!isStreamed) {
+          const parsed = await this.parseBody({ req });
+          body = parsed;
+        }
+
         this.logger.info(
           '[%s][%s][=>] %s %s | query: %j | body: %j',
           requestId,
@@ -132,7 +144,9 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
       } else {
         // Only JSON is parsed here: its clean 400 on a malformed body is a contract. Any other body
         // would be read for a log line that never prints it, before the route's own size checks.
-        if (req.header(HTTP.Headers.CONTENT_TYPE)?.includes(HTTP.HeaderValues.APPLICATION_JSON)) {
+        const contentType = req.header(HTTP.Headers.CONTENT_TYPE);
+
+        if (!isStreamed && contentType?.includes(HTTP.HeaderValues.APPLICATION_JSON)) {
           await this.parseBody({ req });
         }
 

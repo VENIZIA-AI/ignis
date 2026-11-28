@@ -19,6 +19,7 @@ import type {
   IGrpcController,
   IGrpcControllerOptions,
   IGrpcDefineRouteOptions,
+  IGrpcLimits,
   IRpcRegistration,
   TRpcHandler,
   TRpcMiddleware,
@@ -46,6 +47,8 @@ export abstract class AbstractGrpcController<
   connectRpcModule?: IConnectRpcModule;
   /** ConnectRPC interceptors, assigned by GrpcComponent from its options before configure(). Applied to every RPC this controller registers. */
   interceptors?: unknown[];
+  /** Size limits, assigned by GrpcComponent from its options before configure(). */
+  limits?: IGrpcLimits;
   router: Hono<RouteEnv, RouteSchema, BasePath>;
 
   constructor(opts: IGrpcControllerOptions) {
@@ -180,6 +183,7 @@ export abstract class AbstractGrpcController<
       controller: this,
       module: this.connectRpcModule,
       interceptors: this.interceptors,
+      limits: this.limits,
     });
     this.router.route('/', adapter.router);
 
