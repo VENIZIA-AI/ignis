@@ -285,7 +285,7 @@ The declarations are on 4 pages; each export below links to its own.
 
 ## `JWKSIssuerAuthenticationStrategy`
 
-*class* - [Declaration](/references/api/venizia-ignis--part-2#jwksissuerauthenticationstrategy)
+*class* - [Declaration](/references/api/venizia-ignis--part-3#jwksissuerauthenticationstrategy)
 
 ## `JWKSIssuerTokenService`
 

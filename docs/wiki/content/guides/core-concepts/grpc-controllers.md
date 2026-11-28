@@ -231,7 +231,7 @@ this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({
 | What it serves | RPC paths, with POST; a REST route is not reachable there |
 | Calls | all four kinds, bidi included |
 | Global middleware | runs with the headers only: it reads no body, and cannot change an answer after `next()` |
-| A middleware that answers | the client gets the matching gRPC status with the answer's `message` (cut at 1,024 characters) and its headers, such as `retry-after` (429, 502, 503 and 504 read `unavailable`) |
+| A middleware that answers | the client gets the matching gRPC status with the answer's `message` (at most 1,024 bytes once percent-encoded, cut between whole characters) and its headers, such as `retry-after` (429, 502, 503 and 504 read `unavailable`) |
 | Errors of auth and handlers | the same codes as on the HTTP port |
 | Idle streams | closed after `server.idleTimeout` until the call passes `authenticate` or `authorize` |
 | Size | `limits.messageSize` per message; a stream has no total limit here, and connections are not capped |

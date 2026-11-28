@@ -228,6 +228,11 @@ export declare class GrpcNativeWriter {
         message: string;
         headers?: Headers;
     }): void;
+    /**
+     * The percent-encoded `grpc-message`, as many whole characters as fit: a cut inside an escape or a surrogate pair
+     * leaves a value no client can decode. Half a surrogate pair reads as the replacement character.
+     */
+    private static encodeMessage;
     /** Refuses with the answer a middleware gave: its status, and the `message` the error handler wrote. */
     static refuseFrom(opts: {
         response: Http2ServerResponse;
@@ -1289,21 +1294,3 @@ export declare class JWKSController extends BaseRestController {
 ```
 
 Source: `packages/core-server/src/components/auth/authenticate/controllers/jwks/controller.ts`
-
-## `JWKSIssuerAuthenticationStrategy`
-
-*class*
-
-JWT authentication strategy that verifies the bearer token with `JWKSIssuerTokenService`, for an application that issues its own tokens.
-
-```ts
-export declare class JWKSIssuerAuthenticationStrategy<E extends Env = Env> extends BaseHelper implements IAuthenticationStrategy<E> {
-    private service;
-    name: string;
-    standard: string;
-    constructor(service: JWKSIssuerTokenService<E>);
-    authenticate(context: TContext<E, string>): Promise<IAuthUser>;
-}
-```
-
-Source: `packages/core-server/src/components/auth/authenticate/strategies/jwks/issuer.ts`

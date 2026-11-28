@@ -43,7 +43,6 @@ export class GrpcNativeWriter {
     }
 
     const { stream } = response;
-    const encoded = encodeURIComponent(message.slice(0, MAX_MESSAGE_CHARACTERS));
 
     stream.respond(
       {
@@ -51,7 +50,7 @@ export class GrpcNativeWriter {
         ':status': HTTP.ResultCodes.RS_2.Ok,
         [HTTP.Headers.CONTENT_TYPE]: 'application/grpc',
         [GRPC.Headers.GRPC_STATUS]: String(GrpcStatusUtility.fromHttp({ status })),
-        [GRPC.Headers.GRPC_MESSAGE]: encoded.slice(0, MAX_MESSAGE_CHARACTERS),
+        [GRPC.Headers.GRPC_MESSAGE]: GrpcNativeWriter.encodeMessage({ message }),
       },
       { endStream: true },
     );
@@ -62,6 +61,28 @@ export class GrpcNativeWriter {
         stream.close();
       }
     });
+  }
+
+  /**
+   * The percent-encoded `grpc-message`, as many whole characters as fit: a cut inside an escape or a surrogate pair
+   * leaves a value no client can decode. Half a surrogate pair reads as the replacement character.
+   */
+  private static encodeMessage(opts: { message: string }) {
+    let encoded = '';
+
+    for (const character of opts.message) {
+      const point = character.codePointAt(0) ?? 0;
+      const isHalf = point >= 0xd800 && point <= 0xdfff;
+      const next = encodeURIComponent(isHalf ? String.fromCharCode(0xfffd) : character);
+
+      if (encoded.length + next.length > MAX_MESSAGE_CHARACTERS) {
+        break;
+      }
+
+      encoded += next;
+    }
+
+    return encoded;
   }
 
   /** Refuses with the answer a middleware gave: its status, and the `message` the error handler wrote. */

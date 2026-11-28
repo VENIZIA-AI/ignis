@@ -179,6 +179,14 @@ class SecureController extends BaseGrpcController {
 const IDLE_SECONDS = 1;
 const QUIET_MS = 2_500;
 
+/** Refusal bodies longer than `grpc-message` carries, by the `x-block` value that asks for each. */
+const LONG_REFUSALS: Record<string, string> = {
+  plain: 'x'.repeat(200_000),
+  spaces: 'ab '.repeat(70_000),
+  emoji: `${'x'.repeat(1_023)}😀`,
+  vietnamese: 'Lỗi đã xảy ra, vui lòng thử lại. '.repeat(200),
+};
+
 class NativeApplication extends BaseApplication {
   constructor(
     private native: IGrpcNativeOptions | undefined,
@@ -215,8 +223,14 @@ class NativeApplication extends BaseApplication {
 
   override setupMiddlewares() {
     this.getServer().use('*', async (context, next) => {
-      if (context.req.header('x-block') === 'long') {
-        return context.text('x'.repeat(200_000), 429);
+      const long = LONG_REFUSALS[context.req.header('x-block') ?? ''];
+
+      if (long !== undefined) {
+        return context.text(long, 429);
+      }
+
+      if (context.req.header('x-block') === 'surrogate') {
+        return context.json({ message: `bad ${String.fromCharCode(0xd800)} text` }, 429);
       }
 
       if (context.req.header('x-block')) {
@@ -544,11 +558,25 @@ describe('native gRPC port - refusals and limits', () => {
     expect(result.ms).toBeLessThan(IDLE_SECONDS * 1_000 - 200);
   });
 
-  test('a long refusal body is cut to what a header can carry', async () => {
-    const result = await raw({ headers: grpcHeaders({ 'x-block': 'long' }) });
+  for (const [name, body] of Object.entries(LONG_REFUSALS)) {
+    test(`a long refusal body (${name}) is cut between whole characters`, async () => {
+      const result = await raw({ headers: grpcHeaders({ 'x-block': name }) });
+      const message = decodeURIComponent(result.message ?? '');
+
+      expect(result.code).toBe(String(Code.Unavailable));
+      expect(result.message?.length).toBeLessThanOrEqual(1_024);
+      expect(result.message?.length).toBeGreaterThan(1_000);
+      expect(body.startsWith(message)).toBe(true);
+    });
+  }
+
+  test('a refusal message with half a character still carries its status', async () => {
+    const result = await raw({ headers: grpcHeaders({ 'x-block': 'surrogate' }) });
 
     expect(result.code).toBe(String(Code.Unavailable));
-    expect(result.message?.length).toBeLessThanOrEqual(1_024);
+    expect(decodeURIComponent(result.message ?? '')).toBe(
+      `bad ${String.fromCharCode(0xfffd)} text`,
+    );
   });
 
   test('the method is POST, spelled so', async () => {

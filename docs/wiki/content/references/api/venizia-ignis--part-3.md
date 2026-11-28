@@ -9,6 +9,24 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 Part 3 of 4 of [`@venizia/ignis`](/references/api/venizia-ignis).
 
+## `JWKSIssuerAuthenticationStrategy`
+
+*class*
+
+JWT authentication strategy that verifies the bearer token with `JWKSIssuerTokenService`, for an application that issues its own tokens.
+
+```ts
+export declare class JWKSIssuerAuthenticationStrategy<E extends Env = Env> extends BaseHelper implements IAuthenticationStrategy<E> {
+    private service;
+    name: string;
+    standard: string;
+    constructor(service: JWKSIssuerTokenService<E>);
+    authenticate(context: TContext<E, string>): Promise<IAuthUser>;
+}
+```
+
+Source: `packages/core-server/src/components/auth/authenticate/strategies/jwks/issuer.ts`
+
 ## `JWKSIssuerTokenService`
 
 *class*
