@@ -8,10 +8,12 @@ import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { GRPC, HTTP } from '@venizia/ignis-helpers/common';
 import { ModuleUtility } from '@venizia/ignis-helpers';
-import type { Env, Input, MiddlewareHandler, Schema } from 'hono';
+import type { Context, Env, Input, MiddlewareHandler, Schema } from 'hono';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { TRouteContext } from '@venizia/ignis-kernel';
 import type { AbstractGrpcController } from './abstract';
+import { GrpcErrors } from './errors';
+import { AppErrorMiddleware } from '@/base/middlewares/app-error/app-error.middleware';
 import type { IConnectAdapterResult, IConnectRpcModule, IRpcRegistration } from './common/types';
 
 const CONNECT_RPC_MODULES = ['@connectrpc/connect'];
@@ -31,6 +33,9 @@ export class GrpcRequestAdapter<
   ConfigurableOptions extends object = {},
 > extends BaseHelper {
   private createConnectRouter: (opts?: Record<string, unknown>) => ConnectRouter;
+  private connect: IConnectRpcModule['connect'];
+  /** The server's default error handler: it decides the status and the message a client may read, and logs the error. */
+  private readonly handleError = new AppErrorMiddleware().value();
   private protocol: {
     universalServerRequestFromFetch: (req: Request, ctx: object) => UniversalServerRequest;
     universalServerResponseToFetch: (res: UniversalServerResponse) => Response;
@@ -62,6 +67,7 @@ export class GrpcRequestAdapter<
     this.controller = opts.controller;
     this.interceptors = opts.interceptors;
     this.createConnectRouter = opts.module.connect.createConnectRouter;
+    this.connect = opts.module.connect;
     this.protocol = opts.module.protocol;
   }
 
@@ -83,7 +89,7 @@ export class GrpcRequestAdapter<
   /** Wraps IGNIS RPC registrations into ConnectRPC's (request, context) => response signature. */
   private buildConnectHandlers(opts: {
     definitions: Record<string, IRpcRegistration<RouteEnv>>;
-    storage: AsyncLocalStorage<TRouteContext<RouteEnv>>;
+    storage: AsyncLocalStorage<Context<RouteEnv>>;
   }): Record<string, TConnectHandler> {
     const handlers: Record<string, TConnectHandler> = {};
 
@@ -91,21 +97,36 @@ export class GrpcRequestAdapter<
       const { handler, middlewares } = opts.definitions[name];
 
       handlers[name] = async (request: unknown, _connectContext: HandlerContext) => {
-        const context = opts.storage.getStore();
+        const requestContext = opts.storage.getStore();
 
-        if (!context) {
+        if (!requestContext) {
           throw getError({
             statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
             message: `[GrpcRequestAdapter] Missing Hono context for RPC "${name}"`,
           });
         }
 
-        // Run pre-built auth middlewares (built by AbstractGrpcController.buildRpcMiddlewares)
-        for (const mw of middlewares) {
-          await mw(context, async () => {});
-        }
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Hono's context is what runs; `TRouteContext` is built on it but declares `json` and `req.valid` differently, so it is no subtype
+        const context = requestContext as TRouteContext<RouteEnv>;
 
-        return handler({ request, context });
+        try {
+          // Run pre-built auth middlewares (built by AbstractGrpcController.buildRpcMiddlewares)
+          for (const mw of middlewares) {
+            await mw(context, async () => {});
+          }
+
+          const response = await handler({ request, context });
+
+          return response;
+        } catch (error) {
+          const answer = await GrpcErrors.toAnswer({
+            error,
+            context: requestContext,
+            connect: this.connect,
+            handle: this.handleError,
+          });
+          throw answer;
+        }
       };
     }
 
@@ -152,7 +173,7 @@ export class GrpcRequestAdapter<
   private buildMiddleware(opts: {
     handlerMap: Map<string, UniversalHandler>;
     controllerPath: string;
-    storage: AsyncLocalStorage<TRouteContext<RouteEnv>>;
+    storage: AsyncLocalStorage<Context<RouteEnv>>;
   }): MiddlewareHandler<RouteEnv, BasePath, Input> {
     const { handlerMap, controllerPath, storage } = opts;
     const { universalServerRequestFromFetch, universalServerResponseToFetch } = this.protocol;
@@ -171,8 +192,7 @@ export class GrpcRequestAdapter<
         return next();
       }
 
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Hono's context is what runs; `TRouteContext` is built on it but declares `json` and `req.valid` differently, so it is no subtype
-      return storage.run(context as TRouteContext<RouteEnv>, async () => {
+      return storage.run(context, async () => {
         try {
           const body = await context.req.arrayBuffer();
           const freshRequest = new Request(context.req.url, {
@@ -255,7 +275,7 @@ export class GrpcRequestAdapter<
     const connectRouter = adapter.createConnectRouter(routerOpts);
 
     // Per-controller async storage - each concurrent request gets its own isolated context.
-    const storage = new AsyncLocalStorage<TRouteContext<RouteEnv>>();
+    const storage = new AsyncLocalStorage<Context<RouteEnv>>();
 
     if (adapter.controller.service) {
       adapter.assertDeclaredRpcs();

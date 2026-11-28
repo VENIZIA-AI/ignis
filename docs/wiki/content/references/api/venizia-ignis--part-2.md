@@ -120,6 +120,9 @@ Bridges IGNIS gRPC controllers with ConnectRPC: loads the peer deps with `Module
 ```ts
 export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ServiceType = Parameters<ConnectRouter['service']>[0], ConfigurableOptions extends object = {}> extends BaseHelper {
     private createConnectRouter;
+    private connect;
+    /** The server's default error handler: it decides the status and the message a client may read, and logs the error. */
+    private readonly handleError;
     private protocol;
     private controller;
     private interceptors?;

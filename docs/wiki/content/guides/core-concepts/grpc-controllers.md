@@ -210,6 +210,24 @@ export class EchoController extends BaseGrpcController {
 | **`configure()` return** | `OpenAPIHono` router | `void` (adapter mounted internally) |
 | **Peer dependencies** | None | `@connectrpc/connect`, `@bufbuild/protobuf` |
 
+## Errors
+
+An RPC fails the way a REST route does: throw `getError({ statusCode, message })`, or Hono's `HTTPException`. For a 4xx the client reads the code of the status and the message a REST request would get.
+
+| Status | gRPC code |
+|---|---|
+| 400, 422 | `invalid_argument` |
+| 401 | `unauthenticated` |
+| 403 | `permission_denied` |
+| 404 | `not_found` |
+| 409 | `aborted` |
+| 429 | `resource_exhausted` |
+| Any other 4xx | `failed_precondition` |
+
+Everything else, a 5xx and another library's error with a `statusCode` included, answers `internal` with its text hidden. Throw a ConnectRPC `ConnectError` to choose the code yourself.
+
+The status and the message come from the default error handler: an error handler your application overrides is not used for an RPC.
+
 ## Protobuf Setup
 
 gRPC controllers require Protobuf service definitions. The typical workflow:
