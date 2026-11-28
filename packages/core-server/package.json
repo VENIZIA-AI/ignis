@@ -155,7 +155,7 @@
     "@venizia/ignis-boot": "workspace:*",
     "casbin": "^5.51.1",
     "eslint": "catalog:",
-    "meilisearch": "^0.62.0",
+    "meilisearch": "^0.63.0",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "postgres": "catalog:",

@@ -400,7 +400,7 @@
         "drizzle-orm": "^0.45.4",
         "drizzle-zod": "^0.8.3",
         "hono": "^4.13.23",
-        "meilisearch": "^0.62.0",
+        "meilisearch": "^0.62.0 || ^0.63.0",
         "pg": "^8.23.1",
         "postgres": "^3.4.9",
         "typesense": "^3.2.0",
@@ -443,7 +443,7 @@
         "@venizia/ignis-boot": "workspace:*",
         "casbin": "^5.51.1",
         "eslint": "catalog:",
-        "meilisearch": "^0.62.0",
+        "meilisearch": "^0.63.0",
         "oxlint": "catalog:",
         "oxlint-tsgolint": "catalog:",
         "postgres": "catalog:",
@@ -2012,7 +2012,7 @@
 
     "mdast-util-to-hast": ["mdast-util-to-hast@13.2.1", "", { "dependencies": { "@types/hast": "^3.0.0", "@types/mdast": "^4.0.0", "@ungap/structured-clone": "^1.0.0", "devlop": "^1.0.0", "micromark-util-sanitize-uri": "^2.0.0", "trim-lines": "^3.0.0", "unist-util-position": "^5.0.0", "unist-util-visit": "^5.0.0", "vfile": "^6.0.0" } }, "sha512-cctsq2wp5vTsLIcaymblUriiTcZd0CwWtCbLvrOzYCDZoWyMNV8sZ7krj09FSnsiJi3WVsHLM4k6Dq/yaPyCXA=="],
 
-    "meilisearch": ["meilisearch@0.62.0", "", {}, "sha512-/ETDW7mmWI2NcSmtJdTPhbjsIbs3VcuapszX5X6JhdHB0XbszPOhqd3EB2bEylL0HK7dgwh/4Z3MdyuycWVf5A=="],
+    "meilisearch": ["meilisearch@0.63.0", "", {}, "sha512-gpVdo4dpoma7MMVN4vbfZrWZWp1vIyKWRDKNJsHvB+z6+ykc3E210yb2lvbsTrRTNSM1hfq3vmXu4DRO00IDkA=="],
 
     "merge2": ["merge2@1.4.1", "", {}, "sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg=="],
 
