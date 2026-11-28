@@ -85,6 +85,8 @@ export class GreeterController extends BaseGrpcController {
 - `binding()` must be implemented (even if empty) - it is called during `configure()`
 - Handler methods receive `{ request, context }` and return a Protobuf message object
 
+The name of an RPC is the method of the service as the generated code writes it (`sayHello` for `rpc SayHello`). A name the service does not declare stops the application at startup, with the declared names in the error.
+
 ## RPC Method Decorators
 
 IGNIS provides a decorator for each gRPC method type:

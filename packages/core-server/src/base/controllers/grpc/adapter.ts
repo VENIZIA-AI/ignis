@@ -5,7 +5,7 @@ import type {
   UniversalServerResponse,
 } from '@connectrpc/connect/protocol';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import { BaseHelper, getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { GRPC, HTTP } from '@venizia/ignis-helpers/common';
 import { ModuleUtility } from '@venizia/ignis-helpers';
 import type { Env, Input, MiddlewareHandler, Schema } from 'hono';
@@ -110,6 +110,32 @@ export class GrpcRequestAdapter<
     }
 
     return handlers;
+  }
+
+  /** ConnectRPC drops a handler whose name the service does not declare, and the call then answers `unimplemented`: refused at boot instead. */
+  private assertDeclaredRpcs() {
+    const service: unknown = this.controller.service;
+
+    if (
+      !RecordUtility.isRecord(service) ||
+      !('methods' in service) ||
+      !Array.isArray(service.methods)
+    ) {
+      return;
+    }
+
+    const declared = service.methods.map((method: unknown) =>
+      RecordUtility.isRecord(method) ? String(method.localName) : '',
+    );
+    const unknownName = Object.keys(this.controller.definitions).find(
+      (name) => !declared.includes(name),
+    );
+
+    if (unknownName !== undefined) {
+      throw getError({
+        message: `[${this.controller.constructor.name}] ${String(service.typeName)} declares no RPC "${unknownName}" | declared: ${declared.join(', ')}`,
+      });
+    }
   }
 
   /** Loose signature on purpose - the IGNIS `ServiceType` is opaque (`unknown`) while ConnectRPC expects `DescService`. */
@@ -232,6 +258,7 @@ export class GrpcRequestAdapter<
     const storage = new AsyncLocalStorage<TRouteContext<RouteEnv>>();
 
     if (adapter.controller.service) {
+      adapter.assertDeclaredRpcs();
       adapter.registerService({
         router: connectRouter,
         handlers: adapter.buildConnectHandlers({
