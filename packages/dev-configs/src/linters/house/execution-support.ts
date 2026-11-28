@@ -60,13 +60,33 @@ export class ExecutionSupport {
     return typeof text === 'string' ? text : undefined;
   }
 
+  /** The text of a template without expressions. */
+  static templateTextOf(opts: { node: unknown }): string | undefined {
+    const { node } = opts;
+
+    if (
+      AstNode.getType({ node }) !== AstNodeTypes.TEMPLATE_LITERAL ||
+      ExecutionSupport.list({ node, key: 'expressions' }).length > 0
+    ) {
+      return undefined;
+    }
+
+    const [quasi] = ExecutionSupport.list({ node, key: 'quasis' });
+    const cooked = AstNode.readField({
+      node: AstNode.readField({ node: quasi, key: 'value' }),
+      key: 'cooked',
+    });
+
+    return typeof cooked === 'string' ? cooked : undefined;
+  }
+
   /** The name a member expression or a property reads: `a.run`, `a['run']`, `{ run }`. */
   static keyOf(opts: { node: unknown; key: string }): string | undefined {
     const written = AstNode.readField(opts);
     const isComputed = AstNode.readField({ node: opts.node, key: 'computed' }) === true;
 
     if (isComputed && AstNode.getType({ node: written }) !== AstNodeTypes.LITERAL) {
-      return undefined;
+      return ExecutionSupport.templateTextOf({ node: written });
     }
 
     return ExecutionSupport.textOf({ node: written });

@@ -51,9 +51,9 @@ A host with no resolver installed reports "no request context" - the first branc
 export declare class AuditUserResolver {
     /** The user to stamp, or `null` for nobody where anonymous writes are allowed. */
     static resolveAuditUserId(opts: IAuditUserOptions): TAuditUserId | null;
-    /** The user for a text column: a number handed over as it is is stored as `42.0` by some engines. */
+    /** The user for a text column; a number must be a safe integer. As text, because some engines store a number as `42.0`. */
     static resolveAuditUserText(opts: IAuditUserOptions): string | null;
-    /** The user for a number column: a whole number, written as one or as text. */
+    /** The user for a number column: a safe integer, written as one or as decimal text. */
     static resolveAuditUserNumber(opts: IAuditUserOptions): number | null;
 }
 

@@ -25,20 +25,7 @@ export class StaticExecutionReasonRule {
       return typeof value === 'string' ? value : undefined;
     }
 
-    if (
-      node?.type !== AstNodeTypes.TEMPLATE_LITERAL ||
-      ExecutionSupport.list({ node, key: 'expressions' }).length > 0
-    ) {
-      return undefined;
-    }
-
-    const [quasi] = ExecutionSupport.list({ node, key: 'quasis' });
-    const cooked = AstNode.readField({
-      node: AstNode.readField({ node: quasi, key: 'value' }),
-      key: 'cooked',
-    });
-
-    return typeof cooked === 'string' ? cooked : undefined;
+    return ExecutionSupport.templateTextOf({ node });
   }
 
   /** The class `this` stands for at `node`: that of the static method or static field it is written in. */

@@ -62,6 +62,7 @@ describe('restrict-execution-call-sites: calls of the framework', () => {
       `${CORE}\nExecution.sleep({ ms: 1 });\nExecution.current();\nExecution.fireAndForget({ scope, execution });`,
     ],
     ['the other frame methods', `${FRAMES}\nExecutionFrames.listener({ handler });`],
+    ['another method written as a template', `${CORE}\nExecution[\`sleep\`]({ ms: 1 });`],
     ['another library', "import { Execution } from 'some-library';\nExecution.run({ task });"],
     [
       'a sibling package',

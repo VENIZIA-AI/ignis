@@ -61,14 +61,20 @@ export class AuditUserResolver {
     return userId;
   }
 
-  /** The user for a text column: a number handed over as it is is stored as `42.0` by some engines. */
+  /** The user for a text column; a number must be a safe integer. As text, because some engines store a number as `42.0`. */
   static resolveAuditUserText(opts: IAuditUserOptions): string | null {
     const userId = AuditUserResolver.resolveAuditUserId(opts);
+
+    if (typeof userId === 'number' && !Number.isSafeInteger(userId)) {
+      throw getError({
+        message: `[getCurrentUserId] The audit user is not a whole number | columnName: ${opts.columnField}`,
+      });
+    }
 
     return userId === null ? null : String(userId);
   }
 
-  /** The user for a number column: a whole number, written as one or as text. */
+  /** The user for a number column: a safe integer, written as one or as decimal text. */
   static resolveAuditUserNumber(opts: IAuditUserOptions): number | null {
     const userId = AuditUserResolver.resolveAuditUserId(opts);
 

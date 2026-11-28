@@ -20,6 +20,7 @@ import {
   type TAnyDataSourceSchema,
   type TCrudRepositoryClass,
 } from '@venizia/ignis-kernel';
+import { AuditUserResolver } from '@/relational/core/models/enrichers';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import {
@@ -587,6 +588,16 @@ describe('the user an audit column can hold', () => {
 
       requestOf('-7');
       expect(stampCreatedBy({ table: tier.anonymous })).toBe(-7);
+
+      for (const user of [1.5, Number.NaN, Infinity]) {
+        requestOf(user);
+        expect(() =>
+          AuditUserResolver.resolveAuditUserText({
+            columnField: 'createdBy',
+            allowAnonymous: true,
+          }),
+        ).toThrow(/audit user/);
+      }
 
       const refused = [
         'abc',

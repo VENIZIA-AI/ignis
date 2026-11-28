@@ -70,7 +70,16 @@ const isFramesCall = (opts: { node: ts.Node; methods: string[] }) => {
 const isLoopRegistration = (node: ts.Node) =>
   ts.isForOfStatement(node) && node.awaitModifier !== undefined;
 
-/** Whether a body opens a frame itself. What a registration inside it hands over is judged on its own. */
+const SHORT_CIRCUITS: ReadonlySet<ts.SyntaxKind> = new Set([
+  ts.SyntaxKind.AmpersandAmpersandToken,
+  ts.SyntaxKind.BarBarToken,
+  ts.SyntaxKind.QuestionQuestionToken,
+]);
+
+/**
+ * Whether a body opens a frame itself. What a registration inside it hands over is judged on its own. Not read: a
+ * frame skipped by an early return, a `switch` case or a `try` block counts as opened.
+ */
 const opensFrame = (node: ts.Node, file: ts.SourceFile): boolean => {
   if (isLoopRegistration(node) || (ts.isCallExpression(node) && isRegistration(node, file))) {
     return false;
@@ -91,6 +100,11 @@ const opensFrame = (node: ts.Node, file: ts.SourceFile): boolean => {
       opensFrame(node.condition, file) ||
       (opensFrame(node.whenTrue, file) && opensFrame(node.whenFalse, file))
     );
+  }
+
+  // The right side runs on one outcome of the left only.
+  if (ts.isBinaryExpression(node) && SHORT_CIRCUITS.has(node.operatorToken.kind)) {
+    return opensFrame(node.left, file);
   }
 
   return (
@@ -452,6 +466,13 @@ describe('the listener registrations of the framework', () => {
       "client.on('message', (m) => ExecutionFrames.root({ task: () => handle(m) }));",
       "client.on('data', ExecutionFrames.listener({ handler: handle }));",
       "client.on('end', (m) => guard({ task: () => ExecutionFrames.run({ frame, task }) }));",
+      // A frame opened on one branch only.
+      "client.on('if', (m) => { if (m) { ExecutionFrames.root({ task }); } });",
+      "client.on('ternary', (m) => (m ? ExecutionFrames.root({ task }) : handle(m)));",
+      "client.on('and', (m) => m && ExecutionFrames.root({ task }));",
+      "client.on('or', (m) => m || ExecutionFrames.root({ task }));",
+      "client.on('nullish', (m) => m ?? ExecutionFrames.root({ task }));",
+      "client.on('both', (m) => { if (m) { ExecutionFrames.root({ task }); } else { ExecutionFrames.run({ frame, task }); } });",
     ].join('\n');
 
     expect(scan({ path: 'a.ts', text })).toEqual([
@@ -459,6 +480,11 @@ describe('the listener registrations of the framework', () => {
       'a.ts | queueMicrotask()',
       'a.ts | nextTick()',
       'a.ts | subscribe()',
+      'a.ts | on(if)',
+      'a.ts | on(ternary)',
+      'a.ts | on(and)',
+      'a.ts | on(or)',
+      'a.ts | on(nullish)',
     ]);
   });
 
