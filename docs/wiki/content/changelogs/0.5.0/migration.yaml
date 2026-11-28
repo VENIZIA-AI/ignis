@@ -1398,3 +1398,19 @@ caller-chosen-types:
     steps:
       - "Pin @venizia/ignis-helpers to the release before this one."
   data: Nothing stored changes.
+
+stylistic-6:
+  symbols: ['@stylistic/eslint-plugin']
+  upgrade:
+    before: |-
+      rules: { '@stylistic/jsx-indent': ['error', 2], '@stylistic/jsx-props-no-multi-spaces': 'error' }
+    after: |-
+      rules: { '@stylistic/indent': ['error', 2], '@stylistic/no-multi-spaces': 'error' }
+    steps:
+      - "Run your lint. Only a rule you set yourself is affected."
+      - "Replace jsx-indent by indent and jsx-props-no-multi-spaces by no-multi-spaces; remove jsx-sort-props, which has no replacement in the plugin."
+      - "Where you set indent, keyword-spacing, dot-location or no-multi-spaces, read the plugin's version 6 notes: their defaults or coverage changed."
+  downgrade:
+    steps:
+      - "Pin @venizia/dev-configs to the release before this one."
+  data: Nothing stored changes.
