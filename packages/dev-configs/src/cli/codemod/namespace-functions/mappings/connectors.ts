@@ -68,14 +68,14 @@ export const CONNECTORS_GUARD_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
     oldName: 'isRelationalTransaction',
     className: 'AbstractRelationalDataSource',
     method: 'isRelationalTransaction',
-    reusesTypeImport: true,
+    isTypeGuard: true,
   }),
   passthrough({
     modules: [`${CONNECTORS}/postgres`, CORE_SERVER],
     oldName: 'isDatabaseTransaction',
     className: 'AbstractPostgresDataSource',
     method: 'isDatabaseTransaction',
-    reusesTypeImport: true,
+    isTypeGuard: true,
   }),
 ];
 

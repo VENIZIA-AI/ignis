@@ -1570,21 +1570,40 @@ execution-class:
   data: Nothing stored changes.
 
 public-type-names:
-  symbols: [TValueOf, TValueOrPromise, TClass, TAbstractClass, ResolverUtility.isClass, Binding.isClassProvider, ApplicationError.isApplicationError, Execution.isPromiseLike, AbstractRedisHelper.isRedisHelper, DataSourceRoot.isDataSourceClass, AbstractRelationalDataSource.isRelationalTransaction, AbstractPostgresDataSource.isDatabaseTransaction]
+  symbols: [TValueOf, TValueOrPromise, TClass, TAbstractClass, ResolverUtility.isClass, Binding.isClassProvider, ApplicationError.isApplicationError, Execution.isPromiseLike, AbstractRedisHelper.isRedisHelper, DataSourceRoot.isDataSourceClass, AbstractRelationalDataSource.isRelationalTransaction, AbstractPostgresDataSource.isDatabaseTransaction, RecordUtility.isObjectLike]
   upgrade:
     before: |-
-      import { isPromiseLike, type TConstructor, type ValueOrPromise } from '@venizia/ignis-helpers';
+      import {
+        isPromiseLike,
+        type TAbstractConstructor,
+        type TConstructor,
+        type ValueOf,
+        type ValueOrPromise,
+      } from '@venizia/ignis-helpers';
+
+      type TBase = TAbstractConstructor<object>;
+      type TCode = ValueOf<typeof Codes>;
 
       const build = (target: TConstructor<object>, result: ValueOrPromise<object>) =>
         isPromiseLike(result) ? result : target;
     after: |-
-      import { Execution, type TClass, type TValueOrPromise } from '@venizia/ignis-helpers';
+      import {
+        Execution,
+        type TAbstractClass,
+        type TClass,
+        type TValueOf,
+        type TValueOrPromise,
+      } from '@venizia/ignis-helpers';
+
+      type TBase = TAbstractClass<object>;
+      type TCode = TValueOf<typeof Codes>;
 
       const build = (target: TClass<object>, result: TValueOrPromise<object>) =>
         Execution.isPromiseLike(result) ? result : target;
     steps:
+      - "The types: ValueOf -> TValueOf, ValueOrPromise -> TValueOrPromise, TConstructor -> TClass, TAbstractConstructor -> TAbstractClass."
       - "Run bun node_modules/.bin/devz codemod public-names [paths...] --write: it renames the imported types and their uses, keeps your aliases, and moves each guard call to its class."
-      - "Change by hand what it lists: a guard used as a value (passed to filter, in typeof), a re-export or a type-only import of a guard, and a type whose name is declared again in the same file."
+      - "Change by hand what it lists: a guard used as a value (passed to filter, in typeof), a re-export or a type-only import of a guard, a type whose name is declared again in the same file, and an import x = require('...') of a .cts file that reaches an old name through x."
       - "Run your typecheck: the codemod does not read .js files or import('pkg').Name, does not follow a name through a barrel of your own, and a re-export of an old type name now exports the new name."
       - "Rename a type of your own called ValueOf or ValueOrPromise if your lint now reports it."
   downgrade:

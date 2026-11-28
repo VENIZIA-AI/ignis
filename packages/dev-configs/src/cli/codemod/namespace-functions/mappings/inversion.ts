@@ -29,7 +29,7 @@ export const INVERSION_GUARD_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
     method: 'isClass',
     params: [],
     keepsOptions: true,
-    reusesTypeImport: true,
+    isTypeGuard: true,
   },
   {
     modules: ['@venizia/ignis-inversion', '@venizia/ignis-kernel', '@venizia/ignis'],
@@ -38,7 +38,7 @@ export const INVERSION_GUARD_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
     method: 'isClassProvider',
     params: [],
     keepsOptions: true,
-    reusesTypeImport: true,
+    isTypeGuard: true,
   },
   {
     modules: ['@venizia/ignis-inversion', '@venizia/ignis-helpers', '@venizia/ignis-helpers/core'],
@@ -47,7 +47,7 @@ export const INVERSION_GUARD_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
     method: 'isApplicationError',
     params: [],
     keepsOptions: true,
-    reusesTypeImport: true,
+    isTypeGuard: true,
   },
 ];
 

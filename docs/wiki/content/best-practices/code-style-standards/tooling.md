@@ -379,7 +379,7 @@ Every codemod below is a dry run unless you pass `--write`, and `--check` exits 
 
 - Renames `ValueOf` and `ValueOrPromise` to `TValueOf` and `TValueOrPromise`, `TConstructor` to `TClass` and `TAbstractConstructor` to `TAbstractClass`, where they are imported from `@venizia/ignis-inversion`, `@venizia/ignis-helpers` or `@venizia/ignis`. An aliased import keeps its alias.
 - Moves each call of a former guard function to the static method of its class, such as `isPromiseLike(value)` to `Execution.isPromiseLike(value)`, and fixes the import.
-- Lists, and leaves to you, a guard used as a value, a re-export or a type-only import of a guard, and a type whose name is declared again in the same file.
+- Lists, and leaves to you, a guard used as a value, a re-export or a type-only import of a guard, a type whose name is declared again in the same file, and an `import x = require('...')` of a `.cts` file that reaches an old name through `x`.
 - It does not read `.js` files or `import('pkg').Name`, and does not follow a name through a barrel of your own. Run your typecheck afterwards.
 - `--write` needs a path, or `--all`, and refuses a file with local changes. `--check` exits 1 while a file would change or a line is left to you. There is no `--reverse`.
 

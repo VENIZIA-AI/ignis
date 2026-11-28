@@ -20,7 +20,7 @@ export const KERNEL_GUARD_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
     method: 'isDataSourceClass',
     params: [],
     keepsOptions: true,
-    reusesTypeImport: true,
+    isTypeGuard: true,
   },
 ];
 

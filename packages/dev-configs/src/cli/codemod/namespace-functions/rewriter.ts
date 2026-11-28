@@ -153,7 +153,9 @@ export class NamespaceFunctions {
         continue;
       }
 
-      const classModules = mapping.newModules ?? [binding.module];
+      // Every entry a type guard row lists exports the same class, so a class imported from one serves them all.
+      const classModules =
+        mapping.newModules ?? (mapping.isTypeGuard ? mapping.modules : [binding.module]);
       const isNamespaceReach = !binding.specifier && classModules.includes(binding.module);
       let classReference = `${binding.local}.${mapping.className}`;
       let needsImport = false;
@@ -167,7 +169,7 @@ export class NamespaceFunctions {
           modules: classModules,
         });
         typeImport =
-          valueImport || !mapping.reusesTypeImport
+          valueImport || !mapping.isTypeGuard
             ? undefined
             : NamespaceFunctions.findClassTypeImport({
                 typescript,
@@ -261,7 +263,7 @@ export class NamespaceFunctions {
             sameDeclaration ? binding.module : NamespaceFunctions.moduleOf({ declaration }),
           );
         } else {
-          const module = classModules[0] ?? binding.module;
+          const module = mapping.newModules?.[0] ?? binding.module;
           const entry = newImports.get(module) ?? {
             anchor: binding.declaration,
             names: new Set<string>(),
@@ -563,6 +565,11 @@ export class NamespaceFunctions {
 
     if (typescript.isBindingElement(parent)) {
       return parent.propertyName !== identifier;
+    }
+
+    // `isClass` of `import { isClass as other }` names the export, not a binding of this file.
+    if (typescript.isImportSpecifier(parent)) {
+      return false;
     }
 
     if (typescript.isExportSpecifier(parent)) {

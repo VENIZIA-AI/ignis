@@ -17,7 +17,7 @@ export const HELPERS_GUARD_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
     method: 'isPromiseLike',
     params: [],
     keepsOptions: true,
-    reusesTypeImport: true,
+    isTypeGuard: true,
   },
   {
     modules: [ROOT],
@@ -26,7 +26,7 @@ export const HELPERS_GUARD_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
     method: 'isRedisHelper',
     params: [],
     keepsOptions: true,
-    reusesTypeImport: true,
+    isTypeGuard: true,
   },
 ];
 

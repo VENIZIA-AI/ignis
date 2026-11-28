@@ -287,6 +287,78 @@ describe('devz codemod public-names: type guards', () => {
     expect(result.manual.map((entry) => entry.line)).toEqual([2, 3]);
   });
 
+  test.each([
+    [
+      'isApplicationError',
+      'ApplicationError',
+      '@venizia/ignis-helpers',
+      '@venizia/ignis-helpers/core',
+    ],
+    ['isClass', 'ResolverUtility', '@venizia/ignis-kernel', '@venizia/ignis-inversion'],
+  ])(
+    '%s imported from two entry points: both imports go, one class stays',
+    (name, owner, one, two) => {
+      const result = rewrite(
+        `import { ${name} } from '${one}';`,
+        `import { ${name} as other } from '${two}';`,
+        `export const use = (value: unknown) => [${name}(value), other(value)];`,
+      );
+
+      expect(result.output).toBe(
+        lines(
+          `import { ${owner} } from '${one}';`,
+          `export const use = (value: unknown) => [${owner}.${name}(value), ${owner}.${name}(value)];`,
+        ),
+      );
+      expect(result.manual).toEqual([]);
+    },
+  );
+
+  test('an aliased import of one entry point is rewritten beside a class imported from another', () => {
+    const result = rewrite(
+      `import { ApplicationError } from '@venizia/ignis-helpers';`,
+      `import { isApplicationError } from '@venizia/ignis-helpers/core';`,
+      `export const use = (value: unknown) => isApplicationError(value) && ApplicationError;`,
+    );
+
+    expect(result.output).toBe(
+      lines(
+        `import { ApplicationError } from '@venizia/ignis-helpers';`,
+        `export const use = (value: unknown) => ApplicationError.isApplicationError(value) && ApplicationError;`,
+      ),
+    );
+    expect(result.manual).toEqual([]);
+  });
+
+  test.each([
+    ['@venizia/ignis-helpers', 'isPromiseLike(value)'],
+    ['@venizia/ignis-kernel', 'isClass(value)'],
+    ['@venizia/ignis-helpers/common', 'ValueOrPromise<string>'],
+  ])('an import = require of %s that reaches an old name is listed', (specifier, use) => {
+    const source = lines(
+      `import ignis = require('${specifier}');`,
+      use.startsWith('Value')
+        ? `export type TUse = ignis.${use};`
+        : `export const use = (value: unknown) => ignis.${use};`,
+    );
+    const result = PublicNames.rewrite({ typescript: ts, fileName: 'file.cts', source });
+
+    expect(result.output).toBe(source);
+    expect(result.manual.map((entry) => entry.line)).toEqual([1]);
+  });
+
+  test('an import = require that reaches no old name, or another package, is not listed', () => {
+    const source = lines(
+      `import ignis = require('@venizia/ignis-helpers');`,
+      `import other = require('type-fest');`,
+      `export type TUse = other.ValueOf<ignis.TNullable<string>>;`,
+    );
+
+    expect(PublicNames.rewrite({ typescript: ts, fileName: 'file.cts', source }).manual).toEqual(
+      [],
+    );
+  });
+
   test('types and guards of one file are rewritten in one run', () => {
     const result = rewrite(
       `import { isPromiseLike, type ValueOrPromise } from '@venizia/ignis-helpers';`,

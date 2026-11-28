@@ -15,7 +15,8 @@ One run for the public renames of types and type guards:
 
 A name your file declares itself, or imports from another package, is left alone. It reads .ts, .tsx, .mts and
 .cts files. It lists, with the line, and leaves to you: a guard used as a value (passed to filter, in typeof),
-a re-export or a type-only import of a guard, a type whose name is declared again further down the file. It does
+a re-export or a type-only import of a guard, a type whose name is declared again further down the file, an
+"import x = require('...')" that reaches an old name through x. It does
 not list, so run your typecheck afterwards: .js files, import('pkg').Name, a guard read from a namespace import
 of a package that does not export its class, and a name that reaches a file through a barrel of your own.
 
@@ -39,6 +40,79 @@ export class PublicNamesTable {
 }
 
 export class PublicNames {
+  /** Whether `specifier` exports `name` as one of the old names this codemod moves. */
+  private static isOldName(opts: { specifier: string; name: string }): boolean {
+    const { specifier, name } = opts;
+
+    return (
+      GUARD_MAPPINGS.some(
+        (mapping) => mapping.oldName === name && mapping.modules.includes(specifier),
+      ) ||
+      PublicNamesTable.TYPE_ROWS.some(
+        (row) =>
+          row.oldName === name &&
+          row.packages.some((owner) => specifier === owner || specifier.startsWith(`${owner}/`)),
+      )
+    );
+  }
+
+  /** The `import x = require('...')` lines of a `.cts` file whose `x` reaches an old name: neither pass rewrites them. */
+  private static findRequireImports(opts: {
+    typescript: typeof import('typescript');
+    fileName: string;
+    source: string;
+  }): ICodemodRewrite['manual'] {
+    const { typescript: ts, fileName, source } = opts;
+    const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true);
+    const reached = new Map<string, Set<string>>();
+
+    const walk = (node: import('typescript').Node): void => {
+      const pair = ts.isPropertyAccessExpression(node)
+        ? [node.expression, node.name]
+        : ts.isQualifiedName(node)
+          ? [node.left, node.right]
+          : undefined;
+      const [scope, member] = pair ?? [];
+
+      if (scope && member && ts.isIdentifier(scope)) {
+        reached.set(scope.text, (reached.get(scope.text) ?? new Set()).add(member.getText(file)));
+      }
+
+      ts.forEachChild(node, walk);
+    };
+
+    walk(file);
+
+    return file.statements.flatMap((statement) => {
+      if (
+        !ts.isImportEqualsDeclaration(statement) ||
+        !ts.isExternalModuleReference(statement.moduleReference) ||
+        !ts.isStringLiteralLike(statement.moduleReference.expression)
+      ) {
+        return [];
+      }
+
+      const specifier = statement.moduleReference.expression.text;
+      const names = [...(reached.get(statement.name.text) ?? [])].filter((name) =>
+        PublicNames.isOldName({ specifier, name }),
+      );
+
+      if (names.length === 0) {
+        return [];
+      }
+
+      const { line } = file.getLineAndCharacterOfPosition(statement.getStart(file));
+      const uses = names.map((name) => `\`${statement.name.text}.${name}\``).join(', ');
+
+      return [
+        {
+          line: line + 1,
+          note: `\`import ${statement.name.text} = require('${specifier}')\` is not rewritten: change ${uses} to the new names by hand`,
+        },
+      ];
+    });
+  }
+
   /** The guards first: the type pass reads their output, so both land in one write. */
   static rewrite(opts: {
     typescript: typeof import('typescript');
@@ -64,6 +138,7 @@ export class PublicNames {
       changed: types.output !== source,
       rewritten: guards.rewritten + types.rewritten,
       manual: [
+        ...PublicNames.findRequireImports(opts),
         ...guards.reports.map((report) => ({ line: report.line, note: report.reason })),
         ...types.manual,
       ],
