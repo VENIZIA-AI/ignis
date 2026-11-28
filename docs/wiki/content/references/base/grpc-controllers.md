@@ -1027,6 +1027,8 @@ Auth middlewares run in the following order inside the ConnectRPC handler wrappe
 2. **Authorize** middlewares (if `configs.authorize` is present), one per spec
 3. **Handler** execution
 
+Each middleware passes the call on by calling `next()`. One that returns a `Response`, or returns without calling `next()`, ends the call and the handler does not run: a 4xx `Response` gives the client the code of its status, anything else `internal`.
+
 ## See Also
 
 - [Controllers Reference](./controllers.md) -- REST controller classes and API endpoint patterns

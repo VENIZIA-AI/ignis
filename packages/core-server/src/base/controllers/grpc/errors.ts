@@ -1,5 +1,5 @@
 import { GRPC, HTTP, type TGrpcResultCode } from '@venizia/ignis-helpers/common';
-import { isApplicationError, RecordUtility } from '@venizia/ignis-helpers/core';
+import { getError, isApplicationError, RecordUtility } from '@venizia/ignis-helpers/core';
 import type { Context, Env, ErrorHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 
@@ -18,6 +18,26 @@ const CODES = new Map<number, TGrpcResultCode>([
  * answers a REST request with, so one policy decides what a client may read.
  */
 export class GrpcErrors {
+  /** The error of a call a middleware answered: a 4xx answer keeps its status, so its code; any other is `internal`. */
+  static endedByMiddleware(opts: { status: number }) {
+    const isClientError =
+      opts.status >= HTTP.ResultCodes.RS_4.BadRequest &&
+      opts.status < HTTP.ResultCodes.RS_5.InternalServerError;
+
+    return getError({
+      statusCode: isClientError ? opts.status : HTTP.ResultCodes.RS_5.InternalServerError,
+      message: 'A middleware ended the call',
+    });
+  }
+
+  /** The error of a call a middleware neither passed on nor answered: `internal`. */
+  static notPassed() {
+    return getError({
+      statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+      message: 'A middleware did not call next()',
+    });
+  }
+
   /**
    * A client error (4xx) thrown as `getError`'s error or as Hono's `HTTPException` becomes a `ConnectError` of the
    * loaded ConnectRPC module, with its code and public message. Anything else, a `ConnectError` the application threw

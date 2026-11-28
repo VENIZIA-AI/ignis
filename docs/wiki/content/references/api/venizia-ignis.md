@@ -277,7 +277,7 @@ The declarations are on 3 pages; each export below links to its own.
 
 ## `PolicyConnectorResolver`
 
-*class* - [Declaration](/references/api/venizia-ignis--part-2#policyconnectorresolver)
+*class* - [Declaration](/references/api/venizia-ignis--part-3#policyconnectorresolver)
 
 ## `PolicyLineCodec`
 

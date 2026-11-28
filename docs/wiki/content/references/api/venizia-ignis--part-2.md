@@ -134,6 +134,11 @@ export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema 
     private static loadModule;
     /** Wraps IGNIS RPC registrations into ConnectRPC's (request, context) => response signature. */
     private buildConnectHandlers;
+    /**
+     * Runs the pre-built auth middlewares (`AbstractGrpcController.buildRpcMiddlewares`) in order. Each one must call
+     * `next()` to pass the call on; one that answers, or does neither, ends it.
+     */
+    private passMiddlewares;
     /** ConnectRPC drops a handler whose name the service does not declare, and the call then answers `unimplemented`: refused at boot instead. */
     private assertDeclaredRpcs;
     /** Loose signature on purpose - the IGNIS `ServiceType` is opaque (`unknown`) while ConnectRPC expects `DescService`. */
@@ -1252,21 +1257,3 @@ export declare class MembershipRoleManager extends BaseRoleManager implements Ro
 ```
 
 Source: `packages/core-server/src/components/auth/authorize/role-managers/membership.ts`
-
-## `PolicyConnectorResolver`
-
-*class*
-
-Connector-resolution logic shared by every adapter/loader reading the casbin policy store.
-
-```ts
-export declare class PolicyConnectorResolver {
-    /** Resolve the wired connector off a policy datasource, once the datasource is open (one that opens on first use opens here). */
-    static resolve(opts: {
-        source: ICasbinPolicySource;
-        caller: string;
-    }): Promise<TCasbinPolicyConnector>;
-}
-```
-
-Source: `packages/core-server/src/components/auth/authorize/adapters/connector.ts`
