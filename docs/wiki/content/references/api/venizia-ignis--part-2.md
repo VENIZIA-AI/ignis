@@ -111,6 +111,140 @@ export declare class EnvironmentKeys {
 
 Source: `packages/core-server/src/common/environments.ts`
 
+## `GrpcHeaderUtility`
+
+*class*
+
+The headers of a native gRPC call: from the node request to Hono, and from Hono into the answer.
+
+```ts
+export declare class GrpcHeaderUtility {
+    /** The headers of a node request, without the `:` pseudo headers of HTTP/2. */
+    static fromNode(opts: {
+        headers: IncomingHttpHeaders;
+    }): Headers;
+    /**
+     * The headers of an HTTP answer a trailers-only refusal keeps (a request id, `retry-after`): not the ones that
+     * describe its body or its HTTP/1.1 connection, which HTTP/2 refuses.
+     */
+    static toRefusal(opts: {
+        headers: Headers;
+    }): Record<string, string | string[]>;
+    /** Adds to an answer the headers it does not set itself. The content type is the protocol's own. */
+    static merge(opts: {
+        from: Headers;
+        into: Headers;
+    }): void;
+}
+```
+
+Source: `packages/core-server/src/base/controllers/grpc/native/header.utility.ts`
+
+## `GrpcListenerHelper`
+
+*class*
+
+The native gRPC port: a `node:http2` server that passes each call through the application with its headers only, and
+lets the RPC's route write the answer, trailers included, on the stream. Only RPC paths are served, with POST.
+
+```ts
+export declare class GrpcListenerHelper extends BaseHelper {
+    private readonly listener;
+    private server?;
+    private readonly sessions;
+    /** Every TCP connection, one that never finished its TLS handshake included: no session ever stands for it. */
+    private readonly sockets;
+    /** The shutdown in progress, which a second `stop()` waits for. */
+    private stopping?;
+    /** Called when the last session closed, while stopping. */
+    private onDrained?;
+    constructor(listener: IGrpcListenerOptions);
+    /** The address the listener is bound to; `undefined` until `start()`. */
+    getAddress(): {
+        host: string;
+        port: number;
+    } | undefined;
+    /** Binds the port. A port in use rejects. */
+    start(): Promise<void>;
+    /**
+     * Stops accepting, asks every connection to finish, waits `shutdownTimeout`, then aborts what still runs and
+     * destroys the connections. A second call waits for the same shutdown.
+     */
+    stop(): Promise<void>;
+    private shutDown;
+    /** Waits for `task`, at most `ms`; the caller reads whether it finished. */
+    private settle;
+    private onRequest;
+    private serve;
+    private assertOptions;
+}
+```
+
+Source: `packages/core-server/src/base/controllers/grpc/native/listener.helper.ts`
+
+## `GrpcNativeCallStore`
+
+*class*
+
+The env of `app.fetch` for a native gRPC request: it carries the node stream to the route, and answers
+`requestIP`, which `hono/bun`'s `getConnInfo` reads, so an IP rate limit or a log sees the caller's address.
+An instance is only made by the listener, so no request of the HTTP server can pass for one.
+
+```ts
+export declare class GrpcNativeCallStore {
+    readonly call: IGrpcNativeCall;
+    constructor(call: IGrpcNativeCall);
+    /** The native call of a request, or `undefined` for a request of the HTTP server. */
+    static read(opts: {
+        env: unknown;
+    }): IGrpcNativeCall | undefined;
+    requestIP(): {
+        address: string;
+        family: string | undefined;
+        port: number | undefined;
+    } | null;
+}
+```
+
+Source: `packages/core-server/src/base/controllers/grpc/native/call.store.ts`
+
+## `GrpcNativeWriter`
+
+*class*
+
+Writes the answer of a native gRPC call on its node stream.
+
+```ts
+export declare class GrpcNativeWriter {
+    /** Hands the call to ConnectRPC's handler, which reads the node request and writes the answer and its trailers. */
+    static answer(opts: IGrpcNativeAnswer): Promise<void>;
+    /**
+     * Refuses a call before ConnectRPC saw it: one HEADERS frame that also ends the stream ("trailers-only"). A gRPC
+     * error travels on HTTP 200. `headers` are the ones a middleware set on its answer.
+     */
+    static refuse(opts: {
+        response: Http2ServerResponse;
+        status: number;
+        message: string;
+        headers?: Headers;
+    }): void;
+    /**
+     * The percent-encoded `grpc-message`, as many whole characters as fit: a cut inside an escape or a surrogate pair
+     * leaves a value no client can decode. Half a surrogate pair reads as the replacement character.
+     */
+    private static encodeMessage;
+    /** Refuses with the answer a middleware gave: its status, and the `message` the error handler wrote. */
+    static refuseFrom(opts: {
+        response: Http2ServerResponse;
+        answer: Response;
+    }): Promise<void>;
+    /** The `message` of a JSON error body, under the error root key too. */
+    private static readMessage;
+}
+```
+
+Source: `packages/core-server/src/base/controllers/grpc/native/native.writer.ts`
+
 ## `GrpcRequestAdapter`
 
 *class*
@@ -161,11 +295,14 @@ export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema 
     private decoratorOf;
     /** Registers every RPC of the controller on the ConnectRPC router, each wrapped into ConnectRPC's `(request, context) => response`. */
     private registerService;
+    /** The signal of the native handlers: it aborts with the listener's, carrying what the client should read. */
+    private toShutdownSignal;
     /** The request ConnectRPC reads. A body an earlier middleware consumed is in Hono's cache: the request is rebuilt with it. */
     private readRequest;
     /**
      * One request of one RPC: handed to ConnectRPC's handler, answered through `context.newResponse` so the headers
-     * earlier middleware set are kept. A failure outside ConnectRPC reaches the application's error handler.
+     * earlier middleware set are kept. A call of the native gRPC port is written on its node stream instead. A failure
+     * outside ConnectRPC reaches the application's error handler.
      */
     private serve;
     /** Validates peer deps and builds the controller's router: one route per RPC of its service. */
@@ -178,12 +315,34 @@ interface IAdapterOptions<RouteEnv extends Env, RouteSchema extends Schema, Base
     interceptors?: unknown[];
     module?: IConnectRpcModule;
     limits?: IGrpcLimits;
+    /** Set when the native gRPC port is on: handlers of the gRPC protocol are built too. */
+    native?: IGrpcNativeAdapterOptions;
     /** The server's `idleTimeout` in seconds, given back to a connection when a call ends. */
     idleTimeout?: number;
 }
 ```
 
 Source: `packages/core-server/src/base/controllers/grpc/adapter.ts`
+
+## `GrpcStatusUtility`
+
+*class*
+
+The gRPC codes of the HTTP statuses a native call can be refused with.
+
+```ts
+export declare class GrpcStatusUtility {
+    /**
+     * The gRPC code of an HTTP answer a call got before it reached ConnectRPC: the table of the gRPC specification, which
+     * a client of the HTTP port applies too.
+     */
+    static fromHttp(opts: {
+        status: number;
+    }): TGrpcResultCode;
+}
+```
+
+Source: `packages/core-server/src/base/controllers/grpc/native/status.utility.ts`
 
 ## `GrpcTimeoutGuard`
 
@@ -196,8 +355,9 @@ export declare class GrpcTimeoutGuard {
     /** `Bun.serve`'s own default `idleTimeout`, in seconds. */
     static readonly DEFAULT_IDLE_TIMEOUT_SECONDS = 10;
     /**
-     * Lifts the idle timeout of this request, so a call may stay quiet for as long as its handler needs. A request with no
-     * Bun server behind it (`router.request` in a test) has no timeout to lift. Call `restore` when the call ends.
+     * Lifts the idle timeout of this request, so a call may stay quiet for as long as its handler needs: the stream's on
+     * the native gRPC port, the request's on the HTTP server. A request with no server behind it (`router.request` in a
+     * test) has no timeout to lift. Call `restore` when the call ends.
      */
     static lift<RouteEnv extends Env>(opts: {
         context: Context<RouteEnv>;
@@ -570,6 +730,22 @@ export interface IConnectAdapterResult<RouteEnv extends Env = Env> {
 
 Source: `packages/core-server/src/base/controllers/grpc/common/types.ts`
 
+## `IConnectNodeModule`
+
+*interface*
+
+The two functions of `@connectrpc/connect-node` the native port needs. Declared here, as methods, so an application
+without that optional peer still type-checks and the real module can be passed in.
+
+```ts
+export interface IConnectNodeModule {
+    universalRequestFromNodeRequest(request: Http2ServerRequest, response: Http2ServerResponse, parsedJsonBody: undefined, contextValues: ContextValues): UniversalServerRequest;
+    universalResponseToNodeResponse(universalResponse: UniversalServerResponse, response: Http2ServerResponse): Promise<void>;
+}
+```
+
+Source: `packages/core-server/src/base/controllers/grpc/native/common/types.ts`
+
 ## `IGetProviderParams`
 
 *interface*
@@ -654,6 +830,77 @@ export interface IGrpcDefineRouteOptions {
 ```
 
 Source: `packages/core-server/src/base/controllers/grpc/common/types.ts`
+
+## `IGrpcListenerOptions`
+
+*interface*
+
+What a native gRPC listener is built from.
+
+```ts
+export interface IGrpcListenerOptions {
+    options: IGrpcNativeOptions;
+    /** `/package.Service/Method` to the path the RPC is mounted at in the application. */
+    routes: Map<string, string>;
+    /** The `fetch` the HTTP server runs, so global middleware sees every call. */
+    fetch: (request: Request, env: object) => ValueOrPromise<Response>;
+    /** The idle timeout of a stream, the one of the HTTP server; `0` is none. */
+    idleTimeoutMs: number;
+    /** Aborted when `stop()` runs out of time: every handler's `rpc.signal` follows it. */
+    shutdown: AbortController;
+}
+```
+
+Source: `packages/core-server/src/base/controllers/grpc/native/listener.helper.ts`
+
+## `IGrpcNativeAdapterOptions`
+
+*interface*
+
+What the adapter needs to answer calls of the native gRPC port too.
+
+```ts
+export interface IGrpcNativeAdapterOptions {
+    /** Aborted when the port stops: every handler's `rpc.signal` follows it. */
+    shutdownSignal: AbortSignal;
+}
+```
+
+Source: `packages/core-server/src/base/controllers/grpc/common/types.ts`
+
+## `IGrpcNativeAnswer`
+
+*interface*
+
+What the native writer answers a call with.
+
+```ts
+export interface IGrpcNativeAnswer {
+    call: IGrpcNativeCall;
+    handler: UniversalHandler;
+    contextValues: ContextValues;
+    /** The headers earlier middleware set, merged into the answer. */
+    headers: Headers;
+    node: IConnectNodeModule;
+}
+```
+
+Source: `packages/core-server/src/base/controllers/grpc/native/common/types.ts`
+
+## `IGrpcNativeCall`
+
+*interface*
+
+One native gRPC request, as `node:http2` gives it.
+
+```ts
+export interface IGrpcNativeCall {
+    request: Http2ServerRequest;
+    response: Http2ServerResponse;
+}
+```
+
+Source: `packages/core-server/src/base/controllers/grpc/native/common/types.ts`
 
 ## `IHealthCheckOptions`
 
@@ -1047,187 +1294,3 @@ export declare class JWKSController extends BaseRestController {
 ```
 
 Source: `packages/core-server/src/components/auth/authenticate/controllers/jwks/controller.ts`
-
-## `JWKSIssuerAuthenticationStrategy`
-
-*class*
-
-JWT authentication strategy that verifies the bearer token with `JWKSIssuerTokenService`, for an application that issues its own tokens.
-
-```ts
-export declare class JWKSIssuerAuthenticationStrategy<E extends Env = Env> extends BaseHelper implements IAuthenticationStrategy<E> {
-    private service;
-    name: string;
-    standard: string;
-    constructor(service: JWKSIssuerTokenService<E>);
-    authenticate(context: TContext<E, string>): Promise<IAuthUser>;
-}
-```
-
-Source: `packages/core-server/src/components/auth/authenticate/strategies/jwks/issuer.ts`
-
-## `JWKSIssuerTokenService`
-
-*class*
-
-Signs tokens with a private key loaded from `IJWKSIssuerOptions` and exposes the matching public keys as a JWKS via `getJWKSAsync()`.
-
-```ts
-export declare class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTokenService<E> {
-    protected options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWKS_ISSUER_OPTIONS>;
-    protected privateKey: TNullable<CryptoKey | Uint8Array>;
-    protected publicKey: TNullable<CryptoKey | Uint8Array>;
-    protected jwks: {
-        keys: JWK[];
-    } | null;
-    constructor(options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWKS_ISSUER_OPTIONS>);
-    protected initialize(): Promise<void>;
-    protected resolveKeyContent(opts: {
-        keys: IJWKSIssuerOptions['keys'];
-    }): Promise<{
-        priv: string;
-        pub: string;
-    }>;
-    /**
-     * Refuses a JWK carrying private material where a PUBLIC key is expected.
-     *
-     * The `pem` format cannot reach this state - `importSPKI` rejects a private PEM outright. The
-     * `jwk` format can: `importJWK` imports whatever it is handed, and a private JWK marked
-     * `"ext": true` yields an EXTRACTABLE key, so `exportJWK` then carries `d` straight into the
-     * document `/certs` serves without authentication. Measured on jose 6.2.3: with `ext: true` the
-     * round trip returns `d`; without it, export throws. So the only thing standing between a
-     * mis-pasted key and a published signing key was an optional flag on attacker-irrelevant input.
-     *
-     * Named members, not a blanket scan: `d` covers EC/OKP and RSA's private exponent, and the CRT
-     * members are the rest of an RSA private key.
-     */
-    protected assertPublicJWK(opts: {
-        jwk: JWK;
-    }): void;
-    protected parseKeyMaterial(opts: {
-        raw: {
-            priv: string;
-            pub: string;
-        };
-        algorithm: IJWKSIssuerOptions['algorithm'];
-        keys: IJWKSIssuerOptions['keys'];
-    }): Promise<{
-        priv: import("node:crypto").webcrypto.CryptoKey | Uint8Array<ArrayBufferLike>;
-        pub: import("node:crypto").webcrypto.CryptoKey | Uint8Array<ArrayBufferLike>;
-    }>;
-    private parseJWK;
-    protected doVerify(token: string): Promise<IJWTTokenPayload>;
-    getSigner(opts: {
-        payload: IJWTTokenPayload;
-        getTokenExpiresFn: TGetTokenExpiresFn;
-        claims?: IJWTIssueClaims;
-    }): Promise<import("jose").SignJWT>;
-    protected getSigningKey(): ValueOrPromise<Uint8Array | CryptoKey>;
-    protected getDefaultTokenExpiresFn(): TGetTokenExpiresFn;
-    getJWKS(): {
-        keys: JWK[];
-    };
-    getJWKSAsync(): Promise<{
-        keys: JWK[];
-    }>;
-}
-```
-
-Source: `packages/core-server/src/components/auth/authenticate/services/bearer/jwks/issuer.service.ts`
-
-## `JWKSUrlPolicy`
-
-*class*
-
-Where a JWKS may be fetched from. A key set read over plain `http:` can be replaced on the way, and
-whoever replaces it signs tokens that verify, so a JWKS URL is `https:` unless its host is loopback or
-its origin is listed in `jwks.trusted`. The one policy serves the JWKS verifier and the service-assertion
-callers: both fetch a key set to decide who may call.
-
-The opt-in is an EXACT origin, never a pattern or a range, in the form the URL parser writes it
-(`http://identity-service`, `http://10.0.0.5:8080`, `http://[fd00::1]:8443`). The shape check is the url guard's own
-(`UrlPolicy.resolveTrustedOrigins`), so a JWKS entry and a `policy.hosts.trusted` entry follow one rule.
-
-```ts
-export declare class JWKSUrlPolicy {
-    /** Refuses a `jwks.trusted` list that is not exactly a list of origins, and answers the origins as a set. */
-    static resolveTrustedOrigins(opts: {
-        scope: string;
-        trusted?: unknown;
-    }): ReadonlySet<string>;
-    /** Whether the URL parser's hostname is a loopback one: `localhost`, `127.0.0.0/8` or `::1`. */
-    static isLoopback(hostname: string): boolean;
-    /**
-     * Parses a JWKS URL and refuses it unless it is `https:`, or `http:` to a loopback host or an origin listed in
-     * `jwks.trusted`. Only the host name goes into the message: a URL may carry credentials.
-     */
-    static assertUrl(opts: {
-        scope: string;
-        label: string;
-        url: string;
-        trusted?: unknown;
-    }): URL;
-}
-```
-
-Source: `packages/core-server/src/components/auth/authenticate/services/jwks-url-policy.ts`
-
-## `JWKSVerifierAuthenticationStrategy`
-
-*class*
-
-JWT authentication strategy that verifies the bearer token with `JWKSVerifierTokenService`, for an application that trusts a remote JWKS.
-
-```ts
-export declare class JWKSVerifierAuthenticationStrategy<E extends Env = Env> extends BaseHelper implements IAuthenticationStrategy<E> {
-    private service;
-    name: string;
-    standard: string;
-    constructor(service: JWKSVerifierTokenService<E>);
-    authenticate(context: TContext<E, string>): Promise<IAuthUser>;
-}
-```
-
-Source: `packages/core-server/src/components/auth/authenticate/strategies/jwks/verifier.ts`
-
-## `JWKSVerifierTokenService`
-
-*class*
-
-Verifies tokens against a remote JWKS fetched from `jwksUrl`. The key set is cached for `cacheTtlMs` (default 43_200_000 ms) with a `cooldownMs` refetch cooldown (default 30_000 ms).
-
-```ts
-export declare class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKSTokenService<E> {
-    protected options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWKS_VERIFIER_OPTIONS>;
-    protected jwksVerifier: ReturnType<typeof createRemoteJWKSet> | null;
-    constructor(options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWKS_VERIFIER_OPTIONS>);
-    protected initialize(): Promise<void>;
-    protected doVerify(token: string): Promise<IJWTTokenPayload>;
-    getSigner(_opts: {
-        payload: IJWTTokenPayload;
-        getTokenExpiresFn: TGetTokenExpiresFn;
-    }): Promise<SignJWT>;
-    protected getSigningKey(): never;
-    protected getDefaultTokenExpiresFn(): never;
-}
-```
-
-Source: `packages/core-server/src/components/auth/authenticate/services/bearer/jwks/verifier.service.ts`
-
-## `JWSAuthenticationStrategy`
-
-*class*
-
-JWT authentication strategy that verifies the bearer token with `JWSTokenService` (JWS, HS256 by default).
-
-```ts
-export declare class JWSAuthenticationStrategy<E extends Env = Env> extends BaseHelper implements IAuthenticationStrategy<E> {
-    private service;
-    name: string;
-    standard: string;
-    constructor(service: JWSTokenService<E>);
-    authenticate(context: TContext<E, string>): Promise<IAuthUser>;
-}
-```
-
-Source: `packages/core-server/src/components/auth/authenticate/strategies/jws.strategy.ts`

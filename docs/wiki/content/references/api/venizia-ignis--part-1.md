@@ -144,6 +144,10 @@ export declare abstract class AbstractGrpcController<RouteEnv extends Env = Env,
     interceptors?: unknown[];
     /** Size limits, assigned by GrpcComponent from its options before configure(). */
     limits?: IGrpcLimits;
+    /** Assigned by GrpcComponent when the native gRPC port is on, before configure(). */
+    native?: IGrpcNativeAdapterOptions;
+    /** The `/package.Service/Method` paths this controller serves; empty until configure(). */
+    rpcPaths: string[];
     /** The server's `idleTimeout` in seconds, assigned by GrpcComponent before configure(). */
     idleTimeout?: number;
     router: Hono<RouteEnv, RouteSchema, BasePath>;

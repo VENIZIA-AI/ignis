@@ -1,3 +1,4 @@
+import { GrpcTimeoutGuard } from '@/base/controllers/grpc/timeout.guard';
 import type { BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@venizia/ignis-kernel';
 import { ControllerTransports } from '@venizia/ignis-kernel';
@@ -6,7 +7,9 @@ import { BindingNamespaces } from '@venizia/ignis-kernel';
 import { Binding, BindingValueTypes, MetadataRegistry } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP, ObjectUtility } from '@venizia/ignis-helpers/common';
-import type { IGrpcComponentConfig } from './common/types';
+import type { IGrpcComponentConfig, IGrpcNativeOptions } from './common/types';
+import { GrpcListenerHelper } from '@/base/controllers/grpc/native/listener.helper';
+import { ToggleUtility } from '@venizia/ignis-kernel';
 import { GrpcBindingKeys } from './common/types';
 
 const DEFAULT_OPTIONS: IGrpcComponentConfig = {};
@@ -33,6 +36,11 @@ export class GrpcComponent extends BaseComponent {
       key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS,
       isOptional: true,
     });
+
+    const native = ToggleUtility.pick(options?.native);
+    const shutdown = new AbortController();
+    /** `/package.Service/Method` to where the application mounts it: what the native port serves. */
+    const routes = new Map<string, string>();
 
     // Batch drained before re-scanning - see `RestApplication.registerDynamicBindings` for why.
     const configured = new Set<string>();
@@ -90,11 +98,20 @@ export class GrpcComponent extends BaseComponent {
         instance.connectRpcModule = options?.module;
         instance.interceptors = options?.interceptors;
         instance.limits = options?.limits;
+        instance.native = native && { shutdownSignal: shutdown.signal };
         instance.idleTimeout = this.application.getProjectConfigs().server?.idleTimeout;
         await instance.configure();
 
         router.route(metadata.path, instance.getRouter());
         configured.add(binding.key);
+
+        if (native) {
+          this.collectRoutes({
+            routes,
+            controllerPath: metadata.path,
+            rpcPaths: instance.rpcPaths,
+          });
+        }
 
         logger.info('Configured gRPC controller | key: %s | path: %s', binding.key, metadata.path);
       }
@@ -105,5 +122,60 @@ export class GrpcComponent extends BaseComponent {
         exclude: configured,
       });
     }
+
+    if (native) {
+      this.registerNativeListener({ native, routes, shutdown });
+    }
+  }
+
+  /** gRPC clients call `/package.Service/Method` with no prefix, so each such path has one owner. */
+  private collectRoutes(opts: {
+    routes: Map<string, string>;
+    controllerPath: string;
+    rpcPaths: string[];
+  }) {
+    const { routes, controllerPath, rpcPaths } = opts;
+    const basePath = this.application.getProjectConfigs().path.base;
+
+    for (const rpcPath of rpcPaths) {
+      const mounted = `/${basePath}/${controllerPath}${rpcPath}`.replace(/\/+/g, '/');
+      const owner = routes.get(rpcPath);
+
+      if (owner) {
+        throw getError({
+          message: `[GrpcComponent] The native gRPC port serves ${rpcPath} once: two controllers declare it (${owner}, ${mounted})`,
+        });
+      }
+
+      routes.set(rpcPath, mounted);
+    }
+  }
+
+  /** The port starts after the HTTP server and stops before it, and before the datasources close. */
+  private registerNativeListener(opts: {
+    native: IGrpcNativeOptions;
+    routes: Map<string, string>;
+    shutdown: AbortController;
+  }) {
+    const { native, routes, shutdown } = opts;
+    const idleTimeout = this.application.getProjectConfigs().server?.idleTimeout;
+    const listener = new GrpcListenerHelper({
+      options: native,
+      routes,
+      shutdown,
+      idleTimeoutMs: (idleTimeout ?? GrpcTimeoutGuard.DEFAULT_IDLE_TIMEOUT_SECONDS) * 1_000,
+      fetch: (request, env) => this.application.getServer().fetch(request, env),
+    });
+
+    this.application.bind({ key: GrpcBindingKeys.GRPC_NATIVE_LISTENER }).toValue(listener);
+    this.application.registerPostStartHook({
+      identifier: 'grpc.native.start',
+      hook: () => listener.start(),
+    });
+    // Post-stop hooks run before the server and the datasources close.
+    this.application.registerPostStopHook({
+      identifier: 'grpc.native.stop',
+      hook: () => listener.stop(),
+    });
   }
 }

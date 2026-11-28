@@ -20,6 +20,7 @@ import type {
   IGrpcControllerOptions,
   IGrpcDefineRouteOptions,
   IGrpcLimits,
+  IGrpcNativeAdapterOptions,
   IRpcRegistration,
   TRpcHandler,
   TRpcMiddleware,
@@ -49,6 +50,10 @@ export abstract class AbstractGrpcController<
   interceptors?: unknown[];
   /** Size limits, assigned by GrpcComponent from its options before configure(). */
   limits?: IGrpcLimits;
+  /** Assigned by GrpcComponent when the native gRPC port is on, before configure(). */
+  native?: IGrpcNativeAdapterOptions;
+  /** The `/package.Service/Method` paths this controller serves; empty until configure(). */
+  rpcPaths: string[] = [];
   /** The server's `idleTimeout` in seconds, assigned by GrpcComponent before configure(). */
   idleTimeout?: number;
   router: Hono<RouteEnv, RouteSchema, BasePath>;
@@ -186,8 +191,10 @@ export abstract class AbstractGrpcController<
       module: this.connectRpcModule,
       interceptors: this.interceptors,
       limits: this.limits,
+      native: this.native,
       idleTimeout: this.idleTimeout,
     });
+    this.rpcPaths = adapter.paths;
     this.router.route('/', adapter.router);
 
     if (adapter.paths.length > 0) {

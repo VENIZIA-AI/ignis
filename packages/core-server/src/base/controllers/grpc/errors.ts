@@ -18,6 +18,20 @@ const CODES = new Map<number, TGrpcResultCode>([
  * answers a REST request with, so one policy decides what a client may read.
  */
 export class GrpcErrors {
+  /** The reason `rpc.signal` gets when the native port stops: a client reads `unavailable`, and may try again. */
+  static shuttingDown(opts: { connect: object }): unknown {
+    const ConnectError: unknown = Reflect.get(opts.connect, 'ConnectError');
+
+    if (typeof ConnectError !== 'function') {
+      return undefined;
+    }
+
+    return Reflect.construct(ConnectError, [
+      'The server is shutting down',
+      GRPC.ResultCodes.UNAVAILABLE,
+    ]);
+  }
+
   /** The error of a call a middleware answered: a 4xx answer keeps its status, so its code; any other is `internal`. */
   static endedByMiddleware(opts: { status: number }) {
     const isClientError =

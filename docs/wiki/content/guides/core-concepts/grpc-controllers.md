@@ -1,6 +1,6 @@
 # gRPC Controllers
 
-IGNIS serves Protobuf services with [ConnectRPC](https://connectrpc.com/): clients use the Connect or gRPC-Web protocol on the application port. A native gRPC request answers `415`. gRPC controllers use Protobuf service definitions for strongly-typed RPC methods, and are served over the same Hono HTTP server as REST controllers.
+IGNIS serves Protobuf services with [ConnectRPC](https://connectrpc.com/): clients use the Connect or gRPC-Web protocol on the application port. A native gRPC request to that port answers `415`; the [native gRPC port](#native-grpc-port) serves those clients. gRPC controllers use Protobuf service definitions for strongly-typed RPC methods, and are served over the same Hono HTTP server as REST controllers.
 
 > **Deep Dive:** See [gRPC Controllers Reference](../../references/base/grpc-controllers.md) for the complete API.
 
@@ -201,6 +201,49 @@ The middlewares run before the handler. When the client leaves, `rpc.signal` abo
 When the call ends, the connection gets `server.idleTimeout` back. A call counts as passed when its middlewares let it on, an `authenticate` skipped with `Authentication.SKIP_AUTHENTICATION` included. A call whose idle timeout is lifted ends with the client's deadline, the client leaving, or the handler. Send a deadline from the client, and pass `rpc.signal` to slow work.
 
 The whole request of a client stream is held to `server.maxRequestBodySize` (128 MiB by default).
+
+The connection gets its idle timeout back as the call ends. A client that stops reading a large unary answer for longer than that may lose its tail: `Bun.serve` closes the quiet connection, as for a REST answer.
+
+## Native gRPC port
+
+`Bun.serve` sends no response trailers, so clients of the gRPC protocol (grpc-go, grpc-java, `grpcurl`) get their own port: a `node:http2` listener that runs the same controllers. It is off unless you turn it on.
+
+```bash
+bun add @connectrpc/connect-node
+```
+
+```typescript
+this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({
+  native: {
+    use: true,
+    port: 50051,
+    host: '127.0.0.1',                 // default
+    tls: { use: true, key, cert },     // default { use: false }: clear text (h2c)
+    shutdownTimeout: 10_000,           // default
+    limits: { concurrentStreams: 100 }, // per connection, default 100
+  },
+});
+```
+
+| Topic | Rule |
+|---|---|
+| Paths | clients call `/package.Service/Method`, with no base or controller path; two controllers of one service stop the boot |
+| What it serves | RPC paths, with POST; a REST route is not reachable there |
+| Calls | all four kinds, bidi included |
+| Global middleware | runs with the headers only: it reads no body, and cannot change an answer after `next()` |
+| A middleware that answers | the client gets the matching gRPC status with the answer's `message` (at most 1,024 bytes once percent-encoded, cut between whole characters) and its headers, such as `retry-after` (429, 502, 503 and 504 read `unavailable`) |
+| Errors of auth and handlers | the same codes as on the HTTP port |
+| Idle streams | closed after `server.idleTimeout` until the call passes `authenticate` or `authorize` |
+| Size | `limits.messageSize` per message; a stream has no total limit here, and connections are not capped |
+| TLS | HTTP/2 only. Without TLS the port expects a mesh or a TLS-terminating proxy; keep `host` on loopback otherwise |
+| Start and stop | after the HTTP server; `stop()` waits `shutdownTimeout`, then aborts `rpc.signal` (the client reads `unavailable`) and closes the connections |
+| Client address | `getConnInfo` from `hono/bun` answers it |
+
+The listener is bound at `GrpcBindingKeys.GRPC_NATIVE_LISTENER`; with `port: 0` its `getAddress()` answers the port taken. The server has no reflection or health service: give `grpcurl` the `.proto`.
+
+Bun's `node:http2` is younger than Node's; see [oven-sh/bun#39796](https://github.com/oven-sh/bun/issues/39796) before you put heavy load on this port.
+
+A compiled binary passes `@connectrpc/connect-node` as `module.node`, or registers it with `ModuleUtility.register`.
 
 ## Transport Configuration
 

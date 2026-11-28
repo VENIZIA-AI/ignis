@@ -90,7 +90,10 @@ Routes can be defined three ways in the same controller: decorator (`@get`, `@po
 (`packages/kernel/src/base/controllers/factory/`) generates a full CRUD controller from an entity and
 repository. gRPC controllers (ConnectRPC) are the one controller tier left in core
 (`src/base/controllers/grpc/`) and register through the same `@controller` decorator with
-`transport: 'grpc'`. See [Controller system](/architecture/controller-system.md).
+`transport: 'grpc'`. The application port serves Connect and gRPC-Web. Native gRPC is an optional `node:http2`
+listener (`GrpcComponent` options `native: { use: true, port }`, peer `@connectrpc/connect-node`): it passes each call
+through the application's `fetch` with a `GrpcNativeCallStore` as env, and the RPC route writes the answer on the node
+stream. See [Controller system](/architecture/controller-system.md).
 
 ## Repository hierarchy
 
