@@ -181,13 +181,13 @@ export const findIncludingDeleted = (opts: { repository: ProductRepository }) =>
 
 ### resolve
 
-`resolve()` runs on every query and returns the scope for the current caller. It reads the current request from the [execution frame](/references/utilities/promise#frames) that a `BaseApplication` opens for every request. Its one argument, `{ operation }`, says what the call does: `ScopeOperations.READ`, `CREATE`, `UPDATE` or `DELETE`. A resolver that ignores the operation takes no parameter. It returns one of three outcomes:
+`resolve()` runs on every query and returns the scope for the current caller. It reads the current request from the [execution frame](/references/utilities/promise#frames) that a `BaseApplication` opens for every request. Its argument is `{ operation, scope }`: `operation` says what the call does (`ScopeOperations.READ`, `CREATE`, `UPDATE` or `DELETE`), and `scope` is the current execution frame, or `undefined` outside every frame. A resolver that needs neither takes no parameter. A [system frame](#work-with-no-user) never calls it. It returns one of three outcomes:
 
 | `resolve()` returns | The query |
 |---|---|
 | A scope `where`, such as `{ merchantId: 'm-1' }` | Runs with that `where` ANDed in |
 | `ScopeFilters.UNRESTRICTED` | Runs with no scope, for this call only |
-| `null` or `undefined` | Follows `onMissing`: by default it matches zero rows |
+| `null` or `undefined` | Follows `onMissing`: by default a read matches zero rows and a write is refused with `403` |
 | Anything else that is not a usable `where` | The same as `null`: the scope was not resolved |
 
 Not usable means `false`, `0`, `''`, a list, `{}`, an object with an `undefined` value (`{ merchantId: user.merchantId }` for a user without one), or an empty `and`. An empty `or` matches nothing.
@@ -273,7 +273,7 @@ export const currentCourseIds = (): string[] => {
 };
 ```
 
-`resolve: () => ({ courseId: { in: currentCourseIds() } })` then stays a plain read (this one ignores `operation`: it answers for reads, so return the narrow scope for writes, [see below](#read-wider-than-you-write)). A background job has no request and no context: give it a system scope, as [`onMissing`](#onmissing) shows with `runAsSystem`.
+`resolve: () => ({ courseId: { in: currentCourseIds() } })` then stays a plain read (this one ignores `operation`: it answers for reads, so return the narrow scope for writes, [see below](#read-wider-than-you-write)). A background job has no request: open a frame for it, as [Work with no user](#work-with-no-user) shows.
 
 ### Read wider than you write
 
@@ -337,37 +337,39 @@ Returning the `or` for a write operation is still refused, with the same "cannot
 
 | `onMissing` | A query with no scope |
 |---|---|
-| `'deny'` (default) | Matches zero rows. "I do not know who is asking" reads as "nothing" |
+| `'deny'` (default) | A read matches zero rows; a create, update, delete or restore throws `403`. "I do not know who is asking" reads as "nothing" |
 | `'allow'` | Runs unscoped |
 
 The two values are also `ScopeFilterMissingBehaviors.DENY` and `ScopeFilterMissingBehaviors.ALLOW`, exported by `@venizia/ignis`.
 
-Keep `'deny'`. `'allow'` is declared once for the whole model, so it also unscopes every ordinary caller whose `resolve()` happens to return nothing. A background job has no request, so its `resolve()` finds no merchant. Give the job an explicit system scope instead of loosening the model:
+Keep `'deny'`. `'allow'` is declared once for the whole model, so it also unscopes every ordinary caller whose `resolve()` happens to return nothing. A job that does its work for one merchant, or for none, says so with a frame instead.
+
+### Work with no user
+
+A job, a tick or a script has no request. Open an [execution frame](/references/utilities/promise#frames) that says who it works for:
 
 ```typescript
 // src/models/product.model.ts
-import { AsyncLocalStorage } from 'node:async_hooks';
-import { model, ScopeFilters } from '@venizia/ignis';
+import { model } from '@venizia/ignis';
 import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { currentMerchantId } from '@/utilities/merchant';
 import { productTable } from './product.table';
 
-const systemScope = new AsyncLocalStorage<true>();
-
-/** Runs `task` with no row scope. Call it from jobs and code that is reviewed to work across merchants. */
-export const runAsSystem = <T>(task: () => Promise<T>): Promise<T> => {
-  return systemScope.run(true, task);
-};
+declare module '@venizia/ignis' {
+  interface IExecutionValues {
+    merchantId?: string;
+  }
+}
 
 @model({
   settings: {
     access: {
-      resolve: () => {
-        if (systemScope.getStore()) {
-          return ScopeFilters.UNRESTRICTED;
-        }
+      resolve: ({ scope }) => {
+        // The request's user first: values of a frame may narrow what a user sees, never replace it.
+        const own = currentMerchantId();
+        const named = scope?.values.merchantId;
+        const merchantId = own ? (named && named !== own ? undefined : own) : named;
 
-        const merchantId = currentMerchantId();
         return merchantId ? { merchantId } : null;
       },
     },
@@ -375,6 +377,24 @@ export const runAsSystem = <T>(task: () => Promise<T>): Promise<T> => {
 })
 export class Product extends ModelFactory.defineEntity({ table: productTable }) {}
 ```
+
+```typescript
+// a job for one merchant: resolve() reads the values
+await Execution.run({
+  mode: ExecutionModes.SCOPED,
+  values: { merchantId: job.data.merchantId },
+  task: () => this.productService.reprice(),
+});
+
+// work across merchants: no row scope, resolve() is not called, and the run is logged with its reason
+await Execution.run({
+  mode: ExecutionModes.SYSTEM,
+  reason: 'nightly catalog rebuild',
+  task: () => this.productService.rebuild(),
+});
+```
+
+`values` and `userId` are claims of your code: never copy them from a request without checking them.
 
 ### write.mode
 
@@ -393,7 +413,7 @@ The scope is `{ merchantId: 'm-1' }` for every row of this table:
 | `updateById(id, { merchantId: 'm-2' })`, moving a row | Refused | Refused |
 | `updateById(id, { name: 'Lamp' })`, not naming the column | Written | Written |
 | `createAll([own, own, other])`, one bad row | Refused, nothing written | Refused, nothing written |
-| Any of the above under `ScopeFilters.UNRESTRICTED` (an admin, a system job) | Written as given | Written as given, nothing stamped |
+| Any of the above under `ScopeFilters.UNRESTRICTED` or a system frame | Written as given | Written as given, nothing stamped |
 
 The guard reads the allowed values from the resolved `where`: an equality, `eq`, `inq` or `in`, an array, `and` of those, and an `or` whose branches all constrain the same column. Any other shape (an `or` over two columns, a range, `like`) cannot be checked, so the write is refused with a message that says so. It is never skipped. To read two columns and write one, [return the narrow scope for a write operation](#read-wider-than-you-write).
 
@@ -415,7 +435,7 @@ import { productTable } from './product.table';
 export class Product extends ModelFactory.defineEntity({ table: productTable }) {}
 ```
 
-To write across merchants on purpose (an import job, an admin back office), return `ScopeFilters.UNRESTRICTED` from `resolve()` for that caller. There is no other switch: the decision lives in the resolver, in your code.
+To write across merchants on purpose, return `ScopeFilters.UNRESTRICTED` from `resolve()` for a caller (an admin back office), or open a system frame around the work (an import job).
 
 ### sharedRows
 
@@ -753,12 +773,12 @@ This is a check in your code, not a scope: nothing stops another code path from 
 
 A refused write is an `ApplicationError` with HTTP status `403` and the code `core.repository.scope_write_denied`, held by `RepositoryErrorCodes.SCOPE_WRITE_DENIED` for code that matches on it. The message names the entity and the column, never a value, because the caller may be a request.
 
-| Message (after the leading `[create]` or `[update]`) | Cause |
+| Message (after the leading `[create]`, `[update]` or `[delete]`; a restore reports `[update]`) | Cause |
 |---|---|
 | `write refused by the access scope \| entity: Product \| column: merchantId \| the value is outside the resolved scope` | A row names another merchant, or `null` without `sharedRows` |
 | `... \| column: merchantId \| the scope column is missing` | A created row has no scope column and the mode is `reject` |
 | `... \| the resolved scope cannot be verified on a write \| column 'merchantId': ...` | The scope is an `or` over several columns, a range or another shape the guard cannot read |
-| `... \| no scope could be resolved for this caller` | `resolve()` returned `null` and `onMissing` is `'deny'`, on a create |
+| `... \| no scope could be resolved for this caller` | `resolve()` returned `null` and `onMissing` is `'deny'`, on a create, update, delete or restore. An `updateBy` or `deleteBy` with an empty `where` and no `force` answers this `403` before the `400` for the missing `force` |
 
 The tail of the "cannot be verified" message names the column and the operator, for example `column 'merchantId': the operator 'gt' cannot be checked on a write`.
 
@@ -845,17 +865,10 @@ The full `Product`, and `TaxType` for the shared rows:
 
 ```typescript
 // src/models/product.model.ts
-import { AsyncLocalStorage } from 'node:async_hooks';
-import { model, ScopeFilters } from '@venizia/ignis';
+import { model } from '@venizia/ignis';
 import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { currentMerchantId } from '@/utilities/merchant';
 import { productTable } from './product.table';
-
-const systemScope = new AsyncLocalStorage<true>();
-
-export const runAsSystem = <T>(task: () => Promise<T>): Promise<T> => {
-  return systemScope.run(true, task);
-};
 
 @model({
   settings: {
@@ -866,10 +879,6 @@ export const runAsSystem = <T>(task: () => Promise<T>): Promise<T> => {
     },
     access: {
       resolve: () => {
-        if (systemScope.getStore()) {
-          return ScopeFilters.UNRESTRICTED;
-        }
-
         const merchantId = currentMerchantId();
         return merchantId ? { merchantId } : null;
       },
@@ -891,7 +900,8 @@ export class Product extends ModelFactory.defineEntity({ table: productTable }) 
 | Hide soft-deleted rows from ordinary queries | `query.filter` |
 | Make a rule hold for every caller | `access` (not `query.filter`) |
 | Show each merchant only its own rows | `access.resolve` returning a `where` |
-| Let an admin or a job see every merchant | `ScopeFilters.UNRESTRICTED` from `resolve` |
+| Let an admin see every merchant | `ScopeFilters.UNRESTRICTED` from `resolve` |
+| Let a job see every merchant | `Execution.run` with `ExecutionModes.SYSTEM` |
 | Stop a merchant creating rows for another merchant | The default `write.mode: 'reject'` |
 | Fill the merchant on create so callers need not send it | `write.mode: 'assign'` |
 | Let merchants create shared rows | `write.sharedRows: true` |

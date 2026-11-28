@@ -414,13 +414,18 @@ the 14 forgot and hung a production process walking an unbounded parent chain.
 
 ## `access` - a row scope, relational only
 
-`@model` settings.access (kernel) ANDs a per-request `where` into every relational read, plus
+`@model` settings.access (kernel) ANDs a per-call `where` into every relational read, plus
 `update` and `delete`, including `restore()` - see `RelationalBaseRepository.applyScopeFilter` in
 `relational/core/repositories/core/base.ts`. It is a second, separate filter from `query.filter`:
 `shouldSkipDefaultFilter` never removes it, because that flag is what soft-delete's `restore()` uses
 to reach past `deletedAt: null`, and reusing one filter for both would hand `restore()` the same
 reach into another caller's row scope. `resolve()` returning null/undefined denies by default
-(matches zero rows) unless the model declares `onMissing: 'allow'`.
+unless the model declares `onMissing: 'allow'`: a read matches zero rows, and `applyScopeFilter` throws the
+write guard's 403 when a mutation (update, delete, soft delete, restore) has no scope (a row outside a RESOLVED
+scope still counts zero).
+
+The scope is asked in one place, `ScopeResolution.resolve({ settings, operation })`: a system execution frame
+answers `UNRESTRICTED` without calling `resolve`; otherwise `resolve({ operation, scope })` gets the frame.
 
 `resolve()` has three states, checked in this order: a `TWhere` ANDs in as always; the exact symbol
 `ScopeFilters.UNRESTRICTED` (`base/repositories/common/constants.ts`, kernel) applies no scope for
@@ -616,6 +621,9 @@ before any route was registered.
 They now read the request context through `RequestContextRegistry` in the kernel. The enricher still
 distinguishes the same three states, and each still carries its own message and its own
 `allowAnonymous` behaviour:
+
+The user is the frame's `userId`, else the request's `AUDIT_USER_ID`; a frame user stamps even with no request.
+Without a frame user:
 
 | `resolve()` | Means | `allowAnonymous: true` | `allowAnonymous: false` |
 |---|---|---|---|

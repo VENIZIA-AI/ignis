@@ -38,11 +38,16 @@ const buildUserAuditColumn = (opts: {
 
     case 'string': {
       const col = text(columnOpts.columnName).$type<string | null>();
-      const userIdGetter = () =>
-        AuditUserResolver.resolveAuditUserId<string>({
+
+      // As text: a number or a bigint user handed to a text column as it is is stored as `42.0` by some engines.
+      const userIdGetter = () => {
+        const userId = AuditUserResolver.resolveAuditUserId<string | number | bigint>({
           columnField,
           allowAnonymous: columnOpts.allowAnonymous ?? true,
         });
+
+        return userId === null ? null : String(userId);
+      };
 
       return columnField === 'createdBy'
         ? col.$default(userIdGetter)

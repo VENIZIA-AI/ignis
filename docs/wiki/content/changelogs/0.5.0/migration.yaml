@@ -1620,3 +1620,25 @@ execution-entries:
     steps:
       - "Pin the @venizia packages to the release before this one."
   data: Nothing stored changes.
+
+execution-scope:
+  symbols: [IModelAccessSettings, Execution, ExecutionModes, ScopeFilters, RepositoryErrorCodes]
+  upgrade:
+    before: |-
+      // a job with no request: silently updated nothing
+      await this.productRepository.updateBy({ where: { stale: true }, data: { stale: false } });
+    after: |-
+      await Execution.run({
+        mode: ExecutionModes.SYSTEM,
+        reason: 'catalog refresh',
+        task: () => this.productRepository.updateBy({ where: { stale: true }, data: { stale: false } }),
+      });
+    steps:
+      - "Find the updates, deletes and restores that run with no user: jobs, ticks, consumers, event handlers, scripts. They now throw 403 core.repository.scope_write_denied where they counted 0."
+      - "Run each in the frame it needs: scoped, with the values your resolve reads, or system with a reason."
+      - "Check that resolve narrows by the request's user first and treats scope.values as a narrowing, never a replacement."
+      - "Replace a hand-written system-scope store that returned UNRESTRICTED with a system run."
+  downgrade:
+    steps:
+      - "Pin the @venizia packages to the release before this one."
+  data: Nothing stored changes.

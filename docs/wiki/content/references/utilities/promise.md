@@ -86,7 +86,7 @@ declare module '@venizia/ignis' {
 
 Work that needs every row opens its own system run where it is handled. A hand-off that drops system rights is logged once per queue or event name. A queue job carries no identity by itself: pass it through the job metadata and open the frame in the processor. A listener you register on a client yourself (a Redis `message`, for one) opens its own frame.
 
-A frame does not change what a query sees yet: a model's `access` reads the request as before.
+What a query sees: a system frame lifts a model's [`access`](/guides/core-concepts/persistent/model-settings#_4-access) without calling `resolve`; a scoped frame is handed to `resolve({ operation, scope })`. The audit columns take the frame's `userId`, else the request's user.
 
 A script or a test with no application calls `ExecutionRunner.install()` first. Without a runner, `run` throws and `current()` is `undefined`; the other methods work, a browser included.
 

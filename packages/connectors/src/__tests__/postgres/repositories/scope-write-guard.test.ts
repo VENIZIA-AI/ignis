@@ -349,16 +349,15 @@ describe('scopeFilter write guard', () => {
       expect(error.message).toContain('no scope could be resolved');
     });
 
-    test('an update under an unresolved scope is left to the scoped where, which matches no row', async () => {
+    test('an update under an unresolved scope is refused', async () => {
       const repository = build(RejectItem);
       const created = await repository.create({ data: { merchantId: 'm-a', name: 'one' } });
       scope = undefined;
 
-      const result = await repository.updateById({
-        id: created.data.id,
-        data: { name: 'changed' },
-      });
-      expect(result.count).toBe(0);
+      const error = await refusal(
+        repository.updateById({ id: created.data.id, data: { name: 'changed' } }),
+      );
+      expect(error.statusCode).toBe(403);
       const result2 = await rows();
       expect(result2).toEqual([{ merchantId: 'm-a', name: 'one' }]);
     });
