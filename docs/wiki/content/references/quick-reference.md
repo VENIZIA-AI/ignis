@@ -90,9 +90,9 @@ class UserController extends BaseRestController {
 ### BaseGrpcController
 
 ```typescript
+import { create } from '@bufbuild/protobuf';
 import { BaseGrpcController, controller, unary, ControllerTransports } from '@venizia/ignis';
-import { GreeterService } from '../gen/greeter_connect';
-import type { SayHelloRequest } from '../gen/greeter_pb';
+import { GreeterService, SayHelloResponseSchema, type SayHelloRequest } from '../generated/greeter/v1/greeter_pb';
 
 @controller({ path: '/grpc', transport: ControllerTransports.GRPC, service: GreeterService })
 class GreeterController extends BaseGrpcController {
@@ -104,7 +104,7 @@ class GreeterController extends BaseGrpcController {
 
   @unary({ configs: { name: 'sayHello' } })
   async sayHello(opts: { request: SayHelloRequest }) {
-    return { message: `Hello, ${opts.request.name}!` };
+    return create(SayHelloResponseSchema, { message: `Hello, ${opts.request.name}!` });
   }
 }
 ```
@@ -207,8 +207,7 @@ export type TUser = TEntityObject<typeof User>;
 | `@clientStream()` | Client streaming | `@clientStream({ configs: { name: 'uploadData' } })` |
 | `@bidiStream()` | Bidirectional | `@bidiStream({ configs: { name: 'chat' } })` |
 
-> [!WARNING]
-> Only `@unary` runs today. A controller with a streaming method throws when it is configured.
+All kinds run. Bidi needs the [native gRPC port](/guides/core-concepts/grpc/call-kinds).
 
 ### REST Example
 

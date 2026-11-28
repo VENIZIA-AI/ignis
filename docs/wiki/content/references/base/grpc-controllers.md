@@ -28,7 +28,8 @@ IGNIS gRPC controllers follow the same patterns as REST controllers (decorator-b
 | **AbstractGrpcController** | Abstract base class with RPC registration, ConnectRPC adapter mounting, idempotent `configure()` |
 | **BaseGrpcController** | Recommended concrete base class with `bindRoute()` and `defineRoute()` implementations |
 | **GrpcRequestAdapter** | Internal bridge from IGNIS handlers to ConnectRPC: one Hono route per RPC |
-| **GrpcComponent** | Auto-discovers gRPC controllers and mounts them on the application router |
+| **GrpcComponent** | Auto-discovers gRPC controllers, mounts them and runs the native port |
+| **GrpcListenerHelper** | The native gRPC port (`node:http2`) |
 | **@controller** | Class decorator with `transport: ControllerTransports.GRPC` and `service` field |
 | **@unary** | Method decorator for unary RPCs |
 | **@serverStream** | Method decorator for server-streaming RPCs |
@@ -36,49 +37,17 @@ IGNIS gRPC controllers follow the same patterns as REST controllers (decorator-b
 | **@bidiStream** | Method decorator for bidirectional-streaming RPCs (refused on the HTTP/1.1 application port) |
 | **@rpc** | Generic method decorator (requires explicit `method` in configs) |
 
-## Prerequisites
+## Setup
 
-gRPC support requires the following peer dependencies:
+Install, code generation and a first call are in [Build a gRPC service](/guides/core-concepts/grpc/build-a-service). Every option is in [Configuration and limits](/guides/core-concepts/grpc/configuration).
 
-```bash
-bun add @connectrpc/connect @bufbuild/protobuf
-```
+| Import | From |
+|---|---|
+| `BaseGrpcController`, decorators, `ControllerTransports`, `IGrpcNativeOptions` | `@venizia/ignis` |
+| `GrpcComponent`, `GrpcBindingKeys`, `IGrpcComponentConfig` | `@venizia/ignis/grpc` |
+| `GRPC` constants | `@venizia/ignis-helpers` |
 
-| Package | Purpose |
-|---------|---------|
-| `@connectrpc/connect` | ConnectRPC router, universal handlers, protocol bridge |
-| `@bufbuild/protobuf` | Protobuf code generation, `create()` for constructing response messages |
-
-For client-side usage (e.g., test clients), you also need a transport package:
-
-```bash
-bun add @connectrpc/connect-web
-```
-
-> [!NOTE]
-> `@connectrpc/connect` is an **optional** peer dependency of `@venizia/ignis`. It is only loaded at runtime when a gRPC controller is configured, with `ModuleUtility.load` from the application's project root, as the ES module copy your own import gets. If it is missing, `GrpcRequestAdapter.build()` throws a clear error at startup via `ModuleUtility.assertInstalled()`. A compiled binary has no `node_modules` to resolve against and must pass the peer through `IGrpcComponentConfig.module` (or `ModuleUtility.register`) - see [Peer Dependency Loading](#peer-dependency-loading). `@bufbuild/protobuf` is required by your generated protobuf code (e.g. `create()`), not by the framework itself.
-
-### Protobuf Code Generation
-
-Use `buf` or `protoc-gen-es` to generate TypeScript code from `.proto` files:
-
-```yaml
-# buf.gen.yaml
-version: v2
-plugins:
-  - local: protoc-gen-es
-    out: generated
-    opt: target=ts
-```
-
-```bash
-buf generate proto/greeter.proto
-```
-
-The generated output includes:
-- **Service descriptors** (e.g., `GreeterService`) -- passed to `@controller({ service })`
-- **Message schemas** (e.g., `SayHelloResponseSchema`) -- used with `create()` to build responses
-- **TypeScript types** (e.g., `SayHelloRequest`, `SayHelloResponse`) -- for handler signatures
+`@connectrpc/connect` and `@connectrpc/connect-node` (native port only) are optional peers of `@venizia/ignis`. `@bufbuild/protobuf` is used by your generated code.
 
 ## `BaseGrpcController`
 
@@ -264,7 +233,7 @@ Shorthand for `@rpc` with `method: 'client_streaming'`. `request` is an async it
 
 Shorthand for `@rpc` with `method: 'bidi_streaming'`. The application port answers HTTP 505: bidi needs HTTP/2.
 
-See [Streaming](/guides/core-concepts/grpc-controllers#streaming) for the idle timeout and cancellation.
+See [call kinds and streaming](/guides/core-concepts/grpc/call-kinds).
 
 ### Decorator Config
 
@@ -341,7 +310,7 @@ type TRpcHandler<
 
 | `rpc` member | What it gives |
 |---|---|
-| `signal` | aborted at the client's deadline and when the client leaves. A signal, not a kill: a handler that ignores it runs on and answers |
+| `signal` | aborted at the deadline or client leave; see [deadlines](/guides/core-concepts/grpc/deadlines-and-timeouts) |
 | `timeoutMs()` | the milliseconds left, `undefined` without a deadline |
 | `requestHeader` | the request headers |
 | `responseHeader`, `responseTrailer` | headers and trailers of the answer |
@@ -416,73 +385,48 @@ interface IConnectAdapterResult<RouteEnv extends Env = Env> {
 
 ## `GrpcRequestAdapter`
 
-Internal bridge between IGNIS gRPC controllers and ConnectRPC's universal handler system. You do not interact with this class directly -- it is created automatically during `configure()`.
-
-### Architecture
+Internal bridge to ConnectRPC. `AbstractGrpcController.configure()` creates it; you do not call it.
 
 ```
-Hono request
-  -> the route of the RPC (earlier middleware has run)
-    -> ConnectRPC universal handler, with the Hono context in its context values
-      -> auth middlewares (authenticate -> authorize)
+route of the RPC (global middleware has run)
+  -> ConnectRPC handler, Hono context in its context values
+    -> interceptors
+      -> authenticate, then authorize
         -> your handler ({ request, context, rpc })
-    -> context.newResponse(...): headers set by earlier middleware are kept
+  -> application port: context.newResponse(...), earlier headers kept
+  -> native port: written on the node stream, trailers included
 ```
 
-The application port serves the Connect and gRPC-Web protocols. A native gRPC request (`application/grpc`) answers `415` there: it needs response trailers, which `Bun.serve` does not send. The [native gRPC port](/guides/core-concepts/grpc-controllers#native-grpc-port) serves it.
-
-### Static `build()` Method
-
-The only public API. Validates the peer deps with `ModuleUtility.assertInstalled()` and answers the router with its paths:
+### Static `build()` method
 
 ```typescript
 static async build(opts: {
   controller: AbstractGrpcController<...>;
   interceptors?: unknown[];
   module?: IConnectRpcModule;
+  limits?: IGrpcLimits;
+  native?: IGrpcNativeAdapterOptions;   // set when the native port is on
+  idleTimeout?: number;                 // seconds, restored when a call ends
 }): Promise<IConnectAdapterResult<RouteEnv>>
 ```
 
-`AbstractGrpcController.configure()` mounts it:
+It throws when `limits.messageSize` is not a positive integer, when an RPC name is not declared by the service or has another kind, and when a needed peer is missing.
 
-```typescript
-const adapter = await GrpcRequestAdapter.build({ controller: this });
-this.router.route('/', adapter.router);
-```
+### Peer dependency loading
 
-The optional `interceptors` array is passed to ConnectRPC's `createConnectRouter()` for interception at the protocol level.
+By default `ModuleUtility.load` resolves the peers from the project root, so an application without gRPC does not need them: `@connectrpc/connect`, `@connectrpc/connect/protocol` and, for the native port, `@connectrpc/connect-node`. A compiled binary [passes them](/guides/core-concepts/grpc/configuration#pass-the-peers-to-a-compiled-binary).
 
-### Internal Flow
+## Native gRPC listener
 
-1. **Wrapping** -- each `TRpcHandler` becomes ConnectRPC's `(request, context) => response`: it reads the Hono context from the context values, runs the auth middlewares (`AbstractGrpcController.buildRpcMiddlewares()`), then calls your handler.
-2. **Registration** -- an RPC name the service does not declare stops the boot; the handlers are registered with `router.service()`.
-3. **Serving** -- one route per RPC converts the Fetch request, calls ConnectRPC's handler and answers through `context.newResponse`. A failure outside ConnectRPC reaches the application's error handler.
+`GrpcListenerHelper` is the `node:http2` server of the [native port](/guides/core-concepts/grpc/ports#turn-on-the-native-grpc-port), bound at `GrpcBindingKeys.GRPC_NATIVE_LISTENER` when the port is on.
 
-### Peer Dependency Loading
+| Method | Does |
+|---|---|
+| `start()` | binds the port; a port in use rejects. Run by a post-start hook |
+| `stop()` | [drains and closes](/guides/core-concepts/grpc/shutdown); run by a post-stop hook. A second call waits for the first |
+| `getAddress()` | `{ host, port }`, or `undefined` when not listening |
 
-The adapter needs two entry points:
-
-- `@connectrpc/connect` -- for `createConnectRouter`, `createContextKey` and `createContextValues`
-- `@connectrpc/connect/protocol` -- for `universalServerRequestFromFetch` and `universalServerResponseToFetch`
-
-By default it loads both at runtime with `ModuleUtility.load`, resolved from the application's project root. That keeps the specifier invisible to `Bun.build`, so a consumer who never uses gRPC is not forced to install the peer.
-
-**A compiled application must pass `module`.** A `bun build --compile` binary ships without `node_modules`, so there is nothing to resolve against; registering both entry points with `ModuleUtility.register` works too. Hand the peer over through the component options instead - the static import is what embeds it in the binary:
-
-```typescript
-import * as connect from '@connectrpc/connect';
-import * as protocol from '@connectrpc/connect/protocol';
-
-this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({
-  module: { connect, protocol },
-});
-```
-
-`GrpcComponent` assigns the module to each controller before `configure()`, and the adapter then loads nothing itself.
-
-### Error Handling
-
-A throw from the middleware or the handler becomes ConnectRPC's own error answer, in the caller's protocol: a 4xx from `getError` or Hono's `HTTPException` keeps its code and message, anything else is `internal` with its text hidden. A failure outside ConnectRPC is answered by the application's error handler.
+`GrpcNativeCallStore` is the `env` of a native request: `GrpcNativeCallStore.read({ env })` answers the node request and response, and `requestIP()` serves `getConnInfo` from `hono/bun`.
 
 ## `GrpcComponent`
 
@@ -493,30 +437,13 @@ Auto-discovers and configures gRPC controllers during the application lifecycle.
 ```typescript
 interface IGrpcComponentConfig {
   interceptors?: unknown[];
+  limits?: IGrpcLimits;
   module?: IConnectRpcModule;
+  native?: TToggle<IGrpcNativeOptions>;
 }
 ```
 
-| Option | Type | Default | Meaning |
-|---|---|---|---|
-| `interceptors` | `unknown[]` | none | ConnectRPC interceptors for every gRPC controller |
-| `module` | `IConnectRpcModule` | none | The ConnectRPC peer, as `{ connect, protocol }` |
-
-`interceptors` are passed to `createConnectRouter`; an empty list passes nothing. `module` is required for a compiled binary - see [Peer Dependency Loading](#peer-dependency-loading).
-
-Both options are component-wide. `GrpcComponent` assigns them to every gRPC controller it discovers, before calling `configure()`:
-
-```typescript
-import type { Interceptor } from '@connectrpc/connect';
-
-const passthrough: Interceptor = next => request => next(request);
-
-this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({
-  interceptors: [passthrough],
-});
-```
-
-The component registers a default (empty) config binding under the key `'@app/grpc/options'` (`GrpcBindingKeys.GRPC_COMPONENT_OPTIONS`).
+Defaults and ranges: [Configuration and limits](/guides/core-concepts/grpc/configuration). The component binds an empty default under `GrpcBindingKeys.GRPC_COMPONENT_OPTIONS` (`'@app/grpc/options'`) and assigns the options to every gRPC controller before `configure()`.
 
 ### Behavior
 
@@ -525,8 +452,9 @@ The component registers a default (empty) config binding under the key `'@app/gr
 3. Validates each gRPC controller:
    - If `path` is missing, throws an error
    - If `service` is missing, logs a warning and skips the controller
-5. Calls `configure()` on each controller instance
-6. Mounts the controller's router on the application's root router at the controller's path via `router.route(metadata.path, instance.getRouter())`
+4. Calls `configure()` on each controller instance
+5. Mounts the controller's router on the application's root router at the controller's path via `router.route(metadata.path, instance.getRouter())`
+6. With the native port on, maps each `/package.Service/Method` to its mounted path (one owner per path) and registers the listener's start and stop hooks
 
 ### Dynamic Discovery
 
@@ -564,7 +492,7 @@ A transport that is neither `'rest'` nor `'grpc'` throws rather than being skipp
 
 The `GRPC` class from `@venizia/ignis-helpers` provides all gRPC protocol constants:
 
-### Methods
+### `GRPC.Methods`
 
 ```typescript
 GRPC.Methods.UNARY              // 'unary'
@@ -621,408 +549,22 @@ GRPC.HeaderValues.GRPC_WEB_JSON  // 'application/grpc-web+json'
 GRPC.HeaderValues.GRPC_WEB_TEXT  // 'application/grpc-web-text'
 ```
 
-## Application Setup
+## Component-based registration
 
-### Enabling gRPC Transport
+A component registers gRPC controllers as it does REST ones: call `this.application.controller(...)` in its `binding()`. `GrpcComponent` finds them through its re-fetch loop. See [Components](./components.md).
 
-Add `ControllerTransports.GRPC` to the `transports` array in your application configs:
+## Behaviour guides
 
-```typescript
-import {
-  BaseApplication,
-  ControllerTransports,
-  IApplicationConfigs,
-  IApplicationInfo,
-} from '@venizia/ignis';
-import { ValueOrPromise } from '@venizia/ignis-helpers';
-import { GreeterController } from './controllers/greeter';
-import { GreeterService } from './services/greeter.service';
-
-export const appConfigs: IApplicationConfigs = {
-  host: '0.0.0.0',
-  port: 3000,
-  path: { base: '/', isStrict: false },
-  transports: [ControllerTransports.REST, ControllerTransports.GRPC],
-};
-
-export class Application extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
-    return { name: 'my-app', version: '1.0.0', description: 'gRPC + REST app' };
-  }
-
-  staticConfigure() {}
-
-  preConfigure() {
-    this.service(GreeterService);
-    this.controller(GreeterController);
-  }
-
-  postConfigure() {}
-  setupMiddlewares() {}
-}
-```
-
-> [!WARNING]
-> If `transports` does not include `ControllerTransports.GRPC`, gRPC controllers are still registered in the DI container. But the `GrpcComponent` is never mounted -- their `configure()` is never called and no routes are served.
-
-### Dual Transport
-
-REST and gRPC controllers coexist in the same application. Each controller declares its own transport via the `@controller` decorator. A single application can serve both:
-
-```typescript
-preConfigure() {
-  // gRPC controller
-  this.controller(GreeterController);
-
-  // REST controller
-  this.controller(StatusController);
-}
-```
-
-REST controllers are handled by the `RestComponent`, active when `transports` includes `ControllerTransports.REST` (the default). gRPC controllers are handled by the `GrpcComponent`, active when that transport is enabled. They share the same DI container and lifecycle.
-
-## Complete Example
-
-### 1. Proto File
-
-```protobuf
-// proto/greeter.proto
-syntax = "proto3";
-package greeter.v1;
-
-message SayHelloRequest {
-  string name = 1;
-}
-
-message SayHelloResponse {
-  string message = 1;
-}
-
-message ListUsersRequest {}
-
-message ListUsersResponse {
-  repeated string users = 1;
-}
-
-service GreeterService {
-  rpc SayHello (SayHelloRequest) returns (SayHelloResponse);
-  rpc ListUsers (ListUsersRequest) returns (ListUsersResponse);
-}
-```
-
-### 2. Generate TypeScript Code
-
-```bash
-buf generate proto/greeter.proto
-```
-
-### 3. Definition File (Stable Import Boundary)
-
-```typescript
-// controllers/greeter/definition.ts
-export {
-  GreeterService,
-  ListUsersResponseSchema,
-  SayHelloResponseSchema,
-  type ListUsersRequest,
-  type ListUsersResponse,
-  type SayHelloRequest,
-  type SayHelloResponse,
-} from './generated/greeter_pb';
-```
-
-> [!TIP]
-> Always re-export generated code through a `definition.ts` file. This acts as a stable import boundary -- controller code and external consumers import from here, never from the `generated/` directory directly. When you regenerate protos, only this file needs updating.
-
-### 4. Controller
-
-```typescript
-// controllers/greeter/controller.ts
-import { GreeterService } from '@/services';
-import { create } from '@bufbuild/protobuf';
-import {
-  BaseGrpcController,
-  ControllerTransports,
-  controller,
-  inject,
-  unary, BindingKeys,
-} from '@venizia/ignis';
-import {
-  GreeterService as GreeterServiceDef,
-  ListUsersResponseSchema,
-  SayHelloResponseSchema,
-  type ListUsersRequest,
-  type ListUsersResponse,
-  type SayHelloRequest,
-  type SayHelloResponse,
-} from './definition';
-
-@controller({
-  path: '/grpc',
-  transport: ControllerTransports.GRPC,
-  service: GreeterServiceDef,
-})
-export class GreeterController extends BaseGrpcController {
-  constructor(
-    @inject({ key: BindingKeys.build<GreeterService>({ key: 'services.GreeterService' }) })
-    private readonly greeterService: GreeterService,
-  ) {
-    super({ scope: 'GreeterController', path: '/grpc' });
-  }
-
-  override binding() {}
-
-  @unary({ configs: { name: 'sayHello' } })
-  async sayHello(opts: { request: SayHelloRequest }): Promise<SayHelloResponse> {
-    const message = await this.greeterService.sayHello(opts);
-    return create(SayHelloResponseSchema, { message });
-  }
-
-  @unary({ configs: { name: 'listUsers' } })
-  async listUsers(opts: { request: ListUsersRequest }): Promise<ListUsersResponse> {
-    const users = await this.greeterService.listUsers(opts);
-    return create(ListUsersResponseSchema, { users });
-  }
-}
-```
-
-### 5. Minimal Controller (No DI)
-
-A controller with no injected dependencies:
-
-```typescript
-// controllers/echo/controller.ts
-import { create } from '@bufbuild/protobuf';
-import {
-  BaseGrpcController,
-  ControllerTransports,
-  controller,
-  unary,
-} from '@venizia/ignis';
-import {
-  EchoResponseSchema,
-  EchoService as EchoServiceDef,
-  type EchoRequest,
-  type EchoResponse,
-} from './definition';
-
-@controller({
-  path: '/grpc',
-  transport: ControllerTransports.GRPC,
-  service: EchoServiceDef,
-})
-export class EchoController extends BaseGrpcController {
-  constructor() {
-    super({ scope: 'EchoController', path: '/grpc' });
-  }
-
-  override binding() {}
-
-  @unary({ configs: { name: 'echo' } })
-  async echo(opts: { request: EchoRequest }): Promise<EchoResponse> {
-    return create(EchoResponseSchema, {
-      message: `Echo: ${opts.request.message}`,
-    });
-  }
-}
-```
-
-### 6. Application
-
-```typescript
-// application.ts
-import {
-  BaseApplication,
-  ControllerTransports,
-  IApplicationConfigs,
-  IApplicationInfo,
-} from '@venizia/ignis';
-import { ValueOrPromise } from '@venizia/ignis-helpers';
-import { GreeterController } from './controllers/greeter';
-import { EchoController } from './controllers/echo';
-import { GreeterService } from './services/greeter.service';
-
-export const appConfigs: IApplicationConfigs = {
-  host: '0.0.0.0',
-  port: 3000,
-  path: { base: '/', isStrict: false },
-  transports: [ControllerTransports.REST, ControllerTransports.GRPC],
-};
-
-export class Application extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
-    return { name: 'greeter-app', version: '1.0.0', description: 'gRPC greeter' };
-  }
-
-  staticConfigure() {}
-
-  preConfigure() {
-    this.service(GreeterService);
-    this.controller(GreeterController);
-    this.controller(EchoController);
-  }
-
-  postConfigure() {}
-  setupMiddlewares() {}
-}
-```
-
-### 7. Client (Testing)
-
-```typescript
-// client.ts
-import { create } from '@bufbuild/protobuf';
-import { createClient } from '@connectrpc/connect';
-import { createConnectTransport } from '@connectrpc/connect-web';
-import { GreeterService, SayHelloRequestSchema } from './controllers/greeter/definition';
-
-const transport = createConnectTransport({ baseUrl: 'http://localhost:3000/grpc' });
-const client = createClient(GreeterService, transport);
-
-const response = await client.sayHello(create(SayHelloRequestSchema, { name: 'IGNIS' }));
-console.log(response.message);
-```
-
-## Component-Based Registration
-
-gRPC controllers can be registered through components, following the same pattern as REST controllers. This enables modular composition and late registration.
-
-### Basic Component
-
-```typescript
-import {
-  BaseApplication,
-  BaseComponent,
-  CoreBindings,
-  inject,
-} from '@venizia/ignis';
-import { ValueOrPromise } from '@venizia/ignis-helpers';
-import { EchoController } from '../controllers/echo';
-
-export class EchoComponent extends BaseComponent {
-  constructor(
-    @inject({ key: CoreBindings.APPLICATION_INSTANCE })
-    private application: BaseApplication,
-  ) {
-    super({ scope: 'EchoComponent' });
-  }
-
-  override binding(): ValueOrPromise<void> {
-    this.application.controller(EchoController);
-  }
-}
-```
-
-### Component Composition
-
-Components can compose other components, building a dependency graph of controllers:
-
-```typescript
-import {
-  BaseApplication,
-  BaseComponent,
-  CoreBindings,
-  inject,
-} from '@venizia/ignis';
-import { TimeController } from '../controllers/time';
-import { EchoComponent } from './echo.component';
-
-export class TimeComponent extends BaseComponent {
-  constructor(
-    @inject({ key: CoreBindings.APPLICATION_INSTANCE })
-    private application: BaseApplication,
-  ) {
-    super({ scope: 'TimeComponent' });
-  }
-
-  override async binding(): Promise<void> {
-    // Compose EchoComponent -- registers EchoController
-    this.application.component(EchoComponent);
-
-    // Register this component's own controller
-    this.application.controller(TimeController);
-  }
-}
-```
-
-The `GrpcComponent` handles these dynamically-registered controllers through its re-fetch loop -- after configuring each controller, it re-queries the container for newly added bindings.
-
-### Registration in Application
-
-```typescript
-preConfigure() {
-  // TimeComponent composes EchoComponent internally
-  this.component(TimeComponent);
-}
-```
-
-## Authentication and Authorization
-
-Per-RPC authentication and authorization are configured via the `authenticate` and `authorize` fields in `IRpcMetadata`. Auth middlewares are pre-built during route registration by `AbstractGrpcController.buildRpcMiddlewares()` and executed before the handler.
-
-### Per-RPC Authentication
-
-```typescript
-@unary({
-  configs: {
-    name: 'sayHello',
-    authenticate: {
-      strategies: ['jwt'],
-      mode: 'any',
-    },
-  },
-})
-async sayHello(opts: { request: SayHelloRequest }): Promise<SayHelloResponse> {
-  // Only accessible with a valid JWT token
-  return create(SayHelloResponseSchema, { message: 'Hello!' });
-}
-```
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `strategies` | `TAuthStrategy[]` | `[]` | Authentication strategies to apply (e.g., `['jwt']`, `['basic']`) |
-| `mode` | `TAuthMode` | `'any'` | `'any'` \| `'all'` (defaults to `AuthenticationModes.ANY`) |
-
-### Per-RPC Authorization
-
-```typescript
-@unary({
-  configs: {
-    name: 'deleteUser',
-    authenticate: { strategies: ['jwt'], mode: 'any' },
-    authorize: { action: 'delete', resource: 'user' },
-  },
-})
-async deleteUser(opts: { request: DeleteUserRequest }): Promise<DeleteUserResponse> {
-  // Requires JWT + delete permission on user resource
-  // ...
-}
-```
-
-Multiple authorization specs can be provided as an array:
-
-```typescript
-authorize: [
-  { action: 'read', resource: 'user' },
-  { action: 'read', resource: 'profile' },
-]
-```
-
-### Middleware Execution Order
-
-Auth middlewares run in the following order inside the ConnectRPC handler wrapper:
-
-1. **Authenticate** middlewares (if `configs.authenticate.strategies` has entries)
-2. **Authorize** middlewares (if `configs.authorize` is present), one per spec
-3. **Handler** execution
-
-Each middleware passes the call on by calling `next()`. One that returns a `Response`, or returns without calling `next()`, ends the call and the handler does not run: a 4xx `Response` gives the client the code of its status, anything else `internal`; the body and the headers of that response are not sent.
-
-Every middleware runs before the handler starts: `next()` only marks the call as passed on, so code after `await next()` does not wrap the handler (a `finally`, an async context or a `catch` there never sees it).
+| Topic | Page |
+|---|---|
+| Authentication, interceptor order | [gRPC authentication](/guides/core-concepts/grpc/authentication) |
+| Error codes | [gRPC errors](/guides/core-concepts/grpc/errors) |
+| Deadlines, idle timeout | [gRPC deadlines and timeouts](/guides/core-concepts/grpc/deadlines-and-timeouts) |
+| Streaming | [gRPC call kinds](/guides/core-concepts/grpc/call-kinds) |
 
 ## See Also
 
-- [Controllers Reference](./controllers.md) -- REST controller classes and API endpoint patterns
-- [Components Reference](./components.md) -- Component system and built-in components
-- [Dependency Injection](./dependency-injection.md) -- IoC container, `@inject`, binding keys
-- [Services](./services.md) -- Business logic layer
+- [Controllers Reference](./controllers.md) - REST controller classes and API endpoint patterns
+- [Components Reference](./components.md) - Component system and built-in components
+- [Dependency Injection](./dependency-injection.md) - IoC container, `@inject`, binding keys
+- [Services](./services.md) - Business logic layer

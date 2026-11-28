@@ -65,7 +65,8 @@ interface IAdapterOptions<
 /**
  * Bridges IGNIS gRPC controllers with ConnectRPC: loads the peer deps with `ModuleUtility.load` (the ES module copy an
  * application's own import gets) and registers one Hono route per RPC, which hands the request to ConnectRPC's handler
- * with the Hono context in its context values. Connect and gRPC-Web only: native gRPC needs response trailers.
+ * with the Hono context in its context values. That route serves Connect and gRPC-Web; with the native port on, it
+ * also writes a native gRPC call on the node stream, which can send the response trailers `Bun.serve` cannot.
  */
 export class GrpcRequestAdapter<
   RouteEnv extends Env = Env,

@@ -127,6 +127,39 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make examples-check
 
+      # The gRPC reference example, end to end on both ports.
+      - name: gRPC example tests
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        working-directory: examples/grpc-test
+        run: bun run test
+
+      # A client that is not JavaScript against the native port, in clear text and over TLS. The release is pinned by checksum.
+      - name: gRPC example with grpcurl
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        working-directory: examples/grpc-test
+        env:
+          GRPCURL_VERSION: '1.9.4'
+          GRPCURL_SHA256: '97e13d58d2733a0e62cd2571d1d5f0c02823f0d25282f08bddedf1ad9c5d1736'
+        run: |
+          archive="$RUNNER_TEMP/grpcurl.tar.gz"
+          curl -fsSL -o "$archive" "https://github.com/fullstorydev/grpcurl/releases/download/v${GRPCURL_VERSION}/grpcurl_${GRPCURL_VERSION}_linux_x86_64.tar.gz"
+          echo "${GRPCURL_SHA256}  $archive" | sha256sum -c -
+          tar -xzf "$archive" -C "$RUNNER_TEMP" grpcurl
+          export GRPCURL="$RUNNER_TEMP/grpcurl"
+          cp .env.example .env
+          bun run certs
+          for tls in false true; do
+            APP_ENV_GRPC_TLS="$tls" NODE_ENV=development bun run src/index.ts > "$RUNNER_TEMP/grpc-server.log" 2>&1 &
+            server=$!
+            for _ in $(seq 60); do (exec 3<>/dev/tcp/127.0.0.1/50051) 2>/dev/null && break; sleep 1; done
+            if [ "$tls" = true ]; then flag=--tls; else flag=; fi
+            status=0
+            sh scripts/grpcurl.sh $flag || status=$?
+            kill -TERM "$server"
+            wait "$server" || true
+            if [ "$status" != 0 ]; then cat "$RUNNER_TEMP/grpc-server.log"; exit "$status"; fi
+          done
+
       # Creates an app from the PACKED @venizia/ignis preset in a temp folder and runs its checks.
       - name: VULCAN preset smoke
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}

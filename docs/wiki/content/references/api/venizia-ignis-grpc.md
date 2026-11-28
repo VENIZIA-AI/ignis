@@ -83,7 +83,9 @@ Options of `GrpcComponent`, bound at `GrpcBindingKeys.GRPC_COMPONENT_OPTIONS`.
 
 ```ts
 export interface IGrpcComponentConfig {
+    /** ConnectRPC `Interceptor`s of every RPC. They run before `authenticate` and `authorize`. */
     interceptors?: unknown[];
+    /** Limits of both ports. */
     limits?: IGrpcLimits;
     /** The ConnectRPC peer, for a compiled binary that has no `node_modules` to resolve it from. */
     module?: IConnectRpcModule;
@@ -125,6 +127,7 @@ export interface IGrpcNativeOptions {
     tls?: TGrpcNativeTls;
     /** How long `stop()` waits for calls in flight before it aborts them, in milliseconds. Default 10 000. */
     shutdownTimeout?: number;
+    /** Limits of the native port alone; `limits.messageSize` of the component applies to it too. */
     limits?: {
         /** Streams one connection may have open at once. A positive integer, default 100. */
         concurrentStreams?: number;

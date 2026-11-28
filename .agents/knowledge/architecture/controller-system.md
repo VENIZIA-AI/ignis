@@ -43,6 +43,8 @@ be browser-pure. `packages/core-server/src/base/controllers/index.ts` re-exports
 barrel, so `@/base/controllers` and the `@venizia/ignis` root entrypoint still resolve every moved
 symbol.
 
+How an RPC runs: [gRPC request path](/architecture/grpc-request-path.md).
+
 ## Three ways to declare a route
 
 **Decorator style** - `@api`, or the method-specific `@get`, `@post`, `@put`, `@patch`, `@del`, which

@@ -1,3 +1,9 @@
 version: v2
 modules:
-  - path: src/controllers/greeter/proto
+  - path: proto
+lint:
+  use:
+    - STANDARD
+breaking:
+  use:
+    - FILE

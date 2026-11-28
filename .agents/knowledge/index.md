@@ -64,6 +64,10 @@ How the pieces fit.
 - [Component model](/architecture/component-model.md) - what a component is and how it wires
 - [Server info component](/architecture/server-info.md) - the public server-time route and the rule that keeps it safe to publish
 - [Controller system](/architecture/controller-system.md) - the route APIs over Hono
+- [gRPC request path](/architecture/grpc-request-path.md) - one RPC from either port to the controller
+- [gRPC native port](/architecture/grpc-native-port.md) - the node:http2 listener
+- [gRPC errors](/architecture/grpc-errors.md) - which errors keep their code over RPC
+- [gRPC timeouts and shutdown](/architecture/grpc-timeouts-and-shutdown.md) - idle lifting, the Bun limit, stop order
 - [Repository hierarchy](/architecture/repository-hierarchy.md) - abstract to CRUD, plus mixins
 - [DataSource hierarchy](/architecture/datasource-hierarchy.md) - the connector and driver seams
 - [Transactions](/architecture/transactions.md) - commit, rollback, and connection safety
