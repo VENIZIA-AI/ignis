@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { describe, expect, test } from 'bun:test';
 import * as connect from '@connectrpc/connect';
 import type { ConnectRouter } from '@connectrpc/connect';
-import type { UniversalHandler } from '@connectrpc/connect/protocol';
+import type { UniversalHandler, UniversalServerRequest } from '@connectrpc/connect/protocol';
 import { GRPC, HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { BaseGrpcController } from '@/base/controllers/grpc/base';
@@ -18,12 +18,12 @@ const thrownBy = async (opts: { failure: () => never; env: string }): Promise<un
   let thrown: unknown;
 
   const fake = Object.assign(
-    async () => {
+    async (request: UniversalServerRequest) => {
       try {
         const sayHello: unknown = Reflect.get(implementation, 'sayHello');
 
         if (typeof sayHello === 'function') {
-          await sayHello({}, {});
+          await sayHello({}, { values: request.contextValues });
         }
       } catch (error) {
         thrown = error;
@@ -55,7 +55,11 @@ const thrownBy = async (opts: { failure: () => never; env: string }): Promise<un
   };
   const module: IConnectRpcModule = {
     connect: Object.assign(
-      { createConnectRouter: () => router },
+      {
+        createConnectRouter: () => router,
+        createContextKey: connect.createContextKey,
+        createContextValues: connect.createContextValues,
+      },
       { ConnectError: connect.ConnectError },
     ),
     protocol: {

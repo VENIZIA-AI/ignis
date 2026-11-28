@@ -1,3 +1,4 @@
+import * as connect from '@connectrpc/connect';
 import 'reflect-metadata';
 import { describe, test } from 'bun:test';
 import type { ConnectRouter } from '@connectrpc/connect';
@@ -18,7 +19,11 @@ const buildModule = (): IConnectRpcModule => {
   };
 
   return {
-    connect: { createConnectRouter: () => router },
+    connect: {
+      createConnectRouter: () => router,
+      createContextKey: connect.createContextKey,
+      createContextValues: connect.createContextValues,
+    },
     protocol: {
       universalServerRequestFromFetch: () => ({
         httpVersion: '1.1',

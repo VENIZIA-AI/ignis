@@ -115,15 +115,18 @@ Source: `packages/core-server/src/common/environments.ts`
 
 *class*
 
-Bridges IGNIS gRPC controllers with ConnectRPC: loads the peer deps with `ModuleUtility.load` (the ES module copy an application's own import gets), wraps handlers into ConnectRPC's signature, dispatches through a Hono middleware, and isolates request-scoped context with AsyncLocalStorage.
+Bridges IGNIS gRPC controllers with ConnectRPC: loads the peer deps with `ModuleUtility.load` (the ES module copy an
+application's own import gets) and registers one Hono route per RPC, which hands the request to ConnectRPC's handler
+with the Hono context in its context values. Connect and gRPC-Web only: native gRPC needs response trailers.
 
 ```ts
 export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ServiceType = Parameters<ConnectRouter['service']>[0], ConfigurableOptions extends object = {}> extends BaseHelper {
-    private createConnectRouter;
     private connect;
+    private protocol;
+    /** The Hono context of the call, as ConnectRPC carries it to the RPC handler. */
+    private readonly honoContext;
     /** The server's default error handler: it decides the status and the message a client may read, and logs the error. */
     private readonly handleError;
-    private protocol;
     private controller;
     private interceptors?;
     private constructor();
@@ -134,6 +137,8 @@ export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema 
     private static loadModule;
     /** Wraps IGNIS RPC registrations into ConnectRPC's (request, context) => response signature. */
     private buildConnectHandlers;
+    /** One RPC: the middlewares, then the handler; a throw becomes the answer a gRPC client reads. */
+    private wrap;
     /**
      * Runs the pre-built auth middlewares (`AbstractGrpcController.buildRpcMiddlewares`) in order. Each one must call
      * `next()` to pass the call on; one that answers, or does neither, ends it.
@@ -143,16 +148,19 @@ export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema 
     private assertDeclaredRpcs;
     /** Loose signature on purpose - the IGNIS `ServiceType` is opaque (`unknown`) while ConnectRPC expects `DescService`. */
     private registerService;
-    /** What a client reads about a failed call: the thrown message in a development environment only, as for a REST request. */
-    private readFailureMessage;
-    /** Creates the Hono middleware that dispatches to ConnectRPC universal handlers. */
-    private buildMiddleware;
-    /** Validates peer deps, creates adapter, and returns paths + middleware. */
+    /** The request ConnectRPC reads. A body an earlier middleware consumed is in Hono's cache: the request is rebuilt with it. */
+    private readRequest;
+    /**
+     * One request of one RPC: handed to ConnectRPC's handler, answered through `context.newResponse` so the headers
+     * earlier middleware set are kept. A failure outside ConnectRPC reaches the application's error handler.
+     */
+    private serve;
+    /** Validates peer deps and builds the controller's router: one route per RPC of its service. */
     static build<RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ServiceType = Parameters<ConnectRouter['service']>[0], ConfigurableOptions extends object = {}>(opts: {
         controller: AbstractGrpcController<RouteEnv, RouteSchema, BasePath, ServiceType, ConfigurableOptions>;
         interceptors?: unknown[];
         module?: IConnectRpcModule;
-    }): Promise<IConnectAdapterResult<RouteEnv, BasePath>>;
+    }): Promise<IConnectAdapterResult<RouteEnv>>;
 }
 ```
 
@@ -503,9 +511,10 @@ Source: `packages/core-server/src/components/auth/authenticate/services/bearer/a
 Result from GrpcRequestAdapter.build().
 
 ```ts
-export interface IConnectAdapterResult<RouteEnv extends Env = Env, BasePath extends string = '/', RouteInput extends Input = {}> {
+export interface IConnectAdapterResult<RouteEnv extends Env = Env> {
     paths: string[];
-    middleware: MiddlewareHandler<RouteEnv, BasePath, RouteInput>;
+    /** One route per RPC, at ConnectRPC's path (`/package.Service/Method`); mount it under the controller's path. */
+    router: Hono<RouteEnv>;
 }
 ```
 

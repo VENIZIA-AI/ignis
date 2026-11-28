@@ -47,7 +47,7 @@ The ConnectRPC peer itself, handed over by an application that already holds it.
 `bun build --compile` binary carries no `node_modules`, so the lookup {@link GrpcRequestAdapter} makes with
 `ModuleUtility.load` has nothing to resolve against - passing the modules through the gRPC
 component options (or `ModuleUtility.register`) is what a compiled application does instead. Both entry points are needed: the
-adapter builds its router from `@connectrpc/connect` and converts requests with
+adapter builds its router and context values from `@connectrpc/connect` and converts requests with
 `@connectrpc/connect/protocol`. Typed as the shape the adapter actually calls, so a wrong module
 is a compile error rather than a boot crash.
 
@@ -55,6 +55,8 @@ is a compile error rather than a boot crash.
 export interface IConnectRpcModule {
     connect: {
         createConnectRouter: (opts?: Record<string, unknown>) => ConnectRouter;
+        createContextKey: typeof createContextKey;
+        createContextValues: typeof createContextValues;
     };
     protocol: {
         universalServerRequestFromFetch: (request: Request, context: object) => UniversalServerRequest;

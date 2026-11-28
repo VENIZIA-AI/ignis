@@ -5,6 +5,8 @@ import * as protocol from '@connectrpc/connect/protocol';
 import { fileDesc, serviceDesc } from '@bufbuild/protobuf/codegenv2';
 import { GRPC } from '@venizia/ignis-helpers/common';
 import { Hono } from 'hono';
+import { requestId } from 'hono/request-id';
+import { AppErrorMiddleware } from '@/base/middlewares/app-error/app-error.middleware';
 import { BaseGrpcController } from '@/base/controllers/grpc/base';
 import { GrpcRequestAdapter } from '@/base/controllers/grpc/adapter';
 
@@ -16,7 +18,7 @@ const GreeterService = serviceDesc(
   0,
 );
 
-/** A call whose ConnectRPC transport throws before the RPC handler runs. */
+/** A call whose ConnectRPC transport throws before the RPC handler runs: the application's error handler answers it. */
 const call = async (opts: { env: string }) => {
   class GreeterController extends BaseGrpcController {
     override binding() {
@@ -44,7 +46,9 @@ const call = async (opts: { env: string }) => {
     },
   });
   const application = new Hono();
-  application.use('*', adapter.middleware);
+  application.onError(new AppErrorMiddleware().value());
+  application.use(requestId());
+  application.route('/grpc', adapter.router);
 
   const response = await application.request(
     '/grpc/greeter.v1.GreeterService/SayHello',
@@ -53,7 +57,7 @@ const call = async (opts: { env: string }) => {
   );
   const body = await response.json();
 
-  return { status: response.status, body, header: response.headers.get(GRPC.Headers.GRPC_MESSAGE) };
+  return { status: response.status, body };
 };
 
 describe('a failing gRPC transport', () => {
@@ -62,11 +66,7 @@ describe('a failing gRPC transport', () => {
       const result = await call({ env });
 
       expect(result.status).toBe(500);
-      expect(result.body).toEqual({
-        message: 'Internal Server Error',
-        code: GRPC.ResultCodes.INTERNAL,
-      });
-      expect(result.header).toBe(encodeURIComponent('Internal Server Error'));
+      expect(result.body).toHaveProperty('message', 'Internal Server Error');
     });
   }
 

@@ -182,7 +182,7 @@ export abstract class AbstractGrpcController<
       module: this.connectRpcModule,
       interceptors: this.interceptors,
     });
-    this.router.use('*', adapter.middleware);
+    this.router.route('/', adapter.router);
 
     if (adapter.paths.length > 0) {
       logger.debug('Adapter paths: %j', adapter.paths);

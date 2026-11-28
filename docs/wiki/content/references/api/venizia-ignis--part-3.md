@@ -964,12 +964,15 @@ Source: `packages/core-server/src/components/auth/authorize/adapters/scoped-casb
 
 *type*
 
-Typed handler signature for gRPC RPC methods.
+Typed handler signature for gRPC RPC methods. `rpc` is ConnectRPC's own context of the call: `signal` (aborted at the
+deadline and when the client leaves; a handler that ignores it runs on), `timeoutMs()`, `requestHeader`,
+`responseHeader` and `responseTrailer`.
 
 ```ts
 export type TRpcHandler<RequestType = unknown, ResponseType = unknown, RouteEnv extends Env = Env> = (opts: {
     request: RequestType;
     context: TRouteContext<RouteEnv>;
+    rpc: HandlerContext;
 }) => ValueOrPromise<ResponseType>;
 ```
 
