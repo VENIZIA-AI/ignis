@@ -76,6 +76,23 @@ const opensFrame = (node: ts.Node, file: ts.SourceFile): boolean => {
     return false;
   }
 
+  // A frame opened on one branch only leaves the other unframed.
+  if (ts.isIfStatement(node)) {
+    return (
+      opensFrame(node.expression, file) ||
+      (opensFrame(node.thenStatement, file) &&
+        node.elseStatement !== undefined &&
+        opensFrame(node.elseStatement, file))
+    );
+  }
+
+  if (ts.isConditionalExpression(node)) {
+    return (
+      opensFrame(node.condition, file) ||
+      (opensFrame(node.whenTrue, file) && opensFrame(node.whenFalse, file))
+    );
+  }
+
   return (
     isFramesCall({ node, methods: ['root', 'run'] }) ||
     ts.forEachChild(node, (child) => opensFrame(child, file) || undefined) === true

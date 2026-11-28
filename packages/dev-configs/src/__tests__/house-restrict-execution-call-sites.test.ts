@@ -44,6 +44,10 @@ describe('restrict-execution-call-sites: calls of the framework', () => {
     ['a value passed on', `${CORE}\nexport const run = Execution.run;`],
     ['an optional call', `${CORE}\nExecution?.run({ task });`],
     ['a computed name', `${CORE}\nExecution['run']({ task });`],
+    ['a computed name it cannot read', `${CORE}\nExecution[key]({ task });`],
+    ['a template name', `${CORE}\nExecution[\`run\`]({ task });`],
+    ['an unreadable frame method', `${FRAMES}\nExecutionFrames[key]({ task });`],
+    ['a destructuring by a computed name', `${CORE}\nconst { [key]: run } = Execution;`],
     ['a non-null wrapper', `${CORE}\nExecution!.run({ task });`],
     ['a destructuring', `${CORE}\nconst { run } = Execution;`],
     ['ExecutionFrames.run', `${FRAMES}\nExecutionFrames.run({ frame, task });`],
@@ -166,5 +170,15 @@ describe('restrict-execution-call-sites: presets', () => {
     expect(findings(houseConfigs)).toHaveLength(0);
     expect(findings(reactHouseConfigs)).toHaveLength(0);
     expect(findings([...houseConfigs, optIn]).map((finding) => finding.severity)).toEqual([2]);
+  });
+});
+
+describe('restrict-execution-call-sites: a name it cannot read', () => {
+  test('may open a root, so a file in allow may not use it', () => {
+    const file = 'src/jobs/reaper.ts';
+    const code = `${CORE}\nExecution[key]({ mode: 'scoped', task });`;
+
+    expect(lint({ code, file, allow: ['src/jobs/**'] })).toEqual(['root']);
+    expect(lint({ code, file, allowRoot: ['src/jobs/**'] })).toEqual([]);
   });
 });

@@ -256,7 +256,7 @@ await Execution.run({
 ```
 
 A root frame has no user until you name one. An audit column with `allowAnonymous: false` then refuses the write.
-The user must fit the column: a text column stores a number user as its text, and a number column takes a whole number, written as one or as text. Anything else is refused.
+The user must fit the column: a text column stores a number user as its text, and a number column takes a whole number, written as one or as decimal text. Anything else is refused.
 
 ## Hand-offs
 
@@ -378,6 +378,7 @@ devz codemod execution-scope --map scope-helpers.json src
 }
 ```
 
+- A helper is read when it is imported from a module of your application (a path starting `.`, `@/`, `~/` or `#`). For a helper from a package, add `"from": "@acme/core"` to its entry. With `from`, only that module is read; the same name from anywhere else is listed, not rewritten.
 - A system call gets the reason `TODO: reason (<file>:<method>)` for you to write.
 - It lists the calls it cannot read, and the event handlers and queue consumers to review.
 - It lists, and leaves unrewritten, a system call lexically inside a scoped one: under "innermost wins" it would see more. Review it, then pass `--rewrite-nested`. It does not follow calls across functions.

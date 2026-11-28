@@ -72,11 +72,13 @@ export class AuditUserResolver {
   static resolveAuditUserNumber(opts: IAuditUserOptions): number | null {
     const userId = AuditUserResolver.resolveAuditUserId(opts);
 
-    if (userId === null || typeof userId === 'number') {
-      return userId;
+    if (userId === null) {
+      return null;
     }
 
-    const parsed = typeof userId === 'string' && userId.trim() === '' ? Number.NaN : Number(userId);
+    // `Number` alone would read '0x1A', '1e3' and ' 42 '.
+    const isOtherText = typeof userId === 'string' && !/^-?\d+$/.test(userId);
+    const parsed = isOtherText ? Number.NaN : Number(userId);
 
     if (!Number.isSafeInteger(parsed)) {
       throw getError({

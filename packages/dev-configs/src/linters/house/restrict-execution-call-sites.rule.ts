@@ -13,6 +13,7 @@ import { ExecutionSupport } from './execution-support';
  * - `allowRoot`: globs of files that may also open a root frame: `isRoot`, `ExecutionFrames.run` and `.root`.
  *   Options the rule cannot read (a spread, a variable, `run` passed as a value) may set `isRoot`, so they count.
  *
+ * A computed name that cannot be read, on either class, counts as one that may open a root.
  * With no list, every call is reported. The presets do not turn the rule on. It follows imports of the framework's
  * packages only: a re-export of the application's own, or `Execution` held in another variable, is not followed.
  */
@@ -105,9 +106,18 @@ export class RestrictExecutionCallSitesRule {
         globs: globsOf('allow'),
       });
 
-      const check = (opts: { node: Rule.Node; method: string; member?: Rule.Node }) => {
-        const { node, method, member } = opts;
-        const opensRoot = RestrictExecutionCallSitesRule.METHODS.get(method);
+      const check = (opts: {
+        node: Rule.Node;
+        owner: string | undefined;
+        name: string | undefined;
+        member?: Rule.Node;
+      }) => {
+        const { node, owner, name, member } = opts;
+        // A name that cannot be read may be any method, the one that opens a root included.
+        const isUnread =
+          name === undefined && (owner === 'Execution' || owner === 'ExecutionFrames');
+        const method = isUnread ? `${owner}[...]` : `${owner}.${name}`;
+        const opensRoot = isUnread || RestrictExecutionCallSitesRule.METHODS.get(method);
 
         if (opensRoot === undefined) {
           return;
@@ -137,7 +147,7 @@ export class RestrictExecutionCallSitesRule {
           });
           const name = ExecutionSupport.keyOf({ node, key: 'property' });
 
-          check({ node, method: `${owner}.${name}`, member: node });
+          check({ node, owner, name, member: node });
         },
         [AstNodeTypes.VARIABLE_DECLARATOR]: (node: Rule.Node) => {
           const owner = ExecutionSupport.exportOf({
@@ -149,7 +159,10 @@ export class RestrictExecutionCallSitesRule {
           for (const property of ExecutionSupport.list({ node: pattern, key: 'properties' })) {
             const name = ExecutionSupport.keyOf({ node: property, key: 'key' });
 
-            check({ node: property, method: `${owner}.${name}` });
+            // A rest element takes the others, and has no key.
+            if (property.type === AstNodeTypes.PROPERTY) {
+              check({ node: property, owner, name });
+            }
           }
         },
       };

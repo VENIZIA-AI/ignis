@@ -13,7 +13,12 @@ An application's own scope helpers become Execution.run (@venizia/ignis). The ma
   }
 
 A key is the exported name of a helper, or "Class.method". "values" names the value of the frame (left) and the
-option of the helper that holds it (right). It reads a call of an imported helper, an aliased import included, in
+option of the helper that holds it (right). A helper is read when it is imported from a module of the application
+(a path starting ".", "@/", "~/" or "#"); for one that comes from a package, name the package with "from":
+
+  { "runElevated": { "mode": "system", "from": "@acme/core" } }
+
+With "from", only that module is read. The same name imported from anywhere else is listed. It reads a call of an imported helper, an aliased import included, in
 one of these shapes, where the task is an arrow or a function with no parameter, written in the call:
 
   helper(task)                       a helper with no "values"
@@ -61,9 +66,13 @@ const CONSUMER_CALLBACKS: ReadonlySet<string> = new Set([
 ]);
 
 /** What a helper of the map is. */
-export type TExecutionScopeEntry =
+export type TExecutionScopeEntry = (
   | { mode: 'system' }
-  | { mode: 'scoped'; values?: Readonly<Record<string, string>> };
+  | { mode: 'scoped'; values?: Readonly<Record<string, string>> }
+) & {
+  /** The module the helper is imported from. Without it, only a module of the application is read. */
+  from?: string;
+};
 
 /** The helpers of an application, by exported name or "Class.method". */
 export type TExecutionScopeMap = Readonly<Record<string, TExecutionScopeEntry>>;
@@ -112,14 +121,17 @@ export class ExecutionScopeMapReader {
       return undefined;
     }
 
-    const { mode, values, ...rest } = value;
+    const { mode, values, from, ...rest } = value;
+    const isModule = from === undefined || (typeof from === 'string' && from !== '');
 
-    if (Object.keys(rest).length > 0) {
+    if (Object.keys(rest).length > 0 || !isModule) {
       return undefined;
     }
 
+    const origin = typeof from === 'string' ? { from } : {};
+
     if (mode === 'system') {
-      return values === undefined ? { mode } : undefined;
+      return values === undefined ? { mode, ...origin } : undefined;
     }
 
     if (mode !== 'scoped') {
@@ -127,12 +139,12 @@ export class ExecutionScopeMapReader {
     }
 
     if (values === undefined) {
-      return { mode };
+      return { mode, ...origin };
     }
 
     const read = ExecutionScopeMapReader.readValues(values);
 
-    return read ? { mode, values: read } : undefined;
+    return read ? { mode, values: read, ...origin } : undefined;
   }
 
   /** The map in `text`, or why it is not one. */
@@ -156,7 +168,7 @@ export class ExecutionScopeMapReader {
 
       if (!KEY_PATTERN.test(name) || !entry) {
         return {
-          error: `"${name}": the key is a name or "Class.method", the value { "mode": "system" } or { "mode": "scoped", "values"?: { "<value>": "<option>" } }`,
+          error: `"${name}": the key is a name or "Class.method", the value { "mode": "system" } or { "mode": "scoped", "values"?: { "<value>": "<option>" } }, either with an optional "from"`,
         };
       }
 
@@ -169,6 +181,13 @@ export class ExecutionScopeMapReader {
 
 /** Rewrites the calls of one file. */
 export class ExecutionScopeRewrite {
+  /** Whether a helper imported from `module` is the one the entry means: another package may use the same name. */
+  private static isHelperModule(opts: { entry: TExecutionScopeEntry; module: string }): boolean {
+    const { entry, module } = opts;
+
+    return entry.from === undefined ? /^(\.|@\/|~\/|#)/.test(module) : module === entry.from;
+  }
+
   /** Whether `node` names a member or a property, and is no use of a binding. */
   private static isMemberName(opts: {
     typescript: typeof import('typescript');
@@ -503,8 +522,31 @@ export class ExecutionScopeRewrite {
         (name) => moduleOf(node) === name || moduleOf(node).startsWith(`${name}/`),
       );
 
-    /** Local name of an import to the name it was exported as. */
-    const bindings = new Map<string, string>();
+    /** Local name of an import to the name it was exported as, and the module. */
+    const bindings = new Map<string, { imported: string; module: string }>();
+
+    const bind = (binding: {
+      node: import('typescript').ImportDeclaration;
+      local: string;
+      imported: string;
+    }) => {
+      const { node, local, imported } = binding;
+      const module = moduleOf(node);
+      bindings.set(local, { imported, module });
+      const isForeign = Object.entries(map).some(
+        ([key, entry]) =>
+          key.split('.')[0] === imported &&
+          !ExecutionScopeRewrite.isHelperModule({ entry, module }),
+      );
+
+      if (isForeign) {
+        manual.push({
+          line: lineOf(node),
+          note: `"${imported}" is imported from "${module}": to rewrite its calls, name that module with "from" in the map`,
+        });
+      }
+    };
+
     /** The local names `Execution` and `ExecutionModes` already have as values from the framework. */
     const framework = new Map<string, string>();
 
@@ -512,7 +554,7 @@ export class ExecutionScopeRewrite {
       const clause = statement.importClause;
 
       if (clause?.name) {
-        bindings.set(clause.name.text, clause.name.text);
+        bind({ node: statement, local: clause.name.text, imported: clause.name.text });
       }
 
       if (!clause?.namedBindings || !ts.isNamedImports(clause.namedBindings)) {
@@ -523,7 +565,7 @@ export class ExecutionScopeRewrite {
         const imported = (element.propertyName ?? element.name).text;
 
         if (!isIgnis(statement)) {
-          bindings.set(element.name.text, imported);
+          bind({ node: statement, local: element.name.text, imported });
         } else if (!clause.isTypeOnly && !element.isTypeOnly) {
           framework.set(imported, element.name.text);
         }
@@ -578,10 +620,17 @@ export class ExecutionScopeRewrite {
         return undefined;
       }
 
-      const imported = bindings.get(local.text);
+      const binding = bindings.get(local.text);
+
+      if (!binding) {
+        return undefined;
+      }
+
+      const { imported, module } = binding;
       const key = `${imported}${member}`;
 
-      return imported !== undefined && Object.hasOwn(map, key)
+      return Object.hasOwn(map, key) &&
+        ExecutionScopeRewrite.isHelperModule({ entry: map[key], module })
         ? { key, local, entry: map[key] }
         : undefined;
     };

@@ -14,13 +14,23 @@ describe('socket.io on Bun, the websocket handler', () => {
     const { websocket } = engineHandler;
     const framed = SocketIOBunHandler.createWebSocketHandler({ engineHandler });
 
-    // A setting or a callback a later engine adds would be dropped: this fails until it is handed on.
+    // A callback a later engine adds is handed on unframed: this fails until it is framed or named a setting.
     expect(Object.keys(framed).sort()).toEqual(Object.keys(websocket).sort());
     expect(framed.maxPayloadLength).toBe(websocket.maxPayloadLength);
 
     for (const key of ['open', 'message', 'close'] as const) {
       expect(framed[key]).not.toBe(websocket[key]);
     }
+  });
+
+  test('hands on a setting this version of the engine does not have', async () => {
+    const { engineHandler } = await SocketIOBunHandler.createEngine({ serverOptions: {} });
+    const websocket = { ...engineHandler.websocket, idleTimeout: 7 };
+    const framed = SocketIOBunHandler.createWebSocketHandler({
+      engineHandler: { ...engineHandler, websocket },
+    });
+
+    expect(framed).toMatchObject({ idleTimeout: 7 });
   });
 });
 

@@ -409,3 +409,57 @@ describe('devz codemod execution-scope: the command', () => {
     expect(reverseCode).toBe(2);
   });
 });
+
+describe('devz codemod execution-scope: the module of a helper', () => {
+  const library = lines(
+    "import { runElevated as other } from 'some-lib';",
+    'export const a = () => other(() => 2);',
+  );
+  const run = (source: string, map: TExecutionScopeMap) =>
+    ExecutionScopeRewrite.rewrite({
+      typescript: ts,
+      fileName: '/app/src/job.ts',
+      shownName: 'src/job.ts',
+      source,
+      map,
+      isNestedRewritten: false,
+    });
+
+  test('a package import of a mapped name is listed, not rewritten', () => {
+    const result = run(library, MAP);
+
+    expect(result.output).toBe(library);
+    expect(result.rewritten).toBe(0);
+    expect(result.manual).toEqual([{ line: 1, note: expect.stringContaining('some-lib') }]);
+  });
+
+  test('"from" names the package whose calls are rewritten', () => {
+    const result = run(library, { runElevated: { mode: 'system', from: 'some-lib' } });
+
+    expect(result.rewritten).toBe(1);
+    expect(result.output).not.toContain('some-lib');
+  });
+
+  test('with "from", the name imported from another module is listed', () => {
+    const source = lines(
+      "import { runElevated } from './scope';",
+      'export const a = () => runElevated(() => 2);',
+    );
+    const result = run(source, { runElevated: { mode: 'system', from: '@app/scope' } });
+
+    expect(result.output).toBe(source);
+    expect(result.manual).toEqual([{ line: 1, note: expect.stringContaining('./scope') }]);
+  });
+
+  test.each(['./scope', '../common/scope', '@/common/scope', '~/scope', '#scope'])(
+    'without "from", %s is a module of the application',
+    (module) => {
+      const source = lines(
+        `import { runElevated } from '${module}';`,
+        'export const a = () => runElevated(() => 2);',
+      );
+
+      expect(run(source, MAP).rewritten).toBe(1);
+    },
+  );
+});

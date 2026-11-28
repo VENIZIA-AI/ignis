@@ -164,6 +164,7 @@ reported everywhere else. `Execution.sleep` and the other methods are never repo
 - `allowRoot`: globs of files that may also open a root frame: `isRoot`, `ExecutionFrames.run` and `.root`.
   Options the rule cannot read (a spread, a variable, `run` passed as a value) may set `isRoot`, so they count.
 
+A computed name that cannot be read, on either class, counts as one that may open a root.
 With no list, every call is reported. The presets do not turn the rule on. It follows imports of the framework's
 packages only: a re-export of the application's own, or `Execution` held in another variable, is not followed.
 
@@ -192,7 +193,7 @@ Source: `packages/dev-configs/src/linters/house/restrict-execution-call-sites.ru
 
 `@venizia/static-execution-reason`. The reason of a system run is logged and names the place, so it is written in
 the code and is not blank: a string, a template without expressions, a `const` of the file holding one, or a
-`static readonly` field of a class of the file (`Reasons.REAPER`, `this.REASON` in a static method). A constant
+`static readonly` field of a class of the file (`Reasons.REAPER`, `this.REASON` in a static method or field). A constant
 imported from another file cannot be read here, so it is reported.
 
 Only `Execution.run` of the framework's packages is read, with an object literal whose `mode` is
@@ -203,7 +204,7 @@ export declare class StaticExecutionReasonRule {
     static readonly NAME = "@venizia/static-execution-reason";
     /** The text of a string literal or of a template without expressions. */
     private static literalOf;
-    /** The class `this` stands for at `node`: that of the static method it is written in. */
+    /** The class `this` stands for at `node`: that of the static method or static field it is written in. */
     private static staticClassOf;
     /** The text of the `static readonly` field `member` reads, from a class of the file. */
     private static fieldOf;

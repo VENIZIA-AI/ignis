@@ -57,9 +57,11 @@ export class SocketIOBunHandler {
     engineHandler: Awaited<ReturnType<typeof SocketIOBunHandler.createEngine>>['engineHandler'];
   }) {
     const { websocket } = opts.engineHandler;
+    // A setting a later engine adds is handed on as it is.
+    const { open: _open, message: _message, close: _close, ...settings } = websocket;
 
     return {
-      maxPayloadLength: websocket.maxPayloadLength,
+      ...settings,
       open: ExecutionFrames.listener({
         handler: (...args: Parameters<typeof websocket.open>) => websocket.open(...args),
       }),

@@ -6,7 +6,7 @@ import { ExecutionSupport } from './execution-support';
 /**
  * `@venizia/static-execution-reason`. The reason of a system run is logged and names the place, so it is written in
  * the code and is not blank: a string, a template without expressions, a `const` of the file holding one, or a
- * `static readonly` field of a class of the file (`Reasons.REAPER`, `this.REASON` in a static method). A constant
+ * `static readonly` field of a class of the file (`Reasons.REAPER`, `this.REASON` in a static method or field). A constant
  * imported from another file cannot be read here, so it is reported.
  *
  * Only `Execution.run` of the framework's packages is read, with an object literal whose `mode` is
@@ -41,12 +41,21 @@ export class StaticExecutionReasonRule {
     return typeof cooked === 'string' ? cooked : undefined;
   }
 
-  /** The class `this` stands for at `node`: that of the static method it is written in. */
+  /** The class `this` stands for at `node`: that of the static method or static field it is written in. */
   private static staticClassOf(opts: { node: Rule.Node }): Rule.Node | undefined {
     const parent = ExecutionSupport.child({ node: opts.node, key: 'parent' });
 
     if (!parent || parent.type === AstNodeTypes.FUNCTION_DECLARATION) {
       return undefined;
+    }
+
+    // An arrow in a static field reads `this` as the class.
+    if (parent.type === AstNodeTypes.PROPERTY_DEFINITION) {
+      const body = ExecutionSupport.child({ node: parent, key: 'parent' });
+
+      return AstNode.readField({ node: parent, key: 'static' }) === true
+        ? ExecutionSupport.child({ node: body, key: 'parent' })
+        : undefined;
     }
 
     if (parent.type !== AstNodeTypes.FUNCTION_EXPRESSION) {

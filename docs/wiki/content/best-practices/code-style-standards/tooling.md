@@ -358,7 +358,7 @@ Every codemod below is a dry run unless you pass `--write`, and `--check` exits 
 
 **`devz codemod execution-scope --map <file.json> [paths...] [--write [--all] \| --check] [--rewrite-nested]`**
 
-- An application's own scope helpers, named in the map, become `Execution.run`. A system call gets a `TODO: reason` string for you to write.
+- An application's own scope helpers, named in the map, become `Execution.run`. A helper from a package needs `"from"` in its entry; without it only your application's modules are read. A system call gets a `TODO: reason` string for you to write.
 - Lists every call it cannot read, every system call inside a scoped one (rewritten only with `--rewrite-nested`), and event handlers and consumers as `review`.
 - No `--reverse`.
 

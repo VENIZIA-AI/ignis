@@ -585,7 +585,24 @@ describe('the user an audit column can hold', () => {
       requestOf('42');
       expect(stampCreatedBy({ table: tier.anonymous })).toBe(42);
 
-      for (const user of ['abc', '4.5', ' ', { id: 1 }, true]) {
+      requestOf('-7');
+      expect(stampCreatedBy({ table: tier.anonymous })).toBe(-7);
+
+      const refused = [
+        'abc',
+        '4.5',
+        ' ',
+        ' 42 ',
+        '0x1A',
+        '1e3',
+        1.5,
+        Number.NaN,
+        Infinity,
+        { id: 1 },
+        true,
+      ];
+
+      for (const user of refused) {
         requestOf(user);
         expect(() => stampCreatedBy({ table: tier.anonymous })).toThrow(/audit user/);
       }

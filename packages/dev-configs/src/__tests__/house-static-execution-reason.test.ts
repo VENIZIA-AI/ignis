@@ -45,6 +45,10 @@ describe('static-execution-reason: static reasons', () => {
       `class Job { static readonly REASON = 'reaper'; static go() { return ${system('this.REASON').slice(0, -1)}; } }`,
     ],
     [
+      'a static readonly read through this in a static arrow field',
+      `class Job { static readonly REASON = 'reaper'; static go = () => ${system('this.REASON').slice(0, -1)}; }`,
+    ],
+    [
       'an exported class declared later',
       `export const go = () => ${system('Reasons.REAPER')}\nexport class Reasons { static readonly REAPER = \`reaper\`; }`,
     ],
