@@ -206,7 +206,7 @@ The connection gets its idle timeout back as the call ends. A client that stops 
 
 ## Native gRPC port
 
-`Bun.serve` sends no response trailers, so clients of the gRPC protocol (grpc-go, grpc-java, `grpcurl`) get their own port: a `node:http2` listener that runs the same controllers. It is off unless you turn it on.
+`Bun.serve` sends no response trailers, so clients of the gRPC protocol (grpc-go, grpc-java, `grpcurl`) get their own port: a `node:http2` listener that runs the same controllers. It is off unless you turn it on. `native.use` and `tls.use` are booleans: anything else stops the boot.
 
 ```bash
 bun add @connectrpc/connect-node

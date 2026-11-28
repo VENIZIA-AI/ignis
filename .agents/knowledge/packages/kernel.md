@@ -85,7 +85,7 @@ Everything under `src/base/` was the engine-neutral half of `packages/core-serve
 
 Alongside it: `src/common/` carries `BindingNamespaces`, `CoreBindings`, the framework error codes,
 and `Statuses`; `src/helpers/inversion/` carries the kernel `Container` and `MetadataRegistry`;
-`src/utilities/` carries `NotSupportedUtility` and the toggle pair `TToggle` / `ToggleUtility` (`isUsed`, `pick`; `toggle.utility.ts`) - the JSX and schema builders moved to `base/controllers/common/` because they call `z.object()` at module load, which made a barrel named `utilities/` pull zod into any bundle that touched it.
+`src/utilities/` carries `NotSupportedUtility` and the toggle pair `TToggle` / `ToggleUtility` (`isUsed`, `pick`; `toggle.utility.ts`; `undefined` is off, anything but a boolean `use` throws, and the message names types only because a toggle can carry secrets) - the JSX and schema builders moved to `base/controllers/common/` because they call `z.object()` at module load, which made a barrel named `utilities/` pull zod into any bundle that touched it.
 
 ## Browser purity is the design constraint, and it is measured
 

@@ -144,7 +144,7 @@ export class StaticAssetEntryUtility {
     for (const routeKey of StaticAssetRouteKeys.ALL) {
       const toggle = entry.routes?.[routeKey];
 
-      if (toggle) {
+      if (toggle !== undefined) {
         routes[routeKey] = {
           isEnabled: StaticAssetToggleUtility.isUsed(toggle),
           override: StaticAssetToggleUtility.pick(toggle) ?? {},

@@ -1443,7 +1443,10 @@ Reads the `{ use }` switches a component or controller option is written with.
 
 ```ts
 export declare class ToggleUtility {
-    /** The only place a toggle's `use` is read. Narrowing here is what lets every caller reach the options without a cast. */
+    /**
+     * Whether a toggle is on: only `{ use: true }`; an absent one is off. Anything but an object with a boolean `use` throws,
+     * because a truthy string from a config file must never switch a feature on, nor a refused one switch TLS off.
+     */
     static isUsed<Options extends object>(toggle: TToggle<Options> | undefined): toggle is Extract<TToggle<Options>, {
         use: true;
     }>;

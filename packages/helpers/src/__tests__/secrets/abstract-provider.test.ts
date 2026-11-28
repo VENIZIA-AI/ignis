@@ -339,6 +339,26 @@ describe('AbstractSecretsHelper', () => {
     expect(ctx.timers.lastDelay()).toBe(TIMEOUT_MAX_MS);
   });
 
+  test('backoff retries wait 1 s and double each time, without jitter', async () => {
+    ctx.provider.fetchScript = [
+      { value: { password: 'p1' }, lease: { leaseId: 'L1', ttlSeconds: 10, renewable: false } },
+    ];
+
+    for (let call = 1; call <= 8; call += 1) {
+      ctx.provider.fetchErrorAtCall.set(call, getError({ message: 'vault unreachable' }));
+    }
+
+    await ctx.provider.lease({ path: 'db', key: 'datasources.postgres' });
+
+    for (let i = 0; i < 8; i += 1) {
+      await ctx.timers.fireAll();
+    }
+
+    expect(ctx.timers.delays.slice(1)).toEqual([
+      1000, 2000, 4000, 8000, 16_000, 32_000, 64_000, 128_000,
+    ]);
+  });
+
   // Fix 4 - a wedged rotatable must not stall the renewal loop for that key.
   test('a hanging rotatable does not stall the next renewal schedule', async () => {
     ctx.provider.fetchScript = [

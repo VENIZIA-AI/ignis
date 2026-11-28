@@ -1,4 +1,10 @@
-import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import {
+  BaseHelper,
+  getError,
+  RetryBackoffStrategies,
+  RetryJitterModes,
+  RetryUtility,
+} from '@venizia/ignis-helpers/core';
 import { SequentialQueueHelper } from '@venizia/ignis-helpers';
 import type {
   IMailQueueOptions,
@@ -12,6 +18,9 @@ import { MailBackoffTypes, MailDefaults, MailErrorCodes, MailExecutorErrors } fr
 
 /** In-process mail queue executor: jobs are lost on restart. Supports `delay`, `attempts` and `backoff`; call `close` to clear pending timers. */
 export class InternalQueueMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {
+  // `setTimeout` fires after about 1 ms for any longer delay.
+  private static readonly MAX_BACKOFF_DELAY_MS = 2_147_483_647;
+
   private queue: SequentialQueueHelper<IQueueJobPayload>;
   private jobIdCounter = 0;
   private delayedJobs: Map<string, NodeJS.Timeout> = new Map();
@@ -194,10 +203,17 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
       return MailDefaults.BACKOFF_DELAY_MS;
     }
 
-    if (backoff.type === MailBackoffTypes.EXPONENTIAL) {
-      return backoff.delay * Math.pow(2, job.attempts - 1);
-    }
-
-    return backoff.delay;
+    return RetryUtility.computeBackoffDelayMs({
+      attempt: job.attempts,
+      backoff: {
+        strategy:
+          backoff.type === MailBackoffTypes.EXPONENTIAL
+            ? RetryBackoffStrategies.EXPONENTIAL
+            : RetryBackoffStrategies.FIXED,
+        initialDelayMs: backoff.delay,
+        maxDelayMs: InternalQueueMailExecutorHelper.MAX_BACKOFF_DELAY_MS,
+        jitter: RetryJitterModes.NONE,
+      },
+    });
   }
 }

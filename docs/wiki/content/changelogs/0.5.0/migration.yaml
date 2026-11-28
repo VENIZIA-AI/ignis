@@ -1643,3 +1643,20 @@ execution-scope:
     steps:
       - "Pin the @venizia packages to the release before this one."
   data: Nothing stored changes.
+
+toggle-boolean-use:
+  symbols: [ToggleUtility, TToggle, IGrpcNativeOptions, TStaticAssetEntry]
+  upgrade:
+    before: |-
+      // a string from a config file: read as on
+      auth: { authenticate, publicRead: { use: process.env.APP_ENV_PUBLIC_READ } },
+    after: |-
+      auth: { authenticate, publicRead: { use: process.env.APP_ENV_PUBLIC_READ === 'true' } },
+    steps:
+      - "Find every toggle built from a config file, an environment variable or plain JavaScript: static-asset serverUpload, directUpload, directUpload.validation, metaLink, auth.publicRead and routes, and the gRPC native and native.tls."
+      - "Give use a boolean: compare the text you read, do not pass it through."
+      - "Write a switch that is off as { use: false } or leave it out. false, null and {} now stop the boot."
+  downgrade:
+    steps:
+      - "Pin the @venizia packages to the release before this one."
+  data: Nothing stored changes.

@@ -363,6 +363,8 @@ Retry backoff:
 | `{ type: 'fixed', delay }` | the raw `delay` |
 | Not set | `1000ms` |
 
+A retry waits at most `2147483647ms` (about 24.8 days), the longest delay a timer holds.
+
 ### BullMQ executor
 
 Redis-backed, distributed, backed by `BullMQHelper`. Job persistence, worker concurrency, prioritization, and delayed execution come from BullMQ itself. `removeOnComplete: true`, and `removeOnFail` keeps a failed job for `MailDefaults.FAILED_JOB_RETENTION` (7 days, at most 1000 jobs). Default enqueue options: `attempts: 3`, `backoff: { type: 'exponential', delay: 1000 }`.

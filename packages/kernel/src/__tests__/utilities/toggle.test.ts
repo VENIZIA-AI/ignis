@@ -26,6 +26,32 @@ describe('ToggleUtility', () => {
     expect(toggle.label).toBe('a');
   });
 
+  test('anything but a boolean use is refused, by isUsed and by pick', () => {
+    const invalid = [
+      '{"use":"false"}',
+      '{"use":"true"}',
+      '{"use":1}',
+      '{"use":0}',
+      '{}',
+      'null',
+      'true',
+      '"on"',
+    ];
+
+    for (const written of invalid) {
+      expect(() => ToggleUtility.isUsed(JSON.parse(written))).toThrow('A toggle must be');
+      expect(() => ToggleUtility.pick(JSON.parse(written))).toThrow('A toggle must be');
+    }
+  });
+
+  test('a refused toggle never puts its values in the message', () => {
+    const written = '{"use":"SECRET-use","key":"SECRET-key"}';
+
+    expect(() => ToggleUtility.isUsed(JSON.parse(written))).toThrow(
+      /^(?!.*SECRET).*A toggle must be/s,
+    );
+  });
+
   test('pick is undefined when the toggle is off or absent', () => {
     const off: TToggle<TOptions> = { use: false };
 
