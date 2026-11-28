@@ -1,4 +1,5 @@
 import { ObjectUtility } from '@venizia/ignis-inversion';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { HookUtility } from '../../common';
@@ -9,9 +10,16 @@ import {
   type TQueueStatus,
 } from './common';
 
+/** Calls `task` in the async context captured when the runner was made. */
+type TContextRunner = <Result>(task: () => Result) => Result;
+
 /**
  * In-memory FIFO queue that hands one element at a time to `onMessage`.
  * A throwing handler is logged and its element dropped, so the queue keeps moving.
+ *
+ * Each element is handled in the async context it was enqueued in, so a handler reads the store of the caller that
+ * enqueued it, not the one of the element before. An element pushed straight into `storage` is handled in the context
+ * the queue was built in.
  */
 export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
   public storage: Array<TQueueElement<TElementPayload>>;
@@ -22,6 +30,9 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
   protected autoDispatch: boolean = true;
   protected state: TQueueStatus = QueueStatuses.WAITING;
   protected isSettleRequested: boolean;
+
+  private readonly elementContexts = new WeakMap<TQueueElement<TElementPayload>, TContextRunner>();
+  private readonly ownContext: TContextRunner = AsyncLocalStorage.snapshot();
 
   private onMessage?: (opts: {
     identifier: string;
@@ -88,7 +99,18 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     });
   }
 
-  protected async handleMessage() {
+  /**
+   * Handles the element at the head, in its own context: the next dispatch is chained from the previous element's
+   * handling, whose context must not reach it.
+   */
+  protected handleMessage() {
+    const head = this.getElementAt(0);
+    const run = (head && this.elementContexts.get(head)) ?? this.ownContext;
+
+    return run(() => this.processHead());
+  }
+
+  private async processHead() {
     const current = this.getElementAt(0);
 
     if (!current) {
@@ -201,6 +223,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     }
 
     const queueElement: TQueueElement<TElementPayload> = { isLocked: false, payload };
+    this.elementContexts.set(queueElement, AsyncLocalStorage.snapshot());
     this.storage.push(queueElement);
     this.totalEvent++;
     await HookUtility.execute({
