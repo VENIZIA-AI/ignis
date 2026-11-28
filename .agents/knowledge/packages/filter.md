@@ -179,6 +179,12 @@ That file's `import { z } from '@hono/zod-openapi'` is load-bearing for its SIDE
 `z`: the package peers on `zod`, so importing it patches `.openapi()` onto the shared prototype before
 the builder runs. Do not narrow it to `import type`.
 
+The parsed filter is assignable to `TFilter<Model>` and `TByIdFilter<Model>`: `where` and
+`include[].scope` are typed model-free (`TWhere`, `TFilter`), and `builder.ts` annotates the fields
+union as `z.ZodType<TFields, Record<string, boolean> | string[]>`, so the parsed `fields` is `any`
+while the input type stays. Without it `string[]` does not fit `ReadonlyArray<keyof Model>`. Pinned
+by `kernel/src/__tests__/repositories/filter-query-types.test.ts`.
+
 The same file also composes the two **query wrapper schemas** every route reuses:
 `FilterQuerySchema` (`{ filter?: TFilter }`) and `WhereQuerySchema` (`{ where?: TWhere }`). They exist
 because applications were hand-writing `z.object({ filter: FilterSchema.optional() }).partial()` -

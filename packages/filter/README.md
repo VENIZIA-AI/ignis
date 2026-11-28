@@ -90,7 +90,8 @@ instead: the same schemas, built through `QuerySchemaFactory.build({ decorate })
 decorator, so your API reference documents them.
 
 The schema's inferred type is looser than `TFilter<T>`. It describes what arrives over the wire,
-so it accepts any field name in `where`.
+so it accepts any field name in `where` and `fields`. A parsed filter is assignable to `TFilter<T>`
+for any `T`: the parsed `fields` is the model-free `TFields`.
 
 ## Where it sits
 

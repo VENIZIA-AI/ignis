@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import type { TFilter, TWhere } from '../common/types';
+import type { TFields, TFilter, TWhere } from '../common/types';
 import type { TSchemaDecorator } from './common';
 import { DEFAULT_MAX_WHERE_DEPTH, WhereDepthGuard } from './where-depth';
 
@@ -50,18 +50,20 @@ export class QuerySchemaFactory {
       ],
     });
 
-    const FieldsSchema = decorate(
-      z.record(z.string(), z.boolean()).or(z.array(z.string())).optional(),
-      {
-        description:
-          'Fields selection - either an array of field names to include, or an object with field names as keys and boolean values (true to include, false to exclude)',
-        examples: [
-          JSON.stringify(['id', 'name', 'email']),
-          JSON.stringify({ id: true, name: true }),
-          JSON.stringify({ id: true, name: true, email: true, fullName: false }),
-        ],
-      },
-    );
+    /** Parsed `fields` are typed as the model-free `TFields`, like `where`: a schema knows no model, so only that type fits every `TFilter<Model>`. */
+    const FieldsValueSchema: z.ZodType<TFields, Record<string, boolean> | string[]> = z
+      .record(z.string(), z.boolean())
+      .or(z.array(z.string()));
+
+    const FieldsSchema = decorate(FieldsValueSchema.optional(), {
+      description:
+        'Fields selection - either an array of field names to include, or an object with field names as keys and boolean values (true to include, false to exclude)',
+      examples: [
+        JSON.stringify(['id', 'name', 'email']),
+        JSON.stringify({ id: true, name: true }),
+        JSON.stringify({ id: true, name: true, email: true, fullName: false }),
+      ],
+    });
 
     /** @internal Recursive schema for where clause validation with nested AND/OR. */
     const RecursiveWhereSchema: z.ZodType<TWhere> = z.lazy(() =>

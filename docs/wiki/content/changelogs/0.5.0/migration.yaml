@@ -1825,3 +1825,26 @@ toggle-boolean-use:
     steps:
       - "Pin the @venizia packages to the release before this one."
   data: Nothing stored changes.
+
+filter-fields-model-free:
+  symbols: [FieldsSchema, FilterSchema, FilterQuerySchema, QuerySchemaFactory.build, SearchInputSchema]
+  upgrade:
+    before: |-
+      const fields = FieldsSchema.parse(raw);
+      if (fields && !Array.isArray(fields) && typeof fields !== 'object') {
+        const rest: never = fields;
+      }
+    after: |-
+      const fields: Record<string, boolean> | string[] | undefined = FieldsSchema.parse(raw);
+      if (fields && !Array.isArray(fields) && typeof fields !== 'object') {
+        const rest: never = fields;
+      }
+    steps:
+      - "Where you read the parsed fields, annotate the value as Record<string, boolean> | string[] | undefined to keep it checked."
+      - "Do not read zod internals off FieldsSchema or the fields entry of FilterSchema, such as unwrap().options: build the schema you need with zod."
+      - "A cast you wrote to pass a parsed filter to a repository can be removed."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-filter, @venizia/ignis-kernel, @venizia/ignis-connectors and @venizia/ignis to the release before this one."
+      - "Put the cast back where a parsed filter is passed to a repository."
+  data: Nothing stored changes.

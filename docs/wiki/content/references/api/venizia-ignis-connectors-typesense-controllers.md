@@ -77,7 +77,7 @@ The declarations are on 3 pages; each export below links to its own.
 
 ## `SearchEngineParams`
 
-*class* - [Declaration](/references/api/venizia-ignis-connectors-typesense-controllers--part-3#searchengineparams)
+*class* - [Declaration](/references/api/venizia-ignis-connectors-typesense-controllers--part-2#searchengineparams)
 
 ## `SearchModeAllowlist`
 
