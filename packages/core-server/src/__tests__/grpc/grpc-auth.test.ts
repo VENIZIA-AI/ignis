@@ -158,10 +158,24 @@ describe('gRPC adapter - the real authenticate and authorize middleware', () => 
     expect(both.ran).toBe(1);
   });
 
+  test('ALL mode with a strategy that is not registered answers a generic internal', async () => {
+    const result = await call({
+      configs: { authenticate: { strategies: [KEY, 'missing'], mode: AuthenticationModes.ALL } },
+      headers: { [KEY]: 'ok' },
+    });
+
+    expect(result.body).toHaveProperty('code', 'internal');
+    expect(JSON.stringify(result.body)).not.toMatch(/Registry|missing/);
+    expect(result.ran).toBe(0);
+  });
+
   const empty: IRpcMetadata['authenticate'][] = [
     { strategies: [] },
     {},
     { mode: AuthenticationModes.ALL },
+    JSON.parse('{ "strategies": null }'),
+    JSON.parse('{ "strategies": "jwt" }'),
+    JSON.parse('{ "strategies": { "0": "jwt", "length": 1 } }'),
   ];
 
   for (const authenticate of empty) {

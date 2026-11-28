@@ -218,8 +218,6 @@ lets the RPC's route write the answer, trailers included, on the stream. Only RP
 ```ts
 export declare class GrpcListenerHelper extends BaseHelper {
     private readonly listener;
-    /** What `shutdownTimeout` is when it is not set, in milliseconds. */
-    static readonly DEFAULT_SHUTDOWN_TIMEOUT_MS = 10000;
     private server?;
     private readonly sessions;
     /** Every TCP connection, one that never finished its TLS handshake included: no session ever stands for it. */
@@ -347,6 +345,11 @@ export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema 
     /** A call that streams its answer: the handler's messages, one by one. */
     private stream;
     private isMessageStream;
+    /** The request a handler reads: a stream of the client stops with `rpc.signal`, a single message is as it is. */
+    private followRequest;
+    private toAbortError;
+    /** Returns a handler's answer that is no longer read, without waiting for it: its `finally` runs once it is free. */
+    private abandonAnswer;
     /** The Hono context of the call. */
     private readContext;
     /** Runs the middlewares of a call and answers the context its handler reads. A call that passed one may stay quiet. */

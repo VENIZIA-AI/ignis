@@ -81,7 +81,7 @@ The framework's `AppErrorMiddleware` catches `ApplicationError` instances and fo
 | `cause`         | `unknown`                              | The wrapped failure - reaches `Error.cause` |
 | `extra`         | `Record<string, unknown>`              | Explicit context, merged with any swept keys - and it wins on a clash                                           |
 | `transform`     | `TErrorNormalizeTransformFn`           | Builds `normalized` in place of the default |
-| `logLevel`      | `error \| emerg \| warn \| info \| debug` | The level the error handler logs this at. Defaults to `error` |
+| `logLevel`      | `error \| emerg \| warn \| info \| debug` | The level the error handler logs this at. Defaults to `warn` for a 401, 403 or 404, else `error` |
 | _anything else_ | `unknown`                              | Rides into `extra` under its own name. `getError({ message, transaction })` lands at `error.extra.transaction`  |
 
 Notes on the options:
@@ -89,7 +89,7 @@ Notes on the options:
 - `messageCode`: `message.code` and the definition's `message.code` both win over it.
 - `cause`: use it to wrap a caught error. `error` is refused on the free-form branch for exactly this case.
 - `transform`: receives `{ message: TErrorNormalized, statusCode, extra? }`. `message` is the default normalized being replaced, so `s => ({ ...s.message, text: 'x' })` amends one field.
-- `logLevel`: lower it for an expected failure (`getError({ message, statusCode: 404, logLevel: 'warn' })`), or raise it to `emerg`. It steers the server log only, never the response.
+- `logLevel`: lower it for an expected failure (`getError({ message, statusCode: 409, logLevel: 'warn' })`), or raise it to `error` or `emerg`. A 401, 403 or 404 logs at `warn` without it. It steers the server log only, never the response.
 
 > [!WARNING]
 > Spreading a definition is not the same as passing it as `error`. `getError({ error: DEF })` consumes the whole definition under one known key. `getError({ ...DEF })` hands its fields over individually. `category` and `description` are not in the consumed set, so they ride into `error.extra` under their own names. From there they reach the client response.

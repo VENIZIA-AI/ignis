@@ -234,9 +234,9 @@ export declare class RouteConfigResolver {
     private static resolveRestoreByIdConfig;
     private static resolveRestoreByConfig;
     /**
-     * The authentication of one route: its own `authenticate` wins over the controller's, and
-     * `{ skip: true }` leaves the route with no strategy at all. Shared by every controller factory so
-     * the priority is written once.
+     * The authentication of one route: its own `authenticate` wins over the controller's, field by field. A public route
+     * has none: `{ skip: true }`, or no `authenticate` anywhere. Shared by every controller factory so the priority is
+     * written once.
      */
     static resolveAuthenticate(opts: {
         controller?: {
@@ -247,7 +247,7 @@ export declare class RouteConfigResolver {
     }): {
         strategies?: TAuthStrategy[];
         mode?: TAuthMode;
-    };
+    } | undefined;
     /** The authorization of one route. Priority: endpoint authenticate.skip > endpoint authorize.skip > endpoint authorize > controller authorize. */
     static resolveAuthorize(opts: {
         controller?: IAuthorizationSpec | IAuthorizationSpec[];
@@ -280,7 +280,7 @@ export declare class RouteConfigResolver {
             authenticate: {
                 strategies?: TAuthStrategy[];
                 mode?: TAuthMode;
-            };
+            } | undefined;
             authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
             request: {
                 query: TAnyObjectSchema | z.ZodObject<{
@@ -367,7 +367,7 @@ export declare class RouteConfigResolver {
             authenticate: {
                 strategies?: TAuthStrategy[];
                 mode?: TAuthMode;
-            };
+            } | undefined;
             authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
             request: {
                 params: TAnyObjectSchema | z.ZodObject<{
@@ -456,7 +456,7 @@ export declare class RouteConfigResolver {
             authenticate: {
                 strategies?: TAuthStrategy[];
                 mode?: TAuthMode;
-            };
+            } | undefined;
             authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
             request: {
                 headers: TAnyObjectSchema | z.ZodObject<{
@@ -552,7 +552,7 @@ export declare class RouteConfigResolver {
             authenticate: {
                 strategies?: TAuthStrategy[];
                 mode?: TAuthMode;
-            };
+            } | undefined;
             authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
             request: {
                 params: TAnyObjectSchema | z.ZodObject<{
@@ -641,7 +641,7 @@ export declare class RouteConfigResolver {
             authenticate: {
                 strategies?: TAuthStrategy[];
                 mode?: TAuthMode;
-            };
+            } | undefined;
             authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
             request: {
                 query: TAnyObjectSchema | z.ZodObject<{
@@ -705,9 +705,6 @@ export declare class RouteConfigResolver {
                     required: boolean | undefined;
                 };
                 200: {
-                    description: string;
-                    content: {
-                        "application/json": {
 // ... cut
 ```
 

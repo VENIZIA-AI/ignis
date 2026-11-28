@@ -1660,6 +1660,42 @@ grpc-empty-strategies:
       - "Pin @venizia/ignis to the release before this one."
   data: Nothing stored changes.
 
+rest-empty-strategies:
+  symbols: [BaseRestController, AbstractRestController, CrudControllerFactory, RouteConfigResolver.resolveAuthenticate]
+  upgrade:
+    before: |-
+      @get({ configs: { path: '/health', authenticate: { strategies: [] }, responses } })
+    after: |-
+      // A public route has no authenticate.
+      @get({ configs: { path: '/health', responses } })
+    steps:
+      - "Start the application: the error names the controller and the route whose authenticate names no strategy."
+      - "Remove authenticate where the route is meant to be public; name its strategies where it is not, and check which requests reached it without signing in."
+      - "Search for strategies built at run time, such as a list read from configuration: leave authenticate out when the list is meant to be empty."
+      - "Where your code reads RouteConfigResolver.resolveAuthenticate, handle undefined: it is the answer for a public route."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-kernel and @venizia/ignis to the release before this one."
+  data: Nothing stored changes.
+
+refusal-log-level:
+  symbols: [BaseAppErrorMiddleware, AppErrorMiddleware, getError]
+  upgrade:
+    before: |-
+      // logged at error
+      throw getError({ statusCode: 403, message: 'Not your order' });
+    after: |-
+      // logged at warn; name the level where it must stay an error
+      throw getError({ statusCode: 403, message: 'Not your order', logLevel: 'error' });
+    steps:
+      - "Find the alerts, dashboards and log filters that count error lines for 401, 403 or 404 requests: include warn lines in them."
+      - "Check that the log level of your deployment keeps warn lines."
+      - "Set logLevel: 'error' on a refusal that must stay an error."
+  downgrade:
+    steps:
+      - "Pin the @venizia packages to the release before this one."
+  data: Nothing stored changes.
+
 grpc-interceptors-typed:
   symbols: [IGrpcComponentConfig, AbstractGrpcController]
   upgrade:

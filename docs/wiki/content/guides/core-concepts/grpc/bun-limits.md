@@ -14,7 +14,7 @@ The application port is `Bun.serve`. These limits come from Bun, not from your h
 | HTTP/1.1 only, so no bidi | native gRPC port |
 | Idle timeout at most 255 s | authenticate longer-quiet calls |
 | Request body at most `maxRequestBodySize` (128 MiB) | raise the setting, or split the upload |
-| `stop()` waits for requests in flight | [stop each handler on `rpc.signal`](/guides/core-concepts/grpc/shutdown#shutdown-of-the-application-port) |
+| `stop()` waits for requests in flight | [pass `rpc.signal` to what a unary handler waits on](/guides/core-concepts/grpc/shutdown#what-ends-by-itself-at-shutdown) |
 
 ## Quiet server streams are cut
 

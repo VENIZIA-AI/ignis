@@ -103,7 +103,7 @@ The shipped strategies are five: `BasicAuthenticationStrategy` (name `basic`), `
 2. If `context.get('auth.current.user')` is already set, the request is authenticated - `next()`.
 3. Dispatch on `mode` (`AuthenticationModes`, default `any`):
    - **`any`** - try each named strategy in order; the first success wins and the loop breaks. A strategy that throws is logged at debug and the next is tried. If no strategy produced a user, throw `401 Unauthorized` naming the tried strategies.
-   - **`all`** - every strategy must succeed; the **first** one's user is the identity source. A resulting user without `userId` is a `401`.
+   - **`all`** - every strategy must succeed; the **first** one's user is the identity source. A resulting user without `userId` is a `401`. A strategy that does not resolve is a `500` with a generic message, and the log names it.
 4. On success, set `auth.current.user` and (when `userId` exists) `audit.user.id`.
 
 `audit.user.id` is what the model audit enrichers read, which is why authentication and `createdBy`/`updatedBy` columns are coupled.

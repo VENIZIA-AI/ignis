@@ -9,43 +9,6 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 Part 4 of 9 of [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel).
 
-## `IAuthorizationEnforcer`
-
-*interface*
-
-Builds rules and evaluates requests. Cache management (`invalidateUserCache`/`rebuildUserCache`) is OPTIONAL - only on per-user-caching enforcers; the registry feature-detects it at runtime.
-
-```ts
-export interface IAuthorizationEnforcer<E extends Env = Env, TAction = string, TResource = string, TRules = unknown, TBuildRulesReturn = ValueOrPromise<TRules>, TEvaluateReturn = ValueOrPromise<TAuthorizationDecision>> {
-    name: string;
-    configure(): ValueOrPromise<void>;
-    buildRules(opts: {
-        user: IAuthorizationUser;
-        context: TContext<E, string>;
-    }): TBuildRulesReturn;
-    evaluate(opts: {
-        rules: TRules;
-        request: IAuthorizationRequest<TAction, TResource>;
-        context: TContext<E, string>;
-    }): TEvaluateReturn;
-    /** Drop a user's cached policies. Implemented only by caching enforcers. */
-    invalidateUserCache?(opts: {
-        user: IAuthorizationUser;
-    }): Promise<{
-        invalidatedKeys: number;
-    }>;
-    /** Drop + rebuild a user's cached policies. Implemented only by caching enforcers. */
-    rebuildUserCache?(opts: {
-        user: IAuthorizationUser;
-    }): Promise<{
-        cacheKey: string;
-        lineCount: number;
-    }>;
-}
-```
-
-Source: `packages/kernel/src/base/auth/authorize/common/types/enforcer.ts`
-
 ## `IAuthorizationRequest`
 
 *interface*
@@ -1309,6 +1272,63 @@ export interface IModelAccessThroughSettings {
     resolve?: never;
     columns?: never;
     write?: never;
+}
+```
+
+Source: `packages/kernel/src/helpers/inversion/common/types/model.ts`
+
+## `IModelAccessWriteSettings`
+
+*interface*
+
+What a restricted caller may write to the scope columns (`@model` settings.access.write).
+
+```ts
+export interface IModelAccessWriteSettings {
+    /**
+     * What a create, createAll or an update payload that names a scope column does when its value
+     * disagrees with the resolved scope. `reject` refuses the write and writes nothing - for
+     * `createAll` not even the valid rows. `assign` also fills a scope column that is ABSENT from a
+     * created row, when the scope is a single equality; a value that is present and disagrees is
+     * still refused.
+     *
+     * The scope's columns and allowed values are read from the resolved `where` (equality, `eq`, `inq`
+     * and arrays, `and`, and an `or` over one column). Any other shape cannot be checked, and the write
+     * is refused with its own message - never skipped. `ScopeFilters.UNRESTRICTED` bypasses the guard
+     * too, which is the deliberate way to write across scopes (system scope, an admin role).
+     *
+     * Not checked: an update that does not name the scope column (the row was already selected through
+     * the scoped `where`), and raw statements that bypass the repository.
+     *
+     * @default 'reject'
+     */
+    mode?: TScopeWriteGuard;
+    /**
+     * `true` lets a restricted caller write `null` to a scope column, or leave it out on create: the
+     * row has no owner and is shared. Without it, `null` is refused like any other value
+     * outside the scope, even when the resolved scope has a `null` branch (that branch lets the caller
+     * READ shared rows, a separate permission). Reads are scoped as before.
+     *
+     * @default false
+     */
+    sharedRows?: boolean;
+}
+```
+
+Source: `packages/kernel/src/helpers/inversion/common/types/model.ts`
+
+## `IModelAuthorizeSettings`
+
+*interface*
+
+The `authorize` settings of a model.
+
+```ts
+export interface IModelAuthorizeSettings {
+    /** The authorization principal name (resource/subject) for this model. */
+    principal: string;
+    /** Extensible - consumers can add any extra authorization metadata. */
+    [extra: string | symbol]: unknown;
 }
 ```
 

@@ -262,14 +262,12 @@ export class SearchControllerFactory extends BaseHelper {
 
     const MultiSearchResponseSchema = z.record(z.string(), z.unknown());
 
-    const resolvedAuthenticate = authenticate ?? {};
-
     return {
       SEARCH: {
         method: HTTP.Methods.POST,
         path: '/search',
         description: 'Single-collection search, one body per mode',
-        authenticate: resolvedAuthenticate,
+        authenticate,
         authorize,
         request: {
           ...(opts.requestHeaders?.search ? { headers: opts.requestHeaders.search } : {}),
@@ -288,7 +286,7 @@ export class SearchControllerFactory extends BaseHelper {
         method: HTTP.Methods.POST,
         path: '/multi-search',
         description: 'Cross-collection search, forwarded verbatim to the search engine',
-        authenticate: resolvedAuthenticate,
+        authenticate,
         authorize,
         request: {
           ...(opts.requestHeaders?.multiSearch ? { headers: opts.requestHeaders.multiSearch } : {}),

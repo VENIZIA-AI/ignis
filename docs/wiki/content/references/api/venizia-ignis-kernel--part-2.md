@@ -244,6 +244,7 @@ export declare class BaseAppErrorMiddleware extends BaseHelper implements IProvi
     private readonly environment?;
     /** Replaces {@link renderErrorForLog} - `@venizia/ignis` passes `ErrorPrettier`, which reaches `node:util` and so cannot live here. */
     private readonly formatErrorOverride?;
+    private readonly logUrlOverride?;
     constructor(opts?: {
         logger?: ILogger;
         rootKey?: string;
@@ -251,6 +252,8 @@ export declare class BaseAppErrorMiddleware extends BaseHelper implements IProvi
         unexpectedStackFrames?: number;
         environment?: () => string | undefined;
         formatError?: TErrorLogFormatter;
+        /** @internal The URL a log line names; the request's own without it. */
+        logUrl?: TErrorLogUrlReader;
     });
     /** Renders a thrown error for the log, through the `formatError` option when one was given. */
     protected formatError(opts: {
@@ -283,15 +286,13 @@ export declare class BaseAppErrorMiddleware extends BaseHelper implements IProvi
     /** An ApplicationError's `normalized` is authoritative - a `transform` may have reworded `text`. */
     private build;
     private resolve;
-    /** A throw site may set `logLevel` via `getError`; anything unset or malformed logs at `error`. */
-    protected resolveLogLevel(opts: {
-        error: TThrown;
-        statusCode: number;
-    }): TLogLevel;
+    /**
+     * A throw site may set `logLevel` via `getError`. Without one, a 401, 403 or 404 of `getError` or `HTTPException` logs
+     * at `warn`; everything else, a malformed `logLevel` included, logs at `error`.
+     */
+    private resolveLogLevel;
     /** The URL a log line names. */
-    protected readLogUrl(opts: {
-        context: Context;
-    }): string;
+    private readLogUrl;
     /** The one place a thrown error reaches the log - called once the status is known, so it carries it. */
     private logError;
     /** Only an intentional error's message is a catalog template; every other branch writes its own text, so it passes through as is. */
@@ -313,7 +314,9 @@ export declare class BaseAppErrorMiddleware extends BaseHelper implements IProvi
     value(): ErrorHandler;
 }
 
-type TThrown = Error | HTTPResponseError;
+type TErrorLogUrlReader = (opts: {
+    context: Context;
+}) => string;
 ```
 
 Source: `packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts`

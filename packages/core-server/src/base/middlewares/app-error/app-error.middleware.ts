@@ -1,7 +1,5 @@
 import { Environment, ErrorPrettier } from '@venizia/ignis-helpers';
 import { BaseAppErrorMiddleware } from '@venizia/ignis-kernel';
-import type { ILogger } from '@venizia/ignis-helpers/core';
-import type { TErrorLogFormatter } from '@venizia/ignis-kernel';
 import type { Context } from 'hono';
 import { GrpcNativeCallStore } from '@/base/controllers/grpc/native/call.store';
 
@@ -18,29 +16,23 @@ const NOT_IN_A_HOST = /[^A-Za-z0-9._:[\]-]/g;
  * For a call of the native gRPC port its log names the host the caller asked for, not the internal origin of the request.
  */
 export class AppErrorMiddleware extends BaseAppErrorMiddleware {
-  constructor(opts?: {
-    logger?: ILogger;
-    rootKey?: string;
-    intentionalStackFrames?: number;
-    unexpectedStackFrames?: number;
-    environment?: () => string | undefined;
-    formatError?: TErrorLogFormatter;
-  }) {
+  constructor(opts?: ConstructorParameters<typeof BaseAppErrorMiddleware>[0]) {
     super({
       ...opts,
       // Present, so an unresolved name here is a real misconfiguration and keeps its error line - a
       // node host always HAS an ambient environment, even when it is not set.
       environment: opts?.environment ?? (() => Environment.ambient),
       formatError: opts?.formatError ?? ((formatOpts) => ErrorPrettier.format(formatOpts)),
+      logUrl: opts?.logUrl ?? ((urlOpts) => AppErrorMiddleware.readCallUrl(urlOpts)),
     });
   }
 
   /** The host is whatever the caller sent: it is bounded, cleaned, and used in the log line only. */
-  protected override readLogUrl(opts: { context: Context }): string {
+  private static readCallUrl(opts: { context: Context }): string {
     const { context } = opts;
 
     if (!GrpcNativeCallStore.read({ env: context.env })) {
-      return super.readLogUrl(opts);
+      return context.req.url;
     }
 
     const host = (context.req.header('host') ?? '')

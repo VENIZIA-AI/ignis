@@ -422,28 +422,24 @@ export class RouteConfigResolver {
   }
 
   /**
-   * The authentication of one route: its own `authenticate` wins over the controller's, and
-   * `{ skip: true }` leaves the route with no strategy at all. Shared by every controller factory so
-   * the priority is written once.
+   * The authentication of one route: its own `authenticate` wins over the controller's, field by field. A public route
+   * has none: `{ skip: true }`, or no `authenticate` anywhere. Shared by every controller factory so the priority is
+   * written once.
    */
   static resolveAuthenticate(opts: {
     controller?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
     endpoint?: TRouteAuthenticateConfig;
-  }): { strategies?: TAuthStrategy[]; mode?: TAuthMode } {
-    const { controller = {}, endpoint } = opts;
-    const { strategies: defaultStrategies = [], mode: defaultMode } = controller;
+  }): { strategies?: TAuthStrategy[]; mode?: TAuthMode } | undefined {
+    const { controller, endpoint } = opts;
 
-    if (endpoint == null) {
-      return { strategies: defaultStrategies, mode: defaultMode };
+    if (endpoint?.skip === true || (!endpoint && !controller)) {
+      return undefined;
     }
 
-    if (endpoint.skip === true) {
-      return { strategies: [] };
-    }
-
+    // A config that names no strategy is kept: building the route refuses it.
     return {
-      strategies: endpoint.strategies ?? defaultStrategies,
-      mode: endpoint.mode ?? defaultMode,
+      strategies: endpoint?.strategies ?? controller?.strategies,
+      mode: endpoint?.mode ?? controller?.mode,
     };
   }
 
@@ -495,7 +491,7 @@ export class RouteConfigResolver {
     const {
       isStrict,
       idType,
-      authenticate: controllerAuth = {},
+      authenticate: controllerAuth,
       authorize: controllerAuthorize,
       schema: { select: selectSchema, create: createSchema, update: updateSchema },
       serverStampedKeys = [],

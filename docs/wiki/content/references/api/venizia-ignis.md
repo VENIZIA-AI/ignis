@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-122 exports, 122 with TSDoc. 1028 more are re-exported from other entries (listed at the end).
+122 exports, 122 with TSDoc. 1027 more are re-exported from other entries (listed at the end).
 
 The declarations are on 4 pages; each export below links to its own.
 
@@ -634,7 +634,6 @@ The declarations are on 4 pages; each export below links to its own.
 - `D_STROKE_REPLACEMENTS` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `DATA_SOURCE_BRAND` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `DatabaseErrorCodes` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
-- `DatabaseErrorHandler` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `DataRangeUtility` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `datasource` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `DataSourceDrivers` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)

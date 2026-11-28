@@ -1037,7 +1037,7 @@ describe('authenticate', () => {
     });
 
     expect(resolved.authorize).toBeUndefined();
-    expect(resolved.authenticate).toEqual({});
+    expect(resolved.authenticate).toBeUndefined();
   });
 
   test('{ skip: true } serves the route without a token', async () => {

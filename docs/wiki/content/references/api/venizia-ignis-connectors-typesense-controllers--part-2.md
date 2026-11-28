@@ -52,7 +52,7 @@ export declare class SearchControllerFactory extends BaseHelper {
             readonly authenticate: {
                 strategies?: TAuthStrategy[];
                 mode?: TAuthMode;
-            };
+            } | undefined;
             readonly authorize: IAuthorizationSpec<Env, string, string> | IAuthorizationSpec<Env, string, string>[] | undefined;
             readonly request: {
                 readonly body: {
@@ -466,7 +466,6 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
                                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
-                                    limit: z.ZodOptional<z.ZodNumber>;
 // ... cut
 ```
 

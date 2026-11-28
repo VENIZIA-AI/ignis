@@ -130,12 +130,25 @@ describe('Route auth config - controller level vs route level', () => {
       routes: { find: { authenticate: { skip: true } } },
     });
 
-    expect(definitions.FIND?.authenticate).toEqual({ strategies: [] });
+    expect(definitions.FIND?.authenticate).toBeUndefined();
     expect(definitions.FIND?.authorize).toBeUndefined();
 
     const routeConfigs = injectedRouteConfigs(definitions.FIND);
     expect(routeConfigs.middleware).toEqual([]);
     expect(routeConfigs.security).toEqual([]);
+  });
+
+  test('a controller with no authenticate generates public routes', () => {
+    const definitions = buildRouteDefinitions({});
+
+    expect(definitions.FIND?.authenticate).toBeUndefined();
+    expect(injectedRouteConfigs(definitions.FIND).middleware).toEqual([]);
+  });
+
+  test('a controller authenticate that names no strategy is refused', () => {
+    const definitions = buildRouteDefinitions({ authenticate: { strategies: [] } });
+
+    expect(() => injectedRouteConfigs(definitions.FIND)).toThrow('authenticate names no strategy');
   });
 
   test('authorize.skip keeps authentication but drops only the authorize middleware', () => {

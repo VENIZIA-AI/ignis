@@ -309,7 +309,8 @@ What the controller needs from its options, after every default and every cross-
 
 ```ts
 export interface ISearchResolvedOptions<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}> {
-    authenticate: {
+    /** Left out when `{ skip: true }` opens the routes. */
+    authenticate?: {
         strategies?: TAuthStrategy[];
         mode?: TAuthMode;
     };

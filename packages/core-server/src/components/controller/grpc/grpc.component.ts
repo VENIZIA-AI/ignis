@@ -9,6 +9,7 @@ import { ExecutionFrames, getError } from '@venizia/ignis-helpers/core';
 import { HTTP, ObjectUtility } from '@venizia/ignis-helpers/common';
 import type { IGrpcComponentConfig, IGrpcNativeOptions } from './common/types';
 import { GrpcListenerHelper } from '@/base/controllers/grpc/native/listener.helper';
+import { DEFAULT_SHUTDOWN_TIMEOUT_MS } from '@/base/controllers/grpc/native/constants';
 import { ToggleUtility } from '@venizia/ignis-kernel';
 import { GrpcBindingKeys } from './common/types';
 
@@ -129,7 +130,7 @@ export class GrpcComponent extends BaseComponent {
     // Registered before the native port's hook, which waits: both ports count their timeout from the same moment.
     this.registerApplicationPortShutdown({
       shutdown: httpShutdown,
-      timeoutMs: native?.shutdownTimeout ?? GrpcListenerHelper.DEFAULT_SHUTDOWN_TIMEOUT_MS,
+      timeoutMs: native?.shutdownTimeout ?? DEFAULT_SHUTDOWN_TIMEOUT_MS,
     });
 
     if (native) {

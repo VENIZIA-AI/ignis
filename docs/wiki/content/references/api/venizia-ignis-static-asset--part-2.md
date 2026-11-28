@@ -140,9 +140,7 @@ export declare class StaticAssetControllerFactory {
                 configs: RouteConfig;
             }): {
                 restConfig: Omit<RouteConfig, "authenticate" | "authorize">;
-                security: {
-                    [x: string]: never[];
-                }[];
+                security: Record<string, string[]>[];
                 mws: import("hono").MiddlewareHandler<import("hono").Env>[];
             };
             getRouteConfigs<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {

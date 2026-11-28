@@ -2,7 +2,7 @@ import { GRPC, HTTP, type TGrpcResultCode } from '@venizia/ignis-helpers/common'
 import { getError, isApplicationError, RecordUtility } from '@venizia/ignis-helpers/core';
 import type { Context, Env, ErrorHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import { DatabaseErrorCodes, DatabaseErrorHandler } from '@venizia/ignis-kernel';
+import { CoreErrorCodes, DatabaseErrorCodes } from '@venizia/ignis-kernel';
 
 const CODES = new Map<number, TGrpcResultCode>([
   [HTTP.ResultCodes.RS_4.BadRequest, GRPC.ResultCodes.INVALID_ARGUMENT],
@@ -19,6 +19,12 @@ const DATABASE_CODES = new Map<string, TGrpcResultCode>([
   [DatabaseErrorCodes.UNIQUE_VIOLATION, GRPC.ResultCodes.ALREADY_EXISTS],
   [DatabaseErrorCodes.FOREIGN_KEY_VIOLATION, GRPC.ResultCodes.FAILED_PRECONDITION],
   [DatabaseErrorCodes.CONSTRAINT_VIOLATION, GRPC.ResultCodes.FAILED_PRECONDITION],
+]);
+
+/** The `normalized.code` of every database error the error handler answers 400 or 409 for. */
+const DATABASE_ERROR_CODES = new Set<string>([
+  ...Object.values(DatabaseErrorCodes),
+  CoreErrorCodes.DATABASE_CONFLICT,
 ]);
 
 /**
@@ -38,6 +44,17 @@ export class GrpcErrors {
       'The server is shutting down',
       GRPC.ResultCodes.UNAVAILABLE,
     ]);
+  }
+
+  /** What a read of an aborted call rejects with: the signal's own `ConnectError`, else `canceled`. */
+  static aborted(opts: { connect: object; reason: unknown }): unknown {
+    const ConnectError: unknown = Reflect.get(opts.connect, 'ConnectError');
+
+    if (typeof ConnectError !== 'function' || opts.reason instanceof ConnectError) {
+      return opts.reason;
+    }
+
+    return Reflect.construct(ConnectError, ['The call was aborted', GRPC.ResultCodes.CANCELLED]);
   }
 
   /** The error of a call a middleware answered: a 4xx answer keeps its status, so its code; any other is `internal`. */
@@ -61,10 +78,11 @@ export class GrpcErrors {
   }
 
   /**
-   * A client error (4xx) thrown as `getError`'s error or as Hono's `HTTPException`, and a database error a REST request
-   * answers 400 or 409 for, becomes a `ConnectError` of the loaded ConnectRPC module, with its code and public message.
-   * Anything else, a `ConnectError` the application threw included, is answered as it is: ConnectRPC keeps its own error
-   * and hides the rest behind `internal`.
+   * Every error but a `ConnectError` goes to the error handler, which logs it. A client error (4xx) thrown as
+   * `getError`'s error or as Hono's `HTTPException`, and a database error a REST request answers 400 or 409 for, becomes
+   * a `ConnectError` of the loaded ConnectRPC module, with its code and public message. Anything else, a `ConnectError`
+   * the application threw included, is answered as it is: ConnectRPC keeps its own error and hides the rest behind
+   * `internal`.
    */
   static async toAnswer<RouteEnv extends Env>(opts: {
     error: unknown;
@@ -80,18 +98,14 @@ export class GrpcErrors {
       return error;
     }
 
-    // Only the framework's own errors and the database errors it classifies: another library's `statusCode` and text
-    // were not written for this caller.
-    const isAnswerable =
-      isApplicationError(error) ||
-      error instanceof HTTPException ||
-      (error instanceof Error && GrpcErrors.isDatabaseError({ error }));
-
-    if (!isAnswerable) {
-      return error;
-    }
-
-    const response = await handle(error, context);
+    const thrown =
+      error instanceof Error
+        ? error
+        : getError({
+            statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+            message: `A value that is no Error was thrown | value: ${String(error)}`,
+          });
+    const response = await handle(thrown, context);
 
     if (
       response.status < HTTP.ResultCodes.RS_4.BadRequest ||
@@ -101,27 +115,27 @@ export class GrpcErrors {
     }
 
     const body: unknown = await response.json();
+    const messageCode = GrpcErrors.readMessageCode({ body });
+
+    // Only the framework's own errors and the database errors it classifies: another library's `statusCode` and text
+    // were not written for this caller.
+    const isAnswerable =
+      isApplicationError(error) ||
+      error instanceof HTTPException ||
+      DATABASE_ERROR_CODES.has(messageCode);
+
+    if (!isAnswerable) {
+      return error;
+    }
+
     const message = RecordUtility.isRecord(body) ? body.message : undefined;
     const databaseCode =
       response.status === HTTP.ResultCodes.RS_4.BadRequest
-        ? DATABASE_CODES.get(GrpcErrors.readMessageCode({ body }))
+        ? DATABASE_CODES.get(messageCode)
         : undefined;
     const code = databaseCode ?? CODES.get(response.status) ?? GRPC.ResultCodes.FAILED_PRECONDITION;
 
     return Reflect.construct(ConnectError, [String(message), code]);
-  }
-
-  /** True for a database error the error handler answers 400 or 409. */
-  private static isDatabaseError(opts: { error: Error }): boolean {
-    const { error } = opts;
-
-    // Only the classification is read here: the handler writes the message, for its own environment.
-    const { isClientError } = DatabaseErrorHandler.isDatabaseClientError({
-      error,
-      isProduction: true,
-    });
-
-    return isClientError || DatabaseErrorHandler.isRetryableDatabaseError({ error });
   }
 
   /** The `normalized.code` of an error response, or an empty string. */

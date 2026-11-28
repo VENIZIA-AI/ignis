@@ -65,7 +65,7 @@ AuthenticationStrategyRegistry.getInstance().register({
 });
 
 const GATE = { authenticate: { strategies: [KEY] } };
-const seen: { aborted: number; abortFrames: unknown[]; ip?: string | null } = {
+const seen: { aborted: number; abortFrames: unknown[]; ip?: string | null; added?: number } = {
   aborted: 0,
   abortFrames: [],
 };
@@ -144,12 +144,15 @@ class GreeterController extends BaseGrpcController {
   }
 
   @clientStream({ configs: { name: 'collect', ...GATE } })
-  async collect(opts: { request: AsyncIterable<unknown> }) {
+  async collect(opts: { request: AsyncIterable<unknown>; rpc: HandlerContext }) {
     const received: string[] = [];
+    const added = spyOn(opts.rpc.signal, 'addEventListener');
 
     for await (const message of opts.request) {
       received.push(textOf(message));
     }
+
+    seen.added = added.mock.calls.length;
 
     return { message: received.join(',') };
   }
@@ -966,6 +969,119 @@ describe('native gRPC port - lifecycle', () => {
     expect(seen.aborted).toBe(2);
     expect(took).toBeLessThan(1_700);
   }, 10_000);
+
+  /** A client stream that sends one message, then stays quiet or sends one every 10 ms, until `done` aborts. */
+  async function* sending(opts: { isBusy: boolean; done: AbortSignal }) {
+    yield { name: 'a' };
+
+    while (!opts.done.aborted) {
+      // It rejects only when `done` aborts, which the loop reads.
+      await Promise.allSettled([wait({ ms: opts.isBusy ? 10 : 60_000, signal: opts.done })]);
+
+      if (!opts.done.aborted) {
+        yield { name: 'b' };
+      }
+    }
+  }
+
+  const isStream = (answer: unknown): answer is AsyncIterable<unknown> =>
+    typeof answer === 'object' && answer !== null && Symbol.asyncIterator in answer;
+
+  /** Reads a call to its end, whether it answers one message or a stream of them. */
+  const drain = async (answer: unknown) => {
+    if (isStream(answer)) {
+      for await (const _message of answer) {
+        // read to the end
+      }
+
+      return;
+    }
+
+    await answer;
+  };
+
+  /** Starts one call on `port`, stops the application and answers how long that took and what the client read. */
+  const stopDuring = async (opts: {
+    port: 'application' | 'native';
+    name: string;
+    input: (done: AbortSignal) => unknown;
+  }) => {
+    const running = await start({ port: 0, shutdownTimeout: 400 });
+    const done = new AbortController();
+    const method: unknown =
+      opts.port === 'native'
+        ? Reflect.get(client({ url: `http://${addressOf(running)}` }), opts.name)
+        : httpMethod({ application: running, name: opts.name });
+
+    if (typeof method !== 'function') {
+      throw getError({ message: 'no method' });
+    }
+
+    const failure = failureOf(drain(method(opts.input(done.signal), { headers: SIGNED_IN })));
+    await Execution.sleep({ ms: 200 });
+    const stopping = timedStop({ application: running });
+    const took = await Promise.race([stopping, Execution.sleep({ ms: 3_000 }).then(() => -1)]);
+    const result = await Promise.race([
+      failure,
+      Execution.sleep({ ms: 1_000 }).then(() => undefined),
+    ]);
+    done.abort();
+
+    return { took, result };
+  };
+
+  const clientStreams = [
+    { port: 'application' as const, name: 'collect' },
+    { port: 'native' as const, name: 'collect' },
+    { port: 'native' as const, name: 'chat' },
+  ];
+
+  for (const stream of clientStreams) {
+    for (const isBusy of [true, false]) {
+      const kind = isBusy ? 'busy' : 'quiet';
+
+      test(`stop() ends a ${kind} "${stream.name}" call of the ${stream.port} port at shutdownTimeout`, async () => {
+        const { took, result } = await stopDuring({
+          ...stream,
+          input: (done) => sending({ isBusy, done }),
+        });
+
+        expect(took).toBeGreaterThanOrEqual(150);
+        expect(took).toBeLessThan(1_000);
+        expect(result?.code).toBe(Code.Unavailable);
+        expect(result?.message).toContain('The server is shutting down');
+      }, 10_000);
+    }
+  }
+
+  for (const port of ['application', 'native'] as const) {
+    test(`stop() ends a server stream of the ${port} port whose handler ignores rpc.signal`, async () => {
+      const { took, result } = await stopDuring({
+        port,
+        name: 'listHellos',
+        input: () => ({ name: '2500' }),
+      });
+
+      expect(took).toBeGreaterThanOrEqual(150);
+      expect(took).toBeLessThan(1_800);
+      expect(result?.code).toBe(Code.Unavailable);
+    }, 10_000);
+  }
+
+  test('reading a client stream adds no abort listener per message', async () => {
+    async function* many() {
+      for (let index = 0; index < 200; index += 1) {
+        yield { name: 'm' };
+      }
+    }
+
+    const method = httpMethod({ application, name: 'collect' });
+    const answer: unknown = await method(many(), { headers: SIGNED_IN });
+
+    expect(String(Reflect.get(Object(answer), 'message')).split(',')).toHaveLength(200);
+    // The one listener of the iterator, for all 200 reads.
+    expect(seen.added).toBe(1);
+  });
 
   for (const native of [
     { port: -1 },

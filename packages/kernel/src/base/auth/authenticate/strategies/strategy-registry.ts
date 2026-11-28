@@ -44,9 +44,7 @@ export class AuthenticationStrategyRegistry extends AbstractAuthRegistry<IAuthen
 
   /**
    * The names on this list that no registered strategy answers to.
-   *
-   * An EMPTY list yields nothing - it is the framework's own encoding of
-   * `authenticate: { skip: true }`, so treating it as a problem would flag every public route.
+   * An empty list yields nothing.
    *
    * Nothing is reported while the registry is empty. Route configs are built during
    * `registerControllers()`, after `preConfigure()` and `registerComponents()`, so a real

@@ -25,6 +25,12 @@ import { ZodErrorHandler } from './zod.handler';
 
 const DEFAULT_INTERNAL_ERROR_MESSAGE = 'Internal Server Error';
 const MAX_ERROR_STATUS = 599;
+/** The refusals a caller causes in normal use. */
+const EXPECTED_REFUSALS = new Set<number>([
+  HTTP.ResultCodes.RS_4.Unauthorized,
+  HTTP.ResultCodes.RS_4.Forbidden,
+  HTTP.ResultCodes.RS_4.NotFound,
+]);
 
 /**
  * Set by `ApplicationError.fromUnknown` on an error it wrapped from a value with no usable HTTP status. Read by registry key, so
@@ -47,6 +53,7 @@ export type TErrorLogFormatter = (opts: {
 }) => string;
 
 type TThrown = Error | HTTPResponseError;
+type TErrorLogUrlReader = (opts: { context: Context }) => string;
 type TDatabaseClientError = ReturnType<typeof DatabaseErrorHandler.isDatabaseClientError>;
 
 /**
@@ -119,6 +126,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
 
   /** Replaces {@link renderErrorForLog} - `@venizia/ignis` passes `ErrorPrettier`, which reaches `node:util` and so cannot live here. */
   private readonly formatErrorOverride?: TErrorLogFormatter;
+  private readonly logUrlOverride?: TErrorLogUrlReader;
 
   constructor(opts?: {
     logger?: ILogger;
@@ -127,6 +135,8 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     unexpectedStackFrames?: number;
     environment?: () => string | undefined;
     formatError?: TErrorLogFormatter;
+    /** @internal The URL a log line names; the request's own without it. */
+    logUrl?: TErrorLogUrlReader;
   }) {
     // `new.target`, not a literal: a subclass logs under its own name, so `@venizia/ignis`'s
     // `AppErrorMiddleware` keeps the scope it has always logged under.
@@ -137,6 +147,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     this.unexpectedStackFrames = opts?.unexpectedStackFrames ?? DEFAULT_UNEXPECTED_STACK_FRAMES;
     this.environment = opts?.environment;
     this.formatErrorOverride = opts?.formatError;
+    this.logUrlOverride = opts?.logUrl;
 
     if (opts?.logger) {
       this.logger = opts.logger;
@@ -413,20 +424,30 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     }
   }
 
-  /** A throw site may set `logLevel` via `getError`; anything unset or malformed logs at `error`. */
-  protected resolveLogLevel(opts: { error: TThrown; statusCode: number }): TLogLevel {
-    const candidate = 'logLevel' in opts.error ? opts.error.logLevel : undefined;
+  /**
+   * A throw site may set `logLevel` via `getError`. Without one, a 401, 403 or 404 of `getError` or `HTTPException` logs
+   * at `warn`; everything else, a malformed `logLevel` included, logs at `error`.
+   */
+  private resolveLogLevel(opts: { error: TThrown; statusCode: number }): TLogLevel {
+    const { error, statusCode } = opts;
+    const candidate = 'logLevel' in error ? error.logLevel : undefined;
 
     if (typeof candidate === 'string' && LogLevels.isValid(candidate)) {
       return candidate;
     }
 
-    return LogLevels.ERROR;
+    // A foreign error with such a status is no refusal the application wrote: it stays at `error`.
+    const isRefusal =
+      candidate === undefined &&
+      EXPECTED_REFUSALS.has(statusCode) &&
+      (isApplicationError(error) || this.readClientErrorStatus({ error }) !== undefined);
+
+    return isRefusal ? LogLevels.WARN : LogLevels.ERROR;
   }
 
   /** The URL a log line names. */
-  protected readLogUrl(opts: { context: Context }): string {
-    return opts.context.req.url;
+  private readLogUrl(opts: { context: Context }): string {
+    return this.logUrlOverride?.(opts) ?? opts.context.req.url;
   }
 
   /** The one place a thrown error reaches the log - called once the status is known, so it carries it. */

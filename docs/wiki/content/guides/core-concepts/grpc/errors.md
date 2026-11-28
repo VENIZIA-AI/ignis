@@ -63,7 +63,7 @@ Outside the development environments the message names the kind of error only: n
 
 ## What the log shows
 
-A failed RPC the error handler answers is logged once. A 401, 403 or 404 is logged at `warn`, any other at `error`; a `logLevel` you set on `getError` wins. A call of the native port is logged as `grpc://<host the caller sent>/<path>`: the host is the caller's text, so do not rely on it.
+Every failed RPC is logged once, an unexpected error such as a `TypeError` or a lost database connection included. A `ConnectError` is your own answer and is not logged. A 401, 403 or 404 of `getError` or `HTTPException` is logged at `warn`, any other error at `error`; a `logLevel` you set on `getError` wins. A call of the native port is logged as `grpc://<host the caller sent>/<path>`: the host is the caller's text, so do not rely on it.
 
 ## Choose a gRPC code yourself
 
@@ -100,7 +100,7 @@ try {
 | Compressed request message | `unimplemented` |
 | Deadline passed, handler honoured `rpc.signal` | `deadline_exceeded` |
 | Client cancelled | `canceled` |
-| Native port stopping, call aborted | `unavailable` |
+| Server stopping, call aborted | `unavailable` |
 | Request over `server.maxRequestBodySize` (application port) | HTTP 413 |
 | gRPC content type on the application port | HTTP 415 |
 | Bidi on the application port | HTTP 505 |

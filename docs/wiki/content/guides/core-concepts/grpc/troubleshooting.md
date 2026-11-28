@@ -31,7 +31,7 @@ A public call hit the idle timeout. [Raise it or authenticate](/guides/core-conc
 
 ## Every error arrives as internal
 
-Only IGNIS errors and `HTTPException` with a 4xx keep their code. [Throw `getError` or a `ConnectError`](/guides/core-concepts/grpc/errors#errors-that-answer-internal).
+Only IGNIS errors, `HTTPException` with a 4xx and request-caused database errors keep their code. The server log has the cause. [Throw `getError` or a `ConnectError`](/guides/core-concepts/grpc/errors#errors-that-answer-internal).
 
 ## resource_exhausted on a large message
 
@@ -62,4 +62,4 @@ Set `middlewares.cors` for your origin. See [browser clients](/guides/core-conce
 
 ## Shutdown hangs or exits with code 1
 
-A handler that ignores `rpc.signal` holds `stop()` on the application port. [Pass the signal to everything it waits on](/guides/core-concepts/grpc/shutdown#shutdown-of-the-application-port), and keep the signal `timeoutMs` above `shutdownTimeout`.
+A unary handler that ignores `rpc.signal` holds `stop()` on the application port. [Pass the signal to everything it waits on](/guides/core-concepts/grpc/shutdown#what-ends-by-itself-at-shutdown), and keep the signal `timeoutMs` above `shutdownTimeout`.

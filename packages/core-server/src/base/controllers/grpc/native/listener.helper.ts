@@ -11,6 +11,7 @@ import type {
 import type { Socket } from 'node:net';
 import { GrpcNativeCallStore } from './call.store';
 import type { IGrpcNativeOptions } from './common/types';
+import { DEFAULT_SHUTDOWN_TIMEOUT_MS } from './constants';
 import { GrpcHeaderUtility } from './header.utility';
 import { GrpcNativeWriter } from './native.writer';
 
@@ -47,9 +48,6 @@ export interface IGrpcListenerOptions {
  * lets the RPC's route write the answer, trailers included, on the stream. Only RPC paths are served, with POST.
  */
 export class GrpcListenerHelper extends BaseHelper {
-  /** What `shutdownTimeout` is when it is not set, in milliseconds. */
-  static readonly DEFAULT_SHUTDOWN_TIMEOUT_MS = 10_000;
-
   private server?: Http2Server;
   private readonly sessions = new Set<ServerHttp2Session>();
   /** Every TCP connection, one that never finished its TLS handshake included: no session ever stands for it. */
@@ -165,8 +163,7 @@ export class GrpcListenerHelper extends BaseHelper {
       session.close();
     }
 
-    const timeout =
-      this.listener.options.shutdownTimeout ?? GrpcListenerHelper.DEFAULT_SHUTDOWN_TIMEOUT_MS;
+    const timeout = this.listener.options.shutdownTimeout ?? DEFAULT_SHUTDOWN_TIMEOUT_MS;
     await this.settle({ task: drained, ms: timeout });
 
     if (this.sessions.size > 0) {
@@ -277,7 +274,7 @@ export class GrpcListenerHelper extends BaseHelper {
       );
     }
 
-    const timeout = shutdownTimeout ?? GrpcListenerHelper.DEFAULT_SHUTDOWN_TIMEOUT_MS;
+    const timeout = shutdownTimeout ?? DEFAULT_SHUTDOWN_TIMEOUT_MS;
 
     if (!Number.isFinite(timeout) || timeout <= 0 || timeout > MAX_TIMEOUT_MS) {
       refuse(

@@ -79,6 +79,11 @@ describe.each(['production', 'development'])('gRPC errors on the wire - %s', (en
     expect(result3).toEqual(INTERNAL);
   });
 
+  test('a thrown string stays internal', async () => {
+    const result = await call({ failure: 'connection string', env });
+    expect(result).toEqual(INTERNAL);
+  });
+
   test('any other error stays internal', async () => {
     const result4 = await call({ failure: new Error('connection string'), env });
     expect(result4).toEqual(INTERNAL);
@@ -223,6 +228,30 @@ describe('gRPC errors - the level a failed RPC is logged at', () => {
     const levels = await levelsOf(new HTTPException(403, { message: 'refused' }));
 
     expect(levels).toEqual(['warn']);
+  });
+
+  const unexpected = [
+    { name: 'an Error', failure: new Error('boom') },
+    { name: 'a TypeError', failure: new TypeError('boom') },
+    { name: 'a database error of the server', failure: databaseError('42P01') },
+    { name: 'a lost database connection', failure: databaseError('08006') },
+    { name: 'a thrown string', failure: 'boom' },
+    {
+      name: 'a foreign error with statusCode 404',
+      failure: Object.assign(new Error('boom'), { statusCode: 404 }),
+    },
+  ];
+
+  test.each(unexpected)('$name is logged at error and answers internal', async (row) => {
+    const levels = await levelsOf(row.failure);
+
+    expect(levels).toEqual(['error']);
+  });
+
+  test('a ConnectError is the answer the handler chose: it is not logged', async () => {
+    const levels = await levelsOf(new ConnectError('later', Code.Unavailable));
+
+    expect(levels).toEqual([]);
   });
 
   test('a logLevel the throw site set wins', async () => {

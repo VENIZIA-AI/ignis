@@ -376,7 +376,7 @@ const adapter = new ScopedCasbinAdapter({ dataSource, entities: { /* IScopedCasb
 Check, in order:
 
 1. `authorize` is actually set on the route config (not just `authenticate`).
-2. `authenticate` isn't `{ skip: true }` - that skips authorization too, in both raw route configs and the CRUD factory.
+2. `authenticate` isn't `{ skip: true }` - that skips authorization too, in the CRUD factory.
 3. The component is registered AND at least one enforcer is registered via `AuthorizationEnforcerRegistry`.
 4. If no enforcers are registered, the middleware denies with a 403 naming the missing enforcer - unless `defaultDecision: 'allow'` is set, in which case it proceeds and logs a warning. A warning in your logs on every request is often the real sign of "no enforcer registered" during rollout.
 

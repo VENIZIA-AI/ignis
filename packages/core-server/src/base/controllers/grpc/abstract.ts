@@ -104,7 +104,7 @@ export abstract class AbstractGrpcController<
       const { strategies = [], mode = AuthenticationModes.ANY } = configs.authenticate;
 
       // Refused, not skipped: a gate that names no strategy would leave the RPC public.
-      if (strategies.length === 0) {
+      if (!Array.isArray(strategies) || strategies.length === 0) {
         throw getError({
           message: `[${this.constructor.name}] RPC "${configs.name}": authenticate names no strategy | name one in authenticate.strategies, or remove authenticate for a public RPC`,
         });

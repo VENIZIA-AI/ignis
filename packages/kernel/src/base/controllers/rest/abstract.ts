@@ -152,23 +152,33 @@ export abstract class AbstractRestController<
 
   /** @internal Builds auth + custom middlewares and security specs from route config. */
   buildRouteMiddlewares<RouteConfig extends IAuthRouteConfig>(opts: { configs: RouteConfig }) {
-    const { authenticate = {}, authorize, ...restConfig } = opts.configs;
-    const { strategies = [], mode = AuthenticationModes.ANY } = authenticate;
-
-    // Boot-time and NON-fatal: names a misspelled strategy at error level instead of leaving it as
-    // a 401 nobody can explain. Deliberately not a throw - `AuthControllerFactory.build` hard-codes `jwt`
-    // on four routes, and ANY mode tolerates a strategy that does not resolve, so failing here would
-    // stop applications booting that work today. `assertRegistered` is there for an application that
-    // does want the hard failure.
-    AuthenticationStrategyRegistry.getInstance().reportUnregistered({
-      names: strategies,
-      scope: this.constructor.name,
-    });
-
-    const security = strategies.map((strategy: string) => ({ [strategy]: [] }));
+    const { authenticate, authorize, ...restConfig } = opts.configs;
+    const security: Array<Record<string, string[]>> = [];
     const mws: ReturnType<typeof authenticateFn>[] = [];
 
-    if (strategies.length > 0) {
+    if (authenticate) {
+      const { strategies, mode = AuthenticationModes.ANY } = authenticate;
+
+      // Refused, not skipped: a route is public only with no `authenticate`.
+      if (!Array.isArray(strategies) || strategies.length === 0) {
+        const route = `${restConfig.method?.toUpperCase()} ${restConfig.path}`;
+
+        throw getError({
+          message: `[${this.constructor.name}] Route "${route}": authenticate names no strategy | name one in authenticate.strategies, or remove authenticate for a public route`,
+        });
+      }
+
+      // Boot-time and NON-fatal: names a misspelled strategy at error level instead of leaving it as
+      // a 401 nobody can explain. Deliberately not a throw - `AuthControllerFactory.build` hard-codes `jwt`
+      // on four routes, and ANY mode tolerates a strategy that does not resolve, so failing here would
+      // stop applications booting that work today. `assertRegistered` is there for an application that
+      // does want the hard failure.
+      AuthenticationStrategyRegistry.getInstance().reportUnregistered({
+        names: strategies,
+        scope: this.constructor.name,
+      });
+
+      security.push(...strategies.map((strategy: string) => ({ [strategy]: [] })));
       mws.push(authenticateFn({ strategies, mode }));
     }
 

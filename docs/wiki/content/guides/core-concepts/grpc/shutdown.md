@@ -32,11 +32,24 @@ Connect and gRPC-Web calls are ordinary requests, and the server waits for the r
 2. An RPC that ends in time answers as usual.
 3. After `shutdownTimeout`, `rpc.signal` of the RPCs still running aborts. A handler that stops on it answers `unavailable`.
 
-A handler that ignores `rpc.signal` runs on, and `stop()` waits for it: the application port cannot cut one RPC without cutting the REST requests too. The signal `timeoutMs` then ends the process. A REST request has no such signal and is waited for.
+## What ends by itself at shutdown
+
+These end on both ports when `rpc.signal` aborts, and the client reads `unavailable`:
+
+| Handler | What happens |
+|---|---|
+| reads a client stream (`for await` over `request`) | the read rejects, even while the client is quiet |
+| streams its answer (server stream, bidi) | the answer ends, and the generator's `finally` runs once it is free |
+
+A client stream handler may catch the rejection and still answer. A streaming answer cannot send a last message after the signal aborted.
+
+Anything else the handler waits on is yours to stop. A unary handler that ignores `rpc.signal` runs on, and `stop()` waits for it on the application port, which cannot cut one RPC without cutting the REST requests too. The signal `timeoutMs` then ends the process. A REST request has no such signal and is waited for.
+
+An `abort` listener you add to `rpc.signal` must not throw: it also runs when a client cancels, and IGNIS cannot catch its error. Bun raises it as an `uncaughtException`, which ends the process unless something handles it. The winston logger handles it, and logs it, only when it has an exception transport (file or datagram logging).
 
 ## End long-lived streams at shutdown
 
-A stream that waits on `rpc.signal` ends by itself after the timeout. To end it at once instead, register a post-stop hook in `preConfigure()`. Hooks run one after another in the order registered, so yours runs before the one that closes the native port.
+A stream ends by itself after the timeout. To end it at once instead, register a post-stop hook in `preConfigure()`. Hooks run one after another in the order registered, so yours runs before the one that closes the native port.
 
 ```typescript
 override preConfigure() {

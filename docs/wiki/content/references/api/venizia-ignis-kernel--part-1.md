@@ -177,9 +177,7 @@ export declare abstract class AbstractRestController<RouteEnv extends Env = Env,
         configs: RouteConfig;
     }): {
         restConfig: Omit<RouteConfig, "authenticate" | "authorize">;
-        security: {
-            [x: string]: never[];
-        }[];
+        security: Record<string, string[]>[];
         mws: import("hono").MiddlewareHandler<Env>[];
     };
     /** Processes route config, injecting auth middleware and OpenAPI security specs. */
@@ -522,6 +520,8 @@ export declare class AuthenticationProvider<RouteEnv extends Env = Env> extends 
     private createAuthenticateMiddleware;
     private executeAnyMode;
     private executeAllMode;
+    /** A strategy `all` mode requires. One that does not resolve is the server's fault: the log names it, the client does not. */
+    private resolveRequired;
     private setCurrentUser;
 }
 ```
@@ -552,9 +552,7 @@ export declare class AuthenticationStrategyRegistry extends AbstractAuthRegistry
     }): IAuthenticationStrategy;
     /**
      * The names on this list that no registered strategy answers to.
-     *
-     * An EMPTY list yields nothing - it is the framework's own encoding of
-     * `authenticate: { skip: true }`, so treating it as a problem would flag every public route.
+     * An empty list yields nothing.
      *
      * Nothing is reported while the registry is empty. Route configs are built during
      * `registerControllers()`, after `preConfigure()` and `registerComponents()`, so a real

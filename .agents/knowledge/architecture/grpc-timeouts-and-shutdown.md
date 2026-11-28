@@ -17,7 +17,11 @@ tags: [architecture, grpc]
   for requests in flight, then datasources.
 - Application port stop: the `grpc.http.stop` hook, registered before the native one, starts an unref'd timer of
   `native.shutdownTimeout` (default 10 000 ms, also with the native port off) that aborts the signal of the Connect
-  router: running handlers read `unavailable`. A handler that ignores `rpc.signal` still holds `Bun.serve`'s stop.
+  router: reads of a streamed request and streamed answers reject, and clients read `unavailable`. A unary handler
+  that ignores `rpc.signal` still holds `Bun.serve`'s stop.
+- An `abort` listener on `rpc.signal` that throws is an `uncaughtException` in Bun: `abort()` does not throw, so there
+  is no place to catch it. It ends the process unless handled; winston registers an exception handler only for an
+  exception transport.
 - Native stop: GOAWAY, wait `shutdownTimeout`, abort the shutdown signal (clients read `unavailable`), 1 s grace,
   destroy sessions and sockets.
 
