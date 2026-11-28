@@ -199,7 +199,6 @@ class NativeApplication extends BaseApplication {
         port: 0,
         path: { base: '/api', isStrict: false },
         transports: [ControllerTransports.REST, ControllerTransports.GRPC],
-        asyncContext: { enable: true },
         server: { idleTimeout: IDLE_SECONDS },
         error: { rootKey: 'error' },
       },

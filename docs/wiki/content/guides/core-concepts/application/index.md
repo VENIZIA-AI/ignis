@@ -109,8 +109,8 @@ initialize()
   │
   ├─►  1. printStartUpInfo               (application name, version, environment)
   ├─►  2. validateEnvs
-  ├─►  3. registerDefaultMiddlewares     (CORS, request id, body limit, error handler, 404, request tracker,
-  │                                        contextStorage() when asyncContext.enable, favicon)
+  ├─►  3. registerDefaultMiddlewares     (CORS, request id, body limit, error handler, 404, request frame,
+  │                                        request tracker, favicon)
   ├─►  4. staticConfigure                ← Override hook
   ├─►  5. registerArtifacts              (registers the index named by configs.artifacts)
   ├─►  6. preConfigure                   ← Override hook
@@ -156,7 +156,6 @@ Application configuration is passed to the `BaseApplication` constructor via an 
 | `debug.shouldShowRoutes`| `boolean`| `false`| If `true`, prints all registered routes to the console on startup. |
 | `favicon` | `string` | `'🔥'` | An emoji to be used as the application's favicon. |
 | `artifacts` | `TArtifactIndexInput` | `undefined` | The generated artifact index (or several), registered before `preConfigure()` |
-| `asyncContext.enable` | `boolean` | `true` on `BaseApplication`, `false` on `RestApplication` and `WorkerApplication` | Enable Hono's async context storage (`contextStorage()`) |
 | `transports` | `TControllerTransport[]` | `['rest']` | Controller transports to enable. Add `'grpc'` for gRPC support. |
 | `error.rootKey` | `string` | `undefined` | Optional root key for error response wrapping. |
 | `error.environment` | `string` | `process.env.NODE_ENV` | The ambient environment name, for runtimes with no `process.env` |
@@ -173,7 +172,6 @@ Notes on the options:
 - `port`: a value outside 0-65535 is skipped. `0` asks the OS for a free port, and `getServerPort()` returns the real one.
 - `path.base`: an empty string mounts the application at the root; a value that is not a string makes the constructor throw.
 - `path.isStrict`: the type requires `path` to carry it, and an omitted value at run time means `true`. Under `false`, declare routes without a trailing slash: a route declared as `/users/` is unreachable.
-- `asyncContext.enable`: only a server application reads it. A Worker has no async context store, so `true` there changes nothing.
 - `error.environment`: `BaseApplication` ignores it and reads `process.env.NODE_ENV`. Set it where there is no `process.env`, such as a browser Worker.
 - `middlewares.bodyLimit`: it runs ahead of every other middleware. Setting it replaces the default, `enable: false` removes it, and a route sets its own with `BodyLimits.route`.
 - `bootChecks`: `binding.{ doVerify, allowManual, allowOverride }` and `allowDerivedKeyCollision`. Without `binding`, nothing is verified. See [Registering artifacts](./bootstrapping).

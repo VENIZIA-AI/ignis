@@ -67,10 +67,8 @@ protected async registerDefaultMiddlewares() {
   server.notFound(notFoundHandler({ logger }));
 
   // Then what only a listening server adds:
-  // 5. Async context storage (if enabled)
-  if (this.configs.asyncContext?.enable) {
-    server.use(contextStorage());
-  }
+  // 5. The request frame: what runs after it is one execution frame, with this request
+  server.use(RequestFrameMiddleware.create());
 
   // 6. RequestTrackerComponent (RequestSpyMiddleware; the requestId it reads is already installed)
   this.component(RequestTrackerComponent);
@@ -732,7 +730,6 @@ Several middleware behaviors are configured through `IApplicationConfigs`:
 interface IApplicationConfigs {
   favicon?: string;                    // Emoji for EmojiFaviconMiddleware.create (default: '🔥')
   error?: { rootKey?: string; environment?: string }; // Root key wrapper for AppErrorMiddleware; ambient environment name
-  asyncContext?: { enable: boolean };  // Enable Hono contextStorage() middleware (default: true on BaseApplication, false on Rest and Worker)
   middlewares?: IMiddlewareConfigs;    // Only bodyLimit is installed by the framework - see Body limit
   // ...
 }

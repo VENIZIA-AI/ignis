@@ -99,6 +99,30 @@ export interface IClassRenamesResult {
   rewritten: number;
 }
 
+/** What a codemod did to one file. */
+export interface ICodemodRewrite {
+  output: string;
+  changed: boolean;
+  rewritten: number;
+  /** The lines the codemod leaves to a person. */
+  manual: Array<{ line: number; note: string }>;
+}
+
+/** A codemod that runs through the command of this file: which files it reads, and what it does to one. */
+export interface IFileCodemod {
+  name: string;
+  usage: string;
+  isReversible: boolean;
+  /** A file holding none of these is not read. */
+  marks: (opts: { reverse: boolean }) => ReadonlyArray<string>;
+  rewrite: (input: {
+    typescript: typeof import('typescript');
+    fileName: string;
+    source: string;
+    reverse: boolean;
+  }) => ICodemodRewrite;
+}
+
 /** The prefix of the alias a renamed import gets when the file already declares the new name. */
 const ALIAS_PREFIX = 'Ignis';
 
@@ -382,18 +406,37 @@ export class ClassRenames {
 export class ClassRenamesCommand {
   static readonly USAGE = USAGE;
 
+  /** A table of renames as a codemod under its own command name. */
+  static ofRows(opts: {
+    name: string;
+    usage: string;
+    rows: ReadonlyArray<IClassRename>;
+  }): IFileCodemod {
+    const { name, usage, rows } = opts;
+
+    return {
+      name,
+      usage,
+      isReversible: true,
+      marks: ({ reverse }) => rows.map((row) => (reverse ? row.newName : row.oldName)),
+      rewrite: (input) => ({ ...ClassRenames.rewrite({ ...input, rows }), manual: [] }),
+    };
+  }
+
   static async run(opts: {
     root: string;
     args: string[];
-    /** Another table of renames under its own command name; the class renames by default. */
-    codemod?: { name: string; usage: string; rows: ReadonlyArray<IClassRename> };
+    /** Another codemod to run this way; the class renames by default. */
+    codemod?: IFileCodemod;
   }): Promise<number> {
     const { root, args } = opts;
-    const codemod = opts.codemod ?? {
-      name: 'class-renames',
-      usage: USAGE,
-      rows: ClassRenameTable.ROWS,
-    };
+    const codemod =
+      opts.codemod ??
+      ClassRenamesCommand.ofRows({
+        name: 'class-renames',
+        usage: USAGE,
+        rows: ClassRenameTable.ROWS,
+      });
 
     if (args.includes(ClassRenameFlags.HELP) || args.includes(ClassRenameFlags.HELP_SHORT)) {
       CliOutput.log(codemod.usage);
@@ -416,6 +459,14 @@ export class ClassRenamesCommand {
     const isWrite = flags.includes(ClassRenameFlags.WRITE);
     const isCheck = flags.includes(ClassRenameFlags.CHECK);
     const isReverse = flags.includes(ClassRenameFlags.REVERSE);
+
+    if (isReverse && !codemod.isReversible) {
+      CliOutput.error(
+        `devz codemod: ${codemod.name} has no ${ClassRenameFlags.REVERSE}\n${codemod.usage}`,
+      );
+
+      return USAGE_ERROR_CODE;
+    }
 
     if (isWrite && isCheck) {
       CliOutput.error(
@@ -449,7 +500,7 @@ export class ClassRenamesCommand {
       return 1;
     }
 
-    const names = codemod.rows.map((row) => (isReverse ? row.newName : row.oldName));
+    const names = codemod.marks({ reverse: isReverse });
     const targets = (paths.length > 0 ? paths : ['.']).map((path) => resolve(root, path));
     let changedCount = 0;
     let renamedCount = 0;
@@ -472,19 +523,21 @@ export class ClassRenamesCommand {
           continue;
         }
 
-        const result = ClassRenames.rewrite({
+        const result = codemod.rewrite({
           typescript,
           fileName: file,
           source,
           reverse: isReverse,
-          rows: codemod.rows,
         });
+        const shown = relative(root, file).split('\\').join('/') || file;
+
+        for (const entry of result.manual) {
+          CliOutput.log(`manual  ${shown}:${entry.line}  ${entry.note}`);
+        }
 
         if (!result.changed) {
           continue;
         }
-
-        const shown = relative(root, file).split('\\').join('/') || file;
 
         if (dirty?.has(file)) {
           refusedCount += 1;

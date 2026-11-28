@@ -9,6 +9,63 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 Part 2 of 4 of [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core).
 
+## `IExecutionFrame`
+
+*interface*
+
+Who is running: one web request, one job, one piece of system work.
+
+```ts
+export interface IExecutionFrame {
+    readonly mode: TExecutionMode;
+    /** The request of the frame, opaque here: the server layer reads it as its request context. */
+    readonly request?: unknown;
+    /** Who the work is done for. */
+    readonly userId?: string | number | bigint;
+    /** Why a system frame sees everything. */
+    readonly reason?: string;
+    readonly values: Readonly<Partial<IExecutionValues>>;
+}
+```
+
+Source: `packages/helpers/src/modules/execution/common/types.ts`
+
+## `IExecutionRunner`
+
+*interface*
+
+What holds the current frame. The server layer installs one; a host without it runs unframed.
+
+```ts
+export interface IExecutionRunner {
+    read(): IExecutionFrame | undefined;
+    /** The identity a hand-off carries: the user (the request's when the frame names none) and the values. */
+    capture(): Pick<IExecutionFrame, 'userId' | 'values'>;
+    /** Builds the frame of `Execution.run` from these options and the current one, then runs the task in it. */
+    run<Result>(opts: TExecutionRunOptions<Result>): Promise<Result>;
+    /** Runs the task in exactly this frame. */
+    runFrame<Result>(opts: {
+        frame: IExecutionFrame;
+        task: () => ValueOrPromise<Result>;
+    }): Promise<Result>;
+}
+```
+
+Source: `packages/helpers/src/modules/execution/common/types.ts`
+
+## `IExecutionValues`
+
+*interface*
+
+The values a frame carries. An application declares its keys by module augmentation.
+
+```ts
+export interface IExecutionValues {
+}
+```
+
+Source: `packages/helpers/src/modules/execution/common/types.ts`
+
 ## `IFetchable`
 
 *interface*

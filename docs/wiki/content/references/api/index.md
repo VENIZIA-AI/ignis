@@ -15,7 +15,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters) | 42 | 42 |
 | [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint) | 30 | 30 |
 | [`@venizia/dev-configs/testing`](/references/api/venizia-dev-configs-testing) | 5 | 5 |
-| [`@venizia/ignis`](/references/api/venizia-ignis) | 120 | 120 |
+| [`@venizia/ignis`](/references/api/venizia-ignis) | 122 | 122 |
 | [`@venizia/ignis-boot`](/references/api/venizia-ignis-boot) | 0 | 0 |
 | [`@venizia/ignis-boot/auto`](/references/api/venizia-ignis-boot-auto) | 1 | 1 |
 | [`@venizia/ignis-boot/build-info`](/references/api/venizia-ignis-boot-build-info) | 3 | 3 |
@@ -46,7 +46,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-helpers/bullmq`](/references/api/venizia-ignis-helpers-bullmq) | 3 | 3 |
 | [`@venizia/ignis-helpers/bun-s3`](/references/api/venizia-ignis-helpers-bun-s3) | 2 | 2 |
 | [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common) | 50 | 50 |
-| [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core) | 140 | 140 |
+| [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core) | 146 | 146 |
 | [`@venizia/ignis-helpers/cron`](/references/api/venizia-ignis-helpers-cron) | 2 | 2 |
 | [`@venizia/ignis-helpers/dotenv-vault`](/references/api/venizia-ignis-helpers-dotenv-vault) | 2 | 2 |
 | [`@venizia/ignis-helpers/hashicorp-vault`](/references/api/venizia-ignis-helpers-hashicorp-vault) | 4 | 4 |

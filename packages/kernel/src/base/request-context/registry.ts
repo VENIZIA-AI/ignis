@@ -1,12 +1,12 @@
 import { SingletonRealm } from '@/helpers/singleton-realm';
+import { Execution } from '@venizia/ignis-helpers/core';
 import type { Context } from 'hono';
 import type { TRequestContextResolver } from './common/types';
 
 /**
- * The seam that keeps `hono/context-storage` out of the kernel and the connectors: that module runs
- * `new AsyncLocalStorage()` in its own body, so importing it is a `TypeError` at load in a browser -
- * not a lazy failure at first use. The server layer installs a resolver over it; a host that
- * installs none resolves to `undefined`.
+ * The seam that keeps `AsyncLocalStorage` out of the kernel and the connectors: a browser has none. The request is the
+ * one of the current execution frame; a host without a runner may install a resolver, and with neither it resolves to
+ * `undefined`.
  *
  * `resolve()` returning `undefined` means NO REQUEST CONTEXT. A context that exists but carries no
  * user is a different state, reported by that context's own variables - callers that collapse the
@@ -16,7 +16,7 @@ interface IResolverSlot {
   resolver: TRequestContextResolver | undefined;
 }
 
-/** Process-wide holder of the function that returns the current request context. `resolve()` is `undefined` when no resolver is installed or no request is active. */
+/** The current request context: the frame's request, else what the installed resolver answers. */
 export class RequestContextRegistry {
   static readonly SINGLETON_REAL_KEY = 'request-context-resolver';
 
@@ -36,7 +36,15 @@ export class RequestContextRegistry {
     this.slot().resolver = undefined;
   }
 
+  /** Inside a frame the frame alone answers, so a frame with no request has none; outside every frame, the resolver. */
   static resolve(): Context | undefined {
+    const frame = Execution.current();
+
+    if (frame) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- helpers holds the request as unknown; only the server layer's request middleware puts one there, and it is a Hono context
+      return frame.request as Context | undefined;
+    }
+
     return this.slot().resolver?.();
   }
 }

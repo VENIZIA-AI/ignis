@@ -757,7 +757,7 @@ Defaults:
 
 **How it works**
 
-- **Retrieval.** The enricher reads the request context from `RequestContextRegistry` at insert/update time, then takes the user ID off the `Authentication.AUDIT_USER_ID` key. An application installs the resolver over that registry when it registers its default middlewares, backed by Hono's `contextStorage`. A host that installs none - a browser Worker - has no request context at all, which is the `allowAnonymous` case below.
+- **Retrieval.** The enricher reads the request context from `RequestContextRegistry` at insert/update time, then takes the user ID off the `Authentication.AUDIT_USER_ID` key. The registry answers the request of the current [execution frame](/references/utilities/promise#frames). A host with no execution runner - a browser Worker - has no request context at all, which is the `allowAnonymous` case below.
 - **`createdBy`.** Set via `$default()` - creation only.
 - **`modifiedBy`.** Set via both `$default()` and `$onUpdate()` - creation and every modification.
 - **A value in the data wins.** `$default()` and `$onUpdate()` fill only a key the data leaves out, so server code can still set these columns. A generated CRUD route never takes them from the request body, so over HTTP the request context always decides them. See [`CrudControllerFactory`](/references/base/controllers#crudcontrollerfactory).

@@ -1,6 +1,7 @@
 import { RequestContextRegistry } from '@/base/request-context';
+import { ExecutionModes, type IExecutionFrame } from '@venizia/ignis-helpers/core';
 import type { Context } from 'hono';
-import { afterEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
 /** Stands in for a Hono context - `resolve()` hands back whatever the resolver returned, untouched, so only identity matters here. */
 const buildContext = (opts: { marker: string }): Context => {
@@ -13,6 +14,43 @@ const buildContext = (opts: { marker: string }): Context => {
  * enrichers in `@venizia/ignis-connectors` raise a different error for each, so a registry that
  * collapsed them would change behaviour on a security-adjacent path without failing anything.
  */
+describe('RequestContextRegistry - an execution frame answers before the resolver', () => {
+  const store: { frame?: IExecutionFrame } = {};
+
+  beforeEach(() => {
+    globalThis.ignisExecutionRunner = {
+      read: () => store.frame,
+      capture: () => ({ values: {} }),
+      run: async (opts) => opts.task(),
+      runFrame: async (opts) => opts.task(),
+    };
+    RequestContextRegistry.setResolver({ resolver: () => buildContext({ marker: 'resolver' }) });
+  });
+
+  afterEach(() => {
+    globalThis.ignisExecutionRunner = undefined;
+    store.frame = undefined;
+    RequestContextRegistry.clearResolver();
+  });
+
+  test('a frame with a request answers its request', () => {
+    const request = buildContext({ marker: 'frame' });
+    store.frame = { mode: ExecutionModes.SCOPED, request, values: {} };
+
+    expect(RequestContextRegistry.resolve()).toBe(request);
+  });
+
+  test('a frame without a request answers none, whatever the resolver says', () => {
+    store.frame = { mode: ExecutionModes.SCOPED, values: {} };
+
+    expect(RequestContextRegistry.resolve()).toBeUndefined();
+  });
+
+  test('outside every frame the resolver answers', () => {
+    expect(RequestContextRegistry.resolve()).toBeDefined();
+  });
+});
+
 describe('RequestContextRegistry - the three states a caller must be able to tell apart', () => {
   afterEach(() => {
     RequestContextRegistry.clearResolver();

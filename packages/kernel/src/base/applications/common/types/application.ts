@@ -70,7 +70,6 @@ export interface IApplicationConfigs {
    */
   transports?: TControllerTransport[];
 
-  asyncContext?: { enable: boolean };
   debug?: {
     /** @default false */
     shouldShowRoutes?: boolean;

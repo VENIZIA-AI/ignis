@@ -1,5 +1,5 @@
 import { ResolverUtility } from '@venizia/ignis-helpers/common';
-import { getError } from '@venizia/ignis-helpers/core';
+import { ExecutionFrames, getError } from '@venizia/ignis-helpers/core';
 import type { ILogger } from '@venizia/ignis-helpers/core';
 import { MetadataRegistry, ScopeWriteGuards } from '@venizia/ignis-kernel';
 import type { IModelRegistryEntry } from '@venizia/ignis-kernel';
@@ -79,13 +79,9 @@ export class ScopeFilterUtility {
   /**
    * Refuses to boot when `settings.access` is declared where it cannot be honoured. Both cases
    * are silent at runtime and fail in OPPOSITE directions: a search-backed model returns more rows,
-   * a context-less one returns none. The caller supplies `asyncContextEnabled` so no application
-   * config type reaches into this tier.
+   * a context-less one returns none: with no execution runner installed there is no request to read.
    */
-  static assertScopeFilterSupported(opts: {
-    asyncContextEnabled: boolean;
-    logger?: ILogger;
-  }): void {
+  static assertScopeFilterSupported(opts: { logger?: ILogger }): void {
     const models = MetadataRegistry.getInstance().getAllModels();
 
     const sharedTables: string[] = [];
@@ -124,7 +120,7 @@ export class ScopeFilterUtility {
         unfoundByTable.push(`${name} (table ${getTableName(entrySchema)})`);
       }
 
-      if (!opts.asyncContextEnabled) {
+      if (!ExecutionFrames.isInstalled()) {
         withoutAmbientContext.push(name);
       }
 
@@ -231,10 +227,10 @@ export class ScopeFilterUtility {
     if (withoutAmbientContext.length > 0) {
       throw getError({
         message: [
-          `[assertScopeFilterSupported] settings.access declared while asyncContext.enable is false | models: ${withoutAmbientContext.join(', ')}`,
-          'access.resolve() reads the ambient request context; the operation is its only argument.',
+          `[assertScopeFilterSupported] settings.access declared while no execution runner is installed | models: ${withoutAmbientContext.join(', ')}`,
+          'access.resolve() reads the request of the current execution frame; the operation is its only argument.',
           'With no context store every resolve() returns undefined, onMissing denies by default, and EVERY query on these models matches zero rows - with nothing naming the flag as the cause.',
-          'Set asyncContext.enable to true, or remove settings.access.',
+          'Serve the models from an application of @venizia/ignis, or call ExecutionRunner.install(), or remove settings.access.',
         ].join(' | '),
       });
     }

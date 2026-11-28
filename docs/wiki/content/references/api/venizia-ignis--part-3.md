@@ -9,6 +9,83 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 Part 3 of 4 of [`@venizia/ignis`](/references/api/venizia-ignis).
 
+## `IShutdownSignalsOptions`
+
+*interface*
+
+Options of `ServerApplication.installShutdownSignals`.
+
+```ts
+export interface IShutdownSignalsOptions {
+    /**
+     * The signals that stop the application.
+     *
+     * @default ['SIGTERM', 'SIGINT']
+     */
+    signals?: NodeJS.Signals[];
+    /**
+     * How long a shutdown may take before the process is force-exited with code 1, in milliseconds.
+     *
+     * @default 15_000
+     */
+    timeoutMs?: number;
+    /**
+     * What ends the process. A seam for tests and for hosts that exit differently.
+     *
+     * @default (code) => process.exit(code)
+     */
+    exit?: (code: number) => void;
+}
+```
+
+Source: `packages/core-server/src/base/applications/common/types.ts`
+
+## `IUIConfig`
+
+*interface*
+
+Input of `IUIProvider.render`. Fields beyond `title` and `url` are passed through to the underlying UI library.
+
+```ts
+export interface IUIConfig {
+    title: string;
+    url: string;
+    [key: string]: unknown;
+}
+```
+
+Source: `packages/core-server/src/components/api-reference/common/types.ts`
+
+## `IUIProvider`
+
+*interface*
+
+Renders the interactive API documentation page for the OpenAPI document. Register an implementation on `UIProviderFactory` to serve a custom UI.
+
+```ts
+export interface IUIProvider {
+    render(context: Context, config: IUIConfig, next: Next): Promise<Response | void>;
+}
+```
+
+Source: `packages/core-server/src/components/api-reference/common/types.ts`
+
+## `JWKSController`
+
+*class*
+
+Serves the public JWKS from `JWKSIssuerTokenService` for external verifiers, with a one-hour `Cache-Control` max-age. Mounted at `/certs` unless the issuer options set `rest.path`.
+
+```ts
+export declare class JWKSController extends BaseRestController {
+    private jwksService;
+    constructor(jwksService: JWKSIssuerTokenService);
+    binding(): ValueOrPromise<void>;
+}
+```
+
+Source: `packages/core-server/src/components/auth/authenticate/controllers/jwks/controller.ts`
+
 ## `JWKSIssuerAuthenticationStrategy`
 
 *class*
@@ -344,6 +421,21 @@ export declare class PrincipalPolicyEdges {
 
 Source: `packages/core-server/src/components/auth/authorize/adapters/scoped-casbin/policy-edges.ts`
 
+## `RequestFrameMiddleware`
+
+*class*
+
+Makes every request a frame of its own: scoped, with the request, and nothing taken from around it. The user is not
+copied: it is read from the request when it is needed, so an authentication that runs later is seen.
+
+```ts
+export declare class RequestFrameMiddleware {
+    static create(): MiddlewareHandler;
+}
+```
+
+Source: `packages/core-server/src/base/execution/request-frame.middleware.ts`
+
 ## `RequestTrackerComponent`
 
 *class*
@@ -525,8 +617,6 @@ export declare abstract class ServerApplication<AppEnv extends Env = Env, AppSch
     }): OpenAPIHono<AppEnv, AppSchema, BasePath>;
     getServer(): OpenAPIHono<AppEnv, AppSchema, BasePath>;
     getRootRouter(): OpenAPIHono<AppEnv, AppSchema, BasePath>;
-    /** Restores the pre-split default: a server-capable application installs `hono/context-storage` unless the caller opts out explicitly. */
-    protected getDefaultAsyncContextEnabled(): boolean;
     /** `configs.projectRoot` wins, else the process cwd. The value is bound AND handed to `ModuleUtility`, so every peer lookup (optional modules, the gRPC adapter) resolves under it - a compiled binary sets it to where its `node_modules` really is. */
     getProjectRoot(): string;
     getProjectConfigs(): IServerApplicationConfigs;
@@ -1050,88 +1140,3 @@ export type TDocumentUIType = TConstValue<typeof DocumentUITypes>;
 ```
 
 Source: `packages/core-server/src/components/api-reference/common/types.ts`
-
-## `TDomainHierarchyEdge`
-
-*type*
-
-A parent-child edge between two domain tokens, in the `<Type>_<id>` form, as returned by `TResolveDomainEdgesFn`.
-
-```ts
-export type TDomainHierarchyEdge = {
-    child: string;
-    parent: string;
-};
-```
-
-Source: `packages/core-server/src/components/auth/authorize/adapters/scoped-casbin/common/types.ts`
-
-## `TGrantRow`
-
-*type*
-
-A grant row as fetched, before it becomes casbin lines. Permission columns are null when the join misses.
-
-```ts
-export type TGrantRow = {
-    subjectId: IdType;
-    objectCode: TNullable<string>;
-    objectSubject: TNullable<string>;
-    objectMethod: TNullable<string>;
-    action: TNullable<string>;
-    effect: TNullable<string>;
-    domain: TNullable<string>;
-    metadata?: unknown;
-};
-```
-
-Source: `packages/core-server/src/components/auth/authorize/adapters/scoped-casbin/common/types.ts`
-
-## `TGrpcNativeTls`
-
-*type*
-
-The TLS of the native gRPC port: `{ use: false }` is clear text (h2c), for a mesh or a TLS-terminating proxy.
-
-```ts
-export type TGrpcNativeTls = TToggle<{
-    key: string | Buffer;
-    cert: string | Buffer;
-}>;
-```
-
-Source: `packages/core-server/src/base/controllers/grpc/native/common/types.ts`
-
-## `TPermissionCommonColumns`
-
-*type*
-
-Drizzle column set of the permission table: text `code`, `name`, `method`, `subject`, `action`, `scope` (all not null) and a nullable `description`.
-
-```ts
-export type TPermissionCommonColumns = {
-    code: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
-    name: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
-    method: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
-    subject: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
-    action: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
-    scope: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
-    description: PgTextBuilderInitial<string, [string, ...string[]]>;
-};
-```
-
-Source: `packages/core-server/src/components/auth/models/entities/permission.model.ts`
-
-## `TPermissionOptions`
-
-*type*
-
-Options of the permission table builder; `idType` selects the primary key type.
-
-```ts
-export type TPermissionOptions = {
-    idType?: TIdSchemaType;
-};
-```
-
-Source: `packages/core-server/src/components/auth/models/entities/permission.model.ts`

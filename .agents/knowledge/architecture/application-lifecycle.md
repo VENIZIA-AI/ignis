@@ -139,14 +139,12 @@ call its `configure()` yourself.
 ## Environment seams
 
 The kernel layers touch no `process` at all, because a browser Worker has none. `getProjectRoot()`
-returns `''` (it still binds `APPLICATION_PROJECT_ROOT`), and `getDefaultAsyncContextEnabled()`
-returns `false` - a router-only or router-less application must not install `hono/context-storage`,
-which needs `node:async_hooks`. Address resolution is not a seam: `host`/`port` are absent from the
+returns `''` (it still binds `APPLICATION_PROJECT_ROOT`). The execution runner (`node:async_hooks`) is installed by
+`ServerApplication` only. Address resolution is not a seam: `host`/`port` are absent from the
 kernel entirely, and `ServerApplication`'s constructor resolves them from `HOST` /
 `APP_ENV_SERVER_HOST` and `PORT` / `APP_ENV_SERVER_PORT`.
 
-`ServerApplication` overrides both to restore the serving behaviour: `process.cwd()`, and async
-context on. An application may override
+`ServerApplication` overrides it with `process.cwd()`. An application may override
 `getProjectRoot()` further. Host falls back to `localhost` and port to `3000`; port `0` survives
 resolution because candidates are rejected on validity, not falsiness, and `0` legitimately asks the
 OS for an ephemeral port.

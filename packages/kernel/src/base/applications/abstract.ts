@@ -17,11 +17,7 @@ export abstract class AbstractApplication extends Container {
     const { scope, config } = opts;
     super({ scope });
 
-    this.configs = Object.assign({}, config, {
-      asyncContext: {
-        enable: config?.asyncContext?.enable ?? this.getDefaultAsyncContextEnabled(),
-      },
-    });
+    this.configs = Object.assign({}, config);
 
     this.projectRoot = this.getProjectRoot();
     this.logger.for('constructor').info('Project root: %s', this.projectRoot);
@@ -44,10 +40,6 @@ export abstract class AbstractApplication extends Container {
   }): ValueOrPromise<void>;
 
   abstract initialize(): Promise<void>;
-
-  protected getDefaultAsyncContextEnabled(): boolean {
-    return false;
-  }
 
   getProjectConfigs(): IApplicationConfigs {
     return this.configs;

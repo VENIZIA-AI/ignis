@@ -93,7 +93,7 @@ Run `vite build`. Point `lib.entry` at `src/main.ts` for the main-thread entry. 
 | `error.environment` | none | The ambient environment name. A Worker has no `process.env`, so set it yourself. |
 | `projectRoot` | `globalThis.process?.cwd?.() ?? ''` | Bound as `CoreBindings.APPLICATION_PROJECT_ROOT`. A Worker has no filesystem, so the default is usually `''`. |
 
-A Worker has no host and no port, so `host` and `port` mean nothing here. `asyncContext.enable` defaults to `false` and nothing in a Worker reads it.
+A Worker has no host and no port, so `host` and `port` mean nothing here. A Worker has no execution runner, so there is no execution frame there.
 
 ## When `define: { global: 'globalThis' }` helps
 

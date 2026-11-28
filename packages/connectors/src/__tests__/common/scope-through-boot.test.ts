@@ -4,7 +4,7 @@ import {
   RelationTypes,
   ScopeThrough,
 } from '@venizia/ignis-kernel';
-import { afterEach, describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, test, beforeEach, afterAll } from 'bun:test';
 import { getTableName } from 'drizzle-orm';
 import { index, integer, pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
@@ -12,6 +12,7 @@ import { ScopeFilterUtility } from '@/common';
 import type { TTableSchemaWithId } from '@/relational/core/models/common';
 import type { TRelationConfig } from '@/relational/core/repositories/common';
 import { RecordingLogger } from '../relational/transaction/recording-logger';
+import { useExecutionRunner } from '../testing/execution-runner';
 
 /**
  * A `through` declaration that cannot work fails at boot, naming the model: a name built at runtime
@@ -107,8 +108,11 @@ const child = (opts: {
 };
 
 const check = (logger?: RecordingLogger) => {
-  ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: true, logger });
+  ScopeFilterUtility.assertScopeFilterSupported({ logger });
 };
+
+beforeEach(() => useExecutionRunner({ isInstalled: true }));
+afterAll(() => useExecutionRunner({ isInstalled: false }));
 
 describe('ScopeFilterUtility.assertScopeFilterSupported - access.through', () => {
   afterEach(() => {

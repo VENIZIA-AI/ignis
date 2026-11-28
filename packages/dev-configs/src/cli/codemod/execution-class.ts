@@ -34,7 +34,11 @@ export class ExecutionClassCommand {
   static run(opts: { root: string; args: string[] }): Promise<number> {
     return ClassRenamesCommand.run({
       ...opts,
-      codemod: { name: 'execution-class', usage: USAGE, rows: ExecutionClassTable.ROWS },
+      codemod: ClassRenamesCommand.ofRows({
+        name: 'execution-class',
+        usage: USAGE,
+        rows: ExecutionClassTable.ROWS,
+      }),
     });
   }
 }

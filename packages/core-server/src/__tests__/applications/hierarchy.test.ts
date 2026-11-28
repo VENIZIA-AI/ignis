@@ -20,18 +20,6 @@ const buildConfigs = (opts?: Partial<IApplicationConfigs>): IApplicationConfigs 
   };
 };
 
-class ConcreteRestApplication extends RestApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
-    return { name: 'rest-app', version: '0.0.0', description: 'Router-only test app' };
-  }
-
-  preConfigure(): void {}
-  postConfigure(): void {}
-  staticConfigure(): void {}
-  setupMiddlewares(): void {}
-  override async initialize(): Promise<void> {}
-}
-
 class ConcreteServerApplication extends ServerApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'server-app', version: '0.0.0', description: 'Server-capable test app' };
@@ -92,33 +80,5 @@ describe('application hierarchy', () => {
     expect(serverApplication.getServer()).toBeInstanceOf(OpenAPIHono);
     expect(serverApplication.getRootRouter()).toBeInstanceOf(OpenAPIHono);
     expect(serverApplication.getRootRouter()).not.toBe(serverApplication.getServer());
-  });
-
-  test('asyncContext.enable defaults to false on RestApplication and true on ServerApplication', () => {
-    const restApplication = new ConcreteRestApplication({
-      scope: 'ConcreteRestApplication',
-      config: buildConfigs(),
-    });
-    expect(restApplication.getProjectConfigs().asyncContext?.enable).toBe(false);
-
-    const serverApplication = new ConcreteServerApplication({
-      scope: 'ConcreteServerApplication',
-      config: buildConfigs(),
-    });
-    expect(serverApplication.getProjectConfigs().asyncContext?.enable).toBe(true);
-  });
-
-  test('an explicit asyncContext.enable is never overridden by the layer default', () => {
-    const restApplication = new ConcreteRestApplication({
-      scope: 'ConcreteRestApplication',
-      config: buildConfigs({ asyncContext: { enable: true } }),
-    });
-    expect(restApplication.getProjectConfigs().asyncContext?.enable).toBe(true);
-
-    const serverApplication = new ConcreteServerApplication({
-      scope: 'ConcreteServerApplication',
-      config: buildConfigs({ asyncContext: { enable: false } }),
-    });
-    expect(serverApplication.getProjectConfigs().asyncContext?.enable).toBe(false);
   });
 });

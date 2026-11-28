@@ -579,6 +579,46 @@ export type TBuildInfoRecord = Required<IBuildInfo>;
 
 Source: `packages/helpers/src/utilities/build-info.utility.ts`
 
+## `TExecutionMode`
+
+*type*
+
+Union of the `ExecutionModes` values.
+
+```ts
+export type TExecutionMode = TConstValue<typeof ExecutionModes>;
+```
+
+Source: `packages/helpers/src/modules/execution/common/constants.ts`
+
+## `TExecutionRunOptions`
+
+*type*
+
+What `Execution.run` takes: the parameters depend on `mode`.
+
+```ts
+export type TExecutionRunOptions<Result> = {
+    mode: typeof ExecutionModes.SCOPED;
+    reason?: never;
+    values?: Partial<IExecutionValues>;
+    userId?: string | number | bigint;
+    /** Start from nothing: no request, user or values of the caller. For a listener of your own. */
+    isRoot?: boolean;
+    task: () => ValueOrPromise<Result>;
+} | {
+    mode: typeof ExecutionModes.SYSTEM;
+    values?: never;
+    isRoot?: never;
+    /** A fixed sentence that names the work, for the log. A blank one is refused. */
+    reason: string;
+    userId?: string | number | bigint;
+    task: () => ValueOrPromise<Result>;
+};
+```
+
+Source: `packages/helpers/src/modules/execution/common/types.ts`
+
 ## `TFetcherLogger`
 
 *type*

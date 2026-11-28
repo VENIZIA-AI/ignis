@@ -111,6 +111,47 @@ export declare class EnvironmentKeys {
 
 Source: `packages/core-server/src/common/environments.ts`
 
+## `ExecutionRunner`
+
+*class*
+
+Holds the current execution frame in an `AsyncLocalStorage`. An application installs it when it is built; a script
+or a test that has no application calls `ExecutionRunner.install()`. A promise left running after its `run`
+returned keeps the frame it was started in.
+
+```ts
+export declare class ExecutionRunner extends BaseHelper implements IExecutionRunner {
+    private readonly store;
+    private readonly warnedReasons;
+    private readonly warnedRoots;
+    constructor();
+    /** Installs the runner. The first install of the process wins; a later one changes nothing. */
+    static install(): void;
+    /**
+     * The identity a hand-off carries: the user and values of the current frame, the user of its request when the frame
+     * names none.
+     */
+    static capture(): Pick<IExecutionFrame, 'userId' | 'values'>;
+    private static identityOf;
+    private static requestUserOf;
+    read(): IExecutionFrame | undefined;
+    capture(): Pick<IExecutionFrame, 'userId' | 'values'>;
+    run<Result>(opts: TExecutionRunOptions<Result>): Promise<Result>;
+    runFrame<Result>(opts: {
+        frame: IExecutionFrame;
+        task: () => ValueOrPromise<Result>;
+    }): Promise<Result>;
+    private buildFrame;
+    /** Once per call site: a root frame drops the request, so the narrowing a request's user brings with it. */
+    private warnRoot;
+    /** Every system run is logged with its reason, and the request when there is one; no caller is recorded. */
+    private logSystemRun;
+    private isFirstWarning;
+}
+```
+
+Source: `packages/core-server/src/base/execution/runner.ts`
+
 ## `GrpcHeaderUtility`
 
 *class*
@@ -1217,80 +1258,3 @@ export interface IServerTime {
 ```
 
 Source: `packages/core-server/src/components/server-info/common/types.ts`
-
-## `IShutdownSignalsOptions`
-
-*interface*
-
-Options of `ServerApplication.installShutdownSignals`.
-
-```ts
-export interface IShutdownSignalsOptions {
-    /**
-     * The signals that stop the application.
-     *
-     * @default ['SIGTERM', 'SIGINT']
-     */
-    signals?: NodeJS.Signals[];
-    /**
-     * How long a shutdown may take before the process is force-exited with code 1, in milliseconds.
-     *
-     * @default 15_000
-     */
-    timeoutMs?: number;
-    /**
-     * What ends the process. A seam for tests and for hosts that exit differently.
-     *
-     * @default (code) => process.exit(code)
-     */
-    exit?: (code: number) => void;
-}
-```
-
-Source: `packages/core-server/src/base/applications/common/types.ts`
-
-## `IUIConfig`
-
-*interface*
-
-Input of `IUIProvider.render`. Fields beyond `title` and `url` are passed through to the underlying UI library.
-
-```ts
-export interface IUIConfig {
-    title: string;
-    url: string;
-    [key: string]: unknown;
-}
-```
-
-Source: `packages/core-server/src/components/api-reference/common/types.ts`
-
-## `IUIProvider`
-
-*interface*
-
-Renders the interactive API documentation page for the OpenAPI document. Register an implementation on `UIProviderFactory` to serve a custom UI.
-
-```ts
-export interface IUIProvider {
-    render(context: Context, config: IUIConfig, next: Next): Promise<Response | void>;
-}
-```
-
-Source: `packages/core-server/src/components/api-reference/common/types.ts`
-
-## `JWKSController`
-
-*class*
-
-Serves the public JWKS from `JWKSIssuerTokenService` for external verifiers, with a one-hour `Cache-Control` max-age. Mounted at `/certs` unless the issuer options set `rest.path`.
-
-```ts
-export declare class JWKSController extends BaseRestController {
-    private jwksService;
-    constructor(jwksService: JWKSIssuerTokenService);
-    binding(): ValueOrPromise<void>;
-}
-```
-
-Source: `packages/core-server/src/components/auth/authenticate/controllers/jwks/controller.ts`

@@ -299,6 +299,7 @@ describe('devz codemod --list and --reverse', () => {
         'binding-keys',
         'class-renames',
         'execution-class',
+        'async-context',
         'function-to-arrow',
         'typed-route-context',
       ].join('\n'),

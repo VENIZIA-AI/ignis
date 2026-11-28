@@ -652,12 +652,27 @@ Source: `packages/helpers/src/modules/env/names.ts`
 
 *class*
 
-Running work: waiting, a time limit, bounded concurrency and fire-and-forget. `fireAndForget` is not a `BaseHelper` member: TS cannot emit protected members on an exported ANONYMOUS class (TS4094), which is what factory-built controllers return; a static on a separate class has no such limit.
+Running work: who it runs for (`run`, `current`), waiting, a time limit, bounded concurrency and fire-and-forget. `fireAndForget` is not a `BaseHelper` member: TS cannot emit protected members on an exported ANONYMOUS class (TS4094), which is what factory-built controllers return; a static on a separate class has no such limit.
 
 ```ts
 export declare class Execution {
     /** The longest delay a timer takes (a signed 32-bit integer of milliseconds); a larger one fires after 1 ms. */
     private static readonly MAX_TIMER_MS;
+    /**
+     * Installs what holds the current frame. The first install wins, so that two copies of the server layer share one
+     * store; a later call changes nothing.
+     */
+    static setRunner(opts: {
+        runner: IExecutionRunner;
+    }): void;
+    /** The frame the caller runs in, or `undefined` outside every frame. */
+    static current(): IExecutionFrame | undefined;
+    /**
+     * Runs `task` in a new frame and resolves with its result. The innermost frame wins: it takes its mode from this
+     * call alone, and inherits the request, the user and the values of the frame around it unless `isRoot` is set.
+     * `values` and `userId` are claims of the caller: never copy them from a request without checking them.
+     */
+    static run<Result>(opts: TExecutionRunOptions<Result>): Promise<Result>;
     static sleep(opts: {
         ms: number;
     }): Promise<void>;
@@ -692,6 +707,21 @@ export declare class Execution {
 ```
 
 Source: `packages/helpers/src/modules/execution/execution.ts`
+
+## `ExecutionModes`
+
+*class*
+
+How a frame sees rows: `scoped` by its own scope, `system` without one.
+
+```ts
+export declare class ExecutionModes extends ConstClass {
+    static readonly SCOPED = "scoped";
+    static readonly SYSTEM = "system";
+}
+```
+
+Source: `packages/helpers/src/modules/execution/common/constants.ts`
 
 ## `FetchRequestContext`
 

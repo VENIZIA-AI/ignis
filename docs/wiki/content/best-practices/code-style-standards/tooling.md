@@ -356,6 +356,11 @@ Every codemod below is a dry run unless you pass `--write`, and `--check` exits 
 - `PromiseUtility` is `Execution`; `executeWithLimit` is `withLimit` and `voidExecution` is `fireAndForget`.
 - Reads files as `class-renames` does. A method taken apart from the class is left for the typecheck.
 
+**`devz codemod async-context [paths...] [--write [--all] \| --check]`**
+
+- Removes the `asyncContext: { enable }` property of an application config.
+- Lists, and leaves to you, an override of `getDefaultAsyncContextEnabled` and a read of `configs.asyncContext`.
+
 **`devz codemod class-renames [paths...] [--write [--all] \| --check] [--reverse]`**
 
 - Renames the exports IGNIS renamed: `trackableHeaders`, `countableHeaders` and `defaultRequestHeaders` to `TrackableHeadersSchema`, `CountableHeadersSchema` and `DefaultRequestHeadersSchema`, `TErrorResponse` to `TErrorOutput` (`@venizia/ignis-kernel`); `vaultAuthSchema` to `VaultAuthSchema`, `ISecretsRegistration` to `TSecretsRegistration` (`@venizia/ignis-helpers`); `IRelationalDataSourceOpening` to `TRelationalDataSourceOpening` (`@venizia/ignis-connectors`); `RetryHelper`, `SlugHelper` and `CredentialHelper` (`@venizia/ignis-helpers`) to `RetryUtility`, `SlugUtility` and `CredentialUtility`; `RejectionHelper` and `SpawnHelper` (`@venizia/dev-configs/testing`) to `RejectionUtility` and `SpawnUtility`.

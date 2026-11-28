@@ -110,15 +110,9 @@ hono's `getColorEnabled` destructures `const { process } = globalThis` first, wh
 
 ## The seams core fills in
 
-`AbstractApplication` leaves two `protected` methods deliberately inert, because a browser Worker
-has no `process` and no working directory. `ServerApplication` in core overrides both, so server
-behaviour is unchanged:
-
-- `getProjectRoot()` returns an empty string and binds it; the server override binds the real cwd. It
-  stays a plain overridable method, so an application that overrides it keeps working.
-- `getDefaultAsyncContextEnabled()` returns `false`, which keeps a router-only application from
-  installing `hono/context-storage` and therefore `node:async_hooks`; the server override returns
-  `true`.
+`AbstractApplication` leaves one method deliberately inert, because a browser Worker has no `process` and no working
+directory: `getProjectRoot()` returns an empty string and binds it. `ServerApplication` in core overrides it with the real
+cwd. It stays a plain overridable method, so an application that overrides it keeps working.
 
 `host` and `port` are NOT seams - they left the kernel entirely. `IApplicationConfigs` here declares
 neither, `ServerApplication` resolves both in its own constructor, and `@venizia/ignis` re-exports
@@ -135,7 +129,7 @@ is underneath and which socket is bound belong to `ServerApplication`.
 `RestApplication.registerDefaultMiddlewares()` installs the registrations every host shares:
 `requestId()` fed by `RequestIdGenerator`, the body limit (`configs.middlewares.bodyLimit`, 5 MiB when unset), the framework
 error handler, and `notFoundHandler`. `WorkerApplication` inherits it untouched; `BaseApplication`
-calls `super()` and adds `contextStorage`, `RequestTrackerComponent` and the favicon on top.
+calls `super()` and adds the request frame, `RequestTrackerComponent` and the favicon on top.
 `buildErrorMiddleware()` is the one seam inside it, which core overrides to swap in the
 `ErrorPrettier`-backed formatter; it feeds `config.error.environment` through as the middleware's
 `environment` option, which is how a browser application declares the ambient environment it has no
@@ -169,11 +163,10 @@ The error middleware's `classify()` reads `'statusCode' in error` to decide `INT
 carries its status on `.status`, which that check reads too, so a 4xx `HTTPException` renders as its
 own status instead of a generic `500`.
 
-`RequestContextRegistry` (`base/request-context/`) is the same idea for code that only wants to READ
-the ambient request context. `setResolver({ resolver })` takes a synchronous
-`() => Context | undefined`, `resolve()` calls it, and `clearResolver()` removes it. Core's
-`registerDefaultMiddlewares()` installs a `tryGetContext()`-backed resolver; a browser Worker
-installs none and `resolve()` answers `undefined`.
+`RequestContextRegistry` (`base/request-context/`) is the same idea for code that only wants to READ the request.
+`resolve()` answers the request of the current execution frame (`Execution.current()` from helpers): inside a frame the
+frame alone answers, so a job or a root frame has none. Outside every frame it calls the resolver a host set with
+`setResolver` (`clearResolver` removes it). core-server sets none: it opens a frame per request.
 
 `undefined` means THERE IS NO REQUEST CONTEXT - deliberately distinct from a context that carries no
 user, which is what the caller reads off that context's own variables. The user-audit enrichers in
