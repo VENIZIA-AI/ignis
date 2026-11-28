@@ -7,7 +7,11 @@ import type { TInjected, TInjectMap, TRouteContext } from '@venizia/ignis-kernel
 import type { Env } from 'hono';
 import { SearchFieldTypes } from '@/search/core/models';
 import { SearchEngineParams } from './engine-params';
-import type { ISearchQueryDialect, TSearchInput } from '@/search/core/repositories/common';
+import type {
+  ISearchQueryDialect,
+  TSearchInput,
+  TTranslatableSearchInput,
+} from '@/search/core/repositories/common';
 import { SearchInputSchema, SearchModes } from '@/search/core/repositories/common';
 
 /** `ISearchQuerySettings` with its names as plain strings: what the build-time and per-request checks read, whatever the document. */
@@ -25,7 +29,7 @@ export interface ISearchSourceOptions<
   Inject extends TInjectMap,
 > {
   context: TRouteContext<RouteEnv>;
-  input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }> & TExtra;
+  input: TTranslatableSearchInput & TExtra;
   injected: TInjected<Inject>;
 }
 
@@ -383,7 +387,7 @@ export class SearchSettingsUtility {
   >(opts: {
     source?: TSearchLooseSource<RouteEnv, TExtra, Inject>;
     context: TRouteContext<RouteEnv>;
-    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }> & TExtra;
+    input: TTranslatableSearchInput & TExtra;
     injected: TInjected<Inject>;
     query: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
     isFixed: boolean;
@@ -431,7 +435,7 @@ export class SearchSettingsUtility {
    * `serverTuning` is the part of `engineParams` the server chose.
    */
   static merge(opts: {
-    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
+    input: TTranslatableSearchInput;
     fixed: ISearchLooseSettings;
     defaults: ISearchLooseSettings;
     catalog: ISearchFieldCatalog;
@@ -607,9 +611,9 @@ export class SearchSettingsUtility {
   >(opts: {
     query: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
     context: TRouteContext<RouteEnv>;
-    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }> & TExtra;
+    input: TTranslatableSearchInput & TExtra;
     injected: TInjected<Inject>;
-  }): Promise<Exclude<TSearchInput, { mode: typeof SearchModes.RAW }> & TExtra> {
+  }): Promise<TTranslatableSearchInput & TExtra> {
     const { query, context, input, injected } = opts;
     const text = input.mode === SearchModes.SEMANTIC ? input.queryText : input.query;
 

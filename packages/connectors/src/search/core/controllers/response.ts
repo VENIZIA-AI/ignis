@@ -4,8 +4,8 @@ import { getError } from '@venizia/ignis-helpers/core';
 import type { TInjected, TInjectMap, TRouteContext } from '@venizia/ignis-kernel';
 import type { z } from '@hono/zod-openapi';
 import type { Env } from 'hono';
-import type { TSearchInput } from '@/search/core/repositories/common';
 import type { TSearchHit } from './types';
+import type { TTranslatableSearchInput } from '@/search/core/repositories/common';
 
 /** A hit whose document is not typed yet: the transform's output is parsed against `response.document` before it is trusted. */
 export type TSearchLooseHit = Omit<TSearchHit<object>, 'document'> & { document: unknown };
@@ -17,7 +17,7 @@ export interface ISearchLooseResponse<RouteEnv extends Env = Env, Inject extends
     hits: Array<TSearchHit<object>>;
     found: number;
     context: TRouteContext<RouteEnv>;
-    input: Exclude<TSearchInput, { mode: 'raw' }>;
+    input: TTranslatableSearchInput;
     injected: TInjected<Inject>;
   }) => TValueOrPromise<Array<TSearchLooseHit>>;
 }
@@ -55,7 +55,7 @@ export class SearchResponseUtility {
     hits: Array<TSearchHit<object>>;
     found: number;
     context: TRouteContext<RouteEnv>;
-    input: Exclude<TSearchInput, { mode: 'raw' }>;
+    input: TTranslatableSearchInput;
     injected: TInjected<Inject>;
   }): Promise<Array<TSearchLooseHit>> {
     const { response, hits, found, context, input, injected } = opts;

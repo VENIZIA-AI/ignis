@@ -5,7 +5,7 @@ import type {
   ISearchQuery,
   ISearchQueryDialect,
   TCompiledWhere,
-  TSearchInput,
+  TTranslatableSearchInput,
 } from '@/search/core/repositories/common';
 import { SearchFilterOutcomes, SearchModes } from '@/search/core/repositories/common';
 import { SearchDialectUtility } from '@/search/core/repositories/common/dialect.utility';
@@ -426,10 +426,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
   }
 
   /** Writes the mode dispatch, the vector clause and the `prefix` default onto `query`; everything engine-specific about a non-raw search lives here, so the repository tier stays neutral. */
-  applySearchInput(opts: {
-    query: ISearchQuery;
-    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
-  }): void {
+  applySearchInput(opts: { query: ISearchQuery; input: TTranslatableSearchInput }): void {
     const { input } = opts;
     const searchQuery: ITypesenseSearchQuery = opts.query;
 
@@ -533,7 +530,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
   /** Copies faceting/highlighting/grouping/tuning params (shared by keyword/semantic/hybrid, absent from `raw`) onto the query; arrays are comma-joined as `build` joins queryBy/fields. */
   private applyCommonParams(opts: {
     query: ITypesenseSearchQuery;
-    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
+    input: TTranslatableSearchInput;
   }): void {
     const { query, input } = opts;
 

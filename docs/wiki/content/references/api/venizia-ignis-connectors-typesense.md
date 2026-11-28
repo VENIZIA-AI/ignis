@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/typesense, from the buil
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-85 exports, 85 with TSDoc.
+86 exports, 86 with TSDoc.
 
 The declarations are on 3 pages; each export below links to its own.
 
@@ -290,6 +290,10 @@ The declarations are on 3 pages; each export below links to its own.
 ## `TSearchSchema`
 
 *type* - [Declaration](/references/api/venizia-ignis-connectors-typesense--part-2#tsearchschema)
+
+## `TTranslatableSearchInput`
+
+*type* - [Declaration](/references/api/venizia-ignis-connectors-typesense--part-2#ttranslatablesearchinput)
 
 ## `TTypesenseDirtyValue`
 

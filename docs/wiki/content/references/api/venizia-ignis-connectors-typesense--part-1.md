@@ -777,9 +777,7 @@ export interface ISearchQueryDialect {
     /** Writes every engine-specific consequence of a non-raw search input onto `query` (mode dispatch, vector clause, tuning knobs) - keeping `ReadableSearchRepository` engine-free. */
     applySearchInput(opts: {
         query: ISearchQuery;
-        input: Exclude<TSearchInput, {
-            mode: typeof SearchModes.RAW;
-        }>;
+        input: TTranslatableSearchInput;
     }): void;
     /** Maps a camelCase query record onto the engine's wire-format field names via a key lookup, never a wire-cased identifier; `engineParams` merges last. */
     toWireParams(opts: {

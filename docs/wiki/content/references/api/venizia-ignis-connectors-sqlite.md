@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/sqlite, from the built d
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-49 exports, 49 with TSDoc. 23 more are re-exported from other entries (listed at the end).
+50 exports, 50 with TSDoc. 23 more are re-exported from other entries (listed at the end).
 
 ## `AbstractSqliteDataSource`
 
@@ -425,15 +425,15 @@ export declare class SqlitePrincipalEnricher {
     static enrich<ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions, Discriminator extends string = string, IdType extends TIdSchemaType = TIdSchemaType, Nullable extends boolean = false, NullableDiscriminator extends boolean = true>(opts: {
         baseSchema: ColumnDefinitions;
         opts: TPrincipalEnricherOptions<Discriminator, IdType, Nullable, NullableDiscriminator>;
-    }): ColumnDefinitions & (IdType extends "number" ? { [K in `${Discriminator}Id`]: [Nullable] extends [true] ? SQLiteIntegerBuilderInitial<string> : NotNull<SQLiteIntegerBuilderInitial<string>>; } : { [K_1 in `${Discriminator}Id`]: [Nullable] extends [true] ? SQLiteTextBuilderInitial<string, [string, ...string[]], undefined> : NotNull<SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>>; }) & { [K_2 in `${Discriminator}Type`]: [NullableDiscriminator] extends [true] ? HasDefault<SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>> : NotNull<SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>>; };
+    }): ColumnDefinitions & (IdType extends "number" ? { [K in `${Discriminator}Id`]: [Nullable] extends [true] ? SQLiteIntegerBuilderInitial<string> : NotNull<SQLiteIntegerBuilderInitial<string>>; } : { [K_1 in `${Discriminator}Id`]: [Nullable] extends [true] ? TSQLiteTextColumn : NotNull<TSQLiteTextColumn>; }) & { [K_2 in `${Discriminator}Type`]: [NullableDiscriminator] extends [true] ? HasDefault<TSQLiteTextColumn> : NotNull<TSQLiteTextColumn>; };
 }
 
 type TPrincipalColumnDef<Discriminator extends string, IdType extends TIdSchemaType, Nullable extends boolean = false, NullableDiscriminator extends boolean = true> = (IdType extends 'number' ? {
     [K in `${Discriminator}Id`]: [Nullable] extends [true] ? SQLiteIntegerBuilderInitial<string> : NotNull<SQLiteIntegerBuilderInitial<string>>;
 } : {
-    [K in `${Discriminator}Id`]: [Nullable] extends [true] ? SQLiteTextBuilderInitial<string, [string, ...string[]], undefined> : NotNull<SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>>;
+    [K in `${Discriminator}Id`]: [Nullable] extends [true] ? TSQLiteTextColumn : NotNull<TSQLiteTextColumn>;
 }) & {
-    [K in `${Discriminator}Type`]: [NullableDiscriminator] extends [true] ? HasDefault<SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>> : NotNull<SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>>;
+    [K in `${Discriminator}Type`]: [NullableDiscriminator] extends [true] ? HasDefault<TSQLiteTextColumn> : NotNull<TSQLiteTextColumn>;
 };
 ```
 
@@ -623,8 +623,8 @@ Adds `createdBy` and `modifiedBy` columns filled from the current audit user; `m
 ```ts
 export declare class SqliteUserAuditEnricher {
     static generateColumnDefs(opts?: TUserAuditEnricherOptions): {
-        createdBy: import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<SQLiteIntegerBuilderInitial<string>, number | null>>> | import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<SQLiteTextBuilderInitial<string, [string, ...string[]], number | undefined>, string | null>>>;
-        modifiedBy: import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<SQLiteIntegerBuilderInitial<string>, number | null>>> | import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<SQLiteTextBuilderInitial<string, [string, ...string[]], number | undefined>, string | null>>>;
+        createdBy: import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<SQLiteIntegerBuilderInitial<string>, number | null>>> | import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<import("drizzle-orm/sqlite-core").SQLiteTextBuilderInitial<string, [string, ...string[]], number | undefined>, string | null>>>;
+        modifiedBy: import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<SQLiteIntegerBuilderInitial<string>, number | null>>> | import("drizzle-orm").HasRuntimeDefault<import("drizzle-orm").HasDefault<import("drizzle-orm").$Type<import("drizzle-orm/sqlite-core").SQLiteTextBuilderInitial<string, [string, ...string[]], number | undefined>, string | null>>>;
     };
     static enrich<ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions>(opts: {
         baseSchema: ColumnDefinitions;
@@ -864,6 +864,18 @@ export type TSqliteDriver<Schema extends TAnyDataSourceSchema = TAnyDataSourceSc
 
 Source: `packages/connectors/src/relational/sqlite/drivers/driver.ts`
 
+## `TSQLiteTextColumn`
+
+*type*
+
+A text column as `text(name)` first builds it, before any modifier.
+
+```ts
+export type TSQLiteTextColumn = SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>;
+```
+
+Source: `packages/connectors/src/relational/sqlite/models/common/columns.ts`
+
 ## `TTableInsert`
 
 *type*
@@ -1002,8 +1014,8 @@ The column definitions with `createdBy` and `modifiedBy` user columns added.
 
 ```ts
 export type TUserAuditEnricherResult<ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions> = ColumnDefinitions & {
-    createdBy: SQLiteIntegerBuilderInitial<string> | SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>;
-    modifiedBy: SQLiteIntegerBuilderInitial<string> | SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>;
+    createdBy: SQLiteIntegerBuilderInitial<string> | TSQLiteTextColumn;
+    modifiedBy: SQLiteIntegerBuilderInitial<string> | TSQLiteTextColumn;
 };
 ```
 

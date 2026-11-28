@@ -5,7 +5,7 @@ import type {
   ISearchQuery,
   ISearchQueryDialect,
   TCompiledWhere,
-  TSearchInput,
+  TTranslatableSearchInput,
 } from '@/search/core/repositories/common';
 import { SearchFilterOutcomes, SearchModes } from '@/search/core/repositories/common';
 import { SearchDialectUtility } from '@/search/core/repositories/common/dialect.utility';
@@ -276,10 +276,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
   }
 
   /** Writes the mode dispatch and the hybrid/vector params onto `query`, and refuses any knob Meilisearch cannot honor. */
-  applySearchInput(opts: {
-    query: ISearchQuery;
-    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
-  }): void {
+  applySearchInput(opts: { query: ISearchQuery; input: TTranslatableSearchInput }): void {
     const { input } = opts;
     const searchQuery: IMeilisearchSearchQuery = opts.query;
 
@@ -439,9 +436,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
       : combined;
   }
 
-  private assertNoUnsupportedKnobs(opts: {
-    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
-  }): void {
+  private assertNoUnsupportedKnobs(opts: { input: TTranslatableSearchInput }): void {
     for (const knob of UNSUPPORTED_TUNING_KNOBS) {
       if (Reflect.get(opts.input, knob) === undefined) {
         continue;

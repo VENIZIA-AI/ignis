@@ -1,9 +1,7 @@
 import { AuditUserResolver } from '@/relational/core/models/enrichers';
 import { getError } from '@venizia/ignis-helpers/core';
-import type {
-  SQLiteIntegerBuilderInitial,
-  SQLiteTextBuilderInitial,
-} from 'drizzle-orm/sqlite-core';
+import type { SQLiteIntegerBuilderInitial } from 'drizzle-orm/sqlite-core';
+import type { TSQLiteTextColumn } from '../common/columns';
 import { integer, text } from 'drizzle-orm/sqlite-core';
 import type {
   TColumnDefinitions,
@@ -15,12 +13,8 @@ import type {
 export type TUserAuditEnricherResult<
   ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions,
 > = ColumnDefinitions & {
-  createdBy:
-    | SQLiteIntegerBuilderInitial<string>
-    | SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>;
-  modifiedBy:
-    | SQLiteIntegerBuilderInitial<string>
-    | SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>;
+  createdBy: SQLiteIntegerBuilderInitial<string> | TSQLiteTextColumn;
+  modifiedBy: SQLiteIntegerBuilderInitial<string> | TSQLiteTextColumn;
 };
 
 const buildUserAuditColumn = (opts: {

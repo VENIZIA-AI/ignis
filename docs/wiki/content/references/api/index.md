@@ -34,10 +34,10 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational) | 81 | 81 |
 | [`@venizia/ignis-connectors/search`](/references/api/venizia-ignis-connectors-search) | 0 | 0 |
 | [`@venizia/ignis-connectors/search/controllers`](/references/api/venizia-ignis-connectors-search-controllers) | 0 | 0 |
-| [`@venizia/ignis-connectors/sqlite`](/references/api/venizia-ignis-connectors-sqlite) | 49 | 49 |
+| [`@venizia/ignis-connectors/sqlite`](/references/api/venizia-ignis-connectors-sqlite) | 50 | 50 |
 | [`@venizia/ignis-connectors/sqlite/libsql`](/references/api/venizia-ignis-connectors-sqlite-libsql) | 2 | 2 |
 | [`@venizia/ignis-connectors/testing`](/references/api/venizia-ignis-connectors-testing) | 13 | 13 |
-| [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense) | 85 | 85 |
+| [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense) | 86 | 86 |
 | [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers) | 33 | 33 |
 | [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter) | 19 | 19 |
 | [`@venizia/ignis-filter/schemas`](/references/api/venizia-ignis-filter-schemas) | 11 | 11 |

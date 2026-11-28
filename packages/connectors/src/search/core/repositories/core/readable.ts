@@ -16,7 +16,7 @@ import { DataRangeUtility, DEFAULT_LIMIT } from '@venizia/ignis-kernel/repositor
 import type { IdType } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { ISearchFacetCount, ISearchResult } from '@/search/core';
-import type { TSearchInput } from '@/search/core/repositories/common';
+import type { TSearchInput, TTranslatableSearchInput } from '@/search/core/repositories/common';
 import { SearchModes } from '@/search/core/repositories/common';
 import type { AbstractSearchDataSource } from '@/search/core/datasources';
 import { SearchBaseRepository } from './base';
@@ -350,9 +350,7 @@ export class ReadableSearchRepository<
   }
 
   /** Documents lose their hidden fields on the way out, but a facet count or a match on one would still tell the caller what the field holds; so they are refused as `facetBy`, in `facetQuery`, as `queryBy`, as `groupBy` and in the highlight fields (a group key and a highlight snippet carry the value too). */
-  protected assertNoHiddenFieldsNamed(opts: {
-    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
-  }): void {
+  protected assertNoHiddenFieldsNamed(opts: { input: TTranslatableSearchInput }): void {
     const { input } = opts;
 
     if (this.hiddenFields.length === 0) {
@@ -413,8 +411,8 @@ export class ReadableSearchRepository<
   }
 
   protected withDefaultQueryBy(opts: {
-    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
-  }): Exclude<TSearchInput, { mode: typeof SearchModes.RAW }> {
+    input: TTranslatableSearchInput;
+  }): TTranslatableSearchInput {
     const { input } = opts;
 
     if (input.mode !== SearchModes.KEYWORD || input.queryBy) {

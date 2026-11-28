@@ -1,6 +1,7 @@
 import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { customType } from 'drizzle-orm/sqlite-core';
+import type { SQLiteTextBuilderInitial } from 'drizzle-orm/sqlite-core';
 import type { TIsoTimestamp } from '@venizia/ignis-filter';
 
 /**
@@ -9,6 +10,9 @@ import type { TIsoTimestamp } from '@venizia/ignis-filter';
  * would read it as host-local, so the offset is pinned on the way in.
  */
 const ZONELESS_DATE_TIME = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)$/;
+
+/** A text column as `text(name)` first builds it, before any modifier. */
+export type TSQLiteTextColumn = SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>;
 
 /**
  * No date storage class - timestamps live in `text`, normalized to ISO 8601 both ways so

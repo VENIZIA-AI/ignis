@@ -179,9 +179,7 @@ export interface ISearchLooseResponse<RouteEnv extends Env = Env, Inject extends
         hits: Array<TSearchHit<object>>;
         found: number;
         context: TRouteContext<RouteEnv>;
-        input: Exclude<TSearchInput, {
-            mode: 'raw';
-        }>;
+        input: TTranslatableSearchInput;
         injected: TInjected<Inject>;
     }) => TValueOrPromise<Array<TSearchLooseHit>>;
 }
@@ -266,9 +264,7 @@ export interface ISearchQueryOptions<Document extends object, Tuning extends obj
     normalize?: (opts: {
         text: string;
         context: TRouteContext<RouteEnv>;
-        input: Exclude<TSearchInput, {
-            mode: 'raw';
-        }> & TExtra;
+        input: TTranslatableSearchInput & TExtra;
         injected: TInjected<Inject>;
     }) => TValueOrPromise<string>;
     /** What a client may send. `tuning` names the knobs a request's `engineParams` may carry; a name is fixed or allowed, never both. */
@@ -368,9 +364,7 @@ export interface ISearchResponseTransform<Document extends object, TOutDocument 
         hits: Array<TSearchHit<Document>>;
         found: number;
         context: TRouteContext<RouteEnv>;
-        input: Exclude<TSearchInput, {
-            mode: 'raw';
-        }>;
+        input: TTranslatableSearchInput;
         /** The instances of the classes `inject` declares: reread rows from another repository, say. */
         injected: TInjected<Inject>;
     }) => TValueOrPromise<Array<TSearchHit<TOutDocument>>>;
@@ -417,9 +411,7 @@ What a function source is called with, whatever the document: the same context, 
 ```ts
 export interface ISearchSourceOptions<RouteEnv extends Env, TExtra extends object, Inject extends TInjectMap> {
     context: TRouteContext<RouteEnv>;
-    input: Exclude<TSearchInput, {
-        mode: typeof SearchModes.RAW;
-    }> & TExtra;
+    input: TTranslatableSearchInput & TExtra;
     injected: TInjected<Inject>;
 }
 ```

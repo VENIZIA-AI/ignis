@@ -224,17 +224,11 @@ export declare class ReadableSearchRepository<TDocument extends object = object,
     }): Promise<R[]>;
     /** Documents lose their hidden fields on the way out, but a facet count or a match on one would still tell the caller what the field holds; so they are refused as `facetBy`, in `facetQuery`, as `queryBy`, as `groupBy` and in the highlight fields (a group key and a highlight snippet carry the value too). */
     protected assertNoHiddenFieldsNamed(opts: {
-        input: Exclude<TSearchInput, {
-            mode: typeof SearchModes.RAW;
-        }>;
+        input: TTranslatableSearchInput;
     }): void;
     protected withDefaultQueryBy(opts: {
-        input: Exclude<TSearchInput, {
-            mode: typeof SearchModes.RAW;
-        }>;
-    }): Exclude<TSearchInput, {
-        mode: typeof SearchModes.RAW;
-    }>;
+        input: TTranslatableSearchInput;
+    }): TTranslatableSearchInput;
     /** @throws Error - disabled in a read-only repository; unlocked progressively by Persistable/DefaultSearchRepository. */
     create(opts: {
         data: TDocument;
@@ -983,6 +977,28 @@ export type TSearchSchema = Record<string, ISearchCollectionDefinition>;
 ```
 
 Source: `packages/connectors/src/search/core/models/common/types/collection.ts`
+
+## `TTranslatableSearchInput`
+
+*type*
+
+The inputs a dialect translates: every `TSearchInput` mode but `raw`, which goes to the engine as given.
+
+```ts
+export type TTranslatableSearchInput = Exclude<TSearchInput, {
+    mode: typeof SearchModes.RAW;
+}>;
+
+/** Discriminant values for `TSearchInput.mode` - which search strategy `ReadableSearchRepository.search()` runs. */
+export declare class SearchModes extends ConstClass {
+    static readonly KEYWORD = "keyword";
+    static readonly SEMANTIC = "semantic";
+    static readonly HYBRID = "hybrid";
+    static readonly RAW = "raw";
+}
+```
+
+Source: `packages/connectors/src/search/core/repositories/common/constants.ts`
 
 ## `TTypesenseDirtyValue`
 

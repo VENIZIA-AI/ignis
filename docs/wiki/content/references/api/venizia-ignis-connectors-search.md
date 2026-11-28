@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/search, from the built d
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-0 exports, 0 with TSDoc. 55 more are re-exported from other entries (listed at the end).
+0 exports, 0 with TSDoc. 56 more are re-exported from other entries (listed at the end).
 
 ## Re-exported
 
@@ -63,6 +63,7 @@ description: "Every export of @venizia/ignis-connectors/search, from the built d
 - `TSearchInput` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
 - `TSearchMode` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
 - `TSearchSchema` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
+- `TTranslatableSearchInput` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
 - `TVectorDistance` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
 - `TypesenseBaseRepository` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
 - `VectorDistances` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
