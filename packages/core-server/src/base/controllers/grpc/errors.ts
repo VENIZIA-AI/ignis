@@ -1,6 +1,7 @@
 import { GRPC, HTTP, type TGrpcResultCode } from '@venizia/ignis-helpers/common';
-import { RecordUtility } from '@venizia/ignis-helpers/core';
+import { isApplicationError, RecordUtility } from '@venizia/ignis-helpers/core';
 import type { Context, Env, ErrorHandler } from 'hono';
+import { HTTPException } from 'hono/http-exception';
 
 const CODES = new Map<number, TGrpcResultCode>([
   [HTTP.ResultCodes.RS_4.BadRequest, GRPC.ResultCodes.INVALID_ARGUMENT],
@@ -18,9 +19,9 @@ const CODES = new Map<number, TGrpcResultCode>([
  */
 export class GrpcErrors {
   /**
-   * A client error (4xx) becomes a `ConnectError` of the loaded ConnectRPC module, with its code and public message.
-   * Anything else, a `ConnectError` the application threw included, is answered as it is: ConnectRPC keeps its own error
-   * and hides the rest behind `internal`.
+   * A client error (4xx) thrown as `getError`'s error or as Hono's `HTTPException` becomes a `ConnectError` of the
+   * loaded ConnectRPC module, with its code and public message. Anything else, a `ConnectError` the application threw
+   * included, is answered as it is: ConnectRPC keeps its own error and hides the rest behind `internal`.
    */
   static async toAnswer<RouteEnv extends Env>(opts: {
     error: unknown;
@@ -31,11 +32,10 @@ export class GrpcErrors {
     const { error, context, connect, handle } = opts;
     const ConnectError: unknown = Reflect.get(connect, 'ConnectError');
 
-    if (
-      typeof ConnectError !== 'function' ||
-      !(error instanceof Error) ||
-      error instanceof ConnectError
-    ) {
+    // Only the framework's own errors: another library's `statusCode` and text were not written for this caller.
+    const isFrameworkError = isApplicationError(error) || error instanceof HTTPException;
+
+    if (typeof ConnectError !== 'function' || !isFrameworkError) {
       return error;
     }
 
