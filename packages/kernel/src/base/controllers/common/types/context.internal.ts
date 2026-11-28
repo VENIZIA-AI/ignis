@@ -1,11 +1,21 @@
 // The types behind `TContextOf`. No barrel re-exports this module, and the package's `exports` map reaches none but
 // the barrels: nothing here is public API.
+import { ConstClass, type TConstValue } from '@venizia/ignis-helpers/common';
 import type { Context, Env } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { TJsonResponse } from './context';
 
-/** What `req.valid()` can be asked for. */
-export type TValidTarget = 'json' | 'query' | 'param' | 'header' | 'cookie' | 'form';
+/** The targets `req.valid()` can be asked for: the ones Hono validates. */
+export class ValidTargets extends ConstClass {
+  static readonly JSON = 'json';
+  static readonly QUERY = 'query';
+  static readonly PARAM = 'param';
+  static readonly HEADER = 'header';
+  static readonly COOKIE = 'cookie';
+  static readonly FORM = 'form';
+}
+
+export type TValidTarget = TConstValue<typeof ValidTargets>;
 
 /** The output type of a zod schema, read from zod's own property; `unknown` for anything else. */
 type TSchemaOutput<Schema> = Schema extends { _zod: { output: infer Output } } ? Output : unknown;

@@ -118,6 +118,7 @@ export class GrpcRequestAdapter<
     handlers: Record<string, TConnectHandler>;
   }) {
     const { router, handlers } = opts;
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `router.service` takes a ConnectRPC `DescService`, while the controller's `ServiceType` is unbounded
     (router.service as Function)(this.controller.service, handlers);
   }
 
@@ -144,7 +145,7 @@ export class GrpcRequestAdapter<
         return next();
       }
 
-      // `context` is Hono's real Context<RouteEnv>; TRouteContext is a lightweight custom shape (different `json`/`req.valid` signatures) built on it, not a subtype - hence this bridge.
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Hono's context is what runs; `TRouteContext` is built on it but declares `json` and `req.valid` differently, so it is no subtype
       return storage.run(context as TRouteContext<RouteEnv>, async () => {
         try {
           const body = await context.req.arrayBuffer();
