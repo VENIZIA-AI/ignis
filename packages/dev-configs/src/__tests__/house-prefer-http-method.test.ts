@@ -140,6 +140,54 @@ describe('prefer-http-method: the fix', () => {
     expect(fixed).toBe(code);
   });
 
+  test('an uppercase method the framework sends is rewritten: a route config, an execute, send or request object', () => {
+    const { fixed } = run({
+      code: [
+        "export const a = { method: 'PATCH', path: '/', responses };",
+        "export const b = { configs: { method: 'GET', path: '/' } };",
+        "export const c = { method: 'POST', path: '/', responses } satisfies IAuthRouteConfig;",
+        "this.fetcher.send({ method: 'PUT', url });",
+        "client.request({ method: 'DELETE', path: '/a' });",
+        "source.execute({ method: isNew ? 'POST' : 'PATCH', baseUrl });",
+      ].join('\n'),
+    });
+
+    expect(fixed).toBe(
+      [
+        IMPORT,
+        "export const a = { method: HTTP.Methods.PATCH, path: '/', responses };",
+        "export const b = { configs: { method: HTTP.Methods.GET, path: '/' } };",
+        "export const c = { method: HTTP.Methods.POST, path: '/', responses } satisfies IAuthRouteConfig;",
+        'this.fetcher.send({ method: HTTP.Methods.PUT, url });',
+        "client.request({ method: HTTP.Methods.DELETE, path: '/a' });",
+        'source.execute({ method: isNew ? HTTP.Methods.POST : HTTP.Methods.PATCH, baseUrl });',
+      ].join('\n'),
+    );
+  });
+
+  for (const [name, code] of [
+    ['a fetch call', "fetch(url, { method: 'PATCH', body });"],
+    ['a wrapped fetch', "this.nativeFetch(url, { method: 'PATCH', body });"],
+    ['a new Request', "new Request(url, { method: 'PATCH', body });"],
+    ['an init held on its own', "const init = { method: 'PATCH', body };"],
+    ['a held method', "const method = 'PATCH';"],
+    ['a default parameter', "const send = (method = 'PATCH') => method;"],
+    ['a bare request call', "request(url, { method: 'PATCH', body });"],
+    ['a message with no target', "socket.send({ method: 'PATCH', data });"],
+    [
+      'a file that imports another HTTP client',
+      "import { Client } from 'undici';\nclient.request({ method: 'PATCH', path: '/a' });",
+    ],
+    ['a mixed spelling', "this.fetcher.send({ method: 'Patch', url });"],
+  ] as const) {
+    test(`an uppercase method is only reported: ${name}`, () => {
+      const { found, fixed } = run({ code });
+
+      expect(found).toEqual(['spelling']);
+      expect(fixed).toBe(code);
+    });
+  }
+
   test('no fix with source null, and none inside the package that owns HTTP', () => {
     const code = "export const a = { method: 'get', url };";
     const owner = buildProject({
