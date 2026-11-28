@@ -7,7 +7,7 @@ description: Unary, server stream, client stream and bidi handlers in an IGNIS g
 
 Each RPC kind has a decorator and a handler shape. The kind must match the `.proto`.
 
-## gRPC client stream and bidi
+## The four call kinds: unary, server stream, client stream, bidi
 
 | Kind | Proto | Decorator | Handler | Application port | Native port |
 |---|---|---|---|---|---|

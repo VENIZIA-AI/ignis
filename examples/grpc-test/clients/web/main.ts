@@ -30,10 +30,20 @@ onClick('#sign-in', async () => {
 // Server stream: stays open, and shows a note the moment it is created.
 onClick('#watch', async () => {
   following?.abort();
-  following = new AbortController();
+  const watching = new AbortController();
+  following = watching;
 
-  for await (const note of client.watchNotes({ follow: true, signal: following.signal })) {
-    log(`note ${note.id}: ${note.title}`);
+  try {
+    for await (const note of client.watchNotes({ follow: true, signal: watching.signal })) {
+      log(`note ${note.id}: ${note.title}`);
+    }
+  } catch (error) {
+    // Stop, or a second Watch, ends the stream: not a failure.
+    if (!watching.signal.aborted) {
+      throw error;
+    }
+
+    log('stopped watching');
   }
 });
 

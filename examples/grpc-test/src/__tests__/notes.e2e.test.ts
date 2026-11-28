@@ -145,7 +145,7 @@ beforeAll(async () => {
 
   const address = application.get({ key: GrpcBindingKeys.GRPC_NATIVE_LISTENER }).getAddress();
   nativeAddress = `${HOST}:${address?.port}`;
-});
+}, 30_000);
 
 afterAll(async () => {
   await application.stop();

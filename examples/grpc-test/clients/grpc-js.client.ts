@@ -43,7 +43,10 @@ export class NotesGrpcJsClient {
       ? grpc.credentials.createSsl(opts.ca)
       : grpc.credentials.createInsecure();
 
-    this.client = new grpc.Client(opts.address, credentials);
+    // The name the certificate of `bun run certs` is checked against: TLS names no server by IP address.
+    const options = opts.ca ? { 'grpc.ssl_target_name_override': 'localhost' } : {};
+
+    this.client = new grpc.Client(opts.address, credentials, options);
   }
 
   close() {

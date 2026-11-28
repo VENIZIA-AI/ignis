@@ -36,8 +36,8 @@ bun run client:connect --native     # native gRPC, bidi included
 bun run client:grpc-js              # @grpc/grpc-js, native port
 ```
 
-Open <http://127.0.0.1:3000/demo> for the browser client: sign in as `bob`, then watch the notes (server stream) or get
-one by id (unary).
+Open <http://127.0.0.1:3000/demo> for the browser client: sign in as `alice`, then watch the notes (server stream) or get
+one by id (unary). A new note of hers appears while you watch: run a client above to make one.
 
 Without any client library, Connect speaks JSON over HTTP/1.1:
 

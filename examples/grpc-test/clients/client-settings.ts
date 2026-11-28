@@ -17,7 +17,7 @@ export class ClientSettings {
 
   /** The self-signed certificate of `bun run certs`: a client has to be told to trust it. */
   static readCertificate() {
-    const path = './certs/server.crt';
+    const path = AppEnvs.get('APP_ENV_GRPC_TLS_CERT', { defaultValue: './certs/server.crt' });
 
     if (!existsSync(path)) {
       throw getError({ message: `[ClientSettings] ${path} does not exist | run: bun run certs` });

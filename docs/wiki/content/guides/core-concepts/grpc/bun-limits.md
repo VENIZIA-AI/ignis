@@ -42,4 +42,4 @@ The native gRPC port is not affected by the first row: a stream that keeps sendi
 
 ## Native gRPC on node:http2 in Bun
 
-The native port uses Bun's `node:http2`, which is younger than Node's. Check [oven-sh/bun#39796](https://github.com/oven-sh/bun/issues/39796) and load test before you put heavy traffic on this port.
+The native port uses Bun's `node:http2`, which is younger than Node's. Load test before you put heavy traffic on this port.
