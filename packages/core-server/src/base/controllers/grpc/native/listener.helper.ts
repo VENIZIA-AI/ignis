@@ -8,6 +8,7 @@ import type {
   Http2ServerResponse,
   ServerHttp2Session,
 } from 'node:http2';
+import type { Socket } from 'node:net';
 import { GrpcNativeCallStore } from './call.store';
 import type { IGrpcNativeOptions } from './common/types';
 import { GrpcHeaderUtility } from './header.utility';
@@ -19,6 +20,12 @@ const DEFAULT_SHUTDOWN_TIMEOUT_MS = 10_000;
 /** What aborted calls get to write their answer before the connections are destroyed. */
 const ABORT_GRACE_MS = 1_000;
 const MAX_PORT = 65_535;
+/** The largest `maxConcurrentStreams` an HTTP/2 SETTINGS frame carries; a larger value fails every connection. */
+const MAX_CONCURRENT_STREAMS = 4_294_967_295;
+/** The largest delay a timer takes; a larger one fires at once. */
+const MAX_TIMEOUT_MS = 2_147_483_647;
+/** The method every gRPC call uses. */
+const GRPC_METHOD = 'POST';
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', '::1', 'localhost']);
 /** The origin of the request built for Hono. A constant, so a caller never chooses it. */
 const ORIGIN = 'http://grpc.internal';
@@ -43,6 +50,12 @@ export interface IGrpcListenerOptions {
 export class GrpcListenerHelper extends BaseHelper {
   private server?: Http2Server;
   private readonly sessions = new Set<ServerHttp2Session>();
+  /** Every TCP connection, one that never finished its TLS handshake included: no session ever stands for it. */
+  private readonly sockets = new Set<Socket>();
+  /** The shutdown in progress, which a second `stop()` waits for. */
+  private stopping?: Promise<void>;
+  /** Called when the last session closed, while stopping. */
+  private onDrained?: () => void;
 
   constructor(private readonly listener: IGrpcListenerOptions) {
     super({ scope: GrpcListenerHelper.name });
@@ -63,7 +76,9 @@ export class GrpcListenerHelper extends BaseHelper {
 
   /** Binds the port. A port in use rejects. */
   async start() {
-    const { port, host = DEFAULT_HOST, tls, limits } = this.listener.options;
+    const { port, tls, limits } = this.listener.options;
+    // As the HTTP server reads it: an empty host is no host, and never "every interface".
+    const host = this.listener.options.host || DEFAULT_HOST;
     const http2 = await import('node:http2');
     const settings = {
       maxConcurrentStreams: limits?.concurrentStreams ?? DEFAULT_CONCURRENT_STREAMS,
@@ -82,7 +97,17 @@ export class GrpcListenerHelper extends BaseHelper {
 
     server.on('session', (session: ServerHttp2Session) => {
       this.sessions.add(session);
-      session.once('close', () => this.sessions.delete(session));
+      session.once('close', () => {
+        this.sessions.delete(session);
+
+        if (this.sessions.size === 0) {
+          this.onDrained?.();
+        }
+      });
+    });
+    server.on('connection', (socket: Socket) => {
+      this.sockets.add(socket);
+      socket.once('close', () => this.sockets.delete(socket));
     });
 
     await new Promise<void>((resolve, reject) => {
@@ -93,6 +118,11 @@ export class GrpcListenerHelper extends BaseHelper {
       });
     });
     this.server = server;
+    server.on('error', (error: Error) => {
+      this.logger
+        .for('server')
+        .error('Native gRPC server error | %s', ErrorPrettier.format({ error }));
+    });
 
     const logger = this.logger.for(this.start.name);
     logger.info('Native gRPC STARTED | address: %s:%s', host, this.getAddress()?.port);
@@ -104,22 +134,29 @@ export class GrpcListenerHelper extends BaseHelper {
 
   /**
    * Stops accepting, asks every connection to finish, waits `shutdownTimeout`, then aborts what still runs and
-   * destroys the connections.
+   * destroys the connections. A second call waits for the same shutdown.
    */
   async stop() {
     const { server } = this;
 
-    if (!server) {
-      return;
+    if (server) {
+      this.server = undefined;
+      this.stopping = this.shutDown({ server });
     }
 
-    this.server = undefined;
-    let isClosed = false;
+    await this.stopping;
+  }
+
+  private async shutDown(opts: { server: Http2Server }) {
     const closed = new Promise<void>((resolve) => {
-      server.close(() => {
-        isClosed = true;
+      opts.server.close(() => resolve());
+    });
+    const drained = new Promise<void>((resolve) => {
+      this.onDrained = resolve;
+
+      if (this.sessions.size === 0) {
         resolve();
-      });
+      }
     });
 
     for (const session of this.sessions) {
@@ -127,21 +164,26 @@ export class GrpcListenerHelper extends BaseHelper {
     }
 
     const timeout = this.listener.options.shutdownTimeout ?? DEFAULT_SHUTDOWN_TIMEOUT_MS;
-    await this.settle({ task: closed, ms: timeout });
+    await this.settle({ task: drained, ms: timeout });
 
-    if (isClosed) {
-      return;
+    if (this.sessions.size > 0) {
+      this.logger
+        .for(this.stop.name)
+        .warn('Native gRPC calls still running after %s ms | aborting them', timeout);
+      this.listener.shutdown.abort();
+      await this.settle({ task: drained, ms: ABORT_GRACE_MS });
     }
-
-    this.logger
-      .for(this.stop.name)
-      .warn('Native gRPC calls still running after %s ms | aborting them', timeout);
-    this.listener.shutdown.abort();
-    await this.settle({ task: closed, ms: ABORT_GRACE_MS });
 
     for (const session of this.sessions) {
       session.destroy();
     }
+
+    // No call is left: what remains is a connection with no session, which `close()` would wait on.
+    for (const socket of this.sockets) {
+      socket.destroy();
+    }
+
+    await this.settle({ task: closed, ms: ABORT_GRACE_MS });
   }
 
   /** Waits for `task`, at most `ms`; the caller reads whether it finished. */
@@ -179,7 +221,7 @@ export class GrpcListenerHelper extends BaseHelper {
     const { request, response } = opts;
     const mounted = this.listener.routes.get(request.url);
 
-    if (request.method.toLowerCase() !== HTTP.Methods.POST || !mounted) {
+    if (request.method !== GRPC_METHOD || !mounted) {
       GrpcNativeWriter.refuse({
         response,
         status: HTTP.ResultCodes.RS_4.NotFound,
@@ -197,7 +239,7 @@ export class GrpcListenerHelper extends BaseHelper {
 
     const answer = await this.listener.fetch(
       new Request(`${ORIGIN}${mounted}`, {
-        method: request.method,
+        method: GRPC_METHOD,
         headers,
         signal: left.signal,
       }),
@@ -225,18 +267,24 @@ export class GrpcListenerHelper extends BaseHelper {
 
     const streams = limits?.concurrentStreams ?? DEFAULT_CONCURRENT_STREAMS;
 
-    if (!Number.isInteger(streams) || streams <= 0) {
+    if (!Number.isInteger(streams) || streams <= 0 || streams > MAX_CONCURRENT_STREAMS) {
       refuse(
-        `native.limits.concurrentStreams must be a positive integer | value: ${String(streams)}`,
+        `native.limits.concurrentStreams must be an integer from 1 to ${MAX_CONCURRENT_STREAMS} | value: ${String(streams)}`,
       );
     }
 
     const timeout = shutdownTimeout ?? DEFAULT_SHUTDOWN_TIMEOUT_MS;
 
-    if (!Number.isFinite(timeout) || timeout <= 0) {
+    if (!Number.isFinite(timeout) || timeout <= 0 || timeout > MAX_TIMEOUT_MS) {
       refuse(
-        `native.shutdownTimeout must be a positive number of milliseconds | value: ${String(timeout)}`,
+        `native.shutdownTimeout must be a positive number of milliseconds, at most ${MAX_TIMEOUT_MS} | value: ${String(timeout)}`,
       );
+    }
+
+    const host: unknown = this.listener.options.host;
+
+    if (host !== undefined && host !== null && typeof host !== 'string') {
+      refuse(`native.host must be a string | value: ${String(host)}`);
     }
 
     if (ToggleUtility.isUsed(tls) && (!tls.key || !tls.cert)) {

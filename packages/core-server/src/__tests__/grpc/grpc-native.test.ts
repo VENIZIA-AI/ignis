@@ -23,6 +23,7 @@ import {
   type IAuthorizeOptions,
 } from '@venizia/ignis-kernel';
 import { connect as connectHttp2 } from 'node:http2';
+import { connect as connectTcp } from 'node:net';
 import type { ClientHttp2Session } from 'node:http2';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -214,7 +215,13 @@ class NativeApplication extends BaseApplication {
 
   override setupMiddlewares() {
     this.getServer().use('*', async (context, next) => {
+      if (context.req.header('x-block') === 'long') {
+        return context.text('x'.repeat(200_000), 429);
+      }
+
       if (context.req.header('x-block')) {
+        context.header('retry-after', '7');
+
         return context.json({ message: 'blocked early' }, 429);
       }
 
@@ -327,6 +334,17 @@ async function* names(pauseMs = 0) {
   yield { name: 'b' };
 }
 
+/** How a raw HTTP/2 request ended. */
+interface IRawResult {
+  status?: string;
+  code?: string;
+  message?: string;
+  requestId?: string;
+  retryAfter?: string;
+  reset?: number;
+  ms: number;
+}
+
 /** One raw HTTP/2 request: how it ended, for the cases no gRPC client sends. */
 const raw = (opts: {
   headers: Record<string, string>;
@@ -335,16 +353,10 @@ const raw = (opts: {
 }) => {
   const session = opts.session ?? connectHttp2(`http://${addressOf(application)}`);
 
-  return new Promise<{
-    status?: string;
-    code?: string;
-    message?: string;
-    reset?: number;
-    ms: number;
-  }>((resolve) => {
+  return new Promise<IRawResult>((resolve) => {
     const startedAt = performance.now();
     const stream = session.request(opts.headers, { endStream: opts.endStream ?? true });
-    const result: { status?: string; code?: string; message?: string } = {};
+    const result: Omit<IRawResult, 'reset' | 'ms'> = {};
 
     const read = (headers: Record<string, unknown>) => {
       result.status ??= headers[':status'] === undefined ? undefined : String(headers[':status']);
@@ -352,6 +364,10 @@ const raw = (opts: {
         headers['grpc-status'] === undefined ? undefined : String(headers['grpc-status']);
       result.message ??=
         headers['grpc-message'] === undefined ? undefined : String(headers['grpc-message']);
+      result.requestId ??=
+        headers['x-request-id'] === undefined ? undefined : String(headers['x-request-id']);
+      result.retryAfter ??=
+        headers['retry-after'] === undefined ? undefined : String(headers['retry-after']);
     };
 
     stream.on('response', read);
@@ -376,6 +392,36 @@ const grpcHeaders = (extra: Record<string, string> = {}) => ({
   te: 'trailers',
   ...extra,
 });
+
+/** A self-signed certificate for localhost, made in `folder`. */
+const certificate = (folder: string) => {
+  const keyFile = path.join(folder, 'key.pem');
+  const certFile = path.join(folder, 'cert.pem');
+  const openssl = Bun.spawnSync([
+    'openssl',
+    'req',
+    '-x509',
+    '-newkey',
+    'rsa:2048',
+    '-nodes',
+    '-keyout',
+    keyFile,
+    '-out',
+    certFile,
+    '-days',
+    '1',
+    '-subj',
+    '/CN=localhost',
+    '-addext',
+    'subjectAltName=DNS:localhost,IP:127.0.0.1',
+  ]);
+
+  if (openssl.exitCode !== 0) {
+    throw getError({ message: 'openssl could not make the test certificate' });
+  }
+
+  return { use: true as const, key: readFileSync(keyFile), cert: readFileSync(certFile) };
+};
 
 describe('native gRPC port - calls', () => {
   test('a unary call answers with headers, trailers, middleware headers, context and the caller address', async () => {
@@ -482,6 +528,35 @@ describe('native gRPC port - refusals and limits', () => {
       code: String(14),
       message: encodeURIComponent('blocked early'),
     });
+  });
+
+  test('a refusal keeps the headers of earlier middleware', async () => {
+    const result = await raw({ headers: grpcHeaders({ 'x-block': '1' }) });
+
+    expect(result.requestId).toBeTruthy();
+    expect(result.retryAfter).toBe('7');
+  });
+
+  test('a refused call whose request never ends is reset at once', async () => {
+    const result = await raw({ headers: grpcHeaders({ 'x-block': '1' }), endStream: false });
+
+    expect(result.code).toBe(String(Code.Unavailable));
+    expect(result.ms).toBeLessThan(IDLE_SECONDS * 1_000 - 200);
+  });
+
+  test('a long refusal body is cut to what a header can carry', async () => {
+    const result = await raw({ headers: grpcHeaders({ 'x-block': 'long' }) });
+
+    expect(result.code).toBe(String(Code.Unavailable));
+    expect(result.message?.length).toBeLessThanOrEqual(1_024);
+  });
+
+  test('the method is POST, spelled so', async () => {
+    for (const spelled of ['PoSt', 'post']) {
+      const result = await raw({ headers: grpcHeaders({ ':method': spelled }) });
+
+      expect(result.code).toBe(String(Code.Unimplemented));
+    }
   });
 
   test('only RPC paths are served, with POST', async () => {
@@ -598,6 +673,59 @@ describe('native gRPC port - lifecycle', () => {
     await off.stop();
   });
 
+  for (const host of ['', undefined]) {
+    test(`host ${JSON.stringify(host)} listens on loopback only`, async () => {
+      const local = await start({ port: 0, host });
+
+      expect(addressOf(local)).toStartWith('127.0.0.1:');
+      await local.stop();
+    });
+  }
+
+  test('stop() does not wait for a TCP connection that never finished the TLS handshake', async () => {
+    const folder = mkdtempSync(path.join(tmpdir(), 'ignis-grpc-handshake-'));
+    const secure = await start({ port: 0, tls: certificate(folder), shutdownTimeout: 5_000 });
+    const [host, port] = addressOf(secure).split(':');
+    const socket = connectTcp({ host, port: Number(port) });
+    const closed = new Promise<boolean>((resolve) => socket.once('close', () => resolve(true)));
+    socket.on('error', () => {});
+    await new Promise<void>((resolve) => socket.once('connect', () => resolve()));
+    const startedAt = performance.now();
+    await secure.stop();
+    const took = performance.now() - startedAt;
+    const isClosed = await Promise.race([
+      closed,
+      PromiseUtility.sleep({ ms: 1_000 }).then(() => false),
+    ]);
+    socket.destroy();
+    rmSync(folder, { recursive: true, force: true });
+
+    expect(took).toBeLessThan(2_000);
+    expect(isClosed).toBe(true);
+  });
+
+  test('a second stop() waits for the same shutdown', async () => {
+    const twice = await start({ port: 0, shutdownTimeout: 400 });
+    const method: unknown = Reflect.get(client({ url: `http://${addressOf(twice)}` }), 'sayHello');
+
+    if (typeof method !== 'function') {
+      throw getError({ message: 'no method' });
+    }
+
+    const failure = failureOf(method({ name: 'sleep:20000' }, { headers: SIGNED_IN }));
+    await PromiseUtility.sleep({ ms: 200 });
+    const listener = twice.get({ key: GrpcBindingKeys.GRPC_NATIVE_LISTENER });
+    const first = listener.stop();
+    const startedAt = performance.now();
+    await listener.stop();
+    const waited = performance.now() - startedAt;
+    await first;
+    await failure;
+    await twice.stop();
+
+    expect(waited).toBeGreaterThanOrEqual(300);
+  });
+
   test('a port in use fails start()', async () => {
     const [, port] = addressOf(application).split(':');
     const second = new NativeApplication({ port: Number(port) });
@@ -626,13 +754,16 @@ describe('native gRPC port - lifecycle', () => {
     expect(performance.now() - startedAt).toBeLessThan(3_000);
     expect(seen.aborted).toBe(1);
     const result = await failure;
-    expect(result.code).not.toBe(Code.DeadlineExceeded);
+    expect(result.code).toBe(Code.Unavailable);
   });
 
   for (const native of [
     { port: -1 },
     { port: 0, limits: { concurrentStreams: 0 } },
     { port: 0, shutdownTimeout: 0 },
+    { port: 0, shutdownTimeout: 2 ** 31 },
+    { port: 0, limits: { concurrentStreams: 2 ** 32 } },
+    JSON.parse('{ "port": 0, "host": 123 }'),
     { port: 0, tls: { use: true as const, key: '', cert: '' } },
   ]) {
     test(`${JSON.stringify(native)} stops the boot`, async () => {
@@ -647,33 +778,9 @@ describe('native gRPC port - lifecycle', () => {
 
   test('TLS serves a client that trusts the certificate', async () => {
     const folder = mkdtempSync(path.join(tmpdir(), 'ignis-grpc-tls-'));
-    const keyFile = path.join(folder, 'key.pem');
-    const certFile = path.join(folder, 'cert.pem');
-    const openssl = Bun.spawnSync([
-      'openssl',
-      'req',
-      '-x509',
-      '-newkey',
-      'rsa:2048',
-      '-nodes',
-      '-keyout',
-      keyFile,
-      '-out',
-      certFile,
-      '-days',
-      '1',
-      '-subj',
-      '/CN=localhost',
-      '-addext',
-      'subjectAltName=DNS:localhost,IP:127.0.0.1',
-    ]);
-
-    expect(openssl.exitCode).toBe(0);
-    const cert = readFileSync(certFile);
-    const secure = await start({
-      port: 0,
-      tls: { use: true, key: readFileSync(keyFile), cert },
-    });
+    const tls = certificate(folder);
+    const { cert } = tls;
+    const secure = await start({ port: 0, tls });
     const [, port] = addressOf(secure).split(':');
     const method: unknown = Reflect.get(
       client({ url: `https://localhost:${port}`, ca: cert }),

@@ -123,6 +123,13 @@ export declare class GrpcHeaderUtility {
     static fromNode(opts: {
         headers: IncomingHttpHeaders;
     }): Headers;
+    /**
+     * The headers of an HTTP answer a trailers-only refusal keeps (a request id, `retry-after`): not the ones that
+     * describe its body or its HTTP/1.1 connection, which HTTP/2 refuses.
+     */
+    static toRefusal(opts: {
+        headers: Headers;
+    }): Record<string, string | string[]>;
     /** Adds to an answer the headers it does not set itself. The content type is the protocol's own. */
     static merge(opts: {
         from: Headers;
@@ -145,6 +152,12 @@ export declare class GrpcListenerHelper extends BaseHelper {
     private readonly listener;
     private server?;
     private readonly sessions;
+    /** Every TCP connection, one that never finished its TLS handshake included: no session ever stands for it. */
+    private readonly sockets;
+    /** The shutdown in progress, which a second `stop()` waits for. */
+    private stopping?;
+    /** Called when the last session closed, while stopping. */
+    private onDrained?;
     constructor(listener: IGrpcListenerOptions);
     /** The address the listener is bound to; `undefined` until `start()`. */
     getAddress(): {
@@ -155,9 +168,10 @@ export declare class GrpcListenerHelper extends BaseHelper {
     start(): Promise<void>;
     /**
      * Stops accepting, asks every connection to finish, waits `shutdownTimeout`, then aborts what still runs and
-     * destroys the connections.
+     * destroys the connections. A second call waits for the same shutdown.
      */
     stop(): Promise<void>;
+    private shutDown;
     /** Waits for `task`, at most `ms`; the caller reads whether it finished. */
     private settle;
     private onRequest;
@@ -206,12 +220,13 @@ export declare class GrpcNativeWriter {
     static answer(opts: IGrpcNativeAnswer): Promise<void>;
     /**
      * Refuses a call before ConnectRPC saw it: one HEADERS frame that also ends the stream ("trailers-only"). A gRPC
-     * error travels on HTTP 200.
+     * error travels on HTTP 200. `headers` are the ones a middleware set on its answer.
      */
     static refuse(opts: {
         response: Http2ServerResponse;
         status: number;
         message: string;
+        headers?: Headers;
     }): void;
     /** Refuses with the answer a middleware gave: its status, and the `message` the error handler wrote. */
     static refuseFrom(opts: {
@@ -275,6 +290,8 @@ export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema 
     private decoratorOf;
     /** Registers every RPC of the controller on the ConnectRPC router, each wrapped into ConnectRPC's `(request, context) => response`. */
     private registerService;
+    /** The signal of the native handlers: it aborts with the listener's, carrying what the client should read. */
+    private toShutdownSignal;
     /** The request ConnectRPC reads. A body an earlier middleware consumed is in Hono's cache: the request is rebuilt with it. */
     private readRequest;
     /**

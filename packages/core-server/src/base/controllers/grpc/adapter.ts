@@ -321,6 +321,16 @@ export class GrpcRequestAdapter<
     (opts.router.service as Function)(service, handlers);
   }
 
+  /** The signal of the native handlers: it aborts with the listener's, carrying what the client should read. */
+  private toShutdownSignal(opts: { signal: AbortSignal }) {
+    const shutdown = new AbortController();
+    opts.signal.addEventListener('abort', () => {
+      shutdown.abort(GrpcErrors.shuttingDown({ connect: this.peers.connect }));
+    });
+
+    return shutdown.signal;
+  }
+
   /** The request ConnectRPC reads. A body an earlier middleware consumed is in Hono's cache: the request is rebuilt with it. */
   private async readRequest(opts: { context: Context<RouteEnv> }) {
     const { raw } = opts.context.req;
@@ -428,7 +438,7 @@ export class GrpcRequestAdapter<
         grpc: true,
         connect: false,
         grpcWeb: false,
-        shutdownSignal: opts.native.shutdownSignal,
+        shutdownSignal: adapter.toShutdownSignal({ signal: opts.native.shutdownSignal }),
       });
 
     if (opts.controller.service) {
