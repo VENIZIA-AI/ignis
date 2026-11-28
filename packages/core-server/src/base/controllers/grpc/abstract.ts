@@ -42,7 +42,6 @@ export abstract class AbstractGrpcController<
   /** ConnectRPC service definition from @controller metadata. */
   service: ServiceType;
   path: string;
-  basePath: string = '';
   /** Assigned by GrpcComponent from its options, before configure(). Absent means the adapter resolves the peer itself. */
   connectRpcModule?: IConnectRpcModule;
   /** ConnectRPC interceptors, assigned by GrpcComponent from its options before configure(). Applied to every RPC this controller registers. */
@@ -182,7 +181,7 @@ export abstract class AbstractGrpcController<
       module: this.connectRpcModule,
       interceptors: this.interceptors,
     });
-    this.router.use('*', adapter.middleware);
+    this.router.route('/', adapter.router);
 
     if (adapter.paths.length > 0) {
       logger.debug('Adapter paths: %j', adapter.paths);

@@ -273,7 +273,7 @@ The declarations are on 3 pages; each export below links to its own.
 
 ## `MembershipRoleManager`
 
-*class* - [Declaration](/references/api/venizia-ignis--part-2#membershiprolemanager)
+*class* - [Declaration](/references/api/venizia-ignis--part-3#membershiprolemanager)
 
 ## `PolicyConnectorResolver`
 

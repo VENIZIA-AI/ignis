@@ -9,6 +9,34 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 Part 3 of 3 of [`@venizia/ignis`](/references/api/venizia-ignis).
 
+## `MembershipRoleManager`
+
+*class*
+
+`g2` axis (`g2(r.sub, r.dom)`): membership holds when the user joined the request domain or any
+ancestor of it, walking the shared per-request domain-hierarchy overlay. Memberships are
+per-principal and rebuilt every request, so `clear()` wipes all.
+
+```ts
+export declare class MembershipRoleManager extends BaseRoleManager implements RoleManager {
+    private readonly overlay?;
+    private memberships;
+    constructor(opts: {
+        overlay?: Map<string, Set<string>>;
+    });
+    clear(): Promise<void>;
+    addLink(user: string, domain: string): Promise<void>;
+    deleteLink(user: string, domain: string): Promise<void>;
+    /** True when `name1` (user) joined `name2` (request domain) itself, or any ancestor of it. Walks UP from the request domain only - walking down from every joined domain would fan out over the whole subtree. */
+    syncedHasLink(name1: string, name2: string): boolean;
+    /** Local membership state only, not the shared graph - correct for hasLink, incomplete for casbin's management API. */
+    getRoles(name: string): Promise<string[]>;
+    getUsers(name: string): Promise<string[]>;
+}
+```
+
+Source: `packages/core-server/src/components/auth/authorize/role-managers/membership.ts`
+
 ## `PolicyConnectorResolver`
 
 *class*
@@ -964,12 +992,15 @@ Source: `packages/core-server/src/components/auth/authorize/adapters/scoped-casb
 
 *type*
 
-Typed handler signature for gRPC RPC methods.
+Typed handler signature for gRPC RPC methods. `rpc` is ConnectRPC's own context of the call: `signal` (aborted at the
+deadline and when the client leaves; a handler that ignores it runs on), `timeoutMs()`, `requestHeader`,
+`responseHeader` and `responseTrailer`.
 
 ```ts
 export type TRpcHandler<RequestType = unknown, ResponseType = unknown, RouteEnv extends Env = Env> = (opts: {
     request: RequestType;
     context: TRouteContext<RouteEnv>;
+    rpc: HandlerContext;
 }) => ValueOrPromise<ResponseType>;
 ```
 

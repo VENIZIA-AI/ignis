@@ -1,3 +1,4 @@
+import * as connect from '@connectrpc/connect';
 import 'reflect-metadata';
 import { afterAll, afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -348,6 +349,8 @@ describe('BaseGrpcController - ConnectRPC module handed over through the options
     const routerOpts: Array<Record<string, unknown> | undefined> = [];
     const module: IConnectRpcModule = {
       connect: {
+        createContextKey: connect.createContextKey,
+        createContextValues: connect.createContextValues,
         createConnectRouter: (opts) => {
           calls.push('createConnectRouter');
           routerOpts.push(opts);
@@ -406,6 +409,8 @@ describe('BaseGrpcController - interceptors from the component options', () => {
     ctrl.interceptors = interceptors;
     ctrl.connectRpcModule = {
       connect: {
+        createContextKey: connect.createContextKey,
+        createContextValues: connect.createContextValues,
         createConnectRouter: (opts) => {
           routerOpts.push(opts);
 
@@ -426,17 +431,17 @@ describe('BaseGrpcController - interceptors from the component options', () => {
     const second = () => {};
 
     const result = await buildController([first, second]);
-    expect(result).toEqual({ interceptors: [first, second] });
+    expect(result).toEqual({ grpc: false, interceptors: [first, second] });
   });
 
-  test('an empty list passes no router option', async () => {
+  test('an empty list passes no interceptors', async () => {
     const result = await buildController([]);
-    expect(result).toEqual({});
+    expect(result).toEqual({ grpc: false });
   });
 
-  test('no interceptors passes no router option', async () => {
+  test('no interceptors passes none', async () => {
     const result = await buildController();
-    expect(result).toEqual({});
+    expect(result).toEqual({ grpc: false });
   });
 });
 
@@ -478,6 +483,8 @@ describe('BaseGrpcController - ConnectRPC peers registered through ModuleUtility
     ModuleUtility.register({
       modules: {
         '@connectrpc/connect': {
+          createContextKey: connect.createContextKey,
+          createContextValues: connect.createContextValues,
           createConnectRouter: () => {
             calls.push('createConnectRouter');
 

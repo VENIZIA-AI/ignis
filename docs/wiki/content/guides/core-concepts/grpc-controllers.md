@@ -1,6 +1,6 @@
 # gRPC Controllers
 
-IGNIS provides first-class support for gRPC via the [ConnectRPC](https://connectrpc.com/) protocol. gRPC controllers use Protobuf service definitions for strongly-typed RPC methods, and are served over the same Hono HTTP server as REST controllers.
+IGNIS serves Protobuf services with [ConnectRPC](https://connectrpc.com/): clients use the Connect or gRPC-Web protocol on the application port. A native gRPC request answers `415`. gRPC controllers use Protobuf service definitions for strongly-typed RPC methods, and are served over the same Hono HTTP server as REST controllers.
 
 > **Deep Dive:** See [gRPC Controllers Reference](../../references/base/grpc-controllers.md) for the complete API.
 
@@ -83,9 +83,29 @@ export class GreeterController extends BaseGrpcController {
 - That descriptor is a `const`, so it cannot be used as a type. Writing `private readonly greeterService: GreeterService` against it is a compile error. The injected dependency is your own service class, which is a different symbol
 - The `path` determines the URL prefix where the gRPC service is mounted
 - `binding()` must be implemented (even if empty) - it is called during `configure()`
-- Handler methods receive `{ request, context }` and return a Protobuf message object
+- Handler methods receive `{ request, context, rpc }` and return a Protobuf message object
 
 The name of an RPC is the method of the service as the generated code writes it (`sayHello` for `rpc SayHello`). A name the service does not declare stops the application at startup, with the declared names in the error.
+
+## Deadlines, cancellation, headers and trailers
+
+`rpc` is ConnectRPC's context of the call (`HandlerContext` from `@connectrpc/connect`):
+
+```typescript
+@unary({ configs: { name: 'sayHello' } })
+async sayHello(opts: { request: SayHelloRequest; context: TRouteContext; rpc: HandlerContext }) {
+  const { request, rpc } = opts;
+
+  // Aborted at the client's deadline and when the client leaves.
+  const message = await this.greeterService.greet({ name: request.name, signal: rpc.signal });
+  rpc.responseHeader.set('x-greeter', 'v2');
+  rpc.responseTrailer.set('x-cost', '3');
+
+  return create(SayHelloResponseSchema, { message });
+}
+```
+
+A deadline is a signal, not a kill: a handler that ignores `rpc.signal` runs on and answers. `rpc.timeoutMs()` gives the time left, and `rpc.requestHeader` the request headers.
 
 ## RPC Method Decorators
 

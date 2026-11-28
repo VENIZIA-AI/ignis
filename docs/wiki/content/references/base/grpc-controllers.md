@@ -25,7 +25,7 @@ IGNIS gRPC controllers follow the same patterns as REST controllers (decorator-b
 |------|-------------|
 | **AbstractGrpcController** | Abstract base class with RPC registration, ConnectRPC adapter mounting, idempotent `configure()` |
 | **BaseGrpcController** | Recommended concrete base class with `bindRoute()` and `defineRoute()` implementations |
-| **GrpcRequestAdapter** | Internal bridge from IGNIS handlers to ConnectRPC universal handlers via `AsyncLocalStorage` |
+| **GrpcRequestAdapter** | Internal bridge from IGNIS handlers to ConnectRPC: one Hono route per RPC |
 | **GrpcComponent** | Auto-discovers gRPC controllers and mounts them on the application router |
 | **@controller** | Class decorator with `transport: ControllerTransports.GRPC` and `service` field |
 | **@unary** | Method decorator for unary RPCs |
@@ -225,7 +225,7 @@ The `configure()` method on `AbstractGrpcController` is idempotent (guarded by `
 
 1. **`binding()`** -- Your override, registers imperative/fluent routes
 2. **`registerRpcsFromRegistry()`** -- Discovers decorator-based RPCs from `MetadataRegistry` and calls `bindRoute()` for each
-3. **`GrpcRequestAdapter.build()`** -- Creates the ConnectRPC adapter and mounts it as Hono middleware on `this.router`
+3. **`GrpcRequestAdapter.build()`** -- Creates one Hono route per RPC and mounts them on `this.router`
 
 ## RPC Decorators
 
@@ -321,7 +321,7 @@ type TRpcMiddleware<RouteEnv extends Env = Env> = (
 
 ### `TRpcHandler`
 
-The handler signature for gRPC RPC methods. Receives the deserialized protobuf request and the Hono context (via `AsyncLocalStorage`).
+The handler signature for gRPC RPC methods. Receives the deserialized protobuf request, the Hono context and ConnectRPC's context of the call (`rpc`).
 
 ```typescript
 type TRpcHandler<
@@ -331,11 +331,19 @@ type TRpcHandler<
 > = (opts: {
   request: RequestType;
   context: TRouteContext<RouteEnv>;
+  rpc: HandlerContext; // from '@connectrpc/connect'
 }) => ValueOrPromise<ResponseType>;
 ```
 
 > [!NOTE]
-> The adapter always calls handlers with `{ request, context }` - decorator-based handlers included. If your handler does not need the Hono context, declare only `(opts: { request: RequestType }) => Promise<ResponseType>` and ignore the `context` property.
+> The adapter always calls handlers with `{ request, context, rpc }`, decorator-based handlers included. Declare only the fields you read.
+
+| `rpc` member | What it gives |
+|---|---|
+| `signal` | aborted at the client's deadline and when the client leaves. A signal, not a kill: a handler that ignores it runs on and answers |
+| `timeoutMs()` | the milliseconds left, `undefined` without a deadline |
+| `requestHeader` | the request headers |
+| `responseHeader`, `responseTrailer` | headers and trailers of the answer |
 
 ### `IGrpcControllerOptions`
 
@@ -399,13 +407,9 @@ interface IGrpcController<
 Return type from `GrpcRequestAdapter.build()`.
 
 ```typescript
-interface IConnectAdapterResult<
-  RouteEnv extends Env = Env,
-  BasePath extends string = '/',
-  RouteInput extends Input = {},
-> {
+interface IConnectAdapterResult<RouteEnv extends Env = Env> {
   paths: string[];
-  middleware: MiddlewareHandler<RouteEnv, BasePath, RouteInput>;
+  router: Hono<RouteEnv>; // one route per RPC, at `/package.Service/Method`
 }
 ```
 
@@ -415,56 +419,49 @@ Internal bridge between IGNIS gRPC controllers and ConnectRPC's universal handle
 
 ### Architecture
 
-The adapter solves a key challenge: ConnectRPC handlers have their own `(request, context) => response` signature. IGNIS controllers, though, need access to the Hono `Context` for middleware, auth, and request-scoped state. The adapter uses `AsyncLocalStorage` to provide request-scoped context isolation, ensuring concurrent requests never share state.
+```
+Hono request
+  -> the route of the RPC (earlier middleware has run)
+    -> ConnectRPC universal handler, with the Hono context in its context values
+      -> auth middlewares (authenticate -> authorize)
+        -> your handler ({ request, context, rpc })
+    -> context.newResponse(...): headers set by earlier middleware are kept
+```
 
-```
-Hono Request
-  -> GrpcRequestAdapter middleware (path matching via basePath + controllerPath)
-    -> AsyncLocalStorage.run(honoContext, ...)
-      -> Pre-built auth middlewares (authenticate -> authorize)
-        -> ConnectRPC universal handler
-          -> IGNIS TRpcHandler (reads context from AsyncLocalStorage)
-            -> Response
-```
+The application port serves the Connect and gRPC-Web protocols. A native gRPC request (`application/grpc`) answers `415`: it needs response trailers, which `Bun.serve` does not send.
 
 ### Static `build()` Method
 
-The only public API. Validates peer deps via `ModuleUtility.assertInstalled()`, creates the adapter, and returns the middleware + registered paths:
+The only public API. Validates the peer deps with `ModuleUtility.assertInstalled()` and answers the router with its paths:
 
 ```typescript
 static async build(opts: {
   controller: AbstractGrpcController<...>;
   interceptors?: unknown[];
-}): Promise<IConnectAdapterResult<RouteEnv, BasePath>>
+  module?: IConnectRpcModule;
+}): Promise<IConnectAdapterResult<RouteEnv>>
 ```
 
-Called internally by `AbstractGrpcController.configure()`:
+`AbstractGrpcController.configure()` mounts it:
 
 ```typescript
 const adapter = await GrpcRequestAdapter.build({ controller: this });
-this.router.use('*', adapter.middleware);
+this.router.route('/', adapter.router);
 ```
 
-The optional `interceptors` array is passed to ConnectRPC's `createConnectRouter()` for request/response interception at the protocol level.
+The optional `interceptors` array is passed to ConnectRPC's `createConnectRouter()` for interception at the protocol level.
 
 ### Internal Flow
 
-1. **`buildConnectHandlers()`** -- Wraps each IGNIS `TRpcHandler` into ConnectRPC's `(request, context) => response` signature. The wrapper reads the Hono context from `AsyncLocalStorage`, runs pre-built auth middlewares (built by `AbstractGrpcController.buildRpcMiddlewares()`), then passes `{ request, context }` to the IGNIS handler.
-
-2. **`registerService()`** -- Bridges the opaque `ServiceType` from `@controller` metadata to ConnectRPC's `router.service()` call, registering all handlers for the service.
-
-3. **`buildMiddleware()`** -- Creates a Hono middleware that:
-   - Strips the full mount prefix (`basePath + controllerPath`) from the request URL to derive the ConnectRPC handler path (e.g., `/package.Service/Method`)
-   - Looks up the ConnectRPC handler by path from the handler map
-   - Runs the handler inside `AsyncLocalStorage.run()` with the current Hono context
-   - Converts between Fetch API `Request`/`Response` and ConnectRPC's `UniversalServerRequest`/`UniversalServerResponse` formats
-   - Returns proper gRPC error responses on failure (with `grpc-status` and `grpc-message` headers)
+1. **Wrapping** -- each `TRpcHandler` becomes ConnectRPC's `(request, context) => response`: it reads the Hono context from the context values, runs the auth middlewares (`AbstractGrpcController.buildRpcMiddlewares()`), then calls your handler.
+2. **Registration** -- an RPC name the service does not declare stops the boot; the handlers are registered with `router.service()`.
+3. **Serving** -- one route per RPC converts the Fetch request, calls ConnectRPC's handler and answers through `context.newResponse`. A failure outside ConnectRPC reaches the application's error handler.
 
 ### Peer Dependency Loading
 
 The adapter needs two entry points:
 
-- `@connectrpc/connect` -- for `createConnectRouter`
+- `@connectrpc/connect` -- for `createConnectRouter`, `createContextKey` and `createContextValues`
 - `@connectrpc/connect/protocol` -- for `universalServerRequestFromFetch` and `universalServerResponseToFetch`
 
 By default it loads both at runtime with `ModuleUtility.load`, resolved from the application's project root. That keeps the specifier invisible to `Bun.build`, so a consumer who never uses gRPC is not forced to install the peer.
@@ -480,19 +477,11 @@ this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({
 });
 ```
 
-`GrpcComponent` assigns the module to each controller before `configure()`, and the adapter skips both `assertInstalled` and `createRequire` when it is present.
-
-`ModuleUtility.register` does not work here. The adapter resolves the specifier itself, so the registry never reaches it.
+`GrpcComponent` assigns the module to each controller before `configure()`, and the adapter then loads nothing itself.
 
 ### Error Handling
 
-On handler errors, the adapter returns a JSON response with:
-- HTTP status: `200` if gRPC status is `OK`, `500` otherwise
-- `grpc-status` header: Preserved from `ConnectError.code` if available (duck-type check on `error.code` being a number), otherwise `13` (INTERNAL)
-- `grpc-message` header: URL-encoded error message
-- Body: JSON `{ message, code }`
-
-The adapter uses a duck-type check on `error.code` to preserve gRPC status codes from ConnectRPC errors, without importing `ConnectError` directly. That avoids tight coupling to the peer dependency.
+A throw from the middleware or the handler becomes ConnectRPC's own error answer, in the caller's protocol: a 4xx from `getError` or Hono's `HTTPException` keeps its code and message, anything else is `internal` with its text hidden. A failure outside ConnectRPC is answered by the application's error handler.
 
 ## `GrpcComponent`
 
@@ -535,7 +524,6 @@ The component registers a default (empty) config binding under the key `'@app/gr
 3. Validates each gRPC controller:
    - If `path` is missing, throws an error
    - If `service` is missing, logs a warning and skips the controller
-4. Sets `instance.basePath` from the application's `path.base` config (needed for correct path stripping in the adapter)
 5. Calls `configure()` on each controller instance
 6. Mounts the controller's router on the application's root router at the controller's path via `router.route(metadata.path, instance.getRouter())`
 
@@ -969,7 +957,7 @@ preConfigure() {
 
 ## Authentication and Authorization
 
-Per-RPC authentication and authorization are configured via the `authenticate` and `authorize` fields in `IRpcMetadata`. Auth middlewares are pre-built during route registration by `AbstractGrpcController.buildRpcMiddlewares()` and executed before the handler inside the `AsyncLocalStorage` context.
+Per-RPC authentication and authorization are configured via the `authenticate` and `authorize` fields in `IRpcMetadata`. Auth middlewares are pre-built during route registration by `AbstractGrpcController.buildRpcMiddlewares()` and executed before the handler.
 
 ### Per-RPC Authentication
 
