@@ -101,6 +101,18 @@ Anything else is refused with a `400` that names the table, the column and these
 - **`limit`**, when omitted, resolves through `query.limit ?? model settings.query.limit.default ?? 10`. An explicit value above the model's `settings.query.limit.max` (default `1000`) throws before the query runs.
 - **`skip` / `offset`** both map to SQL `OFFSET`.
 
+### Unknown keys
+
+A filter from a request has only these keys: `where`, `fields`, `include`, `order`, `limit`, `offset` and `skip`. An `include` entry has only `relation` and `scope`. Any other key, at any depth of `include`, is a `422` with the code `unrecognized_keys`, and `details.cause` says where it is:
+
+```bash
+# a misspelt "where" is refused, not ignored
+curl -g 'http://localhost:3000/api/posts?filter={"wher":{"id":1}}'
+# 422 { "message": "Unrecognized key: \"wher\"", "normalized": { "code": "unrecognized_keys", ... } }
+```
+
+The keys inside `where` are column names, checked when the query is built. A search filter follows the same rule and has no `include`.
+
 ### Default filter
 
 - **Applies automatically.** A model's `settings.query.filter` merges into every read, update, and delete for that model.

@@ -1454,6 +1454,24 @@ grpc-gate-ends-call:
       - "Pin @venizia/ignis to the release before this one."
   data: Nothing stored changes.
 
+strict-filter-keys:
+  symbols: [FilterSchema, InclusionSchema, QuerySchemaFactory, SearchInputSchema]
+  upgrade:
+    before: |-
+      // dropped without a word: every post came back
+      FilterSchema.parse({ wher: { status: 'published' } });
+    after: |-
+      FilterSchema.parse({ where: { status: 'published' } });
+    steps:
+      - "Find the clients and callers that send a key a filter does not have: a route now answers 422 with the code unrecognized_keys and names the key."
+      - "A filter has where, fields, include, order, limit, offset and skip; an include entry has relation and scope; a search filter has no include."
+      - "Do not send shouldSkipDefaultFilter from a client. Server code passes it in the repository options, as before."
+      - "Server code that parses a filter carrying its own extra keys through these schemas removes them first."
+  downgrade:
+    steps:
+      - "Pin the @venizia/ignis packages to the release before this one."
+  data: Nothing stored changes.
+
 grpc-adapter-routes:
   symbols: [GrpcRequestAdapter, IConnectAdapterResult, IConnectRpcModule, BaseGrpcController, AbstractGrpcController, GrpcComponent]
   upgrade:

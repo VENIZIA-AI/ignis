@@ -274,25 +274,19 @@ describe('an include cannot replace the default of the related model', () => {
     expect(JSON.stringify(viaWhere)).not.toContain('"dead"');
   });
 
-  test('the wire strips shouldSkipDefaultFilter at every level, a nested include too', () => {
-    const wire = {
-      where: { deletedAt: { neq: null } },
-      shouldSkipDefaultFilter: true,
-      include: [
-        {
-          relation: 'comments',
-          shouldSkipDefaultFilter: true,
-          scope: {
-            shouldSkipDefaultFilter: true,
-            include: [{ relation: 'post', shouldSkipDefaultFilter: true }],
-          },
-        },
-      ],
-    };
+  test('the wire refuses shouldSkipDefaultFilter at every level, a nested include too', () => {
+    const nested = { relation: 'post', shouldSkipDefaultFilter: true };
 
-    const parsed = FilterSchema.parse(JSON.parse(JSON.stringify(wire)));
-
-    expect(JSON.stringify(parsed)).not.toContain('shouldSkipDefaultFilter');
+    for (const wire of [
+      { shouldSkipDefaultFilter: true },
+      { include: [{ relation: 'comments', shouldSkipDefaultFilter: true }] },
+      { include: [{ relation: 'comments', scope: { shouldSkipDefaultFilter: true } }] },
+      { include: [{ relation: 'comments', scope: { include: [nested] } }] },
+    ]) {
+      expect(FilterSchema.safeParse(wire).error?.issues).toMatchObject([
+        { code: 'unrecognized_keys', keys: ['shouldSkipDefaultFilter'] },
+      ]);
+    }
   });
 });
 

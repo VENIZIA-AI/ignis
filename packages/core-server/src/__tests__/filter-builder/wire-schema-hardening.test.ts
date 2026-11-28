@@ -58,10 +58,12 @@ describe('query schema hardening', () => {
    * implements soft-delete and the static visibility scopes.
    */
   test('include[].shouldSkipDefaultFilter is not accepted from a client', () => {
-    const parsed = InclusionSchema.parse([
+    const result = InclusionSchema.safeParse([
       { relation: 'categories', shouldSkipDefaultFilter: true },
     ]);
 
-    expect(parsed?.[0]).not.toHaveProperty('shouldSkipDefaultFilter');
+    expect(result.error?.issues).toMatchObject([
+      { code: 'unrecognized_keys', keys: ['shouldSkipDefaultFilter'] },
+    ]);
   });
 });
