@@ -160,6 +160,11 @@ See [filter system](/architecture/filter-system.md).
 
 ## The `./schemas` sub-path
 
+The filter object, each `include` entry and the search tier's `SearchFilterSchema` are strict: an unknown
+key is an `unrecognized_keys` issue (a `422` on a route), never dropped, since a dropped `where` answers an
+unfiltered list. The route's own query object (`FilterQuerySchema`, `WhereQuerySchema`) is not strict: an app
+decides that with `.strict()`.
+
 The zod schemas (`FilterSchema`, `WhereSchema`, `InclusionSchema`, and the scalar members) live here
 too, on a **separate entry point**: `@venizia/ignis-filter/schemas`. Separate because the root barrel
 must not drag `zod` in for consumers who only want the vocabulary - the root re-exports `common/`

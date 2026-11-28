@@ -84,7 +84,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
                                     skip: z.ZodOptional<z.ZodNumber>;
-                                }, z.core.$strip>>;
+                                }, z.core.$strict>>;
                             }, z.core.$strip> | z.ZodObject<{
                                 distanceThreshold: z.ZodOptional<z.ZodNumber>;
                                 ef: z.ZodOptional<z.ZodNumber>;
@@ -113,7 +113,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
                                     skip: z.ZodOptional<z.ZodNumber>;
-                                }, z.core.$strip>>;
+                                }, z.core.$strict>>;
                             }, z.core.$strip> | z.ZodObject<{
                                 distanceThreshold: z.ZodOptional<z.ZodNumber>;
                                 ef: z.ZodOptional<z.ZodNumber>;
@@ -144,7 +144,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
                                     skip: z.ZodOptional<z.ZodNumber>;
-                                }, z.core.$strip>>;
+                                }, z.core.$strict>>;
                             }, z.core.$strip> | z.ZodObject<{
                                 mode: z.ZodLiteral<"raw">;
                                 params: z.ZodRecord<z.ZodString, z.ZodAny>;
@@ -172,7 +172,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
                                     skip: z.ZodOptional<z.ZodNumber>;
-                                }, z.core.$strip>>;
+                                }, z.core.$strict>>;
                                 engineParams: z.ZodOptional<z.ZodObject<{
                                     [x: string]: z.ZodOptional<z.ZodUnknown>;
                                 }, z.core.$strict>>;
@@ -200,7 +200,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
                                     skip: z.ZodOptional<z.ZodNumber>;
-                                }, z.core.$strip>>;
+                                }, z.core.$strict>>;
                                 engineParams?: undefined;
                             }, z.core.$strip> | z.ZodObject<{
                                 distanceThreshold: z.ZodOptional<z.ZodNumber>;
@@ -229,7 +229,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
                                     skip: z.ZodOptional<z.ZodNumber>;
-                                }, z.core.$strip>>;
+                                }, z.core.$strict>>;
                                 engineParams: z.ZodOptional<z.ZodObject<{
                                     [x: string]: z.ZodOptional<z.ZodUnknown>;
                                 }, z.core.$strict>>;
@@ -260,7 +260,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
                                     skip: z.ZodOptional<z.ZodNumber>;
-                                }, z.core.$strip>>;
+                                }, z.core.$strict>>;
                                 engineParams?: undefined;
                             }, z.core.$strip> | z.ZodObject<{
                                 distanceThreshold: z.ZodOptional<z.ZodNumber>;
@@ -290,7 +290,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
                                     skip: z.ZodOptional<z.ZodNumber>;
-                                }, z.core.$strip>>;
+                                }, z.core.$strict>>;
                                 queryBy?: z.ZodOptional<z.ZodArray<z.ZodString>> | undefined;
                                 engineParams: z.ZodOptional<z.ZodObject<{
                                     [x: string]: z.ZodOptional<z.ZodUnknown>;
@@ -323,7 +323,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
                                     skip: z.ZodOptional<z.ZodNumber>;
-                                }, z.core.$strip>>;
+                                }, z.core.$strict>>;
                                 queryBy?: z.ZodOptional<z.ZodArray<z.ZodString>> | undefined;
                                 engineParams?: undefined;
                             }, z.core.$strip> | z.ZodObject<{
@@ -353,7 +353,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
                                     skip: z.ZodOptional<z.ZodNumber>;
-                                }, z.core.$strip>>;
+                                }, z.core.$strict>>;
                             }, z.core.$strip> | z.ZodObject<{
                                 distanceThreshold: z.ZodOptional<z.ZodNumber>;
                                 ef: z.ZodOptional<z.ZodNumber>;
@@ -382,7 +382,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
                                     skip: z.ZodOptional<z.ZodNumber>;
-                                }, z.core.$strip>>;
+                                }, z.core.$strict>>;
                             }, z.core.$strip> | z.ZodObject<{
                                 distanceThreshold: z.ZodOptional<z.ZodNumber>;
                                 ef: z.ZodOptional<z.ZodNumber>;
@@ -413,7 +413,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
                                     skip: z.ZodOptional<z.ZodNumber>;
-                                }, z.core.$strip>>;
+                                }, z.core.$strict>>;
                             }, z.core.$strip> | z.ZodObject<{
                                 mode: z.ZodLiteral<"raw">;
                                 params: z.ZodRecord<z.ZodString, z.ZodAny>;
@@ -441,7 +441,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
                                     skip: z.ZodOptional<z.ZodNumber>;
-                                }, z.core.$strip>>;
+                                }, z.core.$strict>>;
                                 engineParams: z.ZodOptional<z.ZodObject<{
                                     [x: string]: z.ZodOptional<z.ZodUnknown>;
                                 }, z.core.$strict>>;
