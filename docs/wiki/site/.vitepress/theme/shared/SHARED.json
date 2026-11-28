@@ -1,5 +1,5 @@
 {
-  "fingerprint": "4f9f2c36cbf25be2ca142f91c06795494c3c0174b6b28a52323549d8a97d7fd2",
+  "fingerprint": "b1c5b903af0dae5f906f7ee1164a4f24c0e486adfb9196906ac0fb602c2cff4f",
   "files": {
     "AtAGlance.vue": "82a497e03e3214a0aabca18d2dcf581bd2e9379c4d13594d0df48ce74f398991",
     "ChangelogCounts.vue": "b30cff5391f2cf098cd0a17fea63eb1b1513cbdaa4d12767820bf705e9c828f5",
@@ -17,7 +17,7 @@
     "InstallBox.vue": "a51e007485c23e8cdba0512c254029d09faed57fc16bef7d28d157a92dd6b0b0",
     "PrereleaseLatest.vue": "9287257ff55df1525f22cc5f91ba2114588dc2d993fee52e0c683c3fa1f4fdbf",
     "PrereleaseTable.vue": "df65beb07a836a93c7400deb6cfa02999d6802253b682dac2d356a135cf2b2dc",
-    "SearchBox.vue": "8f491d93df5dd05c1cc169095929dd04e30626bf7af03d9134ab6b6bb4d30ac6",
+    "SearchBox.vue": "ca0b712e2c23dc8ce7d1984f4e19d0b781c9ef06f5e23b2ec976be1fc47e212e",
     "SiteBrand.vue": "9c118baa7294ba04db034ca6ade8dcf3f1ef21b4b3b4477427da79163c44064c",
     "SiteFooter.vue": "1f902b8df8a78047787faa4ac807b1b9b6a38dfc2d72598b0dcb282808ed857d",
     "SiteLayout.vue": "6de39e22b0ff7e5557adedecdddb17044264e83db1160d8fab7630d826fb47f5",
@@ -73,7 +73,7 @@
     "useChangelogPage.ts": "f49c50ac2f2fbb47f1f087aeaf2b080ed4e2a69ec81d89dea1cb1ee40361e9f8",
     "useDust.ts": "5be17dbe6d3c288f0b796f66248187c59c69169c0b3a170e6feacb1737ff020e",
     "useReveal.ts": "85ae4377440194d728f18545aeb2e51790e5c4eb674a511092a35ec974b0157b",
-    "useTerminal.ts": "8ab1e37b701c93b73f237a4791128b76d19e90dac4adc626fc249f47283f3ab0",
+    "useTerminal.ts": "aa875b6d621ba6bae2e0d4e694afd125a4a8cf8ffb16da858a7fd6b33b96f747",
     "venizia-logo.ts": "743b2255878053ec1e1c94359da71d7dc819b693507d8bd3c270c372dc4289ff",
     "vitepress-selectors.json": "6100c25978da25a2665ccd75789578a72b97d8514ccc34e6e2952024f210fac9",
     "vp-map.css": "7c1efe72b5134d149040a13fbbe6c508beb4903ed2b9958541c421d840ef72c0",
