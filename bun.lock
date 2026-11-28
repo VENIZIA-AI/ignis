@@ -59,7 +59,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-rc.0",
-        "@electric-sql/pglite": "^0.5.10",
+        "@electric-sql/pglite": "^0.6.1",
         "@hono/zod-openapi": "catalog:",
         "@minimaltech/ra-core-infra": "0.0.3-17",
         "@reduxjs/toolkit": "^2.15.0",
@@ -129,7 +129,7 @@
       "name": "pglite-quickstart",
       "version": "0.0.0",
       "dependencies": {
-        "@electric-sql/pglite": "^0.5.10",
+        "@electric-sql/pglite": "^0.6.1",
         "@hono/zod-openapi": "catalog:",
         "@scalar/hono-api-reference": "catalog:",
         "@venizia/ignis": "workspace:*",
@@ -154,7 +154,7 @@
       "name": "rpc-api-server",
       "version": "0.0.0",
       "dependencies": {
-        "@electric-sql/pglite": "^0.5.10",
+        "@electric-sql/pglite": "^0.6.1",
         "@hono/zod-openapi": "catalog:",
         "@scalar/hono-api-reference": "catalog:",
         "@venizia/ignis": "workspace:*",
@@ -352,7 +352,7 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.5.0-11",
+      "version": "0.5.0-12",
       "bin": {
         "ignis-artifacts": "./dist/esm/clis/artifacts.js",
       },
@@ -375,7 +375,7 @@
     },
     "packages/connectors": {
       "name": "@venizia/ignis-connectors",
-      "version": "0.5.0-13",
+      "version": "0.5.0-14",
       "dependencies": {
         "@venizia/ignis-filter": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
@@ -394,7 +394,7 @@
         "typescript": "catalog:",
       },
       "peerDependencies": {
-        "@electric-sql/pglite": "^0.5.10",
+        "@electric-sql/pglite": "^0.5.10 || ^0.6.1",
         "@hono/zod-openapi": "^1.6.3",
         "@libsql/client": "^0.17.4",
         "drizzle-orm": "^0.45.4",
@@ -420,7 +420,7 @@
     },
     "packages/core-server": {
       "name": "@venizia/ignis",
-      "version": "0.5.0-15",
+      "version": "0.5.0-16",
       "dependencies": {
         "@venizia/ignis-connectors": "workspace:*",
         "@venizia/ignis-filter": "workspace:*",
@@ -432,7 +432,7 @@
       "devDependencies": {
         "@asteasolutions/zod-to-openapi": "^9.1.0",
         "@connectrpc/connect": "catalog:",
-        "@electric-sql/pglite": "^0.5.10",
+        "@electric-sql/pglite": "^0.6.1",
         "@hono/swagger-ui": "^0.6.2",
         "@libsql/client": "^0.17.4",
         "@socket.io/bun-engine": "catalog:",
@@ -490,7 +490,7 @@
     },
     "packages/core-worker": {
       "name": "@venizia/ignis-worker",
-      "version": "0.5.0-12",
+      "version": "0.5.0-13",
       "dependencies": {
         "@venizia/ignis-helpers": "workspace:*",
         "@venizia/ignis-inversion": "workspace:*",
@@ -513,7 +513,7 @@
     },
     "packages/dev-configs": {
       "name": "@venizia/dev-configs",
-      "version": "0.5.0-9",
+      "version": "0.5.0-10",
       "bin": {
         "devz": "./dist/cli/index.js",
       },
@@ -561,7 +561,7 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.5.0-11",
+      "version": "0.5.0-12",
       "dependencies": {
         "@venizia/ignis-inversion": "workspace:*",
         "reflect-metadata": "catalog:",
@@ -660,7 +660,7 @@
     },
     "packages/kernel": {
       "name": "@venizia/ignis-kernel",
-      "version": "0.5.0-12",
+      "version": "0.5.0-13",
       "dependencies": {
         "@venizia/ignis-filter": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
@@ -844,7 +844,7 @@
 
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.10.2", "", {}, "sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w=="],
 
-    "@electric-sql/pglite": ["@electric-sql/pglite@0.5.17", "", {}, "sha512-8SvKjiUjaU+0O0dbxjOfN+jXz14TEqDWbwDkYOW1aQ11y/ph2JvFVI27ABBo5nfw+ZfSqy4hKCNlbnbB1TDE+g=="],
+    "@electric-sql/pglite": ["@electric-sql/pglite@0.6.1", "", {}, "sha512-vdKk6mgzw8uqouCyPa20eNhPafF1OI5LXTvdWBj2plJhDHT2j5ohDdVdZUClJrWwU5MZZB018z68qZec/JmjRw=="],
 
     "@esbuild-kit/core-utils": ["@esbuild-kit/core-utils@3.3.2", "", { "dependencies": { "esbuild": "~0.18.20", "source-map-support": "^0.5.21" } }, "sha512-sPRAnw9CdSsRmEtnsl2WXWdyquogVpB3yZ3dgwJfe8zrOzTsV7cJvmwrKVa+0ma5BoiGJ+BoqkMvawbayKUsqQ=="],
 
