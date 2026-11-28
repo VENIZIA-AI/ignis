@@ -9,7 +9,7 @@ import type {
 import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { Env } from 'hono';
 import type { ISearchResult } from '@/search/core/connector';
-import type { TSearchInput } from '@/search/core/repositories/common';
+import type { TTranslatableSearchInput } from '@/search/core/repositories/common';
 
 /** A field name of the search document. */
 export type TSearchField<Document> = keyof Document & string;
@@ -62,7 +62,7 @@ export type TSearchSettingsSource<
   | ISearchQuerySettings<Document, Tuning>
   | ((opts: {
       context: TRouteContext<RouteEnv>;
-      input: Exclude<TSearchInput, { mode: 'raw' }> & TExtra;
+      input: TTranslatableSearchInput & TExtra;
       /** The instances of the classes `inject` declares. */
       injected: TInjected<Inject>;
     }) => TValueOrPromise<ISearchQuerySettings<Document, Tuning>>);
@@ -95,7 +95,7 @@ export interface ISearchQueryOptions<
   normalize?: (opts: {
     text: string;
     context: TRouteContext<RouteEnv>;
-    input: Exclude<TSearchInput, { mode: 'raw' }> & TExtra;
+    input: TTranslatableSearchInput & TExtra;
     injected: TInjected<Inject>;
   }) => TValueOrPromise<string>;
 
@@ -125,7 +125,7 @@ export interface ISearchResponseTransform<
     hits: Array<TSearchHit<Document>>;
     found: number;
     context: TRouteContext<RouteEnv>;
-    input: Exclude<TSearchInput, { mode: 'raw' }>;
+    input: TTranslatableSearchInput;
     /** The instances of the classes `inject` declares: reread rows from another repository, say. */
     injected: TInjected<Inject>;
   }) => TValueOrPromise<Array<TSearchHit<TOutDocument>>>;

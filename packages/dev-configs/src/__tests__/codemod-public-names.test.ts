@@ -24,6 +24,9 @@ const TYPE_RENAMES = [
   ['TAbstractConstructor', 'TAbstractClass'],
 ];
 
+/** Renamed types that only `@venizia/ignis` exports. */
+const SERVER_TYPE_RENAMES = [['IScopedCasbinPolicyFilter', 'ICasbinPolicyFilter']];
+
 /** Each guard, the class that holds it now, and every specifier that exported the function. */
 const GUARDS: Array<[string, string, string[]]> = [
   [
@@ -64,8 +67,34 @@ const GUARDS: Array<[string, string, string[]]> = [
 
 describe('devz codemod public-names: types', () => {
   test('the table holds exactly the renamed types', () => {
-    expect(PublicNamesTable.TYPE_ROWS.map((row) => [row.oldName, row.newName])).toEqual(
-      TYPE_RENAMES,
+    expect(PublicNamesTable.TYPE_ROWS.map((row) => [row.oldName, row.newName])).toEqual([
+      ...TYPE_RENAMES,
+      ...SERVER_TYPE_RENAMES,
+    ]);
+  });
+
+  test.each(SERVER_TYPE_RENAMES)('%s becomes %s from @venizia/ignis', (oldName, newName) => {
+    const result = rewrite(
+      `import type { ${oldName} } from '@venizia/ignis';`,
+      `export type TUse = ${oldName};`,
+    );
+
+    expect(result.output).toBe(
+      lines(`import type { ${newName} } from '@venizia/ignis';`, `export type TUse = ${newName};`),
+    );
+  });
+
+  test('both casbin filter names imported together become one import', () => {
+    const result = rewrite(
+      `import type { ICasbinPolicyFilter, IScopedCasbinPolicyFilter } from '@venizia/ignis';`,
+      `export type TUse = ICasbinPolicyFilter | IScopedCasbinPolicyFilter;`,
+    );
+
+    expect(result.output).toBe(
+      lines(
+        `import type { ICasbinPolicyFilter } from '@venizia/ignis';`,
+        `export type TUse = ICasbinPolicyFilter | ICasbinPolicyFilter;`,
+      ),
     );
   });
 

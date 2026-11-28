@@ -556,7 +556,7 @@ filter would sweep those unknown rows into a branch that has no idea what they m
 shape makes an undeclared variant inert, which is what makes sharing the table safe.
 
 ```ts
-export declare class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicyFilter> {
+export declare class ScopedCasbinAdapter extends BaseFilteredAdapter<ICasbinPolicyFilter> {
     protected readonly entities: IScopedCasbinEntities;
     protected readonly customGrantExpander: CustomGrantExpander;
     protected readonly resolveDomainEdges?: TResolveDomainEdgesFn;
@@ -571,7 +571,7 @@ export declare class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasb
      * join that wave - it needs the domain closure the principal-scoped CTE produces - but it does
      * not wait for the structural-edges query either: both run concurrently once the closure is known.
      */
-    loadFilteredPolicy(model: Model, filter: IScopedCasbinPolicyFilter): Promise<void>;
+    loadFilteredPolicy(model: Model, filter: ICasbinPolicyFilter): Promise<void>;
     /** Route one `direct` row to its casbin line, or to the grant batch. */
     protected collectDirectRow(opts: {
         row: TPrincipalPolicyRow;

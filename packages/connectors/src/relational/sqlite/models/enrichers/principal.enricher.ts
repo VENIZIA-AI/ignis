@@ -3,14 +3,10 @@ import { CoreErrorCodes } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { HasDefault, NotNull } from 'drizzle-orm';
-import type {
-  SQLiteIntegerBuilderInitial,
-  SQLiteTextBuilderInitial,
-} from 'drizzle-orm/sqlite-core';
+import type { SQLiteIntegerBuilderInitial } from 'drizzle-orm/sqlite-core';
+import type { TSQLiteTextColumn } from '../common/columns';
 import { integer, text } from 'drizzle-orm/sqlite-core';
 import type { TColumnDefinitions, TPrincipalEnricherOptions } from '../common/types';
-
-type TSQLiteTextColumn = SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>;
 
 // A widened `boolean` flag takes the NOT NULL branch: the insert type then requires the value, which
 // is safe whichever way the flag resolves at runtime. With `isNullableDiscriminator: false` the type

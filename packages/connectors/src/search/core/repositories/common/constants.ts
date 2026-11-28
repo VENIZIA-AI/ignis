@@ -114,6 +114,8 @@ export const SearchInputSchema = z.discriminatedUnion('mode', [
 ]);
 /** Parsed `search()` input; narrow on `mode` to reach the fields of one strategy. */
 export type TSearchInput = z.infer<typeof SearchInputSchema>;
+/** The inputs a dialect translates: every `TSearchInput` mode but `raw`, which goes to the engine as given. */
+export type TTranslatableSearchInput = Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
 
 /** One collection's query within a multi-search - same friendly field names as `search()`. `filterBy` is a raw engine filter string because cross-collection search has no per-collection model to translate a `TFilter` against; the datasource maps entries to wire form via the dialect. */
 export const MultiSearchEntrySchema = z

@@ -16,7 +16,7 @@ import { DataRangeUtility, DEFAULT_LIMIT } from '@venizia/ignis-kernel/repositor
 import type { IdType } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { ISearchFacetCount, ISearchResult } from '@/search/core';
-import type { TSearchInput } from '@/search/core/repositories/common';
+import type { TSearchInput, TTranslatableSearchInput } from '@/search/core/repositories/common';
 import { SearchModes } from '@/search/core/repositories/common';
 import type { AbstractSearchDataSource } from '@/search/core/datasources';
 import { SearchBaseRepository } from './base';
@@ -26,9 +26,6 @@ const WILDCARD_QUERY = '*';
 
 /** The page size of `suggest()` when the caller gives none. */
 const SUGGEST_DEFAULT_LIMIT = 8;
-
-/** The inputs the dialect translates - `raw` has already returned by the time these are resolved, and `applySearchInput` accepts only this narrowed union. */
-type TTranslatableSearchInput = Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
 
 /** Read-only search-repository tier - translates filters via the datasource's dialect and executes through the connector. */
 export class ReadableSearchRepository<

@@ -5,6 +5,7 @@ import { ContentTypeTable } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { LoggerFactory } from '@venizia/ignis-helpers';
 import { MailErrors, type IMailAttachment } from '../common';
+import { StreamUtility } from '@/utilities/stream.utility';
 
 const logger = LoggerFactory.getLogger(['MailAttachments']);
 
@@ -41,10 +42,6 @@ const assertWithinLimit = (opts: { byteLength: number; usedBytes: number; maxByt
   }
 
   throw buildTooLargeError({ maxBytes });
-};
-
-const isAttachmentStream = (value: unknown): value is TAttachmentStream => {
-  return typeof value === 'object' && value !== null && Symbol.asyncIterator in value;
 };
 
 const toBuffer = (chunk: Uint8Array | string): Buffer => {
@@ -199,7 +196,7 @@ export class MailAttachmentUtility {
         return toBuffer(content);
       }
 
-      if (!isAttachmentStream(content)) {
+      if (!StreamUtility.isAsyncIterable(content)) {
         throw getError({
           error: MailErrors.INVALID_CONFIGURATION,
           message:

@@ -1,6 +1,6 @@
 import { Admin } from '@platformatic/kafka';
 import { BaseKafkaHelper } from './base';
-import { KafkaDefaults, KafkaHealthStatuses } from './common/constants';
+import { KafkaHealthStatuses } from './common/constants';
 import type { IKafkaAdminOptions } from './common/types';
 
 /** Wrapper around `@platformatic/kafka` Admin with lifecycle management and health tracking; `getAdmin()` exposes the full Admin API directly. */
@@ -11,15 +11,7 @@ export class KafkaAdminHelper extends BaseKafkaHelper<Admin> {
       identifier: opts.identifier ?? 'kafka-admin',
       shutdownTimeout: opts.shutdownTimeout,
       client: new Admin({
-        clientId: opts.clientId,
-        bootstrapBrokers: opts.bootstrapBrokers,
-        sasl: opts.sasl,
-        tls: opts.tls,
-        ssl: opts.ssl,
-        connectTimeout: opts.connectTimeout,
-        requestTimeout: opts.requestTimeout,
-        retries: opts.retries ?? KafkaDefaults.RETRIES,
-        retryDelay: opts.retryDelay ?? KafkaDefaults.RETRY_DELAY,
+        ...BaseKafkaHelper.buildConnectionOptions(opts),
       }),
       onBrokerConnect: opts.onBrokerConnect,
       onBrokerDisconnect: opts.onBrokerDisconnect,

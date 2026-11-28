@@ -8,7 +8,7 @@ import {
   KafkaHealthStatuses,
   type TKafkaHealthStatus,
 } from './common/constants';
-import type { TKafkaBrokerEventCallback } from './common/types';
+import type { IKafkaConnectionOptions, TKafkaBrokerEventCallback } from './common/types';
 
 /** A client that closes through `close(force, callback)`, which only Producer and Consumer expose. */
 interface ICallbackCloseClient {
@@ -61,6 +61,21 @@ export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends
     this.shutdownTimeout = opts.shutdownTimeout ?? KafkaDefaults.SHUTDOWN_TIMEOUT;
     this.onBrokerConnect = opts.onBrokerConnect;
     this.onBrokerDisconnect = opts.onBrokerDisconnect;
+  }
+
+  /** The client options every Kafka helper passes on, with the retry defaults; no other key of `opts` reaches the client. */
+  protected static buildConnectionOptions(opts: IKafkaConnectionOptions) {
+    return {
+      clientId: opts.clientId,
+      bootstrapBrokers: opts.bootstrapBrokers,
+      sasl: opts.sasl,
+      tls: opts.tls,
+      ssl: opts.ssl,
+      connectTimeout: opts.connectTimeout,
+      requestTimeout: opts.requestTimeout,
+      retries: opts.retries ?? KafkaDefaults.RETRIES,
+      retryDelay: opts.retryDelay ?? KafkaDefaults.RETRY_DELAY,
+    };
   }
 
   isHealthy(): boolean {

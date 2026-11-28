@@ -15,7 +15,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters) | 44 | 44 |
 | [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint) | 30 | 30 |
 | [`@venizia/dev-configs/testing`](/references/api/venizia-dev-configs-testing) | 5 | 5 |
-| [`@venizia/ignis`](/references/api/venizia-ignis) | 122 | 122 |
+| [`@venizia/ignis`](/references/api/venizia-ignis) | 121 | 121 |
 | [`@venizia/ignis-boot`](/references/api/venizia-ignis-boot) | 0 | 0 |
 | [`@venizia/ignis-boot/auto`](/references/api/venizia-ignis-boot-auto) | 1 | 1 |
 | [`@venizia/ignis-boot/build-info`](/references/api/venizia-ignis-boot-build-info) | 3 | 3 |
@@ -25,7 +25,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-connectors`](/references/api/venizia-ignis-connectors) | 3 | 3 |
 | [`@venizia/ignis-connectors/http`](/references/api/venizia-ignis-connectors-http) | 15 | 15 |
 | [`@venizia/ignis-connectors/meilisearch`](/references/api/venizia-ignis-connectors-meilisearch) | 17 | 17 |
-| [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres) | 53 | 53 |
+| [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres) | 54 | 54 |
 | [`@venizia/ignis-connectors/postgres/node-postgres`](/references/api/venizia-ignis-connectors-postgres-node-postgres) | 1 | 1 |
 | [`@venizia/ignis-connectors/postgres/pglite`](/references/api/venizia-ignis-connectors-postgres-pglite) | 3 | 3 |
 | [`@venizia/ignis-connectors/postgres/postgres-js`](/references/api/venizia-ignis-connectors-postgres-postgres-js) | 1 | 1 |
@@ -34,10 +34,10 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational) | 81 | 81 |
 | [`@venizia/ignis-connectors/search`](/references/api/venizia-ignis-connectors-search) | 0 | 0 |
 | [`@venizia/ignis-connectors/search/controllers`](/references/api/venizia-ignis-connectors-search-controllers) | 0 | 0 |
-| [`@venizia/ignis-connectors/sqlite`](/references/api/venizia-ignis-connectors-sqlite) | 49 | 49 |
+| [`@venizia/ignis-connectors/sqlite`](/references/api/venizia-ignis-connectors-sqlite) | 50 | 50 |
 | [`@venizia/ignis-connectors/sqlite/libsql`](/references/api/venizia-ignis-connectors-sqlite-libsql) | 2 | 2 |
 | [`@venizia/ignis-connectors/testing`](/references/api/venizia-ignis-connectors-testing) | 13 | 13 |
-| [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense) | 85 | 85 |
+| [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense) | 86 | 86 |
 | [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers) | 33 | 33 |
 | [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter) | 19 | 19 |
 | [`@venizia/ignis-filter/schemas`](/references/api/venizia-ignis-filter-schemas) | 11 | 11 |

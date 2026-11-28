@@ -1,14 +1,10 @@
+import type { TIsEnabled } from '@/relational/core/models/common/is-enabled';
 import type { HasDefault, NotNull } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { ISO_TIMESTAMP_NOW, isoTimestamp } from '../common/columns';
 import type { TColumnDefinitions, TTzEnricherOptions } from '../common/types';
 
 type TIsoTimestampColumn = ReturnType<typeof isoTimestamp>;
-
-// `undefined` is the third state - the option key was left out entirely, so the enricher default
-// decides. An options object that omits only `enable` is opted in: `{ enable?: true }` alone would
-// resolve it to `undefined` here, because weak-type detection rejects a member with no `enable`.
-type TIsEnabled<T> = T extends { enable: false } ? false : T extends object ? true : undefined;
 
 /** The column definitions with `createdAt`, and `modifiedAt` and `deletedAt` when the options enable them. */
 export type TTzEnricherResult<Opts extends TTzEnricherOptions | undefined = undefined> = {

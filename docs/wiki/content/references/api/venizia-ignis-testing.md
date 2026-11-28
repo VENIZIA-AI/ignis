@@ -104,7 +104,7 @@ export interface IAssertApplicationBootsOptions {
      *
      * @default []
      */
-    skipBindings?: TBootProbeTarget[];
+    skipBindings?: TBindingSkip[];
     /**
      * Whether an application that registered no controller passes. Off, it fails: it proves nothing, for example when the artifact index was empty.
      *

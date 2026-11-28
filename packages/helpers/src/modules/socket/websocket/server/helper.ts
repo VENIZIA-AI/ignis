@@ -32,6 +32,7 @@ import {
   WebSocketMessageTypes,
 } from '../common';
 import { WebSocketDeliveryHelper } from './delivery';
+import { SocketRoomPayload } from '../../room-payload';
 
 /** The hooks of one authentication, bound to its data. */
 interface IAuthSession<MetadataType extends Record<string, unknown>> {
@@ -50,22 +51,6 @@ export class WebSocketServerHelper<
   AuthDataType extends Record<string, unknown> = Record<string, unknown>,
   MetadataType extends Record<string, unknown> = Record<string, unknown>,
 > extends BaseHelper {
-  /**
-   * Narrows an untrusted room payload to the strings it actually contains.
-   *
-   * `payload as { rooms?: string[] }` is a claim, not a check: the value comes off the wire, so
-   * `{"rooms":"lobby"}` satisfied the `rooms?.length` test (a string has one) and the next line
-   * called `rooms.filter`, which a string does not have. Under `Bun.serve` that TypeError is thrown
-   * inside the message callback and exits the process.
-   */
-  private static toRoomList(payload: unknown): string[] {
-    const rooms = RecordUtility.isRecord(payload) ? payload.rooms : undefined;
-
-    return Array.isArray(rooms)
-      ? rooms.filter((room): room is string => typeof room === 'string')
-      : [];
-  }
-
   private path: string;
 
   private serverId: string;
@@ -922,7 +907,7 @@ export class WebSocketServerHelper<
       return;
     }
 
-    const rooms = WebSocketServerHelper.toRoomList(payload);
+    const rooms = SocketRoomPayload.toRoomList(payload);
 
     if (!rooms.length) {
       return;
@@ -1000,7 +985,7 @@ export class WebSocketServerHelper<
       return;
     }
 
-    const rooms = WebSocketServerHelper.toRoomList(payload);
+    const rooms = SocketRoomPayload.toRoomList(payload);
 
     if (!rooms.length) {
       return;

@@ -8,6 +8,7 @@ export {
   BaseRelationalEntity as BasePostgresEntity,
 } from './base';
 
+export type { TIsEnabled } from '@/relational/core/models/common/is-enabled';
 export { ModelFactory } from '@/relational/core/models/factory';
 export type { TDefinedEntityClass } from '@/relational/core/models/factory';
 export { many, one, RelationDeclarations } from '@/relational/core/models/relations';

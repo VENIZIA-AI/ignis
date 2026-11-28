@@ -27,6 +27,18 @@ export declare abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>>
     protected readonly onBrokerConnect?: TKafkaBrokerEventCallback;
     protected readonly onBrokerDisconnect?: TKafkaBrokerEventCallback;
     constructor(opts: IKafkaBaseOptions<TClient>);
+    /** The client options every Kafka helper passes on, with the retry defaults; no other key of `opts` reaches the client. */
+    protected static buildConnectionOptions(opts: IKafkaConnectionOptions): {
+        clientId: string;
+        bootstrapBrokers: string[];
+        sasl: import("@platformatic/kafka").SASLOptions | undefined;
+        tls: import("node:tls").ConnectionOptions | undefined;
+        ssl: import("node:tls").ConnectionOptions | undefined;
+        connectTimeout: number | undefined;
+        requestTimeout: number | undefined;
+        retries: number;
+        retryDelay: number;
+    };
     isHealthy(): boolean;
     isReady(): boolean;
     getHealthStatus(): TKafkaHealthStatus;
