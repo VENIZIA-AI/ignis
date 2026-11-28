@@ -589,7 +589,7 @@ Source: `packages/kernel/src/base/events/common/constants.ts`
 Selected fields: an array of names to include, or a name-to-boolean map.
 
 ```ts
-export declare const FieldsSchema: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+export declare const FieldsSchema: z.ZodOptional<z.ZodType<any, string[] | Record<string, boolean>, z.core.$ZodTypeInternals<any, string[] | Record<string, boolean>>>>;
 ```
 
 Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`
@@ -611,7 +611,7 @@ Extend it rather than rebuilding it when a route takes more than `filter`:
 export declare const FilterQuerySchema: z.ZodObject<{
     filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
         where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
-        fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+        fields: z.ZodOptional<z.ZodType<any, string[] | Record<string, boolean>, z.core.$ZodTypeInternals<any, string[] | Record<string, boolean>>>>;
         include: z.ZodOptional<z.ZodArray<z.ZodObject<{
             relation: z.ZodString;
             scope: z.ZodOptional<z.ZodLazy<z.ZodType<import("@venizia/ignis-filter").TFilter | undefined, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TFilter | undefined, unknown>>>>;
@@ -622,7 +622,7 @@ export declare const FilterQuerySchema: z.ZodObject<{
         skip: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strict>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
         where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
-        fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+        fields: z.ZodOptional<z.ZodType<any, string[] | Record<string, boolean>, z.core.$ZodTypeInternals<any, string[] | Record<string, boolean>>>>;
         include: z.ZodOptional<z.ZodArray<z.ZodObject<{
             relation: z.ZodString;
             scope: z.ZodOptional<z.ZodLazy<z.ZodType<import("@venizia/ignis-filter").TFilter | undefined, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TFilter | undefined, unknown>>>>;
@@ -646,7 +646,7 @@ The whole `filter` query: an object of where, fields, include, order, limit, off
 ```ts
 export declare const FilterSchema: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
-    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+    fields: z.ZodOptional<z.ZodType<any, string[] | Record<string, boolean>, z.core.$ZodTypeInternals<any, string[] | Record<string, boolean>>>>;
     include: z.ZodOptional<z.ZodArray<z.ZodObject<{
         relation: z.ZodString;
         scope: z.ZodOptional<z.ZodLazy<z.ZodType<import("@venizia/ignis-filter").TFilter | undefined, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TFilter | undefined, unknown>>>>;
@@ -657,7 +657,7 @@ export declare const FilterSchema: z.ZodOptional<z.ZodUnion<readonly [z.ZodObjec
     skip: z.ZodOptional<z.ZodNumber>;
 }, z.core.$strict>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
-    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+    fields: z.ZodOptional<z.ZodType<any, string[] | Record<string, boolean>, z.core.$ZodTypeInternals<any, string[] | Record<string, boolean>>>>;
     include: z.ZodOptional<z.ZodArray<z.ZodObject<{
         relation: z.ZodString;
         scope: z.ZodOptional<z.ZodLazy<z.ZodType<import("@venizia/ignis-filter").TFilter | undefined, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TFilter | undefined, unknown>>>>;
@@ -976,40 +976,3 @@ export interface IAuthorizationDomainSource {
 ```
 
 Source: `packages/kernel/src/base/auth/authorize/common/types/request.ts`
-
-## `IAuthorizationEnforcer`
-
-*interface*
-
-Builds rules and evaluates requests. Cache management (`invalidateUserCache`/`rebuildUserCache`) is OPTIONAL - only on per-user-caching enforcers; the registry feature-detects it at runtime.
-
-```ts
-export interface IAuthorizationEnforcer<E extends Env = Env, TAction = string, TResource = string, TRules = unknown, TBuildRulesReturn = TValueOrPromise<TRules>, TEvaluateReturn = TValueOrPromise<TAuthorizationDecision>> {
-    name: string;
-    configure(): TValueOrPromise<void>;
-    buildRules(opts: {
-        user: IAuthorizationUser;
-        context: TContext<E, string>;
-    }): TBuildRulesReturn;
-    evaluate(opts: {
-        rules: TRules;
-        request: IAuthorizationRequest<TAction, TResource>;
-        context: TContext<E, string>;
-    }): TEvaluateReturn;
-    /** Drop a user's cached policies. Implemented only by caching enforcers. */
-    invalidateUserCache?(opts: {
-        user: IAuthorizationUser;
-    }): Promise<{
-        invalidatedKeys: number;
-    }>;
-    /** Drop + rebuild a user's cached policies. Implemented only by caching enforcers. */
-    rebuildUserCache?(opts: {
-        user: IAuthorizationUser;
-    }): Promise<{
-        cacheKey: string;
-        lineCount: number;
-    }>;
-}
-```
-
-Source: `packages/kernel/src/base/auth/authorize/common/types/enforcer.ts`

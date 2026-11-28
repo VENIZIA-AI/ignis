@@ -9,6 +9,63 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 Part 5 of 9 of [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel).
 
+## `IModelAccessWriteSettings`
+
+*interface*
+
+What a restricted caller may write to the scope columns (`@model` settings.access.write).
+
+```ts
+export interface IModelAccessWriteSettings {
+    /**
+     * What a create, createAll or an update payload that names a scope column does when its value
+     * disagrees with the resolved scope. `reject` refuses the write and writes nothing - for
+     * `createAll` not even the valid rows. `assign` also fills a scope column that is ABSENT from a
+     * created row, when the scope is a single equality; a value that is present and disagrees is
+     * still refused.
+     *
+     * The scope's columns and allowed values are read from the resolved `where` (equality, `eq`, `inq`
+     * and arrays, `and`, and an `or` over one column). Any other shape cannot be checked, and the write
+     * is refused with its own message - never skipped. `ScopeFilters.UNRESTRICTED` bypasses the guard
+     * too, which is the deliberate way to write across scopes (system scope, an admin role).
+     *
+     * Not checked: an update that does not name the scope column (the row was already selected through
+     * the scoped `where`), and raw statements that bypass the repository.
+     *
+     * @default 'reject'
+     */
+    mode?: TScopeWriteGuard;
+    /**
+     * `true` lets a restricted caller write `null` to a scope column, or leave it out on create: the
+     * row has no owner and is shared. Without it, `null` is refused like any other value
+     * outside the scope, even when the resolved scope has a `null` branch (that branch lets the caller
+     * READ shared rows, a separate permission). Reads are scoped as before.
+     *
+     * @default false
+     */
+    sharedRows?: boolean;
+}
+```
+
+Source: `packages/kernel/src/helpers/inversion/common/types/model.ts`
+
+## `IModelAuthorizeSettings`
+
+*interface*
+
+The `authorize` settings of a model.
+
+```ts
+export interface IModelAuthorizeSettings {
+    /** The authorization principal name (resource/subject) for this model. */
+    principal: string;
+    /** Extensible - consumers can add any extra authorization metadata. */
+    [extra: string | symbol]: unknown;
+}
+```
+
+Source: `packages/kernel/src/helpers/inversion/common/types/model.ts`
+
 ## `IModelMetadata`
 
 *interface*
@@ -1386,45 +1443,3 @@ export declare const PostgresErrorCodes: {
 ```
 
 Source: `packages/kernel/src/base/middlewares/app-error/definition.ts`
-
-## `PostgresErrors`
-
-*class*
-
-Finds the Postgres error in a thrown value, through the `cause` chain an ORM builds around a driver error. The error handler uses it; so can your code.
-
-```ts
-export declare class PostgresErrors {
-    /** How many `cause` hops the walk follows: the thrown error is hop 0, so an error 10 hops down is found and one 11 hops down is not. */
-    static readonly MAX_DEPTH = 10;
-    /** Reads one property and never throws: a getter that throws, or a Proxy trap that does, reads as `undefined`. */
-    private static read;
-    /** The first spelling of a field that holds a string, or `undefined`. */
-    private static readString;
-    /** Normalizes one driver error into the result type, or `undefined` when its `code` is not a SQLSTATE. */
-    private static normalize;
-    /**
-     * Finds the Postgres error in a thrown value, looking through `cause` (an ORM wraps the driver error, sometimes more than once). The outermost error with a SQLSTATE `code` wins.
-     * Never throws: a value that is not an object, a cycle, a getter that throws and a Proxy all end in `undefined`.
-     */
-    static find(opts: {
-        error: unknown;
-    }): IPostgresError | undefined;
-}
-```
-
-Source: `packages/kernel/src/base/middlewares/app-error/postgres-errors.ts`
-
-## `put`
-
-*const*
-
-PUT route decorator. Equivalent to @api but automatically sets method to 'put'.
-
-```ts
-export declare const put: <RestRouteConfigType extends Omit<IAuthRouteConfig, "method">>(opts: {
-    configs: RestRouteConfigType;
-}) => (target: object, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
-```
-
-Source: `packages/kernel/src/base/metadata/routes/rest.ts`

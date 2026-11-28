@@ -9,6 +9,48 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 Part 6 of 9 of [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel).
 
+## `PostgresErrors`
+
+*class*
+
+Finds the Postgres error in a thrown value, through the `cause` chain an ORM builds around a driver error. The error handler uses it; so can your code.
+
+```ts
+export declare class PostgresErrors {
+    /** How many `cause` hops the walk follows: the thrown error is hop 0, so an error 10 hops down is found and one 11 hops down is not. */
+    static readonly MAX_DEPTH = 10;
+    /** Reads one property and never throws: a getter that throws, or a Proxy trap that does, reads as `undefined`. */
+    private static read;
+    /** The first spelling of a field that holds a string, or `undefined`. */
+    private static readString;
+    /** Normalizes one driver error into the result type, or `undefined` when its `code` is not a SQLSTATE. */
+    private static normalize;
+    /**
+     * Finds the Postgres error in a thrown value, looking through `cause` (an ORM wraps the driver error, sometimes more than once). The outermost error with a SQLSTATE `code` wins.
+     * Never throws: a value that is not an object, a cycle, a getter that throws and a Proxy all end in `undefined`.
+     */
+    static find(opts: {
+        error: unknown;
+    }): IPostgresError | undefined;
+}
+```
+
+Source: `packages/kernel/src/base/middlewares/app-error/postgres-errors.ts`
+
+## `put`
+
+*const*
+
+PUT route decorator. Equivalent to @api but automatically sets method to 'put'.
+
+```ts
+export declare const put: <RestRouteConfigType extends Omit<IAuthRouteConfig, "method">>(opts: {
+    configs: RestRouteConfigType;
+}) => (target: object, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void;
+```
+
+Source: `packages/kernel/src/base/metadata/routes/rest.ts`
+
 ## `ReadableCrudController`
 
 *class*

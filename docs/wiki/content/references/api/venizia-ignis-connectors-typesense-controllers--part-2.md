@@ -79,7 +79,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 highlight: z.ZodOptional<z.ZodBoolean>;
                                 filter: z.ZodOptional<z.ZodObject<{
                                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
-                                    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+                                    fields: z.ZodOptional<z.ZodType<any, string[] | Record<string, boolean>, z.core.$ZodTypeInternals<any, string[] | Record<string, boolean>>>>;
                                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
@@ -108,7 +108,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 k: z.ZodOptional<z.ZodNumber>;
                                 filter: z.ZodOptional<z.ZodObject<{
                                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
-                                    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+                                    fields: z.ZodOptional<z.ZodType<any, string[] | Record<string, boolean>, z.core.$ZodTypeInternals<any, string[] | Record<string, boolean>>>>;
                                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
@@ -139,7 +139,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 k: z.ZodOptional<z.ZodNumber>;
                                 filter: z.ZodOptional<z.ZodObject<{
                                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
-                                    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+                                    fields: z.ZodOptional<z.ZodType<any, string[] | Record<string, boolean>, z.core.$ZodTypeInternals<any, string[] | Record<string, boolean>>>>;
                                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
@@ -167,7 +167,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 highlight: z.ZodOptional<z.ZodBoolean>;
                                 filter: z.ZodOptional<z.ZodObject<{
                                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
-                                    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+                                    fields: z.ZodOptional<z.ZodType<any, string[] | Record<string, boolean>, z.core.$ZodTypeInternals<any, string[] | Record<string, boolean>>>>;
                                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
@@ -195,7 +195,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 highlight: z.ZodOptional<z.ZodBoolean>;
                                 filter: z.ZodOptional<z.ZodObject<{
                                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
-                                    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+                                    fields: z.ZodOptional<z.ZodType<any, string[] | Record<string, boolean>, z.core.$ZodTypeInternals<any, string[] | Record<string, boolean>>>>;
                                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
@@ -224,7 +224,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 k: z.ZodOptional<z.ZodNumber>;
                                 filter: z.ZodOptional<z.ZodObject<{
                                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
-                                    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+                                    fields: z.ZodOptional<z.ZodType<any, string[] | Record<string, boolean>, z.core.$ZodTypeInternals<any, string[] | Record<string, boolean>>>>;
                                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
@@ -255,7 +255,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 k: z.ZodOptional<z.ZodNumber>;
                                 filter: z.ZodOptional<z.ZodObject<{
                                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
-                                    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+                                    fields: z.ZodOptional<z.ZodType<any, string[] | Record<string, boolean>, z.core.$ZodTypeInternals<any, string[] | Record<string, boolean>>>>;
                                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
@@ -285,7 +285,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 k: z.ZodOptional<z.ZodNumber>;
                                 filter: z.ZodOptional<z.ZodObject<{
                                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
-                                    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+                                    fields: z.ZodOptional<z.ZodType<any, string[] | Record<string, boolean>, z.core.$ZodTypeInternals<any, string[] | Record<string, boolean>>>>;
                                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
@@ -318,7 +318,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 k: z.ZodOptional<z.ZodNumber>;
                                 filter: z.ZodOptional<z.ZodObject<{
                                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
-                                    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+                                    fields: z.ZodOptional<z.ZodType<any, string[] | Record<string, boolean>, z.core.$ZodTypeInternals<any, string[] | Record<string, boolean>>>>;
                                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
@@ -348,7 +348,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 highlight: z.ZodOptional<z.ZodBoolean>;
                                 filter: z.ZodOptional<z.ZodObject<{
                                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
-                                    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+                                    fields: z.ZodOptional<z.ZodType<any, string[] | Record<string, boolean>, z.core.$ZodTypeInternals<any, string[] | Record<string, boolean>>>>;
                                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
@@ -377,7 +377,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 k: z.ZodOptional<z.ZodNumber>;
                                 filter: z.ZodOptional<z.ZodObject<{
                                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
-                                    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+                                    fields: z.ZodOptional<z.ZodType<any, string[] | Record<string, boolean>, z.core.$ZodTypeInternals<any, string[] | Record<string, boolean>>>>;
                                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
@@ -408,7 +408,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 k: z.ZodOptional<z.ZodNumber>;
                                 filter: z.ZodOptional<z.ZodObject<{
                                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
-                                    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+                                    fields: z.ZodOptional<z.ZodType<any, string[] | Record<string, boolean>, z.core.$ZodTypeInternals<any, string[] | Record<string, boolean>>>>;
                                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
@@ -436,7 +436,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 highlight: z.ZodOptional<z.ZodBoolean>;
                                 filter: z.ZodOptional<z.ZodObject<{
                                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
-                                    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
+                                    fields: z.ZodOptional<z.ZodType<any, string[] | Record<string, boolean>, z.core.$ZodTypeInternals<any, string[] | Record<string, boolean>>>>;
                                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                     limit: z.ZodOptional<z.ZodNumber>;
                                     offset: z.ZodOptional<z.ZodNumber>;
@@ -463,9 +463,6 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 queryBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                 highlight: z.ZodOptional<z.ZodBoolean>;
                                 filter: z.ZodOptional<z.ZodObject<{
-                                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<import("@venizia/ignis-filter").TWhere, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TWhere, unknown>>>>]>>;
-                                    fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
-                                    order: z.ZodOptional<z.ZodArray<z.ZodString>>;
 // ... cut
 ```
 
@@ -502,3 +499,55 @@ export declare class SearchControllerOptionsUtility {
 ```
 
 Source: `packages/connectors/src/search/core/controllers/options.ts`
+
+## `SearchEngineParams`
+
+*class*
+
+What a search request's `engineParams` may carry. `engineParams` hands the engine its own wire parameters, and some of
+them choose the rows (`filter_by`), the fields (`include_fields`, `query_by`, `facet_by`, `highlight_fields`) or both
+(a preset). Over the wire it is refused on every search controller, scoped or not, unless the controller names the
+parameters a caller may send (`query.allow.tuning`). A parameter that selects rows or fields, or reorders them, can
+never be named. Server code passes `engineParams` on the repository call as before.
+
+```ts
+export declare class SearchEngineParams {
+    /** Two spellings of one parameter (`numTypos`, `num_typos`, `NumTypos`) are one name. */
+    static isSameName(opts: {
+        left: string;
+        right: string;
+    }): boolean;
+    /** A parameter that selects rows, fields or order, in either spelling: no allowlist and no server tuning can hold it. */
+    static isNeverAllowed(opts: {
+        name: string;
+    }): boolean;
+    /**
+     * Parameters no allowlist can hold, in the form `normalize` gives: they choose rows, fields or order, in either engine.
+     * `preset` and `override_tags` / `pinned_hits` / `hidden_hits` change which rows come back, and `vector_query` /
+     * `vector` / `hybrid` search by similarity, which reveals a field's content as surely as a filter does.
+     */
+    static readonly NEVER_ALLOWED: ReadonlySet<string>;
+    /** The allowlist of a controller, validated: strings only, none that selects rows or fields. Throws at definition time, so a bad list never boots. */
+    static resolveAllowlist(opts: {
+        scope: string;
+        allow?: unknown;
+    }): ReadonlySet<string>;
+    /** Refuses (400) an `engineParams` that carries a name the controller does not allow. With no allowlist, any `engineParams` is refused. */
+    static assertAllowed(opts: {
+        engineParams?: unknown;
+        allowed: ReadonlySet<string>;
+    }): void;
+    /** The check for a single-collection search body. `raw` mode has no `engineParams`: it is the controller's own choice to serve it. */
+    static assertSearchInput(opts: {
+        input: TSearchInput;
+        allowed: ReadonlySet<string>;
+    }): void;
+    /** The check for every entry of a multi-search body. */
+    static assertMultiSearchInput(opts: {
+        input: TMultiSearchInput;
+        allowed: ReadonlySet<string>;
+    }): void;
+}
+```
+
+Source: `packages/connectors/src/search/core/controllers/engine-params.ts`

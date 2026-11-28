@@ -365,7 +365,7 @@ The declarations are on 9 pages; each export below links to its own.
 
 ## `IAuthorizationEnforcer`
 
-*interface* - [Declaration](/references/api/venizia-ignis-kernel--part-3#iauthorizationenforcer)
+*interface* - [Declaration](/references/api/venizia-ignis-kernel--part-4#iauthorizationenforcer)
 
 ## `IAuthorizationRequest`
 
@@ -581,11 +581,11 @@ The declarations are on 9 pages; each export below links to its own.
 
 ## `IModelAccessWriteSettings`
 
-*interface* - [Declaration](/references/api/venizia-ignis-kernel--part-4#imodelaccesswritesettings)
+*interface* - [Declaration](/references/api/venizia-ignis-kernel--part-5#imodelaccesswritesettings)
 
 ## `IModelAuthorizeSettings`
 
-*interface* - [Declaration](/references/api/venizia-ignis-kernel--part-4#imodelauthorizesettings)
+*interface* - [Declaration](/references/api/venizia-ignis-kernel--part-5#imodelauthorizesettings)
 
 ## `IModelMetadata`
 
@@ -821,11 +821,11 @@ The declarations are on 9 pages; each export below links to its own.
 
 ## `PostgresErrors`
 
-*class* - [Declaration](/references/api/venizia-ignis-kernel--part-5#postgreserrors)
+*class* - [Declaration](/references/api/venizia-ignis-kernel--part-6#postgreserrors)
 
 ## `put`
 
-*const* - [Declaration](/references/api/venizia-ignis-kernel--part-5#put)
+*const* - [Declaration](/references/api/venizia-ignis-kernel--part-6#put)
 
 ## `ReadableCrudController`
 

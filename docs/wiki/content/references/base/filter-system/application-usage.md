@@ -84,8 +84,6 @@ import {
   FilterQuerySchema,
   inject,
   OpenApiResponses,
-  type TInferSchema,
-  type TRouteContext,
   type TValueOrPromise, BindingKeys,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
@@ -107,8 +105,8 @@ export class ProductController extends BaseRestController {
         request: { query: FilterQuerySchema },
         responses: OpenApiResponses.jsonResponse({ schema: z.array(z.object({ id: z.string() })) }),
       },
-      handler: async (context: TRouteContext) => {
-        const { filter = {} } = context.req.valid<TInferSchema<typeof FilterQuerySchema>>('query');
+      handler: async context => {
+        const { filter = {} } = context.req.valid('query');
         const results = await this._productRepository.find({ filter });
         return context.json(results, HTTP.ResultCodes.RS_2.Ok);
       },
@@ -116,6 +114,8 @@ export class ProductController extends BaseRestController {
   }
 }
 ```
+
+The parsed `filter` fits `TFilter<Model>` and `TByIdFilter<Model>`, so it goes to a repository with no cast. The request's field names are strings until the repository reads them, so the parsed `fields` has no model type: it is `TFields`, which is `any`. A filter you write in code is still checked against its model.
 
 ### The two query shapes
 
