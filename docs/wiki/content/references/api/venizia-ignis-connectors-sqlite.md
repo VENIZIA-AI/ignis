@@ -55,7 +55,7 @@ export declare abstract class BaseSqliteDataSource<Settings extends object = ISq
      * libsql's url IS SQLite's connection string; an app
      * whose settings spell it differently overrides this.
      */
-    getConnectionString(): ValueOrPromise<string>;
+    getConnectionString(): TValueOrPromise<string>;
 }
 ```
 

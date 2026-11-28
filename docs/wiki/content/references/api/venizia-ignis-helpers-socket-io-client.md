@@ -37,11 +37,11 @@ export interface ISocketIOClientOptions {
     options: IOptions;
     /** `socket.io-client` itself, for a `bun build --compile` binary that has no `node_modules` to load it from. Omitted, it is loaded on `configure()`. */
     module?: typeof import('socket.io-client');
-    onConnected?: () => ValueOrPromise<void>;
-    onDisconnected?: (reason: string) => ValueOrPromise<void>;
-    onError?: (error: Error) => ValueOrPromise<void>;
-    onAuthenticated?: () => ValueOrPromise<void>;
-    onUnauthenticated?: (message: string) => ValueOrPromise<void>;
+    onConnected?: () => TValueOrPromise<void>;
+    onDisconnected?: (reason: string) => TValueOrPromise<void>;
+    onError?: (error: Error) => TValueOrPromise<void>;
+    onAuthenticated?: () => TValueOrPromise<void>;
+    onUnauthenticated?: (message: string) => TValueOrPromise<void>;
 }
 ```
 
@@ -159,7 +159,7 @@ Source: `packages/helpers/src/modules/socket/socket-io/common/constants.ts`
 Handler for a Socket.IO event, receiving the event payload.
 
 ```ts
-export type TSocketIOEventHandler<T = unknown> = (data: T) => ValueOrPromise<void>;
+export type TSocketIOEventHandler<T = unknown> = (data: T) => TValueOrPromise<void>;
 ```
 
 Source: `packages/helpers/src/modules/socket/socket-io/common/types/hooks.ts`

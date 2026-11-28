@@ -1,4 +1,4 @@
-import { type TConstValue, type ValueOrPromise } from '@/common/types';
+import { type TConstValue, type TValueOrPromise } from '@/common/types';
 
 /** Lifecycle states of a sequential queue; the numeric prefix orders them. */
 export class QueueStatuses {
@@ -24,18 +24,18 @@ export interface IQueueCallback<TElementPayload> {
   onMessage?: (opts: {
     identifier: string;
     queueElement: TQueueElement<TElementPayload>;
-  }) => ValueOrPromise<void>;
+  }) => TValueOrPromise<void>;
   onDataEnqueue?: (opts: {
     identifier: string;
     queueElement: TQueueElement<TElementPayload>;
-  }) => ValueOrPromise<void>;
+  }) => TValueOrPromise<void>;
   onDataDequeue?: (opts: {
     identifier: string;
     queueElement: TQueueElement<TElementPayload>;
-  }) => ValueOrPromise<void>;
+  }) => TValueOrPromise<void>;
   onStateChange?: (opts: {
     identifier: string;
     from: TQueueStatus;
     to: TQueueStatus;
-  }) => ValueOrPromise<void>;
+  }) => TValueOrPromise<void>;
 }

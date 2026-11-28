@@ -3,8 +3,8 @@ import '@/base/applications';
 
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { Hono } from 'hono';
-import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
+import { HTTP, type TValueOrPromise } from '@venizia/ignis-helpers/common';
+import { getError, ApplicationError } from '@venizia/ignis-helpers/core';
 import { Logger } from '@venizia/ignis-helpers/winston';
 import { DataRangeUtility } from '@venizia/ignis-kernel/repository';
 import { HttpDataSource, HttpRepository } from '@venizia/ignis-connectors/http';
@@ -35,7 +35,7 @@ class ExtrasController extends BaseRestController {
     super({ scope: ExtrasController.name, path: '/', isStrict: false });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.bindRoute({ configs: { method: HTTP.Methods.GET, path: '/products', responses: {} } }).to({
       handler: async (context: TRouteContext) => {
         const data = ROWS.slice(0, readLimit(context));
@@ -149,7 +149,7 @@ const failureOf = async (task: Promise<unknown>) => {
     caught = error;
   }
 
-  if (!isApplicationError(caught)) {
+  if (!ApplicationError.isApplicationError(caught)) {
     throw new Error(`expected an ApplicationError, got: ${String(caught)}`);
   }
 

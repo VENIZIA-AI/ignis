@@ -1,5 +1,5 @@
 import { EnvironmentKeys } from '@/common/environments';
-import { datasource, type TAnyDataSourceSchema, type ValueOrPromise } from '@venizia/ignis';
+import { datasource, type TAnyDataSourceSchema, type TValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { PostgresJsDriver } from '@venizia/ignis-connectors/postgres/postgres-js';
 import {
@@ -59,7 +59,7 @@ export class SupabaseDataSource extends BasePostgresDataSource<
     await migrate(drizzle({ client: this.client }), { migrationsFolder: './migration' });
   }
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return this.settings.url;
   }
 }

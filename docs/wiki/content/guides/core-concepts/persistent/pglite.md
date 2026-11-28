@@ -5,7 +5,7 @@ PGlite is PostgreSQL compiled to WebAssembly. It runs inside your Bun process, w
 ```typescript
 import { PGlite } from '@electric-sql/pglite';
 import { datasource } from '@venizia/ignis';
-import type { TAnyDataSourceSchema, ValueOrPromise } from '@venizia/ignis';
+import type { TAnyDataSourceSchema, TValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { PGliteDriver } from '@venizia/ignis-connectors/postgres/pglite';
 
@@ -15,11 +15,11 @@ export class TestDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSch
     super({ name: TestDataSource.name, config: {} });
   }
 
-  override configure(): ValueOrPromise<void> {
+  override configure(): TValueOrPromise<void> {
     this.client = new PGlite();
   }
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return 'memory://';
   }
 }
@@ -63,7 +63,7 @@ Point PGlite at a directory and it persists there:
 ```typescript
 import { PGlite } from '@electric-sql/pglite';
 import { datasource } from '@venizia/ignis';
-import type { TAnyDataSourceSchema, ValueOrPromise } from '@venizia/ignis';
+import type { TAnyDataSourceSchema, TValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { PGliteDriver } from '@venizia/ignis-connectors/postgres/pglite';
 import { AppEnvs } from '@venizia/ignis-helpers';
@@ -86,11 +86,11 @@ export class EmbeddedDataSource extends BasePostgresDataSource<
     });
   }
 
-  override configure(): ValueOrPromise<void> {
+  override configure(): TValueOrPromise<void> {
     this.client = new PGlite(this.settings.dataDir);
   }
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return this.settings.dataDir;
   }
 }
@@ -161,7 +161,7 @@ The timeout bounds the **wait for the slot**, never the transaction itself. It f
 To change any of these, construct the driver yourself with `useDriver()`. That assigns the driver and builds the connector in one step, and bypasses `@datasource({ driver })`:
 
 ```typescript
-override configure(): ValueOrPromise<void> {
+override configure(): TValueOrPromise<void> {
   const client = new PGlite(this.settings.dataDir);
 
   this.useDriver({

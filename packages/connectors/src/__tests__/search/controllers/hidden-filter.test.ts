@@ -9,7 +9,7 @@ import {
   repository,
   model,
 } from '@venizia/ignis-kernel';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { SearchControllerFactory } from '@/search/core/controllers/factory';
 import { SearchModes } from '@/search/core/repositories/common';
 import { BaseSearchEntity, SearchCollectionFactory, field } from '@/search/core/models';
@@ -88,7 +88,7 @@ const refusal = async (task: Promise<unknown>) => {
   try {
     await task;
   } catch (error) {
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       return error;
     }
 

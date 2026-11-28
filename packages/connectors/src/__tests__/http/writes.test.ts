@@ -1,7 +1,7 @@
 import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { HttpDataSource } from '@/http/datasource';
 import { HttpRepository } from '@/http/repository';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { afterEach, describe, expect, test } from 'bun:test';
 
 /**
@@ -62,7 +62,7 @@ const captureError = async (task: Promise<unknown>) => {
   try {
     await task;
   } catch (error) {
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       return error;
     }
 

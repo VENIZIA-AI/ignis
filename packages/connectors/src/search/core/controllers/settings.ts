@@ -1,5 +1,5 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { Sorts } from '@venizia/ignis-filter';
 import { RequestFilterGuard } from '@venizia/ignis-kernel';
@@ -36,7 +36,7 @@ export type TSearchLooseFunction<
   RouteEnv extends Env = Env,
   TExtra extends object = {},
   Inject extends TInjectMap = {},
-> = (opts: ISearchSourceOptions<RouteEnv, TExtra, Inject>) => ValueOrPromise<unknown>;
+> = (opts: ISearchSourceOptions<RouteEnv, TExtra, Inject>) => TValueOrPromise<unknown>;
 
 /** A `query.fixed` or `query.default` as the controller keeps it: checked settings, or a function checked per request. */
 export type TSearchLooseSource<
@@ -52,7 +52,7 @@ export type TSearchLooseNormalize<
   Inject extends TInjectMap = {},
 > = (
   opts: ISearchSourceOptions<RouteEnv, TExtra, Inject> & { text: string },
-) => ValueOrPromise<unknown>;
+) => TValueOrPromise<unknown>;
 
 /** What the model says about its fields, read once when the controller is built. */
 export interface ISearchFieldCatalog {

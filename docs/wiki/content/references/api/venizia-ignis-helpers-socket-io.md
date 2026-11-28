@@ -139,7 +139,7 @@ export declare class SocketIOServerHelper extends BaseHelper {
     /** Handlers run inside socket.io event listeners - a sync throw there kills the process; fireAndForget only catches promise rejections since its argument evaluates before the try/catch. */
     protected invokeHook(opts: {
         scope: string;
-        execution: () => ValueOrPromise<void>;
+        execution: () => TValueOrPromise<void>;
     }): void;
     getEngine(): object | undefined;
     getClients(opts?: {
@@ -147,7 +147,7 @@ export declare class SocketIOServerHelper extends BaseHelper {
     }): ISocketIOClient | Map<string, ISocketIOClient> | undefined;
     on<HandlerArgsType extends unknown[] = unknown[], HanderReturnType = void>(opts: {
         topic: string;
-        handler: (...args: HandlerArgsType) => ValueOrPromise<HanderReturnType>;
+        handler: (...args: HandlerArgsType) => TValueOrPromise<HanderReturnType>;
     }): void;
     /** Removes a handler that `on` bound: what the server holds is its listener, not the handler itself. */
     off<Args extends unknown[]>(opts: {
@@ -205,7 +205,7 @@ Source: `packages/helpers/src/modules/socket/socket-io/server/helper.ts`
 Decides whether a connecting client is authenticated from its handshake; resolves `true` to accept.
 
 ```ts
-export type TSocketIOAuthenticateFn = (args: IHandshake) => ValueOrPromise<boolean>;
+export type TSocketIOAuthenticateFn = (args: IHandshake) => TValueOrPromise<boolean>;
 ```
 
 Source: `packages/helpers/src/modules/socket/socket-io/common/types/hooks.ts`
@@ -231,7 +231,7 @@ Called after a client has authenticated and been set up.
 ```ts
 export type TSocketIOClientConnectedFn = (opts: {
     socket: IOSocket;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 ```
 
 Source: `packages/helpers/src/modules/socket/socket-io/common/types/hooks.ts`
@@ -270,7 +270,7 @@ Returns the subset of the requested `rooms` the socket may join.
 export type TSocketIOValidateRoomFn = (opts: {
     socket: IOSocket;
     rooms: string[];
-}) => ValueOrPromise<string[]>;
+}) => TValueOrPromise<string[]>;
 ```
 
 Source: `packages/helpers/src/modules/socket/socket-io/common/types/hooks.ts`

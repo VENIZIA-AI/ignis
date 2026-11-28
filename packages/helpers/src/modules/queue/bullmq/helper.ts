@@ -1,4 +1,4 @@
-import type { ValueOrPromise } from '@/common';
+import type { TValueOrPromise } from '@/common';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { type IRedisHelper, RedisDefaults, type TRedisClient } from '@/modules/redis';
@@ -63,7 +63,7 @@ export interface IBullMQOptions<
    * A block stamped on every job added through `add`, run on each add and stored in the job's `opts.metadata`, outside `job.data`.
    * A throw fails the add; the answer must be a plain object. The worker reads it as `context.metadata`.
    */
-  metadata?: () => ValueOrPromise<TMetadata>;
+  metadata?: () => TValueOrPromise<TMetadata>;
 
   /** Merged over the framework defaults, under the fields the helper owns (`connection`) - see `queueOptionsFor`. */
   queueOptions?: Omit<QueueOptions, 'connection'>;
@@ -107,7 +107,7 @@ export class BullMQHelper<
   protected workerOptions?: Omit<WorkerOptions, 'connection' | 'concurrency' | 'lockDuration'>;
 
   protected prefix?: string;
-  protected metadata?: () => ValueOrPromise<TMetadata>;
+  protected metadata?: () => TValueOrPromise<TMetadata>;
 
   protected onWorkerData?: (
     job: Job<TQueueElement, TQueueResult>,

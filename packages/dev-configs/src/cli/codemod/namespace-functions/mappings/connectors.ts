@@ -61,8 +61,27 @@ const enricher = (opts: {
   },
 ];
 
+/** The type guards of `@venizia/ignis-connectors`, which keep their positional argument. */
+export const CONNECTORS_GUARD_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
+  passthrough({
+    modules: [CONNECTORS, `${CONNECTORS}/relational`],
+    oldName: 'isRelationalTransaction',
+    className: 'AbstractRelationalDataSource',
+    method: 'isRelationalTransaction',
+    isTypeGuard: true,
+  }),
+  passthrough({
+    modules: [`${CONNECTORS}/postgres`, CORE_SERVER],
+    oldName: 'isDatabaseTransaction',
+    className: 'AbstractPostgresDataSource',
+    method: 'isDatabaseTransaction',
+    isTypeGuard: true,
+  }),
+];
+
 /** The functions of `@venizia/ignis-connectors` that moved into a class. */
 export const CONNECTORS_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
+  ...CONNECTORS_GUARD_MAPPINGS,
   ...enricher({
     modules: POSTGRES_MODULES,
     className: 'PostgresDataTypeEnricher',

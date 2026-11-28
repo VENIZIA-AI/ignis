@@ -1,4 +1,4 @@
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { Env, Hono, Schema } from 'hono';
 import type { TControllerTransport } from '../../../controllers/common/constants';
 import type {
@@ -108,9 +108,9 @@ export interface IApplication<
   getServer(): Hono<AppEnv, AppSchema, BasePath>;
   getRootRouter(): Hono<AppEnv, AppSchema, BasePath>;
 
-  setupMiddlewares(): ValueOrPromise<void>;
+  setupMiddlewares(): TValueOrPromise<void>;
 
-  initialize(): ValueOrPromise<void>;
+  initialize(): TValueOrPromise<void>;
 }
 
 /** The REST application contract: `IApplication` plus the component, controller, repository, service and static-serve registration mixins. */

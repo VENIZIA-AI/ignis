@@ -120,11 +120,11 @@ These must be implemented by subclasses:
 
 | Method | Signature | Purpose |
 | :--- | :--- | :--- |
-| `getAppInfo()` | `() => ValueOrPromise<IApplicationInfo>` | Return application metadata (name, version, description) |
-| `preConfigure()` | `() => ValueOrPromise<void>` | Register resources before framework auto-configuration |
-| `postConfigure()` | `() => ValueOrPromise<void>` | Logic after all resources are configured |
+| `getAppInfo()` | `() => TValueOrPromise<IApplicationInfo>` | Return application metadata (name, version, description) |
+| `preConfigure()` | `() => TValueOrPromise<void>` | Register resources before framework auto-configuration |
+| `postConfigure()` | `() => TValueOrPromise<void>` | Logic after all resources are configured |
 | `staticConfigure()` | `() => void` | Pre-DI static setup (synchronous) |
-| `setupMiddlewares(opts?)` | `(opts?: { middlewares?: Record<string \| symbol, any> }) => ValueOrPromise<void>` | Register Hono middlewares |
+| `setupMiddlewares(opts?)` | `(opts?: { middlewares?: Record<string \| symbol, any> }) => TValueOrPromise<void>` | Register Hono middlewares |
 | `initialize()` | `() => Promise<void>` | Full initialization sequence |
 
 ### Public Methods

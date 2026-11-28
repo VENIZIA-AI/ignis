@@ -67,7 +67,7 @@ interface ISecretsHelper extends IConfigurable {
   lease(opts: { path: string; key: string }): Promise<ISecretLease>;
 
   // Rotation event - mirrors the onInitialized / onConnected / onError vocabulary.
-  onRotate(handler: (event: ISecretRotationEvent) => ValueOrPromise<void>): void;
+  onRotate(handler: (event: ISecretRotationEvent) => TValueOrPromise<void>): void;
 
   // Connect a live consumer (a pool holder) to a lease key.
   registerRotatable(opts: { key: string; target: ISecretRotatable }): void;
@@ -130,7 +130,7 @@ type TSecretsRegistration =
 
 ```typescript
 // packages/core-server/src/base/applications/base.ts
-registerSecrets(): ValueOrPromise<TSecretsRegistration> {
+registerSecrets(): TValueOrPromise<TSecretsRegistration> {
   return { provider: SecretProviders.SYSTEM_ENVS };
 }
 ```

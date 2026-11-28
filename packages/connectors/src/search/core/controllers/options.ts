@@ -12,7 +12,7 @@ import type { Env } from 'hono';
 import { MetadataRegistry } from '@venizia/ignis-kernel/metadata';
 import type { TClass } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import { isClass } from '@venizia/ignis-inversion';
+import { ResolverUtility } from '@venizia/ignis-inversion';
 import { BaseSearchEntity } from '@/search/core/models';
 import type { ISearchFieldDefinition } from '@/search/core/models';
 import { SearchEngineParams } from './engine-params';
@@ -130,7 +130,7 @@ export class SearchControllerOptionsUtility {
     const isMap = typeof inject === 'object' && inject !== null && !Array.isArray(inject);
 
     for (const [name, dependency] of isMap ? Object.entries(inject) : [['inject', inject]]) {
-      if (!isClass(dependency)) {
+      if (!ResolverUtility.isClass(dependency)) {
         throw SearchControllerOptionsUtility.fail({
           scope,
           message: `inject.${name} must be a class | write inject: { products: ProductRepository }`,

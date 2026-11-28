@@ -5,7 +5,7 @@ import { NodePostgresDriver } from '@/relational/postgres/drivers/node-postgres'
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { PostgresJsDriver } from '@/relational/postgres/drivers/postgres-js';
 import { PGlite } from '@electric-sql/pglite';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { describe, expect, setDefaultTimeout, test } from 'bun:test';
 import { createFakePool } from '../postgres/drivers/fake-pg-client';
@@ -27,7 +27,7 @@ class MemoryDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, 
     this.client = client;
   }
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return 'pglite://memory';
   }
 }

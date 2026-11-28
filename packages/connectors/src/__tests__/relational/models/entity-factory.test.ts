@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { datasource, model, repository, RelationTypes } from '@venizia/ignis-kernel';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { ILogger } from '@venizia/ignis-helpers/core';
 import { PGlite } from '@electric-sql/pglite';
 import { createTableRelationsHelpers, getTableName, is, One } from 'drizzle-orm';
@@ -144,9 +144,9 @@ class EntityFactoryDataSource extends BasePostgresDataSource<{}, {}, {}, PGlite>
     this.client = client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return 'pglite://memory';
   }
 
@@ -209,9 +209,9 @@ class OrphanDataSource extends BasePostgresDataSource<{}, {}, {}, PGlite> {
     super({ name: OrphanDataSource.name, config: {} });
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return 'pglite://memory';
   }
 }
@@ -249,9 +249,9 @@ class LoneDataSource extends BasePostgresDataSource<{}, {}, {}, PGlite> {
     super({ name: LoneDataSource.name, config: {} });
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return 'pglite://memory';
   }
 }
@@ -283,9 +283,9 @@ class StrayDataSource extends BasePostgresDataSource<{}, {}, {}, PGlite> {
     super({ name: StrayDataSource.name, config: {} });
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return 'pglite://memory';
   }
 }

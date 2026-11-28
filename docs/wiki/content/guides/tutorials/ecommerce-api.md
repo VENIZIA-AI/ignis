@@ -303,7 +303,7 @@ export * from './order.model';
 import {
   BaseDataSource,
   datasource,
-  ValueOrPromise,
+  TValueOrPromise,
 } from '@venizia/ignis';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
@@ -332,7 +332,7 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
     });
   }
 
-  override configure(): ValueOrPromise<void> {
+  override configure(): TValueOrPromise<void> {
     const schema = Object.keys(this.getSchema());
 
     this.logger.debug(
@@ -348,7 +348,7 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
   }
 
   // Abstract on the Postgres tier - every Postgres datasource implements it.
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     const { host, port, user, password, database } = this.settings;
     return `postgresql://${user}:${password}@${host}:${port}/${database}`;
   }

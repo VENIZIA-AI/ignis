@@ -286,7 +286,7 @@ Pre-built middleware function for gRPC auth enforcement, created by `AbstractGrp
 type TRpcMiddleware<RouteEnv extends Env = Env> = (
   context: TRouteContext<RouteEnv>,
   next: Next,
-) => ValueOrPromise<void | Response>;
+) => TValueOrPromise<void | Response>;
 ```
 
 ### `TRpcHandler`
@@ -302,7 +302,7 @@ type TRpcHandler<
   request: RequestType;
   context: TRouteContext<RouteEnv>;
   rpc: HandlerContext; // from '@connectrpc/connect'
-}) => ValueOrPromise<ResponseType>;
+}) => TValueOrPromise<ResponseType>;
 ```
 
 > [!NOTE]

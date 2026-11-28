@@ -3,7 +3,7 @@ import { BaseComponent } from '@venizia/ignis-kernel';
 import { inject } from '@venizia/ignis-kernel';
 import { CoreBindings } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
-import { type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   AuthorizationEnforcerRegistry,
   AuthorizeBindingKeys,
@@ -21,7 +21,7 @@ export class AuthorizeComponent extends BaseComponent {
     });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     const options = this.application.get({
       key: AuthorizeBindingKeys.OPTIONS,
       isOptional: true,

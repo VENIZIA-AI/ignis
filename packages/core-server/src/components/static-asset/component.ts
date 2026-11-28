@@ -3,7 +3,7 @@ import { BaseComponent } from '@venizia/ignis-kernel';
 import { inject } from '@/base/metadata';
 import { CoreBindings } from '@venizia/ignis-kernel';
 import { Binding } from '@venizia/ignis-kernel';
-import { type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { StaticAssetBindingKeys, type TStaticAssetComponentOptions } from './common';
 import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from './models';
 import { StaticAssetControllerFactory } from './controller';
@@ -27,7 +27,7 @@ export class StaticAssetComponent<
     });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     // Direct options win. The key is the path for an application that registers this component
     // through `configs.artifacts`, where an index carries classes and no options.
     const componentOptions =

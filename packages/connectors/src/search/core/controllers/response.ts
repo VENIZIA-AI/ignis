@@ -1,5 +1,5 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { TInjected, TInjectMap, TRouteContext } from '@venizia/ignis-kernel';
 import type { z } from '@hono/zod-openapi';
@@ -19,7 +19,7 @@ export interface ISearchLooseResponse<RouteEnv extends Env = Env, Inject extends
     context: TRouteContext<RouteEnv>;
     input: Exclude<TSearchInput, { mode: 'raw' }>;
     injected: TInjected<Inject>;
-  }) => ValueOrPromise<Array<TSearchLooseHit>>;
+  }) => TValueOrPromise<Array<TSearchLooseHit>>;
 }
 
 /** Runs the `response` transform of a search controller. */

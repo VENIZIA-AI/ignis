@@ -1,4 +1,4 @@
-import { type ValueOrPromise } from '@/common/types';
+import { type TValueOrPromise } from '@/common/types';
 import { AbstractPoolHelper } from './abstract';
 import { type IPoolOptions } from './common';
 
@@ -16,19 +16,19 @@ export class BasePoolHelper<T> extends AbstractPoolHelper<T> {
     this.factory = options;
   }
 
-  protected create(): ValueOrPromise<T> {
+  protected create(): TValueOrPromise<T> {
     return this.factory.create();
   }
 
-  protected override validateResource(opts: { resource: T }): ValueOrPromise<boolean> {
+  protected override validateResource(opts: { resource: T }): TValueOrPromise<boolean> {
     return this.factory.validate ? this.factory.validate(opts.resource) : true;
   }
 
-  protected override resetResource(opts: { resource: T }): ValueOrPromise<void> {
+  protected override resetResource(opts: { resource: T }): TValueOrPromise<void> {
     return this.factory.reset?.(opts.resource);
   }
 
-  protected override onDestroyResource(opts: { resource: T }): ValueOrPromise<void> {
+  protected override onDestroyResource(opts: { resource: T }): TValueOrPromise<void> {
     return this.factory.destroy?.(opts.resource);
   }
 }

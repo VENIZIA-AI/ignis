@@ -14,7 +14,7 @@ The helpers utilities used to be bare functions (`int`, `sleep`, `executePromise
 | **Module** | `ignis-helpers` | Optional peer loading | `ModuleUtility` |
 | **Parse** | `ignis-helpers` | Data type conversion | `ParseUtility.toInt()`, `.toFloat()`, `.toBoolean()`, `.toCamel()` |
 | **Performance** | `ignis-helpers` | Execution timing | `PerformanceUtility.executeWithMeasure()`, `.getCheckpoint()` |
-| **Promise** | `ignis-helpers` | Promise helpers | `Execution.withLimit()`, `.withTimeout()`, `isPromiseLike()`, `ErrorUtility.toError()` |
+| **Promise** | `ignis-helpers` | Promise helpers | `Execution.withLimit()`, `.withTimeout()`, `Execution.isPromiseLike()`, `ErrorUtility.toError()` |
 | **Request** | `ignis-helpers` | HTTP utilities | `RequestUtility.parseMultipartBody()`, `.sanitizeFilename()`, `.buildContentDispositionHeader()` |
 | **Retry** | `ignis-helpers` | Backoff-driven retries | `RetryUtility` |
 | **Schema** | `ignis` | Zod schema helpers | `OpenApiResponses.jsonContent()`, `.jsonResponse()`; `OpenApiSchemas.requiredString()`, `.idParams()` |

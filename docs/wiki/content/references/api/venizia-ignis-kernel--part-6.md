@@ -356,7 +356,7 @@ export declare abstract class RestApplication<AppEnv extends Env = Env, AppSchem
      * thrown `ApplicationError` is a generic 500, a 404 is `text/plain`, and no response carries a request id.
      * Registered before `initialize()`, so an application's own handlers still win.
      */
-    protected registerDefaultMiddlewares(): ValueOrPromise<void>;
+    protected registerDefaultMiddlewares(): TValueOrPromise<void>;
     /** The configured `bodyLimit`, or the default one when none is configured. */
     private resolveBodyLimit;
     /** What a `bodyLimit` config installs: nothing when absent or disabled, else a copy, so a later in-place edit shows. */

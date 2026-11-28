@@ -1,5 +1,5 @@
 import { Authentication, BaseRestController, controller } from '@venizia/ignis';
-import type { ValueOrPromise } from '@venizia/ignis';
+import type { TValueOrPromise } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { RouteConfigs } from './definitions';
 
@@ -9,7 +9,7 @@ export class AuthorizationExampleController extends BaseRestController {
     super({ scope: AuthorizationExampleController.name });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     // Public - no auth, no authz
     this.defineRoute({
       configs: RouteConfigs['/public'],

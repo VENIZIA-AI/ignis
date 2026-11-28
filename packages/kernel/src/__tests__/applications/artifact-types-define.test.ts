@@ -5,13 +5,13 @@ import { RestApplication } from '@/base/applications/rest';
 import { inject, injectable } from '@/base/metadata';
 import { ArtifactTypes, BindingKeys, BindingScopes } from '@/helpers/inversion';
 import { SingletonRealm } from '@/helpers/singleton-realm';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { describe, expect, test } from 'bun:test';
 import { resolve } from 'node:path';
 
 class DefineApplication extends RestApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'define-app', version: '0.0.0', description: '' };
   }
 

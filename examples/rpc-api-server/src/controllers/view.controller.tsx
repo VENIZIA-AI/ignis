@@ -1,7 +1,7 @@
 import { AboutPage } from '@/views/pages/about.page';
 import { HomePage } from '@/views/pages/home.page';
 import { BaseRestController, controller, OpenApiResponses } from '@venizia/ignis';
-import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers';
+import { HTTP, type TValueOrPromise } from '@venizia/ignis-helpers';
 
 /** Server-rendered pages: each handler returns `context.html(<Page />)`. */
 @controller({ path: '/' })
@@ -10,7 +10,7 @@ export class ViewController extends BaseRestController {
     super({ scope: ViewController.name });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.defineJSXRoute({
       configs: {
         path: '/',

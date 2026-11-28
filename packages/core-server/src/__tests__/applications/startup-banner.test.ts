@@ -4,7 +4,7 @@ import { BaseApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications';
 import { EnvironmentKeys } from '@/common/environments';
 import { ControllerTransports } from '@venizia/ignis-kernel';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterEach, describe, expect, test } from 'bun:test';
 
 const TEST_CONFIGS: IApplicationConfigs = {
@@ -15,7 +15,7 @@ const TEST_CONFIGS: IApplicationConfigs = {
 };
 
 class BannerApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'banner-app', version: '0.0.0', description: 'Startup banner' };
   }
 

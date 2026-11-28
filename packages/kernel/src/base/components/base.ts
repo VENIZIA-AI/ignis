@@ -1,5 +1,5 @@
 import type { Binding, Container } from '@/helpers/inversion';
-import type { IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { IConfigurable, TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 
 type TInitDefault = { enable: false } | { enable: true; container: Container };
@@ -28,7 +28,7 @@ export abstract class BaseComponent<ConfigurableOptions extends object = {}>
     this.bindings = opts.bindings ?? {};
   }
 
-  abstract binding(): ValueOrPromise<void>;
+  abstract binding(): TValueOrPromise<void>;
 
   /** Override this, not the field, to resolve options lazily. */
   getOptions(): ConfigurableOptions | undefined {

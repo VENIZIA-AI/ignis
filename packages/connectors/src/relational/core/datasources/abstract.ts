@@ -1,5 +1,5 @@
-import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ITransaction, TAnyDataSourceSchema } from '@venizia/ignis-kernel';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { AbstractDriverDataSource } from '@/common/driver-data-source';
 import type { IRelationalDriver } from '@/relational/core/drivers';
 import type {
@@ -41,7 +41,14 @@ export abstract class AbstractRelationalDataSource<
     return true;
   }
 
-  abstract getConnectionString(): ValueOrPromise<string>;
+  /** Narrows the neutral `ITransaction` to a SQL transaction handle before accessing `.connector`. A type guard, so it keeps its positional `transaction`. */
+  static isRelationalTransaction(
+    transaction: ITransaction | undefined,
+  ): transaction is IRelationalTransaction<unknown> {
+    return transaction !== undefined && 'connector' in transaction;
+  }
+
+  abstract getConnectionString(): TValueOrPromise<string>;
   abstract override beginTransaction(
     opts?: TRelationalTransactionOptions,
   ): Promise<IRelationalTransaction<TConnector>>;

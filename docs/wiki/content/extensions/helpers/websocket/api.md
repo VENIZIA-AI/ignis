@@ -758,7 +758,7 @@ type TWebSocketAuthenticateFn<
   MetadataType extends Record<string, unknown> = Record<string, unknown>,
 > = (
   opts: AuthDataType,
-) => ValueOrPromise<{ userId?: string; metadata?: MetadataType } | null | false>;
+) => TValueOrPromise<{ userId?: string; metadata?: MetadataType } | null | false>;
 
 /** Handshake during auth - return { serverPublicKey, salt } to accept, null/false to reject */
 type TWebSocketHandshakeFn<
@@ -767,32 +767,32 @@ type TWebSocketHandshakeFn<
   clientId: string;
   userId?: string;
   data: AuthDataType;
-}) => ValueOrPromise<{ serverPublicKey: string; salt: string } | null | false>;
+}) => TValueOrPromise<{ serverPublicKey: string; salt: string } | null | false>;
 
 /** Room validation - return the allowed subset of requested rooms */
 type TWebSocketValidateRoomFn = (opts: {
   clientId: string;
   userId?: string;
   rooms: string[];
-}) => ValueOrPromise<string[]>;
+}) => TValueOrPromise<string[]>;
 
 /** Post-authentication callback */
 type TWebSocketClientConnectedFn<
   MetadataType extends Record<string, unknown> = Record<string, unknown>,
-> = (opts: { clientId: string; userId?: string; metadata?: MetadataType }) => ValueOrPromise<void>;
+> = (opts: { clientId: string; userId?: string; metadata?: MetadataType }) => TValueOrPromise<void>;
 
 /** Disconnect callback */
 type TWebSocketClientDisconnectedFn = (opts: {
   clientId: string;
   userId?: string;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 
 /** Custom event handler for events other than authenticate/heartbeat/join/leave */
 type TWebSocketMessageHandler = (opts: {
   clientId: string;
   userId?: string;
   message: IWebSocketMessage;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 
 /** Outbound transformer - intercepts messages before socket.send() */
 type TWebSocketOutboundTransformer<
@@ -802,7 +802,7 @@ type TWebSocketOutboundTransformer<
   client: IWebSocketClient<MetadataType>;
   event: string;
   data: DataType;
-}) => ValueOrPromise<TNullable<{ event: string; data: DataType }>>;
+}) => TValueOrPromise<TNullable<{ event: string; data: DataType }>>;
 ```
 
 ### State types

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { IRelationalDriver } from '@/relational/core/drivers';
-import { isRelationalTransaction } from '@/relational/core/datasources/common';
-import { isDatabaseTransaction } from '@/relational/postgres/datasources';
+import { AbstractRelationalDataSource } from '@/relational/core/datasources';
+import { AbstractPostgresDataSource } from '@/relational/postgres/datasources';
 
 describe('neutral driver contract', () => {
   test('a driver is implementable over an arbitrary connector type', async () => {
@@ -27,13 +27,13 @@ describe('neutral driver contract', () => {
 
   test('the postgres guard accepts what the neutral guard accepts', () => {
     const handle = { isActive: true, connector: {} } as never;
-    expect(isDatabaseTransaction(handle)).toBe(true);
-    expect(isRelationalTransaction(handle)).toBe(true);
+    expect(AbstractPostgresDataSource.isDatabaseTransaction(handle)).toBe(true);
+    expect(AbstractRelationalDataSource.isRelationalTransaction(handle)).toBe(true);
   });
 
   test('both guards reject a transaction without a connector', () => {
     const handle = { isActive: true } as never;
-    expect(isDatabaseTransaction(handle)).toBe(false);
-    expect(isRelationalTransaction(handle)).toBe(false);
+    expect(AbstractPostgresDataSource.isDatabaseTransaction(handle)).toBe(false);
+    expect(AbstractRelationalDataSource.isRelationalTransaction(handle)).toBe(false);
   });
 });

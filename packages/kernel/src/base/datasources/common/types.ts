@@ -2,7 +2,7 @@ import type {
   IConfigurable,
   TClass,
   TConstValue,
-  ValueOrPromise,
+  TValueOrPromise,
 } from '@venizia/ignis-helpers/common';
 import { ConstClass } from '@venizia/ignis-helpers/common';
 
@@ -134,7 +134,7 @@ export interface IDataSource<
   close?(): Promise<void>;
 
   /** The datasource's own `configure()` receives the handles of {@link IDataSourceOpening} as its second argument. */
-  configure(opts?: ConfigurableOptions, opening?: IDataSourceOpening): ValueOrPromise<void>;
+  configure(opts?: ConfigurableOptions, opening?: IDataSourceOpening): TValueOrPromise<void>;
 
   /** True when the datasource opens on first use (`@datasource({ open: { on: 'first-use' } })`): the boot then calls {@link deferOpen} instead of `configure()`. */
   isOpenDeferred?(): boolean;

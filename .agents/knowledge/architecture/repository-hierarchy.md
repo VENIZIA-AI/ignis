@@ -193,7 +193,7 @@ and it is strict:
   (`import { type X }`, which the house lint writes), bun emits `Object` for both, and esbuild/Vite
   emit nothing - so every build of one codebase agrees.
 - An explicit `@inject` at index 0 decides for itself and must name a datasource: a `target` class
-  by its brand (`isDataSourceClass`), whatever namespace its key sits in; a bare key by its
+  by its brand (`DataSourceRoot.isDataSourceClass`), whatever namespace its key sits in; a bare key by its
   `datasources.` prefix. Parameter 0 is always a datasource.
 - A `dataSource: () => X` that returns nothing at decoration time (an import cycle) throws naming
   the cycle, rather than crashing on `.name` of undefined.

@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { isApplicationError, MessageCode } from '../index';
+import { ApplicationError, MessageCode } from '../index';
 import { SpawnUtility } from '@venizia/dev-configs/testing';
 
 /** `MessageCode.build` must throw `ApplicationError`, not the module-private fallback `Error` -
@@ -12,7 +12,7 @@ const expectApplicationError = (fn: () => unknown, pattern: RegExp): void => {
   try {
     fn();
   } catch (error) {
-    if (!isApplicationError(error)) {
+    if (!ApplicationError.isApplicationError(error)) {
       throw error;
     }
 

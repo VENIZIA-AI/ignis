@@ -5,7 +5,7 @@ import { Code, ConnectError, createClient } from '@connectrpc/connect';
 import type { HandlerContext } from '@connectrpc/connect';
 import { createConnectTransport, createGrpcTransport } from '@connectrpc/connect-node';
 import { fileDesc, serviceDesc } from '@bufbuild/protobuf/codegenv2';
-import { HTTP, type TClass, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type TClass, type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError, Execution, ExecutionModes } from '@venizia/ignis-helpers/core';
 import {
   AuthenticationStrategyRegistry,
@@ -270,7 +270,7 @@ class NativeApplication extends BaseApplication {
     });
   }
 
-  override getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  override getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'grpc-native', version: '0.0.0', description: 'native gRPC' };
   }
 

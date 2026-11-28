@@ -2,11 +2,11 @@ import type { IApplicationInfo } from '@/base/applications/common';
 import { RestApplication } from '@/base/applications/rest';
 import { service } from '@/base/metadata';
 import { BindingNamespaces } from '@/common/bindings';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 
 class ProbeApplication extends RestApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'namespace-guard-app', version: '0.0.0', description: '' };
   }
 

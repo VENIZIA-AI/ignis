@@ -81,7 +81,7 @@ import {
   BaseComponent,
   CoreBindings,
   inject,
-  ValueOrPromise,
+  TValueOrPromise,
 } from '@venizia/ignis';
 import { NotificationService } from './services';
 import { NotificationController } from './controllers';
@@ -97,7 +97,7 @@ export class NotificationComponent extends BaseComponent {
     });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     // Register all component resources with the application
     this._application.service(NotificationService);
     this._application.controller(NotificationController);
@@ -275,7 +275,7 @@ export class NotificationComponent extends BaseComponent {
     });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     // Provide default options (can be overridden by user)
     if (!this._application.isBound({ key: NotificationBindingKeys.OPTIONS })) {
       this._application.bind<INotificationOptions>({ key: NotificationBindingKeys.OPTIONS })
@@ -423,7 +423,7 @@ export * from './types';
 ### Minimal Component Template
 
 ```typescript
-import { BaseApplication, BaseComponent, CoreBindings, inject, ValueOrPromise } from '@venizia/ignis';
+import { BaseApplication, BaseComponent, CoreBindings, inject, TValueOrPromise } from '@venizia/ignis';
 
 export class MyComponent extends BaseComponent {
   constructor(
@@ -436,7 +436,7 @@ export class MyComponent extends BaseComponent {
     });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     // Register your services, controllers, etc.
     this._application.service(MyService);
     this._application.controller(MyController);
@@ -447,7 +447,7 @@ export class MyComponent extends BaseComponent {
 ### Component with Options Template
 
 ```typescript
-import { BaseApplication, BaseComponent, CoreBindings, inject, ValueOrPromise } from '@venizia/ignis';
+import { BaseApplication, BaseComponent, CoreBindings, inject, TValueOrPromise } from '@venizia/ignis';
 
 // 1. Define options interface
 export interface IMyComponentOptions {
@@ -472,7 +472,7 @@ export class MyComponent extends BaseComponent {
     });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     // Provide defaults if not already bound
     if (!this._application.isBound({ key: MyComponentKeys.OPTIONS })) {
       this._application.bind<IMyComponentOptions>({ key: MyComponentKeys.OPTIONS })

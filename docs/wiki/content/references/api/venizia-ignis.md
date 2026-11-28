@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-122 exports, 122 with TSDoc. 1027 more are re-exported from other entries (listed at the end).
+122 exports, 122 with TSDoc. 1018 more are re-exported from other entries (listed at the end).
 
 The declarations are on 4 pages; each export below links to its own.
 
@@ -940,11 +940,6 @@ The declarations are on 4 pages; each export below links to its own.
 - `IRetryBackoffOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IRetryContext` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IRpcMetadata` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
-- `isApplicationError` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
-- `isClass` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
-- `isClassProvider` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
-- `isDatabaseTransaction` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
-- `isDataSourceClass` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `ISearchableDataSourceCapabilities` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `ISecretHydrateEntry` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `ISecretLease` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -961,8 +956,6 @@ The declarations are on 4 pages; each export below links to its own.
 - `ISnowflakeParsedId` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IsolationLevels` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `isoTimestamp` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
-- `isPromiseLike` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
-- `isRedisHelper` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IStatementResult` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `IStaticServeMixin` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IStorageHelper` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -1180,8 +1173,7 @@ The declarations are on 4 pages; each export below links to its own.
 - `StringIdType` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `SystemEnvsHelper` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TableColumnCache` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
-- `TAbstractClass` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
-- `TAbstractConstructor` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `TAbstractClass` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TAbstractMixinConstructor` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TAbstractMixinTarget` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TAESSecret` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -1228,7 +1220,6 @@ The declarations are on 4 pages; each export below links to its own.
 - `TColumnDefinition` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TColumnDefinitions` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TCompressEncoding` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
-- `TConstructor` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TConstValue` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TContentDispositionType` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TContentType` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
@@ -1474,7 +1465,9 @@ The declarations are on 4 pages; each export below links to its own.
 - `TUserAuditColumnOpts` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TUserAuditEnricherOptions` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TUserAuditEnricherResult` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
+- `TValueOf` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TValueOrAsyncResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `TValueOrPromise` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TValueOrResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TVaultAuthMethod` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TWebSocketAuthenticateFn` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -1513,10 +1506,8 @@ The declarations are on 4 pages; each export below links to its own.
 - `UuidV4Generator` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UuidV5Generator` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UuidV7Generator` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `ValueOf` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `ValueOptional` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `ValueOptionalExcept` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
-- `ValueOrPromise` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `VaultAuthMethods` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `WebSocketChannels` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `WebSocketClientStates` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)

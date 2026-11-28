@@ -1,5 +1,5 @@
 import { EnvironmentKeys } from '@/common';
-import { datasource, type ValueOrPromise } from '@venizia/ignis';
+import { datasource, type TValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { AppEnvs, ParseUtility } from '@venizia/ignis-helpers';
@@ -38,7 +38,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     });
   }
 
-  override configure(): ValueOrPromise<void> {
+  override configure(): TValueOrPromise<void> {
     const schema = Object.keys(this.getSchema());
     this.logger.debug(
       '[configure] Auto-discovered schema | Schema + Relations (%s): %o',
@@ -49,7 +49,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     this.client = new Pool(this.settings);
   }
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     const { host, port, user, password, database } = this.settings;
 
     return `${this.protocol}://${user}:${password}@${host}:${port}/${database}`;

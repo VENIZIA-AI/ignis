@@ -7,7 +7,6 @@ import type { BaseSearchEntity } from '@/search/core/models';
 import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IImportResult } from '@/search/core';
-import { isImportRowLike } from './guards';
 import { ReadableSearchRepository } from './readable';
 
 /** Write-tier search-repository - creates/updates through the connector, dialect-translating `where` clauses. */
@@ -18,6 +17,11 @@ export class PersistableSearchRepository<
   constructor(ds?: TDataSource, opts?: { scope?: string; entityClass?: TClass<BaseSearchEntity> }) {
     super(ds, opts);
     this._operationScope = RepositoryOperationScopes.READ_WRITE;
+  }
+
+  /** Narrows one `unknown` `IImportResult.responses` row enough to read the per-row `success` flag `createAll` filters on. */
+  private static isImportRowLike(value: unknown): value is { success?: boolean } {
+    return typeof value === 'object' && value !== null;
   }
 
   override create(opts: {
@@ -78,7 +82,9 @@ export class PersistableSearchRepository<
     const created = data.filter((_document, index) => {
       const response = rs.responses[index];
 
-      return isImportRowLike(response) ? response.success !== false : true;
+      return PersistableSearchRepository.isImportRowLike(response)
+        ? response.success !== false
+        : true;
     });
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `created` is the caller's own input rows (a bulk import echoes none), named `R` unchecked, as on the single create

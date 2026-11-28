@@ -1,4 +1,4 @@
-import type { TConstValue, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TConstValue, TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { ConstClass } from '@venizia/ignis-helpers/common';
 
@@ -23,7 +23,7 @@ export type TBootStep = TConstValue<typeof BootSteps>;
 /** One named step of a boot sequence. `name` is what `BootSequence.insertAfter` targets; `run` is the work done when the sequence reaches the step. */
 export interface IBootSequenceStep {
   name: string;
-  run: () => ValueOrPromise<void>;
+  run: () => TValueOrPromise<void>;
 }
 
 /** Composes a boot sequence by name instead of copying the array - a subclass reads exactly what it adds by reading its own override, without diffing two files by eye. */

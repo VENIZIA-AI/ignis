@@ -9,6 +9,20 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 Part 2 of 4 of [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core).
 
+## `IECDHExtraOptions`
+
+*interface*
+
+AES-GCM options for `ECDH` `encrypt` and `decrypt`. `additionalData` is authenticated but not encrypted; `decrypt` must receive the same string or it fails. An empty string is ignored.
+
+```ts
+export interface IECDHExtraOptions {
+    additionalData?: string;
+}
+```
+
+Source: `packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts`
+
 ## `IExecutionFrame`
 
 *interface*
@@ -152,20 +166,20 @@ One function per moment; none returns a value.
 ```ts
 export interface IFetcherHooks {
     /** Before EVERY send, each retry attempt included, so a signature is fresh. */
-    onRequest?: (context: IFetchRequestContext) => ValueOrPromise<void>;
+    onRequest?: (context: IFetchRequestContext) => TValueOrPromise<void>;
     /** An answer arrived, BEFORE the status check and the schema parse. Once per attempt. */
     onResponse?: (context: {
         request: IFetchRequestContext;
         status: number;
         headers: Headers;
         durationMs: number;
-    }) => ValueOrPromise<void>;
+    }) => TValueOrPromise<void>;
     /** The call failed (a timeout, the network, a refused status, a schema mismatch, a guard refusal); once, with the final error, which is then rethrown. */
     onError?: (context: {
         request: IFetchRequestContext;
         error: unknown;
         attempt: number;
-    }) => ValueOrPromise<void>;
+    }) => TValueOrPromise<void>;
 }
 ```
 
@@ -379,10 +393,10 @@ export interface IHttpRetryOptions {
     maxTotalMs?: number;
     backoff?: IRetryBackoffOptions;
     /** Replaces the default decision (network error, timeout, 5xx and 429 retry; any other 4xx, a 3xx, a guard refusal, a schema mismatch and a caller abort do not). */
-    shouldRetry?: (context: IRetryContext) => ValueOrPromise<boolean>;
+    shouldRetry?: (context: IRetryContext) => TValueOrPromise<boolean>;
     onRetry?: (context: IRetryContext & {
         nextDelayMs: number;
-    }) => ValueOrPromise<void>;
+    }) => TValueOrPromise<void>;
 }
 ```
 
@@ -511,7 +525,7 @@ check keeps the call synchronous, an asynchronous one makes it a promise. See th
 `OpaqueUidHelper.nextId`.
 
 ```ts
-export interface INextOpaqueUidOptions<TVerdict extends ValueOrPromise<boolean> = ValueOrPromise<boolean>> {
+export interface INextOpaqueUidOptions<TVerdict extends TValueOrPromise<boolean> = TValueOrPromise<boolean>> {
     /** Replaces the configured prefix for this call and turns it on. An empty string is refused - that is what the toggle is for. */
     prefix?: string;
     /**
@@ -643,7 +657,7 @@ export interface IPool<T> {
     }): void;
     /** acquire → run execution → release on success; on ANY error DISCARD (destroy) the resource + rethrow. */
     use<R>(opts: {
-        execution: (resource: T) => ValueOrPromise<R>;
+        execution: (resource: T) => TValueOrPromise<R>;
     }): Promise<R>;
     /** Remove a borrowed resource from the pool and destroy it. */
     discard(opts: {
@@ -692,13 +706,13 @@ Options for the callback-configured {@link BasePoolHelper}: control knobs plus r
 ```ts
 export interface IPoolOptions<T> extends IPoolControlOptions {
     /** Factory to create one resource. */
-    create: () => ValueOrPromise<T>;
+    create: () => TValueOrPromise<T>;
     /** Teardown on destroy()/discard()/validate-fail/reset-fail. */
-    destroy?: (resource: T) => ValueOrPromise<void>;
+    destroy?: (resource: T) => TValueOrPromise<void>;
     /** Checked when an idle resource is about to be handed out; false → destroyed + replaced. */
-    validate?: (resource: T) => ValueOrPromise<boolean>;
+    validate?: (resource: T) => TValueOrPromise<boolean>;
     /** Run on an idle resource just before hand-out (e.g. clear state). Throw → resource discarded. */
-    reset?: (resource: T) => ValueOrPromise<void>;
+    reset?: (resource: T) => TValueOrPromise<void>;
 }
 ```
 
@@ -1330,7 +1344,7 @@ export declare class OpaqueUidHelper extends BaseHelper {
      */
     nextId(opts?: INextOpaqueUidOptions<boolean>): string;
     nextId(opts: INextOpaqueUidOptions<Promise<boolean>>): Promise<string>;
-    nextId(opts: INextOpaqueUidOptions): ValueOrPromise<string>;
+    nextId(opts: INextOpaqueUidOptions): TValueOrPromise<string>;
     /** Entered only once a verdict came back pending; every later draw is awaited from here. */
     private continueAsync;
     private resolveHead;

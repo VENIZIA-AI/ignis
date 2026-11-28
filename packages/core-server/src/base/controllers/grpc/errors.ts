@@ -1,5 +1,5 @@
 import { GRPC, HTTP, type TGrpcResultCode } from '@venizia/ignis-helpers/common';
-import { getError, isApplicationError, RecordUtility } from '@venizia/ignis-helpers/core';
+import { getError, ApplicationError, RecordUtility } from '@venizia/ignis-helpers/core';
 import type { Context, Env, ErrorHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { CoreErrorCodes, DatabaseErrorCodes } from '@venizia/ignis-kernel';
@@ -120,7 +120,7 @@ export class GrpcErrors {
     // Only the framework's own errors and the database errors it classifies: another library's `statusCode` and text
     // were not written for this caller.
     const isAnswerable =
-      isApplicationError(error) ||
+      ApplicationError.isApplicationError(error) ||
       error instanceof HTTPException ||
       DATABASE_ERROR_CODES.has(messageCode);
 

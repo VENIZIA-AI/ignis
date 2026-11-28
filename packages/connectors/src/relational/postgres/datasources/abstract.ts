@@ -1,11 +1,11 @@
-import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
+import type { ITransaction, TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import type { IRelationalQueryDialect } from '@/relational/postgres/repositories/common';
 import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect/query-dialect';
 import { PostgresQueryExecutor } from '@/relational/postgres/repositories/executor';
 import { BaseRelationalDataSource } from '@/relational/core/datasources';
 import type { IRelationalQueryExecutor } from '@/relational/core/repositories/common';
 import type { Pool } from 'pg';
-import type { TRelationalConnector } from './common';
+import type { IDatabaseTransaction, TRelationalConnector } from './common';
 
 /**
  * Postgres branch root: supplies the Postgres dialect and executor on top of the engine-neutral
@@ -26,6 +26,16 @@ export abstract class AbstractPostgresDataSource<
 > {
   private static queryDialect?: IRelationalQueryDialect;
   private static queryExecutor?: IRelationalQueryExecutor<TRelationalConnector>;
+
+  /**
+   * Narrows the neutral `ITransaction` to the Postgres handle before accessing `.connector`. The runtime check is
+   * the neutral guard's; only the narrowed type differs. A type guard, so it keeps its positional `transaction`.
+   */
+  static isDatabaseTransaction(
+    transaction: ITransaction | undefined,
+  ): transaction is IDatabaseTransaction {
+    return BaseRelationalDataSource.isRelationalTransaction(transaction);
+  }
 
   override getQueryDialect(): IRelationalQueryDialect {
     AbstractPostgresDataSource.queryDialect ??= new PostgresQueryDialect();

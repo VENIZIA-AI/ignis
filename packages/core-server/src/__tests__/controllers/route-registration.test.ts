@@ -15,7 +15,7 @@ import {
   DefaultCRUDRepository,
 } from '@venizia/ignis-connectors/postgres';
 import { z } from '@hono/zod-openapi';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getDroppedRouteDecorators } from '@venizia/ignis-kernel';
 import { applyMethodDecorator, fakeCrudRepository } from './fixtures';
@@ -33,7 +33,7 @@ class DecoratedRoutesController extends BaseRestController {
     super({ scope: DecoratedRoutesController.name });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     // Routes come exclusively from the decorators applied below.
   }
 
@@ -97,7 +97,7 @@ applyMethodDecorator({
 
 @controller({ path: '/mixed' })
 class MixedRoutesController extends BaseRestController {
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.defineRoute({
       configs: {
         method: HTTP.Methods.GET,
@@ -143,7 +143,7 @@ applyMethodDecorator({
 
 @controller({ path: '/duplicated' })
 class DuplicateRouteController extends BaseRestController {
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.defineRoute({
       configs: { method: HTTP.Methods.GET, path: '/dup', responses: okResponse },
       handler: (context: TRouteContext) => context.json({ hit: 'first' }, HTTP.ResultCodes.RS_2.Ok),

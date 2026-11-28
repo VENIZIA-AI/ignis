@@ -14,7 +14,7 @@ A single-page reference for the most commonly used classes, methods, decorators,
 
 ```typescript
 import { BaseApplication, IApplicationConfigs, IApplicationInfo } from '@venizia/ignis';
-import { ValueOrPromise } from '@venizia/ignis-helpers';
+import { TValueOrPromise } from '@venizia/ignis-helpers';
 
 export const appConfigs: IApplicationConfigs = {
   host: '0.0.0.0',
@@ -24,7 +24,7 @@ export const appConfigs: IApplicationConfigs = {
 };
 
 class MyApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'my-app', version: '0.0.0', description: 'My IGNIS application' };
   }
 

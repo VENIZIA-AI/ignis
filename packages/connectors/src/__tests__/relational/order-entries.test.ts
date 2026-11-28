@@ -1,8 +1,7 @@
 import { PGlite } from '@electric-sql/pglite';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
-import type { ApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import type { AnyColumn, SQL, SQLWrapper } from 'drizzle-orm';
 import { eq, sql } from 'drizzle-orm';
@@ -99,7 +98,7 @@ const captureError = (task: () => unknown): ApplicationError => {
   try {
     task();
   } catch (error) {
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       return error;
     }
 

@@ -143,7 +143,7 @@ interface IArtifactRegistrationOptions<ApplicationType = unknown> {
 
 type TArtifactCondition<ApplicationType = unknown> = (opts: {
   application: ApplicationType;
-}) => ValueOrPromise<boolean>;
+}) => TValueOrPromise<boolean>;
 ```
 
 | Option | Type | Default | Meaning |

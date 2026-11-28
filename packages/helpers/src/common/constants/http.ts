@@ -1,4 +1,4 @@
-import { type ValueOf } from '../types';
+import { type TValueOf } from '../types';
 import * as HTTP from './http-groups';
 
 /**
@@ -8,10 +8,10 @@ import * as HTTP from './http-groups';
 export { HTTP };
 
 /** An HTTP method from `HTTP.Methods`, in lowercase or uppercase. */
-export type THttpMethod = ValueOf<typeof HTTP.Methods> | Uppercase<ValueOf<typeof HTTP.Methods>>;
+export type THttpMethod = TValueOf<typeof HTTP.Methods> | Uppercase<TValueOf<typeof HTTP.Methods>>;
 /** An HTTP protocol from `HTTP.Protocols`, in lowercase or uppercase. */
 export type THttpProtocol =
-  | ValueOf<typeof HTTP.Protocols>
-  | Uppercase<ValueOf<typeof HTTP.Protocols>>;
+  | TValueOf<typeof HTTP.Protocols>
+  | Uppercase<TValueOf<typeof HTTP.Protocols>>;
 /** A numeric HTTP status code from any class in `HTTP.ResultCodes`. */
-export type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>;
+export type THttpResultCode = TValueOf<typeof HTTP.ResultCodes>;

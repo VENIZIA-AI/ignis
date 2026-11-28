@@ -1,4 +1,4 @@
-import { type ValueOrPromise } from '@/common/types';
+import { type TValueOrPromise } from '@/common/types';
 import type { ILogger } from '@/modules/logger';
 import { Execution } from '@/modules/execution';
 
@@ -8,7 +8,7 @@ export class HookUtility {
   static invoke(opts: {
     logger: ILogger;
     scope: string;
-    execution: () => ValueOrPromise<unknown>;
+    execution: () => TValueOrPromise<unknown>;
   }): void {
     const { logger, scope, execution } = opts;
 
@@ -23,7 +23,7 @@ export class HookUtility {
   static async execute(opts: {
     logger: ILogger;
     scope: string;
-    execution: () => ValueOrPromise<unknown>;
+    execution: () => TValueOrPromise<unknown>;
   }): Promise<void> {
     const { logger, scope, execution } = opts;
 

@@ -171,25 +171,25 @@ Passed straight through to Bun's native WebSocket handler via `serverOptions` in
 type TWebSocketAuthenticateFn<
   AuthDataType extends Record<string, unknown> = Record<string, unknown>,
   MetadataType extends Record<string, unknown> = Record<string, unknown>,
-> = (opts: AuthDataType) => ValueOrPromise<{ userId?: string; metadata?: MetadataType } | null | false>;
+> = (opts: AuthDataType) => TValueOrPromise<{ userId?: string; metadata?: MetadataType } | null | false>;
 
 type TWebSocketValidateRoomFn = (opts: {
   clientId: string;
   userId?: string;
   rooms: string[];
-}) => ValueOrPromise<string[]>;
+}) => TValueOrPromise<string[]>;
 
 type TWebSocketClientConnectedFn<MetadataType extends Record<string, unknown> = Record<string, unknown>> = (
   opts: { clientId: string; userId?: string; metadata?: MetadataType },
-) => ValueOrPromise<void>;
+) => TValueOrPromise<void>;
 
-type TWebSocketClientDisconnectedFn = (opts: { clientId: string; userId?: string }) => ValueOrPromise<void>;
+type TWebSocketClientDisconnectedFn = (opts: { clientId: string; userId?: string }) => TValueOrPromise<void>;
 
 type TWebSocketMessageHandler = (opts: {
   clientId: string;
   userId?: string;
   message: IWebSocketMessage;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 
 type TWebSocketOutboundTransformer<
   DataType = unknown,
@@ -198,11 +198,11 @@ type TWebSocketOutboundTransformer<
   client: IWebSocketClient<MetadataType>;
   event: string;
   data: DataType;
-}) => ValueOrPromise<TNullable<{ event: string; data: DataType }>>;
+}) => TValueOrPromise<TNullable<{ event: string; data: DataType }>>;
 
 type TWebSocketHandshakeFn<AuthDataType extends Record<string, unknown> = Record<string, unknown>> = (
   opts: { clientId: string; userId?: string; data: AuthDataType },
-) => ValueOrPromise<{ serverPublicKey: string; salt: string } | null | false>;
+) => TValueOrPromise<{ serverPublicKey: string; salt: string } | null | false>;
 ```
 
 - **`VALIDATE_ROOM_HANDLER` receives sanitized rooms.** Internal `ws:`-prefixed rooms are already filtered out before this callback runs. Without it bound, **all** join requests are rejected.
@@ -289,7 +289,7 @@ Reads all binding keys and validates the required ones, throwing before the post
 | Binding | Validation | Error on failure |
 |---------|-----------|------------------|
 | `SERVER_OPTIONS` | Optional, merged with `DEFAULT_SERVER_OPTIONS` via `Object.assign()` | -- |
-| `REDIS_CONNECTION` | Must pass `isRedisHelper()` | `"Invalid instance of redisConnection ..."` |
+| `REDIS_CONNECTION` | Must pass `AbstractRedisHelper.isRedisHelper()` | `"Invalid instance of redisConnection ..."` |
 | `AUTH_SCHEMA` | Optional, `null` coerced to `undefined` | -- |
 | `AUTHENTICATE_HANDLER` | Must be truthy | `"Invalid authenticateFn to setup WebSocket server!"` |
 | `VALIDATE_ROOM_HANDLER` | Optional, `null` coerced to `undefined` | -- |
@@ -384,7 +384,7 @@ To disconnect clients cleanly when your application stops, register your own hoo
 
 ```typescript
 export class Application extends BaseApplication {
-  preConfigure(): ValueOrPromise<void> {
+  preConfigure(): TValueOrPromise<void> {
     // ... bind REDIS_CONNECTION, AUTHENTICATE_HANDLER, register WebSocketComponent ...
 
     this.registerPostStopHook({

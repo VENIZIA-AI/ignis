@@ -68,11 +68,11 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     });
   }
 
-  override configure(): ValueOrPromise<void> {
+  override configure(): TValueOrPromise<void> {
     this.client = new Pool(this.settings); // NodePostgresDriver above wires the driver + connector
   }
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     const { host, port, user, password, database } = this.settings;
     return `postgresql://${user}:${password}@${host}:${port}/${database}`;
   }

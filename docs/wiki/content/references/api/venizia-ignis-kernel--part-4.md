@@ -142,7 +142,7 @@ export interface IAuthRouteConfig {
 }
 
 /** The methods a route is registered under. */
-type TRouteMethod = Exclude<ValueOf<typeof HTTP.Methods>, typeof HTTP.Methods.QUERY> | 'trace';
+type TRouteMethod = Exclude<TValueOf<typeof HTTP.Methods>, typeof HTTP.Methods.QUERY> | 'trace';
 
 /** A zod object schema of a request part. */
 type TRequestPartSchema = {
@@ -245,7 +245,7 @@ Fluent binding for two-step route registration: bindRoute({ configs }).to({ hand
 export interface IBindRouteOptions<RouteConfig extends IAuthRouteConfig, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/'> {
     configs: RouteConfig;
     to: (opts: {
-        handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
+        handler: (context: TContextOf<RouteConfig, RouteEnv>) => TValueOrPromise<Response | TypedResponse<unknown>>;
     }) => IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 }
 ```
@@ -280,7 +280,7 @@ One named step of a boot sequence. `name` is what `BootSequence.insertAfter` tar
 ```ts
 export interface IBootSequenceStep {
     name: string;
-    run: () => ValueOrPromise<void>;
+    run: () => TValueOrPromise<void>;
 }
 ```
 
@@ -300,7 +300,7 @@ export interface ICasbinEnforcerCachedRedis {
         expiresIn: number;
         keyFn: (opts: {
             user: IAuthorizationUser;
-        }) => ValueOrPromise<string>;
+        }) => TValueOrPromise<string>;
     };
 }
 ```
@@ -390,7 +390,7 @@ Mixin contract for registering components on the application.
 ```ts
 export interface IComponentMixin {
     component<Base extends BaseComponent<Options>, Options extends object = {}>(target: TClass<Base>, opts?: TMixinOpts<Options>): Binding<Base>;
-    registerComponents(): ValueOrPromise<void>;
+    registerComponents(): TValueOrPromise<void>;
 }
 ```
 
@@ -448,7 +448,7 @@ Mixin contract for registering configuration classes on the application.
 ```ts
 export interface IConfigurationMixin {
     configuration<Base extends BaseConfiguration<Options>, Options extends object = {}>(target: TClass<Base>, opts?: TMixinOpts<Options>): Binding<Base>;
-    registerConfigurations(): ValueOrPromise<void>;
+    registerConfigurations(): TValueOrPromise<void>;
 }
 ```
 
@@ -469,8 +469,8 @@ export interface IController<RouteEnv extends Env = Env, RouteSchema extends Sch
     /** Defines and registers a route with its handler in a single call. */
     defineRoute<RouteConfig extends IAuthRouteConfig>(opts: {
         configs: RouteConfig;
-        handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
-        hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
+        handler: (context: TContextOf<RouteConfig, RouteEnv>) => TValueOrPromise<Response | TypedResponse<unknown>>;
+        hook?: Hook<any, RouteEnv, string, TValueOrPromise<any>>;
     }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 }
 ```
@@ -486,7 +486,7 @@ Mixin contract for registering controllers on the application.
 ```ts
 export interface IControllerMixin {
     controller<Base>(target: TClass<Base>, opts?: TMixinOpts): Binding<Base>;
-    registerControllers(): ValueOrPromise<void>;
+    registerControllers(): TValueOrPromise<void>;
 }
 ```
 
@@ -792,7 +792,7 @@ in a long retry window calls the exact function registered at startup.
 export interface IEventHandler<TEvent extends IDomainEvent = IDomainEvent> {
     handle(opts: {
         event: TEvent;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
 }
 ```
 

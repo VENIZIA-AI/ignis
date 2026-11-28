@@ -1,6 +1,6 @@
 import type { IdType } from '@/base';
 import type { TContext } from '@/base/controllers/common/types';
-import { type TNullable, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { type TNullable, type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { Env } from 'hono';
 import type { IAuthUser } from '../../../authenticate/common/types';
 import type { TAuthorizationDomainSource } from '../constants';
@@ -42,4 +42,4 @@ export interface IAuthorizationDomainSource {
 /** Returns the current request domain; null = no domain (→ SYSTEM_WIDE). */
 export type TAuthorizationDomainResolver<E extends Env = Env> = (opts: {
   context: TContext<E, string>;
-}) => ValueOrPromise<TNullable<{ type: string; id: IdType }>>;
+}) => TValueOrPromise<TNullable<{ type: string; id: IdType }>>;

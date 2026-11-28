@@ -1,13 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { HTTP } from '@/common/constants';
 import type { TErrorDefinition, TRegisterErrors } from '@/modules/error';
-import {
-  ApplicationError,
-  ErrorScopes,
-  getError,
-  isApplicationError,
-  MessageCode,
-} from '@/modules/error';
+import { ApplicationError, ErrorScopes, getError, MessageCode } from '@/modules/error';
 
 describe('getError', () => {
   test('defaults the statusCode to 400', () => {
@@ -144,42 +138,44 @@ describe('TRegisterErrors', () => {
   });
 });
 
-describe('isApplicationError', () => {
+describe('ApplicationError.isApplicationError', () => {
   test('recognizes an error by shape, not class identity', () => {
-    expect(isApplicationError(getError({ message: 'x' }))).toBe(true);
+    expect(ApplicationError.isApplicationError(getError({ message: 'x' }))).toBe(true);
 
     // An ApplicationError from another copy of the class: the same shape, another constructor.
     const foreignError = Object.assign(new Error('from another package copy'), {
       statusCode: 404,
       normalized: { text: 'from another package copy', code: 'core.system_error', args: {} },
     });
-    expect(isApplicationError(foreignError)).toBe(true);
+    expect(ApplicationError.isApplicationError(foreignError)).toBe(true);
   });
 
   test('rejects a plain Error that only carries a statusCode, as an HTTP client error does', () => {
     const httpError = Object.assign(new Error('Request failed'), { statusCode: 404 });
-    expect(isApplicationError(httpError)).toBe(false);
+    expect(ApplicationError.isApplicationError(httpError)).toBe(false);
   });
 
   test('rejects a plain Error, a non-Error object of the right shape, and non-objects', () => {
-    expect(isApplicationError(new Error('raw'))).toBe(false);
-    expect(isApplicationError({ statusCode: 400, message: 'not an Error' })).toBe(false);
-    expect(isApplicationError(null)).toBe(false);
-    expect(isApplicationError(undefined)).toBe(false);
-    expect(isApplicationError('boom')).toBe(false);
+    expect(ApplicationError.isApplicationError(new Error('raw'))).toBe(false);
+    expect(ApplicationError.isApplicationError({ statusCode: 400, message: 'not an Error' })).toBe(
+      false,
+    );
+    expect(ApplicationError.isApplicationError(null)).toBe(false);
+    expect(ApplicationError.isApplicationError(undefined)).toBe(false);
+    expect(ApplicationError.isApplicationError('boom')).toBe(false);
   });
 
   test('rejects an Error whose statusCode is not a number', () => {
     const error = new Error('bad shape');
     (error as Error & { statusCode?: unknown }).statusCode = '400';
 
-    expect(isApplicationError(error)).toBe(false);
+    expect(ApplicationError.isApplicationError(error)).toBe(false);
   });
 
   test('narrows to ApplicationError for the caller', () => {
     const error: unknown = getError({ message: 'narrow', statusCode: 503 });
 
-    if (!isApplicationError(error)) {
+    if (!ApplicationError.isApplicationError(error)) {
       expect.unreachable();
     }
 

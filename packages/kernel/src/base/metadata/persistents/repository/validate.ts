@@ -1,7 +1,7 @@
 import type { TRepositoryMetadata } from '@/helpers/inversion';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IDataSource } from '../../../datasources';
-import { isDataSourceClass } from '../../../datasources';
+import { DataSourceRoot } from '../../../datasources';
 import type { AbstractEntity } from '../../../models';
 import { RepositoryTypes } from '../../../repositories/common/constants';
 
@@ -51,7 +51,7 @@ export const validateFirstConstructorParameter = (opts: {
 
   // NOT `instanceof`: two copies of this package give two `DataSourceRoot` classes and the
   // check would be false across them, rejecting a perfectly valid repository at import time.
-  const isDataSourceType = isDataSourceClass(firstParamType);
+  const isDataSourceType = DataSourceRoot.isDataSourceClass(firstParamType);
 
   if (!isDataSourceType) {
     throw getError({

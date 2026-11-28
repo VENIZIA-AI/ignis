@@ -4,7 +4,7 @@ import { BaseApplication } from '@/base/applications';
 import { AppErrorMiddleware } from '@/base/middlewares';
 import { AuthControllerFactory } from '@/components/auth/authenticate/controllers';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   AuthenticationStrategyRegistry,
   BindingKeys,
@@ -41,7 +41,7 @@ const VALID_BODY: TChangePasswordRequest = {
 };
 
 class ChangePasswordApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'change-password-app', version: '0.0.0', description: 'Change-password probe' };
   }
 

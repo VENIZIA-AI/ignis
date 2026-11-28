@@ -1,11 +1,11 @@
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications/common';
 import { CorsUtility } from '@/base/applications/cors';
 import { RestApplication } from '@/base/applications/rest';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 
 class WildcardApplication extends RestApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'wildcard-app', version: '0.0.0', description: '' };
   }
 

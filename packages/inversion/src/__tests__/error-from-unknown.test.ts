@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { ApplicationError, getError, isApplicationError } from '@/modules/error';
+import { ApplicationError, getError } from '@/modules/error';
 
 const GENERIC_MESSAGE = 'An unknown value was thrown';
 
@@ -40,7 +40,7 @@ describe('ApplicationError.fromUnknown - an ApplicationError', () => {
       normalized: { text: 'From another copy', code: 'core.system_error', args: {} },
     });
 
-    expect(isApplicationError(foreign)).toBe(true);
+    expect(ApplicationError.isApplicationError(foreign)).toBe(true);
     expect(wrap(foreign)).toBe(foreign as unknown as ApplicationError);
   });
 

@@ -8,7 +8,6 @@ import { MetadataRegistry } from '@venizia/ignis-kernel/metadata';
 import { getError, ParseUtility } from '@venizia/ignis-helpers/core';
 import { type TClass } from '@venizia/ignis-helpers/common';
 import { AbstractSearchDataSource } from './abstract';
-import { isSearchCollectionDefinition } from './guards';
 
 /** `searchCollection` is the dual-schema escape hatch: a postgres entity with a search index declares it beside its pgTable `schema`; a search-only entity puts the DSL straight in `schema`. */
 type TDiscoverableModelClass = TClass<unknown> & {
@@ -45,6 +44,20 @@ export abstract class BaseSearchDataSource<
     this.logger.info(
       '[constructor] Auto Provision Collection - autoProvision: %s',
       this.autoProvision,
+    );
+  }
+
+  /** A pg entity's `schema` is a pgTable, not an `ISearchCollectionDefinition` - narrows by shape so a pgTable is never mistaken for and provisioned as a search collection. */
+  private static isSearchCollectionDefinition(
+    value: unknown,
+  ): value is ISearchCollectionDefinition {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'name' in value &&
+      typeof value.name === 'string' &&
+      'fields' in value &&
+      Array.isArray(value.fields)
     );
   }
 
@@ -143,7 +156,9 @@ export abstract class BaseSearchDataSource<
       return model.searchCollection;
     }
 
-    return isSearchCollectionDefinition(model.schema) ? model.schema : undefined;
+    return BaseSearchDataSource.isSearchCollectionDefinition(model.schema)
+      ? model.schema
+      : undefined;
   }
 
   /** Collection name -> `@model` properties.hidden for cross-collection operations. Collections with none are omitted, so callers own exclusion for absent entries; memoized per instance and never invalidated because the metadata is frozen after boot. */

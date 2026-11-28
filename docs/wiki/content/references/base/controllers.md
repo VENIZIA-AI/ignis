@@ -211,7 +211,7 @@ Internal method that extracts `authenticate`, `authorize`, and `middleware` from
 
 Returns `{ restConfig, security, mws }`.
 
-#### `binding(): ValueOrPromise<void>` (abstract)
+#### `binding(): TValueOrPromise<void>` (abstract)
 
 Override to register routes manually using `bindRoute` or `defineRoute`.
 
@@ -282,8 +282,8 @@ Defines and registers a route with its handler in a single call.
 ```typescript
 defineRoute<RouteConfig extends IAuthRouteConfig>(opts: {
   configs: RouteConfig;
-  handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
-  hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
+  handler: (context: TContextOf<RouteConfig, RouteEnv>) => TValueOrPromise<Response | TypedResponse<unknown>>;
+  hook?: Hook<any, RouteEnv, string, TValueOrPromise<any>>;
 }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>
 ```
 <!-- docs-code: on -->
@@ -314,8 +314,8 @@ Defines a route that renders server-side HTML via `context.html()`. Same signatu
 ```typescript
 defineJSXRoute<RouteConfig extends IAuthRouteConfig>(opts: {
   configs: RouteConfig;
-  handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
-  hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
+  handler: (context: TContextOf<RouteConfig, RouteEnv>) => TValueOrPromise<Response | TypedResponse<unknown>>;
+  hook?: Hook<any, RouteEnv, string, TValueOrPromise<any>>;
 }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>
 ```
 <!-- docs-code: on -->
@@ -403,7 +403,7 @@ type TRouteContext<RouteEnv extends Env = Env> = TContextOf<IAuthRouteConfig, Ro
 ```typescript
 type TRouteHandler<RouteEnv extends Env = Env> = (
   context: TRouteContext<RouteEnv>,
-) => ValueOrPromise<Response | TypedResponse<unknown>>;
+) => TValueOrPromise<Response | TypedResponse<unknown>>;
 ```
 <!-- docs-code: on -->
 
@@ -414,7 +414,7 @@ type TRouteHandler<RouteEnv extends Env = Env> = (
 interface IBindRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath> {
   configs: RouteConfig;
   to: (opts: {
-    handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
+    handler: (context: TContextOf<RouteConfig, RouteEnv>) => TValueOrPromise<Response | TypedResponse<unknown>>;
   }) => IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 }
 ```

@@ -9,7 +9,7 @@ import {
   RestApplication,
 } from '@venizia/ignis-kernel';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
+import { getError, ApplicationError } from '@venizia/ignis-helpers/core';
 import { z } from '@hono/zod-openapi';
 import { InProcessBffTransport } from '@/transport/in-process';
 
@@ -183,7 +183,7 @@ describe('InProcessBffTransport mirrors what the envelope does', () => {
       caught = error;
     }
 
-    assert(isApplicationError(caught));
+    assert(ApplicationError.isApplicationError(caught));
     expect(caught.statusCode).toBe(HTTP.ResultCodes.RS_5.InternalServerError);
     expect(caught.normalized).toEqual({
       text: 'the datasource is gone',
@@ -209,7 +209,7 @@ describe('InProcessBffTransport mirrors what the envelope does', () => {
       caught = error;
     }
 
-    assert(isApplicationError(caught));
+    assert(ApplicationError.isApplicationError(caught));
     expect(caught.statusCode).toBe(HTTP.ResultCodes.RS_5.InternalServerError);
     expect(caught.message).toContain('Cannot read properties of undefined');
   });

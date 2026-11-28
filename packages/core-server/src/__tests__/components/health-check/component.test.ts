@@ -8,7 +8,7 @@ import { HealthCheckComponent } from '@/components/health-check';
 import { HealthCheckBindingKeys, type IHealthCheckOptions } from '@/components/health-check/common';
 import { HealthCheckController } from '@/components/health-check/controller';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { readJson, wrongShape } from '../../helpers/json-shape';
 
@@ -36,7 +36,7 @@ const TEST_CONFIGS: IApplicationConfigs = {
 };
 
 class TestApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'test-app', version: '0.0.0', description: 'Health check test app' };
   }
 

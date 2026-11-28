@@ -1,4 +1,4 @@
-import { type ValueOrPromise } from '@/common/types';
+import { type TValueOrPromise } from '@/common/types';
 import { Execution, ExecutionFrames } from '@/modules/execution';
 import { type MessagePort, type Transferable } from 'node:worker_threads';
 import { type IWorkerMessageBusHandler } from '../common';
@@ -69,7 +69,7 @@ export class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends Abstr
   }
 
   /** Bus handlers run inside MessagePort listeners; a sync throw there is uncaught and kills the worker thread, so wrap it - fireAndForget alone can't catch a throw evaluated before it's called. */
-  protected invokeHook(opts: { scope: string; execution: () => ValueOrPromise<void> }) {
+  protected invokeHook(opts: { scope: string; execution: () => TValueOrPromise<void> }) {
     const { scope, execution } = opts;
 
     try {
@@ -79,13 +79,13 @@ export class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends Abstr
     }
   }
 
-  onBeforePostMessage?(opts: { message: IPublishPayload }): ValueOrPromise<void>;
-  onAfterPostMessage?(opts: { message: IPublishPayload }): ValueOrPromise<void>;
+  onBeforePostMessage?(opts: { message: IPublishPayload }): TValueOrPromise<void>;
+  onAfterPostMessage?(opts: { message: IPublishPayload }): TValueOrPromise<void>;
 
   postMessage(opts: {
     message: IPublishPayload;
     transferList: readonly Transferable[] | undefined;
-  }): ValueOrPromise<void> {
+  }): TValueOrPromise<void> {
     if (!this.port) {
       this.logger
         .for(this.postMessage.name)

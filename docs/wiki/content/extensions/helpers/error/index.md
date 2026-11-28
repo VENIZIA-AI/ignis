@@ -35,7 +35,7 @@ The framework's `AppErrorMiddleware` catches `ApplicationError` instances and fo
 | See the exact JSON shape a client receives | [Read the error response shape](#read-the-error-response-shape) |
 | Read or rehydrate a server error in a browser app | [Consume the error response from a browser client](#consume-the-error-response-from-a-browser-client) |
 | Look up what a specific input produces | [Every shape and its output](#every-shape-and-its-output) |
-| Confirm you're checking errors the safe way | [How it works](#how-it-works) - `isApplicationError()`, never `instanceof` |
+| Confirm you're checking errors the safe way | [How it works](#how-it-works) - `ApplicationError.isApplicationError()`, never `instanceof` |
 
 ## How it works
 
@@ -68,7 +68,7 @@ The framework's `AppErrorMiddleware` catches `ApplicationError` instances and fo
 - **`error` is refused on the free-form branch (`error?: never`).** This makes `getError({ message, error: caughtError })` fail to compile, so the mistake is caught before runtime - use `cause` instead.
 
 > [!IMPORTANT]
-> **Use `isApplicationError()`, never `instanceof ApplicationError`.** There is one `ApplicationError` class, defined in `@venizia/ignis-inversion`. `helpers` re-exports it, so a browser app can raise and read the same errors the server does. But `instanceof` still fails across a package boundary: two installed copies of inversion (two versions nested by a package manager) give one source class two runtime constructors. `isApplicationError()` tests shape, not identity, so it works everywhere. The shape is an `Error` with a numeric `statusCode` and a `normalized` whose `text` is a string; a plain `Error` that only carries a `statusCode`, as an HTTP client's does, is not an `ApplicationError`.
+> **Use `ApplicationError.isApplicationError()`, never `instanceof ApplicationError`.** There is one `ApplicationError` class, defined in `@venizia/ignis-inversion`. `helpers` re-exports it, so a browser app can raise and read the same errors the server does. But `instanceof` still fails across a package boundary: two installed copies of inversion (two versions nested by a package manager) give one source class two runtime constructors. `ApplicationError.isApplicationError()` tests shape, not identity, so it works everywhere. The shape is an `Error` with a numeric `statusCode` and a `normalized` whose `text` is a string; a plain `Error` that only carries a `statusCode`, as an HTTP client's does, is not an `ApplicationError`.
 
 **Options shared by both forms**
 
@@ -195,12 +195,12 @@ throw getError({
 ### Recognize an already-shaped error in a catch block
 
 ```typescript
-import { isApplicationError } from '@venizia/ignis-helpers';
+import { ApplicationError } from '@venizia/ignis-helpers';
 
 try {
   await someOperation();
 } catch (error) {
-  if (isApplicationError(error)) {
+  if (ApplicationError.isApplicationError(error)) {
     throw error; // already shaped - surface as-is
   }
   throw getError({
@@ -368,7 +368,7 @@ const processor = async (job: Job) => {
   try {
     return await handle(job);
   } catch (error) {
-    throw isApplicationError(error) ? new Error(error.toFilledText(), { cause: error }) : error;
+    throw ApplicationError.isApplicationError(error) ? new Error(error.toFilledText(), { cause: error }) : error;
   }
 };
 ```
@@ -405,10 +405,10 @@ translate(error.normalized.code, error.normalized.args);
 locally thrown one. `fromError` inverts the response the middleware emitted:
 
 ```ts
-import { fromError, isApplicationError } from '@venizia/ignis-inversion';
+import { ApplicationError, fromError } from '@venizia/ignis-inversion';
 
 const { error } = await response.json();
-throw fromError({ error }); // now an ApplicationError - isApplicationError() is true
+throw fromError({ error }); // now an ApplicationError - ApplicationError.isApplicationError() is true
 ```
 
 | Wire field   | Where it lands                                                                    |
@@ -426,7 +426,7 @@ older server actually sent. A body that is not an IGNIS error at all still yield
 a parse failure.
 
 > [!TIP]
-> Same rule here: prefer `isApplicationError()` over `instanceof ApplicationError`. See the [callout above](#how-it-works) for why - a browser app bundles its own copy of the class, so `instanceof` fails across the boundary.
+> Same rule here: prefer `ApplicationError.isApplicationError()` over `instanceof ApplicationError`. See the [callout above](#how-it-works) for why - a browser app bundles its own copy of the class, so `instanceof` fails across the boundary.
 
 **Common status codes**
 
@@ -451,7 +451,7 @@ a parse failure.
 
 - [`packages/helpers/src/modules/error/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/error/index.ts) - module barrel
 - [`packages/kernel/src/base/models/common/schemas.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/schemas.ts) - `ErrorSchema`, `TErrorOutput` (the RESPONSE schema, for OpenAPI)
-- [`packages/inversion/src/modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts) - `ApplicationError` (with `fromError` and `fromUnknown`), `getError`, `fromError`, `isApplicationError`
+- [`packages/inversion/src/modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts) - `ApplicationError` (with `fromError`, `fromUnknown` and `ApplicationError.isApplicationError`), `getError`, `fromError`
 - [`packages/inversion/src/modules/error/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/common/types.ts) - `TError`, `TErrorDefinition`, `TErrorNormalized`, `TResponsedError`, `IErrorKeyRegistry`, `TRegisterErrors`
 - [`packages/inversion/src/modules/error/definition.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/definition.ts) - `ErrorScopes`, `TErrorScope`
 - [`packages/inversion/src/modules/error/message-code.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/message-code.ts) - `MessageCode`

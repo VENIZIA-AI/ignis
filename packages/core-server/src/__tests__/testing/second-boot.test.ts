@@ -4,7 +4,7 @@ import '@/base/applications';
 import { BaseApplication } from '@/base/applications';
 import type { IApplicationConfigs } from '@/base/applications';
 import { ApplicationBootAssertion } from '@/testing';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   AuthorizationEnforcerRegistry,
   AuthorizationEnforcerTypes,
@@ -28,7 +28,7 @@ class EnforcerApplication extends BaseApplication {
     });
   }
 
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'enforcer-app', version: '0.0.0', description: '' };
   }
 

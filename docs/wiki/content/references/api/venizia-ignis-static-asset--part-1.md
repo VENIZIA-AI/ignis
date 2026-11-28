@@ -860,7 +860,7 @@ export interface IStaticAssetValidation<IssueSchema extends z.ZodType> {
         file: StaticAssetPinnedFile;
         owner: string;
         metadata: TStaticAssetTokenMetadata;
-    }) => ValueOrPromise<IStaticAssetValidationResult<z.infer<IssueSchema>>>;
+    }) => TValueOrPromise<IStaticAssetValidationResult<z.infer<IssueSchema>>>;
 }
 ```
 
@@ -964,7 +964,7 @@ Source: `packages/core-server/src/components/static-asset/utilities/commit-token
 export declare class StaticAssetComponent<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> extends BaseComponent<TStaticAssetComponentOptions<Schema>> {
     private application;
     constructor(application: BaseApplication);
-    binding(): ValueOrPromise<void>;
+    binding(): TValueOrPromise<void>;
     /** One pair of services per entry that turns direct upload on. The routes run the very objects an application's service resolves from the keys. */
     private bindDirectUploadServices;
 }

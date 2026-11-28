@@ -220,7 +220,7 @@ executePostStartHooks()  <- 'socket-io-initialize' hook runs:
 // Register a hook, during the binding phase
 application.registerPostStartHook({
   identifier: string,
-  hook: () => ValueOrPromise<void>,
+  hook: () => TValueOrPromise<void>,
 });
 
 // Get the server instance, available only after start
@@ -429,7 +429,7 @@ Reads every binding key from the DI container and validates the required ones.
 | Binding | Validation | Error on failure |
 |---|---|---|
 | `SERVER_OPTIONS` | Optional, merged with defaults via `Object.assign()` | - |
-| `REDIS_CONNECTION` | Must pass `isRedisHelper()` | `"Invalid instance of redisConnection..."` |
+| `REDIS_CONNECTION` | Must pass `AbstractRedisHelper.isRedisHelper()` | `"Invalid instance of redisConnection..."` |
 | `AUTHENTICATE_HANDLER` | Must be a truthy function | `"[DANGER][SocketIOComponent] Invalid authenticateFn to setup io socket server!"` |
 | `VALIDATE_ROOM_HANDLER` | Optional, resolved from the container, `null` coerced to `undefined` | - |
 | `CLIENT_CONNECTED_HANDLER` | Optional, resolved from the container, `null` coerced to `undefined` | - |
@@ -645,11 +645,11 @@ interface ISocketIOClientOptions {
   module?: typeof import('socket.io-client');
 
   // Lifecycle callbacks (all optional)
-  onConnected?: () => ValueOrPromise<void>;
-  onDisconnected?: (reason: string) => ValueOrPromise<void>;
-  onError?: (error: Error) => ValueOrPromise<void>;
-  onAuthenticated?: () => ValueOrPromise<void>;
-  onUnauthenticated?: (message: string) => ValueOrPromise<void>;
+  onConnected?: () => TValueOrPromise<void>;
+  onDisconnected?: (reason: string) => TValueOrPromise<void>;
+  onError?: (error: Error) => TValueOrPromise<void>;
+  onAuthenticated?: () => TValueOrPromise<void>;
+  onUnauthenticated?: (message: string) => TValueOrPromise<void>;
 }
 
 // Socket connection options (extends socket.io-client's SocketOptions)
@@ -658,7 +658,7 @@ interface IOptions extends SocketOptions {
   extraHeaders: Record<string, string>;
 }
 
-type TSocketIOEventHandler<T = unknown> = (data: T) => ValueOrPromise<void>;
+type TSocketIOEventHandler<T = unknown> = (data: T) => TValueOrPromise<void>;
 
 type TSocketIOClientState = TConstValue<typeof SocketIOClientStates>;
 // Resolves to: 'unauthorized' | 'authenticating' | 'authenticated'
@@ -680,14 +680,14 @@ interface IHandshake {
   auth: { [key: string]: unknown };
 }
 
-type TSocketIOAuthenticateFn = (args: IHandshake) => ValueOrPromise<boolean>;
+type TSocketIOAuthenticateFn = (args: IHandshake) => TValueOrPromise<boolean>;
 
 type TSocketIOValidateRoomFn = (opts: {
   socket: IOSocket;
   rooms: string[];
-}) => ValueOrPromise<string[]>;
+}) => TValueOrPromise<string[]>;
 
-type TSocketIOClientConnectedFn = (opts: { socket: IOSocket }) => ValueOrPromise<void>;
+type TSocketIOClientConnectedFn = (opts: { socket: IOSocket }) => TValueOrPromise<void>;
 
 // Extended ServerOptions with identifier
 interface IServerOptions extends ServerOptions {

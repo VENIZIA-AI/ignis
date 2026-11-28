@@ -177,7 +177,7 @@ Create `src/datasources/postgres.datasource.ts`:
 import {
   BaseDataSource,
   datasource,
-  ValueOrPromise,
+  TValueOrPromise,
 } from '@venizia/ignis';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
@@ -215,7 +215,7 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
     });
   }
 
-  override configure(): ValueOrPromise<void> {
+  override configure(): TValueOrPromise<void> {
     // getSchema() auto-discovers models from @repository bindings; log it for debugging
     const schemaKeys = Object.keys(this.getSchema());
     this.logger.debug(
@@ -232,7 +232,7 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
 
   // Abstract on the Postgres tier - no framework code can guess a postgresql:// URL,
   // so every Postgres datasource implements it.
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     const { host, port, user, password, database } = this.settings;
     return `postgresql://${user}:${password}@${host}:${port}/${database}`;
   }

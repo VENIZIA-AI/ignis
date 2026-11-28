@@ -98,8 +98,9 @@ it. Put the state and the operations on it in a class, as `static` members - `Hf
 `PinoBackingLogger`, `TableColumnCache`, `DroppedRouteDecorators` are the shape.
 
 Two limits on this. A pure exported function that holds nothing stays a function - a class around it
-buys nothing. And a name that is already published stays exported, as a one-line delegate to the
-class, the way `getError` delegates to `ApplicationError.getError`.
+buys nothing. A type guard is the exception: it is a static method of the class that owns its topic
+(`Execution.isPromiseLike`), keeping its positional parameter. And a name that is already published
+stays exported, as a one-line delegate to the class, the way `getError` delegates to `ApplicationError.getError`.
 
 Inside a class, reach for statics by class name (`HfLogger.textEncoder`), not `this` - a static
 called through a detached reference has no `this`.

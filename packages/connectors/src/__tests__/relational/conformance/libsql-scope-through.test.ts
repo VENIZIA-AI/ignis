@@ -1,6 +1,6 @@
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TNullable, TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { ExecutionModes } from '@venizia/ignis-helpers/core';
 import {
   datasource,
@@ -10,7 +10,7 @@ import {
   type TAnyDataSourceSchema,
 } from '@venizia/ignis-kernel';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
@@ -143,7 +143,7 @@ class ThroughSqliteDataSource extends BaseSqliteDataSource<
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 }
 
 let client: Client;
@@ -345,7 +345,7 @@ describe('upsert on a through model', () => {
     const error = await RejectionUtility.rejectionOf({ task: task() });
     const after = await variantRows();
 
-    expect(isApplicationError(error) ? error.statusCode : undefined).toBe(403);
+    expect(ApplicationError.isApplicationError(error) ? error.statusCode : undefined).toBe(403);
     expect(error instanceof Error ? error.message : String(error)).toContain(
       'write refused by the access scope',
     );

@@ -2,7 +2,7 @@ import 'reflect-metadata';
 
 import { BaseApplication, BunRuntimeGuard } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo, IRuntimeSnapshot } from '@/base/applications';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 
 const NODE: IRuntimeSnapshot = { otherName: 'node', otherVersion: 'v24.14.0' };
@@ -23,14 +23,14 @@ class GuardedApplication extends BaseApplication {
     return this.runtimeSnapshot ?? super.getRuntimeSnapshot();
   }
 
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'guarded', version: '0.0.0', description: '' };
   }
 
   staticConfigure(): void {}
-  preConfigure(): ValueOrPromise<void> {}
-  postConfigure(): ValueOrPromise<void> {}
-  setupMiddlewares(): ValueOrPromise<void> {}
+  preConfigure(): TValueOrPromise<void> {}
+  postConfigure(): TValueOrPromise<void> {}
+  setupMiddlewares(): TValueOrPromise<void> {}
 }
 
 describe('BunRuntimeGuard.assert', () => {

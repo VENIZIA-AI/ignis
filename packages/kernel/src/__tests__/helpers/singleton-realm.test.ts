@@ -145,13 +145,13 @@ describe('a second copy of the kernel is harmless, not forbidden', () => {
    * `@repository`'s first-parameter check was to stop asking for identity at all. This is the pair
    * that discriminates: the retired check and its replacement, on the same class, disagreeing.
    */
-  test('isDataSourceClass sees across copies where instanceof cannot', () => {
+  test('DataSourceRoot.isDataSourceClass sees across copies where instanceof cannot', () => {
     class ProbeDataSource extends copyA.AbstractDataSource {
       configure(): void {}
     }
 
-    expect(copyA.isDataSourceClass(ProbeDataSource)).toBe(true);
-    expect(copyB.isDataSourceClass(ProbeDataSource)).toBe(true);
+    expect(copyA.DataSourceRoot.isDataSourceClass(ProbeDataSource)).toBe(true);
+    expect(copyB.DataSourceRoot.isDataSourceClass(ProbeDataSource)).toBe(true);
 
     // The retired check, kept here as the control: it is FALSE for a perfectly valid datasource
     // registered against the other copy, which is exactly how it rejected one at import time.
@@ -159,13 +159,13 @@ describe('a second copy of the kernel is harmless, not forbidden', () => {
     expect(ProbeDataSource.prototype instanceof copyA.AbstractDataSource).toBe(true);
   });
 
-  test('isDataSourceClass rejects what is not a datasource class, so it is not a blanket true', () => {
+  test('DataSourceRoot.isDataSourceClass rejects what is not a datasource class, so it is not a blanket true', () => {
     class Unrelated {}
 
-    expect(copyB.isDataSourceClass(Unrelated)).toBe(false);
-    expect(copyB.isDataSourceClass(undefined)).toBe(false);
-    expect(copyB.isDataSourceClass({})).toBe(false);
-    expect(copyB.isDataSourceClass(copyA.AbstractDataSource)).toBe(true);
+    expect(copyB.DataSourceRoot.isDataSourceClass(Unrelated)).toBe(false);
+    expect(copyB.DataSourceRoot.isDataSourceClass(undefined)).toBe(false);
+    expect(copyB.DataSourceRoot.isDataSourceClass({})).toBe(false);
+    expect(copyB.DataSourceRoot.isDataSourceClass(copyA.AbstractDataSource)).toBe(true);
   });
 
   /** `in`, never a truthiness check: a holder whose only field is still `undefined` is a legitimate resolved value, and re-creating it would hand every caller a fresh slot. */

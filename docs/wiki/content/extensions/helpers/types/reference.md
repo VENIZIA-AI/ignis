@@ -28,7 +28,7 @@ Exhaustive reference for every utility type, resolver function, and constant cla
 | An escape hatch (`any`, a loose object) | [General Purpose Types](#general-purpose-types) |
 | A value that may be absent, or a callback that may be async | [Nullable and Promise Types](#nullable-and-promise-types) |
 | A constructor or class type parameter | [Class and Constructor Types](#class-and-constructor-types) |
-| Telling a class from a plain function at runtime | [isClass](#isclass) |
+| Telling a class from a plain function at runtime | [ResolverUtility.isClass](#resolverutility-isclass) |
 | A value any JSON column or payload can hold | [JSON Value Types](#json-value-types) |
 | Making object keys optional or required, or flattening `A & B` | [Object Utility Types](#object-utility-types) |
 | A union type derived from a const class | [Const Value Extraction Types](#const-value-extraction-types) |
@@ -54,13 +54,11 @@ Exhaustive reference for every utility type, resolver function, and constant cla
 import type {
   TNullable,
   TOptions,
-  ValueOrPromise,
-  ValueOf,
+  TValueOrPromise,
+  TValueOf,
   ValueOptional,
   ValueOptionalExcept,
   TPrettify,
-  TConstructor,
-  TAbstractConstructor,
   TClass,
   TAbstractClass,
   TMixinConstructor,
@@ -84,8 +82,8 @@ import type {
   IConfigurable,
 } from '@venizia/ignis-helpers';
 
-// isClass (source-level class-syntax check, re-exported from @venizia/ignis-inversion)
-import { isClass } from '@venizia/ignis-helpers';
+// ResolverUtility.isClass (source-level class-syntax check, from @venizia/ignis-inversion)
+import { ResolverUtility } from '@venizia/ignis-helpers';
 // Resolver classes
 import { ResolverUtility, ClassResolver } from '@venizia/ignis-helpers';
 
@@ -151,23 +149,21 @@ type TOptions<T extends object = {}> = T;
 
 ```typescript
 type TNullable<T> = T | undefined | null;
-type ValueOrPromise<T> = T | Promise<T>;
+type TValueOrPromise<T> = T | Promise<T>;
 ```
 
 | Type | Meaning | Use |
 |------|---------|-----|
 | `TNullable<T>` | `T \| undefined \| null` | A value that may be absent in either JavaScript "no value" form |
-| `ValueOrPromise<T>` | `T \| Promise<T>` | A method or callback that may be implemented sync or async |
+| `TValueOrPromise<T>` | `T \| Promise<T>` | A method or callback that may be implemented sync or async |
 
 ## Class and Constructor Types
 
 `Source ->` [`types/class.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/class.ts)
 
 ```typescript
-type TConstructor<T> = new (...args: never[]) => T;
-type TAbstractConstructor<T> = abstract new (...args: never[]) => T;
-type TClass<T> = TConstructor<T>;
-type TAbstractClass<T> = TAbstractConstructor<T>;
+type TClass<T> = new (...args: never[]) => T;
+type TAbstractClass<T> = abstract new (...args: never[]) => T;
 ```
 
 The mixin types keep `any[]` because TypeScript requires it of a mixin base (error TS2545):
@@ -183,10 +179,8 @@ type TAbstractMixinTarget<T> = TAbstractMixinConstructor<{ [P in keyof T]: T[P] 
 
 | Type | Meaning | Use |
 |------|---------|-----|
-| `TConstructor<T>` | A concrete constructor producing `T`; its arguments are `never[]`, so every constructor fits | Typing a parameter that must be `new`-able. Build an instance with `Reflect.construct` |
-| `TAbstractConstructor<T>` | An `abstract new (...args) => T` constructor | Typing a parameter that accepts an abstract class reference |
-| `TClass<T>` | Same as `TConstructor<T>` | The most commonly used class type. Read statics through `typeof MyClass`, not through `TClass` |
-| `TAbstractClass<T>` | Same as `TAbstractConstructor<T>` | Same as `TClass`, for abstract classes |
+| `TClass<T>` | A concrete class producing `T`; its arguments are `never[]`, so every constructor fits | The most commonly used class type. Build an instance with `Reflect.construct`; read statics through `typeof MyClass`, not through `TClass` |
+| `TAbstractClass<T>` | An `abstract new (...args) => T` class | Same as `TClass`, for a parameter that accepts an abstract class reference |
 | `TMixinConstructor<T>` | `new (...args: any[]) => T`, the shape TypeScript requires of a mixin base | The base of `TMixinTarget`; use it for a mixin constructor parameter |
 | `TAbstractMixinConstructor<T>` | The `abstract new (...args: any[]) => T` form | Same, for an abstract base |
 | `TMixinTarget<T>` | `TMixinConstructor` over a mapped-identity copy of `T` | Types a mixin factory's `Base` parameter so the returned class keeps `T`'s shape |
@@ -200,12 +194,12 @@ function MyMixin<T extends TMixinTarget<BaseClass>>(Base: T) {
 }
 ```
 
-### isClass
+### ResolverUtility.isClass
 
 `Source ->` [`packages/inversion/src/common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/utilities.ts)
 
 ```typescript
-declare const isClass: <T>(target: unknown) => target is TClass<T>;
+ResolverUtility.isClass<T>(target: unknown): target is TClass<T>;
 ```
 
 Declared in `@venizia/ignis-inversion` and re-exported by `helpers`. It's the single predicate that tells a constructor from a resolver function. Controller factories and `resolveValue`/`resolveValueAsync`/`ClassResolver.resolveClass` all branch on it.
@@ -219,7 +213,7 @@ Declared in `@venizia/ignis-inversion` and re-exported by `helpers`. It's the si
 `Source ->` [`types/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/utility.ts)
 
 ```typescript
-type ValueOf<T> = T[keyof T];
+type TValueOf<T> = T[keyof T];
 type ValueOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 type ValueOptionalExcept<T, K extends keyof T> = Pick<T, K> & Partial<Omit<T, K>>;
 type TPrettify<T> = { [K in keyof T]: T[K] } & {};
@@ -227,7 +221,7 @@ type TPrettify<T> = { [K in keyof T]: T[K] } & {};
 
 | Type | Meaning | Use |
 |------|---------|-----|
-| `ValueOf<T>` | Union of all value types of `T` | Deriving a union type from an object type, most often a const class |
+| `TValueOf<T>` | Union of all value types of `T` | Deriving a union type from an object type, most often a const class |
 | `ValueOptional<T, K>` | `T` with keys `K` made optional, the rest unchanged | Relaxing specific required fields |
 | `ValueOptionalExcept<T, K>` | `T` with everything optional except keys `K` | The inverse - only `K` stays required |
 | `TPrettify<T>` | Flattens an intersection (`A & B`) into one object type | Readable IDE hover tooltips when combining types with `&` |
@@ -253,18 +247,18 @@ A value typed as an `interface` is not assignable to `TJsonValue`, because an in
 `Source ->` [`types/const-value.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/const-value.ts)
 
 ```typescript
-type TStringConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string> & {};
-type TNumberConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, number> & {};
-type TConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string | number> & {};
+type TStringConstValue<T extends TClass<unknown>> = Extract<TValueOf<T>, string> & {};
+type TNumberConstValue<T extends TClass<unknown>> = Extract<TValueOf<T>, number> & {};
+type TConstValue<T extends TClass<unknown>> = Extract<TValueOf<T>, string | number> & {};
 ```
 
 The `& {}` keeps the union literal: a value copied into an object literal, a `let` or an inferred generic stays `'bun'`, not `string`.
 
 | Type | Meaning | Use |
 |------|---------|-----|
-| `TStringConstValue<T>` | The string-valued subset of `ValueOf<T>` | Deriving a string union from a const class with mixed value types |
-| `TNumberConstValue<T>` | The number-valued subset of `ValueOf<T>` | Deriving a numeric union from a const class with mixed value types |
-| `TConstValue<T>` | The string-or-number-valued subset of `ValueOf<T>` | The common case - deriving a union type from a const class (`RuntimeModules`, `MimeTypes`) |
+| `TStringConstValue<T>` | The string-valued subset of `TValueOf<T>` | Deriving a string union from a const class with mixed value types |
+| `TNumberConstValue<T>` | The number-valued subset of `TValueOf<T>` | Deriving a numeric union from a const class with mixed value types |
+| `TConstValue<T>` | The string-or-number-valued subset of `TValueOf<T>` | The common case - deriving a union type from a const class (`RuntimeModules`, `MimeTypes`) |
 
 ```typescript
 type TRuntimeModule = TConstValue<typeof RuntimeModules>; // 'bun'
@@ -306,7 +300,7 @@ Synchronously resolves a lazy value. The old free functions `resolveValue` and `
 | Input | Result |
 |---|---|
 | Non-function value | Returned as-is |
-| Class constructor | Returned as-is - detected via `isClass()`, never invoked |
+| Class constructor | Returned as-is - detected via `ResolverUtility.isClass()`, never invoked |
 | Resolver function | Invoked; the return value is returned |
 
 ### ResolverUtility.resolveValueAsync
@@ -409,7 +403,7 @@ The runtime types are `'string'` -> `string`, `'number'` -> `number`, `'strings'
 type TInjectionGetter = <T>(opts: { key: string | symbol }) => T;
 
 interface IConfigurable<Options extends object = object, Result = unknown> {
-  configure(opts?: Options): ValueOrPromise<Result>;
+  configure(opts?: Options): TValueOrPromise<Result>;
 }
 ```
 
@@ -758,13 +752,13 @@ Status codes are grouped by class under `HTTP.ResultCodes.RS_1` through `HTTP.Re
 #### Derived types
 
 ```typescript
-type THttpMethod = ValueOf<typeof HTTP.Methods> | Uppercase<ValueOf<typeof HTTP.Methods>>;
+type THttpMethod = TValueOf<typeof HTTP.Methods> | Uppercase<TValueOf<typeof HTTP.Methods>>;
 // 'get' | 'post' | ... | 'query' | 'GET' | 'POST' | ... | 'QUERY'
 
-type THttpProtocol = ValueOf<typeof HTTP.Protocols> | Uppercase<ValueOf<typeof HTTP.Protocols>>;
+type THttpProtocol = TValueOf<typeof HTTP.Protocols> | Uppercase<TValueOf<typeof HTTP.Protocols>>;
 // 'http' | 'https' | 'HTTP' | 'HTTPS'
 
-type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>;
+type THttpResultCode = TValueOf<typeof HTTP.ResultCodes>;
 // union of the RS_1..RS_5 group objects (not a flat number union)
 ```
 
@@ -820,8 +814,8 @@ gRPC protocol constants for methods, headers, content types, and status codes.
 | `GRPC.ResultCodes.UNAUTHENTICATED` | `16` | Unauthenticated |
 
 ```typescript
-type TGrpcMethod = ValueOf<typeof GRPC.Methods>;
-type TGrpcResultCode = ValueOf<typeof GRPC.ResultCodes>;
+type TGrpcMethod = TValueOf<typeof GRPC.Methods>;
+type TGrpcResultCode = TValueOf<typeof GRPC.ResultCodes>;
 ```
 
 ### MimeTypes

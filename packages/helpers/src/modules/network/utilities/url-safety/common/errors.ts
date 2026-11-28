@@ -1,6 +1,6 @@
 import { HTTP } from '@/common/constants';
 import type { TErrorDefinition, TRegisterErrors } from '@venizia/ignis-inversion';
-import { ApplicationError, ErrorScopes, isApplicationError } from '@venizia/ignis-inversion';
+import { ApplicationError, ErrorScopes } from '@venizia/ignis-inversion';
 
 /**
  * A url the policy refuses is refused forever - the same url will never be allowed. A caller that
@@ -77,7 +77,7 @@ export class UrlSafetyRefusals {
     const { error } = opts;
 
     return (
-      isApplicationError(error) &&
+      ApplicationError.isApplicationError(error) &&
       (error.normalized.code === UrlSafetyErrors.URL_REFUSED.message.code ||
         error.normalized.code === UrlSafetyErrors.BODY_TOO_LARGE.message.code)
     );
@@ -88,7 +88,7 @@ export class UrlSafetyRefusals {
     const { error } = opts;
 
     return (
-      isApplicationError(error) &&
+      ApplicationError.isApplicationError(error) &&
       error.normalized.code === UrlSafetyErrors.BODY_TOO_LARGE.message.code
     );
   }

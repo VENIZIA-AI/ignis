@@ -7,7 +7,7 @@ import type { StaticAssetUploadCommitService } from '@/components/static-asset/s
 import { StaticAssetEntryUtility } from '@/components/static-asset/utilities/entry.utility';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { ControllerTransports, MetadataRegistry } from '@venizia/ignis-kernel';
 import { describe, expect, test } from 'bun:test';
@@ -21,7 +21,7 @@ const TEST_CONFIGS: IApplicationConfigs = {
 };
 
 class CasesApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'commit-cases-app', version: '0.0.0', description: '' };
   }
 

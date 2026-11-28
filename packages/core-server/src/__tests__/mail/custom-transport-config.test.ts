@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { MailErrors, MailProviders } from '@/components/mail/common';
 import { MailTransportProvider } from '@/components/mail/providers/mail-transporter.provider';
 import { Container } from '@/helpers';
@@ -21,7 +21,7 @@ describe('a custom mail transport with a bad config', () => {
         caught = error;
       }
 
-      expect(isApplicationError(caught) && caught.normalized.code).toBe(
+      expect(ApplicationError.isApplicationError(caught) && caught.normalized.code).toBe(
         MailErrors.INVALID_CONFIGURATION.message.code,
       );
       expect(String(caught)).toContain('send, verify');

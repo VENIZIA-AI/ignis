@@ -25,7 +25,7 @@ import {
   NodemailerTransportHelper,
 } from '@/components/mail/helpers/transporters';
 import { MailService } from '@/components/mail/services';
-import { isApplicationError, type ApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { FakeMailTransport, MailTestApplication, wrongShape } from './fakes';
 import { SpawnUtility } from '@venizia/dev-configs/testing';
 
@@ -118,7 +118,7 @@ const expectRefusal = (opts: {
 }): ApplicationError => {
   expect(opts.error).toBeDefined();
 
-  if (!isApplicationError(opts.error)) {
+  if (!ApplicationError.isApplicationError(opts.error)) {
     throw new Error(`Expected an ApplicationError, got: ${messageOf(opts.error)}`);
   }
 

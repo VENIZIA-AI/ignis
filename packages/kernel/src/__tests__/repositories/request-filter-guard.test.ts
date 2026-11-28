@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import {
   RequestFilterGuard,
   RequestFilterParts,
@@ -15,7 +15,7 @@ const refusal = (task: () => void) => {
   try {
     task();
   } catch (error) {
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       return error;
     }
 

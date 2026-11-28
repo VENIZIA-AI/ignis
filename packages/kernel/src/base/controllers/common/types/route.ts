@@ -2,7 +2,7 @@ import type { TAuthMode, TAuthStrategy } from '@/base/auth/authenticate/common/c
 import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
 import type { OpenAPIHono, z } from '@hono/zod-openapi';
-import type { HTTP, ValueOf, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { HTTP, TValueOf, TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { Env, MiddlewareHandler, Schema, TypedResponse } from 'hono';
 import type { TContextOf } from './context';
 
@@ -32,7 +32,7 @@ export interface IBindRouteOptions<
   to: (opts: {
     handler: (
       context: TContextOf<RouteConfig, RouteEnv>,
-    ) => ValueOrPromise<Response | TypedResponse<unknown>>;
+    ) => TValueOrPromise<Response | TypedResponse<unknown>>;
   }) => IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 }
 
@@ -66,7 +66,7 @@ type TRouteResponse =
   | { $ref: string };
 
 /** The methods a route is registered under. */
-type TRouteMethod = Exclude<ValueOf<typeof HTTP.Methods>, typeof HTTP.Methods.QUERY> | 'trace';
+type TRouteMethod = Exclude<TValueOf<typeof HTTP.Methods>, typeof HTTP.Methods.QUERY> | 'trace';
 
 /**
  * A route of an IGNIS controller: the OpenAPI operation, its request and responses, and the framework's

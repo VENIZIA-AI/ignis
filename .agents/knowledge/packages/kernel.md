@@ -302,8 +302,8 @@ The public helper functions of the kernel are static methods of classes: `OpenAp
 `devz codemod namespace-functions --write` moves a caller to the class form, from the table in
 `packages/dev-configs/src/cli/codemod/namespace-functions/mappings/kernel.ts`, and
 `src/__tests__/namespace-mapping.test.ts` fails if an old name comes back. The decorators, the middleware DSL
-(`authenticate`, `authorize`, `notFoundHandler`), the type guard `isDataSourceClass` and the mixin
-factories stay functions.
+(`authenticate`, `authorize`, `notFoundHandler`) and the mixin
+factories stay functions. The datasource type guard is `DataSourceRoot.isDataSourceClass`.
 
 `OpenApiResponses.errorResponses()` (`base/models/common/schemas.ts`) is the one home of the
 `4XX`/`5XX` pair; `OpenApiResponses.jsonResponse`, `OpenApiResponses.htmlResponse` and core-server's
@@ -380,7 +380,7 @@ at-least-once, so `IEventHandler.handle` must be idempotent.
   map can be sound while its neighbour is not. Detect it with a control line
   (`// @ts-expect-error` on a bogus key): tsc reporting the directive as UNUSED means the map
   degraded. Pinned in `__tests__/events/payload-map-typing.test.ts`.
-- `IEventHandler.handle` returns `ValueOrPromise<void>`, so a synchronous handler needs no
+- `IEventHandler.handle` returns `TValueOrPromise<void>`, so a synchronous handler needs no
   fabricated promise; a synchronous throw is caught the same as a rejected promise because
   `dispatch`'s own `execution` callback is `async`.
 

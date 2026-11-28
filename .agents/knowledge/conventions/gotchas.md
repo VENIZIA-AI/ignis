@@ -296,8 +296,8 @@ six.
 
 Anchoring cannot save class identity - two copies are two classes, and `instanceof` between them is
 `false`. `@repository`'s first-parameter check used to be exactly that, and rejected a valid
-repository at import time. It now reads a `Symbol.for` brand through `isDataSourceClass`, the same
-move `isApplicationError` already makes for `ApplicationError`, and `isRedisHelper` for the
+repository at import time. It now reads a `Symbol.for` brand through `DataSourceRoot.isDataSourceClass`, the same
+move `ApplicationError.isApplicationError` already makes for `ApplicationError`, and `AbstractRedisHelper.isRedisHelper` for the
 `redisConnection` binding the socket.io and websocket components validate. A browser tab and its
 Worker are separate realms and still get one registry each, which is correct - they run separate
 applications.
@@ -309,7 +309,7 @@ the other). A new module-level singleton in helpers follows the same shape, and 
 twice through `require` plus `delete require.cache[path]` - a `?query` import does not give Bun a second copy.
 
 The brand goes where the check looks: `static readonly [BRAND] = true` when the check receives a
-CLASS (`isDataSourceClass`), an instance field when it receives an INSTANCE (`isRedisHelper`).
+CLASS (`DataSourceRoot.isDataSourceClass`), an instance field when it receives an INSTANCE (`AbstractRedisHelper.isRedisHelper`).
 
 ## One PGlite version for the whole workspace
 
@@ -518,7 +518,7 @@ A short-lived `DomainHierarchyStore` in `core-server`'s casbin enforcer shipped 
 
 ## A const-value alias without the empty intersection widens to string
 
-A `static readonly X = 'a'` member has a *widening* literal type. `Extract<ValueOf<T>, ...>` passes
+A `static readonly X = 'a'` member has a *widening* literal type. `Extract<TValueOf<T>, ...>` passes
 it through unchanged, so before 2026-10-09 a `TConstValue` value became `string` in an object
 literal, a `let`, an inferred generic, or an unannotated method return. That once turned
 `AuthorizationPolicyBuilder.grant()`'s `effect` into `string`, which was patched with an explicit
@@ -529,7 +529,7 @@ return type before the alias was fixed.
   looks redundant and is not.
 - `Extract<...> & {}` was chosen over a template literal (`` `${Extract<..., string>}` ``): the
   template form leaves numbers widening, and in generic code is not assignable back to
-  `Extract<ValueOf<T>, ...>`.
+  `Extract<TValueOf<T>, ...>`.
 - The cost: a generic inferred from such a value keeps the union, so `expect(value).toBe(aString)`
   fails to compile. Widen the generic (`expect<string>(value)`), as the fixed IGNIS tests do.
 - A consumer that declares its own copy of these aliases (a frontend framework's kernel does) does not get

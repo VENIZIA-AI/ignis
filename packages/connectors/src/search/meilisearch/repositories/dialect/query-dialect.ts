@@ -8,10 +8,7 @@ import type {
   TSearchInput,
 } from '@/search/core/repositories/common';
 import { SearchFilterOutcomes, SearchModes } from '@/search/core/repositories/common';
-import {
-  isOperatorObject,
-  SearchDialectUtility,
-} from '@/search/core/repositories/common/dialect.utility';
+import { SearchDialectUtility } from '@/search/core/repositories/common/dialect.utility';
 import { Sorts, QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
 import { BaseHelper, getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import type { IMeilisearchSearchQuery } from '../common';
@@ -557,7 +554,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
           });
     }
 
-    if (!isOperatorObject(value)) {
+    if (!SearchDialectUtility.isOperatorObject(value)) {
       return SearchDialectUtility.toFilterClause({
         filterBy: `${field} = ${this.escapeValue({ field, value })}`,
       });

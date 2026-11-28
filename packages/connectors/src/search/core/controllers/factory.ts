@@ -19,9 +19,9 @@ import type { IAuthorizationSpec } from '@venizia/ignis-kernel';
 import type { TCrudRepositoryClass } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TClass, TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
-import { isClass } from '@venizia/ignis-inversion';
+import { ResolverUtility } from '@venizia/ignis-inversion';
 import type { Env, Schema } from 'hono';
 import {
   MultiSearchInputSchema,
@@ -328,7 +328,7 @@ export class SearchControllerFactory extends BaseHelper {
       });
     }
 
-    const entityClass: TClass<AbstractEntity> = isClass(model) ? model : model();
+    const entityClass: TClass<AbstractEntity> = ResolverUtility.isClass(model) ? model : model();
     const resolved = SearchControllerOptionsUtility.resolve<RouteEnv, TSearchExtra<Shape>, Inject>({
       scope: factoryScope,
       entityClass,
@@ -395,10 +395,10 @@ export class SearchControllerFactory extends BaseHelper {
       }
 
       /** The routes of a generated controller come from `routes`; a subclass adds its own here. */
-      override binding(): ValueOrPromise<void> {}
+      override binding(): TValueOrPromise<void> {}
 
       /** Registers each route that is on, after the subclass's `binding()`. */
-      override bindDefaultRoutes(): ValueOrPromise<void> {
+      override bindDefaultRoutes(): TValueOrPromise<void> {
         if (resolved.isSearchOn) {
           this.defineRoute({
             configs: routeDefinitions.SEARCH,

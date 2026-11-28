@@ -3,7 +3,7 @@ import type { TNullable } from '@venizia/ignis-helpers/common';
 import {
   BaseHelper,
   EnvironmentNames,
-  isApplicationError,
+  ApplicationError,
   LogLevels,
   MessageCode,
   MessageTemplate,
@@ -261,7 +261,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     const { error, dbError } = opts;
 
     // A typed application error already says what happened and with which status; the Postgres error in its `cause` is the reason, not the answer.
-    if (isApplicationError(error) && !(UNEXPECTED_ERROR_MARKER in error)) {
+    if (ApplicationError.isApplicationError(error) && !(UNEXPECTED_ERROR_MARKER in error)) {
       return ApplicationErrorTypes.INTENTIONAL;
     }
 
@@ -440,7 +440,8 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     const isRefusal =
       candidate === undefined &&
       EXPECTED_REFUSALS.has(statusCode) &&
-      (isApplicationError(error) || this.readClientErrorStatus({ error }) !== undefined);
+      (ApplicationError.isApplicationError(error) ||
+        this.readClientErrorStatus({ error }) !== undefined);
 
     return isRefusal ? LogLevels.WARN : LogLevels.ERROR;
   }

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { Hono } from 'hono';
 import type { ILogger, TLogLevel } from '@venizia/ignis-helpers/core';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { Authentication } from '@/base/auth/authenticate/common/constants';
 import type { IAuthUser } from '@/base/auth/authenticate/common/types';
 import {
@@ -164,9 +164,9 @@ describe('AuthorizationProvider - no-enforcer branch honours defaultDecision', (
     });
 
     expect(hasCalledNext).toBe(false);
-    expect(isApplicationError(error)).toBe(true);
+    expect(ApplicationError.isApplicationError(error)).toBe(true);
 
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       expect(error.statusCode).toBe(403);
       expect(error.normalized.code).toBe('core.authorization.enforcer_not_registered');
       expect(error.message.toLowerCase()).toContain('enforcer');
@@ -287,9 +287,9 @@ describe('AuthorizationProvider - no-enforcer branch honours defaultDecision', (
     });
 
     expect(hasCalledNext).toBe(false);
-    expect(isApplicationError(error)).toBe(true);
+    expect(ApplicationError.isApplicationError(error)).toBe(true);
 
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       expect(error.normalized.code).toBe('core.authorization.denied');
     }
   });

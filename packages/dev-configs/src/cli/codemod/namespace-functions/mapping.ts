@@ -57,6 +57,12 @@ export interface INamespaceMapping {
    * `ObjectUtility.isEmpty({ value })`. `params` is empty and `restKey` unset for such an entry.
    */
   keepsOptions?: boolean;
+  /**
+   * A type guard row: every entry in `modules` exports the same class, so an import of the class from any of them
+   * serves a rewritten call, and a `type` import of it, as is common for a guard's class, becomes a value import.
+   * Without it, such a file is listed and left.
+   */
+  isTypeGuard?: boolean;
 }
 
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;

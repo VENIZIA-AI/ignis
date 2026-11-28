@@ -3,7 +3,7 @@ import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications/
 import type { IDataSourceOpening, TAnyDataSourceSchema } from '@/base/datasources';
 import { AbstractDataSource, DataSourceOpenModes, DataSourceRoot } from '@/base/datasources';
 import { datasource } from '@/base/metadata';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { beforeEach, describe, expect, test } from 'bun:test';
@@ -146,7 +146,7 @@ class RootOnlyDataSource extends DataSourceRoot {
 }
 
 class TestApplication extends RestApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'open-first-use-app', version: '0.0.0', description: '' };
   }
 

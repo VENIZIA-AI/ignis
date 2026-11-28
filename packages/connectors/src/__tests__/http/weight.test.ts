@@ -8,11 +8,12 @@ import { join } from 'node:path';
  */
 const HTTP_ENTRY = join(process.cwd(), 'src/http/index.ts');
 /**
- * The measured size is 63,843 bytes: the data source sends through `NativeFetcher`, whose pipeline (status check, retry,
+ * The measured size is 64,339 bytes: the data source sends through `NativeFetcher`, whose pipeline (status check, retry,
  * hooks, the error classes) is browser-pure and ships with it; the guard's `UrlPolicy`, the duration units and the secret
- * key list stay out. The SQL stack was 140 KB more. The bytes above 62 KB hold the measured size and leave 285 free.
+ * key list stay out. The SQL stack was 140 KB more. A static of a class that ships is not tree-shaken, so a type guard
+ * costs its bytes whether or not this entry calls it. The ceiling is the measured size rounded up to a multiple of 64.
  */
-const CEILING_BYTES = 62 * 1024 + 640;
+const CEILING_BYTES = 62 * 1024 + 896;
 
 const bundle = async () => {
   const built = await Bun.build({ entrypoints: [HTTP_ENTRY], target: 'browser', minify: true });

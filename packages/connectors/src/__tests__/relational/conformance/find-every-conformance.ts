@@ -1,7 +1,7 @@
 import type { ITransaction } from '@venizia/ignis-kernel';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import type { TConformanceRepository } from './repository-conformance';
 
@@ -64,7 +64,9 @@ const expectBadRequest = async <TTransaction extends ITransaction>(opts: {
     run: () => RejectionUtility.rejectionOf({ task: opts.task() }),
   });
 
-  expect(isApplicationError(reason) && reason.statusCode).toBe(HTTP.ResultCodes.RS_4.BadRequest);
+  expect(ApplicationError.isApplicationError(reason) && reason.statusCode).toBe(
+    HTTP.ResultCodes.RS_4.BadRequest,
+  );
   expect(reason instanceof Error ? reason.message : '').toMatch(opts.message);
   expect(calls).toHaveLength(0);
 };

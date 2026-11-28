@@ -32,7 +32,7 @@ class RecordingHandler implements IEventHandler {
 }
 
 /** Sync-only counterpart to `RecordingHandler` - `handle` never returns a promise, exercising
- * `IEventHandler.handle`'s `ValueOrPromise<void>` return type and a SYNCHRONOUS throw through the
+ * `IEventHandler.handle`'s `TValueOrPromise<void>` return type and a SYNCHRONOUS throw through the
  * retry path rather than a rejected promise. */
 class SyncRecordingHandler implements IEventHandler {
   readonly handleCalls: Array<{ event: IDomainEvent }> = [];

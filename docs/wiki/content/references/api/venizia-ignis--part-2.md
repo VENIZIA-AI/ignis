@@ -518,7 +518,7 @@ export declare class HealthCheckController extends BaseRestController {
      * their own gate - a static field would let the last one to boot decide for every other.
      */
     constructor(healthOptions?: IHealthCheckOptions, appInfo?: IApplicationInfo | undefined);
-    binding(): ValueOrPromise<void>;
+    binding(): TValueOrPromise<void>;
     pingPong(context: TRouteContext): import("@venizia/ignis-kernel").TJsonResponse<unknown, 200>;
 }
 ```
@@ -925,7 +925,7 @@ export interface IGrpcListenerOptions {
     /** `/package.Service/Method` to the path the RPC is mounted at in the application. */
     routes: Map<string, string>;
     /** The `fetch` the HTTP server runs, so global middleware sees every call. */
-    fetch: (request: Request, env: object) => ValueOrPromise<Response>;
+    fetch: (request: Request, env: object) => TValueOrPromise<Response>;
     /** The idle timeout of a stream, the one of the HTTP server; `0` is none. */
     idleTimeoutMs: number;
     /** Aborted when `stop()` runs out of time: every handler's `rpc.signal` follows it. */

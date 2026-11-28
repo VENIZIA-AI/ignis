@@ -1,10 +1,4 @@
-import type { ApplicationError } from '@venizia/ignis-helpers/core';
-import {
-  fromError,
-  getError,
-  isApplicationError,
-  RecordUtility,
-} from '@venizia/ignis-helpers/core';
+import { fromError, getError, ApplicationError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { IBffErrorEnvelope, IBffRequestEnvelope, IBffResponseEnvelope } from './common';
 
@@ -120,7 +114,7 @@ export class BffEnvelope {
    */
   static encodeError(opts: { id: string; error: unknown }): IBffErrorEnvelope {
     const { id, error } = opts;
-    const applicationError = isApplicationError(error)
+    const applicationError = ApplicationError.isApplicationError(error)
       ? error
       : getError({
           statusCode: HTTP.ResultCodes.RS_5.InternalServerError,

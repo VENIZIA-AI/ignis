@@ -5,7 +5,7 @@ import { RequestSpyMiddleware } from '@/base/middlewares';
 import { BindingKeys, BindingNamespaces, CoreBindings } from '@venizia/ignis-kernel';
 import { Binding, BindingScopes } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
-import { type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { type MiddlewareHandler } from 'hono/types';
 
 /** Installs the request spy middleware on the application server, which tracks each request. */
@@ -32,7 +32,7 @@ export class RequestTrackerComponent extends BaseComponent {
   }
 
   /** No `requestId()` here: the id is installed by `RestApplication.registerDefaultMiddlewares()`, which runs first and uses `RequestIdGenerator`. Same UUID v4 shape hono's own default produces, but hono calls `crypto.randomUUID` unguarded, and a browser leaves that one `undefined` outside a secure context. */
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     const server = this.application.getServer();
 
     const mw = this.application.get<MiddlewareHandler>({

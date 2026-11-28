@@ -3,7 +3,7 @@ import { ArtifactNamespaces, BindingNamespaces, CoreBindings } from '@/common/bi
 import type { Binding, TBindingKey, TBindingScope } from '@/helpers/inversion';
 import { ArtifactTypes, BindingScopes, MetadataRegistry } from '@/helpers/inversion';
 import { BindingVerifier } from '@venizia/ignis-inversion';
-import type { IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { IConfigurable, TClass, TValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   PerformanceUtility,
   getError,
@@ -175,7 +175,7 @@ export abstract class RestApplication<
    * thrown `ApplicationError` is a generic 500, a 404 is `text/plain`, and no response carries a request id.
    * Registered before `initialize()`, so an application's own handlers still win.
    */
-  protected registerDefaultMiddlewares(): ValueOrPromise<void> {
+  protected registerDefaultMiddlewares(): TValueOrPromise<void> {
     const server = this.getServer();
 
     // First of all, so every response the framework produces on its own - a bodyLimit 413, a body the
@@ -334,7 +334,7 @@ export abstract class RestApplication<
 
   private async runApplicationHook(opts: {
     name: string;
-    hook: () => ValueOrPromise<void>;
+    hook: () => TValueOrPromise<void>;
   }): Promise<void> {
     this.runningApplicationHook = opts.name;
 

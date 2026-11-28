@@ -8,6 +8,28 @@ const PINO = '@venizia/ignis-helpers/pino';
 const WINSTON = '@venizia/ignis-helpers/winston';
 const KAFKA = '@venizia/ignis-helpers/kafka';
 
+/** The type guards of `@venizia/ignis-helpers`, which keep their positional argument. */
+export const HELPERS_GUARD_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
+  {
+    modules: [ROOT],
+    oldName: 'isPromiseLike',
+    className: 'Execution',
+    method: 'isPromiseLike',
+    params: [],
+    keepsOptions: true,
+    isTypeGuard: true,
+  },
+  {
+    modules: [ROOT],
+    oldName: 'isRedisHelper',
+    className: 'AbstractRedisHelper',
+    method: 'isRedisHelper',
+    params: [],
+    keepsOptions: true,
+    isTypeGuard: true,
+  },
+];
+
 /**
  * The functions of `@venizia/ignis-helpers` that moved into a class. `modules` lists the entries the
  * old name is importable from, not the ones that only carry the class: `core.ts` names the pure
@@ -20,11 +42,11 @@ const KAFKA = '@venizia/ignis-helpers/kafka';
  * Not here: `createRedisHelper`. It has no one method to move to: `RedisHelperFactory.single`, `.cluster` and `.sentinel` each take
  * the options of one topology, so the call is rewritten by hand.
  *
- * Not here, and still functions: `isPromiseLike`, `isRedisHelper` (type guards), and
- * `applicationLogFormatter` (a value, not a function). `ApplicationLogger` is removed: `logger-scope.ts` moves
+ * Not here, and still a function or value: `applicationLogFormatter` (a value, not a function). `ApplicationLogger` is removed: `logger-scope.ts` moves
  * its calls to `LoggerFactory.getLogger([scope])`, a call on a class that no table entry can carry.
  */
 export const HELPERS_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
+  ...HELPERS_GUARD_MAPPINGS,
   // utilities/performance.utility.ts
   {
     modules: [ROOT],

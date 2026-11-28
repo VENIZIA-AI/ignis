@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-363 exports, 363 with TSDoc. 89 more are re-exported from other entries (listed at the end).
+362 exports, 362 with TSDoc. 87 more are re-exported from other entries (listed at the end).
 
 The declarations are on 9 pages; each export below links to its own.
 
@@ -690,10 +690,6 @@ The declarations are on 9 pages; each export below links to its own.
 ## `IRpcMetadata`
 
 *interface* - [Declaration](/references/api/venizia-ignis-kernel--part-5#irpcmetadata)
-
-## `isDataSourceClass`
-
-*const* - [Declaration](/references/api/venizia-ignis-kernel--part-5#isdatasourceclass)
 
 ## `ISearchableDataSourceCapabilities`
 
@@ -1505,8 +1501,6 @@ The declarations are on 9 pages; each export below links to its own.
 - `IRepository` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `IRequestFilterJudge` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `IRequestFilterShape` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
-- `isClass` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
-- `isClassProvider` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `IUpdatableRepository` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `MetadataRegistry` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `model` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)

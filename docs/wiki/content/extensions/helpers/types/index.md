@@ -28,30 +28,30 @@ configure({ timeout: () => 5000 });
 
 - **Real types, no escape hatch.** There is no `any` alias: write the shape, use `unknown` and narrow it, or derive the type from a definition, like `typeof X.schema`.
 
-- **Nullable and async are explicit.** `TNullable<T>` and `ValueOrPromise<T>` appear on most framework method signatures. One declared type covers both the sync and the async implementation.
+- **Nullable and async are explicit.** `TNullable<T>` and `TValueOrPromise<T>` appear on most framework method signatures. One declared type covers both the sync and the async implementation.
 
 | Type | Shape |
 |---|---|
 | `TNullable<T>` | `T \| undefined \| null` |
-| `ValueOrPromise<T>` | `T \| Promise<T>` |
+| `TValueOrPromise<T>` | `T \| Promise<T>` |
 
 - **Resolvers defer construction.** `TResolver`/`TAsyncResolver` and their `TValueOrResolver`/`TValueOrAsyncResolver` unions let a config option be given eagerly or lazily. `ResolverUtility.resolveValue`/`ResolverUtility.resolveValueAsync` collapse either shape to a value.
-- **Class constructors pass through untouched.** `isClass()` detects them, so the resolver never invokes a class as if it were a function. It's re-exported from `@venizia/ignis-inversion` into `helpers`.
+- **Class constructors pass through untouched.** `ResolverUtility.isClass()` detects them, so the resolver never invokes a class as if it were a function. It's re-exported from `@venizia/ignis-inversion` into `helpers`.
 - **Const classes replace string unions.** A class of `static readonly` fields, for example `RuntimeModules` or `DataTypes`, is a value namespace. `TConstValue<typeof X>` derives its own union type from those fields - one declaration, no duplicated string literals.
 
 > [!WARNING]
-> `TConstValue` only reads fields that are already a `string` or a `number`. `HTTP` groups its members under nested objects (`HTTP.Headers`, `HTTP.Methods`, `HTTP.ResultCodes`), so `TConstValue<typeof HTTP>` resolves to `never`. Reach one level in instead: `HTTP` ships `THttpMethod`, `THttpProtocol`, and `THttpResultCode`, each built with `ValueOf<typeof HTTP.Methods>` and friends.
+> `TConstValue` only reads fields that are already a `string` or a `number`. `HTTP` groups its members under nested objects (`HTTP.Headers`, `HTTP.Methods`, `HTTP.ResultCodes`), so `TConstValue<typeof HTTP>` resolves to `never`. Reach one level in instead: `HTTP` ships `THttpMethod`, `THttpProtocol`, and `THttpResultCode`, each built with `TValueOf<typeof HTTP.Methods>` and friends.
 
 ## Common tasks
 
 ### Type an options object with a sync-or-async callback
 
-`ValueOrPromise<T>` is the standard shape for a callback that may or may not be async.
+`TValueOrPromise<T>` is the standard shape for a callback that may or may not be async.
 
 ```typescript
-import { ValueOrPromise } from '@venizia/ignis-helpers';
+import { TValueOrPromise } from '@venizia/ignis-helpers';
 
-function connect(opts: { host: string; onReady?: () => ValueOrPromise<void> }) {}
+function connect(opts: { host: string; onReady?: () => TValueOrPromise<void> }) {}
 ```
 
 ### Detect the current runtime

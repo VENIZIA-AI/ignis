@@ -5,7 +5,7 @@ import {
   Execution,
   ExecutionFrames,
   getError,
-  isApplicationError,
+  ApplicationError,
 } from '@venizia/ignis-helpers/core';
 import { HTTP, RuntimeModules } from '@venizia/ignis-helpers/common';
 import type { Env, Schema } from 'hono';
@@ -431,7 +431,10 @@ export abstract class ServerApplication<
         timeoutMs: Math.min(Math.max(left, 1), MAX_TIMER_MS),
       });
     } catch (error) {
-      if (!isApplicationError(error) || error.statusCode !== HTTP.ResultCodes.RS_5.GatewayTimeout) {
+      if (
+        !ApplicationError.isApplicationError(error) ||
+        error.statusCode !== HTTP.ResultCodes.RS_5.GatewayTimeout
+      ) {
         throw error;
       }
 

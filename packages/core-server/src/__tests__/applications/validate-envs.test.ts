@@ -4,7 +4,7 @@ import { BaseApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications';
 import { ControllerTransports } from '@venizia/ignis-kernel';
 import { AppEnvs } from '@venizia/ignis-helpers';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
 const TEST_CONFIGS: IApplicationConfigs = {
@@ -15,7 +15,7 @@ const TEST_CONFIGS: IApplicationConfigs = {
 };
 
 class EnvApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'env-app', version: '0.0.0', description: 'Env validation' };
   }
 

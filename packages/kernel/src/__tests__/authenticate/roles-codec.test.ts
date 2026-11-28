@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { AuthenticationFieldCodecs } from '@/base/auth/authenticate/common/codecs';
 
 describe('ROLES_CODEC - a field that is no role list', () => {
@@ -13,7 +13,7 @@ describe('ROLES_CODEC - a field that is no role list', () => {
         caught = error;
       }
 
-      expect(isApplicationError(caught) && caught.statusCode).toBe(401);
+      expect(ApplicationError.isApplicationError(caught) && caught.statusCode).toBe(401);
       expect(String(caught)).toContain('not a list of id|identifier|priority strings');
     });
   }

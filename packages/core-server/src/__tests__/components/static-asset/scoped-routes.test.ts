@@ -17,7 +17,7 @@ import type { OpenAPIHono } from '@hono/zod-openapi';
 import { StorageTypes } from '@venizia/ignis-helpers';
 import type { TTableInsert } from '@venizia/ignis-connectors/postgres';
 import type { TMetaLinkSchema } from '@/components/static-asset/models';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 import { readJson } from '../../helpers/json-shape';
@@ -35,7 +35,7 @@ const TEST_CONFIGS: IApplicationConfigs = {
 const OBJECT_NOT_FOUND_CODE = 'core.storage.object_not_found';
 
 class ScopedAssetApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'scoped-asset-app', version: '0.0.0', description: '' };
   }
 

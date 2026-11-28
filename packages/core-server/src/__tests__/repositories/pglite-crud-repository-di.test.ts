@@ -13,7 +13,7 @@ import {
 } from '@venizia/ignis-connectors/postgres';
 import { PGliteCRUDRepository } from '@venizia/ignis-connectors/postgres';
 import { PGliteDriver } from '@venizia/ignis-connectors/postgres/pglite';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   datasource,
   type IApplicationInfo,
@@ -73,7 +73,7 @@ class DiApplication extends BaseApplication {
     });
   }
 
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'pglite-di', version: '0.0.0', description: '' };
   }
 

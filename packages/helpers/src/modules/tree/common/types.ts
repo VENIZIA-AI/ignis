@@ -1,4 +1,4 @@
-import type { ValueOrPromise } from '@/common';
+import type { TValueOrPromise } from '@/common';
 
 /** A node produced by walking or building a tree. `children` is always an array - empty for a leaf. */
 export interface ITreeNode<T> {
@@ -19,7 +19,7 @@ export type TNodePredicate<T> = (node: ITreeNode<T>, depth: number) => boolean;
 export type TOnVisit<T> = (node: ITreeNode<T>, depth: number) => void;
 
 /** Async counterpart of {@link TOnVisit} - awaited before the walk enqueues the node's children. */
-export type TOnVisitAsync<T> = (node: ITreeNode<T>, depth: number) => ValueOrPromise<void>;
+export type TOnVisitAsync<T> = (node: ITreeNode<T>, depth: number) => TValueOrPromise<void>;
 
 /** Options for a synchronous breadth-first walk from `root`. */
 export interface IWalkOptions<T> {
@@ -45,7 +45,7 @@ export interface IHeightWhereOptions<T> {
 /** Options for building a tree from `rootValue` by repeatedly calling `getChildren`. */
 export interface IBuildOptions<T> {
   rootValue: T;
-  getChildren: (value: T) => ValueOrPromise<T[]>;
+  getChildren: (value: T) => TValueOrPromise<T[]>;
   /**
    * Identity for detecting repeats across the whole build, not just the current branch. A repeated
    * key skips that branch without throwing - legitimate diamonds (shared descendants) are not cycles.

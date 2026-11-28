@@ -30,9 +30,9 @@ import {
   ScopeFilters,
   ScopeOperations,
 } from '@venizia/ignis-kernel';
-// Deep import, not the `@/relational/core/datasources` barrel: the barrel pulls the datasource classes, which import the engine branch's dialect and executor - an init cycle back into this tier.
+// Deep imports, not the `@/relational/core/datasources` barrel: the barrel pulls the datasource classes, which import the engine branch's dialect and executor - an init cycle back into this tier.
+import { AbstractRelationalDataSource } from '@/relational/core/datasources/abstract';
 import type { IRelationalDataSource } from '@/relational/core/datasources/common';
-import { isRelationalTransaction } from '@/relational/core/datasources/common';
 import { TransactionLifecycle } from '@/relational/core/datasources/transaction-lifecycle';
 import type {
   BaseRelationalEntity,
@@ -675,7 +675,7 @@ export abstract class RelationalBaseRepository<
       });
     }
 
-    if (!isRelationalTransaction(transaction)) {
+    if (!AbstractRelationalDataSource.isRelationalTransaction(transaction)) {
       throw getError({
         message: `[${this.constructor.name}][resolveConnector] Transaction is not a relational transaction`,
       });

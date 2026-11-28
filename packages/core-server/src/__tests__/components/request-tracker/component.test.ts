@@ -9,7 +9,7 @@ import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { RequestTrackerComponent } from '@/components/request-tracker';
 import { z } from '@hono/zod-openapi';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { RequestUtility } from '@venizia/ignis-helpers';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { readJson } from '../../helpers/json-shape';
@@ -27,7 +27,7 @@ class EchoController extends BaseRestController {
     super({ scope: EchoController.name, path: '/echo', isStrict: false });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.bindRoute({
       configs: {
         method: HTTP.Methods.GET,
@@ -86,7 +86,7 @@ class EchoController extends BaseRestController {
 }
 
 class TestApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'test-app', version: '0.0.0', description: 'Request tracker test app' };
   }
 

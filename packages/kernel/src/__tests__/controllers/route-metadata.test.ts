@@ -10,7 +10,7 @@ import { BindingKeys, Container } from '@/helpers/inversion';
 import { OpenApiResponses } from '@/base/models';
 import { z } from '@hono/zod-openapi';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 import { untyped } from '../support/untyped';
 import { StubRepository } from './stub-repository';
@@ -26,7 +26,7 @@ class OrderController extends BaseRestController {
     super({ scope: OrderController.name, path: '/orders' });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.defineRoute({
       configs: { method: 'get', path: '/defined', responses, ...guarded },
       handler: (context) => context.json({ ok: true }),

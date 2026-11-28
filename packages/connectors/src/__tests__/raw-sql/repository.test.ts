@@ -2,12 +2,12 @@ import { describe, expect, test } from 'bun:test';
 import { sql } from 'drizzle-orm';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { RepositoryTypes, RestApplication, repository, BindingKeys } from '@venizia/ignis-kernel';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseRawSqlRepository } from '@/raw-sql';
 import { type FakeConnector, FakeDataSource } from './fake-engine';
 
 class RawSqlApplication extends RestApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'raw-sql-app', version: '0.0.0', description: '' };
   }
 

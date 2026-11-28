@@ -5,7 +5,7 @@ import type { IContainer } from '../container/common/types';
 import { BindingScopes, BindingValueTypes, type TBindingScope } from './common/constants';
 import {
   type IBinding,
-  isClassProvider,
+  type IProvider,
   type TBindingProvider,
   type TBindingResolverValue,
 } from './common/types';
@@ -40,6 +40,15 @@ export class Binding<T = unknown> extends BaseHelper implements IBinding<T> {
 
   static override bind<T = unknown>(opts: { key: TBindingKey<T> }): Binding<T> {
     return new Binding<T>(opts);
+  }
+
+  /** True for a function whose prototype has a `value` method, so a provider class is told apart from a plain provider function. A type guard, so it keeps its positional `target`. */
+  static isClassProvider<T>(target: unknown): target is TClass<IProvider<T>> {
+    return (
+      typeof target === 'function' &&
+      target.prototype &&
+      typeof target.prototype.value === 'function'
+    );
   }
 
   toClass(value: TClass<T>): this {
@@ -130,7 +139,7 @@ export class Binding<T = unknown> extends BaseHelper implements IBinding<T> {
           });
         }
 
-        if (!isClassProvider(provider)) {
+        if (!Binding.isClassProvider<T>(provider)) {
           instance = provider(container);
           break;
         }

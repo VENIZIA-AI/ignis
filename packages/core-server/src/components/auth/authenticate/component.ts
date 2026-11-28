@@ -1,5 +1,5 @@
 import type { BaseApplication } from '@/base/applications/base';
-import { type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { Binding } from '@venizia/ignis-inversion';
 import {
@@ -53,7 +53,7 @@ export class AuthenticateComponent extends BaseComponent {
     });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     const jwtOptions = this.application.get({
       key: AuthenticateBindingKeys.JWT_OPTIONS,
       isOptional: true,

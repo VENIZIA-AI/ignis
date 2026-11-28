@@ -60,7 +60,7 @@ export class NamingConventionRule {
     {
       selector: 'typeAlias',
       filter: {
-        regex: '^(ValueOf|ValueOptional|ValueOptionalExcept|ValueOrPromise|PGliteCRUDRepository)$',
+        regex: '^(ValueOptional|ValueOptionalExcept|PGliteCRUDRepository)$',
         match: true,
       },
       format: null,

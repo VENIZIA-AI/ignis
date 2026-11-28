@@ -5,7 +5,7 @@ import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications'
 import { BindingNamespaces } from '@venizia/ignis-kernel';
 import { RequestTrackerComponent } from '@/components';
 import { BindingKeys, BindingScopes } from '@venizia/ignis-kernel';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
@@ -27,7 +27,7 @@ class TraceApplication extends BaseApplication {
       .setScope(BindingScopes.SINGLETON);
   }
 
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'trace-app', version: '0.0.0', description: 'Lifecycle trace app' };
   }
 

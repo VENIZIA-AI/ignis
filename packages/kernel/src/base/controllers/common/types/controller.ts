@@ -1,7 +1,7 @@
 import type { IRepository } from '@/base/repositories/common/types/contracts';
 import type { TAuthMode, TAuthStrategy } from '@/base/auth/authenticate/common/constants';
 import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
-import type { IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { IConfigurable, TClass, TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { Hook, OpenAPIHono } from '@hono/zod-openapi';
 import type { Env, Schema, TypedResponse } from 'hono';
 import type { TContextOf } from './context';
@@ -30,8 +30,8 @@ export interface IController<
     configs: RouteConfig;
     handler: (
       context: TContextOf<RouteConfig, RouteEnv>,
-    ) => ValueOrPromise<Response | TypedResponse<unknown>>;
-    hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
+    ) => TValueOrPromise<Response | TypedResponse<unknown>>;
+    hook?: Hook<any, RouteEnv, string, TValueOrPromise<any>>;
   }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 }
 

@@ -1,4 +1,4 @@
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { Context, Env, TypedResponse } from 'hono';
 import type { ContentfulStatusCode, StatusCode } from 'hono/utils/http-status';
 import type { IRouteContext } from './context.internal';
@@ -42,4 +42,4 @@ export type TRouteContext<RouteEnv extends Env = Env> = TContextOf<IAuthRouteCon
 /** A handler of a route whose config is not named. */
 export type TRouteHandler<RouteEnv extends Env = Env> = (
   context: TRouteContext<RouteEnv>,
-) => ValueOrPromise<Response | TypedResponse<unknown>>;
+) => TValueOrPromise<Response | TypedResponse<unknown>>;

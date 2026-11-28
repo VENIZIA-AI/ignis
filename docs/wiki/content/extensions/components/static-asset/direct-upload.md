@@ -805,7 +805,7 @@ The pending object must outlive `expires.commit`; see [clean up the pending pref
 |---|---|---|---|
 | `secretKey` | `string` | - | **Required.** Signs the commit token |
 | `maxBytes` | `number` | - | **Required.** The ceiling the policy carries as `content-length-range` |
-| `authorize` | `({ context }) => ValueOrPromise<boolean>` | the entry's `auth` | Who may use direct upload |
+| `authorize` | `({ context }) => TValueOrPromise<boolean>` | the entry's `auth` | Who may use direct upload |
 | `resolvers` | `{ owner, metadata?, commit?: { destination? } }` | - | **Required**, `owner` included - see [Resolvers](#resolvers) |
 | `maxFiles` | `number` | `20` | Most files one policy request may name |
 | `pendingPrefix` | `string` | `'pending/'` | Where a policy may write |

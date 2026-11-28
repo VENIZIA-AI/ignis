@@ -222,7 +222,7 @@ HTTP.Methods = {
   DELETE: 'delete', HEAD: 'head', OPTIONS: 'options', QUERY: 'query',
 } as const;
 
-type THttpMethod = ValueOf<typeof HTTP.Methods> | Uppercase<ValueOf<typeof HTTP.Methods>>;
+type THttpMethod = TValueOf<typeof HTTP.Methods> | Uppercase<TValueOf<typeof HTTP.Methods>>;
 ```
 
 > [!IMPORTANT]
@@ -550,7 +550,7 @@ The constructor calls `configure()`, which creates the server via `createServerF
 | `authenticateOptions` | `{ required: boolean; duration?: number }` | Auth settings |
 | `clients` | `Record<string, ITcpSocketClient<SocketClientType>>` | Connected client registry |
 | `server` | `SocketServerType` | The underlying server instance |
-| `extraEvents` | `Record<string, (opts) => ValueOrPromise<void>>` | Additional per-client socket events to register |
+| `extraEvents` | `Record<string, (opts) => TValueOrPromise<void>>` | Additional per-client socket events to register |
 
 - **Hooks never crash the process.** `onClientData`, `onClientConnected`, `onClientClose`, `onClientError`, `onServerReady`, `onServerError`, and each `extraEvents` entry all run through an internal `invokeHook()` wrapper.
 - **Why it exists.** A hook throwing synchronously inside a raw `net`/`tls` event listener would otherwise be an uncaught exception. That crashes the process. `invokeHook()` catches the throw and logs it instead.
@@ -1004,7 +1004,7 @@ type TFetcherWorker<T extends TFetcherVariant> =
 ### THttpMethod
 
 ```typescript
-type THttpMethod = ValueOf<typeof HTTP.Methods> | Uppercase<ValueOf<typeof HTTP.Methods>>;
+type THttpMethod = TValueOf<typeof HTTP.Methods> | Uppercase<TValueOf<typeof HTTP.Methods>>;
 // 'get' | 'post' | 'put' | 'patch' | 'delete' | 'head' | 'options' | 'query'
 // | 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS' | 'QUERY'
 ```
@@ -1026,7 +1026,7 @@ interface ITcpSocketServerOptions<
 
   extraEvents?: Record<
     string,
-    (opts: { id: string; socket: SocketClientType; args: unknown }) => ValueOrPromise<void>
+    (opts: { id: string; socket: SocketClientType; args: unknown }) => TValueOrPromise<void>
   >;
 
   createServerFn: (
@@ -1062,8 +1062,8 @@ interface INetworkTcpClientProps<
     options: SocketClientOptions,
     connectionListener?: () => void,
   ) => SocketClientType;
-  onConnected?: (opts: { client: SocketClientType }) => ValueOrPromise<void>;
-  onData?: (opts: { identifier: string; message: string | Buffer }) => ValueOrPromise<void>;
+  onConnected?: (opts: { client: SocketClientType }) => TValueOrPromise<void>;
+  onData?: (opts: { identifier: string; message: string | Buffer }) => TValueOrPromise<void>;
   onClosed?: (opts: { client: SocketClientType }) => void;
   onError?: (error: unknown) => void;
 }
@@ -1096,7 +1096,7 @@ interface INetworkUdpClientProps {
     port: number;
     reuseAddr?: boolean;
     multicastAddress?: { groups?: Array<string>; interface?: string };
-  }) => ValueOrPromise<void>;
+  }) => TValueOrPromise<void>;
 }
 ```
 

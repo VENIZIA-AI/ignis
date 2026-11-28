@@ -5,7 +5,7 @@ import { describe, expect, test } from 'bun:test';
 
 import { repository, ScopeFilters, controller as controllerDecorator } from '@venizia/ignis-kernel';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { SearchControllerFactory, type ISearchRoutes } from '@/search/core/controllers/factory';
 import { SearchModes } from '@/search/core/repositories/common';
 import { DefaultSearchRepository } from '@/search/typesense/repositories';
@@ -68,7 +68,7 @@ const refusal = async (task: Promise<unknown>) => {
   try {
     await task;
   } catch (error) {
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       return error;
     }
 

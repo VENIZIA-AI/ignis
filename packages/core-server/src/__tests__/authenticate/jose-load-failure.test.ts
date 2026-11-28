@@ -3,7 +3,7 @@ import 'reflect-metadata';
 import { BaseApplication } from '@/base/applications';
 import { AuthenticateComponent } from '@/components/auth/authenticate/component';
 import { JoseLoader } from '@/components/auth/authenticate/services/jose-loader';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import {
   AuthenticateBindingKeys,
@@ -41,7 +41,7 @@ const BASIC_OPTIONS: TBasicTokenServiceOptions = {
 };
 
 class AuthenticationApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'jose-load-app', version: '0.0.0', description: 'jose load failure probe' };
   }
 

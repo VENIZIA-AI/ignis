@@ -392,12 +392,14 @@ registry; {@link AbstractDataSource} adds what reads `@datasource` and `@reposit
 
 ```ts
 export declare abstract class DataSourceRoot<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}> extends BaseHelper implements IDataSource<Settings, Schema, ConfigurableOptions> {
-    /** Read by {@link isDataSourceClass}. Static, so every subclass inherits it. */
+    /** Read by {@link DataSourceRoot.isDataSourceClass}. Static, so every subclass inherits it. */
     static readonly [DATA_SOURCE_BRAND] = true;
     name: string;
     settings: Settings;
     schema: Schema;
-    abstract configure(opts?: ConfigurableOptions, opening?: IDataSourceOpening): ValueOrPromise<void>;
+    /** True for `DataSourceRoot` itself and for any class extending it (`AbstractDataSource` among them), across package copies. A type guard, so it keeps its positional `value`. */
+    static isDataSourceClass(value: unknown): value is TClass<unknown>;
+    abstract configure(opts?: ConfigurableOptions, opening?: IDataSourceOpening): TValueOrPromise<void>;
     /** The options the boot would have given `configure()`, kept for the open that the first use starts. */
     private deferredOptions?;
     /** The open in flight: every call that arrives meanwhile awaits this one promise. */
@@ -458,7 +460,7 @@ export declare abstract class DataSourceRoot<Settings extends object = {}, Schem
     private settleAbandoned;
     private discardOpenAttempt;
     /** Undoes what a `configure()` that threw left behind, so the next open starts clean. The root holds nothing; a family that keeps a client overrides it. */
-    protected discardPartialOpen(): ValueOrPromise<void>;
+    protected discardPartialOpen(): TValueOrPromise<void>;
     /**
      * Waits for an open in flight and refuses any later one. A family's `close()` calls it first, so a stop that arrives
      * during the first use closes what that open built instead of racing it.
@@ -607,7 +609,7 @@ export interface IDataSource<Settings extends object = {}, Schema extends TAnyDa
     /** Releases what `configure()` opened. `stop()` calls it on every datasource the boot configured. */
     close?(): Promise<void>;
     /** The datasource's own `configure()` receives the handles of {@link IDataSourceOpening} as its second argument. */
-    configure(opts?: ConfigurableOptions, opening?: IDataSourceOpening): ValueOrPromise<void>;
+    configure(opts?: ConfigurableOptions, opening?: IDataSourceOpening): TValueOrPromise<void>;
     /** True when the datasource opens on first use (`@datasource({ open: { on: 'first-use' } })`): the boot then calls {@link deferOpen} instead of `configure()`. */
     isOpenDeferred?(): boolean;
     /** Records the options `configure()` will get when the datasource opens on first use; nothing is opened. */

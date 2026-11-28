@@ -11,7 +11,7 @@ import { OpenApiResponses } from '@/base/models/common';
 import type { Hook } from '@hono/zod-openapi';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import type { RouteConfig as HonoRouteConfig } from '@hono/zod-openapi';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { Env, Schema, TypedResponse } from 'hono';
 import { RouterFactories } from '@/base/applications/router-factory';
@@ -254,10 +254,10 @@ export abstract class AbstractRestController<
     );
   }
   /** Override to register routes using bindRoute or defineRoute. */
-  abstract binding(): ValueOrPromise<void>;
+  abstract binding(): TValueOrPromise<void>;
 
   /** Registers the routes a generated controller brings; runs after `binding()`, so a route declared there wins a path the defaults also match. */
-  bindDefaultRoutes(): ValueOrPromise<void> {}
+  bindDefaultRoutes(): TValueOrPromise<void> {}
 
   /** Creates a fluent binding for registering a route (call .to() to attach handler). */
   abstract bindRoute<RouteConfig extends IAuthRouteConfig>(opts: {
@@ -269,7 +269,7 @@ export abstract class AbstractRestController<
     configs: RouteConfig;
     handler: (
       context: TContextOf<RouteConfig, RouteEnv>,
-    ) => ValueOrPromise<Response | TypedResponse<unknown>>;
-    hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
+    ) => TValueOrPromise<Response | TypedResponse<unknown>>;
+    hook?: Hook<any, RouteEnv, string, TValueOrPromise<any>>;
   }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 }

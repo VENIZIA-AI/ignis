@@ -37,6 +37,7 @@ const SOURCES: Record<string, string> = {
   '@venizia/ignis-inversion': 'packages/inversion/src/index.ts',
   '@venizia/ignis-helpers': 'packages/helpers/src/index.ts',
   '@venizia/ignis-helpers/common': 'packages/helpers/src/common/index.ts',
+  '@venizia/ignis-helpers/core': 'packages/helpers/src/core.ts',
 };
 const KERNEL_REEXPORT = 'packages/kernel/src/helpers/inversion/index.ts';
 const KERNEL_SPECIFIERS = ['@venizia/ignis-kernel', '@venizia/ignis'];

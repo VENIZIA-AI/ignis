@@ -71,15 +71,15 @@ A figure a list route offers beside its rows:
   `compute` receives exactly those, so one aggregate pass serves them all.
 
 ```ts
-export type TResponseExtra = (() => ValueOrPromise<unknown>) | {
+export type TResponseExtra = (() => TValueOrPromise<unknown>) | {
     isDefault: boolean;
-    compute: () => ValueOrPromise<unknown>;
+    compute: () => TValueOrPromise<unknown>;
     keys?: never;
 } | {
     keys: ReadonlyArray<string>;
     compute: (opts: {
         keys: Array<string>;
-    }) => ValueOrPromise<unknown>;
+    }) => TValueOrPromise<unknown>;
     isDefault?: never;
 };
 ```
@@ -194,7 +194,7 @@ Source: `packages/kernel/src/base/controllers/common/types/context.ts`
 A handler of a route whose config is not named.
 
 ```ts
-export type TRouteHandler<RouteEnv extends Env = Env> = (context: TRouteContext<RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
+export type TRouteHandler<RouteEnv extends Env = Env> = (context: TRouteContext<RouteEnv>) => TValueOrPromise<Response | TypedResponse<unknown>>;
 ```
 
 Source: `packages/kernel/src/base/controllers/common/types/context.ts`

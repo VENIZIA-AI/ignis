@@ -1,4 +1,4 @@
-import type { TClass, TConstValue, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TClass, TConstValue, TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { TBindingKey, TBindingScope } from '@venizia/ignis-inversion';
 import { type ArtifactTypes } from '../constants';
 
@@ -11,7 +11,7 @@ export type TArtifactType = TConstValue<typeof ArtifactTypes>;
 /** Decides at registration time whether the class is registered at all. Sync or async; runs before `preConfigure`, so it may read config and env, never another artifact's binding. */
 export type TArtifactCondition<ApplicationType = unknown> = (opts: {
   application: ApplicationType;
-}) => ValueOrPromise<boolean>;
+}) => TValueOrPromise<boolean>;
 
 /** Registration defaults a class carries for itself; an explicit `TMixinOpts` at the call site still wins. */
 export interface IArtifactRegistrationOptions<ApplicationType = unknown> {

@@ -194,29 +194,31 @@ boundary. Two installed copies of `inversion` (see
 [error identity](/architecture/error-handling-flow.md)) yield two constructor functions: each copy
 holds a different class for the same class. Consolidating the source did not merge the identities.
 
-Use `isApplicationError()` instead, which recognizes the error by shape, not by class identity:
+Use `ApplicationError.isApplicationError()` instead, which recognizes the error by shape, not by class identity:
 
 ```typescript
-export const isApplicationError = (error: unknown): error is ApplicationError => {
-  if (!(error instanceof Error) || !('statusCode' in error) || !('normalized' in error)) {
-    return false;
+export class ApplicationError extends Error {
+  static isApplicationError(error: unknown): error is ApplicationError {
+    if (!(error instanceof Error) || !('statusCode' in error) || !('normalized' in error)) {
+      return false;
+    }
+
+    const { statusCode, normalized } = error;
+
+    return (
+      typeof statusCode === 'number' &&
+      typeof normalized === 'object' &&
+      normalized !== null &&
+      'text' in normalized &&
+      typeof normalized.text === 'string'
+    );
   }
-
-  const { statusCode, normalized } = error;
-
-  return (
-    typeof statusCode === 'number' &&
-    typeof normalized === 'object' &&
-    normalized !== null &&
-    'text' in normalized &&
-    typeof normalized.text === 'string'
-  );
-};
+}
 ```
 
 Code that must distinguish "an error the framework already shaped" from "a raw failure to
 sanitize" - search connectors do exactly this before deciding whether to wrap something as a 503 -
-has to use `isApplicationError()`. Skipping it lets a real `404` arrive at the caller mislabeled as
+has to use `ApplicationError.isApplicationError()`. Skipping it lets a real `404` arrive at the caller mislabeled as
 a bogus `503`.
 
 ## Never leak internals in production responses

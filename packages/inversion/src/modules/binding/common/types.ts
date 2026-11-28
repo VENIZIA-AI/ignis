@@ -7,13 +7,6 @@ export interface IProvider<T> {
   value(container: IContainer): T;
 }
 
-/** True for a function whose prototype has a `value` method, so a provider class is told apart from a plain provider function. */
-export const isClassProvider = <T>(target: unknown): target is TClass<IProvider<T>> => {
-  return (
-    typeof target === 'function' && target.prototype && typeof target.prototype.value === 'function'
-  );
-};
-
 /** What `toProvider` accepts: a function taking the container, or a class implementing {@link IProvider}. */
 export type TBindingProvider<T> =
   | (<C extends IContainer>(container: C) => T)

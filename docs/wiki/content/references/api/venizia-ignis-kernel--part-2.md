@@ -339,7 +339,7 @@ export declare abstract class BaseComponent<ConfigurableOptions extends object =
         initDefault?: TInitDefault;
         bindings?: Record<string, Binding>;
     });
-    abstract binding(): ValueOrPromise<void>;
+    abstract binding(): TValueOrPromise<void>;
     /** Override this, not the field, to resolve options lazily. */
     getOptions(): ConfigurableOptions | undefined;
     protected initDefaultBindings(opts: {
@@ -373,7 +373,7 @@ export declare abstract class BaseConfiguration<ConfigurableOptions extends obje
     });
     configure(opts?: ConfigurableOptions): Promise<void>;
     /** Override to perform setup work when the configuration is booted. */
-    protected setup(_opts?: ConfigurableOptions): ValueOrPromise<void>;
+    protected setup(_opts?: ConfigurableOptions): TValueOrPromise<void>;
 }
 ```
 
@@ -472,7 +472,7 @@ export declare abstract class BaseRestController<RouteEnv extends Env = Env, Rou
         };
         range?: TDataRange;
         extra?: Record<string, TResponseExtra>;
-    }): ValueOrPromise<TNullable<R | {
+    }): TValueOrPromise<TNullable<R | {
         count?: number;
         data?: TNullable<R>;
         extra?: Record<string, unknown>;
@@ -509,7 +509,7 @@ export declare abstract class BaseRestController<RouteEnv extends Env = Env, Rou
     })): void;
     /** A route handler's context is a lightweight custom shape (different `json`/`req.valid` signatures) built on Hono's real Context, not a subtype of the RouteHandler `.openapi()` expects - genuinely different handler types bridged here. */
     toHonoHandler<RouteConfig extends IAuthRouteConfig = IAuthRouteConfig>(opts: {
-        handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
+        handler: (context: TContextOf<RouteConfig, RouteEnv>) => TValueOrPromise<Response | TypedResponse<unknown>>;
     }): Parameters<OpenAPIHono<RouteEnv>["openapi"]>[1];
     /** Creates a fluent binding for registering a route (call .to() to attach handler). */
     bindRoute<RouteConfig extends IAuthRouteConfig>(opts: {
@@ -518,14 +518,14 @@ export declare abstract class BaseRestController<RouteEnv extends Env = Env, Rou
     /** Defines and registers a route with its handler in a single call. */
     defineRoute<RouteConfig extends IAuthRouteConfig>(opts: {
         configs: RouteConfig;
-        handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
-        hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
+        handler: (context: TContextOf<RouteConfig, RouteEnv>) => TValueOrPromise<Response | TypedResponse<unknown>>;
+        hook?: Hook<any, RouteEnv, string, TValueOrPromise<any>>;
     }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
     /** Defines a JSX route that renders server-side HTML via c.html(). */
     defineJSXRoute<RouteConfig extends IAuthRouteConfig>(opts: {
         configs: RouteConfig;
-        handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
-        hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
+        handler: (context: TContextOf<RouteConfig, RouteEnv>) => TValueOrPromise<Response | TypedResponse<unknown>>;
+        hook?: Hook<any, RouteEnv, string, TValueOrPromise<any>>;
     }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 }
 ```

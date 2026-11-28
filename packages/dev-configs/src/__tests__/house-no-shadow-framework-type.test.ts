@@ -87,7 +87,7 @@ const buildProject = (opts?: { name?: string; dependsOn?: string; umbrellaOnly?:
   write({
     root,
     path: join(installed, 'dist', 'types.d.ts'),
-    content: `export type TNullable<T> = T | undefined | null;\nexport interface IApplicationInfo { name: string }\nexport type T<X> = X;\nexport type ValueOrPromise<T> = T | Promise<T>;\nexport declare class Logger {}\nexport declare const HttpStatus: { OK: 200 };\nexport declare enum Mode { A }\n`,
+    content: `export type TNullable<T> = T | undefined | null;\nexport interface IApplicationInfo { name: string }\nexport type T<X> = X;\nexport type TValueOrPromise<T> = T | Promise<T>;\nexport declare class Logger {}\nexport declare const HttpStatus: { OK: 200 };\nexport declare enum Mode { A }\n`,
   });
   write({
     root,
@@ -132,7 +132,7 @@ describe('FrameworkExports', () => {
     const { root } = buildProject();
     const names = FrameworkExports.of({ directory: join(root, 'src') });
 
-    expect(names.get('ValueOrPromise')).toBe('@venizia/fake-helpers');
+    expect(names.get('TValueOrPromise')).toBe('@venizia/fake-helpers');
     expect(names.get('TNullable')).toBe('@venizia/fake-helpers/common');
     expect(names.get('IApplicationInfo')).toBe('@venizia/fake-helpers');
   });
@@ -150,7 +150,7 @@ describe('FrameworkExports', () => {
     const { root } = buildProject({ umbrellaOnly: true });
     const names = FrameworkExports.of({ directory: join(root, 'src') });
 
-    expect(names.get('ValueOrPromise')).toBe('@venizia/fake-umbrella/helpers');
+    expect(names.get('TValueOrPromise')).toBe('@venizia/fake-umbrella/helpers');
     expect(names.has('Runner')).toBe(false);
   });
 
@@ -195,7 +195,7 @@ describe('@venizia/no-shadow-framework-type', () => {
     const project = buildProject();
     const findings = lint({
       project,
-      code: `export type TNullable<T> = T | null | undefined;\ninterface IApplicationInfo { id: string }\ntype ValueOrPromise<X> = X;\n`,
+      code: `export type TNullable<T> = T | null | undefined;\ninterface IApplicationInfo { id: string }\ntype TValueOrPromise<X> = X;\n`,
     });
 
     expect(findings).toHaveLength(3);
@@ -260,7 +260,7 @@ describe('@venizia/no-shadow-framework-type', () => {
 
   test('a project that depends only on an umbrella package is told to import from it', () => {
     const project = buildProject({ umbrellaOnly: true });
-    const findings = lint({ project, code: `type ValueOrPromise<T> = T | Promise<T>;\n` });
+    const findings = lint({ project, code: `type TValueOrPromise<T> = T | Promise<T>;\n` });
 
     expect(findings).toHaveLength(1);
     expect(findings[0]?.message).toContain('@venizia/fake-umbrella/helpers');

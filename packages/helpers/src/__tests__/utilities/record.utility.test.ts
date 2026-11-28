@@ -4,6 +4,20 @@ import { RecordUtility } from '@/utilities/record.utility';
 
 const PRIMITIVES: unknown[] = [null, undefined, 0, 1, '', 'a', true, false, 1n, Symbol('s')];
 
+describe('RecordUtility.isObjectLike', () => {
+  test('accepts a non-null object, an array and a function', () => {
+    for (const value of [{}, [], new Date(), () => 1, class Sample {}]) {
+      expect(RecordUtility.isObjectLike(value)).toBe(true);
+    }
+  });
+
+  test('rejects null, undefined and every other primitive', () => {
+    for (const value of PRIMITIVES) {
+      expect(RecordUtility.isObjectLike(value)).toBe(false);
+    }
+  });
+});
+
 describe('RecordUtility.isRecord', () => {
   test('accepts a plain object, an empty object and a null-prototype object', () => {
     expect(RecordUtility.isRecord({ a: 1 })).toBe(true);

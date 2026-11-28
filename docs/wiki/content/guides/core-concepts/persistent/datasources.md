@@ -12,7 +12,7 @@ A DataSource manages database connections and supports **schema auto-discovery**
 import {
   BasePostgresDataSource,
   datasource,
-  ValueOrPromise,
+  TValueOrPromise,
 } from '@venizia/ignis';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
@@ -42,7 +42,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     });
   }
 
-  override configure(): ValueOrPromise<void> {
+  override configure(): TValueOrPromise<void> {
     const schema = Object.keys(this.getSchema());
     this.logger.debug('[configure] Auto-discovered schema | Keys: %o', schema);
 
@@ -50,7 +50,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     this.client = new Pool(this.settings);
   }
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     const { host, port, user, password, database } = this.settings;
     return `postgresql://${user}:${password}@${host}:${port}/${database}`;
   }
@@ -208,7 +208,7 @@ See [Registering artifacts](../application/bootstrapping). DataSources are bound
 ## DataSource Template
 
 ```typescript
-import { BasePostgresDataSource, datasource, ValueOrPromise } from '@venizia/ignis';
+import { BasePostgresDataSource, datasource, TValueOrPromise } from '@venizia/ignis';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
 import { AppEnvs } from '@venizia/ignis-helpers';
@@ -236,11 +236,11 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     });
   }
 
-  override configure(): ValueOrPromise<void> {
+  override configure(): TValueOrPromise<void> {
     this.client = new Pool(this.settings);
   }
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     const { host, port, user, password, database } = this.settings;
     return `postgresql://${user}:${password}@${host}:${port}/${database}`;
   }

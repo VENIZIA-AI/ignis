@@ -1,7 +1,7 @@
 import { RestApplication } from '@/base/applications/rest';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications/common';
 import { AbstractDataSource } from '@/base/datasources';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { ProbeDataSource } from '../support/artifact-fixtures';
@@ -17,7 +17,7 @@ class DataSourceJournal {
 }
 
 class StoppableApplication extends RestApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'close-datasources-app', version: '0.0.0', description: '' };
   }
 

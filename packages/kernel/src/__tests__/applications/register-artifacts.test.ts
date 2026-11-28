@@ -7,7 +7,7 @@ import type { IRepository } from '@/base/repositories';
 import type { IService } from '@/base/services';
 import { BindingNamespaces } from '@/common/bindings';
 import { BindingScopes } from '@/helpers/inversion';
-import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TClass, TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 import { ProbeDataSource, ProbeRepository } from '../support/artifact-fixtures';
 import { BindingKeys } from '@/helpers/inversion';
@@ -16,7 +16,7 @@ class RecordingApplication extends RestApplication {
   readonly calls: string[] = [];
   runMode = 'startup';
 
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'register-artifacts-app', version: '0.0.0', description: '' };
   }
 
@@ -70,7 +70,7 @@ class Cmp extends BaseComponent {
     super({ scope: Cmp.name });
   }
 
-  override binding(): ValueOrPromise<void> {}
+  override binding(): TValueOrPromise<void> {}
 }
 class Svc {}
 class Ctl {}
@@ -172,7 +172,7 @@ describe('RestApplication.registerArtifacts', () => {
         return { at: performance.now() };
       }
 
-      override binding(): ValueOrPromise<void> {}
+      override binding(): TValueOrPromise<void> {}
     }
     const application = buildApplication();
 

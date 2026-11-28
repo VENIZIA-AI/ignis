@@ -1,4 +1,4 @@
-import { type ValueOrPromise } from '@/common';
+import { type TValueOrPromise } from '@/common';
 import { BaseHelper } from '@/modules/base';
 import { Execution, ExecutionFrames } from '@/modules/execution';
 import dgram from 'node:dgram';
@@ -30,7 +30,7 @@ interface INetworkUdpClientProps {
     port: number;
     reuseAddr?: boolean;
     multicastAddress?: { groups?: Array<string>; interface?: string };
-  }) => ValueOrPromise<void>;
+  }) => TValueOrPromise<void>;
 }
 
 /**
@@ -69,7 +69,7 @@ export class NetworkUdpClient extends BaseHelper {
     port: number;
     reuseAddr?: boolean;
     multicastAddress?: { groups?: Array<string>; interface?: string };
-  }) => ValueOrPromise<void>;
+  }) => TValueOrPromise<void>;
 
   private client?: dgram.Socket | null;
 

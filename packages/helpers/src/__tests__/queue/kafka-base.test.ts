@@ -1,4 +1,4 @@
-import { getError, isApplicationError } from '@/modules/error';
+import { getError, ApplicationError } from '@/modules/error';
 import { HookUtility } from '@/modules/queue/common';
 import { KafkaClientEvents, KafkaHealthStatuses } from '@/modules/queue/kafka/common/constants';
 import { BaseKafkaHelper } from '@/modules/queue/kafka/base';
@@ -259,7 +259,7 @@ describe('BaseKafkaHelper — broker events, health tracking, close paths', () =
 
     const error = await captureRejection({ promise: helper.closeGracefully() });
 
-    expect(isApplicationError(error)).toBe(true);
+    expect(ApplicationError.isApplicationError(error)).toBe(true);
     expect(error.message).toContain('Shutdown timed out');
   });
 });

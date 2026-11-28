@@ -1,6 +1,6 @@
 import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { NotSupportedUtility } from '@venizia/ignis-kernel';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { AbstractSqliteDataSource } from './abstract';
 import type {
@@ -88,7 +88,7 @@ export abstract class BaseSqliteDataSource<
    * libsql's url IS SQLite's connection string; an app
    * whose settings spell it differently overrides this.
    */
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     const url = 'url' in this.settings ? this.settings.url : undefined;
 
     if (typeof url !== 'string' || !url) {

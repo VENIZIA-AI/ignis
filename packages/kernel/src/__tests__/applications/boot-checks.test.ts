@@ -2,13 +2,13 @@ import { RestApplication } from '@/base/applications/rest';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications/common';
 import { inject, service } from '@/base/metadata';
 import { BindingNamespaces } from '@/common/bindings';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 import { BindingKeys } from '@/helpers/inversion';
 
 /** Runs the real boot sequence; only the server-only hooks are stubbed. */
 class CheckedApplication extends RestApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'boot-checks-app', version: '0.0.0', description: '' };
   }
 

@@ -4,7 +4,7 @@ import { BaseApplication } from '@/base/applications';
 import { PGlite } from '@electric-sql/pglite';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { PGliteDriver } from '@venizia/ignis-connectors/postgres/pglite';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import {
   AbstractDataSource,
@@ -33,13 +33,13 @@ class StopProbeDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchem
     this.client = client;
   }
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return 'pglite://memory';
   }
 }
 
 class StopApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'stop-app', version: '0.0.0', description: 'Datasource shutdown probe' };
   }
 

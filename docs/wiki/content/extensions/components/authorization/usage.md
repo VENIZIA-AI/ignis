@@ -301,7 +301,7 @@ import {
   IAuthorizationEnforcer, IAuthorizationRequest, IAuthUser, TAuthorizationDecision,
   AuthorizationDecisions, TContext,
 } from '@venizia/ignis';
-import { BaseHelper, ValueOrPromise } from '@venizia/ignis-helpers';
+import { BaseHelper, TValueOrPromise } from '@venizia/ignis-helpers';
 import { Env } from 'hono';
 
 type MyRules = Map<string, Set<string>>;

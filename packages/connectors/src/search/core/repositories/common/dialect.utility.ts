@@ -7,30 +7,31 @@ import { SearchFilterOutcomes } from './types';
 
 /** Dialect-shared pure helpers, shared once rather than byte-copied per dialect; not barrel-exported, not part of the connector's public surface. */
 
-/**
- * A `{ gte: 1 }`-style operator map: non-null, non-array, non-Date, at least one key, and EVERY
- * key a known operator. The every-key test mirrors the relational reference
- * (relational/repositories/dialect/filter.ts:546-559) rather than accepting any non-empty object.
- *
- * Without it `{ meta: { foo: 1 } }` read as an operator map and reported "does not support
- * operator 'foo'", naming a key the caller never meant as an operator; it now falls through to
- * the value path and is rejected for what it actually is - an object where a scalar belongs.
- */
-export const isOperatorObject = (value: unknown): value is Record<string, unknown> => {
-  if (value === null || Array.isArray(value) || typeof value !== 'object') {
-    return false;
-  }
-
-  const keys = Object.keys(value);
-
-  if (keys.length === 0) {
-    return false;
-  }
-
-  return keys.every((key) => QueryOperators.isValid(key));
-};
-
 export class SearchDialectUtility {
+  /**
+   * A `{ gte: 1 }`-style operator map: non-null, non-array, non-Date, at least one key, and EVERY
+   * key a known operator. The every-key test mirrors the relational reference
+   * (relational/repositories/dialect/filter.ts:546-559) rather than accepting any non-empty object.
+   *
+   * Without it `{ meta: { foo: 1 } }` read as an operator map and reported "does not support
+   * operator 'foo'", naming a key the caller never meant as an operator; it now falls through to
+   * the value path and is rejected for what it actually is - an object where a scalar belongs.
+   * A type guard, so it keeps its positional `value`.
+   */
+  static isOperatorObject(value: unknown): value is Record<string, unknown> {
+    if (value === null || Array.isArray(value) || typeof value !== 'object') {
+      return false;
+    }
+
+    const keys = Object.keys(value);
+
+    if (keys.length === 0) {
+      return false;
+    }
+
+    return keys.every((key) => QueryOperators.isValid(key));
+  }
+
   /** skip/offset -> 1-based page number. Requires a page size, and the skip must land on a page boundary. */
   static toSearchPage(opts: { skip: number; limit?: number }): number {
     const { skip, limit } = opts;

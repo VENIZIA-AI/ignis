@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { connect as connectTcp } from 'node:net';
 import { fileDesc, serviceDesc } from '@bufbuild/protobuf/codegenv2';
-import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError, Execution } from '@venizia/ignis-helpers/core';
 import {
   AuthenticationStrategyRegistry,
@@ -146,7 +146,7 @@ const QUIET_MS = 6_000;
 const MAX_BODY = 2_000;
 
 class StreamApplication extends BaseApplication {
-  override getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  override getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'grpc-stream', version: '0.0.0', description: 'gRPC streaming' };
   }
 

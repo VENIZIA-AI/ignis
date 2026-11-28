@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-227 exports, 227 with TSDoc. 267 more are re-exported from other entries (listed at the end).
+225 exports, 225 with TSDoc. 263 more are re-exported from other entries (listed at the end).
 
 The declarations are on 4 pages; each export below links to its own.
 
@@ -439,14 +439,6 @@ The declarations are on 4 pages; each export below links to its own.
 
 *interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#isecretshelperoptions)
 
-## `isPromiseLike`
-
-*const* - [Declaration](/references/api/venizia-ignis-helpers--part-3#ispromiselike)
-
-## `isRedisHelper`
-
-*const* - [Declaration](/references/api/venizia-ignis-helpers--part-3#isredishelper)
-
 ## `IStorageHelper`
 
 *interface* - [Declaration](/references/api/venizia-ignis-helpers--part-3#istoragehelper)
@@ -625,7 +617,7 @@ The declarations are on 4 pages; each export below links to its own.
 
 ## `RedisDefaults`
 
-*class* - [Declaration](/references/api/venizia-ignis-helpers--part-4#redisdefaults)
+*class* - [Declaration](/references/api/venizia-ignis-helpers--part-3#redisdefaults)
 
 ## `RedisHelperFactory`
 
@@ -1030,8 +1022,6 @@ The declarations are on 4 pages; each export below links to its own.
 - `IRequestOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IRetryBackoffOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IRetryContext` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `isApplicationError` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
-- `isClass` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `ISnowflakeParsedId` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `ITemporalAdapter` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `ITemporalDurationParts` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
@@ -1081,14 +1071,12 @@ The declarations are on 4 pages; each export below links to its own.
 - `SlugUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `SnowflakeConfig` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `SnowflakeUidHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `TAbstractClass` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
-- `TAbstractConstructor` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `TAbstractClass` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TAbstractMixinConstructor` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TAbstractMixinTarget` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TAsyncResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TBuildInfoRecord` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TClass` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
-- `TConstructor` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TConstValue` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TContentDispositionType` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TContentType` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
@@ -1167,7 +1155,9 @@ The declarations are on 4 pages; each export below links to its own.
 - `TTrustedOrigin` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TUidCaseForm` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TUidTokenEncoding` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `TValueOf` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TValueOrAsyncResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `TValueOrPromise` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TValueOrResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `UidAlphabets` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UidCaseForms` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -1184,7 +1174,5 @@ The declarations are on 4 pages; each export below links to its own.
 - `UuidV4Generator` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UuidV5Generator` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UuidV7Generator` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
-- `ValueOf` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `ValueOptional` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `ValueOptionalExcept` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
-- `ValueOrPromise` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)

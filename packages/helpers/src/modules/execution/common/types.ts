@@ -1,4 +1,4 @@
-import type { ValueOrPromise } from '@/common';
+import type { TValueOrPromise } from '@/common';
 import type { ExecutionModes, TExecutionMode } from './constants';
 
 /** The values a frame carries. An application declares its keys by module augmentation. */
@@ -25,7 +25,7 @@ export type TExecutionRunOptions<Result> =
       userId?: string | number | bigint;
       /** Start from nothing: no request, user or values of the caller. For a listener of your own. */
       isRoot?: boolean;
-      task: () => ValueOrPromise<Result>;
+      task: () => TValueOrPromise<Result>;
     }
   | {
       mode: typeof ExecutionModes.SYSTEM;
@@ -34,7 +34,7 @@ export type TExecutionRunOptions<Result> =
       /** A fixed sentence that names the work, for the log. A blank one is refused. */
       reason: string;
       userId?: string | number | bigint;
-      task: () => ValueOrPromise<Result>;
+      task: () => TValueOrPromise<Result>;
     };
 
 declare global {

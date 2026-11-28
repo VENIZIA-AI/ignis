@@ -13,12 +13,12 @@ difficulty: intermediate
 Pass the options at the call site, then inject `IMailService` anywhere to send:
 
 ```typescript
-import { BaseApplication, ValueOrPromise } from '@venizia/ignis';
+import { BaseApplication, TValueOrPromise } from '@venizia/ignis';
 import { AppEnvs } from '@venizia/ignis-helpers';
 import { MailComponent, MailProviders } from '@venizia/ignis/mail';
 
 export class Application extends BaseApplication {
-  preConfigure(): ValueOrPromise<void> {
+  preConfigure(): TValueOrPromise<void> {
     this.component(MailComponent, {
       options: {
         provider: MailProviders.NODEMAILER,

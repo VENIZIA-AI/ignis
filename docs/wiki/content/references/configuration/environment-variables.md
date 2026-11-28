@@ -167,7 +167,7 @@ APP_ENV_POSTGRES_DATABASE=my_app_prod
 ### DataSource Configuration
 
 ```typescript
-import { datasource, ValueOrPromise } from '@venizia/ignis';
+import { datasource, TValueOrPromise } from '@venizia/ignis';
 import { BaseDataSource } from '@venizia/ignis-connectors/postgres';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
@@ -198,11 +198,11 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
 
   // Both members are abstract on the base. `configure()` only has to build `this.client`;
   // naming the driver in `@datasource` is what wires the connector.
-  override configure(): ValueOrPromise<void> {
+  override configure(): TValueOrPromise<void> {
     this.client = new Pool(this.settings);
   }
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     const { host, port, user, password, database } = this.settings;
     return `postgresql://${user}:${password}@${host}:${port}/${database}`;
   }

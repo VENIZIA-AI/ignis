@@ -4,8 +4,6 @@ export {
   BindingKeys,
   BindingScopes,
   BindingValueTypes,
-  isClass,
-  isClassProvider,
   ResolverUtility,
   type IProvider,
   type TBindingKey,

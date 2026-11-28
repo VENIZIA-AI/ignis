@@ -4,7 +4,7 @@ import '@venizia/ignis-kernel';
 import { describe, expect, test } from 'bun:test';
 
 import { repository, controller as controllerDecorator } from '@venizia/ignis-kernel';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { SearchControllerFactory, type ISearchRoutes } from '@/search/core/controllers/factory';
 import { SearchEngineParams } from '@/search/core/controllers/engine-params';
 import { SearchModes } from '@/search/core/repositories/common';
@@ -72,7 +72,7 @@ const refusal = async (task: Promise<unknown>) => {
   try {
     await task;
   } catch (error) {
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       return error;
     }
 

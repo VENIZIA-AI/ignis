@@ -2,7 +2,7 @@ import 'reflect-metadata';
 
 import { BaseApplication } from '@/base/applications';
 import { AuthenticateComponent } from '@/components/auth/authenticate/component';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   AuthenticateBindingKeys,
   JOSEStandards,
@@ -22,7 +22,7 @@ const CONFIGS: IApplicationConfigs = {
 };
 
 class ProbeApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'claims-boot', version: '0.0.0', description: 'claims boot probe' };
   }
 

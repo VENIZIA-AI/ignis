@@ -1,6 +1,6 @@
 import { BaseRestController } from '@/base/controllers';
 import { controller as controllerDecorator } from '@/base/metadata';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { TStaticAssetEntry } from '../common';
 import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from '../models';
@@ -53,7 +53,7 @@ export class StaticAssetControllerFactory {
         super({ scope: name, path: basePath });
       }
 
-      override binding(): ValueOrPromise<void> {
+      override binding(): TValueOrPromise<void> {
         // First, so a literal path can win over the built-in catch-all `rawObjectPath` registers.
         extend?.before?.({ controller: this, helper, basePath });
 

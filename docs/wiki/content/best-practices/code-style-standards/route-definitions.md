@@ -75,7 +75,7 @@ export class HealthCheckController extends BaseRestController {
     super({ scope: HealthCheckController.name });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.bindRoute({ configs: RouteConfigs.GET_HEALTH }).to({
       handler: context => context.json({ status: 'ok' }, HTTP.ResultCodes.RS_2.Ok),
     });
@@ -92,7 +92,7 @@ export class HealthCheckController extends BaseRestController {
     super({ scope: HealthCheckController.name });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.defineRoute({
       configs: RouteConfigs.POST_PING,
       handler: context => {

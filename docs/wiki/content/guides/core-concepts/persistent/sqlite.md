@@ -43,7 +43,7 @@ The two divergences that do not throw are the dangerous ones. `like` widens, and
 import { createClient } from '@libsql/client';
 import type { Client } from '@libsql/client';
 import { datasource } from '@venizia/ignis';
-import type { TAnyDataSourceSchema, ValueOrPromise } from '@venizia/ignis';
+import type { TAnyDataSourceSchema, TValueOrPromise } from '@venizia/ignis';
 import { BaseSqliteDataSource } from '@venizia/ignis-connectors/sqlite';
 import type { ISqliteDataSourceSettings } from '@venizia/ignis-connectors/sqlite';
 import { LibSqlDriver } from '@venizia/ignis-connectors/sqlite/libsql';
@@ -63,7 +63,7 @@ export class SqliteDataSource extends BaseSqliteDataSource<
     });
   }
 
-  override configure(): ValueOrPromise<void> {
+  override configure(): TValueOrPromise<void> {
     this.client = createClient(this.settings);
   }
 }

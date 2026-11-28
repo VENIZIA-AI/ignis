@@ -303,7 +303,7 @@ Every argument is optional, including the options object itself - `nextId()` alo
 | Option | Type | Default | Meaning |
 |---|---|---|---|
 | `prefix` | `string` | The configured prefix | Replaces it for this call |
-| `isAvailable` | `(id: string) => ValueOrPromise<boolean>` | none | `true` accepts, `false` draws again |
+| `isAvailable` | `(id: string) => TValueOrPromise<boolean>` | none | `true` accepts, `false` draws again |
 | `maxAttempts` | `number` | `10` | Draws before it throws. Requires `isAvailable` |
 
 The callback sees the finished ID, prefix and delimiter included - the string the column stores.

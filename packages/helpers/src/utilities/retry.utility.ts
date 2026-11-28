@@ -1,4 +1,4 @@
-import type { ValueOrPromise } from '@/common';
+import type { TValueOrPromise } from '@/common';
 import { getError } from '@/modules/error';
 import type { ILogger } from '@/modules/logger';
 import { Execution } from '@/modules/execution';
@@ -84,7 +84,7 @@ export class RetryUtility {
   static async runWithTimeout<T>(opts: {
     operation: string;
     timeoutMs?: number;
-    execution: () => ValueOrPromise<T>;
+    execution: () => TValueOrPromise<T>;
   }): Promise<T> {
     const { operation, timeoutMs, execution } = opts;
 
@@ -191,10 +191,10 @@ export class RetryUtility {
     signal?: AbortSignal;
     logger?: ILogger;
     backoff?: IRetryBackoffOptions;
-    execution: (context: { attempt: number; signal?: AbortSignal }) => ValueOrPromise<T>;
-    shouldRetry?: (context: IRetryContext) => ValueOrPromise<boolean>;
+    execution: (context: { attempt: number; signal?: AbortSignal }) => TValueOrPromise<T>;
+    shouldRetry?: (context: IRetryContext) => TValueOrPromise<boolean>;
     getDelayMs?: (context: IRetryContext) => number | undefined;
-    onRetry?: (context: IRetryContext & { nextDelayMs: number }) => ValueOrPromise<void>;
+    onRetry?: (context: IRetryContext & { nextDelayMs: number }) => TValueOrPromise<void>;
   }): Promise<TRetryAttemptOutcome<T>> {
     const {
       attempt,
@@ -282,16 +282,16 @@ export class RetryUtility {
 
     backoff?: IRetryBackoffOptions;
 
-    execution: (context: { attempt: number; signal?: AbortSignal }) => ValueOrPromise<T>;
+    execution: (context: { attempt: number; signal?: AbortSignal }) => TValueOrPromise<T>;
 
     /** Return `false` to stop retrying and rethrow `context.error` immediately. */
-    shouldRetry?: (context: IRetryContext) => ValueOrPromise<boolean>;
+    shouldRetry?: (context: IRetryContext) => TValueOrPromise<boolean>;
 
     /** The least wait before the next attempt, in milliseconds (a server's `Retry-After`); the backoff delay applies when it is longer. `undefined` leaves the backoff alone. */
     getDelayMs?: (context: IRetryContext) => number | undefined;
 
     /** Observability hook, awaited before the backoff sleep. */
-    onRetry?: (context: IRetryContext & { nextDelayMs: number }) => ValueOrPromise<void>;
+    onRetry?: (context: IRetryContext & { nextDelayMs: number }) => TValueOrPromise<void>;
   }): Promise<T> {
     const {
       operation,
@@ -390,7 +390,7 @@ export class RetryUtility {
 
     backoff?: IRetryBackoffOptions;
 
-    execution: (context: { attempt: number; signal?: AbortSignal }) => ValueOrPromise<T>;
+    execution: (context: { attempt: number; signal?: AbortSignal }) => TValueOrPromise<T>;
 
     /** Retry while this returns false. */
     until: (result: T) => boolean;

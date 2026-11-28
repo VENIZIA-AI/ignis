@@ -162,6 +162,15 @@ export class TypesenseMapper {
     return result;
   }
 
+  /** Typesense's wire shape for a synonym set; `root` is only present for one-way synonyms. A type guard, so it keeps its positional `value`. */
+  static isSynonymResponse(
+    value: unknown,
+  ): value is { id: string; synonyms: string[]; root?: string } {
+    return (
+      RecordUtility.isRecord(value) && typeof value.id === 'string' && Array.isArray(value.synonyms)
+    );
+  }
+
   static toSynonym(opts: { value: { id: string; synonyms: string[]; root?: string } }): ISynonym {
     const { id, synonyms, root } = opts.value;
 
@@ -169,12 +178,3 @@ export class TypesenseMapper {
     return root ? { id, synonyms, root } : { id, synonyms };
   }
 }
-
-// Typesense's wire shape for a synonym set; `root` is only present for one-way synonyms.
-export const isSynonymResponse = (
-  value: unknown,
-): value is { id: string; synonyms: string[]; root?: string } => {
-  return (
-    RecordUtility.isRecord(value) && typeof value.id === 'string' && Array.isArray(value.synonyms)
-  );
-};

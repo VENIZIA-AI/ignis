@@ -3,13 +3,13 @@ import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications'
 import { RouterFactories } from '@/base/applications/router-factory';
 import { AbstractRestController } from '@/base/controllers/rest/abstract';
 import { OpenAPIHono } from '@hono/zod-openapi';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
 import { Hono } from 'hono';
 
 class RouterApplication extends RestApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'router-app', version: '0.0.0', description: 'Router factory probe' };
   }
 

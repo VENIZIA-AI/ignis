@@ -323,7 +323,7 @@ Source: `packages/connectors/src/search/core/controllers/types.ts`
 A function `query.fixed` or `query.default`: its result is checked on every request, so it is `unknown` here.
 
 ```ts
-export type TSearchLooseFunction<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}> = (opts: ISearchSourceOptions<RouteEnv, TExtra, Inject>) => ValueOrPromise<unknown>;
+export type TSearchLooseFunction<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}> = (opts: ISearchSourceOptions<RouteEnv, TExtra, Inject>) => TValueOrPromise<unknown>;
 ```
 
 Source: `packages/connectors/src/search/core/controllers/settings.ts`
@@ -351,7 +351,7 @@ A `query.normalize`, with the text its mode carries.
 ```ts
 export type TSearchLooseNormalize<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}> = (opts: ISearchSourceOptions<RouteEnv, TExtra, Inject> & {
     text: string;
-}) => ValueOrPromise<unknown>;
+}) => TValueOrPromise<unknown>;
 ```
 
 Source: `packages/connectors/src/search/core/controllers/settings.ts`
@@ -383,7 +383,7 @@ export type TSearchScopeResolver<RouteEnv extends Env = Env, TExtra extends obje
     input: TSearchInput & TExtra;
     /** The instances of the classes `inject` declares. */
     injected: TInjected<Inject>;
-}) => ValueOrPromise<TNullable<TWhere | typeof ScopeFilters.UNRESTRICTED>>;
+}) => TValueOrPromise<TNullable<TWhere | typeof ScopeFilters.UNRESTRICTED>>;
 ```
 
 Source: `packages/connectors/src/search/core/controllers/scope.ts`
@@ -403,7 +403,7 @@ export type TSearchSettingsSource<Document extends object, Tuning extends object
     }> & TExtra;
     /** The instances of the classes `inject` declares. */
     injected: TInjected<Inject>;
-}) => ValueOrPromise<ISearchQuerySettings<Document, Tuning>>);
+}) => TValueOrPromise<ISearchQuerySettings<Document, Tuning>>);
 ```
 
 Source: `packages/connectors/src/search/core/controllers/types.ts`

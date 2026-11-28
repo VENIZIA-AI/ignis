@@ -6,7 +6,7 @@ import { datasource, model } from '@venizia/ignis-kernel';
 import { BasePostgresDataSource, BasePostgresEntity } from '@venizia/ignis-connectors/postgres';
 import { DefaultRelationalRepository } from '@venizia/ignis-connectors/relational';
 import { PGliteDriver } from '@venizia/ignis-connectors/postgres/pglite';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 
 /**
  * Typing a JSON-path key in `TWhere<T>` changes no runtime path: a typed JSON-path where still
@@ -37,9 +37,9 @@ class JsonPathWhereDataSource extends BasePostgresDataSource<{}, {}, {}, PGlite>
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return 'pglite://memory';
   }
 

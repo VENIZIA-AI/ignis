@@ -106,7 +106,7 @@ const worker = new BullMQHelper({
 | `redisConnection` | `IRedisHelper` | - | Connection backend. The helper passes a `duplicateClient()` of it to BullMQ - never a raw ioredis client. |
 | `module` | `typeof import('bullmq')` | loaded by name | `bullmq` itself, for a compiled binary. Omitted, it is loaded when the queue or worker is built. |
 | `prefix` | `string` | BullMQ's `bull` | The prefix of every Redis key of the queue, on the Queue and the Worker alike. Opt-in; see [Key prefix](#key-prefix). |
-| `metadata` | `() => ValueOrPromise<TMetadata>` | - | A block stamped on every job added through `add`, outside `job.data`. See [Job metadata](#job-metadata). |
+| `metadata` | `() => TValueOrPromise<TMetadata>` | - | A block stamped on every job added through `add`, outside `job.data`. See [Job metadata](#job-metadata). |
 | `numberOfWorker` | `number` | `1` | Worker concurrency (BullMQ `Worker` `concurrency` option). Ignored for `role: 'queue'`. |
 | `lockDuration` | `number` | `5400000` (90 minutes) | Job lock duration in milliseconds. Ignored for `role: 'queue'`. |
 | `onWorkerData` | `(job: Job<TQueueElement, TQueueResult>, context: { metadata: TMetadata \| undefined }) => Promise<TQueueResult>` | - | Job processor; `context.metadata` is the stamp of the producer's helper. If omitted, the worker logs `id`, `name`, `data` at info level and resolves `undefined`. |
@@ -328,10 +328,10 @@ const queue = new SequentialQueueHelper<string>({
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `autoDispatch` | `boolean` | `true` | When `true`, `enqueue()` automatically calls `nextMessage()`. |
-| `onMessage` | `(opts: { identifier: string; queueElement: TQueueElement<T> }) => ValueOrPromise<void>` | - | Message processor. If omitted, the internal generator logs a warning and never initializes - nothing is ever processed. |
-| `onDataEnqueue` | `(opts: { identifier: string; queueElement: TQueueElement<T> }) => ValueOrPromise<void>` | - | Fired after an element is pushed onto `storage`. |
-| `onDataDequeue` | `(opts: { identifier: string; queueElement: TQueueElement<T> }) => ValueOrPromise<void>` | - | Fired after an element is shifted off `storage`. |
-| `onStateChange` | `(opts: { identifier: string; from: TQueueStatus; to: TQueueStatus }) => ValueOrPromise<void>` | - | Fired on every state transition. |
+| `onMessage` | `(opts: { identifier: string; queueElement: TQueueElement<T> }) => TValueOrPromise<void>` | - | Message processor. If omitted, the internal generator logs a warning and never initializes - nothing is ever processed. |
+| `onDataEnqueue` | `(opts: { identifier: string; queueElement: TQueueElement<T> }) => TValueOrPromise<void>` | - | Fired after an element is pushed onto `storage`. |
+| `onDataDequeue` | `(opts: { identifier: string; queueElement: TQueueElement<T> }) => TValueOrPromise<void>` | - | Fired after an element is shifted off `storage`. |
+| `onStateChange` | `(opts: { identifier: string; from: TQueueStatus; to: TQueueStatus }) => TValueOrPromise<void>` | - | Fired on every state transition. |
 
 All four hooks run through an internal wrapper that absorbs synchronous throws and promise rejections, logging them instead. A broken callback can't break the state machine.
 

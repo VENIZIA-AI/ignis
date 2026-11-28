@@ -3,14 +3,14 @@ import { RestApplication } from '@/base/applications/rest';
 import { BaseComponent } from '@/base/components';
 import { BaseConfiguration } from '@/base/configurations';
 import { configuration, provide } from '@/base/metadata';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 import { BindingKeys } from '@/helpers/inversion';
 
 class TestApplication extends RestApplication {
   readonly executionLog: string[] = [];
 
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'config-test-app', version: '0.0.0', description: '' };
   }
 

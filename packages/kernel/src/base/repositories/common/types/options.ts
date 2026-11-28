@@ -38,7 +38,7 @@ export type TLockOptions = {
   config?: TLockConfig;
 };
 
-/** Neutral transaction association - postgres narrows to its own `IDatabaseTransaction` (via `isDatabaseTransaction`) where it needs `.connector`. */
+/** Neutral transaction association - postgres narrows to its own `IDatabaseTransaction` (via `AbstractPostgresDataSource.isDatabaseTransaction`) where it needs `.connector`. */
 export interface IWithTransaction {
   transaction?: ITransaction;
 }

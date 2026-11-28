@@ -37,6 +37,14 @@ interface IBinding {
   specifier?: ts.ImportSpecifier;
 }
 
+/** An import that brings a class in as a type only. */
+interface IClassTypeImport {
+  declaration: ts.ImportDeclaration;
+  specifier: ts.ImportSpecifier;
+  /** Whether the whole declaration is `import type`. */
+  isWholeImport: boolean;
+}
+
 /** A matched use of an old name: a call to rewrite, or any other use, which is reported. */
 interface IUses {
   calls: ts.CallExpression[];
@@ -102,8 +110,10 @@ export class NamespaceFunctions {
 
     const edits: IEdit[] = [];
     const removals = new Set<ts.ImportSpecifier>();
-    /** The imports that lose an old name. */
+    /** The imports that lose an old name or the `type` of a class. */
     const trimmed = new Set<ts.ImportDeclaration>();
+    /** The `type` imports of a class that a rewritten call needs as a value. */
+    const untyped = new Set<ts.ImportSpecifier>();
     const additions = new Map<ts.ImportDeclaration, Set<string>>();
     const newImports = new Map<string, { anchor: ts.ImportDeclaration; names: Set<string> }>();
     /** The class names this run imports, and from which module. */
@@ -143,23 +153,40 @@ export class NamespaceFunctions {
         continue;
       }
 
-      const classModules = mapping.newModules ?? [binding.module];
+      // Every entry a type guard row lists exports the same class, so a class imported from one serves them all.
+      const classModules =
+        mapping.newModules ?? (mapping.isTypeGuard ? mapping.modules : [binding.module]);
       const isNamespaceReach = !binding.specifier && classModules.includes(binding.module);
       let classReference = `${binding.local}.${mapping.className}`;
       let needsImport = false;
+      let typeImport: IClassTypeImport | undefined;
 
       if (!isNamespaceReach) {
-        const existing = NamespaceFunctions.findClassImport({
+        const valueImport = NamespaceFunctions.findClassImport({
           typescript,
           sourceFile,
           className: mapping.className,
           modules: classModules,
         });
+        typeImport =
+          valueImport || !mapping.isTypeGuard
+            ? undefined
+            : NamespaceFunctions.findClassTypeImport({
+                typescript,
+                sourceFile,
+                className: mapping.className,
+                modules: classModules,
+              });
+        // An `import type { ClassName }` brings no value: the class moves to a value import.
+        const existing =
+          valueImport ?? (typeImport?.isWholeImport ? undefined : typeImport?.specifier.name);
         const plannedModule = planned.get(mapping.className);
         const conflict = existing
           ? declarationsOf(existing.text).find((identifier) => identifier !== existing)
           : plannedModule === undefined
-            ? declarationsOf(mapping.className)[0]
+            ? declarationsOf(mapping.className).find(
+                (identifier) => identifier !== typeImport?.specifier.name,
+              )
             : undefined;
 
         if (conflict) {
@@ -212,6 +239,11 @@ export class NamespaceFunctions {
         continue;
       }
 
+      if (typeImport) {
+        (typeImport.isWholeImport ? removals : untyped).add(typeImport.specifier);
+        trimmed.add(typeImport.declaration);
+      }
+
       if (needsImport) {
         const sameDeclaration =
           binding.specifier && classModules.includes(binding.module)
@@ -231,7 +263,7 @@ export class NamespaceFunctions {
             sameDeclaration ? binding.module : NamespaceFunctions.moduleOf({ declaration }),
           );
         } else {
-          const module = classModules[0] ?? binding.module;
+          const module = mapping.newModules?.[0] ?? binding.module;
           const entry = newImports.get(module) ?? {
             anchor: binding.declaration,
             names: new Set<string>(),
@@ -259,6 +291,7 @@ export class NamespaceFunctions {
           sourceFile,
           declaration,
           removals,
+          untyped,
           additions: [...(additions.get(declaration) ?? [])],
           report,
         }),
@@ -534,6 +567,11 @@ export class NamespaceFunctions {
       return parent.propertyName !== identifier;
     }
 
+    // `isClass` of `import { isClass as other }` names the export, not a binding of this file.
+    if (typescript.isImportSpecifier(parent)) {
+      return false;
+    }
+
     if (typescript.isExportSpecifier(parent)) {
       return (
         !parent.parent.parent.moduleSpecifier && (parent.propertyName ?? parent.name) === identifier
@@ -698,6 +736,56 @@ export class NamespaceFunctions {
     return undefined;
   }
 
+  /**
+   * The import that brings the class in from `modules` as a type only: a `{ type ClassName }` specifier of a value
+   * import, else an unaliased name of an `import type`.
+   */
+  private static findClassTypeImport(opts: {
+    typescript: TTypeScript;
+    sourceFile: ts.SourceFile;
+    className: string;
+    modules: string[];
+  }): IClassTypeImport | undefined {
+    const { typescript, sourceFile, className, modules } = opts;
+    let wholeImport: IClassTypeImport | undefined;
+
+    for (const statement of sourceFile.statements) {
+      if (
+        !typescript.isImportDeclaration(statement) ||
+        !typescript.isStringLiteral(statement.moduleSpecifier) ||
+        !modules.includes(statement.moduleSpecifier.text)
+      ) {
+        continue;
+      }
+
+      const clause = statement.importClause;
+      const named = clause?.namedBindings;
+
+      if (!clause || !named || !typescript.isNamedImports(named)) {
+        continue;
+      }
+
+      const isWholeImport = clause.isTypeOnly;
+      const specifier = named.elements.find((candidate) =>
+        isWholeImport
+          ? !candidate.propertyName && candidate.name.text === className
+          : candidate.isTypeOnly && (candidate.propertyName ?? candidate.name).text === className,
+      );
+
+      if (!specifier) {
+        continue;
+      }
+
+      if (!isWholeImport) {
+        return { declaration: statement, specifier, isWholeImport };
+      }
+
+      wholeImport ??= { declaration: statement, specifier, isWholeImport };
+    }
+
+    return wholeImport;
+  }
+
   /** The first value import with braces from one of `modules`, to add a class to. */
   static findNamedImport(opts: {
     typescript: TTypeScript;
@@ -755,10 +843,13 @@ export class NamespaceFunctions {
     sourceFile: ts.SourceFile;
     declaration: ts.ImportDeclaration;
     removals: Set<ts.ImportSpecifier>;
+    /** Specifiers that lose their `type`. */
+    untyped?: Set<ts.ImportSpecifier>;
     additions: string[];
     report: (reportOpts: { node: ts.Node; reason: string }) => void;
   }): IEdit[] {
     const { typescript, sourceFile, declaration, removals, additions, report } = opts;
+    const untyped = opts.untyped ?? new Set<ts.ImportSpecifier>();
     const clause = declaration.importClause;
     const named = clause?.namedBindings;
 
@@ -769,6 +860,10 @@ export class NamespaceFunctions {
     const source = sourceFile.text;
     const elements = [...named.elements];
     const braces = source.slice(named.getStart(sourceFile), named.end);
+    const textOf = (element: ts.ImportSpecifier) =>
+      untyped.has(element)
+        ? source.slice((element.propertyName ?? element.name).getStart(sourceFile), element.end)
+        : element.getText(sourceFile);
 
     if (/\/\*|\/\//.test(braces)) {
       for (const element of elements.filter((candidate) => removals.has(candidate))) {
@@ -778,13 +873,20 @@ export class NamespaceFunctions {
         });
       }
 
+      const retyped = elements
+        .filter((candidate) => untyped.has(candidate))
+        .map((element) => ({
+          start: element.getStart(sourceFile),
+          end: element.end,
+          text: textOf(element),
+        }));
       const last = elements[elements.length - 1];
 
       if (!last || additions.length === 0) {
-        return [];
+        return retyped;
       }
 
-      return [{ start: last.end, end: last.end, text: `, ${additions.join(', ')}` }];
+      return [...retyped, { start: last.end, end: last.end, text: `, ${additions.join(', ')}` }];
     }
 
     const items: string[] = [];
@@ -792,7 +894,7 @@ export class NamespaceFunctions {
 
     for (const element of elements) {
       if (!removals.has(element)) {
-        items.push(element.getText(sourceFile));
+        items.push(textOf(element));
         continue;
       }
 

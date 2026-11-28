@@ -140,11 +140,11 @@ The constructor always sets the logger scope to `BaseWorkerHelper.name`, so `opt
 
 | Handler | Signature | Default behavior |
 |---------|-----------|-------------------|
-| `onOnline` | `() => ValueOrPromise<void>` | Logs `"Worker ONLINE"` at info level |
-| `onExit` | `(opts: { code: string \| number }) => ValueOrPromise<void>` | Logs `"Worker EXIT \| Code: %s"` at warn level |
-| `onError` | `(opts: { error: Error }) => ValueOrPromise<void>` | Logs `"Worker ERROR \| Error: %s"` at error level |
-| `onMessage` | `(opts: { message: MessageType }) => ValueOrPromise<void>` | Logs `"Worker MESSAGE \| message: %j"` at error level |
-| `onMessageError` | `(opts: { error: Error }) => ValueOrPromise<void>` | Logs `"Worker MESSAGE_ERROR \| Error: %s"` at error level |
+| `onOnline` | `() => TValueOrPromise<void>` | Logs `"Worker ONLINE"` at info level |
+| `onExit` | `(opts: { code: string \| number }) => TValueOrPromise<void>` | Logs `"Worker EXIT \| Code: %s"` at warn level |
+| `onError` | `(opts: { error: Error }) => TValueOrPromise<void>` | Logs `"Worker ERROR \| Error: %s"` at error level |
+| `onMessage` | `(opts: { message: MessageType }) => TValueOrPromise<void>` | Logs `"Worker MESSAGE \| message: %j"` at error level |
+| `onMessageError` | `(opts: { error: Error }) => TValueOrPromise<void>` | Logs `"Worker MESSAGE_ERROR \| Error: %s"` at error level |
 
 ### Methods
 
@@ -238,10 +238,10 @@ const handler = new BaseWorkerMessageBusHandlerHelper<MyPayload>({
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `scope` | `string` | - | Logger scope and identifier. Required. |
-| `onMessage` | `(opts: { message: IConsumePayload }) => ValueOrPromise<void>` | - | Handler called when a message is received on the port. Required. |
-| `onClose` | `() => ValueOrPromise<void>` | No-op `() => {}` | Handler called when the port emits `close`. |
-| `onError` | `(opts: { error: Error }) => ValueOrPromise<void>` | Logs `"worker error: %s"` at error level | Handler called on port `error` and `messageerror` events. |
-| `onExit` | `(opts: { exitCode: number \| string }) => ValueOrPromise<void>` | Logs `"worker EXITED | exitCode: %s"` at warn level | Handler called when the port emits `exit`. |
+| `onMessage` | `(opts: { message: IConsumePayload }) => TValueOrPromise<void>` | - | Handler called when a message is received on the port. Required. |
+| `onClose` | `() => TValueOrPromise<void>` | No-op `() => {}` | Handler called when the port emits `close`. |
+| `onError` | `(opts: { error: Error }) => TValueOrPromise<void>` | Logs `"worker error: %s"` at error level | Handler called on port `error` and `messageerror` events. |
+| `onExit` | `(opts: { exitCode: number \| string }) => TValueOrPromise<void>` | Logs `"worker EXITED | exitCode: %s"` at warn level | Handler called when the port emits `exit`. |
 
 ## BaseWorkerBusHelper (MessagePort communication)
 
@@ -279,7 +279,7 @@ The constructor binds `message`, `error`, `messageerror`, `exit`, and `close` li
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `postMessage` | `postMessage({ message: IPublishPayload, transferList }): ValueOrPromise<void>` | Sends a message through the port; `transferList` is `readonly Transferable[] \| undefined` |
+| `postMessage` | `postMessage({ message: IPublishPayload, transferList }): TValueOrPromise<void>` | Sends a message through the port; `transferList` is `readonly Transferable[] \| undefined` |
 
 `postMessage` calls `port.postMessage(message, [...transferList])` if `transferList` is set, otherwise `port.postMessage(message)`. It logs and returns, without throwing, if `port` is falsy.
 
@@ -325,11 +325,11 @@ interface IWorker<MessageType> {
   worker: Worker;
   options: WorkerOptions;
 
-  onOnline(): ValueOrPromise<void>;
-  onExit(opts: { code: string | number }): ValueOrPromise<void>;
-  onError(opts: { error: Error }): ValueOrPromise<void>;
-  onMessage(opts: { message: MessageType }): ValueOrPromise<void>;
-  onMessageError(opts: { error: Error }): ValueOrPromise<void>;
+  onOnline(): TValueOrPromise<void>;
+  onExit(opts: { code: string | number }): TValueOrPromise<void>;
+  onError(opts: { error: Error }): TValueOrPromise<void>;
+  onMessage(opts: { message: MessageType }): TValueOrPromise<void>;
+  onMessageError(opts: { error: Error }): TValueOrPromise<void>;
 }
 
 interface IWorkerThread {
@@ -337,22 +337,22 @@ interface IWorkerThread {
 }
 
 interface IWorkerMessageBusHandler<IConsumePayload> {
-  onMessage: (opts: { message: IConsumePayload }) => ValueOrPromise<void>;
-  onClose: () => ValueOrPromise<void>;
-  onError: (opts: { error: Error }) => ValueOrPromise<void>;
-  onExit: (opts: { exitCode: number | string }) => ValueOrPromise<void>;
+  onMessage: (opts: { message: IConsumePayload }) => TValueOrPromise<void>;
+  onClose: () => TValueOrPromise<void>;
+  onError: (opts: { error: Error }) => TValueOrPromise<void>;
+  onExit: (opts: { exitCode: number | string }) => TValueOrPromise<void>;
 }
 
 interface IWorkerBus<IConsumePayload, IPublishPayload> {
   port: MessagePort;
   handler: IWorkerMessageBusHandler<IConsumePayload>;
 
-  onBeforePostMessage?(opts: { message: IPublishPayload }): ValueOrPromise<void>;
-  onAfterPostMessage?(opts: { message: IPublishPayload }): ValueOrPromise<void>;
+  onBeforePostMessage?(opts: { message: IPublishPayload }): TValueOrPromise<void>;
+  onAfterPostMessage?(opts: { message: IPublishPayload }): TValueOrPromise<void>;
   postMessage(opts: {
     message: IPublishPayload;
     transferList: readonly Transferable[] | undefined;
-  }): ValueOrPromise<void>;
+  }): TValueOrPromise<void>;
 }
 ```
 

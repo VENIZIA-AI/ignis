@@ -28,10 +28,10 @@ Register the component with no configuration - `GET /health` and `POST /health/p
 immediately, and `GET /health/stats` is live when `NODE_ENV` names a development environment.
 
 ```typescript
-import { HealthCheckComponent, BaseApplication, ValueOrPromise } from '@venizia/ignis';
+import { HealthCheckComponent, BaseApplication, TValueOrPromise } from '@venizia/ignis';
 
 export class Application extends BaseApplication {
-  preConfigure(): ValueOrPromise<void> {
+  preConfigure(): TValueOrPromise<void> {
     this.component(HealthCheckComponent);
   }
 }

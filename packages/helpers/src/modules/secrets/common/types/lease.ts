@@ -1,4 +1,4 @@
-import type { ValueOrPromise } from '@/common/types';
+import type { TValueOrPromise } from '@/common/types';
 
 /** A dynamic, lease-bearing secret (e.g. Vault `database/creds/...`). */
 export interface ISecretLease {
@@ -15,7 +15,7 @@ export interface ISecretRotationEvent {
 }
 
 /** Callback run when a leased secret is renewed with new values; may be async. */
-export type TSecretRotationHandler = (event: ISecretRotationEvent) => ValueOrPromise<void>;
+export type TSecretRotationHandler = (event: ISecretRotationEvent) => TValueOrPromise<void>;
 
 /** A live consumer (pool holder) that rebuilds gracefully when its secret rotates. */
 export interface ISecretRotatable {

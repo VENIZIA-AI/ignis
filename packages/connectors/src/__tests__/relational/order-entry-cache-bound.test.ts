@@ -1,4 +1,4 @@
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { describe, expect, test } from 'bun:test';
 import { jsonb, pgTable, serial, text } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
@@ -44,7 +44,7 @@ const retainedHeapAfter = (opts: {
     try {
       dialect.toOrderBy({ tableName: TABLE_NAME, schema: table, order: [entry] });
     } catch (error) {
-      if (!isApplicationError(error) || error.statusCode !== 400) {
+      if (!ApplicationError.isApplicationError(error) || error.statusCode !== 400) {
         throw error;
       }
     }

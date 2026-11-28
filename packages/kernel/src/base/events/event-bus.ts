@@ -1,6 +1,6 @@
 import { ObjectUtility } from '@venizia/ignis-helpers/common';
 import type { Container } from '@/helpers/inversion/container';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   BaseHelper,
   getError,
@@ -21,7 +21,7 @@ import type {
  * `dispatch` never has to branch on either. */
 interface IResolvedEventRegistration {
   // A method signature on purpose: its parameter is bivariant, so a registration holds the invoker of any payload type, which the registry cannot tell apart.
-  invokeHandler(opts: { event: IDomainEvent<unknown> }): ValueOrPromise<void>;
+  invokeHandler(opts: { event: IDomainEvent<unknown> }): TValueOrPromise<void>;
   /** For the exhaustion log line only - a binding key or `<function fn.name>`. */
   description: string;
   maxAttempts: number;
@@ -117,7 +117,7 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
     handler: TEventHandlerReference<TPayload>;
     name: string;
   }): {
-    invokeHandler: (opts: { event: IDomainEvent<TPayload> }) => ValueOrPromise<void>;
+    invokeHandler: (opts: { event: IDomainEvent<TPayload> }) => TValueOrPromise<void>;
     description: string;
   } {
     const { container, handler, name } = opts;

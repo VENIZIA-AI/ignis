@@ -1,7 +1,7 @@
 import { BaseRestController } from '@/base/controllers';
 import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
-import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { ServerInfoCacheControls, ServerInfoRestPaths } from './common';
 import { ServerInfoReporter } from './reporter';
 
@@ -60,7 +60,7 @@ export class ServerInfoController extends BaseRestController {
     this.definitions = RouteConfigs;
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.bindRoute({ configs: RouteConfigs.TIME }).to({
       handler: (context) => {
         // A cached time is a wrong time; without this a cache or a service worker may serve it stale.

@@ -3,7 +3,7 @@ import 'reflect-metadata';
 import { ServerApplication } from '@/base/applications';
 import type { IServerApplicationConfigs } from '@/base/applications';
 import type { IApplicationInfo } from '@venizia/ignis-kernel';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
 const DEFAULT_SERVER_HOST = 'localhost';
@@ -13,7 +13,7 @@ const DEFAULT_SERVER_PORT = 3000;
 const ADDRESS_ENV_KEYS = ['HOST', 'APP_ENV_SERVER_HOST', 'PORT', 'APP_ENV_SERVER_PORT'];
 
 class AddressApplication extends ServerApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'address-app', version: '0.0.0', description: 'Address resolution probe' };
   }
 

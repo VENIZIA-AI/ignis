@@ -12,11 +12,10 @@ import { BaseSearchConnector } from '@/search/core';
 import { SearchConnectorInternal } from '@/search/core/internal';
 import type { ISynonym } from '@/search/core/models';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { getError, isApplicationError, RecordUtility } from '@venizia/ignis-helpers/core';
+import { getError, ApplicationError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { Client } from 'typesense';
 import {
   EntryOutcomes,
-  isSynonymResponse,
   TypesenseInternal,
   TypesenseMapper,
   TypesensePayloadReader,
@@ -432,7 +431,9 @@ export class TypesenseConnector extends BaseSearchConnector {
         const items =
           RecordUtility.isRecord(result) && Array.isArray(result.items) ? result.items : [];
 
-        return items.filter(isSynonymResponse).map((value) => TypesenseMapper.toSynonym({ value }));
+        return items
+          .filter(TypesenseMapper.isSynonymResponse)
+          .map((value) => TypesenseMapper.toSynonym({ value }));
       },
       tolerate: this.notFoundFallback({
         method: this.getSynonymSet.name,
@@ -867,7 +868,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       };
 
       // Re-wrapping an ApplicationError would erase its statusCode/messageCode, so merge progress onto it instead of replacing it.
-      if (isApplicationError(error)) {
+      if (ApplicationError.isApplicationError(error)) {
         const previous = error.extra?.['details'];
         error.extra = {
           ...error.extra,
@@ -1093,7 +1094,7 @@ export class TypesenseConnector extends BaseSearchConnector {
     try {
       yield* TypesenseInternal.toLines({ source });
     } catch (error) {
-      if (isApplicationError(error)) {
+      if (ApplicationError.isApplicationError(error)) {
         throw error;
       }
 

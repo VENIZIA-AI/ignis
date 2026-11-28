@@ -22,12 +22,12 @@ import {
   JOSEStandards,
   JWSAuthenticationStrategy,
   TJWTTokenServiceOptions,
-  ValueOrPromise,
+  TValueOrPromise,
 } from '@venizia/ignis';
 import { AppEnvs } from '@venizia/ignis-helpers';
 
 export class Application extends BaseApplication {
-  preConfigure(): ValueOrPromise<void> {
+  preConfigure(): TValueOrPromise<void> {
     this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
       standard: JOSEStandards.JWS,
       options: {

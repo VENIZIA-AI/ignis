@@ -5,7 +5,7 @@ import type { TTableObject } from '@/relational/core/models';
 import type { TSoftDeletableTableSchema } from '@/relational/core/repositories/core/soft-deletable';
 import type { TRepositoryPort, TSoftDeletablePort } from './repository-port';
 import type { TScopeResolution } from './scope-resolution';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { RepositoryErrorCodes, ScopeOperations } from '@venizia/ignis-kernel';
 import type { ITransaction, TScopeOperation } from '@venizia/ignis-kernel';
 import { describe, expect, spyOn, test } from 'bun:test';
@@ -98,11 +98,11 @@ const flippingDeletedAt = (opts: { status: string }) => {
 };
 
 const codeOf = (error: unknown): unknown => {
-  return isApplicationError(error) ? error.normalized.code : undefined;
+  return ApplicationError.isApplicationError(error) ? error.normalized.code : undefined;
 };
 
 const statusOf = (error: unknown): unknown => {
-  return isApplicationError(error) ? error.statusCode : undefined;
+  return ApplicationError.isApplicationError(error) ? error.statusCode : undefined;
 };
 
 const messageOf = (error: unknown): string => {

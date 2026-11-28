@@ -31,7 +31,7 @@ Every error condition the WebSocket component and helper can raise, plus fixes f
 | Method | Condition | Error Message |
 |--------|-----------|---------------|
 | `binding()` | `application` is falsy | `"[binding] Invalid application to bind WebSocketComponent"` |
-| `resolveBindings()` | `REDIS_CONNECTION` fails `isRedisHelper()` | `"[WebSocketComponent][resolveBindings] Invalid instance of redisConnection ..."` |
+| `resolveBindings()` | `REDIS_CONNECTION` fails `AbstractRedisHelper.isRedisHelper()` | `"[WebSocketComponent][resolveBindings] Invalid instance of redisConnection ..."` |
 | `resolveBindings()` | `AUTHENTICATE_HANDLER` is falsy | `"[WebSocketComponent] Invalid authenticateFn to setup WebSocket server!"` |
 | `registerBunHook()` | Bun server instance not available | `"[WebSocketComponent] Bun server instance not available!"` |
 
@@ -44,7 +44,7 @@ Every error condition the WebSocket component and helper can raise, plus fixes f
 
 ### "Invalid instance of redisConnection"
 
-- **Cause:** The value bound to `REDIS_CONNECTION` is not a Redis helper (it fails `isRedisHelper`). It is not a `RedisSingleHelper`, `RedisClusterHelper`, or `RedisSentinelHelper`.
+- **Cause:** The value bound to `REDIS_CONNECTION` is not a Redis helper (it fails `AbstractRedisHelper.isRedisHelper`). It is not a `RedisSingleHelper`, `RedisClusterHelper`, or `RedisSentinelHelper`.
 - **Fix:** Bind one of the concrete topology helpers, not a raw `ioredis` client.
 
 ```typescript

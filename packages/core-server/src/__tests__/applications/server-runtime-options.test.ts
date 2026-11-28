@@ -3,11 +3,11 @@ import 'reflect-metadata';
 import { ServerApplication } from '@/base/applications';
 import type { IServerApplicationConfigs, IServerRuntimeConfigs } from '@/base/applications';
 import type { IApplicationInfo } from '@venizia/ignis-kernel';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 
 class RuntimeOptionsApplication extends ServerApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return {
       name: 'runtime-options-app',
       version: '0.0.0',

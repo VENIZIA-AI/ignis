@@ -126,7 +126,7 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
       return enforcer;
     }
 
-    // `Promise.resolve` because `configure()` is declared `ValueOrPromise<void>` - a synchronous
+    // `Promise.resolve` because `configure()` is declared `TValueOrPromise<void>` - a synchronous
     // implementation returns plain `void`, which has no `.then`.
     // One configuration serves every caller waiting for it, so it starts from nothing.
     const pending = Promise.resolve(ExecutionFrames.root({ task: () => enforcer.configure() }))

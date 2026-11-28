@@ -6,7 +6,7 @@ import { useRequestContext } from '@/base/metadata';
 import { Execution, ExecutionModes } from '@/helpers';
 import type { IApplicationInfo } from '@venizia/ignis-kernel';
 import { Authentication, RequestContextRegistry } from '@venizia/ignis-kernel';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 
 /** What the frame of the caller looks like, safe to answer as JSON. */
@@ -25,7 +25,7 @@ const describeFrame = () => {
 };
 
 class FrameApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'frame-app', version: '0.0.0', description: 'Execution frames' };
   }
 

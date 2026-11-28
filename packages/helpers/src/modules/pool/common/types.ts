@@ -1,4 +1,4 @@
-import { type TNullable, type ValueOrPromise } from '@/common/types';
+import { type TNullable, type TValueOrPromise } from '@/common/types';
 
 /** Snapshot of a pool: `size` is its configured cap, `available` counts idle resources, `borrowed` those handed out, `pending` the queued acquirers. */
 export interface IPoolStats {
@@ -17,7 +17,7 @@ export interface IPool<T> {
   release(opts: { resource: T }): void;
 
   /** acquire → run execution → release on success; on ANY error DISCARD (destroy) the resource + rethrow. */
-  use<R>(opts: { execution: (resource: T) => ValueOrPromise<R> }): Promise<R>;
+  use<R>(opts: { execution: (resource: T) => TValueOrPromise<R> }): Promise<R>;
 
   /** Remove a borrowed resource from the pool and destroy it. */
   discard(opts: { resource: T }): Promise<void>;
@@ -48,16 +48,16 @@ export interface IPoolControlOptions {
 /** Options for the callback-configured {@link BasePoolHelper}: control knobs plus resource lifecycle as callbacks (AbstractPoolHelper subclasses may instead override the protected hooks directly). */
 export interface IPoolOptions<T> extends IPoolControlOptions {
   /** Factory to create one resource. */
-  create: () => ValueOrPromise<T>;
+  create: () => TValueOrPromise<T>;
 
   /** Teardown on destroy()/discard()/validate-fail/reset-fail. */
-  destroy?: (resource: T) => ValueOrPromise<void>;
+  destroy?: (resource: T) => TValueOrPromise<void>;
 
   /** Checked when an idle resource is about to be handed out; false → destroyed + replaced. */
-  validate?: (resource: T) => ValueOrPromise<boolean>;
+  validate?: (resource: T) => TValueOrPromise<boolean>;
 
   /** Run on an idle resource just before hand-out (e.g. clear state). Throw → resource discarded. */
-  reset?: (resource: T) => ValueOrPromise<void>;
+  reset?: (resource: T) => TValueOrPromise<void>;
 }
 
 /** One queued acquirer. Cancellation/skip is owned by the FifoQueue; this only carries the settlers. */

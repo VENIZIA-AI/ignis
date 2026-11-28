@@ -7,7 +7,7 @@ import {
   ServerApplication,
 } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { describe, expect, test } from 'bun:test';
 
@@ -21,7 +21,7 @@ const buildConfigs = (opts?: Partial<IApplicationConfigs>): IApplicationConfigs 
 };
 
 class ConcreteServerApplication extends ServerApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'server-app', version: '0.0.0', description: 'Server-capable test app' };
   }
 

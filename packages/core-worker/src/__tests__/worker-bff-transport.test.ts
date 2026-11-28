@@ -1,7 +1,7 @@
 import { describe, expect, spyOn, test } from 'bun:test';
 import assert from 'node:assert';
 import path from 'node:path';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { WorkerBffTransport } from '@/transport/worker';
 import type {
   IBffErrorEnvelope,
@@ -220,7 +220,9 @@ describe('WorkerBffTransport', () => {
     }
 
     expect(caught).toBeDefined();
-    expect(isApplicationError(caught) ? caught.message : String(caught)).toContain('Timed out');
+    expect(ApplicationError.isApplicationError(caught) ? caught.message : String(caught)).toContain(
+      'Timed out',
+    );
   });
 
   test('rejects with the status code the worker sent, not a fabricated 400', async () => {
@@ -248,7 +250,7 @@ describe('WorkerBffTransport', () => {
       caught = error;
     }
 
-    assert(isApplicationError(caught));
+    assert(ApplicationError.isApplicationError(caught));
     expect(caught.statusCode).toBe(503);
   });
 
@@ -537,8 +539,8 @@ describe('WorkerBffTransport - a malformed answer', () => {
       caught = error;
     }
 
-    expect(isApplicationError(caught) && caught.normalized.args).toEqual({});
-    expect(isApplicationError(caught) && caught.statusCode).toBe(422);
+    expect(ApplicationError.isApplicationError(caught) && caught.normalized.args).toEqual({});
+    expect(ApplicationError.isApplicationError(caught) && caught.statusCode).toBe(422);
   });
 
   test('the rejection after a worker error names the message, file, line and column', async () => {

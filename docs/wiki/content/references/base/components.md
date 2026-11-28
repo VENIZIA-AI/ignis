@@ -326,7 +326,7 @@ With `initDefault.enable` set, `container` is usually the application instance, 
 
 | Method | Signature | Description |
 | :--- | :--- | :--- |
-| `binding()` | `abstract binding(): ValueOrPromise<void>` | **Abstract.** Override this to register services, controllers, and other resources. Called by `configure()`. |
+| `binding()` | `abstract binding(): TValueOrPromise<void>` | **Abstract.** Override this to register services, controllers, and other resources. Called by `configure()`. |
 | `configure(opts?)` | `async configure(opts?: ConfigurableOptions): Promise<void>` | Entry point. Calls `initDefaultBindings()` (if enabled), then `binding()`. Idempotent - skips if already configured. |
 | `initDefaultBindings(opts)` | `protected initDefaultBindings(opts: { container: Container }): void` | Iterates `this.bindings` and registers each into the container if not already bound. |
 
@@ -515,7 +515,7 @@ export class GrpcBindingKeys {
 
 ```typescript
 // src/components/health-check/component.ts
-import { BaseApplication, BaseComponent, controller, inject, CoreBindings, Binding, ValueOrPromise } from '@venizia/ignis';
+import { BaseApplication, BaseComponent, controller, inject, CoreBindings, Binding, TValueOrPromise } from '@venizia/ignis';
 import { HealthCheckBindingKeys, IHealthCheckOptions } from './common';
 import { HealthCheckController } from './controller';
 
@@ -544,7 +544,7 @@ export class HealthCheckComponent extends BaseComponent {
   }
 
   // 5. Configure resources in binding()
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     // Read options (may have been overridden by user)
     const healthOptions = this.application.get<IHealthCheckOptions>({
       key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS,
@@ -565,7 +565,7 @@ export class HealthCheckComponent extends BaseComponent {
 
 ```typescript
 // src/components/auth/authenticate/component.ts
-import { BaseApplication, BaseComponent, inject, CoreBindings, Binding, ValueOrPromise } from '@venizia/ignis';
+import { BaseApplication, BaseComponent, inject, CoreBindings, Binding, TValueOrPromise } from '@venizia/ignis';
 import { getError } from '@venizia/ignis-helpers';
 import {
   AuthenticateBindingKeys,
@@ -594,7 +594,7 @@ export class AuthenticateComponent extends BaseComponent {
     });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     const jwtOptions = this.application.get<TJWTTokenServiceOptions>({
       key: AuthenticateBindingKeys.JWT_OPTIONS,
       isOptional: true,
@@ -651,7 +651,7 @@ When controllers need to be dynamically configured:
 
 ```typescript
 // src/components/static-asset/component.ts (condensed)
-override binding(): ValueOrPromise<void> {
+override binding(): TValueOrPromise<void> {
   const componentOptions = this.application.get<TStaticAssetComponentOptions>({
     key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
   });
@@ -742,7 +742,7 @@ The most common pattern - override options before registering the component:
 import { HealthCheckComponent, HealthCheckBindingKeys, IHealthCheckOptions } from '@venizia/ignis';
 
 export class Application extends BaseApplication {
-  preConfigure(): ValueOrPromise<void> {
+  preConfigure(): TValueOrPromise<void> {
     // 1. Override options BEFORE registering component
     this.bind<IHealthCheckOptions>({ key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS })
       .toValue({
@@ -761,7 +761,7 @@ For partial overrides, merge with defaults in the component:
 
 ```typescript
 // In your component's binding() method
-override binding(): ValueOrPromise<void> {
+override binding(): TValueOrPromise<void> {
   const extraOptions = this.application.get<Partial<IMyOptions>>({
     key: MyBindingKeys.OPTIONS,
     isOptional: true,
@@ -779,7 +779,7 @@ override binding(): ValueOrPromise<void> {
 For complex nested configurations:
 
 ```typescript
-override binding(): ValueOrPromise<void> {
+override binding(): TValueOrPromise<void> {
   const extraOptions = this.application.get<Partial<IApiReferenceOptions>>({
     key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS,
     isOptional: true,
@@ -851,7 +851,7 @@ export * from './constants';
 export * from './rest-paths';
 
 // component.ts
-import { BaseApplication, BaseComponent, inject, CoreBindings, Binding, ValueOrPromise } from '@venizia/ignis';
+import { BaseApplication, BaseComponent, inject, CoreBindings, Binding, TValueOrPromise } from '@venizia/ignis';
 import { MyComponentBindingKeys, IMyComponentOptions } from './common';
 import { MyController } from './controller';
 
@@ -875,7 +875,7 @@ export class MyComponent extends BaseComponent {
     });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     const options = this.application.get<IMyComponentOptions>({
       key: MyComponentBindingKeys.OPTIONS,
       isOptional: true,

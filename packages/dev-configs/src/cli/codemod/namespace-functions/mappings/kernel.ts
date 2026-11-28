@@ -11,6 +11,19 @@ const WITH_REPOSITORY = [
   '@venizia/ignis',
 ];
 
+/** The type guard of `@venizia/ignis-kernel`, which keeps its positional argument. */
+export const KERNEL_GUARD_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
+  {
+    modules: ROOT,
+    oldName: 'isDataSourceClass',
+    className: 'DataSourceRoot',
+    method: 'isDataSourceClass',
+    params: [],
+    keepsOptions: true,
+    isTypeGuard: true,
+  },
+];
+
 /**
  * The functions of `@venizia/ignis-kernel` that moved into a class.
  *
@@ -22,10 +35,11 @@ const WITH_REPOSITORY = [
  * Left as functions on purpose, so not listed: the decorators (`injectable`, `service`, `component`,
  * `configuration`, `provide`, `inject`, `model`, `datasource`, `repository`, `controller`, `api`,
  * `get`, `post`, `put`, `patch`, `del`, `rpc`, `unary`, `serverStream`, `clientStream`,
- * `bidiStream`), the middleware DSL (`authenticate`, `authorize`, `notFoundHandler`), the type
- * guard `isDataSourceClass`, and `getDroppedRouteDecorators`, whose class is not exported.
+ * `bidiStream`), the middleware DSL (`authenticate`, `authorize`, `notFoundHandler`), and
+ * `getDroppedRouteDecorators`, whose class is not exported.
  */
 export const KERNEL_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
+  ...KERNEL_GUARD_MAPPINGS,
   {
     modules: ROOT,
     oldName: 'htmlContent',

@@ -1,6 +1,6 @@
 import { RecordUtility } from '@/utilities/record.utility';
 import { HTTP } from '@/common';
-import { type ValueOrPromise } from '@/common/types';
+import { type TValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { RedisUtility, type TRedisClient } from '@/modules/redis';
@@ -257,7 +257,7 @@ export class WebSocketServerHelper<
   }
 
   /** Hooks run inside Bun socket handlers - a sync throw there kills the process; fireAndForget only catches promise rejections since its argument is evaluated before the try/catch runs. */
-  protected invokeHook(opts: { scope: string; execution: () => ValueOrPromise<void> }) {
+  protected invokeHook(opts: { scope: string; execution: () => TValueOrPromise<void> }) {
     const { scope, execution } = opts;
 
     try {

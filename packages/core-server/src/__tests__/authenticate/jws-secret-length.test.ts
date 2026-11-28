@@ -3,7 +3,7 @@ import 'reflect-metadata';
 import { BaseApplication } from '@/base/applications';
 import { AuthenticateComponent } from '@/components/auth/authenticate/component';
 import { JWSTokenService } from '@/components/auth/authenticate/services/bearer/jws.service';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   AuthenticateBindingKeys,
   JOSEStandards,
@@ -23,7 +23,7 @@ const CONFIGS: IApplicationConfigs = {
 };
 
 class ProbeApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'secret-length', version: '0.0.0', description: 'secret length probe' };
   }
 

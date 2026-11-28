@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
-import type { ApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { Sorts } from '@venizia/ignis-filter';
 import type { TParsedOrderEntry, TSortDirection } from '@venizia/ignis-filter';
 
@@ -14,7 +13,7 @@ const captureError = (task: () => unknown): ApplicationError => {
   try {
     task();
   } catch (error) {
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       return error;
     }
 

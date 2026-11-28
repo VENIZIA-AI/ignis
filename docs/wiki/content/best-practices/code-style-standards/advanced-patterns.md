@@ -67,7 +67,7 @@ class CrudControllerFactory extends BaseHelper {
 
     // The entity comes from @repository({ model }) on the repository class
     const model = MetadataRegistry.getInstance().getRepositoryBinding({ target: repository })?.model;
-    const entityClass = isClass(model) ? model : model();
+    const entityClass = ResolverUtility.isClass(model) ? model : model();
     const entityInstance = new entityClass();
 
     // Derive request/response schemas + route configs from the entity; only listed routes get one
@@ -87,7 +87,7 @@ class CrudControllerFactory extends BaseHelper {
       }
 
       /** Registers each listed CRUD route handler, after the subclass's binding(). */
-      override bindDefaultRoutes(): ValueOrPromise<void> {
+      override bindDefaultRoutes(): TValueOrPromise<void> {
         if (definitions.FIND) {
           this.defineRoute({
             configs: definitions.FIND,
@@ -123,10 +123,12 @@ Support multiple input types that resolve to a single value:
 ```typescript
 export type TResolver<T> = (...args: never[]) => T;
 export type TValueOrResolver<T> = T | TResolver<T>;
-declare const isClass: <T>(target: unknown) => target is TClass<T>;
+declare class ResolverUtility {
+  static isClass<T>(target: unknown): target is TClass<T>;
+}
 ```
 
-`isClass` tells a class constructor from an arrow or regular function by testing the function's source against `/^class[\s{]/`, since every non-arrow function has a prototype. It is sound only on ES2020+ output.
+`ResolverUtility.isClass` tells a class constructor from an arrow or regular function by testing the function's source against `/^class[\s{]/`, since every non-arrow function has a prototype. It is sound only on ES2020+ output.
 
 ```typescript
 // A resolver is anything callable that is not a class - a class is a value, never a factory
@@ -134,7 +136,7 @@ export class ResolverUtility {
   private static isResolver<T>(
     valueOrResolver: TValueOrResolver<T>,
   ): valueOrResolver is TResolver<T> {
-    return typeof valueOrResolver === 'function' && !isClass(valueOrResolver);
+    return typeof valueOrResolver === 'function' && !ResolverUtility.isClass(valueOrResolver);
   }
 
   // ResolverUtility.resolveValue is declared in @venizia/ignis-inversion

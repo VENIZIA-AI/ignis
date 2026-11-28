@@ -165,13 +165,13 @@ describe('devz codemod class-renames: the rewrite', () => {
     );
     const second = rewrite(first.output);
 
-    expect(second).toEqual({ output: first.output, changed: false, rewritten: 0 });
+    expect(second).toEqual({ output: first.output, changed: false, rewritten: 0, manual: [] });
   });
 
   test('a file with no import of a renamed class is not changed', () => {
     const source = `const RetryHelper = 1;\nexport { RetryHelper };\n`;
 
-    expect(rewrite(source)).toEqual({ output: source, changed: false, rewritten: 0 });
+    expect(rewrite(source)).toEqual({ output: source, changed: false, rewritten: 0, manual: [] });
   });
 
   test('--reverse renames the new names back', () => {

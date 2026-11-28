@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test
 import { getError } from '@/modules/error';
 import { ErrorUtility } from '@/utilities/error.utility';
 import { ParseUtility } from '@/utilities/parse.utility';
-import { Execution, isPromiseLike } from '@/modules/execution';
+import { Execution } from '@/modules/execution';
 
 const defer = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -168,20 +168,20 @@ describe('Execution.withLimit', () => {
   });
 });
 
-describe('isPromiseLike', () => {
+describe('Execution.isPromiseLike', () => {
   test('detects native promises and thenables, rejects everything else', () => {
-    expect(isPromiseLike(Promise.resolve(1))).toBe(true);
-    expect(isPromiseLike({ then: () => undefined })).toBe(true);
+    expect(Execution.isPromiseLike(Promise.resolve(1))).toBe(true);
+    expect(Execution.isPromiseLike({ then: () => undefined })).toBe(true);
 
     const thenableFunction = Object.assign(() => undefined, { then: () => undefined });
-    expect(isPromiseLike(thenableFunction)).toBe(true);
+    expect(Execution.isPromiseLike(thenableFunction)).toBe(true);
 
-    expect(isPromiseLike(null)).toBe(false);
-    expect(isPromiseLike(undefined)).toBe(false);
-    expect(isPromiseLike(0)).toBe(false);
-    expect(isPromiseLike('then')).toBe(false);
-    expect(isPromiseLike({ then: 'not-a-function' })).toBe(false);
-    expect(isPromiseLike({})).toBe(false);
+    expect(Execution.isPromiseLike(null)).toBe(false);
+    expect(Execution.isPromiseLike(undefined)).toBe(false);
+    expect(Execution.isPromiseLike(0)).toBe(false);
+    expect(Execution.isPromiseLike('then')).toBe(false);
+    expect(Execution.isPromiseLike({ then: 'not-a-function' })).toBe(false);
+    expect(Execution.isPromiseLike({})).toBe(false);
   });
 });
 

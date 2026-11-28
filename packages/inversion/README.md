@@ -103,7 +103,7 @@ trailing parameter receives `undefined`.
 The package also holds the error type the whole framework throws.
 
 ```typescript
-import { getError, isApplicationError } from '@venizia/ignis-inversion';
+import { ApplicationError, getError } from '@venizia/ignis-inversion';
 
 try {
   throw getError({
@@ -111,7 +111,7 @@ try {
     statusCode: 404,
   });
 } catch (error) {
-  if (isApplicationError(error)) {
+  if (ApplicationError.isApplicationError(error)) {
     console.log(error.statusCode, error.normalized); // 404 { text, code, args }
   }
 }
@@ -122,7 +122,7 @@ try {
 becomes `text`. A missing code becomes `MessageCode.DEFAULT` (`core.system_error`). Unknown
 top-level keys go into `extra`.
 
-Test with `isApplicationError(error)`, not `instanceof ApplicationError`. Two installed copies of the
+Test with `ApplicationError.isApplicationError(error)`, not `instanceof ApplicationError`. Two installed copies of the
 package (two versions nested by a package manager) each hold their own class, and `instanceof` fails across them.
 
 ## Entry points

@@ -19,6 +19,7 @@ Commands:
   codemod connector-imports [paths...]          move @venizia/ignis/<connector sub-path> imports to @venizia/ignis-connectors (dry run unless --write)
   codemod env-get [paths...]                    strip the type arguments of AppEnvs.get() for the string-reading get() (dry run unless --write)
   codemod any-aliases [paths...]                replace the removed AnyType and AnyObject aliases by what they stood for, any (--strict: unknown and Record<string, unknown>; dry run unless --write)
+  codemod public-names [paths...]               rename ValueOf, ValueOrPromise, TConstructor and TAbstractConstructor and move the type guard functions to their class (dry run unless --write)
 
 Run \`devz clean --help\` or \`devz codemod --help\` for a command's options.`;
 

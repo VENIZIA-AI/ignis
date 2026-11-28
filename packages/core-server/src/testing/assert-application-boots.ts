@@ -2,7 +2,7 @@ import type { BaseApplication } from '@/base/applications';
 import { ServerBootSteps, type TServerBootStep } from '@/base/applications';
 import type { IConfigurable, TClass } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import { BindingVerifier, isClass } from '@venizia/ignis-inversion';
+import { BindingVerifier, ResolverUtility } from '@venizia/ignis-inversion';
 import {
   type AbstractRestController,
   AuthorizationEnforcerRegistry,
@@ -176,7 +176,7 @@ const assertNoDuplicateRoutes = (opts: { application: BaseApplication }): void =
     }
 
     // A bound controller is a class; this narrows it for the `prototype` read below.
-    if (!isClass(target)) {
+    if (!ResolverUtility.isClass(target)) {
       continue;
     }
 
