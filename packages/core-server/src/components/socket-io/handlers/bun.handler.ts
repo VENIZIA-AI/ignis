@@ -13,6 +13,7 @@ export class SocketIOBunHandler {
       path: serverOptions.path ?? '/socket.io/',
       ...(corsConfig && {
         cors: {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- socket.io types `origin` wider than the option of `@socket.io/bun-engine` declares
           origin: corsConfig.origin as string | RegExp | (string | RegExp)[] | undefined,
           methods: corsConfig.methods,
           credentials: corsConfig.credentials,

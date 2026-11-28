@@ -69,10 +69,10 @@ export abstract class AbstractGrpcController<
     this.router = new Hono<RouteEnv, RouteSchema, BasePath>();
 
     if (decoratorMetadata?.transport === ControllerTransports.GRPC && decoratorMetadata.service) {
-      // Decorator metadata stores `service` as `unknown`; ServiceType is this class's own generic, resolved only by convention at the decorator site.
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- decorator metadata keeps `service` as `unknown`; `ServiceType` is this class's generic, tied to it only at the decorator
       this.service = decoratorMetadata.service as ServiceType;
     } else {
-      // ServiceType is unconstrained (no `extends` bound), so `undefined` cannot be proven to overlap it - this is the "not yet resolved" sentinel until binding() configures it.
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `ServiceType` is unbounded, so `undefined` cannot be shown to overlap it: the value is unset until `binding()`
       this.service = undefined as ServiceType;
     }
   }
@@ -100,7 +100,7 @@ export abstract class AbstractGrpcController<
       if (strategies.length > 0) {
         const authMw = authenticateFn({ strategies, mode });
 
-        // authMw is a Hono MiddlewareHandler built for raw Context<Env>; TRouteContext is a lightweight custom shape (different `json`/`req.valid` signatures), not a subtype - genuinely different context types bridged here.
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the middleware is typed for Hono's `Context`; `TRouteContext` declares `json` and `req.valid` differently and is no subtype
         mws.push((context, next) => authMw(context as any, next));
       }
     }
@@ -113,7 +113,7 @@ export abstract class AbstractGrpcController<
 
       for (const spec of specs) {
         const authzMw = authorizeFn({ spec });
-        // Same TRouteContext-vs-Context<Env> bridge as authMw above.
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the middleware is typed for Hono's `Context`; `TRouteContext` declares `json` and `req.valid` differently and is no subtype
         mws.push((context, next) => authzMw(context as any, next));
       }
     }
@@ -150,6 +150,7 @@ export abstract class AbstractGrpcController<
       const configs = this.getRouteConfigs({ configs: rpcMetadata });
 
       this.bindRoute({ configs }).to({
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the method is found by its decorated name; it is checked to be a function, and its signature is the decorator's promise
         handler: (handler as TRpcHandler<unknown, unknown, RouteEnv>).bind(this),
       });
 

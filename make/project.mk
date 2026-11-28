@@ -75,7 +75,7 @@ rebuild: typecheck clean
 
 lint:
 	@$(BIN)/oxlint -c .configs/lints/oxlint.config.mts --deny-warnings $(LINT_IGNORE_FLAGS) .
-	@$(BIN)/eslint -c .configs/lints/eslint.config.mjs $(LINT_IGNORE_FLAGS) .
+	@$(BIN)/eslint -c .configs/lints/eslint.config.mjs --max-warnings 0 $(LINT_IGNORE_FLAGS) .
 	@bun fmt $(BUN_FMT_FLAGS) --check $(FMT_GLOB) $(LINT_IGNORE_FLAGS)
 
 lint-fix:
