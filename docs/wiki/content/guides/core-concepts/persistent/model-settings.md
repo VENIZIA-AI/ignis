@@ -773,12 +773,12 @@ This is a check in your code, not a scope: nothing stops another code path from 
 
 A refused write is an `ApplicationError` with HTTP status `403` and the code `core.repository.scope_write_denied`, held by `RepositoryErrorCodes.SCOPE_WRITE_DENIED` for code that matches on it. The message names the entity and the column, never a value, because the caller may be a request.
 
-| Message (after the leading `[create]` or `[update]`) | Cause |
+| Message (after the leading `[create]`, `[update]` or `[delete]`; a restore reports `[update]`) | Cause |
 |---|---|
 | `write refused by the access scope \| entity: Product \| column: merchantId \| the value is outside the resolved scope` | A row names another merchant, or `null` without `sharedRows` |
 | `... \| column: merchantId \| the scope column is missing` | A created row has no scope column and the mode is `reject` |
 | `... \| the resolved scope cannot be verified on a write \| column 'merchantId': ...` | The scope is an `or` over several columns, a range or another shape the guard cannot read |
-| `... \| no scope could be resolved for this caller` | `resolve()` returned `null` and `onMissing` is `'deny'`, on a create, update, delete or restore |
+| `... \| no scope could be resolved for this caller` | `resolve()` returned `null` and `onMissing` is `'deny'`, on a create, update, delete or restore. An `updateBy` or `deleteBy` with an empty `where` and no `force` answers this `403` before the `400` for the missing `force` |
 
 The tail of the "cannot be verified" message names the column and the operator, for example `column 'merchantId': the operator 'gt' cannot be checked on a write`.
 

@@ -16,8 +16,9 @@ import { Authentication, RequestContextRegistry } from '@venizia/ignis-kernel';
 export class AuditUserResolver {
   static resolveAuditUserId<T>(opts: { allowAnonymous: boolean; columnField: string }): T | null {
     const context = RequestContextRegistry.resolve();
-    // The user the frame names wins over the one its request's authentication set.
-    const frameUserId = Execution.current()?.userId;
+    // The user the frame names wins over the one its request's authentication set. An empty text names nobody.
+    const named = Execution.current()?.userId;
+    const frameUserId = named === '' ? undefined : named;
 
     if (!context && frameUserId === undefined) {
       if (!opts.allowAnonymous) {
@@ -30,14 +31,16 @@ export class AuditUserResolver {
     }
 
     const userId: unknown = frameUserId ?? context?.get(Authentication.AUDIT_USER_ID);
+    // `0` is a user.
+    const isMissing = userId === undefined || userId === null || userId === '';
 
-    if (!userId && !opts.allowAnonymous) {
+    if (isMissing && !opts.allowAnonymous) {
       throw getError({
-        message: `[getCurrentUserId] No AUDIT_USER_ID found in request context | columnName: ${opts.columnField} | allowAnonymous: ${opts.allowAnonymous} | userId: ${userId}`,
+        message: `[getCurrentUserId] No AUDIT_USER_ID found in request context | columnName: ${opts.columnField} | allowAnonymous: ${opts.allowAnonymous} | userId: ${String(userId)}`,
       });
     }
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the request context holds whatever the application's authentication put there; the caller names its type
-    return (userId as T) ?? null;
+    return isMissing ? null : (userId as T);
   }
 }

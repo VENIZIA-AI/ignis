@@ -1,6 +1,7 @@
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
 import type { TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { ExecutionModes } from '@venizia/ignis-helpers/core';
 import {
   datasource,
   model,
@@ -217,6 +218,22 @@ describe('access.through on SQLite', () => {
 
     expect(names(unrestricted)).toEqual(['o1', 'o2', 'o3']);
     expect(unresolved).toEqual([]);
+  });
+
+  test('a system frame leaves a missing parent to the database, not to the scope', async () => {
+    const previous = globalThis.ignisExecutionRunner;
+    globalThis.ignisExecutionRunner = {
+      read: () => ({ mode: ExecutionModes.SYSTEM, reason: 'test', values: {} }),
+      capture: () => ({ values: {} }),
+      run: async (run) => run.task(),
+      runFrame: (run) => run.task(),
+    };
+    const [outcome] = await Promise.allSettled([
+      variants.create({ data: { productId: 999, name: 'orphan' } }),
+    ]);
+    globalThis.ignisExecutionRunner = previous;
+
+    expect(outcome).not.toMatchObject({ status: 'rejected', reason: { statusCode: 403 } });
   });
 
   test('an included relation applies its own through scope', async () => {

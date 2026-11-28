@@ -1622,7 +1622,7 @@ execution-entries:
   data: Nothing stored changes.
 
 execution-scope:
-  symbols: [IModelAccessSettings, Execution, ScopeFilters, RepositoryErrorCodes]
+  symbols: [IModelAccessSettings, Execution, ExecutionModes, ScopeFilters, RepositoryErrorCodes]
   upgrade:
     before: |-
       // a job with no request: silently updated nothing

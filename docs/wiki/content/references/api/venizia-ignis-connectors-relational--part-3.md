@@ -225,6 +225,8 @@ every row, so it is nothing: the scope was not resolved, and `onMissing` decides
 export declare class ScopeResolution {
     /** A non-empty plain object whose every value is defined, and whose `and` / `or` branches are themselves usable (an `and` has at least one). */
     private static isUsableWhere;
+    /** Whether the current frame is a system run, which no row scope holds. */
+    static isSystem(): boolean;
     /**
      * The scope of one call, the single place it is asked for: every row in a system frame, without calling `resolve`;
      * else what `resolve` answers for the operation and the current frame.

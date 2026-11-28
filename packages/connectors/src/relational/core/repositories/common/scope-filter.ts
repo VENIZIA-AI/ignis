@@ -75,6 +75,11 @@ export class ScopeResolution {
     });
   }
 
+  /** Whether the current frame is a system run, which no row scope holds. */
+  static isSystem(): boolean {
+    return Execution.current()?.mode === ExecutionModes.SYSTEM;
+  }
+
   /**
    * The scope of one call, the single place it is asked for: every row in a system frame, without calling `resolve`;
    * else what `resolve` answers for the operation and the current frame.
@@ -84,11 +89,12 @@ export class ScopeResolution {
     operation: TScopeOperation;
   }): TNullable<TWhere<DataObject>> | typeof ScopeFilters.UNRESTRICTED {
     const { settings, operation } = opts;
-    const scope = Execution.current();
 
-    if (scope?.mode === ExecutionModes.SYSTEM) {
+    if (ScopeResolution.isSystem()) {
       return ScopeFilters.UNRESTRICTED;
     }
+
+    const scope = Execution.current();
 
     return ScopeResolution.normalize({ value: settings.resolve({ operation, scope }) });
   }

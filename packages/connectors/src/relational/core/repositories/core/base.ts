@@ -55,6 +55,7 @@ import type {
 } from '../common';
 import { ScopeFilterDenial } from '../common';
 import { ScopeWriteGuard } from '../common/scope-write-guard';
+import { ScopeResolution } from '../common/scope-filter';
 
 /** The order `build` reads a filter in, and so every include scope: order, where, include. */
 const BUILD_READ_ORDER: ReadonlyArray<TRequestFilterPart> = [
@@ -332,6 +333,13 @@ export abstract class RelationalBaseRepository<
       schema: this.entity.schema,
       operation,
     });
+
+    // A system frame writes as given: a missing parent is the foreign key's to refuse. A resolver that answers
+    // `UNRESTRICTED` still has the keys checked.
+    if (ScopeResolution.isSystem()) {
+      return;
+    }
+
     const property = link.childProperty;
     const named =
       operation === ScopeOperations.CREATE ? opts.rows : opts.rows.filter((row) => property in row);

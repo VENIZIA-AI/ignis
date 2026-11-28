@@ -180,15 +180,29 @@ describe('a scoped frame', () => {
     expect(seen.at(-1)?.mode).toBe(ExecutionModes.SCOPED);
   });
 
-  test('stamps its user over the request user', async () => {
-    const values = Object.fromEntries([['merchantId', 'm-a']]);
-    await framed({ userId: 'job-user', values }, () =>
-      repository().updateById({ id: 1, data: { name: 'renamed' } }),
-    );
+  for (const [name, frame, stamped] of [
+    ['the request user, with no frame user', {}, 'request-user'],
+    ['the frame user over the request user', { userId: 'job-user' }, 'job-user'],
+    ['the request user, for an empty frame user', { userId: '' }, 'request-user'],
+    ['a number frame user as the text it is', { userId: 7 }, '7'],
+    ['a zero frame user', { userId: 0 }, '0'],
+    [
+      'a system run user over the request user',
+      { mode: ExecutionModes.SYSTEM, reason: 't', userId: 'sys' },
+      'sys',
+    ],
+  ] as const) {
+    test(`stamps ${name}`, async () => {
+      const request = { req: {}, get: () => 'request-user' };
+      const values = Object.fromEntries([['merchantId', 'm-a']]);
+      await framed({ request, values, ...frame }, () =>
+        repository().updateById({ id: 1, data: { name: 'renamed' } }),
+      );
 
-    const after = await rows();
-    expect(after[0]?.modifiedBy).toBe('job-user');
-  });
+      const after = await rows();
+      expect(after[0]?.modifiedBy).toBe(stamped);
+    });
+  }
 });
 
 describe('a write with no scope to resolve', () => {
