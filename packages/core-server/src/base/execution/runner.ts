@@ -9,7 +9,9 @@ import {
   type TExecutionRunOptions,
 } from '@venizia/ignis-helpers/core';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { RecordUtility } from '@venizia/ignis-helpers/core';
 import { Authentication, RequestContextRegistry } from '@venizia/ignis-kernel';
+import { routePath } from 'hono/route';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 /** The most reasons, and call sites, remembered as already warned about; a later one is not logged. */
@@ -87,6 +89,7 @@ export class ExecutionRunner extends BaseHelper implements IExecutionRunner {
     task: () => ValueOrPromise<Result>;
   }): Promise<Result> {
     const { frame, task } = opts;
+    this.assertFrame({ frame });
     const parent = this.read();
 
     return this.store.run(frame, async () => {
@@ -104,16 +107,12 @@ export class ExecutionRunner extends BaseHelper implements IExecutionRunner {
     const { options, parent } = opts;
 
     if (options.mode === ExecutionModes.SYSTEM) {
-      if (!options.reason?.trim()) {
-        throw getError({ message: '[Execution] a system run needs a reason that is not blank' });
-      }
-
       return Object.freeze({
         mode: options.mode,
         request: parent?.request,
         userId: options.userId ?? parent?.userId,
         reason: options.reason,
-        values: Object.freeze({ ...parent?.values }),
+        values: this.freezeValues({ ...parent?.values }),
       });
     }
 
@@ -127,20 +126,64 @@ export class ExecutionRunner extends BaseHelper implements IExecutionRunner {
       mode: options.mode,
       request: base?.request,
       userId: options.userId ?? base?.userId,
-      values: Object.freeze({ ...base?.values, ...options.values }),
+      values: this.freezeValues({ ...base?.values, ...options.values }),
     });
   }
 
-  /** Once per call site: a root frame drops the request, so the narrowing a request's user brings with it. */
-  private warnRoot(): void {
-    // The stack is only the key that tells call sites apart; it is not written to the log.
-    const site = getError({ message: 'root frame' }).stack ?? '';
+  /** A frame from plain JavaScript, or from the framework's own entry, is held to the same rules as a typed call. */
+  private assertFrame(opts: { frame: IExecutionFrame }) {
+    const mode: unknown = opts.frame.mode;
 
-    if (this.warnedRoots.has(site) || this.warnedRoots.size >= MAX_WARNED) {
+    if (!ExecutionModes.values().some((value) => value === mode)) {
+      throw getError({
+        message: `[Execution] unknown mode | mode: ${String(mode)} | known: ${ExecutionModes.values().join(', ')}`,
+      });
+    }
+
+    const reason: unknown = opts.frame.reason;
+    const isBlank = typeof reason !== 'string' || reason.trim() === '';
+
+    if (mode === ExecutionModes.SYSTEM && isBlank) {
+      throw getError({ message: '[Execution] a system run needs a reason that is not blank' });
+    }
+  }
+
+  /** A frozen copy: arrays and plain objects at any depth, so no task changes the values of the frame around it. */
+  private freezeValues<Value>(value: Value): Value {
+    if (Array.isArray(value)) {
+      const items = value.map((item: unknown) => this.freezeValues(item));
+
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the copy holds the same items under the same shape; the compiler cannot say so for a generic
+      return Object.freeze(items) as Value;
+    }
+
+    if (!RecordUtility.isPlainObject(value)) {
+      return value;
+    }
+
+    const entries = Object.entries(value).map(([key, item]) => [key, this.freezeValues(item)]);
+
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the copy holds the same keys under the same shape; the compiler cannot say so for a generic
+    return Object.freeze(Object.fromEntries(entries)) as Value;
+  }
+
+  /**
+   * Once per route: a root frame drops the request, so the narrowing a request's user brings with it. The key is the
+   * route of that request, never a stack.
+   */
+  private warnRoot(): void {
+    if (this.warnedRoots.size >= MAX_WARNED) {
       return;
     }
 
-    this.warnedRoots.add(site);
+    const request = RequestContextRegistry.resolve();
+    const route = request && 'req' in request ? routePath(request, -1) : 'outside a request';
+
+    if (this.warnedRoots.has(route)) {
+      return;
+    }
+
+    this.warnedRoots.add(route);
     this.logger
       .for('run')
       .warn(

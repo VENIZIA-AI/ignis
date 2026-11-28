@@ -81,6 +81,34 @@ afterAll(async () => {
   await application.stop();
 });
 
+describe('an application started inside a system run', () => {
+  test('no code of a request runs in that frame, not even what runs ahead of the other middlewares', async () => {
+    const seen: Array<string | undefined> = [];
+
+    class ProbedApplication extends FrameApplication {
+      protected override generateRequestId(): string {
+        seen.push(Execution.current()?.mode);
+
+        return super.generateRequestId();
+      }
+    }
+
+    const started = new ProbedApplication({ scope: 'ProbedApplication', config: configs });
+    await Execution.run({
+      mode: ExecutionModes.SYSTEM,
+      reason: 'boot probe',
+      task: async () => {
+        started.init();
+        await started.start();
+      },
+    });
+    await fetch(`http://127.0.0.1:${started.getServerPort()}/frame`);
+    await started.stop();
+
+    expect(seen).toEqual([ExecutionModes.SCOPED]);
+  });
+});
+
 describe('a web request is a frame', () => {
   test('a scoped frame with the request, read by useRequestContext, the registry and capture', async () => {
     const response = await fetch(`${origin}/frame?user=11`);

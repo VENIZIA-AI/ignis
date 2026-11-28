@@ -113,6 +113,8 @@ export interface IFileCodemod {
   name: string;
   usage: string;
   isReversible: boolean;
+  /** Whether the codemod removes the names it counts, so the summary does not say it renamed them. */
+  isRemoval?: boolean;
   /** A file holding none of these is not read. */
   marks: (opts: { reverse: boolean }) => ReadonlyArray<string>;
   rewrite: (input: {
@@ -505,6 +507,8 @@ export class ClassRenamesCommand {
     let changedCount = 0;
     let renamedCount = 0;
     let refusedCount = 0;
+    let manualCount = 0;
+    const verb = codemod.isRemoval ? 'removed' : 'renamed';
 
     for (const target of targets) {
       const files = CodemodFiles.collect({ target });
@@ -530,6 +534,8 @@ export class ClassRenamesCommand {
           reverse: isReverse,
         });
         const shown = relative(root, file).split('\\').join('/') || file;
+
+        manualCount += result.manual.length;
 
         for (const entry of result.manual) {
           CliOutput.log(`manual  ${shown}:${entry.line}  ${entry.note}`);
@@ -560,7 +566,7 @@ export class ClassRenamesCommand {
     }
 
     CliOutput.log(
-      `devz codemod ${codemod.name}: ${changedCount} file(s) ${isWrite ? 'changed' : 'would change'}, ${renamedCount} name(s) ${isWrite ? 'renamed' : 'would be renamed'}` +
+      `devz codemod ${codemod.name}: ${changedCount} file(s) ${isWrite ? 'changed' : 'would change'}, ${renamedCount} name(s) ${isWrite ? verb : `would be ${verb}`}` +
         (refusedCount > 0 ? `, ${refusedCount} refused` : ''),
     );
 
@@ -574,6 +580,6 @@ export class ClassRenamesCommand {
       return 1;
     }
 
-    return isCheck && changedCount > 0 ? 1 : 0;
+    return isCheck && changedCount + manualCount > 0 ? 1 : 0;
   }
 }

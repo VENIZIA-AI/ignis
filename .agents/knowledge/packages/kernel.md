@@ -129,7 +129,7 @@ is underneath and which socket is bound belong to `ServerApplication`.
 `RestApplication.registerDefaultMiddlewares()` installs the registrations every host shares:
 `requestId()` fed by `RequestIdGenerator`, the body limit (`configs.middlewares.bodyLimit`, 5 MiB when unset), the framework
 error handler, and `notFoundHandler`. `WorkerApplication` inherits it untouched; `BaseApplication`
-calls `super()` and adds the request frame, `RequestTrackerComponent` and the favicon on top.
+mounts the request frame BEFORE `super()` (`Bun.serve` carries the starter's async context into each request, so nothing may run ahead of it), then adds `RequestTrackerComponent` and the favicon.
 `buildErrorMiddleware()` is the one seam inside it, which core overrides to swap in the
 `ErrorPrettier`-backed formatter; it feeds `config.error.environment` through as the middleware's
 `environment` option, which is how a browser application declares the ambient environment it has no

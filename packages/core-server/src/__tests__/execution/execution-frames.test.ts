@@ -64,6 +64,60 @@ describe('the frames of ExecutionRunner', () => {
     expect(isRun).toBe(false);
   });
 
+  test('a mode that is not one of the two is refused', async () => {
+    for (const mode of ['System', undefined]) {
+      const run: unknown = Reflect.get(Execution, 'run');
+      const failure = await failureOf(async () => {
+        if (typeof run === 'function') {
+          await Reflect.apply(run, Execution, [{ mode, task: () => undefined }]);
+        }
+      });
+
+      expect(failure).toContain('mode');
+    }
+  });
+
+  test('a reason that is not a string is refused by the framework', async () => {
+    const run: unknown = Reflect.get(Execution, 'run');
+    const failure = await failureOf(async () => {
+      if (typeof run === 'function') {
+        await Reflect.apply(run, Execution, [
+          { mode: ExecutionModes.SYSTEM, reason: 7, task: () => undefined },
+        ]);
+      }
+    });
+
+    expect(failure).toContain('reason that is not blank');
+  });
+
+  test('a framework frame that is system without a reason is refused', async () => {
+    const failure = await failureOf(async () => {
+      await ExecutionFrames.run({
+        frame: { mode: ExecutionModes.SYSTEM, values: {} },
+        task: () => undefined,
+      });
+    });
+
+    expect(failure).toContain('reason');
+  });
+
+  test('values are frozen deeply, and the caller keeps its own', async () => {
+    const mine = { tags: ['a'] };
+    const options: Parameters<typeof Execution.run<void>>[0] = {
+      mode: ExecutionModes.SCOPED,
+      task: () => {
+        const tags: unknown = Reflect.get(Execution.current()?.values ?? {}, 'tags');
+
+        expect(Object.isFrozen(tags)).toBe(true);
+        expect(tags).not.toBe(mine.tags);
+      },
+    };
+    Reflect.set(options, 'values', mine);
+    await Execution.run(options);
+
+    expect(Object.isFrozen(mine.tags)).toBe(false);
+  });
+
   test('a root frame inherits nothing', async () => {
     const root = await ExecutionFrames.run({
       frame: { mode: ExecutionModes.SCOPED, request: {}, userId: 1, values: {} },

@@ -25,7 +25,9 @@ describe('devz codemod async-context', () => {
     expect(rewrite('const b = { port: 1, asyncContext: { enable: true } };').output).toBe(
       'const b = { port: 1 };',
     );
-    expect(rewrite('const c = { asyncContext: { enable: true } };').output).toBe('const c = {};');
+    expect(
+      rewrite('const c: IApplicationConfigs = { asyncContext: { enable: true } };').output,
+    ).toBe('const c: IApplicationConfigs = {};');
   });
 
   test('another object under that name is left alone, and a second run changes nothing', () => {
@@ -48,5 +50,46 @@ describe('devz codemod async-context', () => {
 
     expect(result.output).toBe(source);
     expect(result.manual.map((entry) => entry.line)).toEqual([2, 3]);
+  });
+
+  test('the comment above the key goes with it', () => {
+    const source = [
+      'const a = {',
+      '  port: 1,',
+      '  // the request store',
+      '  /* kept on */',
+      '  asyncContext: { enable: true },',
+      '};',
+    ].join('\n');
+
+    expect(rewrite(source).output).toBe(['const a = {', '  port: 1,', '};'].join('\n'));
+  });
+
+  for (const [name, source] of [
+    ['a quoted key', "const a = { port: 1, 'asyncContext': { enable: true } };"],
+    ['a quoted enable', "const a = { port: 1, asyncContext: { 'enable': true } };"],
+    ['a shorthand', 'const a = { port: 1, asyncContext };'],
+    ['a variable value', 'const a = { port: 1, asyncContext: store };'],
+    ['an empty object', 'const a = { port: 1, asyncContext: {} };'],
+    [
+      "an object that is no application's config",
+      'const tracer = { asyncContext: { enable: true } };',
+    ],
+  ] as const) {
+    test(`${name} is left as written, and listed`, () => {
+      const result = rewrite(source);
+
+      expect(result.output).toBe(source);
+      expect(result.manual.map((entry) => entry.line)).toEqual([1]);
+    });
+  }
+
+  test('the config of an application is known by where it stands', () => {
+    for (const source of [
+      'new App({ scope, config: { asyncContext: { enable: true } } });',
+      'const a = { asyncContext: { enable: true } } satisfies IApplicationConfigs;',
+    ]) {
+      expect(rewrite(source).output).not.toContain('asyncContext');
+    }
   });
 });

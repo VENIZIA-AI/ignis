@@ -109,7 +109,7 @@ initialize()
   │
   ├─►  1. printStartUpInfo               (application name, version, environment)
   ├─►  2. validateEnvs
-  ├─►  3. registerDefaultMiddlewares     (CORS, request id, body limit, error handler, 404, request frame,
+  ├─►  3. registerDefaultMiddlewares     (request frame, CORS, request id, body limit, error handler, 404,
   │                                        request tracker, favicon)
   ├─►  4. staticConfigure                ← Override hook
   ├─►  5. registerArtifacts              (registers the index named by configs.artifacts)

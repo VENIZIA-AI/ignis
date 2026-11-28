@@ -403,10 +403,11 @@ export abstract class BaseApplication extends ServerApplication implements IRest
       task: async () => {
         const server = this.getServer();
 
-        await super.registerDefaultMiddlewares();
-
-        // Everything after this runs in the request's own frame.
+        // First of all: every request starts in its own frame. Without it, what runs ahead would keep the frame the
+        // server was started in, which `Bun.serve` carries into each request.
         server.use(RequestFrameMiddleware.create());
+
+        await super.registerDefaultMiddlewares();
 
         // Request-body parsing and the access log; the request id it reads is already installed
         // above (also works around the Bun + Hono body-parsing bug: https://github.com/honojs/middleware/issues/81).

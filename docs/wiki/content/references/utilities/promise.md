@@ -60,6 +60,7 @@ const frame = Execution.current(); // undefined outside every frame
 | `isRoot: true` | a scoped frame that inherits nothing: for a listener of your own. Warned once when it leaves a request or a user |
 | A system run | needs a `reason` that is not blank, and is logged with it (and the request id inside a request) |
 | After `run` returns | a promise still running keeps its frame |
+| `values` | the frame holds a frozen copy: arrays and plain objects at any depth |
 
 `values` and `userId` are claims your code makes. Never copy them from a request (body, query, header, path) without checking them against the caller.
 

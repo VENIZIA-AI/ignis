@@ -1,7 +1,8 @@
 import { Execution, ExecutionModes, ExecutionRunner } from '@/index';
+import type {} from '@venizia/ignis';
 import { describe, expect, test } from 'bun:test';
 
-declare module '@/index' {
+declare module '@venizia/ignis' {
   interface IExecutionValues {
     tenantIds?: string[];
   }

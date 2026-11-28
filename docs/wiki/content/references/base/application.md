@@ -368,7 +368,9 @@ To run this sequence in a test without a database, a port or a network, call `Ap
 
 Automatically registers these default middlewares during `initialize()`:
 
-`RestApplication` installs the three every host needs, in this order:
+`BaseApplication` mounts the **request frame** first: every request runs in an [execution frame](/references/utilities/promise#frames) that holds it.
+
+`RestApplication` then installs the three every host needs, in this order:
 
 1. **Request id** (`requestId`) - the generator is `RequestIdGenerator`, not hono's default, which calls `crypto.randomUUID` unguarded
 2. **Error handler** (`AppErrorMiddleware`) - with optional `rootKey` from `configs.error.rootKey`
@@ -376,9 +378,8 @@ Automatically registers these default middlewares during `initialize()`:
 
 `BaseApplication` then adds what only a listening server has:
 
-4. **Request frame** - every request runs in an [execution frame](/references/utilities/promise#frames) that holds it
-5. **RequestTrackerComponent** - request-body parsing and the access log; it reads the request id installed at step 1 and registers none of its own
-6. **Emoji favicon** - defaults to the flame emoji, configurable via `configs.favicon`
+4. **RequestTrackerComponent** - request-body parsing and the access log; it reads the request id installed at step 1 and registers none of its own
+5. **Emoji favicon** - defaults to the flame emoji, configurable via `configs.favicon`
 
 ### registerControllers and Transport Support
 

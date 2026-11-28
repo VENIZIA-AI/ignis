@@ -358,8 +358,8 @@ Every codemod below is a dry run unless you pass `--write`, and `--check` exits 
 
 **`devz codemod async-context [paths...] [--write [--all] \| --check]`**
 
-- Removes the `asyncContext: { enable }` property of an application config.
-- Lists, and leaves to you, an override of `getDefaultAsyncContextEnabled` and a read of `configs.asyncContext`.
+- Removes `asyncContext: { enable }` and the comment above it from an application config (an object with another config key, under `config`, or typed `...ApplicationConfigs`).
+- Lists, and leaves to you, any other `asyncContext` property, an override of `getDefaultAsyncContextEnabled` and a read of `configs.asyncContext`. `--check` exits 1 while one remains.
 
 **`devz codemod class-renames [paths...] [--write [--all] \| --check] [--reverse]`**
 

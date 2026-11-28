@@ -1583,7 +1583,7 @@ execution-frames:
       const config = { path: { base: '/api', isStrict: true } };
       const userId = useRequestContext()?.get(Authentication.AUDIT_USER_ID);
     steps:
-      - "Run bun node_modules/.bin/devz codemod async-context [paths...] --write: it removes the key and lists the overrides of getDefaultAsyncContextEnabled and the reads of configs.asyncContext it leaves to you."
+      - "Run bun node_modules/.bin/devz codemod async-context [paths...] --write: it removes the key from application configs and lists what it leaves to you: other asyncContext properties, overrides of getDefaultAsyncContextEnabled and reads of configs.asyncContext."
       - "Replace Hono's getContext() and tryGetContext() with useRequestContext(), or mount contextStorage() yourself."
       - "Where you call ScopeFilterUtility.assertScopeFilterSupported, drop asyncContextEnabled."
       - "A script or a test that queries models with an access, without an application, calls ExecutionRunner.install() and runs inside Execution.run."

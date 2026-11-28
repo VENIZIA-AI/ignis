@@ -142,7 +142,14 @@ export declare class ExecutionRunner extends BaseHelper implements IExecutionRun
         task: () => ValueOrPromise<Result>;
     }): Promise<Result>;
     private buildFrame;
-    /** Once per call site: a root frame drops the request, so the narrowing a request's user brings with it. */
+    /** A frame from plain JavaScript, or from the framework's own entry, is held to the same rules as a typed call. */
+    private assertFrame;
+    /** A frozen copy: arrays and plain objects at any depth, so no task changes the values of the frame around it. */
+    private freezeValues;
+    /**
+     * Once per route: a root frame drops the request, so the narrowing a request's user brings with it. The key is the
+     * route of that request, never a stack.
+     */
     private warnRoot;
     /** Every system run is logged with its reason, and the request when there is one; no caller is recorded. */
     private logSystemRun;
