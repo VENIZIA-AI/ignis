@@ -431,9 +431,9 @@ export abstract class BaseApplication extends ServerApplication implements IRest
 
     // Permissive by DEFAULT: a name a host leaves empty is the host's business, and an empty value
     // already falls back to `defaultValue` at read time, so refusing to boot over one fights the
-    // reader rather than helping it. Set ALLOW_EMPTY_ENV_VALUE to a false word (see `ParseUtility.toBoolean`)
-    // to turn the check on; a value that is no boolean word stops the boot. Read once rather than per key, and a blank value reads as unset - the same rule every
-    // other env read follows.
+    // reader rather than helping it. Set ALLOW_EMPTY_ENV_VALUE to a false word (see
+    // `ParseUtility.toBoolean`) to turn the check on; a value that is no boolean word stops the boot.
+    // Read once rather than per key, and a blank value reads as unset, as every other env read does.
     const configured = ParseUtility.blankToUndefined({ input: process.env.ALLOW_EMPTY_ENV_VALUE });
     const allowsEmpty =
       configured === undefined ||
