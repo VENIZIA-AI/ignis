@@ -717,7 +717,9 @@ describe('the response message fills its %{key} placeholders', () => {
     });
 
     expect(logger.rendered()).toContain(`- message: ${ITEM_LOCKED_TEXT}`);
-    expect(logger.rendered()).not.toContain('Latte');
+    // The value is logged in the redacted args line, never inside the message.
+    expect(logger.rendered()).toContain('- args: {"itemName":"Latte","orderCount":3}');
+    expect(logger.rendered().split('Latte')).toHaveLength(2);
   });
 
   test('a missing arg stays as written and logs one warning naming the code and the key', async () => {

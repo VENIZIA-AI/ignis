@@ -138,6 +138,8 @@ export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema 
     private assertDeclaredRpcs;
     /** Loose signature on purpose - the IGNIS `ServiceType` is opaque (`unknown`) while ConnectRPC expects `DescService`. */
     private registerService;
+    /** What a client reads about a failed call: the thrown message in a development environment only, as for a REST request. */
+    private readFailureMessage;
     /** Creates the Hono middleware that dispatches to ConnectRPC universal handlers. */
     private buildMiddleware;
     /** Validates peer deps, creates adapter, and returns paths + middleware. */

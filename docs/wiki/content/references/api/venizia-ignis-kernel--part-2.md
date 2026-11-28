@@ -278,6 +278,8 @@ export declare class BaseAppErrorMiddleware extends BaseHelper implements IProvi
     private readIntentionalStatus;
     /** A throw site's own answer. A server error (5xx) in production keeps its status and code only: the message is for the log. */
     private resolveIntentional;
+    /** A foreign error's own `messageCode`, else the default one. */
+    private readMessageCode;
     /** An ApplicationError's `normalized` is authoritative - a `transform` may have reworded `text`. */
     private build;
     private resolve;

@@ -9,7 +9,7 @@ const THROWN = 'Ledger %{ledger} is closed';
 const CODE = 'server.sale.ledger.closed';
 
 /** Answers one thrown value through the middleware in the named environment, with what was logged. */
-const answer = async (opts: { thrown: Error; environment: 'production' | 'development' }) => {
+const answer = async (opts: { thrown: Error; environment: string }) => {
   const logged: Array<string> = [];
 
   const record = (...args: Array<unknown>) => {
@@ -71,6 +71,41 @@ describe('a 5xx error response follows the public message policy', () => {
     expect(status).toBe(502);
     expect(JSON.stringify(body)).not.toContain('ledger');
   });
+
+  test('the default log lines carry the message args, secrets masked', async () => {
+    const thrown = getError({
+      statusCode: 503,
+      message: THROWN,
+      messageArgs: { ledger: 'L-9', apiKey: 'sk_live_ARGS' },
+    });
+    const { logged } = await answer({ thrown, environment: 'production' });
+
+    expect(logged).toContain('args: ');
+    expect(logged).toContain('L-9');
+    expect(logged).not.toContain('sk_live_ARGS');
+  });
+
+  for (const normalized of ['closed', null, { text: 'closed' }]) {
+    test(`production keeps the code when a foreign error carries normalized ${JSON.stringify(normalized)}`, async () => {
+      const thrown = Object.assign(new Error('ledger refused'), {
+        statusCode: 502,
+        messageCode: CODE,
+        normalized,
+      });
+      const { status, body } = await answer({ thrown, environment: 'production' });
+
+      expect(status).toBe(502);
+      expect(body).toHaveProperty('normalized', { text: GENERIC, code: CODE, args: {} });
+    });
+  }
+
+  for (const environment of ['staging', 'test', '']) {
+    test(`"${environment}" is not a development environment`, async () => {
+      const { body } = await answer({ thrown: serverError(), environment });
+
+      expect(body).toHaveProperty('message', GENERIC);
+    });
+  }
 
   test('development answers the thrown message', async () => {
     const { body } = await answer({ thrown: serverError(), environment: 'development' });

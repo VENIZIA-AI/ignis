@@ -228,7 +228,7 @@ Production suppresses:
   `detail` echoes row values (`Key (email)=(a@b.com) already exists`) and `table`/`constraint` reveal
   schema internals.
 - **`stack` and `cause`.** Both are set on `details` only when `!isProduction`.
-- **The message of a 5xx.** An intentional error with a status of 500 or more keeps its status and
+- **The message of a 5xx.** A failed gRPC transport call answers the same generic message. An intentional error with a status of 500 or more keeps its status and
   `normalized.code`; `message` and `normalized.text` become `'Internal Server Error'` and
   `normalized.args` is empty. The log keeps the thrown message. A status that is not an integer from
   400 to 599 answers 500.

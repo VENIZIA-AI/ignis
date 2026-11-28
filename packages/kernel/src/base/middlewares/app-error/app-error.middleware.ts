@@ -170,7 +170,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
   }): string {
     const { error, messageCode, extra, includeStack = true, maxStackFrames } = opts;
     // Anything can be thrown, a function included.
-    const thrown: { name?: unknown; message?: unknown; stack?: unknown } =
+    const thrown: { name?: unknown; message?: unknown; stack?: unknown; normalized?: unknown } =
       RecordUtility.isRecord(error) || typeof error === 'function' ? error : {};
     const lines: Array<string> = [];
 
@@ -181,6 +181,13 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     lines.push(
       `message: ${typeof thrown.message === 'string' ? thrown.message : renderValue({ value: error })}`,
     );
+
+    const args = RecordUtility.isRecord(thrown.normalized) ? thrown.normalized.args : undefined;
+
+    // The values of the message's placeholders: a production 5xx response carries none, so the log is where they stay.
+    if (RecordUtility.isRecord(args) && Object.keys(args).length > 0) {
+      lines.push(`args: ${renderValue({ value: args })}`);
+    }
 
     if (messageCode) {
       lines.push(`code: ${messageCode}`);
@@ -314,15 +321,29 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
       return resolved;
     }
 
+    // A foreign error's own `normalized` may be anything; its code is kept only when it is one.
+    const authored: unknown = resolved.normalized;
+    const code =
+      RecordUtility.isRecord(authored) && typeof authored.code === 'string'
+        ? authored.code
+        : this.readMessageCode({ error });
+
     return {
       ...resolved,
       message: DEFAULT_INTERNAL_ERROR_MESSAGE,
-      normalized: {
-        text: DEFAULT_INTERNAL_ERROR_MESSAGE,
-        code: resolved.normalized.code,
-        args: {},
-      },
+      normalized: { text: DEFAULT_INTERNAL_ERROR_MESSAGE, code, args: {} },
     };
+  }
+
+  /** A foreign error's own `messageCode`, else the default one. */
+  private readMessageCode(opts: { error: TThrown }): string {
+    const { error } = opts;
+
+    return MessageCode.resolve(
+      'messageCode' in error && typeof error.messageCode === 'string'
+        ? error.messageCode
+        : undefined,
+    );
   }
 
   /** An ApplicationError's `normalized` is authoritative - a `transform` may have reworded `text`. */
@@ -336,13 +357,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     const { error, statusCode, message, type, messageCode } = opts;
 
     // Fallback for a FOREIGN error that sets its own code; an ApplicationError reports via `normalized`.
-    const code =
-      messageCode ??
-      MessageCode.resolve(
-        'messageCode' in error && typeof error.messageCode === 'string'
-          ? error.messageCode
-          : undefined,
-      );
+    const code = messageCode ?? this.readMessageCode({ error });
 
     // An error wrapped from a foreign value keeps that value's text in `normalized`: the response must carry the answer chosen
     // here (generic in production), never the wrapped text.
