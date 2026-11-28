@@ -185,6 +185,10 @@ export abstract class ServerApplication<
     return projectRoot;
   }
 
+  override getProjectConfigs(): IServerApplicationConfigs {
+    return this.configs;
+  }
+
   getServerHost(): string {
     return this.configs.host!;
   }

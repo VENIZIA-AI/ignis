@@ -1,13 +1,48 @@
 ---
-title: "@venizia/ignis (3 of 3)"
+title: "@venizia/ignis (3 of 4)"
 description: "Every export of @venizia/ignis, from the built declarations (generated)."
 ---
 
-# `@venizia/ignis (3 of 3)`
+# `@venizia/ignis (3 of 4)`
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-Part 3 of 3 of [`@venizia/ignis`](/references/api/venizia-ignis).
+Part 3 of 4 of [`@venizia/ignis`](/references/api/venizia-ignis).
+
+## `JWSTokenService`
+
+*class*
+
+Symmetric JWT (JWS) token service with optional AES-encrypted payloads.
+
+```ts
+export declare class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenService<E> {
+    protected options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWS_OPTIONS>;
+    /** The shortest `jwtSecret` accepted, in bytes: an HMAC key is as strong as it is long, and 32 bytes is the size of a SHA-256 output. */
+    static readonly MIN_SECRET_BYTES = 32;
+    protected jwtSecret: Uint8Array;
+    /**
+     * Refuses a `jwtSecret` shorter than {@link JWSTokenService.MIN_SECRET_BYTES} (counted in UTF-8 bytes, not
+     * characters), saying how to make one. The secret is never echoed. The component calls it at boot and the
+     * service when it is built.
+     */
+    static assertSecretStrength(opts: {
+        scope: string;
+        secret: string;
+    }): void;
+    constructor(options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWS_OPTIONS>);
+    protected doVerify(token: string): Promise<IJWTTokenPayload>;
+    getSigner(opts: {
+        payload: IJWTTokenPayload;
+        getTokenExpiresFn: TGetTokenExpiresFn;
+        claims?: IJWTIssueClaims;
+    }): Promise<import("jose").SignJWT>;
+    protected getSigningKey(): ValueOrPromise<Uint8Array>;
+    protected getDefaultTokenExpiresFn(): TGetTokenExpiresFn;
+}
+```
+
+Source: `packages/core-server/src/components/auth/authenticate/services/bearer/jws.service.ts`
 
 ## `JWTTokenPayloadSchema`
 
@@ -310,6 +345,7 @@ export declare abstract class ServerApplication<AppEnv extends Env = Env, AppSch
     protected getDefaultAsyncContextEnabled(): boolean;
     /** `configs.projectRoot` wins, else the process cwd. The value is bound AND handed to `ModuleUtility`, so every peer lookup (optional modules, the gRPC adapter) resolves under it - a compiled binary sets it to where its `node_modules` really is. */
     getProjectRoot(): string;
+    getProjectConfigs(): IServerApplicationConfigs;
     getServerHost(): string;
     getServerPort(): number;
     getServerAddress(): string;
@@ -1085,50 +1121,3 @@ export declare const useRequestContext: <AppEnv extends Env = Env>() => import("
 ```
 
 Source: `packages/core-server/src/base/metadata/request-context.ts`
-
-## `UserPolicyLineCache`
-
-*class*
-
-Per-user redis cache of casbin policy lines. Owns the cache key, the TTL, and concurrent-miss
-de-duplication so N simultaneous misses for the same user collapse onto one extraction.
-
-```ts
-export declare class UserPolicyLineCache extends BaseHelper {
-    private readonly cached;
-    private readonly loadLines;
-    private readonly pendingLineFetches;
-    constructor(opts: {
-        cached: ICasbinEnforcerCachedRedis & {
-            use: true;
-        };
-        loadLines: TPolicyLineLoader;
-    });
-    /** Fetch the user's lines, collapsing concurrent misses per key onto one extraction. Best-effort: two misses may race past the cache read and both extract (benign - per-user lines are identical). */
-    fetch(opts: {
-        user: IAuthorizationUser;
-    }): Promise<string[]>;
-    /** Drop the user's cached entry. */
-    invalidate(opts: {
-        user: IAuthorizationUser;
-    }): Promise<{
-        cacheKey: string;
-        invalidatedKeys: number;
-    }>;
-    /** Drop then recompute the user's cached entry via `loadLines` - an isolated extraction (never a pooled serving enforcer), so a concurrent request cannot make the cache hold another user's lines. */
-    rebuild(opts: {
-        user: IAuthorizationUser;
-    }): Promise<{
-        cacheKey: string;
-        lines: string[];
-    }>;
-    /** Compute the user's cache key and reject an empty result - consistent with the read path. */
-    private resolveCacheKey;
-    /** Single source of truth for the cache encoding. Used by the miss path and rebuild(). */
-    private writeLines;
-    /** Decode cached policy lines; on any corruption, log and return null so the caller refetches. */
-    private parseLines;
-}
-```
-
-Source: `packages/core-server/src/components/auth/authorize/enforcers/user-policy-line-cache.ts`

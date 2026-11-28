@@ -51,6 +51,8 @@ interface IAdapterOptions<
   interceptors?: unknown[];
   module?: IConnectRpcModule;
   limits?: IGrpcLimits;
+  /** The server's `idleTimeout` in seconds, given back to a connection when a call ends. */
+  idleTimeout?: number;
 }
 
 /**
@@ -122,6 +124,8 @@ export class GrpcRequestAdapter<
       } catch (error) {
         const answer = await this.toAnswer({ error, rpc });
         throw answer;
+      } finally {
+        this.close({ name, definition, rpc });
       }
     };
   }
@@ -144,6 +148,8 @@ export class GrpcRequestAdapter<
     } catch (error) {
       const answer = await this.toAnswer({ error, rpc });
       throw answer;
+    } finally {
+      this.close({ name, definition, rpc });
     }
   }
 
@@ -180,6 +186,18 @@ export class GrpcRequestAdapter<
     }
 
     return context;
+  }
+
+  /** The end of a call, before its response ends: a connection whose idle timeout was lifted gets it back. */
+  private close(opts: IRpcCall<RouteEnv>) {
+    if (opts.definition.middlewares.length === 0) {
+      return;
+    }
+
+    GrpcTimeoutGuard.restore({
+      context: this.readContext({ rpc: opts.rpc }),
+      seconds: this.options.idleTimeout ?? GrpcTimeoutGuard.DEFAULT_IDLE_TIMEOUT_SECONDS,
+    });
   }
 
   private async toAnswer(opts: { error: unknown; rpc: HandlerContext }) {

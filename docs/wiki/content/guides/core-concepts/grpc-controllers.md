@@ -161,7 +161,7 @@ async deleteUser(opts: { request: DeleteUserRequest; context: TRouteContext }): 
 |---|---|---|
 | unary | Connect, gRPC-Web | returns the answer |
 | server stream | Connect, gRPC-Web | an async generator: `yield` each message |
-| client stream | Connect | reads `request` with `for await`, returns one answer |
+| client stream | Connect, gRPC-Web | reads `request` with `for await`, returns one answer |
 | bidi | refused with HTTP 505: it needs HTTP/2 | |
 
 A browser cannot stream a request body: from a browser only unary and server streaming work.
@@ -198,7 +198,7 @@ The middlewares run before the handler. When the client leaves, `rpc.signal` abo
 | refused, or still without credentials | kept |
 | a public method (no `authenticate`) | kept: raise `server.idleTimeout` if it must pause longer |
 
-A call whose idle timeout is lifted ends with the client's deadline, the client leaving, or the handler. Send a deadline from the client, and pass `rpc.signal` to slow work.
+When the call ends, the connection gets `server.idleTimeout` back. A call counts as passed when its middlewares let it on, an `authenticate` skipped with `Authentication.SKIP_AUTHENTICATION` included. A call whose idle timeout is lifted ends with the client's deadline, the client leaving, or the handler. Send a deadline from the client, and pass `rpc.signal` to slow work.
 
 The whole request of a client stream is held to `server.maxRequestBodySize` (128 MiB by default).
 

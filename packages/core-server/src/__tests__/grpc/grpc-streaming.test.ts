@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { connect as connectTcp } from 'node:net';
 import { fileDesc, serviceDesc } from '@bufbuild/protobuf/codegenv2';
 import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError, PromiseUtility } from '@venizia/ignis-helpers/core';
@@ -368,6 +369,43 @@ describe('gRPC streaming on the application port', () => {
     expect(stream.messages).toHaveLength(2);
     expect(body).toEqual({ message: 'done' });
   }, 20_000);
+
+  for (const kind of ['unary', 'server stream'] as const) {
+    test(`the socket of a signed-in ${kind} call is idle again once the call ended`, async () => {
+      const isUnary = kind === 'unary';
+      const payload = isUnary
+        ? new TextEncoder().encode(JSON.stringify({ name: '0' }))
+        : envelope({ name: '0' });
+      const head = [
+        `POST /api${method(isUnary ? 'SayHello' : 'ListHellos')} HTTP/1.1`,
+        'host: localhost',
+        `content-type: application/${isUnary ? 'json' : 'connect+json'}`,
+        `content-length: ${payload.length}`,
+        `${KEY}: ok`,
+        '',
+        '',
+      ].join('\r\n');
+      const socket = connectTcp({ host: '127.0.0.1', port: application.getServerPort() });
+      let answer = '';
+      socket.on('data', (chunk) => {
+        answer += chunk.toString();
+      });
+      const closed = new Promise<boolean>((resolve) => socket.once('close', () => resolve(true)));
+      socket.write(head);
+      socket.write(payload);
+      // The answer is in, then the start of a second request that never finishes.
+      await PromiseUtility.sleep({ ms: 500 });
+      socket.write('POST /api HTTP/1.1\r\nhost: localhost\r\n');
+      const isClosed = await Promise.race([
+        closed,
+        PromiseUtility.sleep({ ms: QUIET_MS }).then(() => false),
+      ]);
+      socket.destroy();
+
+      expect(answer).toContain('200 OK');
+      expect(isClosed).toBe(true);
+    }, 20_000);
+  }
 
   test('a public stream keeps the idle timeout', async () => {
     const task = listHellos({

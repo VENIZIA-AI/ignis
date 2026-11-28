@@ -1,13 +1,13 @@
 ---
-title: "@venizia/ignis (2 of 3)"
+title: "@venizia/ignis (2 of 4)"
 description: "Every export of @venizia/ignis, from the built declarations (generated)."
 ---
 
-# `@venizia/ignis (2 of 3)`
+# `@venizia/ignis (2 of 4)`
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-Part 2 of 3 of [`@venizia/ignis`](/references/api/venizia-ignis).
+Part 2 of 4 of [`@venizia/ignis`](/references/api/venizia-ignis).
 
 ## `DomainHierarchyRoleManager`
 
@@ -145,6 +145,8 @@ export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema 
     private readContext;
     /** Runs the middlewares of a call and answers the context its handler reads. A call that passed one may stay quiet. */
     private open;
+    /** The end of a call, before its response ends: a connection whose idle timeout was lifted gets it back. */
+    private close;
     private toAnswer;
     /**
      * Runs the pre-built auth middlewares (`AbstractGrpcController.buildRpcMiddlewares`) in order. Each one must call
@@ -176,6 +178,8 @@ interface IAdapterOptions<RouteEnv extends Env, RouteSchema extends Schema, Base
     interceptors?: unknown[];
     module?: IConnectRpcModule;
     limits?: IGrpcLimits;
+    /** The server's `idleTimeout` in seconds, given back to a connection when a call ends. */
+    idleTimeout?: number;
 }
 ```
 
@@ -189,13 +193,24 @@ The idle timeout of the server for one call: `Bun.serve` closes a request that s
 
 ```ts
 export declare class GrpcTimeoutGuard {
+    /** `Bun.serve`'s own default `idleTimeout`, in seconds. */
+    static readonly DEFAULT_IDLE_TIMEOUT_SECONDS = 10;
     /**
      * Lifts the idle timeout of this request, so a call may stay quiet for as long as its handler needs. A request with no
-     * Bun server behind it (`router.request` in a test) has no timeout to lift.
+     * Bun server behind it (`router.request` in a test) has no timeout to lift. Call `restore` when the call ends.
      */
     static lift<RouteEnv extends Env>(opts: {
         context: Context<RouteEnv>;
     }): void;
+    /**
+     * Gives the connection its idle timeout back. The value stays on the socket, which a keep-alive client uses again, and
+     * Bun applies it only when set before the response ends.
+     */
+    static restore<RouteEnv extends Env>(opts: {
+        context: Context<RouteEnv>;
+        seconds: number;
+    }): void;
+    private static set;
 }
 ```
 
@@ -1216,38 +1231,3 @@ export declare class JWSAuthenticationStrategy<E extends Env = Env> extends Base
 ```
 
 Source: `packages/core-server/src/components/auth/authenticate/strategies/jws.strategy.ts`
-
-## `JWSTokenService`
-
-*class*
-
-Symmetric JWT (JWS) token service with optional AES-encrypted payloads.
-
-```ts
-export declare class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenService<E> {
-    protected options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWS_OPTIONS>;
-    /** The shortest `jwtSecret` accepted, in bytes: an HMAC key is as strong as it is long, and 32 bytes is the size of a SHA-256 output. */
-    static readonly MIN_SECRET_BYTES = 32;
-    protected jwtSecret: Uint8Array;
-    /**
-     * Refuses a `jwtSecret` shorter than {@link JWSTokenService.MIN_SECRET_BYTES} (counted in UTF-8 bytes, not
-     * characters), saying how to make one. The secret is never echoed. The component calls it at boot and the
-     * service when it is built.
-     */
-    static assertSecretStrength(opts: {
-        scope: string;
-        secret: string;
-    }): void;
-    constructor(options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWS_OPTIONS>);
-    protected doVerify(token: string): Promise<IJWTTokenPayload>;
-    getSigner(opts: {
-        payload: IJWTTokenPayload;
-        getTokenExpiresFn: TGetTokenExpiresFn;
-        claims?: IJWTIssueClaims;
-    }): Promise<import("jose").SignJWT>;
-    protected getSigningKey(): ValueOrPromise<Uint8Array>;
-    protected getDefaultTokenExpiresFn(): TGetTokenExpiresFn;
-}
-```
-
-Source: `packages/core-server/src/components/auth/authenticate/services/bearer/jws.service.ts`

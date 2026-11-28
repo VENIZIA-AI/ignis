@@ -90,6 +90,7 @@ export class GrpcComponent extends BaseComponent {
         instance.connectRpcModule = options?.module;
         instance.interceptors = options?.interceptors;
         instance.limits = options?.limits;
+        instance.idleTimeout = this.application.getProjectConfigs().server?.idleTimeout;
         await instance.configure();
 
         router.route(metadata.path, instance.getRouter());

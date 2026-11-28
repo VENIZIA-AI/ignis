@@ -9,7 +9,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 109 exports, 109 with TSDoc. 1020 more are re-exported from other entries (listed at the end).
 
-The declarations are on 3 pages; each export below links to its own.
+The declarations are on 4 pages; each export below links to its own.
 
 ## `AbstractBearerTokenService`
 
@@ -269,7 +269,7 @@ The declarations are on 3 pages; each export below links to its own.
 
 ## `JWSTokenService`
 
-*class* - [Declaration](/references/api/venizia-ignis--part-2#jwstokenservice)
+*class* - [Declaration](/references/api/venizia-ignis--part-3#jwstokenservice)
 
 ## `JWTTokenPayloadSchema`
 
@@ -445,7 +445,7 @@ The declarations are on 3 pages; each export below links to its own.
 
 ## `UserPolicyLineCache`
 
-*class* - [Declaration](/references/api/venizia-ignis--part-3#userpolicylinecache)
+*class* - [Declaration](/references/api/venizia-ignis--part-4#userpolicylinecache)
 
 ## Re-exported
 
