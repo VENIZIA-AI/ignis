@@ -32,11 +32,15 @@ const NO_AUTH_PROVIDER: IAuthProvider = {
   checkError: async () => undefined,
   getIdentity: async () => ({ id: 'anonymous' }),
   getPermissions: async () => undefined,
-} as unknown as IAuthProvider;
+};
 
 /** `options._` is ra-core's own convention for the default text of a missing key. */
 const PASSTHROUGH_I18N_PROVIDER: I18nProvider = {
-  translate: (key: string, options?: Record<string, unknown>) => (options?._ as string) ?? key,
+  translate: (key: string, options?: Record<string, unknown>) => {
+    const fallback = options?._;
+
+    return typeof fallback === 'string' ? fallback : key;
+  },
   changeLocale: async () => undefined,
   getLocale: () => 'en',
 };

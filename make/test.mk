@@ -75,16 +75,18 @@ build-checks:
 	@bun test $(BUN_TEST_LIMIT) scripts/build/build-checks
 
 # Every example type-checks against the built packages, so a type a package forgot to export, or a
-# signature that changed, breaks here and not in a consumer, and passes its own `lint` script. Reports
-# every failing example, then fails. Needs a build and `bun install --frozen-lockfile` after it (the
-# workspace links).
+# signature that changed, breaks here and not in a consumer, and passes its own `lint` script. ESLint
+# then runs with no warning allowed, so a type cast needs a stated reason; `vert` is left out until its
+# casts are rewritten. Reports every failing example, then fails. Needs a build and
+# `bun install --frozen-lockfile` after it (the workspace links).
 examples-check:
 	@echo "🔍 Type-checking and linting the examples..."
 	@failed=""; \
 	for dir in examples/*/; do \
 	  name=$$(basename $$dir); \
 	  [ -f "$$dir/tsconfig.json" ] || continue; \
-	  if (cd $$dir && $(CURDIR)/node_modules/.bin/tsc --noEmit -p tsconfig.json && bun run lint); then echo "  ok   $$name"; else echo "  FAIL $$name"; failed="$$failed $$name"; fi; \
+	  if (cd $$dir && $(CURDIR)/node_modules/.bin/tsc --noEmit -p tsconfig.json && bun run lint && \
+	    { [ $$name = vert ] || $(CURDIR)/node_modules/.bin/eslint -c .configs/lints/eslint.config.mjs --max-warnings 0 .; }); then echo "  ok   $$name"; else echo "  FAIL $$name"; failed="$$failed $$name"; fi; \
 	done; \
 	if [ -n "$$failed" ]; then echo "❌ examples that do not type-check or lint:$$failed"; exit 1; fi
 
