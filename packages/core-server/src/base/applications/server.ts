@@ -1,8 +1,13 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
-import { CoreBindings, RestApplication } from '@venizia/ignis-kernel';
+import { CoreBindings, RestApplication, ToggleUtility } from '@venizia/ignis-kernel';
 import { ModuleUtility } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers/core';
-import { RuntimeModules } from '@venizia/ignis-helpers/common';
+import {
+  Execution,
+  ExecutionFrames,
+  getError,
+  isApplicationError,
+} from '@venizia/ignis-helpers/core';
+import { HTTP, RuntimeModules } from '@venizia/ignis-helpers/common';
 import type { Env, Schema } from 'hono';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -13,6 +18,8 @@ import type {
   IShutdownSignalsOptions,
 } from './common';
 import { ExecutionRunner } from '../execution';
+import { DEFAULT_SHUTDOWN_TIMEOUT_MS as DEFAULT_REQUEST_TIMEOUT_MS } from '@/base/controllers/grpc/native/constants';
+import { GrpcBindingKeys } from '@/components/controller/grpc/common/types';
 
 /** Lives here, not in the kernel: `Bun.serve` resolves only through `@types/bun`, and emitting `Bun` into the kernel's published `.d.ts` would force that dependency on every browser consumer of `@venizia/ignis-kernel`. This package legitimately has Bun types - it is the layer that calls `Bun.serve`. */
 export type TBunServerInstance = ReturnType<typeof Bun.serve>;
@@ -77,6 +84,11 @@ export class BunRuntimeGuard {
 const DEFAULT_SHUTDOWN_SIGNALS: NodeJS.Signals[] = ['SIGTERM', 'SIGINT'];
 const DEFAULT_SHUTDOWN_TIMEOUT_MS = 15_000;
 
+/** What a request cut by the shutdown timeout gets to write its answer before its connection closes. */
+const STOP_GRACE_MS = 1_000;
+/** The largest delay a timer takes. */
+const MAX_TIMER_MS = 2_147_483_647;
+
 const DEFAULT_SERVER_HOST = 'localhost';
 const DEFAULT_SERVER_PORT = 3000;
 const MAX_SERVER_PORT = 65535;
@@ -123,6 +135,8 @@ export abstract class ServerApplication<
   /** Which runtime is underneath, and the socket once one is bound. Both live here, not on `RestApplication`: a browser Worker has neither. `start()` refuses to run unless this is Bun. */
   protected runtime = RuntimeModules.detect();
   protected serverInstance?: TBunServerInstance;
+  /** When the running `stop()` started to count the time its requests get (`performance.now()`). */
+  private stopStartedAt?: number;
 
   /** Widened by this layer, which is the only one that binds a socket. Assigned by the base constructor - `declare` so no field initializer runs here and overwrites it with `undefined`. */
   declare protected configs: IServerApplicationConfigs;
@@ -268,6 +282,18 @@ export abstract class ServerApplication<
     await this.executePostStartHooks();
   }
 
+  override async registerComponents() {
+    // Ahead of every component's hook: the time of the requests in flight must not start after a hook that waits.
+    this.registerPostStopHook({
+      identifier: 'server.stop.clock',
+      hook: () => {
+        this.stopStartedAt = performance.now();
+      },
+    });
+
+    await super.registerComponents();
+  }
+
   /** Post-stop hooks, then the server, then the datasources - closed even when the server fails to, so a stopped application holds no connection. */
   async stop() {
     await this.executePostStopHooks();
@@ -378,9 +404,45 @@ export abstract class ServerApplication<
       return;
     }
 
-    await instance.stop();
+    await this.closeServer({ instance });
 
     this.serverInstance = undefined;
     this.logger.for(this.stop.name).info('Server STOPPED');
+  }
+
+  /**
+   * Waits for the requests in flight until the shutdown timeout plus a grace has passed since the post-stop hooks
+   * reached the server's, then closes their connections: a handler that never ends would hold `stop()` for ever.
+   */
+  private async closeServer(opts: { instance: TBunServerInstance }) {
+    const { instance } = opts;
+    // The one setting there is: the gRPC component's `native.shutdownTimeout`, else its default.
+    const options = this.get({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS, isOptional: true });
+    const timeoutMs =
+      ToggleUtility.pick(options?.native)?.shutdownTimeout ?? DEFAULT_REQUEST_TIMEOUT_MS;
+    const startedAt = this.stopStartedAt ?? performance.now();
+    this.stopStartedAt = undefined;
+    const left = startedAt + timeoutMs + STOP_GRACE_MS - performance.now();
+    const stopping = instance.stop();
+
+    try {
+      await Execution.withTimeout({
+        call: () => stopping,
+        timeoutMs: Math.min(Math.max(left, 1), MAX_TIMER_MS),
+      });
+    } catch (error) {
+      if (!isApplicationError(error) || error.statusCode !== HTTP.ResultCodes.RS_5.GatewayTimeout) {
+        throw error;
+      }
+
+      this.logger
+        .for(this.stop.name)
+        .warn(
+          'Requests still running %s ms after shutdown started | closing their connections',
+          timeoutMs + STOP_GRACE_MS,
+        );
+      // A root frame: the `abort` listeners of a request run inside this call.
+      await ExecutionFrames.root({ task: () => instance.stop(true) });
+    }
   }
 }

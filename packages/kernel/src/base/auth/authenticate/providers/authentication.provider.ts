@@ -138,7 +138,7 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
     let authUser: IAuthUser | null = null;
 
     for (const strategyName of strategies) {
-      const strategy = this.resolveRequired({ registry, name: strategyName });
+      const strategy = this.resolveRequired({ context, registry, name: strategyName });
       const user = await strategy.authenticate(context);
 
       authUser ??= user;
@@ -161,18 +161,29 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
   }
 
   /** A strategy `all` mode requires. One that does not resolve is the server's fault: the log names it, the client does not. */
-  private resolveRequired(opts: { registry: AuthenticationStrategyRegistry; name: string }) {
-    const { registry, name } = opts;
+  private resolveRequired(opts: {
+    context: TContext;
+    registry: AuthenticationStrategyRegistry;
+    name: string;
+  }) {
+    const { context, registry, name } = opts;
 
     try {
       return registry.resolveStrategy({ name });
     } catch (error) {
       this.logger
         .for(this.resolveRequired.name)
-        .error('A required strategy does not resolve | strategy: %s | %s', name, error);
+        .error(
+          'A required strategy does not resolve | strategy: %s | path: %s | %s',
+          name,
+          context.req.path,
+          error,
+        );
+      // The line above is the report: the error handler's own goes to debug.
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         message: 'Authentication is not available',
+        logLevel: 'debug',
       });
     }
   }

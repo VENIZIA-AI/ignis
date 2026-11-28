@@ -26,7 +26,7 @@ application.installShutdownSignals({ timeoutMs: 30_000 });
 
 ## Shutdown of the application port
 
-Connect and gRPC-Web calls are ordinary requests, and the server waits for the requests in flight.
+Connect and gRPC-Web calls are ordinary requests, and the server waits for the requests in flight, up to [the limit](#the-limit-of-the-application-port).
 
 1. The timeout starts after the post-stop hooks you registered in `preConfigure()`, at the same moment as the native port's.
 2. An RPC that ends in time answers as usual.
@@ -43,7 +43,13 @@ These end on both ports when `rpc.signal` aborts, and the client reads `unavaila
 
 A client stream handler may catch the rejection and still answer. A streaming answer cannot send a last message after the signal aborted.
 
-Anything else the handler waits on is yours to stop. A unary handler that ignores `rpc.signal` runs on, and `stop()` waits for it on the application port, which cannot cut one RPC without cutting the REST requests too. The signal `timeoutMs` then ends the process. A REST request has no such signal and is waited for.
+Anything else the handler waits on is yours to stop, with `rpc.signal`.
+
+## The limit of the application port
+
+A second after `shutdownTimeout`, `stop()` closes every connection still open on the application port, so a handler that never ends cannot hold it. This covers a unary handler that ignores `rpc.signal`, a server stream that has not returned its iterable, an authentication strategy that does not answer, and **REST requests**, which have no signal. Their clients see the connection fail, and the handler's code may keep running while the datasources close.
+
+The limit is `native.shutdownTimeout` plus one second. With the native port off it is 11 seconds.
 
 An `abort` listener you add to `rpc.signal` must not throw: it also runs when a client cancels, and IGNIS cannot catch its error. Bun raises it as an `uncaughtException`, which ends the process unless something handles it. The winston logger handles it, and logs it, only when it has an exception transport (file or datagram logging).
 

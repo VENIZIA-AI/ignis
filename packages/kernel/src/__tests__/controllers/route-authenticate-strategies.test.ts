@@ -7,7 +7,7 @@ import { BaseRestController } from '@/base/controllers/rest/base';
 import { BaseAppErrorMiddleware } from '@/base/middlewares';
 import { Container } from '@/helpers/inversion/container';
 import { OpenAPIHono, z } from '@hono/zod-openapi';
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 
 class ProbeController extends BaseRestController {
   override binding() {}
@@ -119,12 +119,17 @@ describe('mode all with a strategy that is not registered', () => {
     });
     app.openapi(route, (context) => context.text('ran', 200));
 
+    const errors = spyOn(console, 'error');
     const response = await app.request('/', {}, { NODE_ENV: 'development' });
+    const lines = errors.mock.calls.map((call) => call.map(String).join(' '));
+    errors.mockRestore();
     const body: unknown = await response.json();
     const message: unknown = Reflect.get(Object(body), 'message');
 
     expect(response.status).toBe(500);
     expect(body).toHaveProperty('message', 'Authentication is not available');
     expect(String(message)).not.toMatch(/Registry|missing/);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain('missing');
   });
 });

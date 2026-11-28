@@ -71,6 +71,25 @@ const seen: { aborted: number; abortFrames: unknown[]; ip?: string | null; added
 };
 const textOf = (request: unknown) => String(Reflect.get(Object(request), 'name'));
 
+/** Work that never ends, whatever the signal says. */
+const NEVER = new Promise<never>(() => {});
+
+const STUCK_KEY = 'x-stuck-key';
+
+/** A strategy that never answers. */
+class StuckStrategy implements IAuthenticationStrategy {
+  name = STUCK_KEY;
+
+  authenticate() {
+    return NEVER;
+  }
+}
+
+AuthenticationStrategyRegistry.getInstance().register({
+  container: new Container({ scope: 'grpc-native-stuck' }),
+  strategies: [{ name: STUCK_KEY, strategy: StuckStrategy }],
+});
+
 /** Sleeps `ms`, or rejects when `signal` aborts. */
 const wait = (opts: { ms: number; signal: AbortSignal }) => {
   return new Promise<void>((resolve, reject) => {
@@ -115,6 +134,10 @@ class GreeterController extends BaseGrpcController {
 
     if (text === 'crash') {
       throw getError({ statusCode: 500, message: 'secret detail' });
+    }
+
+    if (text === 'forever') {
+      await NEVER;
     }
 
     if (text.startsWith('sleep:')) {
@@ -196,6 +219,26 @@ class SecureController extends BaseGrpcController {
   }
 }
 
+/** Handlers that end nothing themselves: a server stream still preparing its answer, and a gate that never answers. */
+@controller({ path: '/grpc', transport: ControllerTransports.GRPC, service: GreeterService })
+class StuckController extends BaseGrpcController {
+  constructor() {
+    super({ scope: 'StuckController' });
+  }
+
+  override binding() {}
+
+  @unary({ configs: { name: 'sayHello', authenticate: { strategies: [STUCK_KEY] } } })
+  async sayHello() {
+    return { message: 'never' };
+  }
+
+  @serverStream({ configs: { name: 'listHellos' } })
+  async listHellos() {
+    return NEVER;
+  }
+}
+
 const IDLE_SECONDS = 1;
 const QUIET_MS = 2_500;
 
@@ -211,6 +254,7 @@ class NativeApplication extends BaseApplication {
   constructor(
     private native: IGrpcNativeOptions | undefined,
     private greeter: TClass<BaseGrpcController> = GreeterController,
+    idleTimeout = IDLE_SECONDS,
   ) {
     super({
       scope: 'NativeApplication',
@@ -219,7 +263,7 @@ class NativeApplication extends BaseApplication {
         port: 0,
         path: { base: '/api', isStrict: false },
         transports: [ControllerTransports.REST, ControllerTransports.GRPC],
-        server: { idleTimeout: IDLE_SECONDS },
+        server: { idleTimeout },
         error: { rootKey: 'error' },
       },
     });
@@ -264,14 +308,21 @@ class NativeApplication extends BaseApplication {
       return undefined;
     });
     this.getRootRouter().get('/echo', (context) => context.json({ ok: true }));
+    this.getRootRouter().get('/stuck', () => NEVER);
+    this.getRootRouter().get('/slow', async (context) => {
+      await Execution.sleep({ ms: 300 });
+
+      return context.json({ ok: true });
+    });
   }
 }
 
 const start = async (
   native: IGrpcNativeOptions | undefined,
   greeter?: TClass<BaseGrpcController>,
+  idleTimeout?: number,
 ) => {
-  const application = new NativeApplication(native, greeter);
+  const application = new NativeApplication(native, greeter, idleTimeout);
   application.init();
   await application.start();
 
@@ -1082,6 +1133,138 @@ describe('native gRPC port - lifecycle', () => {
     // The one listener of the iterator, for all 200 reads.
     expect(seen.added).toBe(1);
   });
+
+  /** Starts a request nothing ends, stops the application and answers how long that took and whether the client saw it fail. */
+  const stopStuck = async (opts: {
+    native: IGrpcNativeOptions | undefined;
+    greeter?: TClass<BaseGrpcController>;
+    request: (application: NativeApplication) => Promise<unknown>;
+  }) => {
+    // An idle timeout far past the limit: Bun would otherwise cut a quiet request first.
+    const running = await start(opts.native, opts.greeter, 60);
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+
+    try {
+      const outcome = Promise.allSettled([opts.request(running)]);
+      await Execution.sleep({ ms: 100 });
+      const took = await Promise.race([
+        timedStop({ application: running }),
+        Execution.sleep({ ms: 13_000 }).then(() => -1),
+      ]);
+      const [result] = await Promise.race([outcome, Execution.sleep({ ms: 1_000 }).then(() => [])]);
+      // A rejection nothing handles is reported after the microtasks of its turn.
+      await Execution.sleep({ ms: 50 });
+      expect(unhandled).toEqual([]);
+
+      return { took, status: result?.status };
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
+  };
+
+  const fetchPath = (opts: { application: NativeApplication; path: string }) =>
+    fetch(`http://127.0.0.1:${opts.application.getServerPort()}/api${opts.path}`);
+
+  const stuck = [
+    {
+      name: 'a unary handler that never ends',
+      request: (running: NativeApplication) =>
+        httpMethod({ application: running, name: 'sayHello' })(
+          { name: 'forever' },
+          { headers: SIGNED_IN },
+        ),
+    },
+    {
+      name: 'a server stream that never returns its iterable',
+      greeter: StuckController,
+      request: (running: NativeApplication) =>
+        drain(httpMethod({ application: running, name: 'listHellos' })({ name: 'a' })),
+    },
+    {
+      name: 'an authentication strategy that never answers',
+      greeter: StuckController,
+      request: (running: NativeApplication) =>
+        httpMethod({ application: running, name: 'sayHello' })({ name: 'a' }),
+    },
+    {
+      name: 'a REST request that never ends',
+      request: (running: NativeApplication) => fetchPath({ application: running, path: '/stuck' }),
+    },
+  ];
+
+  for (const row of stuck) {
+    test(`stop() cuts ${row.name} a second after shutdownTimeout`, async () => {
+      const { took, status } = await stopStuck({
+        ...row,
+        native: { port: 0, shutdownTimeout: 400 },
+      });
+
+      expect(took).toBeGreaterThanOrEqual(1_300);
+      expect(took).toBeLessThan(2_000);
+      expect(status).toBe('rejected');
+    }, 20_000);
+  }
+
+  test('the limit counts from the start of stop(), not from the end of the native port wait', async () => {
+    const { took } = await stopStuck({
+      native: { port: 0, shutdownTimeout: 400 },
+      request: (running) => {
+        const url = `http://${addressOf(running)}`;
+        const method: unknown = Reflect.get(client({ url }), 'sayHello');
+
+        if (typeof method !== 'function') {
+          throw getError({ message: 'no method' });
+        }
+
+        return Promise.all([
+          method({ name: 'forever' }, { headers: SIGNED_IN }),
+          fetchPath({ application: running, path: '/stuck' }),
+        ]);
+      },
+    });
+
+    expect(took).toBeGreaterThanOrEqual(1_300);
+    expect(took).toBeLessThan(2_000);
+  }, 20_000);
+
+  test('without a native port the limit is the default: 11 seconds', async () => {
+    const { took, status } = await stopStuck({
+      native: undefined,
+      request: (running) => fetchPath({ application: running, path: '/stuck' }),
+    });
+
+    expect(took).toBeGreaterThanOrEqual(10_700);
+    expect(took).toBeLessThan(12_000);
+    expect(status).toBe('rejected');
+  }, 20_000);
+
+  test('a REST request that ends in time answers, and the limit leaves no timer behind', async () => {
+    const running = await start({ port: 0, shutdownTimeout: 5_000 }, undefined, 60);
+    const pending = fetchPath({ application: running, path: '/slow' });
+    await Execution.sleep({ ms: 100 });
+    const armed = spyOn(globalThis, 'setTimeout');
+    const cleared = spyOn(globalThis, 'clearTimeout');
+
+    try {
+      const took = await timedStop({ application: running });
+      const response = await pending;
+      const limit = armed.mock.calls.findIndex(
+        ([, ms]) => Number(ms) > 5_000 && Number(ms) <= 6_000,
+      );
+      const timer: unknown = armed.mock.results[limit]?.value;
+      const isCleared = cleared.mock.calls.some(([handle]) => Object.is(handle, timer));
+
+      expect(response.status).toBe(200);
+      expect(took).toBeLessThan(2_000);
+      expect(limit).toBeGreaterThanOrEqual(0);
+      expect(isCleared).toBe(true);
+    } finally {
+      armed.mockRestore();
+      cleared.mockRestore();
+    }
+  }, 10_000);
 
   for (const native of [
     { port: -1 },

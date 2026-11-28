@@ -60,6 +60,6 @@ Check that the strategy is [registered](/guides/core-concepts/grpc/authenticatio
 
 Set `middlewares.cors` for your origin. See [browser clients](/guides/core-concepts/grpc/ports#connect-and-grpc-web-clients-on-the-application-port).
 
-## Shutdown hangs or exits with code 1
+## A request is cut at shutdown, or the process exits with code 1
 
-A unary handler that ignores `rpc.signal` holds `stop()` on the application port. [Pass the signal to everything it waits on](/guides/core-concepts/grpc/shutdown#what-ends-by-itself-at-shutdown), and keep the signal `timeoutMs` above `shutdownTimeout`.
+`stop()` closes what still runs a second after `shutdownTimeout`. [Pass `rpc.signal` to everything a handler waits on](/guides/core-concepts/grpc/shutdown#the-limit-of-the-application-port), and keep the signal `timeoutMs` above `shutdownTimeout` plus the time your own hooks and datasources need.

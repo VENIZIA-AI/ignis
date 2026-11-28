@@ -142,7 +142,7 @@ These must be implemented by subclasses:
 | `registerPostStartHook(opts)` | `void` | Register a hook to run after server start |
 | `init()` | `void` | Calls `registerCoreBindings()` |
 | `start()` | `Promise<void>` | Runs `initialize()`, `setupMiddlewares()`, mounts root router, starts the server, then runs post-start hooks |
-| `stop()` | `Promise<void>` | Runs the post-stop hooks, stops the server, then closes every datasource |
+| `stop()` | `Promise<void>` | Runs the post-stop hooks, stops the server, then closes every datasource. A request still running 11 seconds into the stop (`native.shutdownTimeout` of the gRPC component plus 1 second, when its native port is on) has its connection closed |
 
 `getProjectRoot()` also hands the root to `ModuleUtility` so optional peers resolve under it.
 

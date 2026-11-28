@@ -1494,9 +1494,13 @@ Authorization is supported in both **REST** and **gRPC** controllers, injected r
 
 ```typescript
 buildRouteMiddlewares<RouteConfig extends IAuthRouteConfig>(opts: { configs: RouteConfig }) {
-  const { authenticate = {}, authorize, ...restConfig } = opts.configs;
+  const { authenticate, authorize, ...restConfig } = opts.configs;
   const mws = [];
-  if (strategies.length > 0) mws.push(authenticateFn({ strategies, mode }));       // 1. authenticate
+  if (authenticate) {                                                              // 1. authenticate
+    const { strategies, mode = AuthenticationModes.ANY } = authenticate;
+    // an authenticate that names no strategy throws here, at boot
+    mws.push(authenticateFn({ strategies, mode }));
+  }
   if (authorize) {                                                                 // 2. authorize (single or array)
     for (const spec of Array.isArray(authorize) ? authorize : [authorize]) mws.push(authorizeFn({ spec }));
   }
