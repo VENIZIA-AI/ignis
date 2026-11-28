@@ -4,23 +4,23 @@ This document lists all test cases implemented in the `examples/vert/src/service
 
 ## Summary
 
-| Service | Test Cases | Category |
-|---------|------------|----------|
-| CrudTestService | 19 | Basic CRUD operations |
-| TransactionTestService | 20 | Transaction handling |
-| InclusionTestService | 15 | Many-to-many relations |
-| ArrayOperatorTestService | 21 | PostgreSQL array operators |
-| DefaultFilterTestService | 31 | Default filter functionality |
-| HiddenPropertiesTestService | 18 | Hidden properties filtering |
-| UserAuditTestService | 21 | User audit tracking (createdBy/modifiedBy) |
-| AdvancedFilterQueryTestService | 11 | Complex nested filters, stress and security edge cases |
-| JsonFilterTestService | 20 | JSON/JSONB path filtering |
-| JsonUpdateTestService | 16 | Nested JSON/JSONB field updates |
-| ComprehensiveOperatorTestService | 54 | All query operators, edge cases, and combinations |
-| RowLockingTestService | 15 | Row-level locking (FOR UPDATE) |
-| FieldSelectionTestService | 6 | toColumns/fields filtering |
-| JsonOrderByTestService | 7 | JSON/JSONB ordering |
-| **Total** | **274** | |
+| Service                          | Test Cases | Category                                               |
+| -------------------------------- | ---------- | ------------------------------------------------------ |
+| CrudTestService                  | 19         | Basic CRUD operations                                  |
+| TransactionTestService           | 20         | Transaction handling                                   |
+| InclusionTestService             | 15         | Many-to-many relations                                 |
+| ArrayOperatorTestService         | 21         | PostgreSQL array operators                             |
+| DefaultFilterTestService         | 31         | Default filter functionality                           |
+| HiddenPropertiesTestService      | 18         | Hidden properties filtering                            |
+| UserAuditTestService             | 21         | User audit tracking (createdBy/modifiedBy)             |
+| AdvancedFilterQueryTestService   | 11         | Complex nested filters, stress and security edge cases |
+| JsonFilterTestService            | 20         | JSON/JSONB path filtering                              |
+| JsonUpdateTestService            | 16         | Nested JSON/JSONB field updates                        |
+| ComprehensiveOperatorTestService | 54         | All query operators, edge cases, and combinations      |
+| RowLockingTestService            | 15         | Row-level locking (FOR UPDATE)                         |
+| FieldSelectionTestService        | 6          | toColumns/fields filtering                             |
+| JsonOrderByTestService           | 7          | JSON/JSONB ordering                                    |
+| **Total**                        | **274**    |                                                        |
 
 ---
 
@@ -28,27 +28,27 @@ This document lists all test cases implemented in the `examples/vert/src/service
 
 Basic repository CRUD operations without transactions.
 
-| Case | Name | Description |
-|------|------|-------------|
-| 1 | CreateSingle | Create a single record and verify persistence |
-| 2 | CreateAll | Batch create multiple records |
-| 3 | FindOne | Find single record with filter, test non-existent returns null |
-| 4 | FindWithFilter | Test where, order (ASC/DESC), limit, skip/offset filters |
-| 5 | FindById | Find record by ID, test non-existent ID returns null |
-| 6 | UpdateById | Update single record by ID and verify changes |
-| 7 | UpdateBy | Batch update with where filter |
-| 8 | DeleteByIdAndDeleteBy | Delete single by ID, batch delete with filter |
-| 9 | CreateWithNullValues | Create record with explicit null values |
-| 10 | EmptyBatchCreate | Handle createAll with empty array |
-| 11 | UpdateNonExistentRecord | UpdateById for non-existent ID returns count: 0 |
-| 12 | DeleteNonExistentRecord | DeleteById for non-existent ID returns count: 0 |
-| 13 | BoundaryValues | Test max/min integers, long strings, zero, negative values |
-| 14 | CountOperation | Count with various filters (all, filtered, no matches) |
-| 15 | ExistsWithOperation | Check existence before/after create/delete |
-| 16 | ConcurrentCreates | Race condition test: 10 concurrent creates + duplicate code constraint test |
-| 17 | UpdateWithPartialData | Partial update preserves unchanged fields |
-| 18 | FindWithEmptyResult | Empty array returned for no matches |
-| 19 | DoublePrecisionValues | DOUBLE PRECISION with relative tolerance: PI, small/large decimals, scientific notation |
+| Case | Name                    | Description                                                                             |
+| ---- | ----------------------- | --------------------------------------------------------------------------------------- |
+| 1    | CreateSingle            | Create a single record and verify persistence                                           |
+| 2    | CreateAll               | Batch create multiple records                                                           |
+| 3    | FindOne                 | Find single record with filter, test non-existent returns null                          |
+| 4    | FindWithFilter          | Test where, order (ASC/DESC), limit, skip/offset filters                                |
+| 5    | FindById                | Find record by ID, test non-existent ID returns null                                    |
+| 6    | UpdateById              | Update single record by ID and verify changes                                           |
+| 7    | UpdateBy                | Batch update with where filter                                                          |
+| 8    | DeleteByIdAndDeleteBy   | Delete single by ID, batch delete with filter                                           |
+| 9    | CreateWithNullValues    | Create record with explicit null values                                                 |
+| 10   | EmptyBatchCreate        | Handle createAll with empty array                                                       |
+| 11   | UpdateNonExistentRecord | UpdateById for non-existent ID returns count: 0                                         |
+| 12   | DeleteNonExistentRecord | DeleteById for non-existent ID returns count: 0                                         |
+| 13   | BoundaryValues          | Test max/min integers, long strings, zero, negative values                              |
+| 14   | CountOperation          | Count with various filters (all, filtered, no matches)                                  |
+| 15   | ExistsWithOperation     | Check existence before/after create/delete                                              |
+| 16   | ConcurrentCreates       | Race condition test: 10 concurrent creates + duplicate code constraint test             |
+| 17   | UpdateWithPartialData   | Partial update preserves unchanged fields                                               |
+| 18   | FindWithEmptyResult     | Empty array returned for no matches                                                     |
+| 19   | DoublePrecisionValues   | DOUBLE PRECISION with relative tolerance: PI, small/large decimals, scientific notation |
 
 ---
 
@@ -56,28 +56,28 @@ Basic repository CRUD operations without transactions.
 
 Transaction handling and isolation tests.
 
-| Case | Name | Description |
-|------|------|-------------|
-| 1 | CommitSuccess | Multiple creates persist after commit |
-| 2 | RollbackOnError | Data not persisted after error triggers rollback |
-| 3 | RollbackExplicit | Manual rollback discards changes |
-| 4 | ReadWithinTransaction | Uncommitted data visible within tx, not outside |
-| 5 | UpdateAndDeleteInTransaction | Update and delete within same transaction |
-| 6 | UseInactiveTransactionAfterCommit | Error when using committed transaction |
-| 7 | UseInactiveTransactionAfterRollback | Error when using rolled back transaction |
-| 8 | IsolationLevelReadCommitted | Create transaction with READ_COMMITTED isolation |
-| 9 | IsolationLevelSerializable | Create transaction with SERIALIZABLE isolation |
-| 10 | CreateAllInTransaction | Batch create within transaction |
-| 11 | MultipleRepositoriesInTransaction | Multiple repos share same transaction |
-| 12 | ConcurrentTransactionsOnSameData | Two transactions modifying same record, verifies final state matches outcome |
-| 13 | TransactionStateVerification | Verify isActive state before/after commit/rollback |
-| 14 | DoubleCommitHandling | Error on second commit attempt |
-| 15 | DoubleRollbackHandling | Error on second rollback attempt |
-| 16 | RollbackVerifiesNoDataPersisted | Verify data within tx, confirm none persists after rollback |
-| 17 | TransactionWithRelatedEntities | Create related entities (Product, SaleChannel, Junction) in tx |
-| 18 | IsolationLevelRepeatableRead | Create transaction with REPEATABLE_READ isolation |
-| 19 | TransactionWithCountAndExists | Count/ExistsWith operations within transaction context |
-| 20 | LargeTransactionWithManyOperations | 50 creates + updates + deletes with exact count assertions (40 remaining, 24 updated) |
+| Case | Name                                | Description                                                                           |
+| ---- | ----------------------------------- | ------------------------------------------------------------------------------------- |
+| 1    | CommitSuccess                       | Multiple creates persist after commit                                                 |
+| 2    | RollbackOnError                     | Data not persisted after error triggers rollback                                      |
+| 3    | RollbackExplicit                    | Manual rollback discards changes                                                      |
+| 4    | ReadWithinTransaction               | Uncommitted data visible within tx, not outside                                       |
+| 5    | UpdateAndDeleteInTransaction        | Update and delete within same transaction                                             |
+| 6    | UseInactiveTransactionAfterCommit   | Error when using committed transaction                                                |
+| 7    | UseInactiveTransactionAfterRollback | Error when using rolled back transaction                                              |
+| 8    | IsolationLevelReadCommitted         | Create transaction with READ_COMMITTED isolation                                      |
+| 9    | IsolationLevelSerializable          | Create transaction with SERIALIZABLE isolation                                        |
+| 10   | CreateAllInTransaction              | Batch create within transaction                                                       |
+| 11   | MultipleRepositoriesInTransaction   | Multiple repos share same transaction                                                 |
+| 12   | ConcurrentTransactionsOnSameData    | Two transactions modifying same record, verifies final state matches outcome          |
+| 13   | TransactionStateVerification        | Verify isActive state before/after commit/rollback                                    |
+| 14   | DoubleCommitHandling                | Error on second commit attempt                                                        |
+| 15   | DoubleRollbackHandling              | Error on second rollback attempt                                                      |
+| 16   | RollbackVerifiesNoDataPersisted     | Verify data within tx, confirm none persists after rollback                           |
+| 17   | TransactionWithRelatedEntities      | Create related entities (Product, SaleChannel, Junction) in tx                        |
+| 18   | IsolationLevelRepeatableRead        | Create transaction with REPEATABLE_READ isolation                                     |
+| 19   | TransactionWithCountAndExists       | Count/ExistsWith operations within transaction context                                |
+| 20   | LargeTransactionWithManyOperations  | 50 creates + updates + deletes with exact count assertions (40 remaining, 24 updated) |
 
 ---
 
@@ -85,23 +85,23 @@ Transaction handling and isolation tests.
 
 Many-to-many relationship and inclusion tests.
 
-| Case | Name | Description |
-|------|------|-------------|
-| 1 | SetupAndBasicInclude | Create test data: 3 products, 3 channels, 6 junction records |
-| 2 | ProductWithSaleChannels | Find Product with nested saleChannelProducts -> saleChannel |
-| 3 | SaleChannelWithProducts | Find SaleChannel with nested saleChannelProducts -> product |
-| 4 | JunctionTableWithBothRelations | Junction records with both product and saleChannel relations |
-| 5 | NestedInclusion | Find multiple products with nested channel inclusions |
-| 6 | Cleanup | Delete all test data (junction first due to FK) |
-| 7 | ScopedRelationWithFilter | Include relations with where filter, tracks active/inactive/null counts |
-| 8 | ScopedRelationWithOrder | Include relations with order clause |
-| 9 | ScopedRelationWithLimit | Include relations with limit clause |
-| 10 | EmptyRelationsHandling | Product with no relations returns empty array |
-| 11 | MultipleRelationsAtSameLevel | Load multiple relations (creator, modifier) simultaneously |
-| 12 | RelationFieldSelection | Select specific fields in relation scope |
-| 13 | NestedRelationWithScope | Nested relations with price filter, exact count assertion (1 expensive product) |
-| 14 | FindManyWithInclusions | Find multiple entities with inclusions loaded |
-| 15 | IncludeWithWhereOnParent | Parent where filter combined with include |
+| Case | Name                           | Description                                                                     |
+| ---- | ------------------------------ | ------------------------------------------------------------------------------- |
+| 1    | SetupAndBasicInclude           | Create test data: 3 products, 3 channels, 6 junction records                    |
+| 2    | ProductWithSaleChannels        | Find Product with nested saleChannelProducts -> saleChannel                     |
+| 3    | SaleChannelWithProducts        | Find SaleChannel with nested saleChannelProducts -> product                     |
+| 4    | JunctionTableWithBothRelations | Junction records with both product and saleChannel relations                    |
+| 5    | NestedInclusion                | Find multiple products with nested channel inclusions                           |
+| 6    | Cleanup                        | Delete all test data (junction first due to FK)                                 |
+| 7    | ScopedRelationWithFilter       | Include relations with where filter, tracks active/inactive/null counts         |
+| 8    | ScopedRelationWithOrder        | Include relations with order clause                                             |
+| 9    | ScopedRelationWithLimit        | Include relations with limit clause                                             |
+| 10   | EmptyRelationsHandling         | Product with no relations returns empty array                                   |
+| 11   | MultipleRelationsAtSameLevel   | Load multiple relations (creator, modifier) simultaneously                      |
+| 12   | RelationFieldSelection         | Select specific fields in relation scope                                        |
+| 13   | NestedRelationWithScope        | Nested relations with price filter, exact count assertion (1 expensive product) |
+| 14   | FindManyWithInclusions         | Find multiple entities with inclusions loaded                                   |
+| 15   | IncludeWithWhereOnParent       | Parent where filter combined with include                                       |
 
 ---
 
@@ -109,29 +109,29 @@ Many-to-many relationship and inclusion tests.
 
 PostgreSQL array column operators (contains, containedBy, overlaps).
 
-| Case | Name | Description |
-|------|------|-------------|
-| 1 | SetupTestData | Create 5 products with various tag arrays |
-| 2 | ContainsAllElements | `@>` operator: array contains ALL specified elements |
-| 3 | ContainsSingleElement | `@>` operator: array contains single element |
-| 4 | ContainsEmptyArray | `@>` with empty array (everything contains empty set) |
-| 5 | ContainedByArray | `<@` operator: array is subset of provided elements |
-| 6 | ContainedByEmptyArray | `<@` with empty array (only empty arrays match) |
-| 7 | OverlapsWithArray | `&&` operator: arrays share at least one element |
-| 8 | OverlapsNoMatch | `&&` with non-existent element returns empty |
-| 9 | OverlapsEmptyArray | `&&` with empty array (no overlap possible) |
-| 10 | CombinedWithOtherFilters | Array operator combined with price filter |
-| 11 | ContainsWithAndOr | Array contains in OR conditions |
-| 12 | Cleanup | Delete all array operator test data |
-| 13 | LargeArrayContains | Array with 100+ elements |
-| 14 | SpecialCharactersInArray | Unicode, emoji, spaces, slashes in array elements |
-| 15 | DuplicateElementsInArray | Arrays with duplicate elements |
-| 16 | CaseSensitivity | Case-sensitive array element matching |
-| 17 | EmptyStringInArray | Empty string as array element |
-| 18 | CombinedArrayOperators | Multiple array operators in AND condition |
-| 19 | ArrayWithNumericLikeStrings | String arrays with numeric-looking values |
-| 20 | ArrayOperatorWithOrderAndLimit | Array filter with ORDER BY and LIMIT |
-| 21 | NullArrayColumn | Null array excluded from contains using existing tag to isolate behavior |
+| Case | Name                           | Description                                                              |
+| ---- | ------------------------------ | ------------------------------------------------------------------------ |
+| 1    | SetupTestData                  | Create 5 products with various tag arrays                                |
+| 2    | ContainsAllElements            | `@>` operator: array contains ALL specified elements                     |
+| 3    | ContainsSingleElement          | `@>` operator: array contains single element                             |
+| 4    | ContainsEmptyArray             | `@>` with empty array (everything contains empty set)                    |
+| 5    | ContainedByArray               | `<@` operator: array is subset of provided elements                      |
+| 6    | ContainedByEmptyArray          | `<@` with empty array (only empty arrays match)                          |
+| 7    | OverlapsWithArray              | `&&` operator: arrays share at least one element                         |
+| 8    | OverlapsNoMatch                | `&&` with non-existent element returns empty                             |
+| 9    | OverlapsEmptyArray             | `&&` with empty array (no overlap possible)                              |
+| 10   | CombinedWithOtherFilters       | Array operator combined with price filter                                |
+| 11   | ContainsWithAndOr              | Array contains in OR conditions                                          |
+| 12   | Cleanup                        | Delete all array operator test data                                      |
+| 13   | LargeArrayContains             | Array with 100+ elements                                                 |
+| 14   | SpecialCharactersInArray       | Unicode, emoji, spaces, slashes in array elements                        |
+| 15   | DuplicateElementsInArray       | Arrays with duplicate elements                                           |
+| 16   | CaseSensitivity                | Case-sensitive array element matching                                    |
+| 17   | EmptyStringInArray             | Empty string as array element                                            |
+| 18   | CombinedArrayOperators         | Multiple array operators in AND condition                                |
+| 19   | ArrayWithNumericLikeStrings    | String arrays with numeric-looking values                                |
+| 20   | ArrayOperatorWithOrderAndLimit | Array filter with ORDER BY and LIMIT                                     |
+| 21   | NullArrayColumn                | Null array excluded from contains using existing tag to isolate behavior |
 
 ---
 
@@ -141,64 +141,64 @@ Default filter (automatic query filtering) functionality.
 
 ### Basic Operations
 
-| Case | Name | Description |
-|------|------|-------------|
-| 1 | DefaultFilterApplied | Default filter automatically excludes price=0 products |
-| 2 | SkipDefaultFilterBypass | skipDefaultFilter option bypasses default filter |
-| 3 | UserFilterMergedWithDefault | User filter AND default filter both applied |
-| 4 | UserFilterOverridesDefaultSameKey | User can override default filter with skipDefaultFilter |
-| 5 | FindOneWithDefaultFilter | FindOne applies default filter |
-| 6 | FindByIdWithDefaultFilter | FindById applies default filter |
-| 7 | CountWithDefaultFilter | Count applies default filter |
-| 8 | ExistsWithDefaultFilter | ExistsWith applies default filter |
+| Case | Name                              | Description                                             |
+| ---- | --------------------------------- | ------------------------------------------------------- |
+| 1    | DefaultFilterApplied              | Default filter automatically excludes price=0 products  |
+| 2    | SkipDefaultFilterBypass           | skipDefaultFilter option bypasses default filter        |
+| 3    | UserFilterMergedWithDefault       | User filter AND default filter both applied             |
+| 4    | UserFilterOverridesDefaultSameKey | User can override default filter with skipDefaultFilter |
+| 5    | FindOneWithDefaultFilter          | FindOne applies default filter                          |
+| 6    | FindByIdWithDefaultFilter         | FindById applies default filter                         |
+| 7    | CountWithDefaultFilter            | Count applies default filter                            |
+| 8    | ExistsWithDefaultFilter           | ExistsWith applies default filter                       |
 
 ### Edge Cases
 
-| Case | Name | Description |
-|------|------|-------------|
-| 9 | EmptyUserFilter | Empty user filter still applies default filter |
-| 10 | NullValuesInFilter | Null values in filter handled correctly |
-| 11 | OperatorMerging | Default gt + user lt merge correctly, verifies exact prices [50, 150] |
-| 12 | LimitOverride | User limit overrides default limit |
-| 13 | OrderPreservation | User order preserved with default filter |
+| Case | Name               | Description                                                           |
+| ---- | ------------------ | --------------------------------------------------------------------- |
+| 9    | EmptyUserFilter    | Empty user filter still applies default filter                        |
+| 10   | NullValuesInFilter | Null values in filter handled correctly                               |
+| 11   | OperatorMerging    | Default gt + user lt merge correctly, verifies exact prices [50, 150] |
+| 12   | LimitOverride      | User limit overrides default limit                                    |
+| 13   | OrderPreservation  | User order preserved with default filter                              |
 
 ### Security Tests
 
-| Case | Name | Description |
-|------|------|-------------|
-| 14 | SqlInjectionInFilter | SQL injection payloads safely handled |
-| 15 | XssPayloadInFilter | XSS payloads stored and retrieved safely |
-| 16 | PrototypePollutionAttempt | Prototype pollution blocked |
-| 17 | VeryLongStringValues | 10,000 character strings handled |
-| 18 | SpecialCharacters | Special chars (\n\t\r'"\\) preserved |
+| Case | Name                      | Description                              |
+| ---- | ------------------------- | ---------------------------------------- |
+| 14   | SqlInjectionInFilter      | SQL injection payloads safely handled    |
+| 15   | XssPayloadInFilter        | XSS payloads stored and retrieved safely |
+| 16   | PrototypePollutionAttempt | Prototype pollution blocked              |
+| 17   | VeryLongStringValues      | 10,000 character strings handled         |
+| 18   | SpecialCharacters         | Special chars (\n\t\r'"\\) preserved     |
 
 ### Integration Tests
 
-| Case | Name | Description |
-|------|------|-------------|
-| 19 | TransactionWithDefaultFilter | Default filter works within transaction |
-| 20 | RelationsWithDefaultFilter | Default filter works with relation includes |
+| Case | Name                         | Description                                 |
+| ---- | ---------------------------- | ------------------------------------------- |
+| 19   | TransactionWithDefaultFilter | Default filter works within transaction     |
+| 20   | RelationsWithDefaultFilter   | Default filter works with relation includes |
 
 ### Additional Edge Cases
 
-| Case | Name | Description |
-|------|------|-------------|
-| 21 | UpdateByWithDefaultFilter | UpdateBy respects default filter |
-| 22 | DeleteByWithDefaultFilter | DeleteBy respects default filter |
-| 23 | AndOrCombinationWithDefaultFilter | Complex AND/OR with default filter |
-| 24 | DefaultFilterWithFieldSelection | Field selection works with default filter |
-| 25 | ConcurrentQueriesWithDefaultFilter | 10 concurrent queries all apply default filter |
-| 26 | DefaultFilterWithNestedRelations | Nested relations with default filter |
-| 27 | UpdateByIdWithDefaultFilter | UpdateById respects default filter |
-| 28 | DefaultFilterInvariance | Original filter object not mutated |
+| Case | Name                               | Description                                    |
+| ---- | ---------------------------------- | ---------------------------------------------- |
+| 21   | UpdateByWithDefaultFilter          | UpdateBy respects default filter               |
+| 22   | DeleteByWithDefaultFilter          | DeleteBy respects default filter               |
+| 23   | AndOrCombinationWithDefaultFilter  | Complex AND/OR with default filter             |
+| 24   | DefaultFilterWithFieldSelection    | Field selection works with default filter      |
+| 25   | ConcurrentQueriesWithDefaultFilter | 10 concurrent queries all apply default filter |
+| 26   | DefaultFilterWithNestedRelations   | Nested relations with default filter           |
+| 27   | UpdateByIdWithDefaultFilter        | UpdateById respects default filter             |
+| 28   | DefaultFilterInvariance            | Original filter object not mutated             |
 
 ### Advanced Security Tests
 
-| Case | Name | Description |
-|------|------|-------------|
-| 29 | SqlInjectionInOrderClause | SQL injection in order clause safely handled |
-| 30 | SqlInjectionInFieldsArray | SQL injection in fields selection safely handled |
-| 31 | SqlInjectionInIncludeRelation | SQL injection in include/relation safely handled |
+| Case | Name                          | Description                                      |
+| ---- | ----------------------------- | ------------------------------------------------ |
+| 29   | SqlInjectionInOrderClause     | SQL injection in order clause safely handled     |
+| 30   | SqlInjectionInFieldsArray     | SQL injection in fields selection safely handled |
+| 31   | SqlInjectionInIncludeRelation | SQL injection in include/relation safely handled |
 
 ---
 
@@ -206,26 +206,26 @@ Default filter (automatic query filtering) functionality.
 
 Tests for hidden properties filtering (password, secret fields excluded from responses).
 
-| Case | Name | Description |
-|------|------|-------------|
-| 1 | CreateUserWithHiddenFields | Create user with hidden fields - verify they are not returned |
-| 2 | FindOperationsExcludeHidden | All find operations (findOne, find, findById) exclude hidden properties |
-| 5 | UpdateByIdExcludesHidden | UpdateById excludes hidden properties in response |
-| 6 | Cleanup | Cleanup test data (runs last in test sequence) |
-| 7 | ConnectorQueryReturnsHidden | Connector query SHOULD return hidden properties (bypass repository) |
-| 8 | CreateAllExcludesHidden | CreateAll (batch create) excludes hidden properties |
-| 9 | UpdateByExcludesHidden | UpdateBy (bulk update) excludes hidden properties |
-| 10 | DeleteByIdExcludesHidden | DeleteById excludes hidden properties from response |
-| 11 | FieldsSelectionStillExcludesHidden | Fields selection still excludes hidden, even if explicitly requested |
-| 12 | VerifyDataActuallyStoredInDB | Verify data is actually stored in DB (via connector) |
-| 13 | WhereClauseCanFilterByHidden | Where clause CAN filter by hidden field |
-| 14 | CountWithHiddenInWhere | Count operation with hidden field in where clause |
-| 15 | ExistsWithHiddenInWhere | ExistsWith operation with hidden field in where clause |
-| 16 | TransactionContextHidden | Transaction context - hidden properties should work in transactions |
-| 18 | MultipleUsersHiddenExcluded | Multiple users with mixed null/non-null hidden values all have hidden excluded |
-| 19 | UpdateOnlyHiddenFields | Update ONLY hidden fields - should work but response excludes them |
-| 20 | NullHiddenFieldValues | Null/undefined hidden field values - edge case |
-| 21 | RelationHiddenProperties | Included relations should exclude hidden properties too |
+| Case | Name                               | Description                                                                    |
+| ---- | ---------------------------------- | ------------------------------------------------------------------------------ |
+| 1    | CreateUserWithHiddenFields         | Create user with hidden fields - verify they are not returned                  |
+| 2    | FindOperationsExcludeHidden        | All find operations (findOne, find, findById) exclude hidden properties        |
+| 5    | UpdateByIdExcludesHidden           | UpdateById excludes hidden properties in response                              |
+| 6    | Cleanup                            | Cleanup test data (runs last in test sequence)                                 |
+| 7    | ConnectorQueryReturnsHidden        | Connector query SHOULD return hidden properties (bypass repository)            |
+| 8    | CreateAllExcludesHidden            | CreateAll (batch create) excludes hidden properties                            |
+| 9    | UpdateByExcludesHidden             | UpdateBy (bulk update) excludes hidden properties                              |
+| 10   | DeleteByIdExcludesHidden           | DeleteById excludes hidden properties from response                            |
+| 11   | FieldsSelectionStillExcludesHidden | Fields selection still excludes hidden, even if explicitly requested           |
+| 12   | VerifyDataActuallyStoredInDB       | Verify data is actually stored in DB (via connector)                           |
+| 13   | WhereClauseCanFilterByHidden       | Where clause CAN filter by hidden field                                        |
+| 14   | CountWithHiddenInWhere             | Count operation with hidden field in where clause                              |
+| 15   | ExistsWithHiddenInWhere            | ExistsWith operation with hidden field in where clause                         |
+| 16   | TransactionContextHidden           | Transaction context - hidden properties should work in transactions            |
+| 18   | MultipleUsersHiddenExcluded        | Multiple users with mixed null/non-null hidden values all have hidden excluded |
+| 19   | UpdateOnlyHiddenFields             | Update ONLY hidden fields - should work but response excludes them             |
+| 20   | NullHiddenFieldValues              | Null/undefined hidden field values - edge case                                 |
+| 21   | RelationHiddenProperties           | Included relations should exclude hidden properties too                        |
 
 ---
 
@@ -235,54 +235,54 @@ Tests for automatic user audit tracking (createdBy/modifiedBy fields).
 
 ### CREATE Operations
 
-| Case | Name | Description |
-|------|------|-------------|
-| 1 | CreateWithExplicitAuditFields | Create with explicit createdBy/modifiedBy values |
-| 2 | CreateWithoutContext_NullAuditFields | Without Hono context, audit fields are null |
-| 3 | CreateAll_BulkAuditFields | Batch create with different audit users for each record |
+| Case | Name                                 | Description                                             |
+| ---- | ------------------------------------ | ------------------------------------------------------- |
+| 1    | CreateWithExplicitAuditFields        | Create with explicit createdBy/modifiedBy values        |
+| 2    | CreateWithoutContext_NullAuditFields | Without Hono context, audit fields are null             |
+| 3    | CreateAll_BulkAuditFields            | Batch create with different audit users for each record |
 
 ### UPDATE Operations
 
-| Case | Name | Description |
-|------|------|-------------|
-| 4 | UpdateById_ModifiedByChanges | modifiedBy changes to updater on UpdateById |
-| 5 | UpdateById_CreatedByUnchanged | createdBy remains unchanged after update attempt |
-| 6 | UpdateBy_BulkModifiedByChanges | modifiedBy changes for all matching records in batch update |
-| 7 | UpdateWithDifferentUser | Multiple updates by different users tracked correctly |
+| Case | Name                           | Description                                                 |
+| ---- | ------------------------------ | ----------------------------------------------------------- |
+| 4    | UpdateById_ModifiedByChanges   | modifiedBy changes to updater on UpdateById                 |
+| 5    | UpdateById_CreatedByUnchanged  | createdBy remains unchanged after update attempt            |
+| 6    | UpdateBy_BulkModifiedByChanges | modifiedBy changes for all matching records in batch update |
+| 7    | UpdateWithDifferentUser        | Multiple updates by different users tracked correctly       |
 
 ### Edge Cases
 
-| Case | Name | Description |
-|------|------|-------------|
-| 8 | NullToNonNullAuditFields | Update null audit fields to non-null values |
-| 9 | VerifyAuditFieldsStoredInDatabase | Audit fields correctly stored via direct DB query |
-| 10 | FilterByAuditFields | Filter/query records by createdBy and modifiedBy |
+| Case | Name                              | Description                                       |
+| ---- | --------------------------------- | ------------------------------------------------- |
+| 8    | NullToNonNullAuditFields          | Update null audit fields to non-null values       |
+| 9    | VerifyAuditFieldsStoredInDatabase | Audit fields correctly stored via direct DB query |
+| 10   | FilterByAuditFields               | Filter/query records by createdBy and modifiedBy  |
 
 ### Transaction Behavior
 
-| Case | Name | Description |
-|------|------|-------------|
-| 11 | TransactionAuditTracking | Audit fields work correctly within transactions |
-| 12 | RollbackAuditTracking | Rollback restores original audit field values |
+| Case | Name                     | Description                                     |
+| ---- | ------------------------ | ----------------------------------------------- |
+| 11   | TransactionAuditTracking | Audit fields work correctly within transactions |
+| 12   | RollbackAuditTracking    | Rollback restores original audit field values   |
 
 ### Advanced Scenarios
 
-| Case | Name | Description |
-|------|------|-------------|
-| 13 | ConcurrentUpdatesModifiedBy | Concurrent updates, last write wins for modifiedBy |
-| 14 | AuditFieldsWithRelations | Audit fields accessible with relation includes |
-| 15 | MultipleSequentialUpdates | Sequential updates by different users tracked |
-| 16 | AuditFieldsDataTypes | Valid User IDs stored correctly (FK constraint enforced) |
-| 17 | AuditFieldsInCountAndExists | Count and ExistsWith operations with audit filters |
-| 18 | DeleteReturnsAuditFields | Delete operations return records with audit fields |
+| Case | Name                        | Description                                              |
+| ---- | --------------------------- | -------------------------------------------------------- |
+| 13   | ConcurrentUpdatesModifiedBy | Concurrent updates, last write wins for modifiedBy       |
+| 14   | AuditFieldsWithRelations    | Audit fields accessible with relation includes           |
+| 15   | MultipleSequentialUpdates   | Sequential updates by different users tracked            |
+| 16   | AuditFieldsDataTypes        | Valid User IDs stored correctly (FK constraint enforced) |
+| 17   | AuditFieldsInCountAndExists | Count and ExistsWith operations with audit filters       |
+| 18   | DeleteReturnsAuditFields    | Delete operations return records with audit fields       |
 
 ### Security Tests
 
-| Case | Name | Description |
-|------|------|-------------|
-| 19 | AuditFieldInjectionAttempt | Malicious inputs rejected by FK constraint |
-| 20 | EmptyStringVsNullAuditFields | Empty string rejected, null accepted (FK constraint aware) |
-| 21 | Cleanup | Delete all audit test data |
+| Case | Name                         | Description                                                |
+| ---- | ---------------------------- | ---------------------------------------------------------- |
+| 19   | AuditFieldInjectionAttempt   | Malicious inputs rejected by FK constraint                 |
+| 20   | EmptyStringVsNullAuditFields | Empty string rejected, null accepted (FK constraint aware) |
+| 21   | Cleanup                      | Delete all audit test data                                 |
 
 ---
 

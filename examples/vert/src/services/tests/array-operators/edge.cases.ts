@@ -1,4 +1,4 @@
-import { ParseUtility } from '@venizia/ignis-helpers';
+import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -17,7 +17,10 @@ export class EdgeCases extends BaseTestCases {
       const deleted = await repo.deleteBy({ where: { description: 'ARRAY_OPERATOR_TEST' } });
       this.context.logger.info('[CASE 12] PASSED | Deleted %d records', deleted.count);
     } catch (error) {
-      this.context.logger.error('[CASE 12] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 12] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -49,7 +52,7 @@ export class EdgeCases extends BaseTestCases {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             tags: { contains: ['special_tag'] },
-          } as any,
+          },
         },
       });
 
@@ -64,7 +67,10 @@ export class EdgeCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 13] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 13] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -103,7 +109,7 @@ export class EdgeCases extends BaseTestCases {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             tags: { contains: ['日本語タグ'] },
-          } as any,
+          },
         },
       });
 
@@ -121,7 +127,7 @@ export class EdgeCases extends BaseTestCases {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             tags: { contains: ['tag with spaces'] },
-          } as any,
+          },
         },
       });
 
@@ -133,7 +139,10 @@ export class EdgeCases extends BaseTestCases {
         this.context.logger.error('[CASE 14] FAILED | Could not find product with spaces in tag');
       }
     } catch (error) {
-      this.context.logger.error('[CASE 14] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 14] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -180,7 +189,7 @@ export class EdgeCases extends BaseTestCases {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             tags: { contains: ['dup_tag'] },
-          } as any,
+          },
         },
       });
 
@@ -190,7 +199,10 @@ export class EdgeCases extends BaseTestCases {
         this.context.logger.info('[CASE 15] PASSED | Contains works with duplicate elements');
       }
     } catch (error) {
-      this.context.logger.error('[CASE 15] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 15] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -218,7 +230,7 @@ export class EdgeCases extends BaseTestCases {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             tags: { contains: ['CamelCase'] },
-          } as any,
+          },
         },
       });
 
@@ -228,7 +240,7 @@ export class EdgeCases extends BaseTestCases {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             tags: { contains: ['camelcase'] },
-          } as any,
+          },
         },
       });
 
@@ -242,7 +254,10 @@ export class EdgeCases extends BaseTestCases {
         this.context.logger.info('[CASE 16] INFO | Array contains is case-insensitive');
       }
     } catch (error) {
-      this.context.logger.error('[CASE 16] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 16] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -270,7 +285,7 @@ export class EdgeCases extends BaseTestCases {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             tags: { contains: [''] },
-          } as any,
+          },
         },
       });
 
@@ -292,7 +307,10 @@ export class EdgeCases extends BaseTestCases {
         this.context.logger.info('[CASE 17] INFO | Empty string may be filtered out');
       }
     } catch (error) {
-      this.context.logger.error('[CASE 17] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 17] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -320,7 +338,7 @@ export class EdgeCases extends BaseTestCases {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             tags: { contains: ['123'] },
-          } as any,
+          },
         },
       });
 
@@ -339,7 +357,10 @@ export class EdgeCases extends BaseTestCases {
         this.context.logger.info('[CASE 19] PASSED | All numeric-like strings stored');
       }
     } catch (error) {
-      this.context.logger.error('[CASE 19] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 19] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -358,7 +379,7 @@ export class EdgeCases extends BaseTestCases {
           name: 'Null Tags Product',
           description: 'ARRAY_OPERATOR_TEST',
           price: 333,
-          tags: null as any,
+          tags: null,
         },
       });
 
@@ -380,7 +401,7 @@ export class EdgeCases extends BaseTestCases {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             tags: { contains: ['electronics'] },
-          } as any,
+          },
         },
       });
 
@@ -408,7 +429,10 @@ export class EdgeCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 21] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 21] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

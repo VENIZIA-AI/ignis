@@ -1,4 +1,4 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -62,13 +62,19 @@ export class ScenariosCases extends BaseTestCases {
       try {
         await tx1.rollback();
       } catch (rollbackError) {
-        this.context.logger.error('tx1 rollback failed: %s', (rollbackError as Error).message);
+        this.context.logger.error(
+          'tx1 rollback failed: %s',
+          ErrorUtility.toError({ error: rollbackError }).message,
+        );
       }
 
       try {
         await tx2.rollback();
       } catch (rollbackError) {
-        this.context.logger.error('tx2 rollback failed: %s', (rollbackError as Error).message);
+        this.context.logger.error(
+          'tx2 rollback failed: %s',
+          ErrorUtility.toError({ error: rollbackError }).message,
+        );
       }
 
       this.context.logger.error('[CASE 7] FAILED with error: %o', error);
@@ -76,7 +82,10 @@ export class ScenariosCases extends BaseTestCases {
       try {
         await repo.deleteBy({ where: { group } });
       } catch (cleanupError) {
-        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+        this.context.logger.error(
+          'Cleanup failed: %s',
+          ErrorUtility.toError({ error: cleanupError }).message,
+        );
       }
     }
   }
@@ -121,7 +130,7 @@ export class ScenariosCases extends BaseTestCases {
       } catch (lockError) {
         this.context.logger.info(
           '[CASE 8] PASSED - NOWAIT correctly threw: %s',
-          (lockError as Error).message.substring(0, 80),
+          ErrorUtility.toError({ error: lockError }).message.substring(0, 80),
         );
       }
 
@@ -132,13 +141,19 @@ export class ScenariosCases extends BaseTestCases {
       try {
         await tx1.rollback();
       } catch (rollbackError) {
-        this.context.logger.error('tx1 rollback failed: %s', (rollbackError as Error).message);
+        this.context.logger.error(
+          'tx1 rollback failed: %s',
+          ErrorUtility.toError({ error: rollbackError }).message,
+        );
       }
 
       try {
         await tx2.rollback();
       } catch (rollbackError) {
-        this.context.logger.error('tx2 rollback failed: %s', (rollbackError as Error).message);
+        this.context.logger.error(
+          'tx2 rollback failed: %s',
+          ErrorUtility.toError({ error: rollbackError }).message,
+        );
       }
 
       this.context.logger.error('[CASE 8] FAILED with error: %o', error);
@@ -146,7 +161,10 @@ export class ScenariosCases extends BaseTestCases {
       try {
         await repo.deleteBy({ where: { code } });
       } catch (cleanupError) {
-        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+        this.context.logger.error(
+          'Cleanup failed: %s',
+          ErrorUtility.toError({ error: cleanupError }).message,
+        );
       }
     }
   }
@@ -210,7 +228,10 @@ export class ScenariosCases extends BaseTestCases {
       try {
         await repo.deleteBy({ where: { code } });
       } catch (cleanupError) {
-        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+        this.context.logger.error(
+          'Cleanup failed: %s',
+          ErrorUtility.toError({ error: cleanupError }).message,
+        );
       }
     }
   }
@@ -277,7 +298,10 @@ export class ScenariosCases extends BaseTestCases {
       try {
         await configRepo.deleteBy({ where: { code: configCode } });
       } catch (configError) {
-        this.context.logger.error('Config cleanup failed: %s', (configError as Error).message);
+        this.context.logger.error(
+          'Config cleanup failed: %s',
+          ErrorUtility.toError({ error: configError }).message,
+        );
       }
 
       try {
@@ -286,7 +310,10 @@ export class ScenariosCases extends BaseTestCases {
           options: { force: true, shouldSkipDefaultFilter: true },
         });
       } catch (productError) {
-        this.context.logger.error('Product cleanup failed: %s', (productError as Error).message);
+        this.context.logger.error(
+          'Product cleanup failed: %s',
+          ErrorUtility.toError({ error: productError }).message,
+        );
       }
     }
   }
@@ -341,13 +368,19 @@ export class ScenariosCases extends BaseTestCases {
       try {
         await tx1.rollback();
       } catch (rollbackError) {
-        this.context.logger.error('tx1 rollback failed: %s', (rollbackError as Error).message);
+        this.context.logger.error(
+          'tx1 rollback failed: %s',
+          ErrorUtility.toError({ error: rollbackError }).message,
+        );
       }
 
       try {
         await tx2.rollback();
       } catch (rollbackError) {
-        this.context.logger.error('tx2 rollback failed: %s', (rollbackError as Error).message);
+        this.context.logger.error(
+          'tx2 rollback failed: %s',
+          ErrorUtility.toError({ error: rollbackError }).message,
+        );
       }
 
       this.context.logger.error('[CASE 14] FAILED with error: %o', error);
@@ -355,7 +388,10 @@ export class ScenariosCases extends BaseTestCases {
       try {
         await repo.deleteBy({ where: { code } });
       } catch (cleanupError) {
-        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+        this.context.logger.error(
+          'Cleanup failed: %s',
+          ErrorUtility.toError({ error: cleanupError }).message,
+        );
       }
     }
   }

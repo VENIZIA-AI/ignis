@@ -1,4 +1,4 @@
-import { ParseUtility } from '@venizia/ignis-helpers';
+import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -35,6 +35,7 @@ export class NestedCases extends BaseTestCases {
         let totalChannels = 0;
 
         for (const product of testProducts) {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
           const scp = (product as any).saleChannelProducts ?? [];
           totalChannels += scp.length;
         }
@@ -56,7 +57,10 @@ export class NestedCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 5] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 5] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -114,6 +118,7 @@ export class NestedCases extends BaseTestCases {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const saleChannelProducts = (channelWithExpensive as any)?.saleChannelProducts ?? [];
       const expensiveProducts = saleChannelProducts.filter((scp: any) => scp.product?.price > 100);
       const nullProducts = saleChannelProducts.filter(
@@ -156,7 +161,10 @@ export class NestedCases extends BaseTestCases {
 
       await saleChannelRepo.deleteBy({ where: { id: channel.data.id }, options: { force: true } });
     } catch (error) {
-      this.context.logger.error('[CASE 13] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 13] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

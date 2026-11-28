@@ -1,4 +1,4 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -32,7 +32,7 @@ export class RollbackCases extends BaseTestCases {
       await transaction.rollback();
       this.context.logger.info(
         '[CASE 2] Error caught, transaction rolled back: %s',
-        (error as Error).message,
+        ErrorUtility.toError({ error }).message,
       );
 
       const result = await repo.findOne({ filter: { where: { code: code1 } } });
@@ -134,7 +134,10 @@ export class RollbackCases extends BaseTestCases {
       try {
         await transaction.rollback();
       } catch (rollbackError) {
-        this.context.logger.error('Rollback failed: %s', (rollbackError as Error).message);
+        this.context.logger.error(
+          'Rollback failed: %s',
+          ErrorUtility.toError({ error: rollbackError }).message,
+        );
       }
 
       this.context.logger.error('[CASE 16] FAILED with error: %o', error);

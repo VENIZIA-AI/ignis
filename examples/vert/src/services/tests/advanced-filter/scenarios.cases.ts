@@ -1,4 +1,4 @@
-import { ParseUtility } from '@venizia/ignis-helpers';
+import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -18,7 +18,7 @@ export class ScenariosCases extends BaseTestCases {
             and: [{ price: { between: [100, 1000] } }, { tags: { contains: ['gaming'] } }],
           },
           order: ['price DESC'],
-        } as any,
+        },
       });
 
       // Expected:
@@ -40,7 +40,10 @@ export class ScenariosCases extends BaseTestCases {
         );
       }
     } catch (e) {
-      this.context.logger.error('[SCENARIO] FAILED | %s', (e as Error).message);
+      this.context.logger.error(
+        '[SCENARIO] FAILED | %s',
+        ErrorUtility.toError({ error: e }).message,
+      );
     }
   }
 
@@ -77,10 +80,14 @@ export class ScenariosCases extends BaseTestCases {
       this.context.logger.error('[SCENARIO] FAILED | Expected 2 records (2025)');
       this.context.logger.error(
         'Results: %j',
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         results.map((r) => ({ code: r.code, created: (r.jValue as any)?.metadata?.created })),
       );
     } catch (e) {
-      this.context.logger.error('[SCENARIO] FAILED | %s', (e as Error).message);
+      this.context.logger.error(
+        '[SCENARIO] FAILED | %s',
+        ErrorUtility.toError({ error: e }).message,
+      );
     }
   }
 
@@ -139,6 +146,7 @@ export class ScenariosCases extends BaseTestCases {
         return;
       }
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const scp = (result as any).saleChannelProducts;
 
       if (scp && scp.length > 0) {
@@ -158,7 +166,10 @@ export class ScenariosCases extends BaseTestCases {
         this.context.logger.error('[RELATION] FAILED | No relations returned');
       }
     } catch (e) {
-      this.context.logger.warn('[RELATION] SKIPPED/FAILED | Error: %s', (e as Error).message);
+      this.context.logger.warn(
+        '[RELATION] SKIPPED/FAILED | Error: %s',
+        ErrorUtility.toError({ error: e }).message,
+      );
     }
   }
 }

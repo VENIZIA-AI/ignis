@@ -1,4 +1,4 @@
-import { ParseUtility } from '@venizia/ignis-helpers';
+import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -47,7 +47,10 @@ export class IntegrationCases extends BaseTestCases {
       }
     } catch (error) {
       await transaction.rollback();
-      this.context.logger.error('[CASE 19] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 19] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -86,7 +89,10 @@ export class IntegrationCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 20] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 20] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -128,7 +134,10 @@ export class IntegrationCases extends BaseTestCases {
         this.context.logger.error('[CASE 25] FAILED | Inconsistent results | counts: %j', counts);
       }
     } catch (error) {
-      this.context.logger.error('[CASE 25] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 25] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -173,6 +182,7 @@ export class IntegrationCases extends BaseTestCases {
       });
 
       if (found?.code === testCode) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
         const hasRelations = ((found as any).saleChannelProducts?.length ?? 0) > 0;
 
         if (hasRelations) {
@@ -193,7 +203,10 @@ export class IntegrationCases extends BaseTestCases {
       });
       await saleChannelRepo.deleteBy({ where: { id: channel.data.id }, options: { force: true } });
     } catch (error) {
-      this.context.logger.error('[CASE 26] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 26] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

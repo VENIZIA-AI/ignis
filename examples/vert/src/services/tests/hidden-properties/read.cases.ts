@@ -1,4 +1,4 @@
-import { ParseUtility } from '@venizia/ignis-helpers';
+import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { like } from 'drizzle-orm';
 import { User } from '../../../models/entities';
 import { BaseTestCases } from '../base-test.cases';
@@ -68,7 +68,10 @@ export class ReadCases extends BaseTestCases {
         this.context.logger.info('[CASE 2] Sample keys: %s', findOneKeys.join(', '));
       }
     } catch (error) {
-      this.context.logger.error('[CASE 2] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 2] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -122,7 +125,10 @@ export class ReadCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 11] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 11] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -185,7 +191,10 @@ export class ReadCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 13] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 13] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -242,7 +251,10 @@ export class ReadCases extends BaseTestCases {
         this.context.logger.error('[CASE 14] FAILED | Expected count 2 | got: %d', count.count);
       }
     } catch (error) {
-      this.context.logger.error('[CASE 14] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 14] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -293,7 +305,10 @@ export class ReadCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 15] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 15] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

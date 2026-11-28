@@ -1,5 +1,5 @@
 import { IsolationLevels } from '@venizia/ignis-connectors/postgres';
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -203,13 +203,19 @@ export class IsolationCases extends BaseTestCases {
         try {
           await tx1.rollback();
         } catch (rollbackError) {
-          this.context.logger.error('tx1 rollback failed: %s', (rollbackError as Error).message);
+          this.context.logger.error(
+            'tx1 rollback failed: %s',
+            ErrorUtility.toError({ error: rollbackError }).message,
+          );
         }
 
         try {
           await tx2.rollback();
         } catch (rollbackError) {
-          this.context.logger.error('tx2 rollback failed: %s', (rollbackError as Error).message);
+          this.context.logger.error(
+            'tx2 rollback failed: %s',
+            ErrorUtility.toError({ error: rollbackError }).message,
+          );
         }
 
         throw error;
@@ -222,7 +228,10 @@ export class IsolationCases extends BaseTestCases {
       try {
         await repo.deleteBy({ where: { group: 'TX_CONCURRENT_TEST' } });
       } catch (cleanupError) {
-        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+        this.context.logger.error(
+          'Cleanup failed: %s',
+          ErrorUtility.toError({ error: cleanupError }).message,
+        );
       }
     }
   }
@@ -320,7 +329,10 @@ export class IsolationCases extends BaseTestCases {
       try {
         await transaction.rollback();
       } catch (rollbackError) {
-        this.context.logger.error('Rollback failed: %s', (rollbackError as Error).message);
+        this.context.logger.error(
+          'Rollback failed: %s',
+          ErrorUtility.toError({ error: rollbackError }).message,
+        );
       }
 
       this.context.logger.error('[CASE 19] FAILED with error: %o', error);

@@ -1,4 +1,4 @@
-import { ParseUtility } from '@venizia/ignis-helpers';
+import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -52,7 +52,10 @@ export class SingleCases extends BaseTestCases {
         '[CASE 1] PASSED | Created 3 products, 3 channels, 6 junction records',
       );
     } catch (error) {
-      this.context.logger.error('[CASE 1] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 1] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -85,6 +88,7 @@ export class SingleCases extends BaseTestCases {
         return;
       }
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const saleChannelProducts = (productA as any).saleChannelProducts;
 
       if (saleChannelProducts?.length === 2) {
@@ -100,7 +104,10 @@ export class SingleCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 2] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 2] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -133,6 +140,7 @@ export class SingleCases extends BaseTestCases {
         return;
       }
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const saleChannelProducts = (onlineStore as any).saleChannelProducts;
 
       if (saleChannelProducts?.length === 2) {
@@ -148,7 +156,10 @@ export class SingleCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 3] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 3] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -201,7 +212,10 @@ export class SingleCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 4] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 4] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

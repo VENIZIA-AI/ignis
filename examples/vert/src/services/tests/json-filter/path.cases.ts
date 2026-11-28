@@ -1,4 +1,4 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -79,7 +79,10 @@ export class PathCases extends BaseTestCases {
         '[CASE 1] PASSED | Created 5 records with nested JSON for filter tests',
       );
     } catch (error) {
-      this.context.logger.error('[CASE 1] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 1] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -99,14 +102,19 @@ export class PathCases extends BaseTestCases {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       if (results.length === 1 && (results[0].jValue as any)?.priority === 3) {
         this.context.logger.info('[CASE 2] PASSED | Found 1 record with priority = 3');
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         this.context.logger.info('[CASE 2] Record name: %s', (results[0].jValue as any)?.name);
       } else {
         this.context.logger.error('[CASE 2] FAILED | Expected 1 record | got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[CASE 2] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 2] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -127,6 +135,7 @@ export class PathCases extends BaseTestCases {
       });
 
       if (results.length === 2) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const levels = results.map((r) => (r.jValue as any)?.metadata?.level);
         const allHigh = levels.every((l) => l === 'high');
 
@@ -134,6 +143,7 @@ export class PathCases extends BaseTestCases {
           this.context.logger.info('[CASE 3] PASSED | Found 2 records with level = "high"');
           this.context.logger.info(
             '[CASE 3] Names: %j',
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
             results.map((r) => (r.jValue as any)?.name),
           );
         } else {
@@ -143,7 +153,10 @@ export class PathCases extends BaseTestCases {
         this.context.logger.error('[CASE 3] FAILED | Expected 2 records | got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[CASE 3] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 3] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -174,7 +187,10 @@ export class PathCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 15] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 15] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -214,6 +230,7 @@ export class PathCases extends BaseTestCases {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       if (results.length === 1 && (results[0].jValue as any)?.['user-id'] === 'usr-001') {
         this.context.logger.info('[CASE 17] PASSED | Kebab-case key "user-id" works correctly');
       } else {
@@ -223,12 +240,18 @@ export class PathCases extends BaseTestCases {
       // Cleanup
       await repo.deleteBy({ where: { group } });
     } catch (error) {
-      this.context.logger.error('[CASE 17] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 17] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
 
       try {
         await repo.deleteBy({ where: { group } });
       } catch (cleanupError) {
-        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+        this.context.logger.error(
+          'Cleanup failed: %s',
+          ErrorUtility.toError({ error: cleanupError }).message,
+        );
       }
     }
   }

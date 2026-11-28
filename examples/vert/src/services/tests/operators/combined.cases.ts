@@ -1,4 +1,4 @@
-import { ParseUtility } from '@venizia/ignis-helpers';
+import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -25,7 +25,10 @@ export class CombinedCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[LARGE-NUM] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[LARGE-NUM] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -56,7 +59,10 @@ export class CombinedCases extends BaseTestCases {
         this.context.logger.error('[NEGATIVE] FAILED | Expected negative values');
       }
     } catch (error) {
-      this.context.logger.error('[NEGATIVE] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[NEGATIVE] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -83,7 +89,10 @@ export class CombinedCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[ZERO] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[ZERO] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -108,7 +117,10 @@ export class CombinedCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[SKIP-BEYOND] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[SKIP-BEYOND] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -136,7 +148,10 @@ export class CombinedCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[LIMIT-ZERO] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[LIMIT-ZERO] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -152,6 +167,7 @@ export class CombinedCases extends BaseTestCases {
       });
 
       if (results.length >= 1) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const level = (results[0].jValue as any)?.metadata?.level;
 
         if (level === 3) {
@@ -163,7 +179,10 @@ export class CombinedCases extends BaseTestCases {
         this.context.logger.error('[JSON-DEEP] FAILED | Expected records | Got: 0');
       }
     } catch (error) {
-      this.context.logger.error('[JSON-DEEP] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[JSON-DEEP] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -185,7 +204,10 @@ export class CombinedCases extends BaseTestCases {
       );
       this.context.logger.info('[JSON-EMPTY-OBJ] PASSED | Query executed without error');
     } catch (error) {
-      this.context.logger.error('[JSON-EMPTY-OBJ] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[JSON-EMPTY-OBJ] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -219,7 +241,10 @@ export class CombinedCases extends BaseTestCases {
         this.context.logger.info('[SEC-SQL-VALUE] VERIFIED | Table intact after injection attempt');
       }
     } catch (error) {
-      this.context.logger.error('[SEC-SQL-VALUE] ERROR | %s', (error as Error).message);
+      this.context.logger.error(
+        '[SEC-SQL-VALUE] ERROR | %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -250,7 +275,10 @@ export class CombinedCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[SEC-SQL-LIKE] ERROR | %s', (error as Error).message);
+      this.context.logger.error(
+        '[SEC-SQL-LIKE] ERROR | %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -272,7 +300,10 @@ export class CombinedCases extends BaseTestCases {
         results.length,
       );
     } catch (error) {
-      this.context.logger.error('[SEC-SQL-ARRAY] ERROR | %s', (error as Error).message);
+      this.context.logger.error(
+        '[SEC-SQL-ARRAY] ERROR | %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -301,7 +332,10 @@ export class CombinedCases extends BaseTestCases {
         this.context.logger.info('[SEC-XSS] INFO | No XSS payload found in test data');
       }
     } catch (error) {
-      this.context.logger.error('[SEC-XSS] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[SEC-XSS] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -352,7 +386,10 @@ export class CombinedCases extends BaseTestCases {
         this.context.logger.error('[COMBO-PAGINATE] FAILED | Pagination issue detected');
       }
     } catch (error) {
-      this.context.logger.error('[COMBO-PAGINATE] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[COMBO-PAGINATE] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -369,7 +406,7 @@ export class CombinedCases extends BaseTestCases {
             nValue: { gte: 10, lte: 50 },
             tValue: { isn: null },
             'jValue.status': 'active',
-          } as any,
+          },
           order: ['nValue DESC'],
           limit: 10,
         },
@@ -389,7 +426,10 @@ export class CombinedCases extends BaseTestCases {
         this.context.logger.warn('[COMBO-SEARCH] WARNING | No results for multi-criteria search');
       }
     } catch (error) {
-      this.context.logger.error('[COMBO-SEARCH] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[COMBO-SEARCH] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -422,7 +462,10 @@ export class CombinedCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[COMBO-DATE] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[COMBO-DATE] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -463,7 +506,7 @@ export class CombinedCases extends BaseTestCases {
           where: {
             price: { gte: 100, lte: 250 },
             tags: { contains: [testTag] },
-          } as any,
+          },
         },
       });
 
@@ -478,7 +521,10 @@ export class CombinedCases extends BaseTestCases {
       // Cleanup
       await repo.deleteBy({ where: { tags: { contains: [testTag] } } });
     } catch (error) {
-      this.context.logger.error('[COMBO-PRODUCT] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[COMBO-PRODUCT] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

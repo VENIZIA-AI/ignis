@@ -1,3 +1,4 @@
+import { ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -17,7 +18,7 @@ export class OverlapsCases extends BaseTestCases {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             tags: { overlaps: ['premium', 'clothing'] },
-          } as any,
+          },
         },
       });
 
@@ -39,7 +40,10 @@ export class OverlapsCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 7] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 7] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -56,7 +60,7 @@ export class OverlapsCases extends BaseTestCases {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             tags: { overlaps: ['nonexistent'] },
-          } as any,
+          },
         },
       });
 
@@ -69,7 +73,10 @@ export class OverlapsCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 8] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 8] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -86,7 +93,7 @@ export class OverlapsCases extends BaseTestCases {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             tags: { overlaps: [] },
-          } as any,
+          },
         },
       });
 
@@ -100,7 +107,10 @@ export class OverlapsCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 9] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 9] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

@@ -1,3 +1,4 @@
+import { ErrorUtility } from '@venizia/ignis-helpers';
 import { eq } from 'drizzle-orm';
 import { User } from '../../../models/entities';
 import { BaseTestCases } from '../base-test.cases';
@@ -78,6 +79,7 @@ export class RelationsCases extends BaseTestCases {
         return;
       }
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const creator = (configWithCreator as any).creator;
 
       if (!creator) {
@@ -128,7 +130,10 @@ export class RelationsCases extends BaseTestCases {
       });
       this.context.logger.info('[CASE 21] Cleaned up test user');
     } catch (error) {
-      this.context.logger.error('[CASE 21] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 21] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

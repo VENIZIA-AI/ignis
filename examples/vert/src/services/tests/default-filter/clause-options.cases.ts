@@ -1,4 +1,4 @@
-import { ParseUtility } from '@venizia/ignis-helpers';
+import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -40,7 +40,10 @@ export class ClauseOptionsCases extends BaseTestCases {
         this.context.logger.error('[CASE 12] FAILED | Expected 2 | Got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[CASE 12] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 12] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -84,7 +87,10 @@ export class ClauseOptionsCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 13] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 13] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -115,7 +121,7 @@ export class ClauseOptionsCases extends BaseTestCases {
         // Check that only selected fields are returned
         const hasDescription = 'description' in results[0];
 
-        if (!hasDescription || (results[0] as Record<string, unknown>).description === undefined) {
+        if (!hasDescription || Reflect.get(results[0], 'description') === undefined) {
           this.context.logger.info('[CASE 24] PASSED | Field selection works with default filter');
         } else {
           this.context.logger.info('[CASE 24] INFO | All fields returned despite selection');
@@ -124,7 +130,10 @@ export class ClauseOptionsCases extends BaseTestCases {
         this.context.logger.error('[CASE 24] FAILED | Expected 1 result | Got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[CASE 24] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 24] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

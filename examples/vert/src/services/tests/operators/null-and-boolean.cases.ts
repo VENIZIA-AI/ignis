@@ -1,4 +1,4 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -35,7 +35,7 @@ export class NullAndBooleanCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[IS] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error('[IS] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 
@@ -65,7 +65,10 @@ export class NullAndBooleanCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[ISN] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[ISN] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -91,7 +94,10 @@ export class NullAndBooleanCases extends BaseTestCases {
         this.context.logger.error('[EQ-NULL] FAILED | eq(null) not working correctly');
       }
     } catch (error) {
-      this.context.logger.error('[EQ-NULL] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[EQ-NULL] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -124,7 +130,10 @@ export class NullAndBooleanCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[NEQ-NULL] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[NEQ-NULL] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -153,7 +162,10 @@ export class NullAndBooleanCases extends BaseTestCases {
         this.context.logger.warn('[JSON-NULL] WARNING | No records with null JSON priority found');
       }
     } catch (error) {
-      this.context.logger.error('[JSON-NULL] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[JSON-NULL] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -192,7 +204,10 @@ export class NullAndBooleanCases extends BaseTestCases {
       // Cleanup
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[JSON-BOOL] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[JSON-BOOL] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

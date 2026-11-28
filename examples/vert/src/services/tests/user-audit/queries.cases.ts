@@ -1,4 +1,4 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { eq } from 'drizzle-orm';
 import { Configuration } from '../../../models/entities';
 import { UserAuditCases } from './support';
@@ -66,7 +66,10 @@ export class QueriesCases extends UserAuditCases {
         this.context.logger.info('[CASE 9] PASSED | Other fields also stored correctly');
       }
     } catch (error) {
-      this.context.logger.error('[CASE 9] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 9] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -173,7 +176,10 @@ export class QueriesCases extends UserAuditCases {
       // Cleanup
       await repo.deleteBy({ where: { group } });
     } catch (error) {
-      this.context.logger.error('[CASE 10] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 10] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -233,14 +239,15 @@ export class QueriesCases extends UserAuditCases {
         return;
       }
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const creator = (configWithCreator as any).creator;
       const hasAuditFields = 'createdBy' in configWithCreator && 'modifiedBy' in configWithCreator;
 
       if (hasAuditFields) {
         this.context.logger.info(
           '[CASE 14] PASSED | Audit fields present | createdBy: %s | modifiedBy: %s',
-          (configWithCreator as any).createdBy,
-          (configWithCreator as any).modifiedBy,
+          configWithCreator.createdBy,
+          configWithCreator.modifiedBy,
         );
       } else {
         this.context.logger.error(
@@ -259,7 +266,10 @@ export class QueriesCases extends UserAuditCases {
       // Cleanup
       await repo.deleteBy({ where: { group: 'AUDIT_RELATION_TEST' } });
     } catch (error) {
-      this.context.logger.error('[CASE 14] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 14] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -348,7 +358,10 @@ export class QueriesCases extends UserAuditCases {
       // Cleanup
       await repo.deleteBy({ where: { group } });
     } catch (error) {
-      this.context.logger.error('[CASE 17] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 17] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

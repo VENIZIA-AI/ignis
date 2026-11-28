@@ -1,4 +1,4 @@
-import { ParseUtility } from '@venizia/ignis-helpers';
+import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -78,7 +78,10 @@ export class EdgeCases extends BaseTestCases {
         deletedChannelsCount,
       );
     } catch (error) {
-      this.context.logger.error('[CASE 6] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 6] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -109,6 +112,7 @@ export class EdgeCases extends BaseTestCases {
         options: { shouldSkipDefaultFilter: true },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const saleChannelProducts = (productWithEmpty as any)?.saleChannelProducts;
 
       if (Array.isArray(saleChannelProducts) && saleChannelProducts.length === 0) {
@@ -128,7 +132,10 @@ export class EdgeCases extends BaseTestCases {
         options: { force: true, shouldSkipDefaultFilter: true },
       });
     } catch (error) {
-      this.context.logger.error('[CASE 10] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 10] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -171,7 +178,9 @@ export class EdgeCases extends BaseTestCases {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const creator = (configWithRelations as any)?.creator;
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const modifier = (configWithRelations as any)?.modifier;
 
       if (creator?.id === user.data.id && modifier?.id === user.data.id) {
@@ -188,7 +197,10 @@ export class EdgeCases extends BaseTestCases {
       await configRepo.deleteBy({ where: { id: config.data.id } });
       await userRepo.deleteBy({ where: { id: user.data.id } });
     } catch (error) {
-      this.context.logger.error('[CASE 11] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 11] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -265,7 +277,10 @@ export class EdgeCases extends BaseTestCases {
 
       await saleChannelRepo.deleteBy({ where: { id: channel.data.id }, options: { force: true } });
     } catch (error) {
-      this.context.logger.error('[CASE 14] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 14] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

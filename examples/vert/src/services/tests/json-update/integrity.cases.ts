@@ -1,4 +1,4 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -32,6 +32,7 @@ export class IntegrityCases extends BaseTestCases {
       // Update with various types
       const updateResult = await repo.updateById({
         id,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the typed update data refuses a dotted JSON path, which this case writes
         data: {
           'jValue.stringVal': 'hello',
           'jValue.numberVal': 42,
@@ -44,6 +45,7 @@ export class IntegrityCases extends BaseTestCases {
 
       if (updateResult.count === 1) {
         const verified = await repo.findById({ id });
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const jValue = verified?.jValue as Record<string, any>;
 
         const checks = [
@@ -66,7 +68,10 @@ export class IntegrityCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 8] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 8] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -106,6 +111,7 @@ export class IntegrityCases extends BaseTestCases {
       // Update only 'b' and 'nested.y'
       await repo.updateById({
         id,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the typed update data refuses a dotted JSON path, which this case writes
         data: {
           'jValue.b': 'updated_b',
           'jValue.nested.y': 99,
@@ -113,6 +119,7 @@ export class IntegrityCases extends BaseTestCases {
       });
 
       const verified = await repo.findById({ id });
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       const jValue = verified?.jValue as Record<string, any>;
 
       const allPreserved =
@@ -133,7 +140,10 @@ export class IntegrityCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 9] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 9] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -163,12 +173,14 @@ export class IntegrityCases extends BaseTestCases {
       // Update deeply nested path on empty object
       await repo.updateById({
         id,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the typed update data refuses a dotted JSON path, which this case writes
         data: {
           'jValue.deeply.nested.path.value': 'created',
         } as any,
       });
 
       const verified = await repo.findById({ id });
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       const jValue = verified?.jValue as Record<string, any>;
 
       if (jValue?.deeply?.nested?.path?.value === 'created') {
@@ -179,7 +191,10 @@ export class IntegrityCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 10] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 10] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -220,6 +235,7 @@ export class IntegrityCases extends BaseTestCases {
       // Bulk update using JSON path
       const updateResult = await repo.updateBy({
         where: { group: groupId },
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the typed update data refuses a dotted JSON path, which this case writes
         data: { 'jValue.verified': true } as any,
       });
 
@@ -229,6 +245,7 @@ export class IntegrityCases extends BaseTestCases {
           filter: { where: { group: groupId } },
         });
 
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const allVerified = configs.every((c) => (c.jValue as any)?.verified === true);
 
         if (allVerified) {
@@ -248,7 +265,10 @@ export class IntegrityCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { group: groupId } });
     } catch (error) {
-      this.context.logger.error('[CASE 11] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 11] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

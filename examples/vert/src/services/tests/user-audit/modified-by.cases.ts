@@ -1,4 +1,4 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { eq } from 'drizzle-orm';
 import { Configuration } from '../../../models/entities';
 import { UserAuditCases } from './support';
@@ -77,7 +77,10 @@ export class ModifiedByCases extends UserAuditCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 4] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 4] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -176,7 +179,10 @@ export class ModifiedByCases extends UserAuditCases {
       // Cleanup
       await repo.deleteBy({ where: { group } });
     } catch (error) {
-      this.context.logger.error('[CASE 6] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 6] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -270,7 +276,10 @@ export class ModifiedByCases extends UserAuditCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 7] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 7] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -348,7 +357,7 @@ export class ModifiedByCases extends UserAuditCases {
       }
 
       // modifiedBy should be one of the concurrent users
-      if (users.includes(dbRecord.modifiedBy as string)) {
+      if (users.some((user) => user === dbRecord.modifiedBy)) {
         this.context.logger.info(
           '[CASE 13] PASSED | modifiedBy is one of concurrent users | value: %s',
           dbRecord.modifiedBy,
@@ -363,7 +372,10 @@ export class ModifiedByCases extends UserAuditCases {
       // Cleanup
       await repo.deleteBy({ where: { group: 'AUDIT_CONCURRENT_TEST' } });
     } catch (error) {
-      this.context.logger.error('[CASE 13] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 13] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -464,7 +476,10 @@ export class ModifiedByCases extends UserAuditCases {
       // Cleanup
       await repo.deleteBy({ where: { group: 'AUDIT_SEQUENTIAL_TEST' } });
     } catch (error) {
-      this.context.logger.error('[CASE 15] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 15] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

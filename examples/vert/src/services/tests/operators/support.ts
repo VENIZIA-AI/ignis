@@ -1,4 +1,4 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -127,7 +127,10 @@ export class OperatorTestFixture extends BaseTestCases {
 
       this.context.logger.info('[SETUP] PASSED | Created 11 test records');
     } catch (error) {
-      this.context.logger.error('[SETUP] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[SETUP] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -142,7 +145,10 @@ export class OperatorTestFixture extends BaseTestCases {
       const deleted = await repo.deleteBy({ where: { group: 'COMPREHENSIVE_TEST' } });
       this.context.logger.info('[CLEANUP] PASSED | Deleted %d records', deleted.count);
     } catch (error) {
-      this.context.logger.error('[CLEANUP] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CLEANUP] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

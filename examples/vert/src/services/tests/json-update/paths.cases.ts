@@ -1,4 +1,4 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -52,7 +52,10 @@ export class PathsCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 1] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 1] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -82,11 +85,13 @@ export class PathsCases extends BaseTestCases {
       // Update using JSON path
       const updateResult = await repo.updateById({
         id,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the typed update data refuses a dotted JSON path, which this case writes
         data: { 'jValue.theme': 'dark' } as any,
       });
 
       if (updateResult.count === 1) {
         const verified = await repo.findById({ id });
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const jValue = verified?.jValue as Record<string, any>;
 
         if (jValue?.theme === 'dark' && jValue?.language === 'en') {
@@ -102,7 +107,10 @@ export class PathsCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 2] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 2] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -136,11 +144,13 @@ export class PathsCases extends BaseTestCases {
       // Update deeply nested path
       const updateResult = await repo.updateById({
         id,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the typed update data refuses a dotted JSON path, which this case writes
         data: { 'jValue.settings.display.fontSize': 16 } as any,
       });
 
       if (updateResult.count === 1) {
         const verified = await repo.findById({ id });
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const jValue = verified?.jValue as Record<string, any>;
         const fontSize = jValue?.settings?.display?.fontSize;
         const theme = jValue?.settings?.display?.theme;
@@ -159,7 +169,10 @@ export class PathsCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 3] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 3] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -193,11 +206,13 @@ export class PathsCases extends BaseTestCases {
       // Update array element using index
       const updateResult = await repo.updateById({
         id,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the typed update data refuses a dotted JSON path, which this case writes
         data: { 'jValue.addresses[0].primary': true } as any,
       });
 
       if (updateResult.count === 1) {
         const verified = await repo.findById({ id });
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const jValue = verified?.jValue as Record<string, any>;
         const addr0Primary = jValue?.addresses?.[0]?.primary;
         const addr1Primary = jValue?.addresses?.[1]?.primary;
@@ -216,7 +231,10 @@ export class PathsCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 4] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 4] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

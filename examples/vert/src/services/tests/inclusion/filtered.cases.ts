@@ -1,4 +1,4 @@
-import { ParseUtility } from '@venizia/ignis-helpers';
+import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -62,6 +62,7 @@ export class FilteredCases extends BaseTestCases {
         options: { shouldSkipDefaultFilter: true },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const saleChannelProducts = (productWithFiltered as any)?.saleChannelProducts ?? [];
       const activeChannels = saleChannelProducts.filter(
         (scp: any) => scp.saleChannel?.name === 'Active Channel',
@@ -109,7 +110,10 @@ export class FilteredCases extends BaseTestCases {
         options: { force: true },
       });
     } catch (error) {
-      this.context.logger.error('[CASE 7] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 7] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -161,6 +165,7 @@ export class FilteredCases extends BaseTestCases {
         options: { shouldSkipDefaultFilter: true },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const saleChannelProducts = (productWithOrdered as any)?.saleChannelProducts ?? [];
 
       if (saleChannelProducts.length === 3) {
@@ -197,7 +202,10 @@ export class FilteredCases extends BaseTestCases {
         options: { force: true },
       });
     } catch (error) {
-      this.context.logger.error('[CASE 8] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 8] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -251,6 +259,7 @@ export class FilteredCases extends BaseTestCases {
         options: { shouldSkipDefaultFilter: true },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const saleChannelProducts = (productWithLimited as any)?.saleChannelProducts ?? [];
 
       if (saleChannelProducts.length === 2) {
@@ -276,7 +285,10 @@ export class FilteredCases extends BaseTestCases {
         options: { force: true },
       });
     } catch (error) {
-      this.context.logger.error('[CASE 9] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 9] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -330,6 +342,7 @@ export class FilteredCases extends BaseTestCases {
         options: { shouldSkipDefaultFilter: true },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const scp = (productWithFields as any)?.saleChannelProducts?.[0];
       const sc = scp?.saleChannel;
 
@@ -354,7 +367,10 @@ export class FilteredCases extends BaseTestCases {
       });
       await saleChannelRepo.deleteBy({ where: { id: channel.data.id }, options: { force: true } });
     } catch (error) {
-      this.context.logger.error('[CASE 12] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 12] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -403,6 +419,7 @@ export class FilteredCases extends BaseTestCases {
       });
 
       if (expensiveWithRelations.length === 1 && expensiveWithRelations[0].price === 1000) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
         const hasChannel = (expensiveWithRelations[0] as any).saleChannelProducts?.length === 1;
 
         if (hasChannel) {
@@ -427,7 +444,10 @@ export class FilteredCases extends BaseTestCases {
 
       await saleChannelRepo.deleteBy({ where: { id: channel.data.id }, options: { force: true } });
     } catch (error) {
-      this.context.logger.error('[CASE 15] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 15] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

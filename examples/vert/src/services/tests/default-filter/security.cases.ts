@@ -1,4 +1,4 @@
-import { ParseUtility } from '@venizia/ignis-helpers';
+import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -35,7 +35,7 @@ export class SecurityCases extends BaseTestCases {
           }
         } catch (error) {
           // If error occurs, it should NOT be a SQL syntax error
-          const errMsg = (error as Error).message;
+          const errMsg = ErrorUtility.toError({ error }).message;
 
           if (errMsg.includes('syntax') || errMsg.includes('SQL')) {
             this.context.logger.error('[CASE 14] FAILED | SQL error with payload: %s', payload);
@@ -48,7 +48,10 @@ export class SecurityCases extends BaseTestCases {
         this.context.logger.info('[CASE 14] PASSED | All SQL injection attempts safely handled');
       }
     } catch (error) {
-      this.context.logger.error('[CASE 14] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 14] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -86,7 +89,10 @@ export class SecurityCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 15] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 15] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -105,11 +111,12 @@ export class SecurityCases extends BaseTestCases {
           __proto__: { polluted: true },
           constructor: { prototype: { polluted: true } },
         },
-      } as any;
+      };
 
       await repo.find({ filter: maliciousFilter });
 
       // Verify prototype is not polluted
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- reads a property that must not exist, to detect a polluted prototype
       if (({} as any).polluted === undefined) {
         this.context.logger.info('[CASE 16] PASSED | Prototype pollution attempt blocked');
       } else {
@@ -158,7 +165,10 @@ export class SecurityCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 17] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 17] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -191,7 +201,10 @@ export class SecurityCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 18] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 18] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -237,7 +250,7 @@ export class SecurityCases extends BaseTestCases {
           // Error is expected for invalid SQL - this is safe behavior
           this.context.logger.info(
             '[CASE 29] INFO | Order injection rejected: %s',
-            (err as Error).message.slice(0, 50),
+            ErrorUtility.toError({ error: err }).message.slice(0, 50),
           );
         }
       }
@@ -265,7 +278,7 @@ export class SecurityCases extends BaseTestCases {
         options: { force: true, shouldSkipDefaultFilter: true },
       });
     } catch (error) {
-      this.context.logger.error('[CASE 29] ERROR | %s', (error as Error).message);
+      this.context.logger.error('[CASE 29] ERROR | %s', ErrorUtility.toError({ error }).message);
     }
   }
 
@@ -298,6 +311,7 @@ export class SecurityCases extends BaseTestCases {
           const results = await repo.find({
             filter: {
               where: { code: testCode },
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- hostile input on purpose, which the types refuse
               fields: [maliciousField] as any,
             },
             options: { shouldSkipDefaultFilter: true },
@@ -334,7 +348,7 @@ export class SecurityCases extends BaseTestCases {
         options: { force: true, shouldSkipDefaultFilter: true },
       });
     } catch (error) {
-      this.context.logger.error('[CASE 30] ERROR | %s', (error as Error).message);
+      this.context.logger.error('[CASE 30] ERROR | %s', ErrorUtility.toError({ error }).message);
     }
   }
 
@@ -377,7 +391,7 @@ export class SecurityCases extends BaseTestCases {
           // Error expected for invalid relation - safe behavior
           this.context.logger.info(
             '[CASE 31] INFO | Include injection rejected: %s',
-            (err as Error).message.slice(0, 50),
+            ErrorUtility.toError({ error: err }).message.slice(0, 50),
           );
         }
       }
@@ -391,7 +405,7 @@ export class SecurityCases extends BaseTestCases {
               {
                 relation: 'saleChannelProducts',
                 scope: {
-                  where: { 'id; DROP TABLE--': 1 } as any,
+                  where: { 'id; DROP TABLE--': 1 },
                 },
               },
             ],
@@ -423,7 +437,7 @@ export class SecurityCases extends BaseTestCases {
         options: { force: true, shouldSkipDefaultFilter: true },
       });
     } catch (error) {
-      this.context.logger.error('[CASE 31] ERROR | %s', (error as Error).message);
+      this.context.logger.error('[CASE 31] ERROR | %s', ErrorUtility.toError({ error }).message);
     }
   }
 }

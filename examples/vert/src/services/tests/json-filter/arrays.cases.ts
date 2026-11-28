@@ -1,3 +1,4 @@
+import { ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -20,14 +21,19 @@ export class ArraysCases extends BaseTestCases {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       if (results.length === 1 && (results[0].jValue as any)?.tags?.[0] === 'important') {
         this.context.logger.info('[CASE 4] PASSED | Found 1 record with tags[0] = "important"');
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         this.context.logger.info('[CASE 4] Record name: %s', (results[0].jValue as any)?.name);
       } else {
         this.context.logger.error('[CASE 4] FAILED | Expected 1 record | got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[CASE 4] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 4] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -50,6 +56,7 @@ export class ArraysCases extends BaseTestCases {
       });
 
       if (results.length === 3) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const priorities = results.map((r) => (r.jValue as any)?.priority);
         // The actual JSON values are numbers, but the query matched via TEXT comparison
         const allInRange = priorities.every((p) => [1, 2, 3].includes(p));
@@ -67,7 +74,10 @@ export class ArraysCases extends BaseTestCases {
         this.context.logger.error('[CASE 9] FAILED | Expected 3 records | got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[CASE 9] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 9] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -90,6 +100,7 @@ export class ArraysCases extends BaseTestCases {
       });
 
       if (results.length === 3) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const priorities = results.map((r) => (r.jValue as any)?.priority);
         // The actual JSON values are numbers, but the query matched via TEXT comparison
         const noneInRange = priorities.every((p) => ![1, 2].includes(p));
@@ -112,7 +123,10 @@ export class ArraysCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 10] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 10] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -133,6 +147,7 @@ export class ArraysCases extends BaseTestCases {
       });
 
       if (results.length === 3) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const scores = results.map((r) => (r.jValue as any)?.metadata?.score);
         const allInRange = scores.every((s) => s >= 70 && s <= 95);
 
@@ -149,7 +164,10 @@ export class ArraysCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 11] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 11] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -168,13 +186,15 @@ export class ArraysCases extends BaseTestCases {
           where: {
             group,
             and: [{ 'jValue.priority': { gt: 2 } }, { 'jValue.metadata.level': 'high' }],
-          } as any,
+          },
         },
       });
 
       if (results.length === 2) {
         const isCorrect = results.every((r) => {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
           const priority = (r.jValue as any)?.priority;
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
           const level = (r.jValue as any)?.metadata?.level;
 
           return priority > 2 && level === 'high';
@@ -185,7 +205,9 @@ export class ArraysCases extends BaseTestCases {
           this.context.logger.info(
             '[CASE 13] Records: %j',
             results.map((r) => ({
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
               priority: (r.jValue as any)?.priority,
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
               level: (r.jValue as any)?.metadata?.level,
             })),
           );
@@ -199,7 +221,10 @@ export class ArraysCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 13] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 13] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -218,11 +243,12 @@ export class ArraysCases extends BaseTestCases {
           where: {
             group,
             or: [{ 'jValue.priority': 1 }, { 'jValue.priority': 5 }],
-          } as any,
+          },
         },
       });
 
       if (results.length === 2) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const priorities = results.map((r) => (r.jValue as any)?.priority);
         const isCorrect = priorities.every((p) => p === 1 || p === 5);
 
@@ -239,7 +265,10 @@ export class ArraysCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 14] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 14] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

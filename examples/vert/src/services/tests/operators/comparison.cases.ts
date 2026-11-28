@@ -1,3 +1,4 @@
+import { ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -25,7 +26,7 @@ export class ComparisonCases extends BaseTestCases {
         this.context.logger.error('[EQ] FAILED | Expected 1 record | Got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[EQ] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error('[EQ] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 
@@ -52,7 +53,7 @@ export class ComparisonCases extends BaseTestCases {
         this.context.logger.error('[NE] FAILED | Some records have nValue = 20');
       }
     } catch (error) {
-      this.context.logger.error('[NE] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error('[NE] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 
@@ -78,7 +79,10 @@ export class ComparisonCases extends BaseTestCases {
         this.context.logger.error('[NEQ] FAILED | Some records have nValue = 30');
       }
     } catch (error) {
-      this.context.logger.error('[NEQ] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[NEQ] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -106,7 +110,7 @@ export class ComparisonCases extends BaseTestCases {
         this.context.logger.error('[GT] FAILED | Expected 4 records | Got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[GT] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error('[GT] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 
@@ -133,7 +137,10 @@ export class ComparisonCases extends BaseTestCases {
         this.context.logger.error('[GTE] FAILED | Expected 5 records | Got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[GTE] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[GTE] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -161,7 +168,7 @@ export class ComparisonCases extends BaseTestCases {
         this.context.logger.error('[LT] FAILED | Expected 4 records | Got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[LT] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error('[LT] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 
@@ -188,7 +195,10 @@ export class ComparisonCases extends BaseTestCases {
         this.context.logger.error('[LTE] FAILED | Expected 5 records | Got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[LTE] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[LTE] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -225,7 +235,10 @@ export class ComparisonCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[MULTI-OP] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[MULTI-OP] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -251,7 +264,10 @@ export class ComparisonCases extends BaseTestCases {
         this.context.logger.error('[RANGE] FAILED | Expected 3 records | Got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[RANGE] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[RANGE] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

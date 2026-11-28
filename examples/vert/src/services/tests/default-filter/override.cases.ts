@@ -1,4 +1,4 @@
-import { ParseUtility } from '@venizia/ignis-helpers';
+import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -43,7 +43,10 @@ export class OverrideCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 2] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 2] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -83,7 +86,10 @@ export class OverrideCases extends BaseTestCases {
         this.context.logger.error('[CASE 4] FAILED | Expected price=0 | Got: %j', results);
       }
     } catch (error) {
-      this.context.logger.error('[CASE 4] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 4] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -128,7 +134,10 @@ export class OverrideCases extends BaseTestCases {
         this.context.logger.error('[CASE 5] FAILED | Expected product | Got: %j', resultWithSkip);
       }
     } catch (error) {
-      this.context.logger.error('[CASE 5] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 5] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -175,7 +184,10 @@ export class OverrideCases extends BaseTestCases {
         this.context.logger.error('[CASE 6] FAILED | Expected product | Got: %j', resultWithSkip);
       }
     } catch (error) {
-      this.context.logger.error('[CASE 6] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 6] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -231,7 +243,10 @@ export class OverrideCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 7] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 7] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -282,7 +297,10 @@ export class OverrideCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 8] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 8] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -339,7 +357,10 @@ export class OverrideCases extends BaseTestCases {
         this.context.logger.error('[CASE 21] FAILED | Free product should NOT have been updated');
       }
     } catch (error) {
-      this.context.logger.error('[CASE 21] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 21] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -399,7 +420,10 @@ export class OverrideCases extends BaseTestCases {
         this.context.logger.error('[CASE 22] FAILED | Free product should still exist');
       }
     } catch (error) {
-      this.context.logger.error('[CASE 22] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 22] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -448,7 +472,10 @@ export class OverrideCases extends BaseTestCases {
         this.context.logger.info('[CASE 27] PASSED | UpdateById with skip works | count: 1');
       }
     } catch (error) {
-      this.context.logger.error('[CASE 27] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 27] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

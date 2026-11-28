@@ -1,3 +1,4 @@
+import { ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -18,7 +19,7 @@ export class CompositionCases extends BaseTestCases {
               { or: [{ nValue: { gt: 150 } }, { nValue: { lt: 50 } }] },
               { or: [{ tValue: { like: '%pending' } }, { tValue: { like: '%archived' } }] },
             ],
-          } as any,
+          },
         },
       });
 
@@ -36,7 +37,7 @@ export class CompositionCases extends BaseTestCases {
         );
       }
     } catch (e) {
-      this.context.logger.error('[LOGIC] FAILED | %s', (e as Error).message);
+      this.context.logger.error('[LOGIC] FAILED | %s', ErrorUtility.toError({ error: e }).message);
     }
   }
 
@@ -51,7 +52,7 @@ export class CompositionCases extends BaseTestCases {
           where: {
             group: 'ADVANCED_TEST',
             nValue: { nin: [100, 200] },
-          } as any,
+          },
         },
       });
 
@@ -65,7 +66,7 @@ export class CompositionCases extends BaseTestCases {
         );
       }
     } catch (e) {
-      this.context.logger.error('[LOGIC] FAILED | %s', (e as Error).message);
+      this.context.logger.error('[LOGIC] FAILED | %s', ErrorUtility.toError({ error: e }).message);
     }
   }
 
@@ -82,6 +83,7 @@ export class CompositionCases extends BaseTestCases {
     try {
       const results = await this.context.configurationRepository.find({
         filter: {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the typed filter refuses this shape, which the case sends
           where: {
             group: 'ADVANCED_TEST',
             ...nestedFilter,
@@ -101,7 +103,7 @@ export class CompositionCases extends BaseTestCases {
     } catch (e) {
       this.context.logger.error(
         '[LOGIC] FAILED | Stack overflow or parser error: %s',
-        (e as Error).message,
+        ErrorUtility.toError({ error: e }).message,
       );
     }
   }
@@ -118,7 +120,7 @@ export class CompositionCases extends BaseTestCases {
             group: 'ADVANCED_TEST',
             nValue: 100,
             or: [{ tValue: 'non_existent' }, { tValue: 'status_active' }],
-          } as any,
+          },
         },
       });
 
@@ -131,7 +133,7 @@ export class CompositionCases extends BaseTestCases {
         this.context.logger.error('[LOGIC] FAILED | Expected 1 record, got %d', results.length);
       }
     } catch (e) {
-      this.context.logger.error('[LOGIC] FAILED | %s', (e as Error).message);
+      this.context.logger.error('[LOGIC] FAILED | %s', ErrorUtility.toError({ error: e }).message);
     }
   }
 }

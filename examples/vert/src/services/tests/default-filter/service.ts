@@ -1,3 +1,4 @@
+import { ErrorUtility } from '@venizia/ignis-helpers';
 import { service } from '@venizia/ignis';
 import { BaseTestService } from '../base-test.service';
 import { ClauseOptionsCases } from './clause-options.cases';
@@ -120,7 +121,7 @@ export class DefaultFilterTestService extends BaseTestService {
 
       this.logger.info('[CLEANUP] PASSED | Test data cleaned up');
     } catch (error) {
-      this.logger.error('[CLEANUP] FAILED | Error: %s', (error as Error).message);
+      this.logger.error('[CLEANUP] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 }

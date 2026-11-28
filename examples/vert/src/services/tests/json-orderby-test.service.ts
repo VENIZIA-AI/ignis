@@ -1,5 +1,5 @@
 import { service } from '@venizia/ignis';
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestService } from './base-test.service';
 
 // ----------------------------------------------------------------
@@ -94,7 +94,7 @@ export class JsonOrderByTestService extends BaseTestService {
 
       this.logger.info('[CASE 1] PASSED | Created 5 records with nested JSON');
     } catch (error) {
-      this.logger.error('[CASE 1] FAILED | Error: %s', (error as Error).message);
+      this.logger.error('[CASE 1] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 
@@ -116,6 +116,7 @@ export class JsonOrderByTestService extends BaseTestService {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       const ascPriorities = ascResult.map((r) => (r.jValue as any)?.priority);
       this.logger.info('[CASE 2] ASC priorities: %j', ascPriorities);
 
@@ -141,6 +142,7 @@ export class JsonOrderByTestService extends BaseTestService {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       const descPriorities = descResult.map((r) => (r.jValue as any)?.priority);
       this.logger.info('[CASE 2] DESC priorities: %j', descPriorities);
 
@@ -158,7 +160,7 @@ export class JsonOrderByTestService extends BaseTestService {
         this.logger.error('[CASE 2] FAILED | DESC order incorrect');
       }
     } catch (error) {
-      this.logger.error('[CASE 2] FAILED | Error: %s', (error as Error).message);
+      this.logger.error('[CASE 2] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 
@@ -180,6 +182,7 @@ export class JsonOrderByTestService extends BaseTestService {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       const ascScores = ascResult.map((r) => (r.jValue as any)?.metadata?.score);
       this.logger.info('[CASE 3] ASC scores: %j', ascScores);
 
@@ -205,6 +208,7 @@ export class JsonOrderByTestService extends BaseTestService {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       const descScores = descResult.map((r) => (r.jValue as any)?.metadata?.score);
       this.logger.info('[CASE 3] DESC scores: %j', descScores);
 
@@ -221,7 +225,7 @@ export class JsonOrderByTestService extends BaseTestService {
         this.logger.error('[CASE 3] FAILED | Nested field DESC incorrect');
       }
     } catch (error) {
-      this.logger.error('[CASE 3] FAILED | Error: %s', (error as Error).message);
+      this.logger.error('[CASE 3] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 
@@ -243,6 +247,7 @@ export class JsonOrderByTestService extends BaseTestService {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       const ascTags = ascResult.map((r) => (r.jValue as any)?.tags?.[0]);
       this.logger.info('[CASE 4] ASC tags[0]: %j', ascTags);
 
@@ -264,6 +269,7 @@ export class JsonOrderByTestService extends BaseTestService {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       const descTags = descResult.map((r) => (r.jValue as any)?.tags?.[0]);
       this.logger.info('[CASE 4] DESC tags[0]: %j', descTags);
 
@@ -276,7 +282,7 @@ export class JsonOrderByTestService extends BaseTestService {
         this.logger.error('[CASE 4] FAILED | Expected: %j | Got: %j', sortedTagsDesc, descTags);
       }
     } catch (error) {
-      this.logger.error('[CASE 4] FAILED | Error: %s', (error as Error).message);
+      this.logger.error('[CASE 4] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 
@@ -308,7 +314,7 @@ export class JsonOrderByTestService extends BaseTestService {
         this.logger.error('[CASE 5] FAILED | Expected 5 records | got: %d', result.length);
       }
     } catch (error) {
-      this.logger.error('[CASE 5] FAILED | Error: %s', (error as Error).message);
+      this.logger.error('[CASE 5] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 
@@ -360,7 +366,7 @@ export class JsonOrderByTestService extends BaseTestService {
         );
       }
     } catch (error) {
-      this.logger.error('[CASE 6] FAILED | Error: %s', (error as Error).message);
+      this.logger.error('[CASE 6] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 
@@ -375,7 +381,7 @@ export class JsonOrderByTestService extends BaseTestService {
       const deleted = await repo.deleteBy({ where: { group: 'JSON_ORDER_TEST' } });
       this.logger.info('[CASE 7] PASSED | Deleted %d records', deleted.count);
     } catch (error) {
-      this.logger.error('[CASE 7] FAILED | Error: %s', (error as Error).message);
+      this.logger.error('[CASE 7] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 }

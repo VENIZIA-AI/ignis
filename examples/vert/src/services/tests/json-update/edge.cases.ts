@@ -1,4 +1,4 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -30,6 +30,7 @@ export class EdgeCases extends BaseTestCases {
       try {
         await repo.updateById({
           id,
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a path that is invalid on purpose, which the typed update data refuses
           data: { 'nonexistent.field': 'value' } as any,
         });
         this.context.logger.error('[CASE 12] FAILED | Should have thrown error');
@@ -46,7 +47,10 @@ export class EdgeCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 12] FAILED | Setup error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 12] FAILED | Setup error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -76,6 +80,7 @@ export class EdgeCases extends BaseTestCases {
         // description is a text column, not JSON
         await repo.updateById({
           id,
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a path that is invalid on purpose, which the typed update data refuses
           data: { 'description.nested': 'value' } as any,
         });
         this.context.logger.error('[CASE 13] FAILED | Should have thrown error');
@@ -92,7 +97,10 @@ export class EdgeCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 13] FAILED | Setup error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 13] FAILED | Setup error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -131,13 +139,16 @@ export class EdgeCases extends BaseTestCases {
         try {
           await repo.updateById({
             id,
-            data: { [path]: 'value' } as any,
+            data: { [path]: 'value' },
           });
           this.context.logger.error('[CASE 14] FAILED | Path should be rejected: %s', path);
           allRejected = false;
         } catch (error) {
           // Expected to throw
-          this.context.logger.info('[CASE 14] Rejected: %s', (error as Error).message);
+          this.context.logger.info(
+            '[CASE 14] Rejected: %s',
+            ErrorUtility.toError({ error }).message,
+          );
         }
       }
 
@@ -147,7 +158,10 @@ export class EdgeCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 14] FAILED | Setup error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 14] FAILED | Setup error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -186,7 +200,7 @@ export class EdgeCases extends BaseTestCases {
         try {
           await repo.updateById({
             id,
-            data: { [path]: 'value' } as any,
+            data: { [path]: 'value' },
           });
           this.context.logger.error(
             '[CASE 15] FAILED | SQL injection should be rejected: %s',
@@ -195,7 +209,10 @@ export class EdgeCases extends BaseTestCases {
           allRejected = false;
         } catch (error) {
           // Expected - SQL injection should be rejected
-          this.context.logger.info('[CASE 15] Rejected: %s', (error as Error).message);
+          this.context.logger.info(
+            '[CASE 15] Rejected: %s',
+            ErrorUtility.toError({ error }).message,
+          );
         }
       }
 
@@ -205,7 +222,10 @@ export class EdgeCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 15] FAILED | Setup error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 15] FAILED | Setup error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -236,10 +256,12 @@ export class EdgeCases extends BaseTestCases {
       // This should succeed - the value is stored as a string
       await repo.updateById({
         id,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the typed update data refuses a dotted JSON path, which this case writes
         data: { 'jValue.userInput': sqlInjectionPayload } as any,
       });
 
       const verified = await repo.findById({ id });
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       const jValue = verified?.jValue as Record<string, any>;
 
       if (jValue?.userInput === sqlInjectionPayload) {
@@ -262,7 +284,10 @@ export class EdgeCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 16] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 16] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

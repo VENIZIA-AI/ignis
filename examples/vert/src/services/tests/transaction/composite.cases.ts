@@ -107,6 +107,7 @@ export class CompositeCases extends BaseTestCases {
         options: { shouldSkipDefaultFilter: true },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const saleChannelProducts = (productWithRelations as any)?.saleChannelProducts;
 
       if (saleChannelProducts?.length === 1) {

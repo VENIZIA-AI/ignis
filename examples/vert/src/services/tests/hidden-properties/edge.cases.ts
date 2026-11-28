@@ -1,4 +1,4 @@
-import { ParseUtility } from '@venizia/ignis-helpers';
+import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { eq, like } from 'drizzle-orm';
 import { User } from '../../../models/entities';
 import { BaseTestCases } from '../base-test.cases';
@@ -35,7 +35,10 @@ export class EdgeCases extends BaseTestCases {
 
       this.context.logger.info('[CASE 6] PASSED | Deleted %d test users', deleted.count);
     } catch (error) {
-      this.context.logger.error('[CASE 6] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 6] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -89,7 +92,10 @@ export class EdgeCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 7] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 7] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -147,7 +153,10 @@ export class EdgeCases extends BaseTestCases {
 
       await connector.delete(User.schema).where(like(User.schema.realm, 'HIDDEN_TEST_VERIFY_%'));
     } catch (error) {
-      this.context.logger.error('[CASE 12] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 12] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -230,7 +239,10 @@ export class EdgeCases extends BaseTestCases {
       this.context.logger.info('[CASE 16] Create keys: %s', createKeys.join(', '));
     } catch (error) {
       await transaction.rollback();
-      this.context.logger.error('[CASE 16] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 16] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -328,7 +340,10 @@ export class EdgeCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 18] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 18] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -405,7 +420,10 @@ export class EdgeCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 20] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 20] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }
