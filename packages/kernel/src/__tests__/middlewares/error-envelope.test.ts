@@ -595,19 +595,19 @@ describe('the `extra` a response carries', () => {
     expect(body.extra.upstream.stack).toBeUndefined();
   });
 
-  test('in production the message args are masked by key name, even on a server error', async () => {
+  test('in production the message args are masked by key name', async () => {
     const { status, body } = await probe({
       middleware: production(),
       thrower: () => {
         throw getError({
-          statusCode: HTTP.ResultCodes.RS_5.BadGateway,
+          statusCode: HTTP.ResultCodes.RS_4.Conflict,
           message: 'upstream %{name} failed',
           messageArgs: { name: 'payments', apiKey: 'sk_live_ARGS' },
         });
       },
     });
 
-    expect(status).toBe(HTTP.ResultCodes.RS_5.BadGateway);
+    expect(status).toBe(HTTP.ResultCodes.RS_4.Conflict);
     expect(body.normalized.args.apiKey).toBe('[REDACTED]');
     expect(JSON.stringify(body)).not.toContain('sk_live_ARGS');
   });

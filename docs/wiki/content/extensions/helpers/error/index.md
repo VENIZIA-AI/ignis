@@ -236,7 +236,7 @@ The new error is built from three reads, each guarded so a throwing getter or a 
 - **`cause`.** The original value, as thrown. A thrown `undefined` leaves `cause` unset.
 
 > [!WARNING]
-> What a client reads depends on the value. A value that carries a valid HTTP status (above) keeps that status and its message: whoever threw it chose to answer with it. Any other value (a driver error, a string, an error with no status) becomes a 500 that the error middleware answers as an UNEXPECTED error: `Internal Server Error` in production, with nothing from the value in the response. Its real message (one line, control characters escaped), the original as `cause` and the stack stay in the log only. Outside production the message is shown, as for any unexpected error. To answer a client with a message you chose, build the error yourself with `getError`.
+> What a client reads depends on the value. A value that carries a valid HTTP status (above) keeps that status and its message: whoever threw it chose to answer with it. In production a 5xx keeps the status, and its message is `Internal Server Error`. Any other value (a driver error, a string, an error with no status) becomes a 500 that the error middleware answers as an UNEXPECTED error: `Internal Server Error` in production, with nothing from the value in the response. Its real message (one line, control characters escaped), the original as `cause` and the stack stay in the log only. Outside production the message is shown, as for any unexpected error. To answer a client with a message you chose, build the error yourself with `getError`.
 
 ### Catalog a reusable error
 
@@ -304,12 +304,14 @@ const NOT_FOUND = MessageCode.build({ parts: ['core', 'user', 'not_found'] });
 | `ZodError` (validation)                   | 422     | the first issue's `params.code`, else its raw Zod code | that issue's message; per-field list in `details.cause`               | never                                                 |
 | DB client error (SQLSTATE class 22/23/44) | 400     | a [`core.database.*` code](/references/base/middlewares#_2-postgresql-constraint-violations) | a fixed, safe summary - never the driver's text                       | never                                                 |
 | Transient DB conflict (40001/40P01)       | 409     | `database.conflict`                                    | a fixed retry message                                                 | never                                                 |
-| `getError(...)` - intentional             | its own | its own                                                | its own, with each `%{key}` filled from `normalized.args`             | when the throw site attached `extra` or unknown keys  |
+| `getError(...)` - intentional             | its own | its own                                                | its own, with each `%{key}` filled from `normalized.args`; `Internal Server Error` for a 5xx in production | when the throw site attached `extra` or unknown keys  |
 | Anything else                             | 500     | `core.system_error`                                    | `Internal Server Error` in production; the raw message in development | never                                                 |
 
 Only the intentional branch reports what the throw site wrote. The other four **replace** the message - a driver error can carry SQL, schema, and constraint names. `normalized` is built from that replacement, so it can never leak what `message` just scrubbed.
 
 `rootKey` (e.g. `new AppErrorMiddleware({ logger, rootKey: 'error' }).value()`) nests any of these under that key.
+
+A `statusCode` outside 400-599 answers 500.
 
 The handler is fail-closed on environment. It exposes `stack` and `cause` in `details` only for `Environment.DEVELOPMENT_ENVS`: `local`, `debug`, `development`, `dev`, `sit`. Everything else - including `alpha`, `staging`, a typo, or an unset `NODE_ENV` - gets the sanitized shape:
 

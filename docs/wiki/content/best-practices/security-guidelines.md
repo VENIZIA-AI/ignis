@@ -534,9 +534,10 @@ The global error handler decides what a client sees by environment, and it is **
 |---|---|
 | Unexpected errors | Replaced with a generic `"Internal Server Error"` - raw text may carry SQL, schema names or connection details |
 | Database constraint errors (400) | Base message only; the driver's `Detail:` (which echoes row values like emails), `Table:` and `Constraint:` are stripped |
+| A 5xx error, `getError` included | Keeps its status and `normalized.code`; the message is the generic `"Internal Server Error"` |
 | `details.stack` / `details.cause` | Omitted |
 
-Deliberate `getError` messages are always returned verbatim, in every environment - so never put internal detail in one. Use `requestId` plus the server log to diagnose what the response no longer shows. See [Error Handling](./error-handling#the-error-response-shape).
+The message of a 4xx `getError` is returned in every environment - so never put internal detail in one. Use `requestId` plus the server log to diagnose what the response no longer shows. See [Error Handling](./error-handling#the-error-response-shape).
 
 **Events to Log:**
 - Failed login attempts

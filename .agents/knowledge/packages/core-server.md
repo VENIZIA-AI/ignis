@@ -181,7 +181,7 @@ mapping forwarded the `path` string as `data`.
   not give the transports a default limit - a second, smaller cap would reject what the configured
   one allowed.
 - `SEND_FAILED`/`BATCH_SEND_FAILED`/`VERIFICATION_FAILED` carry a fixed message; the original
-  error goes to `cause` (S-03 - the envelope sends an ApplicationError's message in production).
+  error goes to `cause` (S-03 - the envelope sends a 4xx ApplicationError's message in production).
 `StaticAssetComponent` turns each key of `TStaticAssetComponentOptions` into one generated controller on ONE bucket.
 An entry is `{ basePath, name?, bucket, helper, keyPrefix?, rawObjectPath?, link?, auth?, serverUpload,
 directUpload, metaLink, routes?, extend? }`. Every switch is a `TToggle<Options>`: `{ use: false }` or

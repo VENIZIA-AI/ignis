@@ -447,7 +447,7 @@ In **production** the message is the base message only - `Detail:`/`Table:`/`Con
 
 #### 3. Generic Errors
 
-All other errors use the `statusCode` property from the error if present, otherwise default to HTTP `500 Internal Server Error`. A Hono `HTTPException` - thrown by `@hono/zod-openapi`'s own request validator, or by your own code - carries its status on `.status`, not `.statusCode`; the handler reads that too, so a validator's or your own `HTTPException` with a 4xx status renders as that status and keeps its own message, sanitized environment or not. A 5xx `HTTPException` stays an unexpected `500` whose message never reaches the client, the same as any other unclassified error.
+All other errors use the `statusCode` property from the error when it is an integer from 400 to 599, otherwise HTTP `500 Internal Server Error`. In production a 5xx keeps its status and `normalized.code`, and its message is `Internal Server Error` with empty `args`; the thrown message stays in the log. A Hono `HTTPException` - thrown by `@hono/zod-openapi`'s own request validator, or by your own code - carries its status on `.status`, not `.statusCode`; the handler reads that too, so a validator's or your own `HTTPException` with a 4xx status renders as that status and keeps its own message, sanitized environment or not. A 5xx `HTTPException` stays an unexpected `500` whose message never reaches the client, the same as any other unclassified error.
 
 ### Response Format
 

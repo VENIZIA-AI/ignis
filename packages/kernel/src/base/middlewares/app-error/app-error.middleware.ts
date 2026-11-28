@@ -24,6 +24,7 @@ import type { IResolvedApplicationError, TApplicationErrorType } from './common'
 import { ZodErrorHandler } from './zod.handler';
 
 const DEFAULT_INTERNAL_ERROR_MESSAGE = 'Internal Server Error';
+const MAX_ERROR_STATUS = 599;
 
 /**
  * Set by `ApplicationError.fromUnknown` on an error it wrapped from a value with no usable HTTP status. Read by registry key, so
@@ -280,15 +281,48 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     return isClientError ? error.status : undefined;
   }
 
-  /** `getError` sets `statusCode`, and it wins when a foreign error carries both. Neither usable is a 500. */
+  /** `getError` sets `statusCode`, and it wins when a foreign error carries both. Anything but an integer from 400 to 599 is a 500. */
   private readIntentionalStatus(opts: { error: TThrown }): number {
     const { error } = opts;
+    const status =
+      'statusCode' in error && typeof error.statusCode === 'number'
+        ? error.statusCode
+        : this.readClientErrorStatus({ error });
+    const isErrorStatus =
+      status !== undefined &&
+      Number.isInteger(status) &&
+      status >= HTTP.ResultCodes.RS_4.BadRequest &&
+      status <= MAX_ERROR_STATUS;
 
-    if ('statusCode' in error && typeof error.statusCode === 'number') {
-      return error.statusCode;
+    return isErrorStatus ? status : HTTP.ResultCodes.RS_5.InternalServerError;
+  }
+
+  /** A throw site's own answer. A server error (5xx) in production keeps its status and code only: the message is for the log. */
+  private resolveIntentional(opts: {
+    error: TThrown;
+    isProduction: boolean;
+  }): IResolvedApplicationError {
+    const { error, isProduction } = opts;
+    const resolved = this.build({
+      error,
+      type: ApplicationErrorTypes.INTENTIONAL,
+      statusCode: this.readIntentionalStatus({ error }),
+      message: error.message,
+    });
+
+    if (!isProduction || resolved.statusCode < HTTP.ResultCodes.RS_5.InternalServerError) {
+      return resolved;
     }
 
-    return this.readClientErrorStatus({ error }) ?? HTTP.ResultCodes.RS_5.InternalServerError;
+    return {
+      ...resolved,
+      message: DEFAULT_INTERNAL_ERROR_MESSAGE,
+      normalized: {
+        text: DEFAULT_INTERNAL_ERROR_MESSAGE,
+        code: resolved.normalized.code,
+        args: {},
+      },
+    };
   }
 
   /** An ApplicationError's `normalized` is authoritative - a `transform` may have reworded `text`. */
@@ -349,12 +383,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
       }
 
       case ApplicationErrorTypes.INTENTIONAL: {
-        return this.build({
-          error,
-          type,
-          statusCode: this.readIntentionalStatus({ error }),
-          message: error.message,
-        });
+        return this.resolveIntentional({ error, isProduction });
       }
 
       default: {

@@ -130,7 +130,7 @@ describe('a wrapped value with no usable HTTP status is answered as unexpected',
   });
 });
 
-describe('a wrapped value that carries a valid HTTP status keeps it and its message', () => {
+describe('a wrapped value that carries a valid HTTP status, in production', () => {
   test.each([
     [
       'a 409 statusCode',
@@ -142,7 +142,7 @@ describe('a wrapped value that carries a valid HTTP status keeps it and its mess
       'a 503 statusCode',
       Object.assign(new Error('Upstream is down'), { statusCode: 503 }),
       503,
-      'Upstream is down',
+      'Internal Server Error',
     ],
     [
       'a 404 status (an HTTPException or a client error)',

@@ -1414,3 +1414,19 @@ stylistic-6:
     steps:
       - "Pin @venizia/dev-configs to the release before this one."
   data: Nothing stored changes.
+
+error-response-policy:
+  symbols: [BaseAppErrorMiddleware, AppErrorMiddleware]
+  upgrade:
+    before: |-
+      throw getError({ statusCode: 503, message: 'Payments are closed' });
+    after: |-
+      throw getError({ statusCode: 503, message: 'Payments are closed', messageCode: 'app.payments.closed' });
+    steps:
+      - "Where a client shows the message of a 5xx, give the error a messageCode and translate normalized.code. normalized.args is empty on a 5xx in production."
+      - "Where a message is meant for the caller, answer a 4xx."
+      - "Where an error is thrown with a status below 400 or above 599, it now answers 500: throw a 4xx or 5xx, or return the response from the route."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-kernel to the release before this one."
+  data: Nothing stored changes.
