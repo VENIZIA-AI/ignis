@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@base-ui-components/react": "^1.0.0-rc.0",
-    "@electric-sql/pglite": "^0.5.10",
+    "@electric-sql/pglite": "^0.6.1",
     "@hono/zod-openapi": "catalog:",
     "@minimaltech/ra-core-infra": "0.0.3-17",
     "@reduxjs/toolkit": "^2.15.0",
