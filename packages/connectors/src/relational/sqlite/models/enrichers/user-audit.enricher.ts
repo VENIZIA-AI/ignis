@@ -1,17 +1,13 @@
 import { AuditUserResolver } from '@/relational/core/models/enrichers';
 import { getError } from '@venizia/ignis-helpers/core';
-import type {
-  SQLiteIntegerBuilderInitial,
-  SQLiteTextBuilderInitial,
-} from 'drizzle-orm/sqlite-core';
+import type { SQLiteIntegerBuilderInitial } from 'drizzle-orm/sqlite-core';
+import type { TSQLiteTextColumn } from '../common/columns';
 import { integer, text } from 'drizzle-orm/sqlite-core';
 import type {
   TColumnDefinitions,
   TUserAuditColumnOpts,
   TUserAuditEnricherOptions,
 } from '../common/types';
-
-type TSQLiteTextColumn = SQLiteTextBuilderInitial<string, [string, ...string[]], undefined>;
 
 /** The column definitions with `createdBy` and `modifiedBy` user columns added. */
 export type TUserAuditEnricherResult<

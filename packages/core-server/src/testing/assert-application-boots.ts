@@ -2,7 +2,7 @@ import type { BaseApplication } from '@/base/applications';
 import { ServerBootSteps, type TServerBootStep } from '@/base/applications';
 import type { IConfigurable, TClass } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import { BindingVerifier, ResolverUtility } from '@venizia/ignis-inversion';
+import { BindingVerifier, ResolverUtility, type TBindingSkip } from '@venizia/ignis-inversion';
 import {
   type AbstractRestController,
   AuthorizationEnforcerRegistry,
@@ -58,7 +58,7 @@ export interface IAssertApplicationBootsOptions {
    *
    * @default []
    */
-  skipBindings?: TBootProbeTarget[];
+  skipBindings?: TBindingSkip[];
 
   /**
    * Whether an application that registered no controller passes. Off, it fails: it proves nothing, for example when the artifact index was empty.

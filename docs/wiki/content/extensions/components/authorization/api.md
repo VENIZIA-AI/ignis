@@ -80,7 +80,7 @@ import type {
   ICasbinEnforcerOptions, ICasbinEnforcerCachedRedis,
 
   // Adapter types
-  ICasbinPolicyFilter, ICasbinPolicySource, IScopedCasbinEntities, IScopedCasbinPolicyFilter,
+  ICasbinPolicyFilter, ICasbinPolicySource, IScopedCasbinEntities,
 
   // Function & utility types
   TAuthorizeFn, TAuthorizationVoter, TAuthorizationConditions, TRegistryDescriptor,
@@ -952,7 +952,7 @@ Source -> [`adapters/base-filtered.ts`](https://github.com/VENIZIA-AI/ignis/blob
 The generic, read-only `FilteredAdapter` for the scoped RBAC model. Reads **one principal's edges** plus the **shared structural hierarchy** from a single `PolicyDefinition` table (joined to `Permission` for codes) and emits casbin lines. No subclassing - configure it with `IScopedCasbinEntities`.
 
 ```typescript
-class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicyFilter> {
+class ScopedCasbinAdapter extends BaseFilteredAdapter<ICasbinPolicyFilter> {
   protected readonly entities: IScopedCasbinEntities;
   protected readonly resolveDomainEdges?: TResolveDomainEdgesFn;
   constructor(opts: {
@@ -961,7 +961,7 @@ class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicyFilter>
     resolveDomainEdges?: TResolveDomainEdgesFn;
   });
 
-  async loadFilteredPolicy(model: Model, filter: IScopedCasbinPolicyFilter): Promise<void>;
+  async loadFilteredPolicy(model: Model, filter: ICasbinPolicyFilter): Promise<void>;
 
   protected async queryPrincipalPolicies(opts: {
     principal: { type: string; id: IdType };
@@ -1029,8 +1029,6 @@ interface IScopedCasbinEntities {
   domainTypes: string[];                          // e.g. ['Merchant', 'Organizer']
   softDelete?: { use: false } | { use: true; columnName: string };
 }
-
-interface IScopedCasbinPolicyFilter { principal: { type: string; id: IdType }; }
 ```
 
 **`loadFilteredPolicy()` runs one wave of two independent statements:**

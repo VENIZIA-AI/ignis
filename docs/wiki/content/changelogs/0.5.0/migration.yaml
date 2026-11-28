@@ -1611,6 +1611,25 @@ public-type-names:
       - "Pin the @venizia packages to the release before this one and restore the old names from version control: the codemod has no --reverse, because TConstructor and TClass became one name."
   data: Nothing stored changes.
 
+casbin-policy-filter:
+  symbols: [ICasbinPolicyFilter, ScopedCasbinAdapter]
+  upgrade:
+    before: |-
+      import type { IScopedCasbinPolicyFilter } from '@venizia/ignis';
+
+      const filter: IScopedCasbinPolicyFilter = { principal: { type: 'User', id: userId } };
+    after: |-
+      import type { ICasbinPolicyFilter } from '@venizia/ignis';
+
+      const filter: ICasbinPolicyFilter = { principal: { type: 'User', id: userId } };
+    steps:
+      - "Run bun node_modules/.bin/devz codemod public-names [paths...] --write: it renames the imported type and its uses, and merges it into an import of ICasbinPolicyFilter that is already there."
+      - "Run your typecheck: the codemod does not read .js files or import('pkg').Name, and does not follow a name through a barrel of your own."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis to the release before this one. ICasbinPolicyFilter exists there too, so code that uses it keeps compiling."
+  data: Nothing stored changes.
+
 execution-frames:
   symbols: [Execution, ExecutionRunner, useRequestContext, RequestContextRegistry, ScopeFilterUtility]
   upgrade:

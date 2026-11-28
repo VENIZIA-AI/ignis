@@ -1,5 +1,6 @@
 import { CoreErrorCodes } from '@venizia/ignis-kernel';
-import { getError, UuidHelper } from '@venizia/ignis-helpers/core';
+import { getError } from '@venizia/ignis-helpers/core';
+import { DefaultStringId } from '@/relational/core/models/enrichers/default-string-id';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { HasDefault, HasRuntimeDefault, IsPrimaryKey, NotNull } from 'drizzle-orm';
 import type {
@@ -32,9 +33,6 @@ type TIdColumnDef<Opts extends TIdEnricherOptions | undefined = undefined> = Opt
     : { id: TNumberIdCol }
   : { id: TNumberIdCol };
 
-// Time-ordered, so a text primary key appends to its B-tree instead of splitting pages.
-const defaultStringId = (): string => UuidHelper.getInstance().v7();
-
 /** Adds an `id` primary key to a table's column definitions: an integer rowid or a text key from `generator`. Any other `dataType` throws. */
 export class SqliteIdEnricher {
   static generateColumnDefs<Opts extends TIdEnricherOptions | undefined>(
@@ -51,7 +49,7 @@ export class SqliteIdEnricher {
         return {
           id: text('id')
             .primaryKey()
-            .$defaultFn(id.generator ?? defaultStringId),
+            .$defaultFn(id.generator ?? DefaultStringId.generate),
         } as TIdColumnDef<Opts>;
       }
       case 'number': {

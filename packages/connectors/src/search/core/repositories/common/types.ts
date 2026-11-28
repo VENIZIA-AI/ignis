@@ -1,8 +1,8 @@
 import type { TRequestFilterClause } from '@venizia/ignis-kernel';
 import type { TFilter, TWhere } from '@venizia/ignis-kernel';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
-import type { SearchModes, TSearchInput } from './constants';
 import { ConstClass } from '@venizia/ignis-helpers/common';
+import type { TTranslatableSearchInput } from './constants';
 
 /**
  * What a `where` tree compiled down to. A filter STRING cannot express the two absorbing
@@ -131,10 +131,7 @@ export interface ISearchQueryDialect {
   conjoin(opts: { clauses: TCompiledWhere[] }): TCompiledWhere;
 
   /** Writes every engine-specific consequence of a non-raw search input onto `query` (mode dispatch, vector clause, tuning knobs) - keeping `ReadableSearchRepository` engine-free. */
-  applySearchInput(opts: {
-    query: ISearchQuery;
-    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
-  }): void;
+  applySearchInput(opts: { query: ISearchQuery; input: TTranslatableSearchInput }): void;
 
   /** Maps a camelCase query record onto the engine's wire-format field names via a key lookup, never a wire-cased identifier; `engineParams` merges last. */
   toWireParams(opts: { query: Partial<ISearchQuery> }): Record<string, unknown>;

@@ -319,11 +319,6 @@ export declare class ReadableSearchRepository<TDocument extends object = object,
         data: null;
     }>;
 }
-
-/** The inputs the dialect translates - `raw` has already returned by the time these are resolved, and `applySearchInput` accepts only this narrowed union. */
-type TTranslatableSearchInput = Exclude<TSearchInput, {
-    mode: typeof SearchModes.RAW;
-}>;
 ```
 
 Source: `packages/connectors/src/search/core/repositories/core/readable.ts`
@@ -982,6 +977,28 @@ export type TSearchSchema = Record<string, ISearchCollectionDefinition>;
 ```
 
 Source: `packages/connectors/src/search/core/models/common/types/collection.ts`
+
+## `TTranslatableSearchInput`
+
+*type*
+
+The inputs a dialect translates: every `TSearchInput` mode but `raw`, which goes to the engine as given.
+
+```ts
+export type TTranslatableSearchInput = Exclude<TSearchInput, {
+    mode: typeof SearchModes.RAW;
+}>;
+
+/** Discriminant values for `TSearchInput.mode` - which search strategy `ReadableSearchRepository.search()` runs. */
+export declare class SearchModes extends ConstClass {
+    static readonly KEYWORD = "keyword";
+    static readonly SEMANTIC = "semantic";
+    static readonly HYBRID = "hybrid";
+    static readonly RAW = "raw";
+}
+```
+
+Source: `packages/connectors/src/search/core/repositories/common/constants.ts`
 
 ## `TTypesenseDirtyValue`
 

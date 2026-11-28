@@ -1,4 +1,3 @@
-import { RecordUtility } from '@/utilities/record.utility';
 import { ObjectUtility } from '@venizia/ignis-inversion';
 import { HTTP } from '@/common';
 import { RuntimeModules, type TRuntimeModule } from '@/common/constants';
@@ -21,6 +20,7 @@ import {
   type TSocketIOServerOptions,
   type TSocketIOValidateRoomFn,
 } from '../common';
+import { SocketRoomPayload } from '../../room-payload';
 
 const CLIENT_AUTHENTICATE_TIMEOUT = 10_000;
 const CLIENT_PING_INTERVAL = 30_000;
@@ -465,30 +465,13 @@ export class SocketIOServerHelper extends BaseHelper {
     });
   }
 
-  /**
-   * Narrows an untrusted room payload to the strings it actually contains.
-   *
-   * The listeners below run on data any authenticated client sends. Destructuring `{ rooms = [] }`
-   * out of an `any` and testing `rooms?.length` accepts a STRING - `{"rooms":"lobby"}` has a
-   * length of 5 - and the next line calls `rooms.map`, which a string does not have. socket.io
-   * dispatches on `process.nextTick` with no try/catch around the handler, so that TypeError
-   * escapes as an uncaught exception and takes the process with it.
-   */
-  private static toRoomList(payload: unknown): string[] {
-    const rooms = RecordUtility.isRecord(payload) ? payload.rooms : undefined;
-
-    return Array.isArray(rooms)
-      ? rooms.filter((room): room is string => typeof room === 'string')
-      : [];
-  }
-
   private registerRoomHandlers(opts: { socket: IOSocket; clientId: string }) {
     const { socket, clientId: id } = opts;
 
     const joinLogger = this.logger.for(SocketIOConstants.EVENT_JOIN);
 
     const onJoin = (payload: unknown) => {
-      const rooms = SocketIOServerHelper.toRoomList(payload);
+      const rooms = SocketRoomPayload.toRoomList(payload);
 
       if (!rooms.length) {
         return;
@@ -546,7 +529,7 @@ export class SocketIOServerHelper extends BaseHelper {
     const leaveLogger = this.logger.for(SocketIOConstants.EVENT_LEAVE);
 
     const onLeave = (payload: unknown) => {
-      const rooms = SocketIOServerHelper.toRoomList(payload);
+      const rooms = SocketRoomPayload.toRoomList(payload);
 
       if (!rooms.length) {
         return;

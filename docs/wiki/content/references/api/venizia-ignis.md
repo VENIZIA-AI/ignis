@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-122 exports, 122 with TSDoc. 1018 more are re-exported from other entries (listed at the end).
+121 exports, 121 with TSDoc. 1019 more are re-exported from other entries (listed at the end).
 
 The declarations are on 4 pages; each export below links to its own.
 
@@ -242,10 +242,6 @@ The declarations are on 4 pages; each export below links to its own.
 ## `IScopedCasbinEntities`
 
 *interface* - [Declaration](/references/api/venizia-ignis--part-2#iscopedcasbinentities)
-
-## `IScopedCasbinPolicyFilter`
-
-*interface* - [Declaration](/references/api/venizia-ignis--part-2#iscopedcasbinpolicyfilter)
 
 ## `IScopedCasbinTable`
 
@@ -1318,6 +1314,7 @@ The declarations are on 4 pages; each export below links to its own.
 - `TInjectTarget` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TIsAllowedOriginHandler` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TIsAllowedSecFetchSiteHandler` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `TIsEnabled` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TIsolationLevel` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TIsoTimestamp` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
 - `TJOSEStandard` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)

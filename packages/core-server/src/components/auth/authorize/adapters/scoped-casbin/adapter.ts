@@ -1,7 +1,7 @@
 import type { IdType } from '@/base';
 import { type Model } from 'casbin';
 import { sql, type SQL } from 'drizzle-orm';
-import { GrantBuilder, ToggleUtility } from '@venizia/ignis-kernel';
+import { GrantBuilder } from '@venizia/ignis-kernel';
 import {
   AuthorizationActions,
   AuthorizationDecisions,
@@ -11,11 +11,10 @@ import {
 import { BaseFilteredAdapter } from '../base-filtered';
 import { CustomGrantExpander, type TCustomGrantRow } from '../custom-grant-expander';
 import { ScopedCasbinSoftDelete } from '../soft-delete.utility';
-import type { ICasbinPolicySource, IScopedCasbinEntities } from '../common';
+import type { ICasbinPolicyFilter, ICasbinPolicySource, IScopedCasbinEntities } from '../common';
 import { PrincipalPolicyEdges, type TPrincipalPolicyRow } from './policy-edges';
 import {
   DEFAULT_SCHEMA,
-  type IScopedCasbinPolicyFilter,
   type TDomainHierarchyEdge,
   type TGrantRow,
   type TResolveDomainEdgesFn,
@@ -31,7 +30,7 @@ import {
  * filter would sweep those unknown rows into a branch that has no idea what they mean. The current
  * shape makes an undeclared variant inert, which is what makes sharing the table safe.
  */
-export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicyFilter> {
+export class ScopedCasbinAdapter extends BaseFilteredAdapter<ICasbinPolicyFilter> {
   protected readonly entities: IScopedCasbinEntities;
   protected readonly customGrantExpander: CustomGrantExpander;
   protected readonly resolveDomainEdges?: TResolveDomainEdgesFn;
@@ -60,7 +59,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
    * join that wave - it needs the domain closure the principal-scoped CTE produces - but it does
    * not wait for the structural-edges query either: both run concurrently once the closure is known.
    */
-  async loadFilteredPolicy(model: Model, filter: IScopedCasbinPolicyFilter): Promise<void> {
+  async loadFilteredPolicy(model: Model, filter: ICasbinPolicyFilter): Promise<void> {
     const { principal } = filter;
     const { principals } = this.entities;
 
@@ -233,13 +232,11 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
 
   /** `AND <alias>.<col> IS NULL` when soft-delete is on, else empty. The alias is emitted raw to match the unquoted FROM alias - quoting folds it to a different case and breaks the join. */
   protected softDeleteClause(opts: { alias: string }): SQL {
-    const sd = this.entities.softDelete;
-
-    if (!ToggleUtility.isUsed(sd, { name: `[${ScopedCasbinAdapter.name}] entities.softDelete` })) {
-      return sql.empty();
-    }
-
-    return sql` AND ${sql.raw(opts.alias)}.${sql.identifier(sd.columnName)} IS NULL`;
+    return ScopedCasbinSoftDelete.clause({
+      scope: ScopedCasbinAdapter.name,
+      softDelete: this.entities.softDelete,
+      alias: opts.alias,
+    });
   }
 
   /** One statement for everything scoped to a principal: its own edges, the role_inherits edges reachable from its roles, and the grants of that closure. `UNION` in the recursive term is what terminates a cyclic role graph. */

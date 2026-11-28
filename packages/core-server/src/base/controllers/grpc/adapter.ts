@@ -7,6 +7,7 @@ import type { Context, Env, Schema } from 'hono';
 import { Hono } from 'hono';
 import { BodyLimits, type TRouteContext } from '@venizia/ignis-kernel';
 import { AppErrorMiddleware } from '@/base/middlewares/app-error/app-error.middleware';
+import { StreamUtility } from '@/utilities/stream.utility';
 import type { AbstractGrpcController } from './abstract';
 import { GrpcErrors } from './errors';
 import { GrpcTimeoutGuard } from './timeout.guard';
@@ -166,7 +167,7 @@ export class GrpcRequestAdapter<
         rpc,
       });
 
-      if (!this.isMessageStream(messages)) {
+      if (!StreamUtility.isAsyncIterable(messages)) {
         throw getError({
           message: `[GrpcRequestAdapter] RPC "${name}" streams its answer: the handler must return an async iterable, such as an async generator`,
         });
@@ -187,17 +188,13 @@ export class GrpcRequestAdapter<
     }
   }
 
-  private isMessageStream(value: unknown): value is AsyncIterable<unknown> {
-    return typeof value === 'object' && value !== null && Symbol.asyncIterator in value;
-  }
-
   /** The request a handler reads: a stream of the client stops with `rpc.signal`, a single message is as it is. */
   private followRequest(opts: { method: unknown; request: unknown; rpc: HandlerContext }) {
     const { method, request, rpc } = opts;
     const isStreamed =
       method === GRPC.Methods.CLIENT_STREAMING || method === GRPC.Methods.BIDI_STREAMING;
 
-    if (!isStreamed || !this.isMessageStream(request)) {
+    if (!isStreamed || !StreamUtility.isAsyncIterable(request)) {
       return request;
     }
 

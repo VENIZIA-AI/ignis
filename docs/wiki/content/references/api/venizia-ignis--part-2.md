@@ -344,7 +344,6 @@ export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema 
     private wrap;
     /** A call that streams its answer: the handler's messages, one by one. */
     private stream;
-    private isMessageStream;
     /** The request a handler reads: a stream of the client stops with `rpc.signal`, a single message is as it is. */
     private followRequest;
     private toAbortError;
@@ -1125,23 +1124,6 @@ export interface IScopedCasbinEntities {
 ```
 
 Source: `packages/core-server/src/components/auth/authorize/adapters/common/types.ts`
-
-## `IScopedCasbinPolicyFilter`
-
-*interface*
-
-Filter passed to `ScopedCasbinAdapter.loadFilteredPolicy`: the one principal whose policy lines are loaded.
-
-```ts
-export interface IScopedCasbinPolicyFilter {
-    principal: {
-        type: string;
-        id: IdType;
-    };
-}
-```
-
-Source: `packages/core-server/src/components/auth/authorize/adapters/scoped-casbin/common/types.ts`
 
 ## `IScopedCasbinTable`
 
