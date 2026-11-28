@@ -1,6 +1,6 @@
 import { ObjectUtility } from '@venizia/ignis-inversion';
 import { BaseHelper } from '@/modules/base';
-import { Execution } from '@/modules/execution';
+import { Execution, ExecutionFrames } from '@/modules/execution';
 import { CronJob, type CronOnCompleteCommand, CronTime } from 'cron';
 import { ApplicationError } from '../error';
 
@@ -57,12 +57,22 @@ export class CronHelper extends BaseHelper {
     }
 
     try {
+      const { onTick, onCompleted, errorHandler } = this;
+      // A command string is run by the library as a process: only a function is app code in this process.
+      const onComplete: typeof onCompleted =
+        typeof onCompleted === 'function'
+          ? function (this: ThisParameterType<typeof onCompleted>) {
+              return ExecutionFrames.root({ task: () => onCompleted.call(this) });
+            }
+          : onCompleted;
       this.instance = CronJob.from({
         cronTime: this.cronTime,
-        onTick: this.onTick,
-        onComplete: this.onCompleted,
+        // Each call starts from nothing: never the rights of whoever built or started the job.
+        onTick: () => ExecutionFrames.root({ task: () => onTick() }),
+        onComplete,
         start: this.autoStart,
-        errorHandler: this.errorHandler,
+        errorHandler:
+          errorHandler && ((error) => ExecutionFrames.root({ task: () => errorHandler(error) })),
         timeZone: this.tz,
       });
     } catch (error) {

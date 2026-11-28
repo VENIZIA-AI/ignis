@@ -1591,3 +1591,28 @@ execution-frames:
     steps:
       - "Add asyncContext back where you set enable to false, then pin the @venizia packages to the release before this one."
   data: Nothing stored changes.
+
+execution-entries:
+  symbols: [BullMQHelper, CronHelper, SequentialQueueHelper, EventBus, ExecutionFrames]
+  upgrade:
+    before: |-
+      // the tick ran with whatever started the job
+      new CronHelper({ cronTime: '0 3 * * *', onTick: () => this.reapAll() });
+    after: |-
+      new CronHelper({
+        cronTime: '0 3 * * *',
+        onTick: () =>
+          Execution.run({
+            mode: ExecutionModes.SYSTEM,
+            reason: 'draft order reaper',
+            task: () => this.reapAll(),
+          }),
+      });
+    steps:
+      - "Find the consumers, ticks, socket handlers and event handlers that relied on the request or the system rights of whoever registered or published them."
+      - "Open the frame each needs with Execution.run where it is handled: scoped with the user and values it serves, or system with a reason."
+      - "Do not copy values or a user from a message or a payload without checking them: they are claims of your code."
+  downgrade:
+    steps:
+      - "Pin the @venizia packages to the release before this one."
+  data: Nothing stored changes.

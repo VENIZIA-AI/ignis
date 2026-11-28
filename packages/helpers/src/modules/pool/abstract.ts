@@ -3,6 +3,7 @@ import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { HfQueueHelper } from '@/modules/queue/internal/hf';
 import { type IPool, type IPoolControlOptions, type IPoolStats, type IPoolWaiter } from './common';
+import { ExecutionFrames } from '@/modules/execution';
 
 /** Single-borrower pool skeleton: subclasses override {@link create} (required) and optionally validateResource/resetResource/onDestroyResource. All resource-waiter pairing flows through ONE re-entrancy-guarded `dispatch()` loop; the waiter queue is {@link HfQueueHelper} - O(1), no shift/splice. */
 export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<T> {
@@ -209,7 +210,8 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
 
   /** Fire-and-forget dispatch with logged rejection; shared by all dispatch call sites. */
   private safeDispatch(opts: { action: string }): void {
-    this.dispatch().catch((error) => {
+    // The loop serves whoever waits, so it starts from nothing, not from the caller that happens to run it.
+    ExecutionFrames.root({ task: () => this.dispatch() }).catch((error) => {
       this.logger
         .for(this.dispatch.name)
         .warn('dispatch error | action: %s | Error: %s', opts.action, error);

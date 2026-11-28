@@ -46,8 +46,8 @@ export interface IExecutionRunner {
     /** Runs the task in exactly this frame. */
     runFrame<Result>(opts: {
         frame: IExecutionFrame;
-        task: () => ValueOrPromise<Result>;
-    }): Promise<Result>;
+        task: () => Result;
+    }): Result;
 }
 ```
 

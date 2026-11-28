@@ -51,8 +51,5 @@ export interface IExecutionRunner {
   /** Builds the frame of `Execution.run` from these options and the current one, then runs the task in it. */
   run<Result>(opts: TExecutionRunOptions<Result>): Promise<Result>;
   /** Runs the task in exactly this frame. */
-  runFrame<Result>(opts: {
-    frame: IExecutionFrame;
-    task: () => ValueOrPromise<Result>;
-  }): Promise<Result>;
+  runFrame<Result>(opts: { frame: IExecutionFrame; task: () => Result }): Result;
 }

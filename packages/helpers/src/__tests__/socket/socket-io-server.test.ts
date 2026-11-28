@@ -270,11 +270,22 @@ describe('SocketIOServerHelper | on', () => {
   test('binds the handler on the IO server', () => {
     const { helper, io } = createHelper();
 
-    const handler = () => {};
+    const received: unknown[] = [];
+    const handler = (value: unknown) => received.push(value);
 
     helper.on({ topic: 'a-topic', handler });
 
-    expect(io.on).toHaveBeenCalledWith('a-topic', handler);
+    // The bound listener is the handler in a frame of its own.
+    const call: unknown[] = io.on.mock.calls.at(-1) ?? [];
+    const [topic, listener] = call;
+    expect(topic).toBe('a-topic');
+
+    if (typeof listener !== 'function') {
+      throw getError({ message: 'no listener was bound' });
+    }
+
+    listener('payload');
+    expect(received).toEqual(['payload']);
   });
 });
 

@@ -8,7 +8,6 @@ import {
   type IExecutionRunner,
   type TExecutionRunOptions,
 } from '@venizia/ignis-helpers/core';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { RecordUtility } from '@venizia/ignis-helpers/core';
 import { Authentication, RequestContextRegistry } from '@venizia/ignis-kernel';
 import { routePath } from 'hono/route';
@@ -84,15 +83,12 @@ export class ExecutionRunner extends BaseHelper implements IExecutionRunner {
     });
   }
 
-  runFrame<Result>(opts: {
-    frame: IExecutionFrame;
-    task: () => ValueOrPromise<Result>;
-  }): Promise<Result> {
+  runFrame<Result>(opts: { frame: IExecutionFrame; task: () => Result }): Result {
     const { frame, task } = opts;
     this.assertFrame({ frame });
     const parent = this.read();
 
-    return this.store.run(frame, async () => {
+    return this.store.run(frame, () => {
       // Inside the frame, so the request the line names is the frame's own.
       this.logSystemRun({ frame, parent });
 

@@ -9,6 +9,7 @@ import {
   type TQueueElement,
   type TQueueStatus,
 } from './common';
+import { ExecutionFrames } from '@/modules/execution';
 
 /** Calls `task` in the async context captured when the runner was made. */
 type TContextRunner = <Result>(task: () => Result) => Result;
@@ -17,9 +18,10 @@ type TContextRunner = <Result>(task: () => Result) => Result;
  * In-memory FIFO queue that hands one element at a time to `onMessage`.
  * A throwing handler is logged and its element dropped, so the queue keeps moving.
  *
- * Each element is handled in the async context it was enqueued in, so a handler reads the store of the caller that
- * enqueued it, not the one of the element before. An element pushed straight into `storage` is handled in the context
- * the queue was built in.
+ * Each element is handled in the async context it was enqueued in, so a handler reads the stores of the caller that
+ * enqueued it, not the ones of the element before. Its execution frame is not the caller's: a scoped root frame with
+ * the user and the values captured at enqueue, never the request or system rights. An element pushed straight into
+ * `storage` is handled in the context the queue was built in, with no identity.
  */
 export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
   public storage: Array<TQueueElement<TElementPayload>>;
@@ -32,7 +34,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
   protected isSettleRequested: boolean;
 
   private readonly elementContexts = new WeakMap<TQueueElement<TElementPayload>, TContextRunner>();
-  private readonly ownContext: TContextRunner = AsyncLocalStorage.snapshot();
+  private ownContext!: TContextRunner;
 
   private onMessage?: (opts: {
     identifier: string;
@@ -75,6 +77,17 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     this.onDataEnqueue = opts.onDataEnqueue;
     this.onDataDequeue = opts.onDataDequeue;
     this.onStateChange = opts.onStateChange;
+    this.ownContext = this.captureContext({ run: (task) => ExecutionFrames.root({ task }) });
+  }
+
+  /**
+   * The context a later dispatch runs in: the async context of the caller, with its frame replaced first by `run`, so
+   * nothing runs between entering the snapshot and opening that frame.
+   */
+  private captureContext(opts: { run: TContextRunner }): TContextRunner {
+    const snapshot = AsyncLocalStorage.snapshot();
+
+    return (task) => snapshot(() => opts.run(task));
   }
 
   /** Announce a state transition, awaiting the hook but never letting it break the caller. */
@@ -223,7 +236,8 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     }
 
     const queueElement: TQueueElement<TElementPayload> = { isLocked: false, payload };
-    this.elementContexts.set(queueElement, AsyncLocalStorage.snapshot());
+    const run = ExecutionFrames.handOff({ name: this.identifier });
+    this.elementContexts.set(queueElement, this.captureContext({ run }));
     this.storage.push(queueElement);
     this.totalEvent++;
     await HookUtility.execute({

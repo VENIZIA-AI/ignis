@@ -345,9 +345,10 @@ Source: `packages/helpers/src/modules/secrets/factory.ts`
 In-memory FIFO queue that hands one element at a time to `onMessage`.
 A throwing handler is logged and its element dropped, so the queue keeps moving.
 
-Each element is handled in the async context it was enqueued in, so a handler reads the store of the caller that
-enqueued it, not the one of the element before. An element pushed straight into `storage` is handled in the context
-the queue was built in.
+Each element is handled in the async context it was enqueued in, so a handler reads the stores of the caller that
+enqueued it, not the ones of the element before. Its execution frame is not the caller's: a scoped root frame with
+the user and the values captured at enqueue, never the request or system rights. An element pushed straight into
+`storage` is handled in the context the queue was built in, with no identity.
 
 ```ts
 export declare class SequentialQueueHelper<TElementPayload> extends BaseHelper {
@@ -359,7 +360,7 @@ export declare class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     protected state: TQueueStatus;
     protected isSettleRequested: boolean;
     private readonly elementContexts;
-    private readonly ownContext;
+    private ownContext;
     private onMessage?;
     private onDataEnqueue?;
     private onDataDequeue?;
@@ -367,6 +368,11 @@ export declare class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     constructor(opts: IQueueCallback<TElementPayload> & {
         identifier: string;
     });
+    /**
+     * The context a later dispatch runs in: the async context of the caller, with its frame replaced first by `run`, so
+     * nothing runs between entering the snapshot and opening that frame.
+     */
+    private captureContext;
     /** Announce a state transition, awaiting the hook but never letting it break the caller. */
     protected notifyStateChange(opts: {
         scope: string;

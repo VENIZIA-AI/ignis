@@ -12,6 +12,7 @@ import type {
   TSecretRotationHandler,
   TTimerHandle,
 } from '../common';
+import { ExecutionFrames } from '@/modules/execution';
 
 interface ICacheEntry {
   value: Record<string, string>;
@@ -228,13 +229,18 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
       this.timers.clear(existing);
     }
 
-    const handle = this.timers.set(() => {
-      this.handleRenewal({ key: opts.key }).catch((error) => {
-        this.logger
-          .for(this.armTimer.name)
-          .error('Renewal handler crashed | key: %s | error: %s', opts.key, error);
-      });
-    }, opts.delayMs);
+    const handle = this.timers.set(
+      ExecutionFrames.listener({
+        handler: () => {
+          this.handleRenewal({ key: opts.key }).catch((error) => {
+            this.logger
+              .for(this.armTimer.name)
+              .error('Renewal handler crashed | key: %s | error: %s', opts.key, error);
+          });
+        },
+      }),
+      opts.delayMs,
+    );
     this.timerHandles.set(opts.key, handle);
   }
 
@@ -346,7 +352,7 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
 
     for (const handler of this.rotateHandlers) {
       try {
-        await handler(event);
+        await ExecutionFrames.root({ task: () => handler(event) });
       } catch (error) {
         logger.error('onRotate handler failed | key: %s | error: %s', event.key, error);
       }
@@ -356,7 +362,9 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
 
     for (const target of targets) {
       try {
-        await target.onSecretRotated({ key: event.key, secret: event.lease.value });
+        await ExecutionFrames.root({
+          task: () => target.onSecretRotated({ key: event.key, secret: event.lease.value }),
+        });
       } catch (error) {
         logger.error('Rotatable failed | key: %s | error: %s', event.key, error);
       }

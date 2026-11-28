@@ -1,6 +1,6 @@
 import { getError } from '@/modules/error';
 import { ErrorUtility } from '@/utilities/error.utility';
-import { Execution } from '@/modules/execution';
+import { Execution, ExecutionFrames } from '@/modules/execution';
 import type {
   ConsumerGroupJoinPayload,
   ConsumerGroupLeavePayload,
@@ -311,7 +311,7 @@ export class KafkaConsumerHelper<
       errorHandler,
     });
 
-    for await (const message of messages) {
+    const handle = async (message: Parameters<typeof messageHandler>[0]['message']) => {
       try {
         await messageHandler({ message });
         await doneHandler?.({ message });
@@ -327,6 +327,11 @@ export class KafkaConsumerHelper<
           execution: () => errorHandler?.({ error: normalizedError, message }),
         });
       }
+    };
+
+    // The loop lives as long as the consumer, in the frame of whoever started it: each message starts from nothing.
+    for await (const message of messages) {
+      await ExecutionFrames.root({ task: () => handle(message) });
     }
   }
 
@@ -392,9 +397,12 @@ export class KafkaConsumerHelper<
       logger: this.logger,
       scope: opts.scope,
       execution: () =>
-        this.onStreamError
-          ? this.onStreamError({ error: opts.error })
-          : this.onMessageError?.({ error: opts.error }),
+        ExecutionFrames.root({
+          task: () =>
+            this.onStreamError
+              ? this.onStreamError({ error: opts.error })
+              : this.onMessageError?.({ error: opts.error }),
+        }),
     });
   }
 
@@ -420,9 +428,12 @@ export class KafkaConsumerHelper<
         logger: this.logger,
         scope: 'drainStream',
         execution: () =>
-          this.onStreamError
-            ? this.onStreamError({ error: normalizedError })
-            : opts.errorHandler?.({ error: normalizedError }),
+          ExecutionFrames.root({
+            task: () =>
+              this.onStreamError
+                ? this.onStreamError({ error: normalizedError })
+                : opts.errorHandler?.({ error: normalizedError }),
+          }),
       });
     }
 
@@ -477,9 +488,12 @@ export class KafkaConsumerHelper<
           logger: this.logger,
           scope: 'attemptReconnect',
           execution: () =>
-            this.onReconnectError
-              ? this.onReconnectError({ error: normalizedError, attempt, maxAttempts })
-              : errorHandler?.({ error: normalizedError }),
+            ExecutionFrames.root({
+              task: () =>
+                this.onReconnectError
+                  ? this.onReconnectError({ error: normalizedError, attempt, maxAttempts })
+                  : errorHandler?.({ error: normalizedError }),
+            }),
         });
 
         return;
@@ -527,9 +541,12 @@ export class KafkaConsumerHelper<
         logger: this.logger,
         scope: 'attemptReconnect',
         execution: () =>
-          this.onReconnectError
-            ? this.onReconnectError({ error: normalizedError, attempt, maxAttempts })
-            : errorHandler?.({ error: normalizedError }),
+          ExecutionFrames.root({
+            task: () =>
+              this.onReconnectError
+                ? this.onReconnectError({ error: normalizedError, attempt, maxAttempts })
+                : errorHandler?.({ error: normalizedError }),
+          }),
       });
     }
   }

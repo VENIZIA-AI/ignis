@@ -22,7 +22,7 @@ describe('RequestContextRegistry - an execution frame answers before the resolve
       read: () => store.frame,
       capture: () => ({ values: {} }),
       run: async (opts) => opts.task(),
-      runFrame: async (opts) => opts.task(),
+      runFrame: (opts) => opts.task(),
     };
     RequestContextRegistry.setResolver({ resolver: () => buildContext({ marker: 'resolver' }) });
   });

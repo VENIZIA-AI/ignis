@@ -16,6 +16,7 @@ import {
   type TRingState,
 } from './common';
 import { HfLogRing } from './ring';
+import { ExecutionFrames } from '@/modules/execution';
 
 /** Drains the ring in bounded batches, yielding between them - see the spec's lap accounting. */
 export class HfLogFlusher {
@@ -136,11 +137,16 @@ export class HfLogFlusher {
 
   start(intervalMs = HF_DEFAULT_FLUSH_INTERVAL_MS): void {
     this.stop();
-    this.timer = setInterval(() => {
-      this.flush().catch((error) => {
-        console.error('[HfLogFlusher][start] Flush failed | error: ', error);
-      });
-    }, intervalMs);
+    this.timer = setInterval(
+      ExecutionFrames.listener({
+        handler: () => {
+          this.flush().catch((error) => {
+            console.error('[HfLogFlusher][start] Flush failed | error: ', error);
+          });
+        },
+      }),
+      intervalMs,
+    );
     this.timer.unref?.();
   }
 
