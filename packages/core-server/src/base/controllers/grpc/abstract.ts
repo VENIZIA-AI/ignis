@@ -1,5 +1,5 @@
 import type { ConnectRouter, Interceptor } from '@connectrpc/connect';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { IAuthorizationSpec, IRpcMetadata } from '@venizia/ignis-kernel';
 import {
@@ -216,7 +216,7 @@ export abstract class AbstractGrpcController<
   }
 
   /** Override to register RPCs using bindRoute or defineRoute. */
-  abstract binding(): ValueOrPromise<void>;
+  abstract binding(): TValueOrPromise<void>;
 
   /** Creates a fluent binding for registering an RPC (call .to() to attach handler). */
   abstract bindRoute(opts: { configs: IRpcMetadata }): IGrpcBindRouteOptions<RouteEnv>;

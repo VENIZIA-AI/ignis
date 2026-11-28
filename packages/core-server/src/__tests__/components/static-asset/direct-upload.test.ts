@@ -15,7 +15,7 @@ import { MetadataRegistry } from '@venizia/ignis-kernel';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { ControllerTransports } from '@venizia/ignis-kernel';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 import { buildDirectUploadServices, type TDirectUploadOptions } from './direct-upload-services';
 import { FakeStorageHelper } from './fake-storage.helper';
@@ -29,7 +29,7 @@ const TEST_CONFIGS: IApplicationConfigs = {
 };
 
 class DirectUploadApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'direct-upload-app', version: '0.0.0', description: '' };
   }
 

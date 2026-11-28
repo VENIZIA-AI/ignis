@@ -7,7 +7,7 @@ import { AbstractEntity } from '@/base/models';
 import { RepositoryTypes } from '@/base/repositories';
 import { BindingNamespaces } from '@/common/bindings';
 import { MetadataRegistry } from '@/helpers/inversion';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 import { BindingKeys } from '@/helpers/inversion';
 
@@ -19,7 +19,7 @@ import { BindingKeys } from '@/helpers/inversion';
  */
 
 class IdentityApplication extends RestApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'identity-app', version: '0.0.0', description: '' };
   }
 

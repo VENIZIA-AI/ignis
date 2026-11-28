@@ -6,7 +6,7 @@ import { JWKSVerifierTokenService } from '@/components/auth/authenticate/service
 import { JoseLoader } from '@/components/auth/authenticate/services/jose-loader';
 import { JWKSUrlPolicy } from '@/components/auth/authenticate/services/jwks-url-policy';
 import { ServiceAssertionVerifierService } from '@/components/auth/authenticate/services/service/verifier.service';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   AuthenticateBindingKeys,
   JOSEStandards,
@@ -234,7 +234,7 @@ const CONFIGS: IApplicationConfigs = {
 };
 
 class ProbeApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'jwks-hosts', version: '0.0.0', description: 'jwks hosts probe' };
   }
 

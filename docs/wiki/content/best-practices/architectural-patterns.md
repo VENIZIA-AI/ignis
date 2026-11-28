@@ -131,7 +131,7 @@ Components bundle a group of related, reusable, and pluggable features into self
 
 export class Application extends BaseApplication {
   // ...
-  preConfigure(): ValueOrPromise<void> {
+  preConfigure(): TValueOrPromise<void> {
     // ...
     // Registering components plugs their functionality into the application.
     this.component(HealthCheckComponent);
@@ -255,7 +255,7 @@ export const beConfigs: IApplicationConfigs = {
 
 export class Application extends BaseApplication {
   // Runs after `registerArtifacts`. Only what the index cannot express belongs here.
-  preConfigure(): ValueOrPromise<void> {
+  preConfigure(): TValueOrPromise<void> {
     AuthenticationStrategyRegistry.getInstance().register({
       container: this,
       strategies: [

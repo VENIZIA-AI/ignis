@@ -21,6 +21,8 @@ export declare class PersistableSearchRepository<TDocument extends object = obje
         scope?: string;
         entityClass?: TClass<BaseSearchEntity>;
     });
+    /** Narrows one `unknown` `IImportResult.responses` row enough to read the per-row `success` flag `createAll` filters on. */
+    private static isImportRowLike;
     create(opts: {
         data: TDocument;
         options: IExtraOptions & {

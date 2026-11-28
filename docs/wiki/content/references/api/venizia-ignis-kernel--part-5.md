@@ -539,18 +539,6 @@ export interface IRpcMetadata {
 
 Source: `packages/kernel/src/helpers/inversion/common/types/controller.ts`
 
-## `isDataSourceClass`
-
-*const*
-
-True for `DataSourceRoot` itself and for any class extending it (`AbstractDataSource` among them), across package copies.
-
-```ts
-export declare const isDataSourceClass: (value: unknown) => value is TClass<unknown>;
-```
-
-Source: `packages/kernel/src/base/datasources/root.ts`
-
 ## `ISearchableDataSourceCapabilities`
 
 *interface*
@@ -582,10 +570,10 @@ Mixin contract for the application lifecycle hooks of a server and its reported 
 
 ```ts
 export interface IServerConfigMixin {
-    staticConfigure(): ValueOrPromise<void>;
-    preConfigure(): ValueOrPromise<void>;
-    postConfigure(): ValueOrPromise<void>;
-    getApplicationVersion(): ValueOrPromise<string>;
+    staticConfigure(): TValueOrPromise<void>;
+    preConfigure(): TValueOrPromise<void>;
+    postConfigure(): TValueOrPromise<void>;
+    getApplicationVersion(): TValueOrPromise<string>;
 }
 ```
 
@@ -707,7 +695,7 @@ export interface IServiceAuthOptions<E extends Env = Env> {
     resolvePrincipal: (opts: {
         issuer: string;
         context: TContext<E, string>;
-    }) => ValueOrPromise<TNullable<IAuthUser>>;
+    }) => TValueOrPromise<TNullable<IAuthUser>>;
 }
 ```
 
@@ -794,7 +782,7 @@ Source: `packages/kernel/src/base/repositories/common/types/options.ts`
 
 *interface*
 
-Neutral transaction association - postgres narrows to its own `IDatabaseTransaction` (via `isDatabaseTransaction`) where it needs `.connector`.
+Neutral transaction association - postgres narrows to its own `IDatabaseTransaction` (via `AbstractPostgresDataSource.isDatabaseTransaction`) where it needs `.connector`.
 
 ```ts
 export interface IWithTransaction {

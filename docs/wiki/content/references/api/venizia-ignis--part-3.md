@@ -130,7 +130,7 @@ Serves the public JWKS from `JWKSIssuerTokenService` for external verifiers, wit
 export declare class JWKSController extends BaseRestController {
     private jwksService;
     constructor(jwksService: JWKSIssuerTokenService);
-    binding(): ValueOrPromise<void>;
+    binding(): TValueOrPromise<void>;
 }
 ```
 
@@ -210,7 +210,7 @@ export declare class JWKSIssuerTokenService<E extends Env = Env> extends Abstrac
         getTokenExpiresFn: TGetTokenExpiresFn;
         claims?: IJWTIssueClaims;
     }): Promise<import("jose").SignJWT>;
-    protected getSigningKey(): ValueOrPromise<Uint8Array | CryptoKey>;
+    protected getSigningKey(): TValueOrPromise<Uint8Array | CryptoKey>;
     protected getDefaultTokenExpiresFn(): TGetTokenExpiresFn;
     getJWKS(): {
         keys: JWK[];
@@ -348,7 +348,7 @@ export declare class JWSTokenService<E extends Env = Env> extends AbstractBearer
         getTokenExpiresFn: TGetTokenExpiresFn;
         claims?: IJWTIssueClaims;
     }): Promise<import("jose").SignJWT>;
-    protected getSigningKey(): ValueOrPromise<Uint8Array>;
+    protected getSigningKey(): TValueOrPromise<Uint8Array>;
     protected getDefaultTokenExpiresFn(): TGetTokenExpiresFn;
 }
 ```
@@ -498,7 +498,7 @@ export declare class RequestTrackerComponent extends BaseComponent {
     static readonly REQUEST_TRACKER_MW_BINDING_KEY: import("@venizia/ignis-inversion").TBindingKey<MiddlewareHandler>;
     constructor(application: BaseApplication);
     /** No `requestId()` here: the id is installed by `RestApplication.registerDefaultMiddlewares()`, which runs first and uses `RequestIdGenerator`. Same UUID v4 shape hono's own default produces, but hono calls `crypto.randomUUID` unguarded, and a browser leaves that one `undefined` outside a secure context. */
-    binding(): ValueOrPromise<void>;
+    binding(): TValueOrPromise<void>;
 }
 ```
 
@@ -805,7 +805,7 @@ belong to the gated `/health/stats`. A new route here needs that same test.
 ```ts
 export declare class ServerInfoController extends BaseRestController {
     constructor();
-    binding(): ValueOrPromise<void>;
+    binding(): TValueOrPromise<void>;
 }
 ```
 
@@ -1013,7 +1013,7 @@ Publishes this service's assertion-signing public key. Mounted only when signing
 export declare class ServiceCertsController extends BaseRestController {
     private readonly signer;
     constructor(signer: ServiceAssertionSignerService, path: string);
-    binding(): ValueOrPromise<void>;
+    binding(): TValueOrPromise<void>;
 }
 ```
 

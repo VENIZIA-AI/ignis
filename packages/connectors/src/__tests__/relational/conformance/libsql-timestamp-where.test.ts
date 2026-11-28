@@ -2,7 +2,7 @@ import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   BaseAppErrorMiddleware,
   CrudControllerFactory,
@@ -53,7 +53,7 @@ class TimestampDataSource extends BaseSqliteDataSource<
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 }
 
 @repositoryDecorator({ model: TimestampEvent, dataSource: 'TimestampDataSource' })

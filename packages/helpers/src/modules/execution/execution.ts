@@ -1,27 +1,23 @@
-import { type ValueOrPromise } from '@/common';
+import { type TValueOrPromise } from '@/common';
 import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
 import type { ILogger } from '@/modules/logger';
 import { LoggerFactory } from '@/modules/logger/factory';
+import { RecordUtility } from '@/utilities/record.utility';
 import type { IExecutionFrame, IExecutionRunner, TExecutionRunOptions } from './common/types';
 
 /** An async task as `Execution.withLimit` takes it. */
 export type TTask<T> = (...args: never[]) => Promise<T>;
 
-/** Check if a value is a promise. */
-export const isPromiseLike = <T>(value: T | PromiseLike<T>): value is PromiseLike<T> => {
-  return (
-    !!value &&
-    (typeof value === 'object' || typeof value === 'function') &&
-    'then' in value &&
-    typeof value.then === 'function'
-  );
-};
-
 /** Running work: who it runs for (`run`, `current`), waiting, a time limit, bounded concurrency and fire-and-forget. `fireAndForget` is not a `BaseHelper` member: TS cannot emit protected members on an exported ANONYMOUS class (TS4094), which is what factory-built controllers return; a static on a separate class has no such limit. */
 export class Execution {
   /** The longest delay a timer takes (a signed 32-bit integer of milliseconds); a larger one fires after 1 ms. */
   private static readonly MAX_TIMER_MS = 2_147_483_647;
+
+  /** True for a value with a callable `then`: a promise, or anything that is awaited like one. A type guard, so it keeps its positional `value`. */
+  static isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T> {
+    return RecordUtility.isObjectLike(value) && 'then' in value && typeof value.then === 'function';
+  }
 
   /**
    * Installs what holds the current frame. The first install wins, so that two copies of the server layer share one
@@ -65,7 +61,7 @@ export class Execution {
    * one fires at once), else this rejects without running `call`.
    */
   static async withTimeout<T>(opts: {
-    call: () => ValueOrPromise<T>;
+    call: () => TValueOrPromise<T>;
     timeoutMs: number;
     message?: string;
   }): Promise<T> {
@@ -102,7 +98,7 @@ export class Execution {
   static async withLimit<T>(opts: {
     tasks: Array<TTask<T>>;
     limit: number;
-    onTaskDone?: <R>(opts: { result: R }) => ValueOrPromise<void>;
+    onTaskDone?: <R>(opts: { result: R }) => TValueOrPromise<void>;
   }) {
     const { tasks, limit, onTaskDone } = opts;
 
@@ -140,11 +136,11 @@ export class Execution {
   static fireAndForget(opts: {
     logger?: ILogger;
     scope: string;
-    execution: ValueOrPromise<unknown>;
+    execution: TValueOrPromise<unknown>;
   }): void {
     const { logger, scope, execution } = opts;
 
-    if (!isPromiseLike(execution)) {
+    if (!Execution.isPromiseLike(execution)) {
       return;
     }
 

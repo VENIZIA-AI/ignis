@@ -288,6 +288,8 @@ Narrowing of an `unknown` value, such as a wire payload, to an object whose stri
 
 ```ts
 export declare class RecordUtility {
+    /** A non-null object or a function: a value that can carry a member. A type guard, so it keeps its positional `value`. */
+    static isObjectLike(value: unknown): value is object;
     /** A non-null object, arrays included: the narrowest check before reading string keys off an `unknown`. A type guard, so it keeps its positional `value`. */
     static isRecord(value: unknown): value is Record<string, unknown>;
     /** A non-null object that is not an array: `isRecord` without the arrays. A class instance (an `Error`, a `Date`) passes; there is no prototype check; use `isPlainObject` for that. */
@@ -430,7 +432,7 @@ export declare class RetryUtility {
     static runWithTimeout<T>(opts: {
         operation: string;
         timeoutMs?: number;
-        execution: () => ValueOrPromise<T>;
+        execution: () => TValueOrPromise<T>;
     }): Promise<T>;
     /** The pre-jitter delay for `attempt` (1-based, i.e. the delay AFTER attempt N failed). */
     static computeBackoffDelayMs(opts: {
@@ -454,15 +456,15 @@ export declare class RetryUtility {
         execution: (context: {
             attempt: number;
             signal?: AbortSignal;
-        }) => ValueOrPromise<T>;
+        }) => TValueOrPromise<T>;
         /** Return `false` to stop retrying and rethrow `context.error` immediately. */
-        shouldRetry?: (context: IRetryContext) => ValueOrPromise<boolean>;
+        shouldRetry?: (context: IRetryContext) => TValueOrPromise<boolean>;
         /** The least wait before the next attempt, in milliseconds (a server's `Retry-After`); the backoff delay applies when it is longer. `undefined` leaves the backoff alone. */
         getDelayMs?: (context: IRetryContext) => number | undefined;
         /** Observability hook, awaited before the backoff sleep. */
         onRetry?: (context: IRetryContext & {
             nextDelayMs: number;
-        }) => ValueOrPromise<void>;
+        }) => TValueOrPromise<void>;
     }): Promise<T>;
     /** Retries `execution` while `until(result)` returns false - for read-after-write staleness behind a replicated pool. Never worse than a single un-retried call: on exhaustion the LAST result is returned rather than an error, and a thrown error propagates immediately instead of being retried. Only wrap idempotent operations. */
     static executeWithRetryUntil<T>(opts: {
@@ -477,7 +479,7 @@ export declare class RetryUtility {
         execution: (context: {
             attempt: number;
             signal?: AbortSignal;
-        }) => ValueOrPromise<T>;
+        }) => TValueOrPromise<T>;
         /** Retry while this returns false. */
         until: (result: T) => boolean;
     }): Promise<T>;
@@ -605,7 +607,7 @@ export type TExecutionRunOptions<Result> = {
     userId?: string | number | bigint;
     /** Start from nothing: no request, user or values of the caller. For a listener of your own. */
     isRoot?: boolean;
-    task: () => ValueOrPromise<Result>;
+    task: () => TValueOrPromise<Result>;
 } | {
     mode: typeof ExecutionModes.SYSTEM;
     values?: never;
@@ -613,7 +615,7 @@ export type TExecutionRunOptions<Result> = {
     /** A fixed sentence that names the work, for the log. A blank one is refused. */
     reason: string;
     userId?: string | number | bigint;
-    task: () => ValueOrPromise<Result>;
+    task: () => TValueOrPromise<Result>;
 };
 ```
 
@@ -799,7 +801,7 @@ Source: `packages/helpers/src/modules/tree/common/types.ts`
 Async counterpart of {@link TOnVisit} - awaited before the walk enqueues the node's children.
 
 ```ts
-export type TOnVisitAsync<T> = (node: ITreeNode<T>, depth: number) => ValueOrPromise<void>;
+export type TOnVisitAsync<T> = (node: ITreeNode<T>, depth: number) => TValueOrPromise<void>;
 ```
 
 Source: `packages/helpers/src/modules/tree/common/types.ts`

@@ -85,7 +85,7 @@ interface IDataSource<
 | `schema` | `Schema` | Combined schema - auto-discovered or manual |
 | `getSchema()` | `Schema` | Returns the combined schema |
 | `getSettings()` | `Settings` | Returns connection settings |
-| `configure(opts?)` | `ValueOrPromise<void>` | Initializes the underlying connection - inherited from `IConfigurable` |
+| `configure(opts?)` | `TValueOrPromise<void>` | Initializes the underlying connection - inherited from `IConfigurable` |
 | `close()` | `Promise<void>` | Optional. Releases what `configure()` opened |
 
 `stop()` calls `close()` on every datasource the boot configured; a datasource without it is skipped.
@@ -119,7 +119,7 @@ abstract class AbstractDataSource<
 
 | Method | Return type | Description |
 |---|---|---|
-| `configure(opts?)` | `ValueOrPromise<void>` | Initialize the underlying connection. The **only** abstract member of the neutral root |
+| `configure(opts?)` | `TValueOrPromise<void>` | Initialize the underlying connection. The **only** abstract member of the neutral root |
 
 `getConnectionString()` is not part of the neutral root. It is declared one level down, on `AbstractRelationalDataSource` (see below).
 
@@ -204,7 +204,7 @@ The fourth generic, `Client`, is what lets a postgres-js datasource declare `Cli
 
 | Method | Return type | Description |
 |---|---|---|
-| `getConnectionString()` | `ValueOrPromise<string>` | Return the connection URL |
+| `getConnectionString()` | `TValueOrPromise<string>` | Return the connection URL |
 | `beginTransaction(opts?)` | `Promise<IRelationalTransaction<TConnector>>` | Overrides the neutral `beginTransaction()`. `BaseRelationalDataSource` below supplies the implementation |
 | `getQueryDialect()` | `IRelationalQueryDialect` | Supplied by each engine branch - `PostgresQueryDialect`, `SqliteQueryDialect` |
 | `getQueryExecutor()` | `IRelationalQueryExecutor<TConnector>` | Supplied by each engine branch - `PostgresQueryExecutor`, `SqliteQueryExecutor` |
@@ -337,7 +337,7 @@ This means tables and relations never need to be manually merged in the datasour
 
 ```typescript
 // src/datasources/postgres.datasource.ts
-import { datasource, ValueOrPromise } from '@venizia/ignis';
+import { datasource, TValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { AppEnvs, ParseUtility } from '@venizia/ignis-helpers';
@@ -371,7 +371,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     });
   }
 
-  override configure(): ValueOrPromise<void> {
+  override configure(): TValueOrPromise<void> {
     const schema = Object.keys(this.getSchema());
     this.logger.debug(
       '[configure] Auto-discovered schema | Schema + Relations (%s): %o',
@@ -383,7 +383,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     this.client = new Pool(this.settings);
   }
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     const { host, port, user, password, database } = this.settings;
     return `${this.protocol}://${user}:${password}@${host}:${port}/${database}`;
   }
@@ -403,7 +403,7 @@ export class ConfigurationRepository extends DefaultCRUDRepository<typeof Config
 #### Pattern 2: manual schema (full control)
 
 ```typescript
-import { datasource, ValueOrPromise } from '@venizia/ignis';
+import { datasource, TValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
@@ -433,12 +433,12 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     });
   }
 
-  override configure(): ValueOrPromise<void> {
+  override configure(): TValueOrPromise<void> {
     // Manually-provided schema is used as-is by the connector the base class builds from this.client.
     this.client = new Pool(this.settings);
   }
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     const { host, port, user, password, database } = this.settings;
     return `postgresql://${user}:${password}@${host}:${port}/${database}`;
   }
@@ -472,8 +472,8 @@ The driver class is `NodePostgresDriver`, `PostgresJsDriver`, `PGliteDriver` or 
 
 | Method | Return type | Description |
 |---|---|---|
-| `configure(opts?)` | `ValueOrPromise<void>` | Initialize the client: set `this.client`, or call `this.useDriver()` |
-| `getConnectionString()` | `ValueOrPromise<string>` | Return the database connection string |
+| `configure(opts?)` | `TValueOrPromise<void>` | Initialize the client: set `this.client`, or call `this.useDriver()` |
+| `getConnectionString()` | `TValueOrPromise<string>` | Return the database connection string |
 
 The base class wires the driver and Drizzle connector from `@datasource({ driver })` once `this.client` is set. Call `this.useDriver()` directly for a custom driver.
 

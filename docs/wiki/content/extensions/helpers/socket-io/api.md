@@ -165,7 +165,7 @@ if (client && !(client instanceof Map)) {
 }
 ```
 
-#### `on<HandlerArgsType extends unknown[] = unknown[], HandlerReturnType = void>(opts: { topic: string; handler: (...args: HandlerArgsType) => ValueOrPromise<HandlerReturnType> }): void`
+#### `on<HandlerArgsType extends unknown[] = unknown[], HandlerReturnType = void>(opts: { topic: string; handler: (...args: HandlerArgsType) => TValueOrPromise<HandlerReturnType> }): void`
 
 Registers an event handler directly on the IO server instance (`io.on(topic, handler)`).
 
@@ -503,25 +503,25 @@ type TSocketIOClientState = TConstValue<typeof SocketIOClientStates>; // 'unauth
 ### `TSocketIOAuthenticateFn`
 
 ```typescript
-type TSocketIOAuthenticateFn = (args: IHandshake) => ValueOrPromise<boolean>;
+type TSocketIOAuthenticateFn = (args: IHandshake) => TValueOrPromise<boolean>;
 ```
 
 ### `TSocketIOValidateRoomFn`
 
 ```typescript
-type TSocketIOValidateRoomFn = (opts: { socket: IOSocket; rooms: string[] }) => ValueOrPromise<string[]>;
+type TSocketIOValidateRoomFn = (opts: { socket: IOSocket; rooms: string[] }) => TValueOrPromise<string[]>;
 ```
 
 ### `TSocketIOClientConnectedFn`
 
 ```typescript
-type TSocketIOClientConnectedFn = (opts: { socket: IOSocket }) => ValueOrPromise<void>;
+type TSocketIOClientConnectedFn = (opts: { socket: IOSocket }) => TValueOrPromise<void>;
 ```
 
 ### `TSocketIOEventHandler<T>`
 
 ```typescript
-type TSocketIOEventHandler<T = unknown> = (data: T) => ValueOrPromise<void>;
+type TSocketIOEventHandler<T = unknown> = (data: T) => TValueOrPromise<void>;
 ```
 
 ### `IOptions`
@@ -543,11 +543,11 @@ interface IOptions extends SocketOptions {
 | `host` | `string` | - | Server URL to connect to (e.g. `'http://localhost:3000'`) |
 | `options` | `IOptions` | - | Socket.IO client options |
 | `module` | `typeof import('socket.io-client')` | loaded by name | `socket.io-client` itself, for a compiled binary. Omitted, it is loaded on `configure()` |
-| `onConnected` | `() => ValueOrPromise<void>` | `undefined` | Called when the transport connection is established |
-| `onDisconnected` | `(reason: string) => ValueOrPromise<void>` | `undefined` | Called on disconnect; state resets to `'unauthorized'` first |
-| `onError` | `(error: Error) => ValueOrPromise<void>` | `undefined` | Called on `'connect_error'` |
-| `onAuthenticated` | `() => ValueOrPromise<void>` | `undefined` | Called when the server confirms authentication |
-| `onUnauthenticated` | `(message: string) => ValueOrPromise<void>` | `undefined` | Called when the server rejects authentication |
+| `onConnected` | `() => TValueOrPromise<void>` | `undefined` | Called when the transport connection is established |
+| `onDisconnected` | `(reason: string) => TValueOrPromise<void>` | `undefined` | Called on disconnect; state resets to `'unauthorized'` first |
+| `onError` | `(error: Error) => TValueOrPromise<void>` | `undefined` | Called on `'connect_error'` |
+| `onAuthenticated` | `() => TValueOrPromise<void>` | `undefined` | Called when the server confirms authentication |
+| `onUnauthenticated` | `(message: string) => TValueOrPromise<void>` | `undefined` | Called when the server rejects authentication |
 
 ### `TSocketIOServerOptions`
 

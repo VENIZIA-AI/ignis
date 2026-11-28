@@ -15,7 +15,7 @@ tags: [process, component, core]
    `index.ts` + a small `common/`).
 2. The component class extends `BaseComponent`, imported from `@venizia/ignis-kernel` (defined at
    `packages/kernel/src/base/components/base.ts`), which itself extends `BaseHelper`. Implement the
-   one abstract method: `binding(): ValueOrPromise<void>` - this is where the component does its
+   one abstract method: `binding(): TValueOrPromise<void>` - this is where the component does its
    actual work (register a controller, attach middleware, open a client), NOT in the constructor.
 3. Constructor: inject the running application via `@inject({ key:
    CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication`, and call `super({

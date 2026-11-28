@@ -9,7 +9,7 @@ import { controller } from '@/base/metadata';
 import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
-import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type TValueOrPromise } from '@venizia/ignis-helpers/common';
 
 // === Test Controllers ========================================================
 
@@ -30,7 +30,7 @@ class UsersController extends BaseRestController {
     super({ scope: UsersController.name, path: '/users' });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.bindRoute({ configs: UsersRouteConfigs.LIST }).to({
       handler: (context: TRouteContext) => {
         return context.json({ users: ['alice', 'bob'] }, 200);
@@ -45,7 +45,7 @@ class OrdersController extends BaseRestController {
     super({ scope: OrdersController.name, path: '/orders' });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.bindRoute({
       configs: {
         method: HTTP.Methods.GET,
@@ -69,7 +69,7 @@ class ProductsController extends BaseRestController {
     super({ scope: ProductsController.name, path: '/products' });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.bindRoute({
       configs: {
         method: HTTP.Methods.GET,
@@ -115,7 +115,7 @@ class InvoicesController extends BaseRestController {
     super({ scope: InvoicesController.name, path: '/invoices' });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.bindRoute({
       configs: {
         method: HTTP.Methods.GET,
@@ -139,7 +139,7 @@ class StatusController extends BaseRestController {
     super({ scope: StatusController.name, path: '/status' });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.bindRoute({
       configs: {
         method: HTTP.Methods.GET,
@@ -165,7 +165,7 @@ class ComponentA extends BaseComponent {
     super({ scope: ComponentA.name });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.application.controller(UsersController);
     this.application.controller(OrdersController);
   }
@@ -177,7 +177,7 @@ class ComponentB extends BaseComponent {
     super({ scope: ComponentB.name });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.application.controller(ProductsController);
     this.application.controller(InvoicesController);
   }
@@ -193,7 +193,7 @@ const TEST_CONFIGS: IApplicationConfigs = {
 };
 
 class TestApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'test-app', version: '0.0.0', description: 'Integration test app' };
   }
 
@@ -337,7 +337,7 @@ describe('Component → Controller binding integration', () => {
           super({ scope: TrackedController.name, path: '/tracked' });
         }
 
-        override binding(): ValueOrPromise<void> {
+        override binding(): TValueOrPromise<void> {
           isBindingCalled = true;
           this.bindRoute({
             configs: {
@@ -359,7 +359,7 @@ describe('Component → Controller binding integration', () => {
           super({ scope: TrackingComponent.name });
         }
 
-        override binding(): ValueOrPromise<void> {
+        override binding(): TValueOrPromise<void> {
           this.application.controller(TrackedController);
         }
       }
@@ -409,7 +409,7 @@ describe('Component → Controller binding integration', () => {
           super({ scope: GrpcOnlyController.name, path: '/grpc-service' });
         }
 
-        override binding(): ValueOrPromise<void> {}
+        override binding(): TValueOrPromise<void> {}
       }
 
       app.controller(UsersController); // REST

@@ -8,7 +8,7 @@ import { mkdirSync, mkdtempSync, rmSync, existsSync, writeFileSync } from 'node:
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { HTTP } from '@/common/constants';
-import { isApplicationError } from '@/modules/error';
+import { ApplicationError } from '@/modules/error';
 import { DiskHelper } from '@/modules/storage/disk';
 
 const roots: string[] = [];
@@ -173,7 +173,7 @@ describe('DiskHelper - a key names one file on disk', () => {
 
       return undefined;
     } catch (error) {
-      return isApplicationError(error) ? error.statusCode : undefined;
+      return ApplicationError.isApplicationError(error) ? error.statusCode : undefined;
     }
   };
 

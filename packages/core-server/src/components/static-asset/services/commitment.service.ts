@@ -10,7 +10,7 @@ import {
 import {
   ResolverUtility,
   type TValueOrAsyncResolver,
-  type ValueOrPromise,
+  type TValueOrPromise,
 } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { BaseService } from '@venizia/ignis-kernel';
@@ -184,7 +184,7 @@ export class StaticAssetUploadCommitService<
     pin: IStaticAssetPin;
     size: number;
     payload: IStaticAssetCommitTokenPayload;
-  }): ValueOrPromise<IStaticAssetValidationResult<unknown>> {
+  }): TValueOrPromise<IStaticAssetValidationResult<unknown>> {
     const { helper, directUpload } = this.options;
 
     if (!directUpload.validation) {
@@ -336,7 +336,7 @@ export class StaticAssetUploadCommitService<
     metadata: TStaticAssetTokenMetadata;
     defaultKey: string;
     destination?: IObjectRef;
-  }): ValueOrPromise<IObjectRef | undefined> {
+  }): TValueOrPromise<IObjectRef | undefined> {
     const { owner, metadata, defaultKey, destination } = opts;
     const resolve = this.options.directUpload.resolvers.commit?.destination;
 

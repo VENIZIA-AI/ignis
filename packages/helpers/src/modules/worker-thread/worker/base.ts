@@ -2,7 +2,7 @@ import { ErrorUtility } from '@/utilities/error.utility';
 import { Execution, ExecutionFrames } from '@/modules/execution';
 import { Worker, type WorkerOptions } from 'node:worker_threads';
 
-import { type ValueOrPromise } from '@/common/types';
+import { type TValueOrPromise } from '@/common/types';
 import { getError } from '@/modules/error';
 import { type IWorker } from '../common';
 import { AbstractWorkerHelper } from './abstract';
@@ -30,7 +30,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
   }
 
   /** User handlers run inside worker listeners; a sync throw there is uncaught and kills the process, so wrap it - fireAndForget alone can't catch a throw evaluated before it's called. */
-  protected invokeHook(opts: { scope: string; execution: () => ValueOrPromise<void> }) {
+  protected invokeHook(opts: { scope: string; execution: () => TValueOrPromise<void> }) {
     const { scope, execution } = opts;
 
     try {
@@ -40,7 +40,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
     }
   }
 
-  override onOnline(): ValueOrPromise<void> {
+  override onOnline(): TValueOrPromise<void> {
     if (this.eventHandlers?.onOnline) {
       this.invokeHook({
         scope: this.onOnline.name,
@@ -53,7 +53,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
     this.logger.for(this.onOnline.name).info('Worker ONLINE');
   }
 
-  override onExit(opts: { code: string | number }): ValueOrPromise<void> {
+  override onExit(opts: { code: string | number }): TValueOrPromise<void> {
     if (this.eventHandlers?.onExit) {
       this.invokeHook({
         scope: this.onExit.name,
@@ -66,7 +66,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
     this.logger.for(this.onExit.name).warn('Worker EXIT | Code: %s', opts.code);
   }
 
-  override onError(opts: { error: Error }): ValueOrPromise<void> {
+  override onError(opts: { error: Error }): TValueOrPromise<void> {
     if (this.eventHandlers?.onError) {
       this.invokeHook({
         scope: this.onError.name,
@@ -79,7 +79,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
     this.logger.for(this.onError.name).error('Worker ERROR | Error: %s', opts.error);
   }
 
-  override onMessage(opts: { message: MessageType }): ValueOrPromise<void> {
+  override onMessage(opts: { message: MessageType }): TValueOrPromise<void> {
     if (this.eventHandlers?.onMessage) {
       this.invokeHook({
         scope: this.onMessage.name,
@@ -92,7 +92,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
     this.logger.for(this.onMessage.name).error('Worker MESSAGE | message: %j', opts.message);
   }
 
-  override onMessageError(opts: { error: Error }): ValueOrPromise<void> {
+  override onMessageError(opts: { error: Error }): TValueOrPromise<void> {
     if (this.eventHandlers?.onMessageError) {
       this.invokeHook({
         scope: this.onMessageError.name,

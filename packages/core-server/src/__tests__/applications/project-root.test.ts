@@ -5,12 +5,12 @@ import type { IServerApplicationConfigs } from '@/base/applications';
 import { CoreBindings } from '@venizia/ignis-kernel';
 import type { IApplicationInfo } from '@venizia/ignis-kernel';
 import { ModuleUtility } from '@venizia/ignis-helpers';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
 
 class ProjectRootApplication extends ServerApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'project-root-app', version: '0.0.0', description: 'projectRoot probe' };
   }
 

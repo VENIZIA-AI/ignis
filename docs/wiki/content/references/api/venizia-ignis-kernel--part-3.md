@@ -34,9 +34,9 @@ export declare class CrudControllerFactory extends BaseHelper {
     static build<Repository extends TCrudRepositoryClass, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TRepositoryDataObject<InstanceType<Repository>>, TPersistObject extends object = TRepositoryPersistObject<InstanceType<Repository>>>(opts: ICrudControllerOptions<Repository>): {
         new (repositoryInstance: AbstractRepository<TDataObject, TPersistObject>): {
             /** The routes of a generated controller come from `routes`; a subclass adds its own here. */
-            binding(): ValueOrPromise<void>;
+            binding(): TValueOrPromise<void>;
             /** Registers each listed CRUD route, after `binding()`: a custom static path is never taken by `/{id}`. */
-            bindDefaultRoutes(): ValueOrPromise<void>;
+            bindDefaultRoutes(): TValueOrPromise<void>;
             create(opts: {
                 context: import("../index.js").TRouteContext<RouteEnv>;
             }): Promise<import("../index.js").TJsonResponse<unknown, 201>>;
@@ -159,7 +159,7 @@ export declare class CrudControllerFactory extends BaseHelper {
                 };
                 range?: import("../../repositories/index.js").TDataRange;
                 extra?: Record<string, import("../index.js").TResponseExtra>;
-            }): ValueOrPromise<import("@venizia/ignis-inversion").TNullable<R | {
+            }): TValueOrPromise<import("@venizia/ignis-inversion").TNullable<R | {
                 count?: number;
                 data?: import("@venizia/ignis-inversion").TNullable<R>;
                 extra?: Record<string, unknown>;
@@ -193,19 +193,19 @@ export declare class CrudControllerFactory extends BaseHelper {
                 total: number;
             })): void;
             toHonoHandler<RouteConfig extends import("../index.js").IAuthRouteConfig = import("../index.js").IAuthRouteConfig>(opts: {
-                handler: (context: import("../index.js").TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
+                handler: (context: import("../index.js").TContextOf<RouteConfig, RouteEnv>) => TValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
             }): import("hono").Handler<RouteEnv, string, import("hono").Input, (Response | Promise<Response>) | (import("@hono/zod-openapi").RouteConfigToTypedResponse<import("@hono/zod-openapi").RouteConfig> | Promise<import("@hono/zod-openapi").RouteConfigToTypedResponse<import("@hono/zod-openapi").RouteConfig>>)>;
             bindRoute<RouteConfig extends import("../index.js").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
             }): import("../index.js").IBindRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
             defineRoute<RouteConfig extends import("../index.js").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
-                handler: (context: import("../index.js").TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
+                handler: (context: import("../index.js").TContextOf<RouteConfig, RouteEnv>) => TValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
                 hook?: import("@hono/zod-openapi").Hook<any, RouteEnv, string, any> | undefined;
             }): import("../index.js").IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
             defineJSXRoute<RouteConfig extends import("../index.js").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
-                handler: (context: import("../index.js").TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
+                handler: (context: import("../index.js").TContextOf<RouteConfig, RouteEnv>) => TValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
                 hook?: import("@hono/zod-openapi").Hook<any, RouteEnv, string, any> | undefined;
             }): import("../index.js").IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
             isConfigured: boolean;
@@ -789,8 +789,8 @@ export interface IApplication<AppEnv extends Env = Env, AppSchema extends Schema
     getProjectConfigs(): IApplicationConfigs;
     getServer(): Hono<AppEnv, AppSchema, BasePath>;
     getRootRouter(): Hono<AppEnv, AppSchema, BasePath>;
-    setupMiddlewares(): ValueOrPromise<void>;
-    initialize(): ValueOrPromise<void>;
+    setupMiddlewares(): TValueOrPromise<void>;
+    initialize(): TValueOrPromise<void>;
 }
 ```
 
@@ -984,9 +984,9 @@ Source: `packages/kernel/src/base/auth/authorize/common/types/request.ts`
 Builds rules and evaluates requests. Cache management (`invalidateUserCache`/`rebuildUserCache`) is OPTIONAL - only on per-user-caching enforcers; the registry feature-detects it at runtime.
 
 ```ts
-export interface IAuthorizationEnforcer<E extends Env = Env, TAction = string, TResource = string, TRules = unknown, TBuildRulesReturn = ValueOrPromise<TRules>, TEvaluateReturn = ValueOrPromise<TAuthorizationDecision>> {
+export interface IAuthorizationEnforcer<E extends Env = Env, TAction = string, TResource = string, TRules = unknown, TBuildRulesReturn = TValueOrPromise<TRules>, TEvaluateReturn = TValueOrPromise<TAuthorizationDecision>> {
     name: string;
-    configure(): ValueOrPromise<void>;
+    configure(): TValueOrPromise<void>;
     buildRules(opts: {
         user: IAuthorizationUser;
         context: TContext<E, string>;

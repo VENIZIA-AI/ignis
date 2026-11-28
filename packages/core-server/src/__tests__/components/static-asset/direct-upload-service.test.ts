@@ -18,7 +18,7 @@ import { z } from '@hono/zod-openapi';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { DurationUnits } from '@venizia/ignis-helpers/common';
-import type { IDuration, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { IDuration, TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { ControllerTransports, MetadataRegistry } from '@venizia/ignis-kernel';
 import { describe, expect, test } from 'bun:test';
@@ -34,7 +34,7 @@ const TEST_CONFIGS: IApplicationConfigs = {
 };
 
 class ServiceApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'direct-upload-service-app', version: '0.0.0', description: '' };
   }
 

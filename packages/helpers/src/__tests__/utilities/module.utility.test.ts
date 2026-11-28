@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { isApplicationError } from '@/modules/error';
+import { ApplicationError } from '@/modules/error';
 import type { ILogger } from '@/modules/logger';
 import { LoggerFactory } from '@/modules/logger';
 import { ModuleUtility } from '@/utilities/module.utility';
@@ -17,7 +17,7 @@ describe('ModuleUtility.load', () => {
       await ModuleUtility.load({ module: '@definitely/not-installed' });
       expect.unreachable();
     } catch (error) {
-      expect(isApplicationError(error)).toBe(true);
+      expect(ApplicationError.isApplicationError(error)).toBe(true);
 
       const message = (error as Error).message;
       expect(message).toContain('@definitely/not-installed');
@@ -38,7 +38,7 @@ describe('ModuleUtility.loadSync', () => {
       ModuleUtility.loadSync({ module: '@definitely/not-installed' });
       expect.unreachable();
     } catch (error) {
-      expect(isApplicationError(error)).toBe(true);
+      expect(ApplicationError.isApplicationError(error)).toBe(true);
       expect((error as Error).message).toContain("Please install '@definitely/not-installed'");
     }
   });
@@ -63,7 +63,7 @@ describe('ModuleUtility.assertInstalled', () => {
       });
       expect.unreachable();
     } catch (error) {
-      expect(isApplicationError(error)).toBe(true);
+      expect(ApplicationError.isApplicationError(error)).toBe(true);
 
       const message = (error as Error).message;
       expect(message).toContain('@definitely/not-installed');

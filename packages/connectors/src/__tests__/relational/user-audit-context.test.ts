@@ -6,7 +6,7 @@ import { pgTable, text as pgText } from 'drizzle-orm/pg-core';
 import { sqliteTable, text as sqliteText } from 'drizzle-orm/sqlite-core';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { Context } from 'hono';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   Authentication,
   BaseAppErrorMiddleware,
@@ -205,9 +205,9 @@ class PostgresRouteDataSource extends BasePostgresDataSource<{}, TAnyDataSourceS
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return 'pglite://memory';
   }
 
@@ -233,7 +233,7 @@ class SqliteRouteDataSource extends BaseSqliteDataSource<
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 }
 
 @repositoryDecorator({ model: PostgresRouteRow, dataSource: 'PostgresRouteDataSource' })

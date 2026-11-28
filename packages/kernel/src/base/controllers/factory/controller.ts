@@ -6,9 +6,9 @@ import { AuditFields, SchemaTypes } from '@/base/models/common/constants';
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
 import { BindingNamespaces } from '@/common/bindings';
 import { BindingKeys, MetadataRegistry } from '@/helpers/inversion';
-import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TClass, TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
-import { isClass } from '@venizia/ignis-inversion';
+import { ResolverUtility } from '@venizia/ignis-inversion';
 import type { Env, Schema } from 'hono';
 import type {
   ICrudControllerOptions,
@@ -98,7 +98,7 @@ export class CrudControllerFactory extends BaseHelper {
       });
     }
 
-    const entityClass = isClass(model) ? model : model();
+    const entityClass = ResolverUtility.isClass(model) ? model : model();
     const entityInstance = new entityClass();
     const settings = MetadataRegistry.getInstance().getModelMetadata({
       target: entityClass,
@@ -137,10 +137,10 @@ export class CrudControllerFactory extends BaseHelper {
       }
 
       /** The routes of a generated controller come from `routes`; a subclass adds its own here. */
-      override binding(): ValueOrPromise<void> {}
+      override binding(): TValueOrPromise<void> {}
 
       /** Registers each listed CRUD route, after `binding()`: a custom static path is never taken by `/{id}`. */
-      override bindDefaultRoutes(): ValueOrPromise<void> {
+      override bindDefaultRoutes(): TValueOrPromise<void> {
         if (routeDefinitions.COUNT) {
           this.defineRoute({
             configs: routeDefinitions.COUNT,

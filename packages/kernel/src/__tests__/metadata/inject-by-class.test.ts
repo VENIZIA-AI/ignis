@@ -5,7 +5,7 @@ import { AbstractDataSource } from '@/base/datasources';
 import { AbstractEntity } from '@/base/models';
 import { BindingNamespaces } from '@/common/bindings';
 import { MetadataRegistry } from '@/helpers/inversion';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 
 /** The schema is irrelevant here; `JSON.parse` returns the untyped shape the abstract signature asks for without a cast. */
@@ -16,7 +16,7 @@ class ProbeModel extends AbstractEntity {
 }
 
 class ProbeApplication extends RestApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'inject-by-class-app', version: '0.0.0', description: '' };
   }
 

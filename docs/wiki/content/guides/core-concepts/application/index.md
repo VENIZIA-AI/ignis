@@ -14,7 +14,7 @@ import {
   BaseApplication,
   IApplicationConfigs,
   IApplicationInfo,
-  ValueOrPromise,
+  TValueOrPromise,
 } from '@venizia/ignis';
 import AutoArtifacts from '@venizia/ignis-boot/auto';
 import { AppEnvs } from '@venizia/ignis-helpers';
@@ -37,7 +37,7 @@ export const appConfigs: IApplicationConfigs = {
 
 // Main Application class
 export class Application extends BaseApplication {
-  override getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  override getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return packageJson;
   }
 
@@ -45,15 +45,15 @@ export class Application extends BaseApplication {
     // e.g., this.static({ folderPath: './public' })
   }
 
-  preConfigure(): ValueOrPromise<void> {
+  preConfigure(): TValueOrPromise<void> {
     // Setup a decorator cannot express, e.g. bind a value or an option
   }
 
-  postConfigure(): ValueOrPromise<void> {
+  postConfigure(): TValueOrPromise<void> {
     // Logic to run after everything is configured
   }
 
-  setupMiddlewares(): ValueOrPromise<void> {
+  setupMiddlewares(): TValueOrPromise<void> {
     // Add any custom application-wide middlewares
   }
 }

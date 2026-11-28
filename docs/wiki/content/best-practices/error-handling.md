@@ -275,7 +275,7 @@ IGNIS wires a built-in handler by default. `AppErrorMiddleware` from `@venizia/i
 
 ```typescript
 import { BaseApplication } from '@venizia/ignis';
-import { HTTP, isApplicationError, MessageCode } from '@venizia/ignis-helpers';
+import { ApplicationError, HTTP, MessageCode } from '@venizia/ignis-helpers';
 
 export class Application extends BaseApplication {
   override setupMiddlewares(): void {
@@ -289,9 +289,9 @@ export class Application extends BaseApplication {
       // Log all errors
       this.logger.error('[%s] Error | %s', requestId, error);
 
-      // Handle known application errors - isApplicationError(), never `instanceof
+      // Handle known application errors - ApplicationError.isApplicationError(), never `instanceof
       // ApplicationError` (unreliable across package boundaries)
-      if (isApplicationError(error)) {
+      if (ApplicationError.isApplicationError(error)) {
         // `statusCode` is a plain number, so build the Response directly instead of casting it
         // to the narrower status union that `context.json` accepts.
         return Response.json(

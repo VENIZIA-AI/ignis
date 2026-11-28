@@ -1,7 +1,7 @@
 import { AbstractApplication, RestApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications';
 import { CoreBindings } from '@/common/bindings';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 
 /** The methods `AbstractApplication` leaves inert and `@venizia/ignis`'s `ServerApplication` overrides. A browser Worker has no `process` and no working directory, so each one is a seam rather than a value. */
@@ -11,7 +11,7 @@ const HOST_SEAMS = ['getProjectRoot'];
 const RETIRED_SEAMS = ['getEnvServerHost', 'getEnvServerPort'];
 
 class KernelApplication extends RestApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'kernel-seams-app', version: '0.0.0', description: 'Host seam probe' };
   }
 

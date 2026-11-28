@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 
 import { BaseApplication } from '@/base/applications';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { IApplicationInfo } from '@venizia/ignis-kernel';
 import { afterEach, describe, expect, test } from 'bun:test';
 
@@ -13,7 +13,7 @@ class ShutdownApplication extends BaseApplication {
   stopCalls = 0;
   stopImplementation: () => Promise<void> = async () => {};
 
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'shutdown-app', version: '0.0.0', description: 'Shutdown signals probe' };
   }
 

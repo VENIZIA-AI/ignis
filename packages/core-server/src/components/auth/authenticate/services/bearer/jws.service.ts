@@ -1,4 +1,4 @@
-import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import {
   AuthenticateBindingKeys,
@@ -104,7 +104,7 @@ export class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenSer
     return this.applySignClaims({ signer, payload: encryptedPayload, claims: opts.claims });
   }
 
-  protected override getSigningKey(): ValueOrPromise<Uint8Array> {
+  protected override getSigningKey(): TValueOrPromise<Uint8Array> {
     if (!this.jwtSecret) {
       throw getError({ message: '[getSigningKey] Invalid jwtSecret!' });
     }

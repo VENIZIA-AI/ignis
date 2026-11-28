@@ -655,7 +655,7 @@ export type TStaticAssetDirectUploadOptions = {
      */
     authorize?: (opts: {
         context: TRouteContext;
-    }) => ValueOrPromise<boolean>;
+    }) => TValueOrPromise<boolean>;
     /** What the application decides about an upload; `owner` is required, the rest is optional. */
     resolvers: TStaticAssetDirectUploadResolvers;
     /** Signs the commit token. Keep it out of the repository and out of the client. */
@@ -717,12 +717,12 @@ export type TStaticAssetDirectUploadResolvers = {
      */
     owner: (opts: {
         context: TRouteContext;
-    }) => ValueOrPromise<string>;
+    }) => TValueOrPromise<string>;
     /** Per file, at policy time: what the token signs for it, readable again at validate and commit. Absent, a client that sends `metadata` is refused. */
     metadata?: (opts: {
         context: TRouteContext;
         file: TStaticAssetUploadPolicyFile;
-    }) => ValueOrPromise<TStaticAssetTokenMetadata>;
+    }) => TValueOrPromise<TStaticAssetTokenMetadata>;
     commit?: {
         /** At commit time: the final key, in the same bucket and inside the `keyPrefix`. Absent keeps `defaultKey`. */
         destination?: (opts: {
@@ -732,7 +732,7 @@ export type TStaticAssetDirectUploadResolvers = {
                 fileName: string;
             };
             defaultKey: string;
-        }) => ValueOrPromise<{
+        }) => TValueOrPromise<{
             key: string;
         }>;
     };

@@ -6,7 +6,7 @@ import type {
   TInjectMap,
   TRouteContext,
 } from '@venizia/ignis-kernel';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { Env } from 'hono';
 import type { ISearchResult } from '@/search/core/connector';
 import type { TSearchInput } from '@/search/core/repositories/common';
@@ -65,7 +65,7 @@ export type TSearchSettingsSource<
       input: Exclude<TSearchInput, { mode: 'raw' }> & TExtra;
       /** The instances of the classes `inject` declares. */
       injected: TInjected<Inject>;
-    }) => ValueOrPromise<ISearchQuerySettings<Document, Tuning>>);
+    }) => TValueOrPromise<ISearchQuerySettings<Document, Tuning>>);
 
 /** The keys `request.body.extend` adds to the body: none for an empty shape, so a function source's `input` is not intersected with an index signature. */
 export type TSearchExtra<Shape extends z.ZodRawShape> = {} extends Shape
@@ -97,7 +97,7 @@ export interface ISearchQueryOptions<
     context: TRouteContext<RouteEnv>;
     input: Exclude<TSearchInput, { mode: 'raw' }> & TExtra;
     injected: TInjected<Inject>;
-  }) => ValueOrPromise<string>;
+  }) => TValueOrPromise<string>;
 
   /** What a client may send. `tuning` names the knobs a request's `engineParams` may carry; a name is fixed or allowed, never both. */
   allow?: {
@@ -128,5 +128,5 @@ export interface ISearchResponseTransform<
     input: Exclude<TSearchInput, { mode: 'raw' }>;
     /** The instances of the classes `inject` declares: reread rows from another repository, say. */
     injected: TInjected<Inject>;
-  }) => ValueOrPromise<Array<TSearchHit<TOutDocument>>>;
+  }) => TValueOrPromise<Array<TSearchHit<TOutDocument>>>;
 }

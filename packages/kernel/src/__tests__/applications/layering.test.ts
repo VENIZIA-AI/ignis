@@ -2,7 +2,7 @@ import { AbstractApplication, RestApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications';
 import { CoreBindings } from '@/common/bindings';
 import { Container } from '@/helpers/inversion/container';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 
 /** What `AbstractApplication` is allowed to own: container, config and lifecycle-hook plumbing, and nothing that needs a router, a server or a host. */
@@ -69,7 +69,7 @@ const ownMembersOf = (target: object): Array<string> => {
 };
 
 class ConcreteRestApplication extends RestApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'kernel-rest-app', version: '0.0.0', description: 'Router-only kernel app' };
   }
 

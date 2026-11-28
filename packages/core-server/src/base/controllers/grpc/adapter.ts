@@ -1,7 +1,7 @@
 import type { ConnectRouter, ContextKey, HandlerContext, Interceptor } from '@connectrpc/connect';
 import type { UniversalHandler } from '@connectrpc/connect/protocol';
 import { BaseHelper, Execution, getError, RecordUtility } from '@venizia/ignis-helpers/core';
-import { GRPC, HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { GRPC, HTTP, type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { ModuleUtility } from '@venizia/ignis-helpers';
 import type { Context, Env, Schema } from 'hono';
 import { Hono } from 'hono';
@@ -30,7 +30,7 @@ const CONNECT_RPC_NODE_MODULE = '@connectrpc/connect-node';
 type TConnectHandler<RequestType = unknown, ResponseType = unknown> = (
   request: RequestType,
   context: HandlerContext,
-) => ValueOrPromise<ResponseType> | AsyncIterable<ResponseType>;
+) => TValueOrPromise<ResponseType> | AsyncIterable<ResponseType>;
 
 /** One call of one RPC. */
 interface IRpcCall<RouteEnv extends Env> {

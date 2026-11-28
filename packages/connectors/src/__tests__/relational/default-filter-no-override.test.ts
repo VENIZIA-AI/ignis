@@ -1,6 +1,6 @@
 import { PGlite } from '@electric-sql/pglite';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { datasource, model, type TAnyDataSourceSchema, type TWhere } from '@venizia/ignis-kernel';
 import { FilterSchema } from '@venizia/ignis-filter/schemas';
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
@@ -81,9 +81,9 @@ class NofDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {},
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return 'pglite://memory';
   }
 }
@@ -323,7 +323,9 @@ describe('a key that is not a column is refused', () => {
         const failure = await failureOf(call);
 
         expect(messageOf(failure)).toContain('Column NOT FOUND');
-        expect(isApplicationError(failure) ? failure.statusCode : undefined).toBe(400);
+        expect(ApplicationError.isApplicationError(failure) ? failure.statusCode : undefined).toBe(
+          400,
+        );
       }
 
       const result = await dbNames();

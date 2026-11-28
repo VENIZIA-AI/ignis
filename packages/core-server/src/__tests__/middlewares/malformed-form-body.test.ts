@@ -8,7 +8,7 @@ import { RequestTrackerComponent } from '@/components/request-tracker';
 import { z } from '@hono/zod-openapi';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { RequestUtility } from '@venizia/ignis-helpers';
-import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { ControllerTransports, OpenApiResponses, MetadataRegistry } from '@venizia/ignis-kernel';
 import { afterEach, describe, expect, test } from 'bun:test';
@@ -35,7 +35,7 @@ class HandParsedController extends BaseRestController {
     super({ scope: HandParsedController.name, path: '/hand', isStrict: false });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     // Declares no body, so no validator runs: the handler is the first to read the form.
     this.bindRoute({
       configs: {
@@ -57,7 +57,7 @@ class HandParsedController extends BaseRestController {
 }
 
 class MalformedBodyApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'malformed-body-app', version: '0.0.0', description: '' };
   }
 

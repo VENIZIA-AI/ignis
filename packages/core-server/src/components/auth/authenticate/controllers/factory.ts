@@ -6,7 +6,7 @@ import { NotSupportedUtility } from '@venizia/ignis-kernel';
 import { AnyObjectSchema } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 import { getError } from '@venizia/ignis-helpers/core';
-import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   ChangePasswordRequestSchema,
   SignInRequestSchema,
@@ -64,7 +64,7 @@ export class AuthControllerFactory {
         this.service = authService;
       }
 
-      override binding(): ValueOrPromise<void> {
+      override binding(): TValueOrPromise<void> {
         this.defineRoute({
           configs: {
             description: 'Sign In',

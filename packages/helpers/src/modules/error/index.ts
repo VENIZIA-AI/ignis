@@ -6,7 +6,6 @@ export {
   ErrorScopes,
   fromError,
   getError,
-  isApplicationError,
   MessageCode,
   MessageTemplate,
 } from '@venizia/ignis-inversion';

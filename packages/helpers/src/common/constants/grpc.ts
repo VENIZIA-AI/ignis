@@ -1,4 +1,4 @@
-import { type ValueOf } from '../types';
+import { type TValueOf } from '../types';
 
 /** gRPC constants: call kinds, protocol headers and header values, and the numeric status codes by name. */
 export class GRPC {
@@ -66,6 +66,6 @@ export class GRPC {
 }
 
 /** A gRPC call kind from `GRPC.Methods`, lowercase. */
-export type TGrpcMethod = ValueOf<typeof GRPC.Methods>;
+export type TGrpcMethod = TValueOf<typeof GRPC.Methods>;
 /** A numeric gRPC status code from `GRPC.ResultCodes` (`0` is OK). */
-export type TGrpcResultCode = ValueOf<typeof GRPC.ResultCodes>;
+export type TGrpcResultCode = TValueOf<typeof GRPC.ResultCodes>;

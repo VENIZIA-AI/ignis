@@ -16,7 +16,7 @@ import { AuthorizationActions } from '@venizia/ignis-kernel';
 import { BasePostgresEntity } from '@venizia/ignis-connectors/postgres';
 import type { TAnyObjectSchema } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 
 const okResponse = OpenApiResponses.jsonResponse({
@@ -68,7 +68,7 @@ const buildRouteDefinitions = (opts: {
 
 /** Exposes getRouteConfigs (the middleware/security injector) without mounting anything. */
 class AuthProbeController extends BaseRestController {
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     // routes are inspected directly, never mounted.
   }
 }
@@ -213,7 +213,7 @@ describe('Route auth config - controller level vs route level', () => {
 
   test('a route with no authenticate at all mounts with zero auth middleware (public by default)', async () => {
     class PublicRouteController extends BaseRestController {
-      override binding(): ValueOrPromise<void> {
+      override binding(): TValueOrPromise<void> {
         this.defineRoute({
           configs: { method: HTTP.Methods.GET, path: '/public', responses: okResponse },
           handler: (context: TRouteContext) =>

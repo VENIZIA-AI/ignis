@@ -8,10 +8,7 @@ import type {
   TSearchInput,
 } from '@/search/core/repositories/common';
 import { SearchFilterOutcomes, SearchModes } from '@/search/core/repositories/common';
-import {
-  isOperatorObject,
-  SearchDialectUtility,
-} from '@/search/core/repositories/common/dialect.utility';
+import { SearchDialectUtility } from '@/search/core/repositories/common/dialect.utility';
 import type { ITypesenseSearchQuery } from '@/search/typesense/repositories/common';
 import { Sorts, QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
 import { BaseHelper, getError, RecordUtility } from '@venizia/ignis-helpers/core';
@@ -756,7 +753,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
           });
     }
 
-    if (!isOperatorObject(value)) {
+    if (!SearchDialectUtility.isOperatorObject(value)) {
       return SearchDialectUtility.toFilterClause({
         filterBy: `${field}:=${this.escapeValue({ field, value })}`,
       });

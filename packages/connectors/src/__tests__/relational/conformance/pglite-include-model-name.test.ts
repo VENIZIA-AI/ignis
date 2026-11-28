@@ -8,7 +8,7 @@ import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
 import type { IDatabaseExtraOptions } from '@/relational/postgres/repositories/common';
 import type { TTableInsert, TTableObject, TTableSchemaWithId } from '@/relational/core/models';
 import { PGlite } from '@electric-sql/pglite';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { integer, pgTable, serial, text } from 'drizzle-orm/pg-core';
 
@@ -91,9 +91,9 @@ class ModelNameDataSource extends BasePostgresDataSource<{}, {}, {}, PGlite> {
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return 'pglite://memory';
   }
 

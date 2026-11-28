@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { model, type TFilter } from '@venizia/ignis-kernel';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { BaseSearchEntity, field, SearchCollectionFactory } from '@/search/core/models';
 import { ReadableSearchRepository } from '@/search/core/repositories';
 import { SearchModes } from '@/search/core/repositories/common';
@@ -83,7 +83,7 @@ const guardRefusal = (repository: TRepository, filter: object) => {
   try {
     repository.assertRequestFilter({ filter });
   } catch (error) {
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       return error;
     }
 
@@ -102,7 +102,7 @@ const queryRefusal = async (repository: TRepository, filter: TFilter) => {
       filter,
     });
   } catch (error) {
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       return error;
     }
 

@@ -57,6 +57,11 @@ export interface INamespaceMapping {
    * `ObjectUtility.isEmpty({ value })`. `params` is empty and `restKey` unset for such an entry.
    */
   keepsOptions?: boolean;
+  /**
+   * The class is often imported already, as a type: a rewritten call turns that `type` import into a value import.
+   * Without it, such a file is listed and left.
+   */
+  reusesTypeImport?: boolean;
 }
 
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;

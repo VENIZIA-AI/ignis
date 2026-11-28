@@ -15,14 +15,14 @@ Exhaustive reference for `Container`, `Binding`, `MetadataRegistry`, the `@injec
 - [`packages/inversion/src/modules/container/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/container/abstract.ts) - `AbstractContainer`
 - [`packages/inversion/src/modules/binding/binding.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/binding/binding.ts) - `Binding`
 - [`packages/inversion/src/modules/binding/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/binding/common/constants.ts) - `BindingScopes`, `BindingValueTypes`, `BindingKeys`
-- [`packages/inversion/src/modules/binding/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/binding/common/types.ts) - `IBinding`, `IProvider`, `isClassProvider`
+- [`packages/inversion/src/modules/binding/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/binding/common/types.ts) - `IBinding`, `IProvider`
 - [`packages/inversion/src/modules/metadata/injectors.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/metadata/injectors.ts) - `@inject`
 - [`packages/inversion/src/modules/metadata/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/metadata/common/constants.ts) - `MetadataKeys`
 - [`packages/inversion/src/modules/registry/registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/registry/registry.ts) - `MetadataRegistry`, `metadataRegistry`
 - [`packages/inversion/src/modules/registry/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/registry/common/types.ts) - `IInjectMetadata`, `IPropertyMetadata`, `IBindingKeyRecord`
-- [`packages/inversion/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/types.ts) - `TNullable`, `ValueOrPromise`, `TClass`, `TConstValue`
-- [`packages/inversion/src/common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/utilities.ts) - `isClass`
-- [`packages/inversion/src/modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts) - `ApplicationError`, `getError`, `isApplicationError`
+- [`packages/inversion/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/types.ts) - `TNullable`, `TValueOrPromise`, `TClass`, `TConstValue`
+- [`packages/inversion/src/common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/utilities.ts) - `ResolverUtility`, `ObjectUtility`
+- [`packages/inversion/src/modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts) - `ApplicationError`, `getError`
 - [`packages/inversion/src/modules/error/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/common/types.ts) - `TError`, `TErrorDefinition`, `TErrorNormalized`, `IErrorKeyRegistry`
 - [`packages/inversion/src/common/logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/logger.ts) - `Logger`
 
@@ -54,21 +54,17 @@ import {
   BaseHelper,
   ApplicationError,
   getError,
-  isApplicationError,
   MessageCode,
   ErrorScopes,
   Logger,
-  isClass,
-  isClassProvider,
 } from '@venizia/ignis-inversion';
 
 import type {
   TNullable,
-  ValueOrPromise,
-  ValueOf,
+  TValueOrPromise,
+  TValueOf,
   TClass,
-  TConstructor,
-  TAbstractConstructor,
+  TAbstractClass,
   TConstValue,
   TBindingKey,
   TBindingScope,
@@ -86,7 +82,7 @@ import type {
 <!-- docs-code: on -->
 
 > [!NOTE]
-> The framework package `@venizia/ignis` re-exports these DI symbols from `@venizia/ignis-inversion`, types included: `Binding`, `BindingKeys`, `BindingScopes`, `BindingValueTypes`, `IProvider`, `isClass`, `isClassProvider`, `TBindingScope`, `TBindingValueType`, `IBindingTag`. It also adds higher-level helpers of its own (`app.controller()`, `app.service()`, etc.).
+> The framework package `@venizia/ignis` re-exports these DI symbols from `@venizia/ignis-inversion`, types included: `Binding`, `BindingKeys`, `BindingScopes`, `BindingValueTypes`, `IProvider`, `ResolverUtility`, `TBindingScope`, `TBindingValueType`, `IBindingTag`. It also adds higher-level helpers of its own (`app.controller()`, `app.service()`, etc.).
 
 ## Class Hierarchy
 
@@ -224,10 +220,10 @@ Splits `key` on `.`. If there is more than one segment, the first segment is aut
 |----------------|----------|--------------|
 | `VALUE` | Returns the stored value directly | Never |
 | `PROVIDER` (plain function) | Calls `provider(container)` | No `container` argument was passed - `[getValue] Invalid context/container to get provider value` |
-| `PROVIDER` (class, matched via `isClassProvider`) | `container.instantiate()`s the class, then calls `.value(container)` on the instance | Same as above |
+| `PROVIDER` (class, matched via `Binding.isClassProvider`) | `container.instantiate()`s the class, then calls `.value(container)` on the instance | Same as above |
 | `CLASS` | `container.instantiate(this.resolver.value)` | No `container` argument was passed - `[getValue] Invalid context/container to instantiate class` |
 
-`isClassProvider` matches a class whose prototype has a `value()` method - see [Class-based provider](#class-based-provider) below.
+`Binding.isClassProvider` matches a class whose prototype has a `value()` method - see [Class-based provider](#class-based-provider) below.
 
 If `bindScope` is `SINGLETON`, the resolved instance is cached on `this.cached`. Every subsequent call returns it directly without re-invoking the resolver - caching is per-`Binding` instance, not per-container.
 
@@ -247,7 +243,7 @@ class DatabaseConnectionProvider implements IProvider<DatabaseConnection> {
 container.bind({ key: BindingKeys.build<DatabaseConnection>({ key: 'db.connection' }) }).toProvider(DatabaseConnectionProvider);
 ```
 
-`isClassProvider` detects this shape at runtime: `typeof target === 'function' && target.prototype && typeof target.prototype.value === 'function'`.
+`Binding.isClassProvider` detects this shape at runtime: `typeof target === 'function' && target.prototype && typeof target.prototype.value === 'function'`.
 
 ### Static factory
 
@@ -511,16 +507,15 @@ Logger.debug('Resolved binding: %s', key);          // console.log('[DEBUG] ...'
 
 ### Type guards and shared types
 
-`Source ->` [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/types.ts) and [`common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/utilities.ts) (`isClass`)
+`Source ->` [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/types.ts) and [`common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/utilities.ts) (`ResolverUtility.isClass`)
 
 ```typescript
 type TNullable<T> = T | undefined | null;
-type ValueOrPromise<T> = T | Promise<T>;
-type ValueOf<T> = T[keyof T];
-type TConstructor<T> = new (...args: never[]) => T;
-type TAbstractConstructor<T> = abstract new (...args: never[]) => T;
-type TClass<T> = TConstructor<T>;
-type TConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string | number> & {};
+type TValueOrPromise<T> = T | Promise<T>;
+type TValueOf<T> = T[keyof T];
+type TClass<T> = new (...args: never[]) => T;
+type TAbstractClass<T> = abstract new (...args: never[]) => T;
+type TConstValue<T extends TClass<unknown>> = Extract<TValueOf<T>, string | number> & {};
 type TBindingKey<T = unknown> = string & {
   readonly valueType: { bivarianceHack(value: T): void }['bivarianceHack'];
 };
@@ -531,17 +526,17 @@ interface IBindingTag {
   [name: string]: unknown;
 }
 
-function isClass<T>(target: unknown): target is TClass<T>;
+ResolverUtility.isClass<T>(target: unknown): target is TClass<T>;
 ```
 
-`isClass` tests `typeof target === 'function' && target.prototype !== undefined` plus a regex match on the function's stringified source (`/^class[\s{]/`). It relies on the class being emitted as an ES2015+ `class`, not transpiled down to an ES5 constructor function.
+`ResolverUtility.isClass` tests `typeof target === 'function' && target.prototype !== undefined` plus a regex match on the function's stringified source (`/^class[\s{]/`). It relies on the class being emitted as an ES2015+ `class`, not transpiled down to an ES5 constructor function.
 
 ```typescript
 interface IProvider<T> {
   value(container: IContainer): T;
 }
 
-function isClassProvider<T>(target: unknown): target is TClass<IProvider<T>>;
+Binding.isClassProvider<T>(target: unknown): target is TClass<IProvider<T>>;
 ```
 
 `value` takes `IContainer`, the interface, not the concrete `Container` class. `binding/` and `container/` talk only through that interface, which is what keeps the two folders free of an import cycle.

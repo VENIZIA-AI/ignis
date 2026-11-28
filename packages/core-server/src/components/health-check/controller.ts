@@ -3,7 +3,7 @@ import { api, inject } from '@/base/metadata';
 import { OpenApiResponses } from '@venizia/ignis-kernel';
 import type { IApplicationInfo } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
-import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   HealthCheckBindingKeys,
   HealthCheckHeaders,
@@ -106,7 +106,7 @@ export class HealthCheckController extends BaseRestController {
     this.definitions = RouteConfigs;
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     // Public liveness probe: status and clock only. Nothing here names a runtime or a version.
     this.bindRoute({ configs: RouteConfigs.ROOT }).to({
       handler: (context) => {

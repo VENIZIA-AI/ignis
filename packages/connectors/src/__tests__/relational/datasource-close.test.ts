@@ -9,7 +9,7 @@ import type {
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { PGlite } from '@electric-sql/pglite';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { describe, expect, setDefaultTimeout, test } from 'bun:test';
 
@@ -120,7 +120,7 @@ class MemoryPGliteDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSc
     this.client = client;
   }
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return 'pglite://memory';
   }
 }

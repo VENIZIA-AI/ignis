@@ -7,7 +7,7 @@ import type { MetadataRegistry } from '@/helpers/inversion';
 import { ResolverUtility } from '@venizia/ignis-helpers/common';
 import type { IInjectMetadata } from '@venizia/ignis-inversion';
 import { getError } from '@venizia/ignis-helpers/core';
-import { isDataSourceClass } from '../../../datasources';
+import { DataSourceRoot } from '../../../datasources';
 import { validateFirstConstructorParameter } from './validate';
 
 /**
@@ -43,7 +43,7 @@ export const registerDataSourceInjection = (opts: {
     // A class is judged by its brand: its key may sit under any namespace a `binding` pinned, and
     // a provisional key may still change at registration. Only a bare key is judged by its prefix.
     const isDataSourceTarget = injectedTarget
-      ? isDataSourceClass(injectedTarget)
+      ? DataSourceRoot.isDataSourceClass(injectedTarget)
       : typeof injectKey === 'string' && injectKey.startsWith(`${BindingNamespaces.DATASOURCE}.`);
 
     if (!isDataSourceTarget) {

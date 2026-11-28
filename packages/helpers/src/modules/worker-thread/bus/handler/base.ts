@@ -1,4 +1,4 @@
-import { type ValueOrPromise } from '@/common/types';
+import { type TValueOrPromise } from '@/common/types';
 import { AbstractWorkerMessageBusHandlerHelper } from './abstract';
 
 /** Bus handler built from callbacks. Only `onMessage` is required; a missing `onClose` does nothing, a missing `onExit` or `onError` logs. */
@@ -7,10 +7,10 @@ export class BaseWorkerMessageBusHandlerHelper<
 > extends AbstractWorkerMessageBusHandlerHelper<IConsumePayload> {
   constructor(opts: {
     scope: string;
-    onMessage: (opts: { message: IConsumePayload }) => ValueOrPromise<void>;
-    onClose?: () => ValueOrPromise<void>;
-    onError?: (opts: { error: Error }) => ValueOrPromise<void>;
-    onExit?: (opts: { exitCode: number | string }) => ValueOrPromise<void>;
+    onMessage: (opts: { message: IConsumePayload }) => TValueOrPromise<void>;
+    onClose?: () => TValueOrPromise<void>;
+    onError?: (opts: { error: Error }) => TValueOrPromise<void>;
+    onExit?: (opts: { exitCode: number | string }) => TValueOrPromise<void>;
   }) {
     super({ scope: opts.scope, identifier: opts.scope });
 

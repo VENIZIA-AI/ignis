@@ -25,30 +25,30 @@ export declare abstract class AbstractApplication extends Container {
         scope: string;
         config: IApplicationConfigs;
     });
-    abstract getAppInfo(): ValueOrPromise<IApplicationInfo>;
-    abstract preConfigure(): ValueOrPromise<void>;
+    abstract getAppInfo(): TValueOrPromise<IApplicationInfo>;
+    abstract preConfigure(): TValueOrPromise<void>;
     /**
      * Runs after every registration sweep (datasources, components, controllers) has already
      * completed. Registering a new one here is not auto-registered and silently does nothing -
      * call `configure()` manually instead.
      */
-    abstract postConfigure(): ValueOrPromise<void>;
+    abstract postConfigure(): TValueOrPromise<void>;
     abstract staticConfigure(): void;
     abstract setupMiddlewares(opts?: {
         middlewares?: Record<string | symbol, unknown>;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     abstract initialize(): Promise<void>;
     getProjectConfigs(): IApplicationConfigs;
     getProjectRoot(): string;
     registerPostStartHook(opts: {
         identifier: string;
-        hook: () => ValueOrPromise<void>;
+        hook: () => TValueOrPromise<void>;
     }): void;
     /** Runs every post-start hook in isolation - the server is already listening, so a throwing hook must not cancel the ones behind it; failures are collected and reported as one error at the end. */
     protected executePostStartHooks(): Promise<void>;
     registerPostStopHook(opts: {
         identifier: string;
-        hook: () => ValueOrPromise<void>;
+        hook: () => TValueOrPromise<void>;
     }): void;
     protected executePostStopHooks(): Promise<void>;
     protected registerCoreBindings(): void;
@@ -193,9 +193,9 @@ export declare abstract class AbstractRestController<RouteEnv extends Env = Env,
         getRoutingPath(): string;
     };
     /** Override to register routes using bindRoute or defineRoute. */
-    abstract binding(): ValueOrPromise<void>;
+    abstract binding(): TValueOrPromise<void>;
     /** Registers the routes a generated controller brings; runs after `binding()`, so a route declared there wins a path the defaults also match. */
-    bindDefaultRoutes(): ValueOrPromise<void>;
+    bindDefaultRoutes(): TValueOrPromise<void>;
     /** Creates a fluent binding for registering a route (call .to() to attach handler). */
     abstract bindRoute<RouteConfig extends IAuthRouteConfig>(opts: {
         configs: RouteConfig;
@@ -203,8 +203,8 @@ export declare abstract class AbstractRestController<RouteEnv extends Env = Env,
     /** Defines and registers a route with its handler in a single call. */
     abstract defineRoute<RouteConfig extends IAuthRouteConfig>(opts: {
         configs: RouteConfig;
-        handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
-        hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
+        handler: (context: TContextOf<RouteConfig, RouteEnv>) => TValueOrPromise<Response | TypedResponse<unknown>>;
+        hook?: Hook<any, RouteEnv, string, TValueOrPromise<any>>;
     }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 }
 ```
@@ -1107,7 +1107,7 @@ export declare class AuthorizationPolicyBuilder {
 }
 
 /**
- * Explicit on purpose: `TAuthorizationDecision` is `Extract<ValueOf<T>, string | number>`, and its
+ * Explicit on purpose: `TAuthorizationDecision` is `Extract<TValueOf<T>, string | number>`, and its
  * literal members widen to `string` when a method's return type is inferred rather than declared.
  * Without this annotation `grant()`'s `effect` stops satisfying `PolicyDefinition`'s narrowed column.
  * Not exported - `TGrantRow`/`TCustomGrantRow` already name unrelated adapter-side row shapes

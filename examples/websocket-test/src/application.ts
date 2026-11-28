@@ -4,7 +4,7 @@ import {
   BaseApplication,
   HealthCheckComponent,
   type IApplicationInfo,
-  type ValueOrPromise,
+  type TValueOrPromise,
 } from '@venizia/ignis';
 import { WebSocketBindingKeys, WebSocketComponent } from '@venizia/ignis/websocket';
 import { AppEnvs, RedisSingleHelper, type TWebSocketAuthenticateFn } from '@venizia/ignis-helpers';
@@ -19,7 +19,7 @@ export class Application extends BaseApplication {
 
   override staticConfigure(): void {}
 
-  override preConfigure(): ValueOrPromise<void> {
+  override preConfigure(): TValueOrPromise<void> {
     this.component(ApiReferenceComponent);
     this.component(HealthCheckComponent);
     this.setupWebSocket();

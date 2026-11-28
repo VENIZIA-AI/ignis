@@ -1,12 +1,12 @@
 import { RestApplication } from '@/base/applications/rest';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications/common';
 import { service } from '@/base/metadata';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { BindingKeys } from '@/helpers/inversion';
 
 class ReportingApplication extends RestApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'unresolved-bindings-app', version: '0.0.0', description: '' };
   }
 

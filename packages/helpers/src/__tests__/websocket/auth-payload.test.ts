@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, mock, test } from 'bun:test';
 import { EventEmitter } from 'node:events';
 import { z } from 'zod';
-import { isRedisHelper, REDIS_HELPER_BRAND } from '@/modules/redis';
+import { AbstractRedisHelper, REDIS_HELPER_BRAND } from '@/modules/redis';
 import { WebSocketServerHelper } from '@/modules/socket/websocket';
 import { WebSocketEvents } from '@/modules/socket/websocket/common';
 
@@ -64,7 +64,7 @@ const authenticate = async (opts: {
 };
 
 const base = () => {
-  if (!isRedisHelper(redisConnection)) {
+  if (!AbstractRedisHelper.isRedisHelper(redisConnection)) {
     throw new Error('the fake is not a redis helper');
   }
 

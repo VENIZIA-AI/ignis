@@ -1,5 +1,4 @@
-import { isApplicationError } from '@venizia/ignis-helpers/core';
-import type { ApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { describe, expect, test } from 'bun:test';
 import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect/query-dialect';
 import { SqliteQueryDialect } from '@/relational/sqlite/repositories/dialect/query-dialect';
@@ -9,7 +8,7 @@ const capture = (task: () => unknown): ApplicationError => {
   try {
     task();
   } catch (error) {
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       return error;
     }
 

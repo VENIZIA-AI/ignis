@@ -1,5 +1,5 @@
 import { PGlite } from '@electric-sql/pglite';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   datasource,
   model,
@@ -104,9 +104,9 @@ class KeyDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {},
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return 'pglite://memory';
   }
 

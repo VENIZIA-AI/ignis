@@ -1,5 +1,10 @@
 /** Narrowing of an `unknown` value, such as a wire payload, to an object whose string keys can be read, and a safe deep read of one; no node import, so it ships on `/core`. */
 export class RecordUtility {
+  /** A non-null object or a function: a value that can carry a member. A type guard, so it keeps its positional `value`. */
+  static isObjectLike(value: unknown): value is object {
+    return (typeof value === 'object' && value !== null) || typeof value === 'function';
+  }
+
   /** A non-null object, arrays included: the narrowest check before reading string keys off an `unknown`. A type guard, so it keeps its positional `value`. */
   static isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;

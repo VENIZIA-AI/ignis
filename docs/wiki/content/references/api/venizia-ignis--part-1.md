@@ -118,7 +118,7 @@ export declare abstract class AbstractBearerTokenService<E extends Env = Env> ex
         getTokenExpiresFn: TGetTokenExpiresFn;
         claims?: IJWTIssueClaims;
     }): Promise<SignJWT>;
-    protected abstract getSigningKey(): ValueOrPromise<Uint8Array | CryptoKey>;
+    protected abstract getSigningKey(): TValueOrPromise<Uint8Array | CryptoKey>;
     protected abstract getDefaultTokenExpiresFn(): TGetTokenExpiresFn;
 }
 ```
@@ -171,7 +171,7 @@ export declare abstract class AbstractGrpcController<RouteEnv extends Env = Env,
     /** Configures the controller by binding all RPCs, registering decorator-based RPCs, and mounting the adapter. Idempotent. */
     configure(opts?: ConfigurableOptions): Promise<void>;
     /** Override to register RPCs using bindRoute or defineRoute. */
-    abstract binding(): ValueOrPromise<void>;
+    abstract binding(): TValueOrPromise<void>;
     /** Creates a fluent binding for registering an RPC (call .to() to attach handler). */
     abstract bindRoute(opts: {
         configs: IRpcMetadata;
@@ -255,7 +255,7 @@ export declare class AuthControllerFactory {
     static build(opts: TDefineAuthControllerOpts): {
         new (authService: IAuthService): {
             service: IAuthService;
-            binding(): ValueOrPromise<void>;
+            binding(): TValueOrPromise<void>;
             measure<R>(opts: {
                 scope: string;
                 args: unknown;
@@ -313,7 +313,7 @@ export declare class AuthControllerFactory {
                 };
                 range?: import("@venizia/ignis-kernel").TDataRange;
                 extra?: Record<string, import("@venizia/ignis-kernel").TResponseExtra>;
-            }): ValueOrPromise<import("@venizia/ignis-inversion").TNullable<R | {
+            }): TValueOrPromise<import("@venizia/ignis-inversion").TNullable<R | {
                 count?: number;
                 data?: import("@venizia/ignis-inversion").TNullable<R>;
                 extra?: Record<string, unknown>;
@@ -347,19 +347,19 @@ export declare class AuthControllerFactory {
                 total: number;
             })): void;
             toHonoHandler<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig = import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {
-                handler: (context: import("@venizia/ignis-kernel").TContextOf<RouteConfig, import("hono").Env>) => ValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
+                handler: (context: import("@venizia/ignis-kernel").TContextOf<RouteConfig, import("hono").Env>) => TValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
             }): import("hono").Handler<import("hono").Env, string, import("hono").Input, (Response | Promise<Response>) | (import("@hono/zod-openapi").RouteConfigToTypedResponse<import("@hono/zod-openapi").RouteConfig> | Promise<import("@hono/zod-openapi").RouteConfigToTypedResponse<import("@hono/zod-openapi").RouteConfig>>)>;
             bindRoute<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
             }): import("@venizia/ignis-kernel").IBindRouteOptions<RouteConfig, import("hono").Env, {}, "/">;
             defineRoute<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
-                handler: (context: import("@venizia/ignis-kernel").TContextOf<RouteConfig, import("hono").Env>) => ValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
+                handler: (context: import("@venizia/ignis-kernel").TContextOf<RouteConfig, import("hono").Env>) => TValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
                 hook?: import("@hono/zod-openapi").Hook<any, import("hono").Env, string, any> | undefined;
             }): import("@venizia/ignis-kernel").IDefineRouteOptions<RouteConfig, import("hono").Env, {}, "/">;
             defineJSXRoute<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
-                handler: (context: import("@venizia/ignis-kernel").TContextOf<RouteConfig, import("hono").Env>) => ValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
+                handler: (context: import("@venizia/ignis-kernel").TContextOf<RouteConfig, import("hono").Env>) => TValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
                 hook?: import("@hono/zod-openapi").Hook<any, import("hono").Env, string, any> | undefined;
             }): import("@venizia/ignis-kernel").IDefineRouteOptions<RouteConfig, import("hono").Env, {}, "/">;
             isConfigured: boolean;
@@ -388,7 +388,7 @@ export declare class AuthControllerFactory {
             }): RouteConfig & import("@hono/zod-openapi").RouteConfig & {
                 getRoutingPath(): string;
             };
-            bindDefaultRoutes(): ValueOrPromise<void>;
+            bindDefaultRoutes(): TValueOrPromise<void>;
             scope: string;
             identifier: string;
             get logger(): import("@venizia/ignis-helpers").ILogger;
@@ -412,7 +412,7 @@ Registers the authentication services and strategies from the options bound unde
 export declare class AuthenticateComponent extends BaseComponent {
     private application;
     constructor(application: BaseApplication);
-    binding(): ValueOrPromise<void>;
+    binding(): TValueOrPromise<void>;
     /**
      * Loads `jose` at boot when a configured service signs or verifies with it, so a missing or broken
      * install fails the boot instead of answering every token check with a 401.
@@ -539,7 +539,7 @@ Registers authorization from the options bound under `AuthorizeBindingKeys.OPTIO
 export declare class AuthorizeComponent extends BaseComponent {
     private application;
     constructor(application: BaseApplication);
-    binding(): ValueOrPromise<void>;
+    binding(): TValueOrPromise<void>;
     private bindAlwaysAllowRoles;
 }
 ```
@@ -575,7 +575,7 @@ export declare abstract class BaseApplication extends ServerApplication implemen
     protected normalizePath(...segments: string[]): string;
     /** Adds the gRPC branch the kernel cannot own: `GrpcComponent` needs `AbstractGrpcController`, core-only code that reaches `node:module`. */
     registerControllers(): Promise<void>;
-    registerSecrets(): ValueOrPromise<TSecretsRegistration>;
+    registerSecrets(): TValueOrPromise<TSecretsRegistration>;
     hydrateSecrets(): Promise<void>;
     /** Applies each hydrate entry in declaration order; paths that resolve empty while declaring an expectation are collected in `emptyHydrations` rather than failing here. */
     protected hydrateSecretEntries(opts: {

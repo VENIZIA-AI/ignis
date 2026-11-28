@@ -15,7 +15,7 @@ Every error condition the Socket.IO component and its two helpers can raise, plu
 | Method | Condition | Error message |
 |---|---|---|
 | `binding()` | `application` is falsy | `"[binding] Invalid application to bind SocketIOComponent"` |
-| `resolveBindings()` | `REDIS_CONNECTION` fails `isRedisHelper()` | `"Invalid instance of redisConnection..."` |
+| `resolveBindings()` | `REDIS_CONNECTION` fails `AbstractRedisHelper.isRedisHelper()` | `"Invalid instance of redisConnection..."` |
 | `resolveBindings()` | `AUTHENTICATE_HANDLER` is falsy | `"[DANGER][SocketIOComponent] Invalid authenticateFn to setup io socket server!"` |
 
 ### Server helper errors
@@ -54,7 +54,7 @@ Every error condition the Socket.IO component and its two helpers can raise, plu
 
 ### "Invalid instance of redisConnection"
 
-- **Cause:** The value bound to `REDIS_CONNECTION` isn't a Redis helper (it fails `isRedisHelper`) - not a `RedisSingleHelper`, `RedisClusterHelper`, or `RedisSentinelHelper`.
+- **Cause:** The value bound to `REDIS_CONNECTION` isn't a Redis helper (it fails `AbstractRedisHelper.isRedisHelper`) - not a `RedisSingleHelper`, `RedisClusterHelper`, or `RedisSentinelHelper`.
 - **Fix:** Bind one of the concrete topology helpers, never a raw `ioredis` client.
 
 ```typescript

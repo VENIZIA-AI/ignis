@@ -5,12 +5,12 @@ import { WorkerApplication } from '@/applications/worker';
 import { CoreBindings } from '@venizia/ignis-kernel';
 import type { IApplicationInfo } from '@venizia/ignis-kernel';
 import { ModuleUtility } from '@venizia/ignis-helpers';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
 
 class ProjectRootWorkerApplication extends WorkerApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return {
       name: 'project-root-worker-app',
       version: '0.0.0',

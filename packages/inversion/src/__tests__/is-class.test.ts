@@ -1,23 +1,23 @@
 import { describe, expect, test } from 'bun:test';
-import { isClass } from '@/common/utilities';
+import { ResolverUtility } from '@/common/utilities';
 
-/** `isClass` tells a CONSTRUCTOR from a RESOLVER framework-wide; `prototype !== undefined` is true of every non-arrow function, so these pin the source-text check. */
-describe('isClass', () => {
+/** `ResolverUtility.isClass` tells a CONSTRUCTOR from a RESOLVER framework-wide; `prototype !== undefined` is true of every non-arrow function, so these pin the source-text check. */
+describe('ResolverUtility.isClass', () => {
   test('a class declaration, an abstract class and a class expression are classes', () => {
     class Declared {}
     abstract class Abstract {}
     const Expression = class {};
 
-    expect(isClass(Declared)).toBe(true);
-    expect(isClass(Abstract)).toBe(true);
-    expect(isClass(Expression)).toBe(true);
+    expect(ResolverUtility.isClass(Declared)).toBe(true);
+    expect(ResolverUtility.isClass(Abstract)).toBe(true);
+    expect(ResolverUtility.isClass(Expression)).toBe(true);
   });
 
   test('a subclass is a class', () => {
     class Parent {}
     class Child extends Parent {}
 
-    expect(isClass(Child)).toBe(true);
+    expect(ResolverUtility.isClass(Child)).toBe(true);
   });
 
   test('a PLAIN FUNCTION is NOT a class - this is the whole point', () => {
@@ -25,7 +25,7 @@ describe('isClass', () => {
       return 1;
     }
 
-    expect(isClass(plainFunction)).toBe(false);
+    expect(ResolverUtility.isClass(plainFunction)).toBe(false);
   });
 
   test('a function used as a RESOLVER is not a class, arrow or not', () => {
@@ -37,16 +37,16 @@ describe('isClass', () => {
       return User;
     }
 
-    expect(isClass(arrowResolver)).toBe(false);
-    expect(isClass(functionResolver)).toBe(false);
+    expect(ResolverUtility.isClass(arrowResolver)).toBe(false);
+    expect(ResolverUtility.isClass(functionResolver)).toBe(false);
   });
 
   test('non-callables are not classes', () => {
-    expect(isClass({})).toBe(false);
-    expect(isClass('string')).toBe(false);
-    expect(isClass(1)).toBe(false);
-    expect(isClass(true)).toBe(false);
-    expect(isClass(null)).toBe(false);
-    expect(isClass(undefined)).toBe(false);
+    expect(ResolverUtility.isClass({})).toBe(false);
+    expect(ResolverUtility.isClass('string')).toBe(false);
+    expect(ResolverUtility.isClass(1)).toBe(false);
+    expect(ResolverUtility.isClass(true)).toBe(false);
+    expect(ResolverUtility.isClass(null)).toBe(false);
+    expect(ResolverUtility.isClass(undefined)).toBe(false);
   });
 });

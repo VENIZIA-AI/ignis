@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 
 import { AbstractRepository } from '@venizia/ignis-kernel';
 import type { TCount, TFilter } from '@venizia/ignis-kernel';
@@ -80,7 +80,7 @@ describe('shared AbstractRepository core helpers', () => {
 
           return undefined;
         } catch (error) {
-          return isApplicationError(error) ? error.normalized.code : undefined;
+          return ApplicationError.isApplicationError(error) ? error.normalized.code : undefined;
         }
       };
 

@@ -25,10 +25,10 @@ import type { IServerInfoOptions, IServerTime } from '@venizia/ignis';
 ## In one example
 
 ```typescript
-import { BaseApplication, ServerInfoComponent, ValueOrPromise } from '@venizia/ignis';
+import { BaseApplication, ServerInfoComponent, TValueOrPromise } from '@venizia/ignis';
 
 export class Application extends BaseApplication {
-  preConfigure(): ValueOrPromise<void> {
+  preConfigure(): TValueOrPromise<void> {
     this.component(ServerInfoComponent);
   }
 }

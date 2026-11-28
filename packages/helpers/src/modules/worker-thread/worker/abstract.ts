@@ -1,4 +1,4 @@
-import { type ValueOrPromise } from '@/common/types';
+import { type TValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { type Worker, type WorkerOptions } from 'node:worker_threads';
 import { type IWorker } from '../common';
@@ -11,9 +11,9 @@ export abstract class AbstractWorkerHelper<MessageType>
   worker: Worker;
   options: WorkerOptions;
 
-  abstract onOnline(): ValueOrPromise<void>;
-  abstract onExit(opts: { code: string | number }): ValueOrPromise<void>;
-  abstract onError(opts: { error: Error }): ValueOrPromise<void>;
-  abstract onMessage(opts: { message: MessageType }): ValueOrPromise<void>;
-  abstract onMessageError(opts: { error: Error }): ValueOrPromise<void>;
+  abstract onOnline(): TValueOrPromise<void>;
+  abstract onExit(opts: { code: string | number }): TValueOrPromise<void>;
+  abstract onError(opts: { error: Error }): TValueOrPromise<void>;
+  abstract onMessage(opts: { message: MessageType }): TValueOrPromise<void>;
+  abstract onMessageError(opts: { error: Error }): TValueOrPromise<void>;
 }

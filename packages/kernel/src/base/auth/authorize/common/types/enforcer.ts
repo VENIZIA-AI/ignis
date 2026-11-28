@@ -1,5 +1,5 @@
 import type { TContext } from '@/base/controllers/common/types';
-import { type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { type IRedisHelper } from '@venizia/ignis-helpers/core';
 import type { Adapter } from 'casbin';
 import type { Env } from 'hono';
@@ -31,12 +31,12 @@ export interface IAuthorizationEnforcer<
   TAction = string,
   TResource = string,
   TRules = unknown,
-  TBuildRulesReturn = ValueOrPromise<TRules>,
-  TEvaluateReturn = ValueOrPromise<TAuthorizationDecision>,
+  TBuildRulesReturn = TValueOrPromise<TRules>,
+  TEvaluateReturn = TValueOrPromise<TAuthorizationDecision>,
 > {
   name: string;
 
-  configure(): ValueOrPromise<void>;
+  configure(): TValueOrPromise<void>;
 
   buildRules(opts: { user: IAuthorizationUser; context: TContext<E, string> }): TBuildRulesReturn;
 
@@ -65,7 +65,7 @@ export type TAuthorizationVoter<
   action: TAction;
   resource: TResource;
   context: TContext<E, string>;
-}) => ValueOrPromise<TAuthorizationDecision>;
+}) => TValueOrPromise<TAuthorizationDecision>;
 
 /** Per-route authorization requirement passed to `authorize()`. `allowedRoles` grants access to matching roles before voters and the enforcer run. */
 export interface IAuthorizationSpec<E extends Env = Env, TAction = string, TResource = string> {
@@ -90,7 +90,7 @@ export interface ICasbinEnforcerCachedRedis {
   options: {
     connection: IRedisHelper;
     expiresIn: number;
-    keyFn: (opts: { user: IAuthorizationUser }) => ValueOrPromise<string>;
+    keyFn: (opts: { user: IAuthorizationUser }) => TValueOrPromise<string>;
   };
 }
 

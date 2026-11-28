@@ -1,6 +1,6 @@
 import { CoreBindings } from '@/common/bindings';
 import { Container } from '@/helpers/inversion/container';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { IApplicationConfigs, IApplicationInfo } from './common';
@@ -10,8 +10,8 @@ export abstract class AbstractApplication extends Container {
   protected configs: IApplicationConfigs;
   protected projectRoot: string;
 
-  private postStartHooks: Array<{ identifier: string; hook: () => ValueOrPromise<void> }> = [];
-  private postStopHooks: Array<{ identifier: string; hook: () => ValueOrPromise<void> }> = [];
+  private postStartHooks: Array<{ identifier: string; hook: () => TValueOrPromise<void> }> = [];
+  private postStopHooks: Array<{ identifier: string; hook: () => TValueOrPromise<void> }> = [];
 
   constructor(opts: { scope: string; config: IApplicationConfigs }) {
     const { scope, config } = opts;
@@ -23,21 +23,21 @@ export abstract class AbstractApplication extends Container {
     this.logger.for('constructor').info('Project root: %s', this.projectRoot);
   }
 
-  abstract getAppInfo(): ValueOrPromise<IApplicationInfo>;
-  abstract preConfigure(): ValueOrPromise<void>;
+  abstract getAppInfo(): TValueOrPromise<IApplicationInfo>;
+  abstract preConfigure(): TValueOrPromise<void>;
 
   /**
    * Runs after every registration sweep (datasources, components, controllers) has already
    * completed. Registering a new one here is not auto-registered and silently does nothing -
    * call `configure()` manually instead.
    */
-  abstract postConfigure(): ValueOrPromise<void>;
+  abstract postConfigure(): TValueOrPromise<void>;
 
   abstract staticConfigure(): void;
 
   abstract setupMiddlewares(opts?: {
     middlewares?: Record<string | symbol, unknown>;
-  }): ValueOrPromise<void>;
+  }): TValueOrPromise<void>;
 
   abstract initialize(): Promise<void>;
 
@@ -52,7 +52,7 @@ export abstract class AbstractApplication extends Container {
     return projectRoot;
   }
 
-  registerPostStartHook(opts: { identifier: string; hook: () => ValueOrPromise<void> }) {
+  registerPostStartHook(opts: { identifier: string; hook: () => TValueOrPromise<void> }) {
     this.postStartHooks.push(opts);
     this.logger
       .for(this.registerPostStartHook.name)
@@ -100,7 +100,7 @@ export abstract class AbstractApplication extends Container {
     });
   }
 
-  registerPostStopHook(opts: { identifier: string; hook: () => ValueOrPromise<void> }) {
+  registerPostStopHook(opts: { identifier: string; hook: () => TValueOrPromise<void> }) {
     this.postStopHooks.push(opts);
     this.logger
       .for(this.registerPostStopHook.name)

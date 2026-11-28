@@ -1,5 +1,5 @@
 import type { TConstValue } from '@/common/types';
-import { type ValueOrPromise } from '@/common/types';
+import { type TValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { ParseUtility } from '@/utilities/parse.utility';
@@ -50,7 +50,7 @@ export interface ITcpSocketServerOptions<
 
   extraEvents?: Record<
     string,
-    (opts: { id: string; socket: SocketClientType; args: unknown }) => ValueOrPromise<void>
+    (opts: { id: string; socket: SocketClientType; args: unknown }) => TValueOrPromise<void>
   >;
 
   createServerFn: (
@@ -81,7 +81,7 @@ export class BaseNetworkTcpServer<
 
   protected extraEvents: Record<
     string,
-    (opts: { id: string; socket: SocketClientType; args: unknown }) => ValueOrPromise<void>
+    (opts: { id: string; socket: SocketClientType; args: unknown }) => TValueOrPromise<void>
   >;
 
   protected createServerFn: (

@@ -4,7 +4,7 @@ import {
   BaseApplication,
   HealthCheckComponent,
   type IApplicationInfo,
-  type ValueOrPromise,
+  type TValueOrPromise,
 } from '@venizia/ignis';
 import { SocketIOBindingKeys, SocketIOComponent } from '@venizia/ignis/socket-io';
 import { AppEnvs, RedisSingleHelper } from '@venizia/ignis-helpers';
@@ -20,7 +20,7 @@ export class Application extends BaseApplication {
 
   override staticConfigure(): void {}
 
-  override preConfigure(): ValueOrPromise<void> {
+  override preConfigure(): TValueOrPromise<void> {
     this.component(ApiReferenceComponent);
     this.component(HealthCheckComponent);
     this.setupSocketIO();

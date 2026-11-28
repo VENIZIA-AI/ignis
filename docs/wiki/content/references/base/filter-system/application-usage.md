@@ -86,7 +86,7 @@ import {
   OpenApiResponses,
   type TInferSchema,
   type TRouteContext,
-  type ValueOrPromise, BindingKeys,
+  type TValueOrPromise, BindingKeys,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
@@ -99,7 +99,7 @@ export class ProductController extends BaseRestController {
     super({ scope: 'ProductController', path: '/products' });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.defineRoute({
       configs: {
         path: '/search',

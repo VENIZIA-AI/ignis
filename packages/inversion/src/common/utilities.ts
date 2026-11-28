@@ -78,28 +78,28 @@ export class ObjectUtility {
   }
 }
 
-/** Tells a CONSTRUCTOR from a RESOLVER via source text - `prototype !== undefined` is true of every non-arrow function. Sound only on ES2020+ output (classes emit as `class`); ES5 bundling breaks it. */
-export const isClass = <T>(target: unknown): target is TClass<T> => {
-  if (typeof target !== 'function' || target.prototype === undefined) {
-    return false;
-  }
-
-  return /^class[\s{]/.test(Function.prototype.toString.call(target));
-};
-
 /** Readers for the value-or-resolver vocabulary the container branches on. */
 export class ResolverUtility {
+  /** Tells a CONSTRUCTOR from a RESOLVER via source text - `prototype !== undefined` is true of every non-arrow function. Sound only on ES2020+ output (classes emit as `class`); ES5 bundling breaks it. A type guard, so it keeps its positional `target`. */
+  static isClass<T>(target: unknown): target is TClass<T> {
+    if (typeof target !== 'function' || target.prototype === undefined) {
+      return false;
+    }
+
+    return /^class[\s{]/.test(Function.prototype.toString.call(target));
+  }
+
   /** A resolver is anything callable that is not a class - a class is a value here, never a factory. */
   private static isResolver<T>(
     valueOrResolver: TValueOrResolver<T>,
   ): valueOrResolver is TResolver<T> {
-    return typeof valueOrResolver === 'function' && !isClass(valueOrResolver);
+    return typeof valueOrResolver === 'function' && !ResolverUtility.isClass(valueOrResolver);
   }
 
   private static isAsyncResolver<T>(
     valueOrResolver: TValueOrAsyncResolver<T>,
   ): valueOrResolver is TAsyncResolver<T> {
-    return typeof valueOrResolver === 'function' && !isClass(valueOrResolver);
+    return typeof valueOrResolver === 'function' && !ResolverUtility.isClass(valueOrResolver);
   }
 
   /** Reads a value-or-resolver. A class constructor is returned as-is; only a plain function is called. */
@@ -120,6 +120,6 @@ export class ResolverUtility {
   static resolveInjectTarget(opts: { target: TInjectTarget }): TClass<unknown> | undefined {
     const resolved = ResolverUtility.resolveValue({ value: opts.target });
 
-    return isClass(resolved) ? resolved : undefined;
+    return ResolverUtility.isClass(resolved) ? resolved : undefined;
   }
 }

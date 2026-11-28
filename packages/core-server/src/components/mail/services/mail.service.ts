@@ -10,7 +10,7 @@ import type {
 } from '../common';
 import { MailDefaults, MailErrorCodes, MailErrors, MailKeys, MailTemplateFormats } from '../common';
 import { inject } from '@/base/metadata';
-import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
+import { getError, ApplicationError } from '@venizia/ignis-helpers/core';
 import { ErrorUtility, Execution } from '@venizia/ignis-helpers';
 import { MailAttachmentUtility } from '../utilities/attachment.utility';
 import { MailBodyUtility } from '../utilities/body.utility';
@@ -69,7 +69,7 @@ export class MailService extends BaseService implements IMailService {
       MailAttachmentUtility.release({ attachments: message.attachments });
 
       // An error the framework already shaped carries its own status and message code; re-wrapping as 500 would report a caller mistake as a server fault.
-      if (isApplicationError(error)) {
+      if (ApplicationError.isApplicationError(error)) {
         throw error;
       }
 

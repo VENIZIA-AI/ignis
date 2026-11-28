@@ -55,7 +55,7 @@ export declare class SocketIOComponent extends BaseComponent {
     constructor(application: BaseApplication);
     private resolveBindings;
     private registerBunHook;
-    binding(): ValueOrPromise<void>;
+    binding(): TValueOrPromise<void>;
 }
 ```
 

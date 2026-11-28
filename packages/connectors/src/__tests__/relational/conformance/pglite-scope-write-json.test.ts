@@ -1,6 +1,6 @@
 import type { TScopeResolution } from './scope-resolution';
 import { PGlite } from '@electric-sql/pglite';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { datasource, model, type TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { afterAll, beforeAll } from 'bun:test';
 import { jsonb, pgTable, serial, text } from 'drizzle-orm/pg-core';
@@ -50,9 +50,9 @@ class JsonScopeDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchem
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return 'pglite://memory';
   }
 

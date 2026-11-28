@@ -1,7 +1,7 @@
 import { PGlite } from '@electric-sql/pglite';
 import { isSQLWrapper } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
-import type { TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TNullable, TValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   datasource,
   model,
@@ -11,7 +11,7 @@ import {
   type TAnyDataSourceSchema,
 } from '@venizia/ignis-kernel';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { integer, pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
@@ -148,9 +148,9 @@ class ThroughDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema,
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return 'pglite://memory';
   }
 
@@ -554,7 +554,7 @@ describe('upsert on a through model', () => {
     const error = await RejectionUtility.rejectionOf({ task: task() });
     const after = await variantRows();
 
-    expect(isApplicationError(error) ? error.statusCode : undefined).toBe(403);
+    expect(ApplicationError.isApplicationError(error) ? error.statusCode : undefined).toBe(403);
     expect(error instanceof Error ? error.message : String(error)).toContain(
       'write refused by the access scope',
     );

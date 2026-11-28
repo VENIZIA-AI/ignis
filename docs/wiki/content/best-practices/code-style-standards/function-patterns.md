@@ -78,7 +78,7 @@ Use consistent prefixes based on function purpose:
 | `generate*` | Create column definitions / schemas | `PostgresIdEnricher.generateColumnDefs()`, `PostgresTzEnricher.generateColumnDefs()` |
 | `build*` | Construct complex objects | `buildValueCondition()`, `buildJsonOrderBy()` |
 | `to*` | Convert/transform data | `ParseUtility.toCamel()`, `ParseUtility.toBoolean()` |
-| `is*` | Boolean validation/check | `isApplicationError()`, `ParseUtility.isInt()`, `ParseUtility.isFloat()`, `isPromiseLike()` |
+| `is*` | Boolean validation/check | `ApplicationError.isApplicationError()`, `ParseUtility.isInt()`, `ParseUtility.isFloat()`, `Execution.isPromiseLike()` |
 | `has*` | Boolean ownership check | `hasBucket()`, `hasPermission()` |
 | `assert*` | Throws when the condition fails, returns nothing | `assertBucketExists()`, `assertOwner()` |
 | `extract*` | Pull out specific parts | `extractTimestamp()`, `extractWorkerId()`, `extractSequence()` |
@@ -111,9 +111,9 @@ const camelCase = ParseUtility.toCamel({ input: 'snake_case' });
 const bool = ParseUtility.toBoolean({ input: 'true' });
 
 // Validators - boolean checks
-if (isApplicationError(error)) { /* ... */ }
+if (ApplicationError.isApplicationError(error)) { /* ... */ }
 if (ParseUtility.isInt({ input: value })) { /* ... */ }
-if (isPromiseLike(result)) { /* ... */ }
+if (Execution.isPromiseLike(result)) { /* ... */ }
 
 // Extractors - pull specific data
 const timestamp = extractTimestamp(snowflakeId);

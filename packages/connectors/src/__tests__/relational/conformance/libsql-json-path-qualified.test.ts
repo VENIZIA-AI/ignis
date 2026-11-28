@@ -11,7 +11,7 @@ import type { ISqliteExtraOptions } from '@/relational/sqlite/repositories/commo
 import { SqliteFilterBuilder } from '@/relational/sqlite/repositories/dialect/filter';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import type { SQL } from 'drizzle-orm';
 import { eq } from 'drizzle-orm';
@@ -95,7 +95,7 @@ class JsonPathSqliteDataSource extends BaseSqliteDataSource<{ url: string }, {},
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 }
 
 type TRepository<Schema extends TTableSchemaWithId> = DefaultSqliteRepository<

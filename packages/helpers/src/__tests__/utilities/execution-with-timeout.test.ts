@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { isApplicationError } from '@/modules/error';
+import { ApplicationError } from '@/modules/error';
 import { Execution } from '@/modules/execution';
 
 /** Counts the timers `withTimeout` arms with the given delay and how many of them were cleared. */
@@ -85,7 +85,7 @@ describe('Execution.withTimeout', () => {
       }),
     );
 
-    expect(isApplicationError(error)).toBe(true);
+    expect(ApplicationError.isApplicationError(error)).toBe(true);
     expect((error as Error).message).toContain('upstream too slow');
   });
 
@@ -110,7 +110,7 @@ describe('Execution.withTimeout', () => {
       }),
     );
 
-    expect(isApplicationError(error)).toBe(true);
+    expect(ApplicationError.isApplicationError(error)).toBe(true);
     expect((error as Error).message).toContain('5ms');
   });
 
@@ -162,7 +162,7 @@ describe('Execution.withTimeout', () => {
           timeoutMs: 5,
         }),
       );
-      expect(isApplicationError(result3)).toBe(true);
+      expect(ApplicationError.isApplicationError(result3)).toBe(true);
       await Execution.sleep({ ms: 40 });
     } finally {
       process.off('unhandledRejection', onUnhandled);
@@ -184,7 +184,7 @@ describe('Execution.withTimeout', () => {
         }),
       );
 
-      expect(isApplicationError(error)).toBe(true);
+      expect(ApplicationError.isApplicationError(error)).toBe(true);
     }
 
     expect(ran).toBe(false);

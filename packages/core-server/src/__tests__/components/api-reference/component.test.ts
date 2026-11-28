@@ -12,7 +12,7 @@ import {
 } from '@/components/api-reference/common';
 import { UIProviderFactory } from '@/components/api-reference/ui';
 import type { Context } from 'hono';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 import { readJson, wrongShape } from '../../helpers/json-shape';
 
@@ -24,7 +24,7 @@ const buildConfigs = (opts?: { port?: number }): IApplicationConfigs => ({
 });
 
 class TestApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'test-app', version: '1.2.3', description: 'Api reference test app' };
   }
 

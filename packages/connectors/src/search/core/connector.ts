@@ -1,6 +1,6 @@
 import type { ISynonym } from '@/search/core/models';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { BaseHelper, getError, isApplicationError } from '@venizia/ignis-helpers/core';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
+import { BaseHelper, getError, ApplicationError } from '@venizia/ignis-helpers/core';
 import { SearchConnectorInternal } from './internal';
 
 /** Outcome of a bulk import: how many rows succeeded and failed, and the engine's per-row responses. */
@@ -198,8 +198,11 @@ export abstract class BaseSearchConnector extends BaseHelper implements ISearchC
   // Runs the engine verb; tolerated errors route to the caller's branch, everything else becomes a sanitized 503.
   protected async runEngineCall<T>(opts: {
     method: string;
-    run: () => ValueOrPromise<T>;
-    tolerate?: { when: (error: unknown) => boolean; handle: (error: unknown) => ValueOrPromise<T> };
+    run: () => TValueOrPromise<T>;
+    tolerate?: {
+      when: (error: unknown) => boolean;
+      handle: (error: unknown) => TValueOrPromise<T>;
+    };
   }) {
     const { method, run, tolerate } = opts;
 
@@ -215,7 +218,7 @@ export abstract class BaseSearchConnector extends BaseHelper implements ISearchC
       }
 
       // A framework ApplicationError is already sanitized and carries its own statusCode/messageCode; only raw engine failures may be wrapped as a generic 503.
-      if (isApplicationError(error)) {
+      if (ApplicationError.isApplicationError(error)) {
         throw error;
       }
 

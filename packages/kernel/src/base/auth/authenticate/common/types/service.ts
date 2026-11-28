@@ -1,5 +1,5 @@
 import type { TContext } from '@/base/controllers/common/types';
-import type { TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TNullable, TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { TTrustedOrigin } from '@venizia/ignis-helpers/core';
 import type { Env } from 'hono';
 import type { JWTPayload } from 'jose';
@@ -117,5 +117,5 @@ export interface IServiceAuthOptions<E extends Env = Env> {
   resolvePrincipal: (opts: {
     issuer: string;
     context: TContext<E, string>;
-  }) => ValueOrPromise<TNullable<IAuthUser>>;
+  }) => TValueOrPromise<TNullable<IAuthUser>>;
 }

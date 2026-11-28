@@ -1,4 +1,4 @@
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { SqliteFilterBuilder } from '@/relational/sqlite/repositories/dialect/filter';
 import type { ISearchQueryDialect } from '@/search/core/repositories/common';
 import { MeilisearchQueryDialect } from '@/search/meilisearch/repositories/dialect/query-dialect';
@@ -85,7 +85,7 @@ describe('SQLite - inSql and ninSql', () => {
       builder.toWhere({ tableName: ORDER_TABLE, schema: orderTable, where });
       throw new Error('expected a refusal');
     } catch (error) {
-      expect(isApplicationError(error) && error.statusCode).toBe(400);
+      expect(ApplicationError.isApplicationError(error) && error.statusCode).toBe(400);
     }
   });
 });

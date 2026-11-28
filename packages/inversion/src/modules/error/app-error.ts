@@ -34,29 +34,6 @@ const UNEXPECTED_ERROR_MARKER = Symbol.for('@venizia/ignis-inversion:unexpected-
 /** Fixed text for a value that carries no message; the value itself is never printed, it only rides as the cause. */
 const UNKNOWN_VALUE_MESSAGE = 'An unknown value was thrown';
 
-/**
- * An `ApplicationError` by shape - a numeric `statusCode` and a `normalized` with its `text` - so it
- * holds across the CJS and ESM copies of this class, where `instanceof` does not. A plain `Error`
- * that merely carries a `statusCode` (an HTTP client's, an engine's) is not one.
- *
- * An error from a copy older than 0.2.2-0 matches but has no `toFilledText()`.
- */
-export const isApplicationError = (error: unknown): error is ApplicationError => {
-  if (!(error instanceof Error) || !('statusCode' in error) || !('normalized' in error)) {
-    return false;
-  }
-
-  const { statusCode, normalized } = error;
-
-  return (
-    typeof statusCode === 'number' &&
-    typeof normalized === 'object' &&
-    normalized !== null &&
-    'text' in normalized &&
-    typeof normalized.text === 'string'
-  );
-};
-
 /** The error type the framework throws; `normalized` holds the resolved text, code and args a client renders. */
 export class ApplicationError extends Error {
   /** @default 400 */
@@ -119,6 +96,30 @@ export class ApplicationError extends Error {
 
   static getError(opts: TError) {
     return new ApplicationError(opts);
+  }
+
+  /**
+   * An `ApplicationError` by shape - a numeric `statusCode` and a `normalized` with its `text` - so it
+   * holds across the CJS and ESM copies of this class, where `instanceof` does not. A plain `Error`
+   * that merely carries a `statusCode` (an HTTP client's, an engine's) is not one. A type guard, so it
+   * keeps its positional `error`.
+   *
+   * An error from a copy older than 0.2.2-0 matches but has no `toFilledText()`.
+   */
+  static isApplicationError(error: unknown): error is ApplicationError {
+    if (!(error instanceof Error) || !('statusCode' in error) || !('normalized' in error)) {
+      return false;
+    }
+
+    const { statusCode, normalized } = error;
+
+    return (
+      typeof statusCode === 'number' &&
+      typeof normalized === 'object' &&
+      normalized !== null &&
+      'text' in normalized &&
+      typeof normalized.text === 'string'
+    );
   }
 
   /** One property read that cannot throw: a getter or a Proxy trap that throws reads as absent. */
@@ -195,7 +196,7 @@ export class ApplicationError extends Error {
 
   /**
    * The `ApplicationError` for a caught value of any type: the same instance when it already is one
-   * (`isApplicationError` shape, so an error from another copy of the class counts), else a new one
+   * (`ApplicationError.isApplicationError` shape, so an error from another copy of the class counts), else a new one
    * with the original as `cause`. Never throws, whatever the value.
    *
    * What the client may see depends on what the value carried:
@@ -212,7 +213,7 @@ export class ApplicationError extends Error {
     const { error } = opts;
 
     try {
-      if (error instanceof ApplicationError || isApplicationError(error)) {
+      if (error instanceof ApplicationError || ApplicationError.isApplicationError(error)) {
         return error;
       }
       // eslint-disable-next-line @venizia/no-silent-catch -- a Proxy or hostile getter threw while the shape was checked: it is foreign, so it is wrapped below

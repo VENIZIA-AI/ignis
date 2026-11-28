@@ -8,7 +8,7 @@ import type {
 } from '@/base/controllers';
 import { OpenApiResponses } from '@/base/models';
 import { z } from '@hono/zod-openapi';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { Context, Env, MiddlewareHandler } from 'hono';
 import { describe, expect, test } from 'bun:test';
 
@@ -150,7 +150,7 @@ class OrderController extends BaseRestController {
     super({ scope: OrderController.name, path: '/orders' });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.defineRoute({
       configs: CREATE,
       handler: (context) => {

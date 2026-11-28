@@ -11,7 +11,7 @@ import type {
 import { BaseSearchConnector } from '@/search/core';
 import { SearchConnectorInternal } from '@/search/core/internal';
 import type { ISynonym } from '@/search/core/models';
-import { getError, isApplicationError, RecordUtility } from '@venizia/ignis-helpers/core';
+import { getError, ApplicationError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { Meilisearch } from 'meilisearch';
 import type { IMeilisearchIndexPlan } from './compiler';
@@ -758,7 +758,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
   }): never {
     const { error, details } = opts;
 
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       const previous = error.extra?.['details'];
       error.extra = {
         ...error.extra,

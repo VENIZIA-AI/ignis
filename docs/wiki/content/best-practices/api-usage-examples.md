@@ -91,14 +91,14 @@ You can also define routes manually within the controller's `binding()` method u
 
 **`src/controllers/test/controller.ts`**
 ```typescript
-import { BaseRestController, controller, ValueOrPromise } from '@venizia/ignis';
+import { BaseRestController, controller, TValueOrPromise } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { RouteConfigs } from './definitions';
 
 @controller({ path: '/test' })
 export class TestController extends BaseRestController {
   // ...
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     // Using 'defineRoute'
     this.defineRoute({
       configs: RouteConfigs.GET_TEST,
@@ -517,7 +517,7 @@ throw getError({
 
 The `{ text, code, args }` object is the one message shape used by error definitions, `getError` input, and the `normalized` field of every response. Read `normalized.code` on the client - there is no top-level `messageCode` in the response. Codes are lower-cased and default to `core.system_error`.
 
-Use `isApplicationError(error)` to test identity, never `instanceof` - the class has more than one identity across packages.
+Use `ApplicationError.isApplicationError(error)` to test identity, never `instanceof` - the class has more than one identity across packages.
 
 ### Error Handling in Route Handlers
 
@@ -588,7 +588,7 @@ async processOrder(context: Context) {
   } catch (error) {
     this.logger.error('[processOrder] Failed: %s', error);
 
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       throw error;  // Re-throw application errors
     }
 

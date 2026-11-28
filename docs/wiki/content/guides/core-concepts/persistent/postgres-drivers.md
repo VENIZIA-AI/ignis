@@ -33,14 +33,14 @@ Supabase is unmodified PostgreSQL, so it is not a separate connector: it varies 
 `@datasource({ driver })` takes the driver **class**, not a driver-name string:
 
 ```typescript
-import { datasource, ValueOrPromise } from '@venizia/ignis';
+import { datasource, TValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
 
 @datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
-  override configure(): ValueOrPromise<void> {
+  override configure(): TValueOrPromise<void> {
     this.client = new Pool({ connectionString: this.getConnectionString() }); // that is all
   }
 }
@@ -60,7 +60,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 Same shape, different class:
 
 ```typescript
-import { datasource, ValueOrPromise } from '@venizia/ignis';
+import { datasource, TValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { PostgresJsDriver } from '@venizia/ignis-connectors/postgres/postgres-js';
 import postgres from 'postgres';
@@ -73,7 +73,7 @@ export class PostgresDataSource extends BasePostgresDataSource<
   {},
   Sql // getClient() is now honestly typed as postgres-js's Sql, not pg.Pool
 > {
-  override configure(): ValueOrPromise<void> {
+  override configure(): TValueOrPromise<void> {
     this.client = postgres(this.getConnectionString());
   }
 }
@@ -98,7 +98,7 @@ For a driver IGNIS does not ship, wire it explicitly with `useDriver()`. It assi
 
 ```typescript
 export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
-  override configure(): ValueOrPromise<void> {
+  override configure(): TValueOrPromise<void> {
     this.useDriver({
       driver: new MyCustomDriver({ client: myClient }),
       schema: this.getSchema(),

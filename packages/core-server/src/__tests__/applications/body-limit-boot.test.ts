@@ -3,7 +3,7 @@ import 'reflect-metadata';
 import { BaseApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications';
 import { ControllerTransports } from '@venizia/ignis-kernel';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 
@@ -11,7 +11,7 @@ import { describe, expect, test } from 'bun:test';
 class BodyLimitBootApplication extends BaseApplication {
   lateMiddlewares?: IApplicationConfigs['middlewares'];
 
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'body-limit-boot-app', version: '0.0.0', description: '' };
   }
 

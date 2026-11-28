@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { isApplicationError } from '@/modules/error';
+import { ApplicationError } from '@/modules/error';
 import { SnowflakeConfig, SnowflakeUidHelper } from '@/modules/uid';
 
 const realDateNow = Date.now;
@@ -59,7 +59,7 @@ describe('SnowflakeUidHelper', () => {
         new SnowflakeUidHelper({ workerId: 5000 });
         expect.unreachable();
       } catch (error) {
-        expect(isApplicationError(error)).toBe(true);
+        expect(ApplicationError.isApplicationError(error)).toBe(true);
         expect((error as { statusCode: number }).statusCode).toBe(500);
       }
     });
@@ -69,7 +69,7 @@ describe('SnowflakeUidHelper', () => {
         new SnowflakeUidHelper({ workerId: 1.5 });
         expect.unreachable();
       } catch (error) {
-        expect(isApplicationError(error)).toBe(true);
+        expect(ApplicationError.isApplicationError(error)).toBe(true);
         expect((error as Error).message).toMatch(/Worker ID/);
       }
 
@@ -77,7 +77,7 @@ describe('SnowflakeUidHelper', () => {
         new SnowflakeUidHelper({ workerId: Number.NaN });
         expect.unreachable();
       } catch (error) {
-        expect(isApplicationError(error)).toBe(true);
+        expect(ApplicationError.isApplicationError(error)).toBe(true);
         expect((error as Error).message).toMatch(/Worker ID/);
       }
     });
@@ -205,7 +205,7 @@ describe('SnowflakeUidHelper', () => {
         helper.nextSnowflake();
         expect.unreachable();
       } catch (error) {
-        expect(isApplicationError(error)).toBe(true);
+        expect(ApplicationError.isApplicationError(error)).toBe(true);
         expect((error as { statusCode: number }).statusCode).toBe(500);
         expect((error as Error).message).toMatch(/Clock moved backward/);
       }
@@ -243,7 +243,7 @@ describe('SnowflakeUidHelper', () => {
         helper.decodeBase62('abc-def');
         expect.unreachable();
       } catch (error) {
-        expect(isApplicationError(error)).toBe(true);
+        expect(ApplicationError.isApplicationError(error)).toBe(true);
         expect((error as { statusCode: number }).statusCode).toBe(400);
       }
     });
@@ -255,7 +255,7 @@ describe('SnowflakeUidHelper', () => {
         helper.decodeBase62('');
         expect.unreachable();
       } catch (error) {
-        expect(isApplicationError(error)).toBe(true);
+        expect(ApplicationError.isApplicationError(error)).toBe(true);
         expect((error as { statusCode: number }).statusCode).toBe(400);
       }
     });

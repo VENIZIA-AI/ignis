@@ -3,7 +3,7 @@ import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications/
 import { BindingNamespaces } from '@/common/bindings';
 import { BindingScopes } from '@/helpers/inversion';
 import { BaseComponent } from '@/base/components';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { describe, expect, test } from 'bun:test';
 import { BootSequence, BootSteps } from '@/base/applications/boot-sequence';
@@ -84,7 +84,7 @@ describe('RestApplication boot sequence', () => {
   class OrderApp extends RestApplication {
     order: string[] = [];
 
-    getAppInfo(): ValueOrPromise<IApplicationInfo> {
+    getAppInfo(): TValueOrPromise<IApplicationInfo> {
       return { name: 'boot-sequence-app', version: '0.0.0', description: '' };
     }
 
@@ -243,7 +243,7 @@ describe('component nesting - arbitrary depth', () => {
       super({ scope: LeafComponent.name });
     }
 
-    override binding(): ValueOrPromise<void> {
+    override binding(): TValueOrPromise<void> {
       currentApp
         .bind({
           key: BindingKeys.build<unknown>({
@@ -265,7 +265,7 @@ describe('component nesting - arbitrary depth', () => {
       super({ scope: MiddleComponent.name });
     }
 
-    override binding(): ValueOrPromise<void> {
+    override binding(): TValueOrPromise<void> {
       currentApp.component(LeafComponent);
     }
   }
@@ -275,13 +275,13 @@ describe('component nesting - arbitrary depth', () => {
       super({ scope: RootComponent.name });
     }
 
-    override binding(): ValueOrPromise<void> {
+    override binding(): TValueOrPromise<void> {
       currentApp.component(MiddleComponent);
     }
   }
 
   class NestedApp extends RestApplication {
-    getAppInfo(): ValueOrPromise<IApplicationInfo> {
+    getAppInfo(): TValueOrPromise<IApplicationInfo> {
       return { name: 'nested-component-app', version: '0.0.0', description: '' };
     }
 

@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { fileDesc, serviceDesc } from '@bufbuild/protobuf/codegenv2';
-import { GRPC, HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { GRPC, HTTP, type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { ControllerTransports, type IApplicationInfo } from '@venizia/ignis-kernel';
 import { Hono } from 'hono';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
@@ -40,7 +40,7 @@ class GreeterController extends BaseGrpcController {
 }
 
 class GreeterApplication extends BaseApplication {
-  override getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  override getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'grpc-body', version: '0.0.0', description: 'gRPC request bodies' };
   }
 

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { HTTP } from '@/common/constants';
 import type { TResponsedError } from '@/modules/error';
-import { fromError, getError, isApplicationError, MessageCode } from '@/modules/error';
+import { fromError, getError, ApplicationError, MessageCode } from '@/modules/error';
 
 /** The payload `AppErrorMiddleware` emits for an intentional error, verbatim. */
 const WIRE: TResponsedError = {
@@ -27,7 +27,7 @@ describe('fromError', () => {
   });
 
   test('produces something a catch block recognizes', () => {
-    expect(isApplicationError(fromError({ error: WIRE }))).toBe(true);
+    expect(ApplicationError.isApplicationError(fromError({ error: WIRE }))).toBe(true);
   });
 
   test('survives a getError -> wire -> fromError round trip unchanged', () => {

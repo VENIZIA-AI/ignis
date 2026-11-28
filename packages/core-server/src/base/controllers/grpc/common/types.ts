@@ -7,7 +7,7 @@ import type {
   HandlerContext,
 } from '@connectrpc/connect';
 import type { UniversalServerRequest, UniversalServerResponse } from '@connectrpc/connect/protocol';
-import type { IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { IConfigurable, TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { Env, Hono, Next, Schema } from 'hono';
 import type { IConnectNodeModule } from '../native/common/types';
 
@@ -67,13 +67,13 @@ export type TRpcHandler<
   request: RequestType;
   context: TRouteContext<RouteEnv>;
   rpc: HandlerContext;
-}) => ValueOrPromise<ResponseType>;
+}) => TValueOrPromise<ResponseType>;
 
 /** Pre-built middleware function for gRPC auth enforcement. */
 export type TRpcMiddleware<RouteEnv extends Env = Env> = (
   context: TRouteContext<RouteEnv>,
   next: Next,
-) => ValueOrPromise<void | Response>;
+) => TValueOrPromise<void | Response>;
 
 /** Unified registration entry: metadata + handler + pre-built middlewares stored together. */
 export interface IRpcRegistration<RouteEnv extends Env = Env> {

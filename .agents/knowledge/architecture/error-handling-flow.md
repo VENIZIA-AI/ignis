@@ -10,7 +10,7 @@ tags: [architecture, errors, middleware, security, isomorphic]
 **Contents**
 
 - [Throwing: always `getError`](#throwing-always-geterror)
-- [Identity: use `isApplicationError`, not `instanceof`](#identity-use-isapplicationerror-not-instanceof)
+- [Identity: use `ApplicationError.isApplicationError`, not `instanceof`](#identity-use-applicationerrorisapplicationerror-not-instanceof)
 - [Where the handler lives: one class, two options](#where-the-handler-lives-one-class-two-options)
 - [Classification](#classification)
 - [The production boundary](#the-production-boundary)
@@ -56,29 +56,31 @@ never mirrors `messageArgs`. Precedence, most specific first: `message.code` > t
 index signature into it. The trade is that a mistyped key goes the same way - the framework cannot
 tell context from typo.
 
-## Identity: use `isApplicationError`, not `instanceof`
+## Identity: use `ApplicationError.isApplicationError`, not `instanceof`
 
 **`instanceof ApplicationError` is unreliable across package boundaries.** An error raised by the DI
 container carries `inversion`'s copy of the class, and two installed copies of inversion (two
 versions nested by a package manager) give that one class two runtime identities - the two copies hold
-different constructors for the same source. `isApplicationError` therefore tests by **shape**:
+different constructors for the same source. `ApplicationError.isApplicationError` therefore tests by **shape**:
 
 ```typescript
-export const isApplicationError = (error: unknown): error is ApplicationError => {
-  if (!(error instanceof Error) || !('statusCode' in error) || !('normalized' in error)) {
-    return false;
+export class ApplicationError extends Error {
+  static isApplicationError(error: unknown): error is ApplicationError {
+    if (!(error instanceof Error) || !('statusCode' in error) || !('normalized' in error)) {
+      return false;
+    }
+
+    const { statusCode, normalized } = error;
+
+    return (
+      typeof statusCode === 'number' &&
+      typeof normalized === 'object' &&
+      normalized !== null &&
+      'text' in normalized &&
+      typeof normalized.text === 'string'
+    );
   }
-
-  const { statusCode, normalized } = error;
-
-  return (
-    typeof statusCode === 'number' &&
-    typeof normalized === 'object' &&
-    normalized !== null &&
-    'text' in normalized &&
-    typeof normalized.text === 'string'
-  );
-};
+}
 ```
 
 Code that must tell "an error the framework already shaped" from "a raw failure" - the search
@@ -297,7 +299,7 @@ must stay browser-safe, not as a duplicate to be consolidated away.
 
 ## Wrapping a caught value: `fromUnknown`
 
-`ApplicationError.fromUnknown({ error })` (inversion, `app-error.ts`) is the catch-block counterpart: it takes the `unknown` a `catch` binds and NEVER throws. A value that passes `isApplicationError` (or `instanceof`) comes back as the SAME instance; anything else becomes a new `ApplicationError` with the value as `cause`. Status kept: an integer `statusCode` in 400-599, else an integer `status` in 400-499 (a 5xx `status` is an upstream's); anything else is a 500 marked UNEXPECTED. Message: a non-blank string `message`, else the fixed `An unknown value was thrown`; control characters are escaped (the same set as `EchoUtility.toSafeEcho`) and the value is never `String()`-ed. Every property read goes through `Reflect.get` inside a try, so a throwing getter or Proxy trap reads as absent.
+`ApplicationError.fromUnknown({ error })` (inversion, `app-error.ts`) is the catch-block counterpart: it takes the `unknown` a `catch` binds and NEVER throws. A value that passes `ApplicationError.isApplicationError` (or `instanceof`) comes back as the SAME instance; anything else becomes a new `ApplicationError` with the value as `cause`. Status kept: an integer `statusCode` in 400-599, else an integer `status` in 400-499 (a 5xx `status` is an upstream's); anything else is a 500 marked UNEXPECTED. Message: a non-blank string `message`, else the fixed `An unknown value was thrown`; control characters are escaped (the same set as `EchoUtility.toSafeEcho`) and the value is never `String()`-ed. Every property read goes through `Reflect.get` inside a try, so a throwing getter or Proxy trap reads as absent.
 
 The client sees the value's message ONLY when the value carried a valid status (the thrower chose to answer), and in production only for a 4xx. Otherwise `fromUnknown` sets a private symbol, `Symbol.for('@venizia/ignis-inversion:unexpected-error')`, non-enumerable (never in JSON, `extra` or a response); `BaseAppErrorMiddleware.classify` reads it by registry key (kernel and inversion share no export), answers UNEXPECTED (generic message in production), and `build()` then ignores the wrapped error's `normalized.text`, which would otherwise carry the foreign message into the response body. The real message, `cause` and stack stay in the log. A call site that wants a client message of its own uses `getError`.
 

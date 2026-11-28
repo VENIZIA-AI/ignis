@@ -10,7 +10,7 @@ import { HealthCheckReporter } from '@/components/health-check/reporter';
 import { AppErrorMiddleware } from '@/base/middlewares';
 import { notFoundHandler } from '@venizia/ignis-kernel';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BuildInfoRegistry } from '@venizia/ignis-helpers/core';
 import { ControllerTransports } from '@venizia/ignis-kernel';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
@@ -24,7 +24,7 @@ const TEST_CONFIGS: IApplicationConfigs = {
 };
 
 class StatsTestApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'stats-app', version: '9.9.9', description: 'Stats probe' };
   }
 

@@ -9,7 +9,7 @@ import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
 import { PGliteSoftDeletableRepository } from './pglite-repositories';
 import { PGlite } from '@electric-sql/pglite';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 
@@ -57,9 +57,9 @@ class EachDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return 'pglite://memory';
   }
 

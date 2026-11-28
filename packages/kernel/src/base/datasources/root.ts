@@ -1,5 +1,5 @@
 import { NotSupportedUtility } from '@/utilities/not-supported.utility';
-import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TClass, TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type {
   IDataSource,
@@ -17,7 +17,7 @@ import { OPENING_HANDLES } from './opening-handles';
  * Brands the datasource root so `@repository` can recognise a subclass WITHOUT `instanceof`.
  *
  * Two copies of this package give two `DataSourceRoot` classes, and `instanceof` across them is
- * false - the same trap `isApplicationError` exists to avoid for `ApplicationError`. `Symbol.for` is
+ * false - the same trap `ApplicationError.isApplicationError` exists to avoid for `ApplicationError`. `Symbol.for` is
  * realm-keyed, so both copies produce this exact symbol, and a static is inherited by every
  * subclass however deep.
  */
@@ -26,11 +26,6 @@ import { OPENING_HANDLES } from './opening-handles';
  * classes of a newer one, and the other way round.
  */
 export const DATA_SOURCE_BRAND = Symbol.for('@venizia/ignis-kernel:abstract-data-source');
-
-/** True for `DataSourceRoot` itself and for any class extending it (`AbstractDataSource` among them), across package copies. */
-export const isDataSourceClass = (value: unknown): value is TClass<unknown> => {
-  return typeof value === 'function' && DATA_SOURCE_BRAND in value;
-};
 
 /** The two ways a race between the open and its timeout can end. */
 const OPEN_DONE = 'done';
@@ -49,17 +44,22 @@ export abstract class DataSourceRoot<
   extends BaseHelper
   implements IDataSource<Settings, Schema, ConfigurableOptions>
 {
-  /** Read by {@link isDataSourceClass}. Static, so every subclass inherits it. */
+  /** Read by {@link DataSourceRoot.isDataSourceClass}. Static, so every subclass inherits it. */
   static readonly [DATA_SOURCE_BRAND] = true;
 
   name: string;
   settings: Settings;
   schema: Schema;
 
+  /** True for `DataSourceRoot` itself and for any class extending it (`AbstractDataSource` among them), across package copies. A type guard, so it keeps its positional `value`. */
+  static isDataSourceClass(value: unknown): value is TClass<unknown> {
+    return typeof value === 'function' && DATA_SOURCE_BRAND in value;
+  }
+
   abstract configure(
     opts?: ConfigurableOptions,
     opening?: IDataSourceOpening,
-  ): ValueOrPromise<void>;
+  ): TValueOrPromise<void>;
 
   /** The options the boot would have given `configure()`, kept for the open that the first use starts. */
   private deferredOptions?: ConfigurableOptions;
@@ -261,7 +261,7 @@ export abstract class DataSourceRoot<
   }
 
   /** Undoes what a `configure()` that threw left behind, so the next open starts clean. The root holds nothing; a family that keeps a client overrides it. */
-  protected discardPartialOpen(): ValueOrPromise<void> {}
+  protected discardPartialOpen(): TValueOrPromise<void> {}
 
   /**
    * Waits for an open in flight and refuses any later one. A family's `close()` calls it first, so a stop that arrives

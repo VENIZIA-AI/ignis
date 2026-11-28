@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-inversion, from the built declarati
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-74 exports, 74 with TSDoc.
+70 exports, 70 with TSDoc.
 
 ## `AbstractContainer`
 
@@ -109,6 +109,15 @@ export declare class ApplicationError extends Error {
      */
     toFilledText(): string;
     static getError(opts: TError): ApplicationError;
+    /**
+     * An `ApplicationError` by shape - a numeric `statusCode` and a `normalized` with its `text` - so it
+     * holds across the CJS and ESM copies of this class, where `instanceof` does not. A plain `Error`
+     * that merely carries a `statusCode` (an HTTP client's, an engine's) is not one. A type guard, so it
+     * keeps its positional `error`.
+     *
+     * An error from a copy older than 0.2.2-0 matches but has no `toFilledText()`.
+     */
+    static isApplicationError(error: unknown): error is ApplicationError;
     /** One property read that cannot throw: a getter or a Proxy trap that throws reads as absent. */
     private static readProperty;
     /**
@@ -121,7 +130,7 @@ export declare class ApplicationError extends Error {
     private static readWrappedMessage;
     /**
      * The `ApplicationError` for a caught value of any type: the same instance when it already is one
-     * (`isApplicationError` shape, so an error from another copy of the class counts), else a new one
+     * (`ApplicationError.isApplicationError` shape, so an error from another copy of the class counts), else a new one
      * with the original as `cause`. Never throws, whatever the value.
      *
      * What the client may see depends on what the value carried:
@@ -305,6 +314,8 @@ export declare class Binding<T = unknown> extends BaseHelper implements IBinding
     static bind<T = unknown>(opts: {
         key: TBindingKey<T>;
     }): Binding<T>;
+    /** True for a function whose prototype has a `value` method, so a provider class is told apart from a plain provider function. A type guard, so it keeps its positional `target`. */
+    static isClassProvider<T>(target: unknown): target is TClass<IProvider<T>>;
     toClass(value: TClass<T>): this;
     toValue(value: T): this;
     toProvider(value: TBindingProvider<T>): this;
@@ -746,46 +757,6 @@ export interface IProvider<T> {
 
 Source: `packages/inversion/src/modules/binding/common/types.ts`
 
-## `isApplicationError`
-
-*const*
-
-An `ApplicationError` by shape - a numeric `statusCode` and a `normalized` with its `text` - so it
-holds across the CJS and ESM copies of this class, where `instanceof` does not. A plain `Error`
-that merely carries a `statusCode` (an HTTP client's, an engine's) is not one.
-
-An error from a copy older than 0.2.2-0 matches but has no `toFilledText()`.
-
-```ts
-export declare const isApplicationError: (error: unknown) => error is ApplicationError;
-```
-
-Source: `packages/inversion/src/modules/error/app-error.ts`
-
-## `isClass`
-
-*const*
-
-Tells a CONSTRUCTOR from a RESOLVER via source text - `prototype !== undefined` is true of every non-arrow function. Sound only on ES2020+ output (classes emit as `class`); ES5 bundling breaks it.
-
-```ts
-export declare const isClass: <T>(target: unknown) => target is TClass<T>;
-```
-
-Source: `packages/inversion/src/common/utilities.ts`
-
-## `isClassProvider`
-
-*const*
-
-True for a function whose prototype has a `value` method, so a provider class is told apart from a plain provider function.
-
-```ts
-export declare const isClassProvider: <T>(target: unknown) => target is TClass<IProvider<T>>;
-```
-
-Source: `packages/inversion/src/modules/binding/common/types.ts`
-
 ## `IVerifyBindingsOptions`
 
 *interface*
@@ -1030,6 +1001,8 @@ Readers for the value-or-resolver vocabulary the container branches on.
 
 ```ts
 export declare class ResolverUtility {
+    /** Tells a CONSTRUCTOR from a RESOLVER via source text - `prototype !== undefined` is true of every non-arrow function. Sound only on ES2020+ output (classes emit as `class`); ES5 bundling breaks it. A type guard, so it keeps its positional `target`. */
+    static isClass<T>(target: unknown): target is TClass<T>;
     /** A resolver is anything callable that is not a class - a class is a value here, never a factory. */
     private static isResolver;
     private static isAsyncResolver;
@@ -1050,14 +1023,14 @@ export declare class ResolverUtility {
 
 Source: `packages/inversion/src/common/utilities.ts`
 
-## `TAbstractConstructor`
+## `TAbstractClass`
 
 *type*
 
-Like `TConstructor`, but also matches abstract classes.
+Like `TClass`, but also matches abstract classes.
 
 ```ts
-export type TAbstractConstructor<T> = abstract new (...args: never[]) => T;
+export type TAbstractClass<T> = abstract new (...args: never[]) => T;
 ```
 
 Source: `packages/inversion/src/common/types.ts`
@@ -1169,22 +1142,11 @@ Source: `packages/inversion/src/modules/binding/common/constants.ts`
 
 *type*
 
-A class producing `T`. Read its static members through a type that declares them, such as `typeof MyClass`.
+A concrete class producing `T`. Its arguments are `never[]`, so any constructor fits; build an instance with
+`Reflect.construct`. Read its static members through a type that declares them, such as `typeof MyClass`.
 
 ```ts
-export type TClass<T> = TConstructor<T>;
-```
-
-Source: `packages/inversion/src/common/types.ts`
-
-## `TConstructor`
-
-*type*
-
-A concrete class constructor producing `T`. Its arguments are `never[]`, so any constructor fits; build an instance with `Reflect.construct`.
-
-```ts
-export type TConstructor<T> = new (...args: never[]) => T;
+export type TClass<T> = new (...args: never[]) => T;
 ```
 
 Source: `packages/inversion/src/common/types.ts`
@@ -1196,7 +1158,7 @@ Source: `packages/inversion/src/common/types.ts`
 `& {}` keeps the literal set but stops it widening to `string` / `number` in mutable positions; see `TConstValue` in `@venizia/ignis-helpers`.
 
 ```ts
-export type TConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string | number> & {};
+export type TConstValue<T extends TClass<unknown>> = Extract<TValueOf<T>, string | number> & {};
 ```
 
 Source: `packages/inversion/src/common/types.ts`
@@ -1524,6 +1486,18 @@ declare const typeArgumentRequired: unique symbol;
 
 Source: `packages/inversion/src/common/types.ts`
 
+## `TValueOf`
+
+*type*
+
+Union of the property value types of `T`.
+
+```ts
+export type TValueOf<T> = T[keyof T];
+```
+
+Source: `packages/inversion/src/common/types.ts`
+
 ## `TValueOrAsyncResolver`
 
 *type*
@@ -1536,6 +1510,18 @@ export type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>;
 
 Source: `packages/inversion/src/common/types.ts`
 
+## `TValueOrPromise`
+
+*type*
+
+A `T` or a `Promise` of it, for APIs that accept sync and async results.
+
+```ts
+export type TValueOrPromise<T> = T | Promise<T>;
+```
+
+Source: `packages/inversion/src/common/types.ts`
+
 ## `TValueOrResolver`
 
 *type*
@@ -1544,30 +1530,6 @@ A `T` itself, or a function that returns it.
 
 ```ts
 export type TValueOrResolver<T> = T | TResolver<T>;
-```
-
-Source: `packages/inversion/src/common/types.ts`
-
-## `ValueOf`
-
-*type*
-
-Union of the property value types of `T`.
-
-```ts
-export type ValueOf<T> = T[keyof T];
-```
-
-Source: `packages/inversion/src/common/types.ts`
-
-## `ValueOrPromise`
-
-*type*
-
-A `T` or a `Promise` of it, for APIs that accept sync and async results.
-
-```ts
-export type ValueOrPromise<T> = T | Promise<T>;
 ```
 
 Source: `packages/inversion/src/common/types.ts`

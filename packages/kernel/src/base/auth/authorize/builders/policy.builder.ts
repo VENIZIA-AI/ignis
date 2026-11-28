@@ -11,7 +11,7 @@ import {
 export type TPolicyDomainInput = string | { type: string; id: IdType };
 
 /**
- * Explicit on purpose: `TAuthorizationDecision` is `Extract<ValueOf<T>, string | number>`, and its
+ * Explicit on purpose: `TAuthorizationDecision` is `Extract<TValueOf<T>, string | number>`, and its
  * literal members widen to `string` when a method's return type is inferred rather than declared.
  * Without this annotation `grant()`'s `effect` stops satisfying `PolicyDefinition`'s narrowed column.
  * Not exported - `TGrantRow`/`TCustomGrantRow` already name unrelated adapter-side row shapes

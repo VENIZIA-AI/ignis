@@ -7,7 +7,7 @@ lastUpdated: 2026-10-30
 
 # Execution
 
-`Execution` and `ErrorUtility` are static-method classes for working with Promises - sleeping, bounding concurrency, firing-and-forgetting async work safely, and normalizing thrown values. `isPromiseLike` stays a function, because a type guard needs a positional parameter to narrow.
+`Execution` and `ErrorUtility` are static-method classes for working with Promises - sleeping, bounding concurrency, firing-and-forgetting async work safely, and normalizing thrown values.
 
 `Execution` was `PromiseUtility`: `executeWithLimit` is `withLimit` and `voidExecution` is `fireAndForget`. `bun run devz codemod execution-class` moves your calls. The older bare functions (`sleep`, `executePromiseWithLimit`, `voidExecution`, `toError`, `getDeepProperty`) are removed too; `bun run devz codemod namespace-functions` moves those.
 
@@ -102,7 +102,7 @@ A script or a test with no application calls `ExecutionRunner.install()` first. 
 | `Execution.fireAndForget` | Fire-and-forget: routes a rejection to the logger |
 | `ErrorUtility.toError` | Normalizes a `catch`-block value into an `Error` |
 | `ParseUtility.getDeepProperty` | Reads a dot-separated `path` off `source` |
-| `isPromiseLike` | Type guard: `true` when `value` has a callable `.then` |
+| `Execution.isPromiseLike` | Type guard: `true` when `value` has a callable `.then` |
 
 ### Signatures
 
@@ -110,7 +110,7 @@ A script or a test with no application calls `ExecutionRunner.install()` first. 
 Execution.sleep({ ms }: { ms: number }): Promise<void>;
 
 Execution.withTimeout<T>(opts: {
-  call: () => ValueOrPromise<T>;
+  call: () => TValueOrPromise<T>;
   timeoutMs: number;
   message?: string;
 }): Promise<T>;
@@ -118,20 +118,20 @@ Execution.withTimeout<T>(opts: {
 Execution.withLimit<T>(opts: {
   tasks: Array<() => Promise<T>>;
   limit: number;
-  onTaskDone?: <R>(opts: { result: R }) => ValueOrPromise<void>;
+  onTaskDone?: <R>(opts: { result: R }) => TValueOrPromise<void>;
 }): Promise<T[]>;
 
 Execution.fireAndForget(opts: {
   logger?: ILogger;
   scope: string;
-  execution: ValueOrPromise<unknown>;
+  execution: TValueOrPromise<unknown>;
 }): void;
 
 ErrorUtility.toError({ error }: { error: unknown }): Error;
 
 ParseUtility.getDeepProperty(opts: { source: unknown; path: string }): unknown;
 
-isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T>;
+Execution.isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T>;
 ```
 
 ### Behavior
@@ -140,7 +140,7 @@ isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T>;
 - **`fireAndForget`** routes a rejection of `execution` to `logger.for(scope).error(...)`, or to `console.error` without a logger, instead of an unhandled rejection. Synchronous values pass through untouched.
 - **`ErrorUtility.toError`** passes an existing `Error` through and wraps anything else in an `ApplicationError` carrying `String(error)`.
 - **`ParseUtility.getDeepProperty`** throws if any intermediate segment is `null` or `undefined`. See [Parse Utility](/references/utilities/parse).
-- **`isPromiseLike`** stays a function, not a static method.
+- **`Execution.isPromiseLike`** takes its value as a positional argument, because a type guard narrows its own parameter.
 
 ## Notes
 

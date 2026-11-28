@@ -36,7 +36,7 @@ export abstract class BaseComponent<ConfigurableOptions extends object = {}> {
   protected bindings: Record<TBindingKey, Binding>;
   protected initDefault: TInitDefault;   // { enable: false } | { enable: true; container }
   protected isConfigured = false;
-  abstract binding(): ValueOrPromise<void>;
+  abstract binding(): TValueOrPromise<void>;
   async configure(opts?: ConfigurableOptions): Promise<void>;
 }
 ```

@@ -1,11 +1,6 @@
-import type { TAbstractConstructor } from '@venizia/ignis-inversion';
-
-// The constructor and class types live in inversion, the lowest layer. One declaration, re-exported here so every
+// The class types live in inversion, the lowest layer. One declaration, re-exported here so every
 // `@venizia/ignis-helpers/common` import keeps working.
-export type { TAbstractConstructor, TClass, TConstructor } from '@venizia/ignis-inversion';
-
-/** An abstract class producing `T`. */
-export type TAbstractClass<T> = TAbstractConstructor<T>;
+export type { TAbstractClass, TClass } from '@venizia/ignis-inversion';
 
 /**
  * The constructor shape a mixin base takes. TypeScript requires `new (...args: any[]) => T` here (error TS2545: a mixin class must have a constructor with a single rest parameter of type `any[]`), so this is the one `any` the language mandates.

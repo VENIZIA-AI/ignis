@@ -156,7 +156,7 @@ exit 2.
 
 `Bootstrapper`, `BaseArtifactBooter`, `ControllerBooter`, `ServiceBooter`, `RepositoryBooter`,
 `DatasourceBooter`, `BootMixin`, `discoverFiles`, `loadClasses` and the `isClass` re-export left with
-the runtime boot system on 2026-09-02. `isClass` still lives in `inversion`.
+the runtime boot system on 2026-09-02. It is `ResolverUtility.isClass` in `inversion`.
 
 `src/common/` and its deprecated `IBootOptions`, `IArtifactOptions`, `TBootPhase`, `IBootPhaseReport`,
 `IBootReport`, `IBootableApplication` and `BootPhases` left on 2026-09-03, with `BaseApplication.boot()`

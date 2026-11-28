@@ -1,5 +1,5 @@
 import type { TBindingKey } from '@/helpers/inversion';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { type EventHandlerTypes } from './constants';
 
 /** One occurrence of a named domain event, decoupled from whatever publishes or handles it. */
@@ -34,7 +34,7 @@ export interface IEventHandlerRetryOptions {
 /** A handler callback - synchronous or asynchronous, `EventBus` awaits either the same way. */
 export type TEventHandlerFunction<TPayload = unknown> = (opts: {
   event: IDomainEvent<TPayload>;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 
 /** `register`'s binding-key handler shape: resolved from the container by `key` on every retry attempt. */
 export interface IEventHandlerBindingKeyReference {
@@ -76,5 +76,5 @@ export type TEventHandlerReference<TPayload = unknown> =
  * in a long retry window calls the exact function registered at startup.
  */
 export interface IEventHandler<TEvent extends IDomainEvent = IDomainEvent> {
-  handle(opts: { event: TEvent }): ValueOrPromise<void>;
+  handle(opts: { event: TEvent }): TValueOrPromise<void>;
 }

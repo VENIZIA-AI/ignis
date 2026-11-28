@@ -53,13 +53,13 @@ Both share the same backoff engine and the same habit: on exhaustion, log one `l
 ```typescript
 static executeWithRetry: <T>(opts: {
   operation: string;
-  execution: (context: { attempt: number; signal?: AbortSignal }) => ValueOrPromise<T>;
+  execution: (context: { attempt: number; signal?: AbortSignal }) => TValueOrPromise<T>;
   maxAttempts?: number; // default 3
   maxTotalMs?: number; // total budget across attempts and sleeps
   perAttemptTimeoutMs?: number; // race each attempt against a timeout
   backoff?: IRetryBackoffOptions;
   shouldRetry?: (context: IRetryContext) => boolean;
-  onRetry?: (context: IRetryContext & { nextDelayMs: number }) => ValueOrPromise<void>;
+  onRetry?: (context: IRetryContext & { nextDelayMs: number }) => TValueOrPromise<void>;
   signal?: AbortSignal;
   logger?: ILogger;
 }) => Promise<T>;
@@ -76,7 +76,7 @@ The rules:
 ```typescript
 static executeWithRetryUntil: <T>(opts: {
   operation: string;
-  execution: (context: { attempt: number; signal?: AbortSignal }) => ValueOrPromise<T>;
+  execution: (context: { attempt: number; signal?: AbortSignal }) => TValueOrPromise<T>;
   until: (result: T) => boolean; // return true to stop: "the result is good"
   maxAttempts?: number; // default 3
   maxTotalMs?: number; // stop starting NEW attempts after this much time

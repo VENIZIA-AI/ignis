@@ -5,7 +5,7 @@ import type { TClass, TResolver } from './types';
 // The resolver vocabulary and its two readers live in inversion, the lowest layer, because the
 // container branches on them. Re-exported here so the rest of the stack reaches them through the
 // package it already depends on, instead of each layer redeclaring them.
-export { isClass, ObjectUtility, ResolverUtility } from '@venizia/ignis-inversion';
+export { ObjectUtility, ResolverUtility } from '@venizia/ignis-inversion';
 
 /** Resolves a class reference that may be given directly, lazily through a resolver function, or as a string binding key. */
 export class ClassResolver {

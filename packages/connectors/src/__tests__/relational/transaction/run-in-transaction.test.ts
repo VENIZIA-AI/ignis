@@ -1,7 +1,7 @@
 import type { ITransaction } from '@venizia/ignis-kernel';
 import { IsolationLevels } from '@/relational/postgres/datasources';
 import { PostgresTransactionDouble, TransactionStates } from '@/testing';
-import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
+import { getError, ApplicationError } from '@venizia/ignis-helpers/core';
 import { describe, expect, mock, spyOn, test } from 'bun:test';
 import { PostgresTransactionRepository } from './engine-fixtures';
 import { captureRejection } from './parity-suite';
@@ -173,7 +173,7 @@ describe('runInTransaction - joined (a transaction passed)', () => {
       task: repository.runInTransaction({ transaction: joined, execute }),
     });
 
-    expect(isApplicationError(caught)).toBe(true);
+    expect(ApplicationError.isApplicationError(caught)).toBe(true);
     expect(caught).toMatchObject({
       message: '[PostgresTransactionRepository][runInTransaction] Transaction is no longer active',
     });
@@ -249,7 +249,7 @@ describe('runInTransaction - owned, when execute ends the transaction itself', (
       }),
     });
 
-    expect(isApplicationError(caught)).toBe(true);
+    expect(ApplicationError.isApplicationError(caught)).toBe(true);
     expect(caught).toMatchObject({ message: expect.stringMatching(EXECUTE_ENDED_MESSAGE) });
     expect(commitSpy).not.toHaveBeenCalled();
     expect(rollbackSpy).toHaveBeenCalledTimes(1);
@@ -276,7 +276,7 @@ describe('runInTransaction - owned, when execute ends the transaction itself', (
       }),
     });
 
-    expect(isApplicationError(caught)).toBe(true);
+    expect(ApplicationError.isApplicationError(caught)).toBe(true);
     expect(caught).toMatchObject({ message: expect.stringMatching(EXECUTE_ENDED_MESSAGE) });
     expect(commitSpy).toHaveBeenCalledTimes(1);
     expect(rollbackSpy).not.toHaveBeenCalled();

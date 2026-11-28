@@ -59,10 +59,10 @@ export declare abstract class BaseSearchConnector extends BaseHelper implements 
     }): void;
     protected runEngineCall<T>(opts: {
         method: string;
-        run: () => ValueOrPromise<T>;
+        run: () => TValueOrPromise<T>;
         tolerate?: {
             when: (error: unknown) => boolean;
-            handle: (error: unknown) => ValueOrPromise<T>;
+            handle: (error: unknown) => TValueOrPromise<T>;
         };
     }): Promise<T>;
     /** Which errors mean "not found" is engine-specific classification; the sanitized throw and the benign fallback are not. */
@@ -121,6 +121,8 @@ export declare abstract class BaseSearchDataSource<Settings extends object = {},
     constructor(opts: ISearchDataSourceOptions<Settings> & {
         connector?: TConnector;
     });
+    /** A pg entity's `schema` is a pgTable, not an `ISearchCollectionDefinition` - narrows by shape so a pgTable is never mistaken for and provisioned as a search collection. */
+    private static isSearchCollectionDefinition;
     /** The engine's connector instance - the ONLY engine-specific step of the lifecycle. */
     protected abstract createConnector(): TConnector;
     /** Builds the connector (unless injected, e.g. for tests), then provisions collections. Re-entrant-safe: a second call is a logged no-op, not a re-provision. */

@@ -1,7 +1,8 @@
 import { HTTP } from '@/common/constants';
-import type { ValueOrPromise } from '@/common/types';
+import type { TValueOrPromise } from '@/common/types';
 import { BaseHelper } from '../base';
 import { getError } from '../error';
+import { Execution } from '../execution/execution';
 import {
   DEFAULT_UID_LENGTH,
   DEFAULT_UID_MAX_ATTEMPTS,
@@ -13,16 +14,6 @@ import type { TUidCaseForm } from './common/constants';
 import { UidRandom } from './common/random';
 import { UidSegments } from './common/segments';
 import type { INextOpaqueUidOptions, IOpaqueUidOptions } from './common/types';
-
-/** Local, not `@/modules/execution`: that module imports the logger BARREL, which reaches `node:module` and would take this browser-pure module with it. */
-const isPromiseLike = (value: unknown): value is PromiseLike<boolean> => {
-  return (
-    (typeof value === 'object' || typeof value === 'function') &&
-    value !== null &&
-    'then' in value &&
-    typeof value.then === 'function'
-  );
-};
 
 /**
  * Fixed-length opaque ids, optionally prefixed - the counterpart to `SnowflakeUidHelper`.
@@ -89,8 +80,8 @@ export class OpaqueUidHelper extends BaseHelper {
    */
   nextId(opts?: INextOpaqueUidOptions<boolean>): string;
   nextId(opts: INextOpaqueUidOptions<Promise<boolean>>): Promise<string>;
-  nextId(opts: INextOpaqueUidOptions): ValueOrPromise<string>;
-  nextId(opts?: INextOpaqueUidOptions): ValueOrPromise<string> {
+  nextId(opts: INextOpaqueUidOptions): TValueOrPromise<string>;
+  nextId(opts?: INextOpaqueUidOptions): TValueOrPromise<string> {
     const head = this.resolveHead({ prefix: opts?.prefix });
 
     const isAvailable = opts?.isAvailable;
@@ -116,7 +107,7 @@ export class OpaqueUidHelper extends BaseHelper {
 
       // The first PENDING verdict decides the shape of the whole call. Everything before it already
       // resolved, so a synchronous check never allocates a promise and `nextId()` stays a string.
-      if (isPromiseLike(verdict)) {
+      if (Execution.isPromiseLike(verdict)) {
         return this.continueAsync({ head, isAvailable, maxAttempts, attempt, id, verdict });
       }
 
@@ -131,7 +122,7 @@ export class OpaqueUidHelper extends BaseHelper {
   /** Entered only once a verdict came back pending; every later draw is awaited from here. */
   private async continueAsync(opts: {
     head: string;
-    isAvailable: (id: string) => ValueOrPromise<boolean>;
+    isAvailable: (id: string) => TValueOrPromise<boolean>;
     maxAttempts: number;
     attempt: number;
     id: string;

@@ -12,13 +12,53 @@ const INVERSION_AND_HELPERS = [
 ];
 
 /**
+ * The type guards of `@venizia/ignis-inversion`, which keep their positional argument: `keepsOptions` moves only the
+ * callee. `modules` lists the entries that exported the function as a value.
+ */
+export const INVERSION_GUARD_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
+  {
+    modules: [
+      '@venizia/ignis-inversion',
+      '@venizia/ignis-kernel',
+      '@venizia/ignis',
+      '@venizia/ignis-helpers',
+      '@venizia/ignis-helpers/common',
+    ],
+    oldName: 'isClass',
+    className: 'ResolverUtility',
+    method: 'isClass',
+    params: [],
+    keepsOptions: true,
+    reusesTypeImport: true,
+  },
+  {
+    modules: ['@venizia/ignis-inversion', '@venizia/ignis-kernel', '@venizia/ignis'],
+    oldName: 'isClassProvider',
+    className: 'Binding',
+    method: 'isClassProvider',
+    params: [],
+    keepsOptions: true,
+    reusesTypeImport: true,
+  },
+  {
+    modules: ['@venizia/ignis-inversion', '@venizia/ignis-helpers', '@venizia/ignis-helpers/core'],
+    oldName: 'isApplicationError',
+    className: 'ApplicationError',
+    method: 'isApplicationError',
+    params: [],
+    keepsOptions: true,
+    reusesTypeImport: true,
+  },
+];
+
+/**
  * The functions of `@venizia/ignis-inversion` that moved into a class. Every one already took one
  * options object, so each entry only moves the callee (`keepsOptions`).
  *
- * Not here, they stay functions: `isClass` (a type guard), `inject` (decorator), `getError`,
- * `fromError`, `isApplicationError` (type guard), `isClassProvider` (type guard).
+ * Not here, they stay functions: `inject` (decorator), `getError`, `fromError`.
  */
 export const INVERSION_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
+  ...INVERSION_GUARD_MAPPINGS,
   {
     modules: INVERSION_AND_HELPERS,
     oldName: 'isEmpty',

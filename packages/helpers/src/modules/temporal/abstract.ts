@@ -1,6 +1,6 @@
 import { HTTP } from '@/common/constants/http';
 import { BaseHelper } from '@/modules/base';
-import { getError, isApplicationError } from '@/modules/error';
+import { getError, ApplicationError } from '@/modules/error';
 import { IntlTemporalAdapter } from './adapters/intl';
 import { NativeTemporalAdapter } from './adapters/native';
 import { TemporalCalendar } from './calendar';
@@ -207,7 +207,10 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
 
   /** A parse or input error the caller may treat as "not a date"; anything else is a bug and still throws. */
   protected static isRefusal(error: unknown): boolean {
-    return isApplicationError(error) && error.statusCode === HTTP.ResultCodes.RS_4.BadRequest;
+    return (
+      ApplicationError.isApplicationError(error) &&
+      error.statusCode === HTTP.ResultCodes.RS_4.BadRequest
+    );
   }
 
   protected static ensureTz(opts: { tz: string; statusCode: number }): string {

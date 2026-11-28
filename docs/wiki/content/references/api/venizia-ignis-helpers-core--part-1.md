@@ -178,19 +178,19 @@ export declare abstract class AbstractPoolHelper<T> extends BaseHelper implement
     private isDestroyed;
     constructor(opts: IPoolControlOptions);
     /** Create one resource. Required. */
-    protected abstract create(): ValueOrPromise<T>;
+    protected abstract create(): TValueOrPromise<T>;
     /** Validate an idle resource just before hand-out; false → destroyed + replaced. Default: always valid. */
     protected validateResource(_opts: {
         resource: T;
-    }): ValueOrPromise<boolean>;
+    }): TValueOrPromise<boolean>;
     /** Reset an idle resource before hand-out (e.g. clear state). Throw → resource discarded. Default: no-op. */
     protected resetResource(_opts: {
         resource: T;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     /** Tear down a resource being removed from the pool. Default: no-op. */
     protected onDestroyResource(_opts: {
         resource: T;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     getStats(): IPoolStats;
     acquire(): Promise<T>;
     release(opts: {
@@ -198,7 +198,7 @@ export declare abstract class AbstractPoolHelper<T> extends BaseHelper implement
     }): void;
     warmup(): Promise<void>;
     use<R>(opts: {
-        execution: (resource: T) => ValueOrPromise<R>;
+        execution: (resource: T) => TValueOrPromise<R>;
     }): Promise<R>;
     discard(opts: {
         resource: T;
@@ -320,16 +320,16 @@ Concrete object pool configured by callbacks ({@link IPoolOptions}); implements 
 export declare class BasePoolHelper<T> extends AbstractPoolHelper<T> {
     private readonly factory;
     constructor(options: IPoolOptions<T>);
-    protected create(): ValueOrPromise<T>;
+    protected create(): TValueOrPromise<T>;
     protected validateResource(opts: {
         resource: T;
-    }): ValueOrPromise<boolean>;
+    }): TValueOrPromise<boolean>;
     protected resetResource(opts: {
         resource: T;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     protected onDestroyResource(opts: {
         resource: T;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
 }
 ```
 
@@ -658,6 +658,8 @@ Running work: who it runs for (`run`, `current`), waiting, a time limit, bounded
 export declare class Execution {
     /** The longest delay a timer takes (a signed 32-bit integer of milliseconds); a larger one fires after 1 ms. */
     private static readonly MAX_TIMER_MS;
+    /** True for a value with a callable `then`: a promise, or anything that is awaited like one. A type guard, so it keeps its positional `value`. */
+    static isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T>;
     /**
      * Installs what holds the current frame. The first install wins, so that two copies of the server layer share one
      * store; a later call changes nothing.
@@ -685,7 +687,7 @@ export declare class Execution {
      * one fires at once), else this rejects without running `call`.
      */
     static withTimeout<T>(opts: {
-        call: () => ValueOrPromise<T>;
+        call: () => TValueOrPromise<T>;
         timeoutMs: number;
         message?: string;
     }): Promise<T>;
@@ -695,13 +697,13 @@ export declare class Execution {
         limit: number;
         onTaskDone?: <R>(opts: {
             result: R;
-        }) => ValueOrPromise<void>;
+        }) => TValueOrPromise<void>;
     }): Promise<Awaited<T>[]>;
     /** Fire-and-forget: routes rejection to `logger` (or the framework logger of `scope`), passes sync results through untouched. */
     static fireAndForget(opts: {
         logger?: ILogger;
         scope: string;
-        execution: ValueOrPromise<unknown>;
+        execution: TValueOrPromise<unknown>;
     }): void;
 }
 ```
@@ -1136,7 +1138,7 @@ Options for building a tree from `rootValue` by repeatedly calling `getChildren`
 ```ts
 export interface IBuildOptions<T> {
     rootValue: T;
-    getChildren: (value: T) => ValueOrPromise<T[]>;
+    getChildren: (value: T) => TValueOrPromise<T[]>;
     /**
      * Identity for detecting repeats across the whole build, not just the current branch. A repeated
      * key skips that branch without throwing - legitimate diamonds (shared descendants) are not cycles.
@@ -1157,20 +1159,6 @@ An `ECDH` ciphertext: `iv` and `ct` (ciphertext) are both base64 strings.
 export interface IECDHEncryptedPayload {
     iv: string;
     ct: string;
-}
-```
-
-Source: `packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts`
-
-## `IECDHExtraOptions`
-
-*interface*
-
-AES-GCM options for `ECDH` `encrypt` and `decrypt`. `additionalData` is authenticated but not encrypted; `decrypt` must receive the same string or it fails. An empty string is ignored.
-
-```ts
-export interface IECDHExtraOptions {
-    additionalData?: string;
 }
 ```
 

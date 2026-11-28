@@ -1,5 +1,5 @@
 import { Authentication, BaseRestController, controller, get, post } from '@venizia/ignis';
-import type { ValueOrPromise, TContextOf } from '@venizia/ignis';
+import type { TValueOrPromise, TContextOf } from '@venizia/ignis';
 import { Environment, HTTP } from '@venizia/ignis-helpers';
 import { UuidV7Generator } from '@venizia/ignis-helpers/uuid';
 import { RouteConfigs } from './definitions';
@@ -10,7 +10,7 @@ export class TestController extends BaseRestController {
     super({ scope: TestController.name });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     // Example 1: Using 'defineRoute' to define a controller endpoint
     this.defineRoute({
       configs: RouteConfigs['/1'],

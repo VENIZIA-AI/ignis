@@ -25,7 +25,7 @@ bun add @socket.io/bun-engine
 ```typescript
 import { BaseApplication } from '@venizia/ignis';
 import { SocketIOComponent, SocketIOBindingKeys } from '@venizia/ignis/socket-io';
-import { RedisSingleHelper, ValueOrPromise } from '@venizia/ignis-helpers';
+import { RedisSingleHelper, TValueOrPromise } from '@venizia/ignis-helpers';
 import type {
   TSocketIOAuthenticateFn,
   TSocketIOValidateRoomFn,
@@ -35,7 +35,7 @@ import type {
 export class Application extends BaseApplication {
   private redisHelper: RedisSingleHelper;
 
-  preConfigure(): ValueOrPromise<void> {
+  preConfigure(): TValueOrPromise<void> {
     this.setupSocketIO();
     // ... other setup
   }

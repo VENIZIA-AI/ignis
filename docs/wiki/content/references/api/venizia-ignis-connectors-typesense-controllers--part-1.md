@@ -183,7 +183,7 @@ export interface ISearchLooseResponse<RouteEnv extends Env = Env, Inject extends
             mode: 'raw';
         }>;
         injected: TInjected<Inject>;
-    }) => ValueOrPromise<Array<TSearchLooseHit>>;
+    }) => TValueOrPromise<Array<TSearchLooseHit>>;
 }
 ```
 
@@ -270,7 +270,7 @@ export interface ISearchQueryOptions<Document extends object, Tuning extends obj
             mode: 'raw';
         }> & TExtra;
         injected: TInjected<Inject>;
-    }) => ValueOrPromise<string>;
+    }) => TValueOrPromise<string>;
     /** What a client may send. `tuning` names the knobs a request's `engineParams` may carry; a name is fixed or allowed, never both. */
     allow?: {
         tuning?: [Tuning] extends [never] ? never[] : Array<Exclude<keyof Tuning & string, 'sortBy'>>;
@@ -373,7 +373,7 @@ export interface ISearchResponseTransform<Document extends object, TOutDocument 
         }>;
         /** The instances of the classes `inject` declares: reread rows from another repository, say. */
         injected: TInjected<Inject>;
-    }) => ValueOrPromise<Array<TSearchHit<TOutDocument>>>;
+    }) => TValueOrPromise<Array<TSearchHit<TOutDocument>>>;
 }
 ```
 

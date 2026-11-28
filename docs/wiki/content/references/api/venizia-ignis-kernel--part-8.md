@@ -227,7 +227,7 @@ Decides at registration time whether the class is registered at all. Sync or asy
 ```ts
 export type TArtifactCondition<ApplicationType = unknown> = (opts: {
     application: ApplicationType;
-}) => ValueOrPromise<boolean>;
+}) => TValueOrPromise<boolean>;
 ```
 
 Source: `packages/kernel/src/helpers/inversion/common/types/artifact.ts`
@@ -358,7 +358,7 @@ Returns the current request domain; null = no domain (→ SYSTEM_WIDE).
 ```ts
 export type TAuthorizationDomainResolver<E extends Env = Env> = (opts: {
     context: TContext<E, string>;
-}) => ValueOrPromise<TNullable<{
+}) => TValueOrPromise<TNullable<{
     type: string;
     id: IdType;
 }>>;
@@ -492,7 +492,7 @@ export type TAuthorizationVoter<E extends Env = Env, TAction = string, TResource
     action: TAction;
     resource: TResource;
     context: TContext<E, string>;
-}) => ValueOrPromise<TAuthorizationDecision>;
+}) => TValueOrPromise<TAuthorizationDecision>;
 ```
 
 Source: `packages/kernel/src/base/auth/authorize/common/types/enforcer.ts`
@@ -1030,7 +1030,7 @@ A handler callback - synchronous or asynchronous, `EventBus` awaits either the s
 ```ts
 export type TEventHandlerFunction<TPayload = unknown> = (opts: {
     event: IDomainEvent<TPayload>;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 ```
 
 Source: `packages/kernel/src/base/events/common/types.ts`
@@ -1108,7 +1108,7 @@ Source: `packages/kernel/src/base/repositories/common/types/options.ts`
 Returns the lifetime of a token to issue, in seconds from now.
 
 ```ts
-export type TGetTokenExpiresFn = () => ValueOrPromise<number>;
+export type TGetTokenExpiresFn = () => TValueOrPromise<number>;
 ```
 
 Source: `packages/kernel/src/base/auth/authenticate/common/types/jwt.ts`

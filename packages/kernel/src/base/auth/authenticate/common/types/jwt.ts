@@ -1,5 +1,5 @@
 import type { IdType } from '@/base/models/common';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { AESAlgorithmType, TTrustedOrigin } from '@venizia/ignis-helpers/core';
 import type { JWTPayload } from 'jose';
 import type {
@@ -225,4 +225,4 @@ export interface IPayloadFieldCodec<T = unknown> {
 }
 
 /** Returns the lifetime of a token to issue, in seconds from now. */
-export type TGetTokenExpiresFn = () => ValueOrPromise<number>;
+export type TGetTokenExpiresFn = () => TValueOrPromise<number>;

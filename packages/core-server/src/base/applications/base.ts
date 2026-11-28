@@ -11,7 +11,7 @@ import {
   MetadataRegistry,
 } from '@venizia/ignis-kernel';
 import type { ILogger } from '@venizia/ignis-helpers/core';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type {
   ISecretHydrateEntry,
   ISecretRotatable,
@@ -158,7 +158,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     });
   }
 
-  registerSecrets(): ValueOrPromise<TSecretsRegistration> {
+  registerSecrets(): TValueOrPromise<TSecretsRegistration> {
     return { provider: SecretProviders.SYSTEM_ENVS };
   }
 

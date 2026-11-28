@@ -1,6 +1,6 @@
 import { ObjectUtility } from '@venizia/ignis-inversion';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { type ValueOrPromise } from '@/common/types';
+import { type TValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { HookUtility } from '../../common';
 import {
@@ -39,23 +39,23 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
   private onMessage?: (opts: {
     identifier: string;
     queueElement: TQueueElement<TElementPayload>;
-  }) => ValueOrPromise<void>;
+  }) => TValueOrPromise<void>;
 
   private onDataEnqueue?: (opts: {
     identifier: string;
     queueElement: TQueueElement<TElementPayload>;
-  }) => ValueOrPromise<void>;
+  }) => TValueOrPromise<void>;
 
   private onDataDequeue?: (opts: {
     identifier: string;
     queueElement: TQueueElement<TElementPayload>;
-  }) => ValueOrPromise<void>;
+  }) => TValueOrPromise<void>;
 
   private onStateChange?: (opts: {
     identifier: string;
     from: TQueueStatus;
     to: TQueueStatus;
-  }) => ValueOrPromise<void>;
+  }) => TValueOrPromise<void>;
 
   constructor(opts: IQueueCallback<TElementPayload> & { identifier: string }) {
     super({

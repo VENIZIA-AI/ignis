@@ -16,9 +16,9 @@ import { BasePostgresDataSource, BasePostgresEntity } from '@venizia/ignis-conne
 import { PGliteDriver } from '@venizia/ignis-connectors/postgres/pglite';
 import { DefaultRelationalRepository } from '@venizia/ignis-connectors/relational';
 import { HttpDataSource, HttpRepository } from '@venizia/ignis-connectors/http';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { Logger } from '@venizia/ignis-helpers/winston';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { repository } from '@/base/metadata';
 import { AppErrorMiddleware } from '@/base/middlewares';
 
@@ -51,9 +51,9 @@ class HttpRoundTripDataSource extends BasePostgresDataSource<{}, {}, {}, PGlite>
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return 'pglite://memory';
   }
 
@@ -181,7 +181,7 @@ describe('HttpRepository writes through a real IGNIS CRUD controller', () => {
       caught = error;
     }
 
-    if (!isApplicationError(caught)) {
+    if (!ApplicationError.isApplicationError(caught)) {
       throw new Error(`expected an ApplicationError, got: ${String(caught)}`);
     }
 
@@ -202,7 +202,7 @@ describe('HttpRepository writes through a real IGNIS CRUD controller', () => {
       caught = error;
     }
 
-    if (!isApplicationError(caught)) {
+    if (!ApplicationError.isApplicationError(caught)) {
       throw new Error(`expected an ApplicationError, got: ${String(caught)}`);
     }
 
@@ -219,7 +219,7 @@ describe('HttpRepository writes through a real IGNIS CRUD controller', () => {
       caught = error;
     }
 
-    if (!isApplicationError(caught)) {
+    if (!ApplicationError.isApplicationError(caught)) {
       throw new Error(`expected an ApplicationError, got: ${String(caught)}`);
     }
 

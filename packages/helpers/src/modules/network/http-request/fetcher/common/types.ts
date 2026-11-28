@@ -1,4 +1,4 @@
-import type { ValueOrPromise } from '@/common';
+import type { TValueOrPromise } from '@/common';
 import type { IRetryBackoffOptions, IRetryContext } from '@/modules/retry/common/types';
 import type { IUrlSafetyPolicy } from '@/modules/network/utilities/url-safety/common/types';
 import type { AxiosInstance, AxiosResponse } from 'axios';
@@ -37,8 +37,8 @@ export interface IHttpRetryOptions {
   maxTotalMs?: number;
   backoff?: IRetryBackoffOptions;
   /** Replaces the default decision (network error, timeout, 5xx and 429 retry; any other 4xx, a 3xx, a guard refusal, a schema mismatch and a caller abort do not). */
-  shouldRetry?: (context: IRetryContext) => ValueOrPromise<boolean>;
-  onRetry?: (context: IRetryContext & { nextDelayMs: number }) => ValueOrPromise<void>;
+  shouldRetry?: (context: IRetryContext) => TValueOrPromise<boolean>;
+  onRetry?: (context: IRetryContext & { nextDelayMs: number }) => TValueOrPromise<void>;
 }
 
 /** What a fetcher applies to every call unless the call says otherwise. */
@@ -65,18 +65,18 @@ export interface IFetchRequestContext {
 /** One function per moment; none returns a value. */
 export interface IFetcherHooks {
   /** Before EVERY send, each retry attempt included, so a signature is fresh. */
-  onRequest?: (context: IFetchRequestContext) => ValueOrPromise<void>;
+  onRequest?: (context: IFetchRequestContext) => TValueOrPromise<void>;
   /** An answer arrived, BEFORE the status check and the schema parse. Once per attempt. */
   onResponse?: (context: {
     request: IFetchRequestContext;
     status: number;
     headers: Headers;
     durationMs: number;
-  }) => ValueOrPromise<void>;
+  }) => TValueOrPromise<void>;
   /** The call failed (a timeout, the network, a refused status, a schema mismatch, a guard refusal); once, with the final error, which is then rethrown. */
   onError?: (context: {
     request: IFetchRequestContext;
     error: unknown;
     attempt: number;
-  }) => ValueOrPromise<void>;
+  }) => TValueOrPromise<void>;
 }

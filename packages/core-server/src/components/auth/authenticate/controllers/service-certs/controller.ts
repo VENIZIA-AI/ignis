@@ -4,7 +4,7 @@ import {
   BindingNamespaces,
   inject,
 } from '@venizia/ignis-kernel';
-import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BindingKeys } from '@venizia/ignis-inversion';
 import { ServiceAssertionSignerService } from '../../services/service/signer.service';
 import { ServiceCertsRouteConfigs } from './definitions';
@@ -25,7 +25,7 @@ export class ServiceCertsController extends BaseRestController {
     super({ scope: ServiceCertsController.name, path, isStrict: true });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.defineRoute({
       configs: ServiceCertsRouteConfigs.GET_SERVICE_CERTS,
       handler: async (context) => {

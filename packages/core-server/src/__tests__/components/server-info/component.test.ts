@@ -11,7 +11,7 @@ import {
   type IServerTime,
 } from '@/components/server-info';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 import { readJson, wrongShape } from '../../helpers/json-shape';
 
@@ -23,7 +23,7 @@ const TEST_CONFIGS: IApplicationConfigs = {
 };
 
 class TestApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'test-app', version: '9.9.9', description: 'Server info test app' };
   }
 

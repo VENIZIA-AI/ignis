@@ -2,7 +2,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { datasource, model, RestApplication, BindingKeys } from '@venizia/ignis-kernel';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterEach, beforeEach, describe, expect, setDefaultTimeout, test } from 'bun:test';
 import { sql } from 'drizzle-orm';
 import { pgTable, serial, text } from 'drizzle-orm/pg-core';
@@ -146,7 +146,7 @@ class StartOpeningDataSource extends OpeningBaseDataSource {}
 
 /** The real application boot: it is the only thing that hands a datasource that opens at start its handles. */
 class OpeningApplication extends RestApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'opening-handle-app', version: '0.0.0', description: '' };
   }
 

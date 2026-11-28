@@ -23,7 +23,9 @@ query executor.
 export declare abstract class AbstractRelationalDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = unknown, TConnector = unknown> extends AbstractDriverDataSource<Settings, Schema, ConfigurableOptions, Client, TConnector, IRelationalDriver<TConnector>> implements IRelationalDataSource<Settings, Schema, ConfigurableOptions, Client, TConnector> {
     /** Every repository verb and `beginTransaction()` awaits `ensureOpen()` first, so a relational datasource can open on first use. */
     protected supportsDeferredOpen(): boolean;
-    abstract getConnectionString(): ValueOrPromise<string>;
+    /** Narrows the neutral `ITransaction` to a SQL transaction handle before accessing `.connector`. A type guard, so it keeps its positional `transaction`. */
+    static isRelationalTransaction(transaction: ITransaction | undefined): transaction is IRelationalTransaction<unknown>;
+    abstract getConnectionString(): TValueOrPromise<string>;
     abstract beginTransaction(opts?: TRelationalTransactionOptions): Promise<IRelationalTransaction<TConnector>>;
     abstract getQueryDialect(): IRelationalQueryDialect;
     abstract getQueryExecutor(): IRelationalQueryExecutor<TConnector>;
@@ -722,7 +724,7 @@ SQL-branch contract, engine-free. Extends `AbstractDataSource` itself, not just 
 ```ts
 export interface IRelationalDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = unknown, TConnector = unknown> extends AbstractDataSource<Settings, Schema, ConfigurableOptions> {
     connector?: TConnector;
-    getConnectionString(): ValueOrPromise<string>;
+    getConnectionString(): TValueOrPromise<string>;
     getConnector(): TConnector;
     getClient(): Client;
     getQueryDialect(): IRelationalQueryDialect;
@@ -959,18 +961,6 @@ export interface ISelectOptions<TConnector> {
 ```
 
 Source: `packages/connectors/src/relational/core/repositories/common/executor.ts`
-
-## `isRelationalTransaction`
-
-*const*
-
-Narrows the neutral `ITransaction` to a SQL transaction handle before accessing `.connector`.
-
-```ts
-export declare const isRelationalTransaction: (transaction: ITransaction | undefined) => transaction is IRelationalTransaction<unknown>;
-```
-
-Source: `packages/connectors/src/relational/core/datasources/common/guards.ts`
 
 ## `IStatementResult`
 

@@ -13,7 +13,7 @@ import {
   BasePostgresEntity,
   DefaultCRUDRepository,
 } from '@venizia/ignis-connectors/postgres';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { ILogger } from '@venizia/ignis-helpers/core';
 import {
@@ -108,7 +108,7 @@ class AccountController extends BaseRestController {
     super({ scope: AccountController.name });
   }
 
-  override binding(): ValueOrPromise<void> {}
+  override binding(): TValueOrPromise<void> {}
 
   @get({ configs: { path: '/', responses: okResponse } })
   list(context: Context) {
@@ -128,7 +128,7 @@ class BrokenController extends BaseRestController {
     super({ scope: BrokenController.name });
   }
 
-  override binding(): ValueOrPromise<void> {}
+  override binding(): TValueOrPromise<void> {}
 }
 
 /** Registered, but its dependency never was; no controller references it. */
@@ -146,7 +146,7 @@ class FirstDuplicateController extends BaseRestController {
     super({ scope: FirstDuplicateController.name });
   }
 
-  override binding(): ValueOrPromise<void> {}
+  override binding(): TValueOrPromise<void> {}
 
   @get({ configs: { path: '/users/:id', responses: okResponse } })
   one(context: Context) {
@@ -160,7 +160,7 @@ class SecondDuplicateController extends BaseRestController {
     super({ scope: SecondDuplicateController.name });
   }
 
-  override binding(): ValueOrPromise<void> {}
+  override binding(): TValueOrPromise<void> {}
 
   @get({ configs: { path: '/users/:userId', responses: okResponse } })
   one(context: Context) {
@@ -175,7 +175,7 @@ class ValidatedController extends BaseRestController {
     super({ scope: ValidatedController.name });
   }
 
-  override binding(): ValueOrPromise<void> {}
+  override binding(): TValueOrPromise<void> {}
 
   @get({
     configs: {
@@ -196,7 +196,7 @@ class SelfDuplicateController extends BaseRestController {
     super({ scope: SelfDuplicateController.name });
   }
 
-  override binding(): ValueOrPromise<void> {}
+  override binding(): TValueOrPromise<void> {}
 
   @get({ configs: { path: '/same', responses: okResponse } })
   first(context: Context) {
@@ -215,7 +215,7 @@ class CountingComponent extends BaseComponent {
     super({ scope: CountingComponent.name, initDefault: { enable: true, container: application } });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     calls.component += 1;
   }
 }
@@ -229,7 +229,7 @@ class ThrowingComponent extends BaseComponent {
     super({ scope: ThrowingComponent.name, initDefault: { enable: true, container: application } });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     throw BINDING_FAILURE;
   }
 }
@@ -270,7 +270,7 @@ class ContributingComponent extends BaseComponent {
     });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.application.dataSource(CountingDataSource);
   }
 }
@@ -295,7 +295,7 @@ class PlannedApplication extends BaseApplication {
     });
   }
 
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'planned', version: '0.0.0', description: '' };
   }
 

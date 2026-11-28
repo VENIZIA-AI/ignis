@@ -9,24 +9,24 @@ import { RedisConcurrency, RedisDefaults } from './../common/constants';
 import { type IRedisHelper } from './../common/interfaces';
 import { type IRedisHelperCallbacks, type TRedisClient } from './../common/types';
 
-/** Registry symbol that marks an instance as a Redis helper; `isRedisHelper` tests for it. */
+/** Registry symbol that marks an instance as a Redis helper; `AbstractRedisHelper.isRedisHelper` tests for it. */
 export const REDIS_HELPER_BRAND = Symbol.for('@venizia/ignis-helpers:abstract-redis-helper');
-
-/** Brand check, never `instanceof`: two installed copies of this package are two distinct classes, so a helper built by one is rejected by the other. `Symbol.for` is realm-keyed and survives that. */
-export const isRedisHelper = (value: unknown): value is AbstractRedisHelper => {
-  return typeof value === 'object' && value !== null && REDIS_HELPER_BRAND in value;
-};
 
 /** Base for the Redis helpers: wraps one ioredis client, logs its lifecycle events and forwards them to the `onInitialized`, `onConnected`, `onReady` and `onError` callbacks. Subclasses build the client. */
 export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
   extends BaseHelper
   implements IRedisHelper
 {
-  /** Read by {@link isRedisHelper}. On the instance, so every subclass instance carries it. */
+  /** Read by {@link AbstractRedisHelper.isRedisHelper}. On the instance, so every subclass instance carries it. */
   readonly [REDIS_HELPER_BRAND] = true;
 
   client: ClientType;
   readonly name: string;
+
+  /** Brand check, never `instanceof`: two installed copies of this package are two distinct classes, so a helper built by one is rejected by the other. `Symbol.for` is realm-keyed and survives that. A type guard, so it keeps its positional `value`. */
+  static isRedisHelper(value: unknown): value is AbstractRedisHelper {
+    return typeof value === 'object' && value !== null && REDIS_HELPER_BRAND in value;
+  }
 
   constructor(
     opts: { scope: string; identifier: string; client: ClientType } & IRedisHelperCallbacks,

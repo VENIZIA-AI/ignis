@@ -16,11 +16,11 @@ difficulty: intermediate
 ```typescript
 import { BaseApplication } from '@venizia/ignis';
 import { SocketIOComponent, SocketIOBindingKeys } from '@venizia/ignis/socket-io';
-import { RedisSingleHelper, ValueOrPromise } from '@venizia/ignis-helpers';
+import { RedisSingleHelper, TValueOrPromise } from '@venizia/ignis-helpers';
 import type { TSocketIOAuthenticateFn } from '@venizia/ignis-helpers/socket-io';
 
 export class Application extends BaseApplication {
-  preConfigure(): ValueOrPromise<void> {
+  preConfigure(): TValueOrPromise<void> {
     // 1. Redis connection (required - used for the adapter + emitter)
     this.bind({ key: SocketIOBindingKeys.REDIS_CONNECTION }).toValue(
       new RedisSingleHelper({ name: 'socket-io-redis', host: 'localhost', port: 6379, autoConnect: false }),

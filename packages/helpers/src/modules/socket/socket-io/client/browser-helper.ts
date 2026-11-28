@@ -1,5 +1,5 @@
 import { HTTP } from '@/common/constants/http';
-import { type ValueOrPromise } from '@/common/types';
+import { type TValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import type { Socket } from 'socket.io-client';
@@ -30,11 +30,11 @@ export class SocketIOClientHelper extends BaseHelper {
   private wrappedHandlers: Map<string, Map<TSocketIOEventHandler<never>, TWrappedListener>> =
     new Map();
 
-  private onConnected?: () => ValueOrPromise<void>;
-  private onDisconnected?: (reason: string) => ValueOrPromise<void>;
-  private onError?: (error: Error) => ValueOrPromise<void>;
-  private onAuthenticated?: () => ValueOrPromise<void>;
-  private onUnauthenticated?: (message: string) => ValueOrPromise<void>;
+  private onConnected?: () => TValueOrPromise<void>;
+  private onDisconnected?: (reason: string) => TValueOrPromise<void>;
+  private onError?: (error: Error) => TValueOrPromise<void>;
+  private onAuthenticated?: () => TValueOrPromise<void>;
+  private onUnauthenticated?: (message: string) => TValueOrPromise<void>;
 
   protected readonly clientModule?: typeof import('socket.io-client');
 

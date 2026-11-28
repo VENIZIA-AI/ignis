@@ -19,7 +19,7 @@ import type { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 import type {
   TConstValue,
   TValueOrAsyncResolver,
-  ValueOrPromise,
+  TValueOrPromise,
 } from '@venizia/ignis-helpers/common';
 import type { TMetaLink, TMetaLinkCompatibleSchema, TMetaLinkSchema } from '../models';
 import type { StaticAssetRouteKeys, TStaticAssetTokenStage } from './constants';
@@ -74,13 +74,13 @@ export type TStaticAssetDirectUploadResolvers = {
    * Who the upload belongs to. Called on every direct-upload route: the policy route signs the
    * answer into the commit token, and the other routes refuse a token whose owner differs.
    */
-  owner: (opts: { context: TRouteContext }) => ValueOrPromise<string>;
+  owner: (opts: { context: TRouteContext }) => TValueOrPromise<string>;
 
   /** Per file, at policy time: what the token signs for it, readable again at validate and commit. Absent, a client that sends `metadata` is refused. */
   metadata?: (opts: {
     context: TRouteContext;
     file: TStaticAssetUploadPolicyFile;
-  }) => ValueOrPromise<TStaticAssetTokenMetadata>;
+  }) => TValueOrPromise<TStaticAssetTokenMetadata>;
 
   commit?: {
     /** At commit time: the final key, in the same bucket and inside the `keyPrefix`. Absent keeps `defaultKey`. */
@@ -89,7 +89,7 @@ export type TStaticAssetDirectUploadResolvers = {
       metadata: TStaticAssetTokenMetadata;
       file: { fileName: string };
       defaultKey: string;
-    }) => ValueOrPromise<{ key: string }>;
+    }) => TValueOrPromise<{ key: string }>;
   };
 };
 
@@ -101,7 +101,7 @@ export type TStaticAssetDirectUploadOptions = {
    * `auth` already authenticates or authorizes: then `auth` is the gate. With neither, the
    * component refuses to start.
    */
-  authorize?: (opts: { context: TRouteContext }) => ValueOrPromise<boolean>;
+  authorize?: (opts: { context: TRouteContext }) => TValueOrPromise<boolean>;
 
   /** What the application decides about an upload; `owner` is required, the rest is optional. */
   resolvers: TStaticAssetDirectUploadResolvers;
@@ -174,7 +174,7 @@ export interface IStaticAssetValidation<IssueSchema extends z.ZodType> {
     file: StaticAssetPinnedFile;
     owner: string;
     metadata: TStaticAssetTokenMetadata;
-  }) => ValueOrPromise<IStaticAssetValidationResult<z.infer<IssueSchema>>>;
+  }) => TValueOrPromise<IStaticAssetValidationResult<z.infer<IssueSchema>>>;
 }
 
 /** What `validate` answers. `commitToken` is present only when the file is valid: it is the token `commit` takes. */
@@ -209,7 +209,7 @@ export type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLink
     fileStat: IFileStat;
     /** The caller's labels: form fields on an upload, beside the commit token on a direct one. */
     labels: TStaticAssetUploadLabels;
-  }) => ValueOrPromise<{ count: number; data: TTableObject<Schema> }>;
+  }) => TValueOrPromise<{ count: number; data: TTableObject<Schema> }>;
 };
 
 /** The part of a built-in route an application may change. `authenticate` and `authorize` replace the entry's `auth` for this route, and `{ skip: true }` leaves it open. */

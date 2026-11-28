@@ -771,7 +771,7 @@ All three implement:
 ```typescript
 interface IMailQueueExecutor {
   enqueueVerificationEmail(email: string, options?: IMailQueueOptions): Promise<IMailQueueResult>;
-  setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): ValueOrPromise<void>; // BullMQMailExecutorHelper's is async
+  setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): TValueOrPromise<void>; // BullMQMailExecutorHelper's is async
   close?(): Promise<void>; // the application stop hook calls it
 }
 ```

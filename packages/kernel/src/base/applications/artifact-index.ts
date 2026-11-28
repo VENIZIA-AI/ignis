@@ -1,7 +1,7 @@
 import { MetadataRegistry } from '@/helpers/inversion';
 import { SingletonRealm } from '@/helpers/singleton-realm';
 import type { TClass } from '@venizia/ignis-helpers/common';
-import { ArtifactTypes, isClass } from '@/helpers/inversion';
+import { ArtifactTypes, ResolverUtility } from '@/helpers/inversion';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { ArtifactGroup } from './artifact-group';
 import type {
@@ -46,7 +46,7 @@ export class ArtifactIndexHelper extends BaseHelper {
     const discoveredArtifacts = registry.getDiscoveredArtifacts();
 
     for (const target of discoveredArtifacts) {
-      if (!isClass<unknown>(target)) {
+      if (!ResolverUtility.isClass<unknown>(target)) {
         continue;
       }
 

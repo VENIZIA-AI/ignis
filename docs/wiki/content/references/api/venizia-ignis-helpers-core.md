@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-146 exports, 146 with TSDoc. 59 more are re-exported from other entries (listed at the end).
+146 exports, 146 with TSDoc. 58 more are re-exported from other entries (listed at the end).
 
 The declarations are on 4 pages; each export below links to its own.
 
@@ -153,7 +153,7 @@ The declarations are on 4 pages; each export below links to its own.
 
 ## `IECDHExtraOptions`
 
-*interface* - [Declaration](/references/api/venizia-ignis-helpers-core--part-1#iecdhextraoptions)
+*interface* - [Declaration](/references/api/venizia-ignis-helpers-core--part-2#iecdhextraoptions)
 
 ## `IExecutionFrame`
 
@@ -613,7 +613,6 @@ The declarations are on 4 pages; each export below links to its own.
 - `ILuxonDateTime` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `ILuxonDateTimeFactory` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `IntlTemporalAdapter` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
-- `isApplicationError` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `ITemporalAdapter` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `ITemporalDurationParts` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `ITemporalHelper` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)

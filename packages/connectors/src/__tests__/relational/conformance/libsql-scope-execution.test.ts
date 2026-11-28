@@ -1,9 +1,9 @@
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   ExecutionModes,
-  isApplicationError,
+  ApplicationError,
   type IExecutionFrame,
 } from '@venizia/ignis-helpers/core';
 import {
@@ -84,7 +84,7 @@ class ExecutionSqliteDataSource extends BaseSqliteDataSource<
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 }
 
 const store = new AsyncLocalStorage<IExecutionFrame>();
@@ -113,7 +113,7 @@ const refusal = async (task: () => Promise<unknown>) => {
   const [outcome] = await Promise.allSettled([task()]);
   const error: unknown = outcome.status === 'rejected' ? outcome.reason : undefined;
 
-  return isApplicationError(error)
+  return ApplicationError.isApplicationError(error)
     ? { status: error.statusCode, code: error.normalized.code }
     : outcome.status;
 };

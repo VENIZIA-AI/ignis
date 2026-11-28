@@ -1,5 +1,4 @@
-import { isApplicationError, UrlBuilder } from '@venizia/ignis-helpers/core';
-import type { ApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError, UrlBuilder } from '@venizia/ignis-helpers/core';
 import { HttpDataSource } from '@/http/datasource';
 import { afterEach, describe, expect, mock, spyOn, test } from 'bun:test';
 
@@ -12,7 +11,7 @@ const capture = (task: () => unknown): ApplicationError => {
   try {
     task();
   } catch (error) {
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       return error;
     }
 

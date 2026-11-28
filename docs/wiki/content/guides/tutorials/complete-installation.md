@@ -185,7 +185,7 @@ Each controller gets its own folder: `definitions.ts` for route configs and Zod 
 Create `src/application.ts` - this is where you configure and register all your application resources:
 
 ```typescript
-import { BaseApplication, IApplicationConfigs, IApplicationInfo, ApiReferenceComponent, ValueOrPromise } from '@venizia/ignis';
+import { BaseApplication, IApplicationConfigs, IApplicationInfo, ApiReferenceComponent, TValueOrPromise } from '@venizia/ignis';
 import AutoArtifacts from '@venizia/ignis-boot/auto';
 import packageJson from '../package.json';
 
@@ -199,7 +199,7 @@ export const appConfigs: IApplicationConfigs = {
 
 export class Application extends BaseApplication {
   // Required: Tell the framework about your app (used for API docs)
-  override getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  override getAppInfo(): TValueOrPromise<IApplicationInfo> {
     // Option 1: Read from package.json (recommended for consistency)
     return packageJson;
 
@@ -226,7 +226,7 @@ export class Application extends BaseApplication {
   }
 
   // Hook 3: Register your resources (THIS IS THE MOST IMPORTANT ONE)
-  preConfigure(): ValueOrPromise<void> {
+  preConfigure(): TValueOrPromise<void> {
     // Register ApiReferenceComponent for API documentation at /api/doc/explorer
     this.component(ApiReferenceComponent);
 
@@ -236,7 +236,7 @@ export class Application extends BaseApplication {
   }
 
   // Hook 4: Do cleanup or extra work after everything is set up
-  postConfigure(): ValueOrPromise<void> {
+  postConfigure(): TValueOrPromise<void> {
     // Example: Seed database, start background jobs, etc.
   }
 }

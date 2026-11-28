@@ -28,7 +28,7 @@ export declare class BullMQHelper<TQueueElement = unknown, TQueueResult = unknow
     protected queueOptions?: Omit<QueueOptions, 'connection'>;
     protected workerOptions?: Omit<WorkerOptions, 'connection' | 'concurrency' | 'lockDuration'>;
     protected prefix?: string;
-    protected metadata?: () => ValueOrPromise<TMetadata>;
+    protected metadata?: () => TValueOrPromise<TMetadata>;
     protected onWorkerData?: (job: Job<TQueueElement, TQueueResult>, context: IBullMQJobContext<TMetadata>) => Promise<TQueueResult>;
     protected onWorkerDataCompleted?: (job: Job<TQueueElement, TQueueResult>, result: TQueueResult) => Promise<void>;
     protected onWorkerDataFail?: (job: Job<TQueueElement, TQueueResult> | undefined, error: Error) => Promise<void>;
@@ -146,7 +146,7 @@ export interface IBullMQOptions<TQueueElement = unknown, TQueueResult = unknown,
      * A block stamped on every job added through `add`, run on each add and stored in the job's `opts.metadata`, outside `job.data`.
      * A throw fails the add; the answer must be a plain object. The worker reads it as `context.metadata`.
      */
-    metadata?: () => ValueOrPromise<TMetadata>;
+    metadata?: () => TValueOrPromise<TMetadata>;
     /** Merged over the framework defaults, under the fields the helper owns (`connection`) - see `queueOptionsFor`. */
     queueOptions?: Omit<QueueOptions, 'connection'>;
     /** Merged under the fields the helper owns (`connection`, `concurrency`, `lockDuration`) - see `workerOptionsFor`. */

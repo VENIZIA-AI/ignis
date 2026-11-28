@@ -150,7 +150,7 @@ try {
 ## Standardized Error Handling
 
 Use the `getError` helper and `HTTP` constants to throw consistent, formatted exceptions.
-**Never `new Error`.** Across package boundaries test identity with `isApplicationError()`, never
+**Never `new Error`.** Across package boundaries test identity with `ApplicationError.isApplicationError()`, never
 `instanceof` - the class has more than one identity in a monorepo.
 
 The normalized message is always one shape: `{ text, code, args }`, read from `error.normalized`.

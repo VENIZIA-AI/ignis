@@ -6,7 +6,7 @@ import { BaseSqliteEntity } from '@/relational/sqlite/models';
 import { DefaultSqliteRepository } from '@/relational/sqlite/repositories';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll } from 'bun:test';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import type { IConformanceHarness } from './repository-conformance';
@@ -66,7 +66,7 @@ class ConformanceSqliteDataSource extends BaseSqliteDataSource<
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 }
 
 /** ONE `:memory:` libsql database for the whole suite; every test re-seeds the single table. */

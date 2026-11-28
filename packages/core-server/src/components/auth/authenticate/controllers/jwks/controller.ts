@@ -1,7 +1,7 @@
 import { BaseRestController } from '@venizia/ignis-kernel';
 import { inject } from '@venizia/ignis-kernel';
 import { BindingNamespaces } from '@venizia/ignis-kernel';
-import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BindingKeys } from '@venizia/ignis-inversion';
 import { JWKSIssuerTokenService } from '../../services';
 import { RouteConfigs } from './definitions';
@@ -24,7 +24,7 @@ export class JWKSController extends BaseRestController {
     });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.defineRoute({
       configs: RouteConfigs.GET_JWKS_CERTS,
       handler: async (context) => {

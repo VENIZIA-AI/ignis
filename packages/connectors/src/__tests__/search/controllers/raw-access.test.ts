@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { describe, expect, test } from 'bun:test';
 
 import { repository, controller as controllerDecorator } from '@venizia/ignis-kernel';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { SearchControllerFactory } from '@/search/core/controllers/factory';
 import { SearchRawAccess } from '@/search/core/controllers/raw-access';
 import { SearchModes } from '@/search/core/repositories/common';
@@ -74,7 +74,7 @@ const refusal = async (task: Promise<unknown>) => {
   try {
     await task;
   } catch (error) {
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       return error;
     }
 

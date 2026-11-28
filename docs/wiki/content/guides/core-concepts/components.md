@@ -49,7 +49,7 @@ import {
   controller,
   CoreBindings,
   inject,
-  ValueOrPromise, BindingKeys,
+  TValueOrPromise, BindingKeys,
 } from '@venizia/ignis';
 
 // Define a service
@@ -84,7 +84,7 @@ export class NotificationComponent extends BaseComponent {
     });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this._application.controller(NotificationController);
   }
 }
@@ -107,7 +107,7 @@ Register components in your application's `preConfigure` method:
 ```typescript
 // src/application.ts
 export class Application extends BaseApplication {
-  preConfigure(): ValueOrPromise<void> {
+  preConfigure(): TValueOrPromise<void> {
     this.component(HealthCheckComponent);
     this.component(ApiReferenceComponent);
     this.component(NotificationComponent);
@@ -124,7 +124,7 @@ Most components accept configuration options. Override them before registration:
 ```typescript
 // src/application.ts
 export class Application extends BaseApplication {
-  preConfigure(): ValueOrPromise<void> {
+  preConfigure(): TValueOrPromise<void> {
     // Override options BEFORE registering component
     this.bind<IHealthCheckOptions>({ key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS })
       .toValue({ restOptions: { path: '/api/health' } });

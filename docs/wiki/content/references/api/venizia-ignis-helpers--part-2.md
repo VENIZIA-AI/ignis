@@ -405,13 +405,13 @@ export declare class HookUtility {
     static invoke(opts: {
         logger: ILogger;
         scope: string;
-        execution: () => ValueOrPromise<unknown>;
+        execution: () => TValueOrPromise<unknown>;
     }): void;
     /** Await a user-supplied hook, absorbing sync throws and rejections without breaking the caller's state machine. */
     static execute(opts: {
         logger: ILogger;
         scope: string;
-        execution: () => ValueOrPromise<unknown>;
+        execution: () => TValueOrPromise<unknown>;
     }): Promise<void>;
 }
 ```
@@ -884,11 +884,11 @@ export interface INetworkTcpClientProps<SocketClientOptions extends PlainConnect
     createClientFn: (options: SocketClientOptions, connectionListener?: () => void) => SocketClientType;
     onConnected?: (opts: {
         client: SocketClientType;
-    }) => ValueOrPromise<void>;
+    }) => TValueOrPromise<void>;
     onData?: (opts: {
         identifier: string;
         message: string | Buffer;
-    }) => ValueOrPromise<void>;
+    }) => TValueOrPromise<void>;
     onClosed?: (opts: {
         client: SocketClientType;
     }) => void;
@@ -1070,20 +1070,20 @@ export interface IQueueCallback<TElementPayload> {
     onMessage?: (opts: {
         identifier: string;
         queueElement: TQueueElement<TElementPayload>;
-    }) => ValueOrPromise<void>;
+    }) => TValueOrPromise<void>;
     onDataEnqueue?: (opts: {
         identifier: string;
         queueElement: TQueueElement<TElementPayload>;
-    }) => ValueOrPromise<void>;
+    }) => TValueOrPromise<void>;
     onDataDequeue?: (opts: {
         identifier: string;
         queueElement: TQueueElement<TElementPayload>;
-    }) => ValueOrPromise<void>;
+    }) => TValueOrPromise<void>;
     onStateChange?: (opts: {
         identifier: string;
         from: TQueueStatus;
         to: TQueueStatus;
-    }) => ValueOrPromise<void>;
+    }) => TValueOrPromise<void>;
 }
 ```
 

@@ -7,7 +7,7 @@ import { StaticAssetEntryUtility } from '@/components/static-asset/utilities/ent
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { DiskHelper } from '@venizia/ignis-helpers';
 import type { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { ControllerTransports, MetadataRegistry } from '@venizia/ignis-kernel';
 import { describe, expect, test } from 'bun:test';
@@ -25,7 +25,7 @@ const TEST_CONFIGS: IApplicationConfigs = {
 };
 
 class EntryApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'entry-app', version: '0.0.0', description: '' };
   }
 

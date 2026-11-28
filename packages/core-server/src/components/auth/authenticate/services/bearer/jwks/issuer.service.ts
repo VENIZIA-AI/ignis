@@ -1,4 +1,4 @@
-import { HTTP, type TNullable, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type TNullable, type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import {
   AuthenticateBindingKeys,
@@ -229,7 +229,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
     return this.applySignClaims({ signer, payload: encryptedPayload, claims: opts.claims });
   }
 
-  protected override getSigningKey(): ValueOrPromise<Uint8Array | CryptoKey> {
+  protected override getSigningKey(): TValueOrPromise<Uint8Array | CryptoKey> {
     if (!this.privateKey) {
       throw getError({ message: '[getSigningKey] Invalid privateKey!' });
     }

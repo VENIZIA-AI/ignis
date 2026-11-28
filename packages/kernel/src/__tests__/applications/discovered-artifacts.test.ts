@@ -4,12 +4,12 @@ import { component, configuration, model, service } from '@/base/metadata';
 import { MetadataRegistry } from '@/helpers/inversion';
 import { BaseComponent } from '@/base/components';
 import { BaseConfiguration } from '@/base/configurations';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { BindingKeys } from '@/helpers/inversion';
 
 class DiscoveringApplication extends RestApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'discovering-app', version: '0.0.0', description: '' };
   }
 

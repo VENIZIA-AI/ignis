@@ -10,7 +10,7 @@ import {
 } from '@/components/static-asset/common';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 import { FakeStorageHelper } from './fake-storage.helper';
 
@@ -22,7 +22,7 @@ const TEST_CONFIGS: IApplicationConfigs = {
 };
 
 class TestApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'test-app', version: '0.0.0', description: 'Static asset component test app' };
   }
 

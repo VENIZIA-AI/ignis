@@ -37,10 +37,12 @@ Base for the Redis helpers: wraps one ioredis client, logs its lifecycle events 
 
 ```ts
 export declare class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient> extends BaseHelper implements IRedisHelper {
-    /** Read by {@link isRedisHelper}. On the instance, so every subclass instance carries it. */
+    /** Read by {@link AbstractRedisHelper.isRedisHelper}. On the instance, so every subclass instance carries it. */
     readonly [REDIS_HELPER_BRAND] = true;
     client: ClientType;
     readonly name: string;
+    /** Brand check, never `instanceof`: two installed copies of this package are two distinct classes, so a helper built by one is rejected by the other. `Symbol.for` is realm-keyed and survives that. A type guard, so it keeps its positional `value`. */
+    static isRedisHelper(value: unknown): value is AbstractRedisHelper;
     constructor(opts: {
         scope: string;
         identifier: string;
@@ -379,14 +381,14 @@ export declare abstract class AbstractWorkerBusHelper<IConsumePayload, IPublishP
     handler: IWorkerMessageBusHandler<IConsumePayload>;
     abstract onBeforePostMessage?(opts: {
         message: IPublishPayload;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     abstract onAfterPostMessage?(opts: {
         message: IPublishPayload;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     abstract postMessage(opts: {
         message: IPublishPayload;
         transferList: readonly Transferable[] | undefined;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
 }
 ```
 
@@ -402,19 +404,19 @@ Base for a helper that owns a `Worker` and reacts to its lifecycle events.
 export declare abstract class AbstractWorkerHelper<MessageType> extends BaseHelper implements IWorker<MessageType> {
     worker: Worker;
     options: WorkerOptions;
-    abstract onOnline(): ValueOrPromise<void>;
+    abstract onOnline(): TValueOrPromise<void>;
     abstract onExit(opts: {
         code: string | number;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     abstract onError(opts: {
         error: Error;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     abstract onMessage(opts: {
         message: MessageType;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     abstract onMessageError(opts: {
         error: Error;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
 }
 ```
 
@@ -430,14 +432,14 @@ Base for the callbacks a worker bus invokes: `onMessage`, `onClose`, `onError` a
 export declare abstract class AbstractWorkerMessageBusHandlerHelper<IConsumePayload> extends BaseHelper implements IWorkerMessageBusHandler<IConsumePayload> {
     onMessage: (opts: {
         message: IConsumePayload;
-    }) => ValueOrPromise<void>;
-    onClose: () => ValueOrPromise<void>;
+    }) => TValueOrPromise<void>;
+    onClose: () => TValueOrPromise<void>;
     onError: (opts: {
         error: Error;
-    }) => ValueOrPromise<void>;
+    }) => TValueOrPromise<void>;
     onExit: (opts: {
         exitCode: number | string;
-    }) => ValueOrPromise<void>;
+    }) => TValueOrPromise<void>;
 }
 ```
 
@@ -457,7 +459,7 @@ export declare abstract class AbstractWorkerThreadHelper extends BaseHelper impl
     abstract bindWorkerBus<IC, IP>(opts: {
         key: string;
         bus: IWorkerBus<IC, IP>;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     abstract getWorkerBus<IC, IP>(opts: {
         key: string;
     }): IWorkerBus<IC, IP>;
@@ -755,7 +757,7 @@ export declare class BaseNetworkTcpServer<SocketServerOptions extends ServerOpts
         id: string;
         socket: SocketClientType;
         args: unknown;
-    }) => ValueOrPromise<void>>;
+    }) => TValueOrPromise<void>>;
     protected createServerFn: (options: Partial<SocketServerOptions>, connectionListener: (socket: SocketClientType) => void) => SocketServerType;
     protected onServerReady?: (opts: {
         server: SocketServerType;
@@ -956,18 +958,18 @@ export declare class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> exten
     /** Bus handlers run inside MessagePort listeners; a sync throw there is uncaught and kills the worker thread, so wrap it - fireAndForget alone can't catch a throw evaluated before it's called. */
     protected invokeHook(opts: {
         scope: string;
-        execution: () => ValueOrPromise<void>;
+        execution: () => TValueOrPromise<void>;
     }): void;
     onBeforePostMessage?(opts: {
         message: IPublishPayload;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     onAfterPostMessage?(opts: {
         message: IPublishPayload;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     postMessage(opts: {
         message: IPublishPayload;
         transferList: readonly Transferable[] | undefined;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
 }
 ```
 
@@ -992,21 +994,21 @@ export declare class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<
     /** User handlers run inside worker listeners; a sync throw there is uncaught and kills the process, so wrap it - fireAndForget alone can't catch a throw evaluated before it's called. */
     protected invokeHook(opts: {
         scope: string;
-        execution: () => ValueOrPromise<void>;
+        execution: () => TValueOrPromise<void>;
     }): void;
-    onOnline(): ValueOrPromise<void>;
+    onOnline(): TValueOrPromise<void>;
     onExit(opts: {
         code: string | number;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     onError(opts: {
         error: Error;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     onMessage(opts: {
         message: MessageType;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     onMessageError(opts: {
         error: Error;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     binding(): void;
 }
 ```
@@ -1025,14 +1027,14 @@ export declare class BaseWorkerMessageBusHandlerHelper<IConsumePayload> extends 
         scope: string;
         onMessage: (opts: {
             message: IConsumePayload;
-        }) => ValueOrPromise<void>;
-        onClose?: () => ValueOrPromise<void>;
+        }) => TValueOrPromise<void>;
+        onClose?: () => TValueOrPromise<void>;
         onError?: (opts: {
             error: Error;
-        }) => ValueOrPromise<void>;
+        }) => TValueOrPromise<void>;
         onExit?: (opts: {
             exitCode: number | string;
-        }) => ValueOrPromise<void>;
+        }) => TValueOrPromise<void>;
     });
 }
 ```

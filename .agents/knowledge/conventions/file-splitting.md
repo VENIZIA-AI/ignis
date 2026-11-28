@@ -43,7 +43,7 @@ several topics stacked:
 | helpers `tree/common/types.ts` | one walker API |
 | kernel `base/repositories/common/constants.ts` | const families, spec ruling |
 
-`split-report` still counts six of these seven as hub candidates (inversion `common/types.ts` fell to ten exports once `isClass` moved to `common/utilities.ts`) - that count is expected, not a defect.
+`split-report` still counts six of these seven as hub candidates (inversion `common/types.ts` fell to ten exports once the class guard moved to `common/utilities.ts`) - that count is expected, not a defect.
 
 There is no hard cap and no lint rule. A cap produces files that satisfy the cap.
 

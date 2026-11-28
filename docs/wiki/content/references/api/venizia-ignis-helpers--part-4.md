@@ -9,32 +9,6 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 Part 4 of 4 of [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers).
 
-## `RedisDefaults`
-
-*class*
-
-Reconnect defaults of a Redis helper.
-
-```ts
-export declare class RedisDefaults {
-    /** The port of a data node when none is given. */
-    static readonly PORT = 6379;
-    /** Reconnect attempts before the helper gives up: `0` never reconnects, `RETRY_FOREVER` never stops. */
-    static readonly MAX_RETRY = 5;
-    static readonly RETRY_FOREVER = -1;
-    /** The wait before reconnect attempt N, computed by `RetryUtility.computeBackoffDelayMs`. */
-    static readonly RECONNECT_BACKOFF: {
-        strategy: "exponential";
-        initialDelayMs: number;
-        multiplier: number;
-        maxDelayMs: number;
-        jitter: "equal";
-    };
-}
-```
-
-Source: `packages/helpers/src/modules/redis/common/constants.ts`
-
 ## `RedisHelperFactory`
 
 *class*
@@ -825,7 +799,7 @@ Source: `packages/helpers/src/modules/secrets/common/constants.ts`
 Callback run when a leased secret is renewed with new values; may be async.
 
 ```ts
-export type TSecretRotationHandler = (event: ISecretRotationEvent) => ValueOrPromise<void>;
+export type TSecretRotationHandler = (event: ISecretRotationEvent) => TValueOrPromise<void>;
 ```
 
 Source: `packages/helpers/src/modules/secrets/common/types/lease.ts`
@@ -921,7 +895,7 @@ Source: `packages/helpers/src/modules/secrets/common/constants.ts`
 Verifies the data a client sends to authenticate. Resolves `{ userId, metadata }` to accept, or `null` or `false` to reject.
 
 ```ts
-export type TWebSocketAuthenticateFn<AuthDataType extends Record<string, unknown> = Record<string, unknown>, MetadataType extends Record<string, unknown> = Record<string, unknown>> = (opts: AuthDataType) => ValueOrPromise<{
+export type TWebSocketAuthenticateFn<AuthDataType extends Record<string, unknown> = Record<string, unknown>, MetadataType extends Record<string, unknown> = Record<string, unknown>> = (opts: AuthDataType) => TValueOrPromise<{
     userId?: string;
     metadata?: MetadataType;
 } | null | false>;
@@ -952,7 +926,7 @@ export type TWebSocketClientConnectedFn<MetadataType extends Record<string, unkn
     clientId: string;
     userId?: string;
     metadata?: MetadataType;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 ```
 
 Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
@@ -967,7 +941,7 @@ Called after a client has disconnected.
 export type TWebSocketClientDisconnectedFn = (opts: {
     clientId: string;
     userId?: string;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 ```
 
 Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
@@ -1007,7 +981,7 @@ export type TWebSocketHandshakeFn<AuthDataType extends Record<string, unknown> =
     clientId: string;
     userId?: string;
     data: AuthDataType;
-}) => ValueOrPromise<{
+}) => TValueOrPromise<{
     serverPublicKey: string;
     salt: string;
 } | null | false>;
@@ -1026,7 +1000,7 @@ export type TWebSocketMessageHandler = (opts: {
     clientId: string;
     userId?: string;
     message: IWebSocketMessage;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 ```
 
 Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
@@ -1054,7 +1028,7 @@ export type TWebSocketOutboundTransformer<DataType = unknown, MetadataType exten
     client: IWebSocketClient<MetadataType>;
     event: string;
     data: DataType;
-}) => ValueOrPromise<TNullable<{
+}) => TValueOrPromise<TNullable<{
     event: string;
     data: DataType;
 }>>;
@@ -1085,7 +1059,7 @@ export type TWebSocketValidateRoomFn = (opts: {
     clientId: string;
     userId?: string;
     rooms: string[];
-}) => ValueOrPromise<string[]>;
+}) => TValueOrPromise<string[]>;
 ```
 
 Source: `packages/helpers/src/modules/socket/websocket/common/types/hooks.ts`
@@ -1393,7 +1367,7 @@ export declare class WebSocketServerHelper<AuthDataType extends Record<string, u
     /** Hooks run inside Bun socket handlers - a sync throw there kills the process; fireAndForget only catches promise rejections since its argument is evaluated before the try/catch runs. */
     protected invokeHook(opts: {
         scope: string;
-        execution: () => ValueOrPromise<void>;
+        execution: () => TValueOrPromise<void>;
     }): void;
     configure(): Promise<void>;
     private setupRedisSubscriptions;

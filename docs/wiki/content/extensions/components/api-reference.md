@@ -31,10 +31,10 @@ Register the component - no configuration required. The docs UI comes up at `<ap
 
 ```typescript
 // src/application.ts
-import { ApiReferenceComponent, BaseApplication, ValueOrPromise } from '@venizia/ignis';
+import { ApiReferenceComponent, BaseApplication, TValueOrPromise } from '@venizia/ignis';
 
 export class Application extends BaseApplication {
-  preConfigure(): ValueOrPromise<void> {
+  preConfigure(): TValueOrPromise<void> {
     this.component(ApiReferenceComponent);
   }
 }
@@ -45,7 +45,7 @@ Define routes with Zod schemas so they show up in the generated spec:
 ```typescript
 // src/controllers/hello.controller.ts
 import { z } from '@hono/zod-openapi';
-import { BaseRestController, controller, OpenApiResponses, ValueOrPromise } from '@venizia/ignis';
+import { BaseRestController, controller, OpenApiResponses, TValueOrPromise } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 @controller({ path: '/hello' })
@@ -54,7 +54,7 @@ export class HelloController extends BaseRestController {
     super({ scope: HelloController.name, path: '/hello' });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.defineRoute({
       configs: {
         path: '/',

@@ -1,7 +1,7 @@
 import type { TScopeResolution } from './scope-resolution';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { datasource, model, type TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { afterAll, beforeAll } from 'bun:test';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
@@ -63,7 +63,7 @@ class JsonScopeSqliteDataSource extends BaseSqliteDataSource<
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 }
 
 let client: Client;

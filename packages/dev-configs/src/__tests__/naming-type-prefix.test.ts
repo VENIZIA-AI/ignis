@@ -13,8 +13,6 @@ describe('NamingConventionRule: type aliases and interfaces', () => {
     'type T2fa = string;',
     'type UserType = string;',
     'interface IUser {}',
-    'type ValueOrPromise<TValue> = TValue;',
-    'type ValueOf<TValue> = TValue;',
     'type ValueOptional<TValue> = TValue;',
     'type ValueOptionalExcept<TValue> = TValue;',
     'type PGliteCRUDRepository = object;',
@@ -28,6 +26,8 @@ describe('NamingConventionRule: type aliases and interfaces', () => {
 
   test.each([
     ['type User = string;', 'User'],
+    ['type ValueOrPromise<TValue> = TValue;', 'ValueOrPromise'],
+    ['type ValueOf<TValue> = TValue;', 'ValueOf'],
     ['type IUser = string;', 'IUser'],
     ['type Table = string;', 'Table'],
     ['type userType = string;', 'userType'],

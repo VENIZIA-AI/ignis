@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/relational, from the bui
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-82 exports, 82 with TSDoc.
+81 exports, 81 with TSDoc.
 
 The declarations are on 3 pages; each export below links to its own.
 
@@ -114,10 +114,6 @@ The declarations are on 3 pages; each export below links to its own.
 ## `ISelectOptions`
 
 *interface* - [Declaration](/references/api/venizia-ignis-connectors-relational--part-1#iselectoptions)
-
-## `isRelationalTransaction`
-
-*const* - [Declaration](/references/api/venizia-ignis-connectors-relational--part-1#isrelationaltransaction)
 
 ## `IStatementResult`
 

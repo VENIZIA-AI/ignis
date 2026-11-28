@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
-import type { ApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import type { ISearchQueryDialect } from '@/search/core/repositories/common';
 import { MeilisearchQueryDialect } from '@/search/meilisearch/repositories/dialect/query-dialect';
 import { TypesenseQueryDialect } from '@/search/typesense/repositories/dialect/query-dialect';
@@ -20,7 +19,7 @@ const captureError = (task: () => unknown): ApplicationError => {
   try {
     task();
   } catch (error) {
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       return error;
     }
 

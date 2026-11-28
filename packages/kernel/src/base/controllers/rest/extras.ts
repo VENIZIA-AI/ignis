@@ -1,4 +1,4 @@
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 
@@ -10,11 +10,11 @@ import { getError } from '@venizia/ignis-helpers/core';
  *   `compute` receives exactly those, so one aggregate pass serves them all.
  */
 export type TResponseExtra =
-  | (() => ValueOrPromise<unknown>)
-  | { isDefault: boolean; compute: () => ValueOrPromise<unknown>; keys?: never }
+  | (() => TValueOrPromise<unknown>)
+  | { isDefault: boolean; compute: () => TValueOrPromise<unknown>; keys?: never }
   | {
       keys: ReadonlyArray<string>;
-      compute: (opts: { keys: Array<string> }) => ValueOrPromise<unknown>;
+      compute: (opts: { keys: Array<string> }) => TValueOrPromise<unknown>;
       isDefault?: never;
     };
 

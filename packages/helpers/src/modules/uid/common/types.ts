@@ -1,4 +1,4 @@
-import type { ValueOrPromise } from '@/common/types';
+import type { TValueOrPromise } from '@/common/types';
 import type { TUidCaseForm, TUidTokenEncoding } from './constants';
 
 /**
@@ -56,7 +56,7 @@ export interface IOpaqueUidOptions {
  * `OpaqueUidHelper.nextId`.
  */
 export interface INextOpaqueUidOptions<
-  TVerdict extends ValueOrPromise<boolean> = ValueOrPromise<boolean>,
+  TVerdict extends TValueOrPromise<boolean> = TValueOrPromise<boolean>,
 > {
   /** Replaces the configured prefix for this call and turns it on. An empty string is refused - that is what the toggle is for. */
   prefix?: string;

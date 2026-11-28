@@ -282,7 +282,7 @@ export type TRpcHandler<RequestType = unknown, ResponseType = unknown, RouteEnv 
     request: RequestType;
     context: TRouteContext<RouteEnv>;
     rpc: HandlerContext;
-}) => ValueOrPromise<ResponseType>;
+}) => TValueOrPromise<ResponseType>;
 ```
 
 Source: `packages/core-server/src/base/controllers/grpc/common/types.ts`
@@ -294,7 +294,7 @@ Source: `packages/core-server/src/base/controllers/grpc/common/types.ts`
 Pre-built middleware function for gRPC auth enforcement.
 
 ```ts
-export type TRpcMiddleware<RouteEnv extends Env = Env> = (context: TRouteContext<RouteEnv>, next: Next) => ValueOrPromise<void | Response>;
+export type TRpcMiddleware<RouteEnv extends Env = Env> = (context: TRouteContext<RouteEnv>, next: Next) => TValueOrPromise<void | Response>;
 ```
 
 Source: `packages/core-server/src/base/controllers/grpc/common/types.ts`

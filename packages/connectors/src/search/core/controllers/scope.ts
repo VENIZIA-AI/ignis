@@ -1,5 +1,5 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { ScopeFilters } from '@venizia/ignis-kernel';
 import type { TInjected, TInjectMap, TRouteContext, TWhere } from '@venizia/ignis-kernel';
@@ -23,7 +23,7 @@ export type TSearchScopeResolver<
   input: TSearchInput & TExtra;
   /** The instances of the classes `inject` declares. */
   injected: TInjected<Inject>;
-}) => ValueOrPromise<TNullable<TWhere | typeof ScopeFilters.UNRESTRICTED>>;
+}) => TValueOrPromise<TNullable<TWhere | typeof ScopeFilters.UNRESTRICTED>>;
 
 export class SearchControllerScope {
   private static refuse(opts: { statusCode: number; message: string; cause?: unknown }) {

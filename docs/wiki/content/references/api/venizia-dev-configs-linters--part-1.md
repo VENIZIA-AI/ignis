@@ -850,7 +850,7 @@ Source: `packages/dev-configs/src/linters/house/no-return-await.rule.ts`
 *class*
 
 `@venizia/no-shadow-framework-type`. A type alias or interface written in your project under the name a `@venizia/*`
-package already exports (`ValueOrPromise`, `TNullable`, `TConstValue`) is a copy of the framework's: import it.
+package already exports (`TValueOrPromise`, `TNullable`, `TConstValue`) is a copy of the framework's: import it.
 
 The names come from the installed packages' `.d.ts` files (see `FrameworkExports`), for the packages your nearest
 `package.json` depends on. Not reported: a name the file imports, a name shorter than `minLength` (default 4, so a

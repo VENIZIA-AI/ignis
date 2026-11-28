@@ -14,7 +14,7 @@ import {
 } from '@/testing';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
+import { getError, ApplicationError } from '@venizia/ignis-helpers/core';
 import { afterAll, beforeAll, describe, expect, spyOn, test } from 'bun:test';
 import {
   PostgresTransactionRepository,
@@ -130,7 +130,7 @@ describe('TransactionDouble', () => {
       caught = error;
     }
 
-    expect(isApplicationError(caught)).toBe(true);
+    expect(ApplicationError.isApplicationError(caught)).toBe(true);
     expect(caught).toMatchObject({ message: CONNECTOR_UNAVAILABLE });
   });
 

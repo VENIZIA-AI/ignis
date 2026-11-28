@@ -304,6 +304,7 @@ describe('devz codemod --list and --reverse', () => {
         'async-context',
         'function-to-arrow',
         'typed-route-context',
+        'public-names',
       ].join('\n'),
     ]);
     expect(errors).toEqual([]);

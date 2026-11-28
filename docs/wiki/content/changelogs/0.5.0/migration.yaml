@@ -1569,6 +1569,29 @@ execution-class:
       - "Run bun node_modules/.bin/devz codemod execution-class [paths...] --reverse --write, then pin the @venizia packages to the release before this one."
   data: Nothing stored changes.
 
+public-type-names:
+  symbols: [TValueOf, TValueOrPromise, TClass, TAbstractClass, ResolverUtility.isClass, Binding.isClassProvider, ApplicationError.isApplicationError, Execution.isPromiseLike, AbstractRedisHelper.isRedisHelper, DataSourceRoot.isDataSourceClass, AbstractRelationalDataSource.isRelationalTransaction, AbstractPostgresDataSource.isDatabaseTransaction]
+  upgrade:
+    before: |-
+      import { isPromiseLike, type TConstructor, type ValueOrPromise } from '@venizia/ignis-helpers';
+
+      const build = (target: TConstructor<object>, result: ValueOrPromise<object>) =>
+        isPromiseLike(result) ? result : target;
+    after: |-
+      import { Execution, type TClass, type TValueOrPromise } from '@venizia/ignis-helpers';
+
+      const build = (target: TClass<object>, result: TValueOrPromise<object>) =>
+        Execution.isPromiseLike(result) ? result : target;
+    steps:
+      - "Run bun node_modules/.bin/devz codemod public-names [paths...] --write: it renames the imported types and their uses, keeps your aliases, and moves each guard call to its class."
+      - "Change by hand what it lists: a guard used as a value (passed to filter, in typeof), a re-export or a type-only import of a guard, and a type whose name is declared again in the same file."
+      - "Run your typecheck: the codemod does not read .js files or import('pkg').Name, does not follow a name through a barrel of your own, and a re-export of an old type name now exports the new name."
+      - "Rename a type of your own called ValueOf or ValueOrPromise if your lint now reports it."
+  downgrade:
+    steps:
+      - "Pin the @venizia packages to the release before this one and restore the old names from version control: the codemod has no --reverse, because TConstructor and TClass became one name."
+  data: Nothing stored changes.
+
 execution-frames:
   symbols: [Execution, ExecutionRunner, useRequestContext, RequestContextRegistry, ScopeFilterUtility]
   upgrade:

@@ -1,7 +1,7 @@
 import { ObjectUtility } from '@venizia/ignis-inversion';
 import { RedactUtility } from '@/common/redact';
 import { BaseHelper } from '@/modules/base';
-import { type ValueOrPromise } from '@/common';
+import { type TValueOrPromise } from '@/common';
 import {
   type TcpSocketConnectOpts as PlainConnectionOptions,
   type Socket as PlainSocketClient,
@@ -41,8 +41,8 @@ export interface INetworkTcpClientProps<
     connectionListener?: () => void,
   ) => SocketClientType;
 
-  onConnected?: (opts: { client: SocketClientType }) => ValueOrPromise<void>;
-  onData?: (opts: { identifier: string; message: string | Buffer }) => ValueOrPromise<void>;
+  onConnected?: (opts: { client: SocketClientType }) => TValueOrPromise<void>;
+  onData?: (opts: { identifier: string; message: string | Buffer }) => TValueOrPromise<void>;
   onClosed?: (opts: { client: SocketClientType }) => void;
   onError?: (error: unknown) => void;
 }

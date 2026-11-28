@@ -309,7 +309,7 @@ DataSources automatically discover their schema from the repositories that bind 
 
 ```typescript
 // src/datasources/postgres.datasource.ts
-import { datasource, ValueOrPromise } from '@venizia/ignis';
+import { datasource, TValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
@@ -332,7 +332,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     });
   }
 
-  override configure(): ValueOrPromise<void> {
+  override configure(): TValueOrPromise<void> {
     // getSchema() automatically collects all schemas from bound repositories
     this.logger.debug('[configure] Auto-discovered schema | Keys: %o', Object.keys(this.getSchema()));
 
@@ -341,7 +341,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     this.client = new Pool(this.settings);
   }
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     const { host, port, user, password, database } = this.settings;
     return `postgresql://${user}:${password}@${host}:${port}/${database}`;
   }

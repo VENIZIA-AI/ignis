@@ -46,7 +46,7 @@ export class FrameworkApiPatterns {
         selector: "BinaryExpression[operator='instanceof'][right.name='ApplicationError']",
       },
       message:
-        "Use `isApplicationError(error)`, not `instanceof ApplicationError`, which fails across two installed copies: `import { isApplicationError } from '@venizia/ignis-helpers/core';`",
+        "Use `ApplicationError.isApplicationError(error)`, not `instanceof ApplicationError`, which fails across two installed copies: `import { ApplicationError } from '@venizia/ignis-helpers/core';`",
       dependsOn: '@venizia/ignis',
       owner: '@venizia/ignis-inversion',
     },

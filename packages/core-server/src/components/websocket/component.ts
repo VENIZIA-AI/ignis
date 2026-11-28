@@ -4,9 +4,9 @@ import { inject } from '@/base/metadata';
 import { CoreBindings } from '@venizia/ignis-kernel';
 import { Binding } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
-import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type TValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
-  isRedisHelper,
+  AbstractRedisHelper,
   type TWebSocketAuthOptions,
   type TWebSocketValidateRoomFn,
   WebSocketDefaults,
@@ -89,7 +89,7 @@ export class WebSocketComponent extends BaseComponent {
       key: WebSocketBindingKeys.REDIS_CONNECTION,
     });
 
-    if (!isRedisHelper(redisConnection)) {
+    if (!AbstractRedisHelper.isRedisHelper(redisConnection)) {
       throw getError({
         message:
           '[WebSocketComponent][resolveBindings] Invalid instance of redisConnection | Please init connection with RedisSingleHelper (single), RedisClusterHelper (cluster), or RedisSentinelHelper (sentinel)!',
@@ -214,7 +214,7 @@ export class WebSocketComponent extends BaseComponent {
     });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     const logger = this.logger.for(this.binding.name);
 
     if (!this.application) {

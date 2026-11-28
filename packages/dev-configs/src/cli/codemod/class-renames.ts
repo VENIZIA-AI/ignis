@@ -97,6 +97,8 @@ export interface IClassRenamesResult {
   changed: boolean;
   /** How many identifiers were renamed. */
   rewritten: number;
+  /** The imports left for a person: their name is declared again further down the file. */
+  manual: ICodemodRewrite['manual'];
 }
 
 /** What a codemod did to one file. */
@@ -171,32 +173,44 @@ export class ClassRenames {
       : undefined;
   }
 
-  /** Whether the file declares or imports a name that a renamed import would collide with. */
-  private static declares(opts: {
+  /** The first declaration of `name` in the file, an import included; `except` is a name that does not count. */
+  private static findDeclaration(opts: {
     typescript: typeof import('typescript');
     file: import('typescript').SourceFile;
     name: string;
-  }): boolean {
-    const { typescript: ts, file, name } = opts;
-    let isDeclared = false;
+    except?: import('typescript').Node;
+    /** Only the declarations that name a type: a type alias, an interface, a type parameter, a class, an enum. */
+    isTypeOnly?: boolean;
+  }): import('typescript').Node | undefined {
+    const { typescript: ts, file, name, except, isTypeOnly = false } = opts;
+    let declaration: import('typescript').Node | undefined;
 
     const walk = (node: import('typescript').Node): void => {
-      const isDeclaration =
+      const isTypeDeclaration =
+        ts.isClassDeclaration(node) ||
+        ts.isInterfaceDeclaration(node) ||
+        ts.isTypeAliasDeclaration(node) ||
+        ts.isTypeParameterDeclaration(node) ||
+        ts.isEnumDeclaration(node);
+      const isValueDeclaration =
         ts.isVariableDeclaration(node) ||
         ts.isBindingElement(node) ||
         ts.isParameter(node) ||
         ts.isFunctionDeclaration(node) ||
-        ts.isClassDeclaration(node) ||
-        ts.isInterfaceDeclaration(node) ||
-        ts.isTypeAliasDeclaration(node) ||
-        ts.isEnumDeclaration(node) ||
         ts.isImportClause(node) ||
         ts.isImportSpecifier(node) ||
         ts.isNamespaceImport(node) ||
         ts.isImportEqualsDeclaration(node);
+      const isDeclaration = isTypeDeclaration || (!isTypeOnly && isValueDeclaration);
 
-      if (isDeclaration && node.name && ts.isIdentifier(node.name) && node.name.text === name) {
-        isDeclared = true;
+      if (
+        isDeclaration &&
+        node.name &&
+        node.name !== except &&
+        ts.isIdentifier(node.name) &&
+        node.name.text === name
+      ) {
+        declaration ??= node;
       }
 
       ts.forEachChild(node, walk);
@@ -204,7 +218,70 @@ export class ClassRenames {
 
     walk(file);
 
-    return isDeclared;
+    return declaration;
+  }
+
+  /** Whether an import of one of the row's packages already brings in the new name, under that name. */
+  private static importsNewName(opts: {
+    typescript: typeof import('typescript');
+    file: import('typescript').SourceFile;
+    row: IClassRename;
+  }): boolean {
+    const { typescript: ts, file, row } = opts;
+
+    return file.statements.some((statement) => {
+      if (
+        !ts.isImportDeclaration(statement) ||
+        !ts.isStringLiteralLike(statement.moduleSpecifier) ||
+        !ClassRenames.owns({ row, specifier: statement.moduleSpecifier.text })
+      ) {
+        return false;
+      }
+
+      const bindings = statement.importClause?.namedBindings;
+
+      return (
+        bindings !== undefined &&
+        ts.isNamedImports(bindings) &&
+        bindings.elements.some(
+          (element) => !element.propertyName && element.name.text === row.newName,
+        )
+      );
+    });
+  }
+
+  private static owns(opts: { row: IClassRename; specifier: string }): boolean {
+    const { row, specifier } = opts;
+
+    return row.packages.some((name) => specifier === name || specifier.startsWith(`${name}/`));
+  }
+
+  /** The edit that drops one name from the braces of an import; a left-empty import goes whole. */
+  private static planRemoval(opts: {
+    file: import('typescript').SourceFile;
+    declaration: import('typescript').ImportDeclaration;
+    elements: ReadonlyArray<import('typescript').ImportSpecifier>;
+    element: import('typescript').ImportSpecifier;
+    removed: ReadonlySet<import('typescript').ImportSpecifier>;
+  }): { start: number; end: number; text: string } {
+    const { file, declaration, elements, element, removed } = opts;
+    const index = elements.indexOf(element);
+    const next = elements[index + 1];
+
+    if (elements.slice(index + 1).some((candidate) => !removed.has(candidate)) && next) {
+      return { start: element.getStart(file), end: next.getStart(file), text: '' };
+    }
+
+    const kept = elements.slice(0, index).filter((candidate) => !removed.has(candidate));
+    const previous = kept[kept.length - 1];
+
+    if (previous) {
+      return { start: previous.end, end: element.end, text: '' };
+    }
+
+    const newline = /^\r?\n/.exec(file.text.slice(declaration.end))?.[0] ?? '';
+
+    return { start: declaration.getStart(file), end: declaration.end + newline.length, text: '' };
   }
 
   static rewrite(opts: {
@@ -225,9 +302,8 @@ export class ClassRenames {
     const edits = new Map<number, { start: number; end: number; text: string }>();
 
     const rowsOf = (specifier: string): ReadonlyArray<IClassRename> =>
-      rows.filter((row) =>
-        row.packages.some((name) => specifier === name || specifier.startsWith(`${name}/`)),
-      );
+      rows.filter((row) => ClassRenames.owns({ row, specifier }));
+    const manual: ICodemodRewrite['manual'] = [];
 
     const rename = (node: import('typescript').Node, row: IClassRename, text = row.newName) => {
       const start = node.getStart(file);
@@ -264,6 +340,9 @@ export class ClassRenames {
             continue;
           }
 
+          /** The specifiers dropped because the new name is imported already. */
+          const removed = new Set<import('typescript').ImportSpecifier>();
+
           for (const element of bindings.elements) {
             const imported = element.propertyName ?? element.name;
             const row = owned.find((entry) => entry.oldName === imported.text);
@@ -279,10 +358,46 @@ export class ClassRenames {
               continue;
             }
 
-            const isTaken = ClassRenames.declares({ typescript: ts, file, name: row.newName });
+            const shadow = ClassRenames.findDeclaration({
+              typescript: ts,
+              file,
+              name: row.oldName,
+              except: element.name,
+              isTypeOnly: true,
+            });
+
+            if (shadow) {
+              const { line } = file.getLineAndCharacterOfPosition(shadow.getStart(file));
+              manual.push({
+                line: line + 1,
+                note: `\`${row.oldName}\` is declared again here, so its uses cannot be told apart from the import: rename the import and its uses to ${row.newName} by hand`,
+              });
+              continue;
+            }
+
+            if (ClassRenames.importsNewName({ typescript: ts, file, row })) {
+              removed.add(element);
+              locals.set(element.name.text, row);
+              continue;
+            }
+
+            const isTaken =
+              ClassRenames.findDeclaration({ typescript: ts, file, name: row.newName }) !==
+              undefined;
             const local = isTaken ? `${ALIAS_PREFIX}${row.newName}` : row.newName;
             rename(imported, row, isTaken ? `${row.newName} as ${local}` : row.newName);
             locals.set(element.name.text, { ...row, newName: local });
+          }
+
+          for (const element of removed) {
+            const edit = ClassRenames.planRemoval({
+              file,
+              declaration: statement,
+              elements: bindings.elements,
+              element,
+              removed,
+            });
+            edits.set(edit.start, edit);
           }
         } else if (statement.exportClause && ts.isNamedExports(statement.exportClause)) {
           for (const element of statement.exportClause.elements) {
@@ -298,7 +413,7 @@ export class ClassRenames {
     }
 
     if (locals.size === 0 && namespaces.size === 0 && edits.size === 0) {
-      return { output: source, changed: false, rewritten: 0 };
+      return { output: source, changed: false, rewritten: 0, manual };
     }
 
     /** An identifier that names a property, member or attribute, not the class. */
@@ -400,7 +515,7 @@ export class ClassRenames {
       output = output.slice(0, edit.start) + edit.text + output.slice(edit.end);
     }
 
-    return { output, changed: output !== source, rewritten: edits.size };
+    return { output, changed: output !== source, rewritten: edits.size, manual };
   }
 }
 
@@ -425,7 +540,7 @@ export class ClassRenamesCommand {
       usage,
       isReversible: true,
       marks: ({ reverse }) => rows.map((row) => (reverse ? row.newName : row.oldName)),
-      rewrite: (input) => ({ ...ClassRenames.rewrite({ ...input, rows }), manual: [] }),
+      rewrite: (input) => ClassRenames.rewrite({ ...input, rows }),
     };
   }
 

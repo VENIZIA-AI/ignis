@@ -1,4 +1,4 @@
-import { type TConstValue, type ValueOrPromise } from '@/common/types';
+import { type TConstValue, type TValueOrPromise } from '@/common/types';
 import { type IncomingHttpHeaders } from 'node:http';
 import { type ParsedUrlQuery } from 'node:querystring';
 import type { Socket as IOSocket } from 'socket.io';
@@ -47,9 +47,9 @@ export interface ISocketIOClientOptions {
   /** `socket.io-client` itself, for a `bun build --compile` binary that has no `node_modules` to load it from. Omitted, it is loaded on `configure()`. */
   module?: typeof import('socket.io-client');
 
-  onConnected?: () => ValueOrPromise<void>;
-  onDisconnected?: (reason: string) => ValueOrPromise<void>;
-  onError?: (error: Error) => ValueOrPromise<void>;
-  onAuthenticated?: () => ValueOrPromise<void>;
-  onUnauthenticated?: (message: string) => ValueOrPromise<void>;
+  onConnected?: () => TValueOrPromise<void>;
+  onDisconnected?: (reason: string) => TValueOrPromise<void>;
+  onError?: (error: Error) => TValueOrPromise<void>;
+  onAuthenticated?: () => TValueOrPromise<void>;
+  onUnauthenticated?: (message: string) => TValueOrPromise<void>;
 }

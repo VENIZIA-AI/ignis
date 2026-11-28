@@ -416,7 +416,7 @@ Queues verification mails and runs them through the processor registered with `s
 ```ts
 export interface IMailQueueExecutor {
     enqueueVerificationEmail(email: string, options?: IMailQueueOptions): Promise<IMailQueueResult>;
-    setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): ValueOrPromise<void>;
+    setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): TValueOrPromise<void>;
     /** Releases what the executor holds: timers, workers, the queue. The application stop hook calls it. */
     close?(): Promise<void>;
 }

@@ -1,8 +1,8 @@
 import type { TScopeResolution } from './scope-resolution';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { TClass, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import type { TClass, TNullable, TValueOrPromise } from '@venizia/ignis-helpers/common';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import {
   datasource,
   model,
@@ -113,7 +113,7 @@ class ResolveSqliteDataSource extends BaseSqliteDataSource<
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 }
 
 let client: Client;
@@ -135,7 +135,7 @@ const NOT_SUPPORTED_CODE = 'core.not_supported';
 
 /** The normalized code of an application error, or `undefined` for anything else. */
 const errorCode = (error: unknown): string | undefined => {
-  return isApplicationError(error) ? error.normalized.code : undefined;
+  return ApplicationError.isApplicationError(error) ? error.normalized.code : undefined;
 };
 
 beforeAll(async () => {
@@ -207,7 +207,7 @@ const refusal = async (task: Promise<unknown>) => {
   try {
     await task;
   } catch (error) {
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       return error;
     }
 

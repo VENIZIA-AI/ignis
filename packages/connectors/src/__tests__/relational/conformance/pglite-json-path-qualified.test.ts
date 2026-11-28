@@ -10,7 +10,7 @@ import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
 import type { IDatabaseExtraOptions } from '@/relational/postgres/repositories/common';
 import { PostgresFilterBuilder } from '@/relational/postgres/repositories/dialect/filter';
 import { PGlite } from '@electric-sql/pglite';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import type { SQL } from 'drizzle-orm';
 import { eq } from 'drizzle-orm';
@@ -99,9 +99,9 @@ class JsonPathDataSource extends BasePostgresDataSource<{}, {}, {}, PGlite> {
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return 'pglite://memory';
   }
 

@@ -230,7 +230,7 @@ export class UserController extends BaseRestController {
       return context.json(user, HTTP.ResultCodes.RS_2.Created);
     } catch (error) {
       // Format error for API response - the code is always lower-cased by ApplicationError
-      if (isApplicationError(error) && error.normalized.code === 'app.user.duplicate_email') {
+      if (ApplicationError.isApplicationError(error) && error.normalized.code === 'app.user.duplicate_email') {
         return context.json({ error: 'Email already exists' }, HTTP.ResultCodes.RS_4.BadRequest);
       }
       throw error; // Let global handler catch unknown errors

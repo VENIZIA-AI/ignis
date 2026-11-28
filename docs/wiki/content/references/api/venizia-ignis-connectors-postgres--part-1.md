@@ -21,6 +21,11 @@ supplies it.
 export declare abstract class AbstractPostgresDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = Pool> extends BaseRelationalDataSource<Settings, Schema, ConfigurableOptions, Client, TRelationalConnector<Schema>> {
     private static queryDialect?;
     private static queryExecutor?;
+    /**
+     * Narrows the neutral `ITransaction` to the Postgres handle before accessing `.connector`. The runtime check is
+     * the neutral guard's; only the narrowed type differs. A type guard, so it keeps its positional `transaction`.
+     */
+    static isDatabaseTransaction(transaction: ITransaction | undefined): transaction is IDatabaseTransaction;
     getQueryDialect(): IRelationalQueryDialect;
     getQueryExecutor(): IRelationalQueryExecutor<TRelationalConnector<Schema>>;
 }
@@ -294,19 +299,6 @@ export interface IPostgresDataSource<Settings extends object = {}, Schema extend
 ```
 
 Source: `packages/connectors/src/relational/postgres/datasources/common/types.ts`
-
-## `isDatabaseTransaction`
-
-*const*
-
-Narrows the neutral `ITransaction` to the Postgres handle before accessing `.connector`. The
-runtime check is the neutral guard's; only the narrowed type differs.
-
-```ts
-export declare const isDatabaseTransaction: (transaction: ITransaction | undefined) => transaction is IDatabaseTransaction;
-```
-
-Source: `packages/connectors/src/relational/postgres/datasources/common/guards.ts`
 
 ## `IsolationLevels`
 

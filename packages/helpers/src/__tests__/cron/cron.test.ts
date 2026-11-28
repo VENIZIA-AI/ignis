@@ -1,7 +1,7 @@
 /** CronHelper Test Suite */
 
 import { CronHelper, type ICronHelperOptions } from '@/modules/cron';
-import { isApplicationError } from '@/modules/error';
+import { ApplicationError } from '@/modules/error';
 import { afterEach, describe, expect, mock, test } from 'bun:test';
 
 const EVERY_SECOND = '* * * * * *';
@@ -45,7 +45,7 @@ describe('CronHelper | configure', () => {
     }
 
     expect(thrown).toBeDefined();
-    expect(isApplicationError(thrown)).toBe(true);
+    expect(ApplicationError.isApplicationError(thrown)).toBe(true);
     expect((thrown as Error).message).toContain('not-a-cron-expression');
   });
 
@@ -211,7 +211,7 @@ describe('CronHelper | modifyCronTime', () => {
       thrown = error;
     }
 
-    expect(isApplicationError(thrown)).toBe(true);
+    expect(ApplicationError.isApplicationError(thrown)).toBe(true);
     expect(helper.instance.cronTime.source).toBe(EVERY_MINUTE);
     expect(helper.instance.isActive).toBe(true);
   });

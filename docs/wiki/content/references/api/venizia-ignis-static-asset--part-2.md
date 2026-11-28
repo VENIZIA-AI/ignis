@@ -20,7 +20,7 @@ export declare class StaticAssetControllerFactory {
     /** Resolves the entry, then builds its controller. */
     static build<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema>(opts: IStaticAssetControllerOptions<Schema>): {
         new (): {
-            binding(): ValueOrPromise<void>;
+            binding(): TValueOrPromise<void>;
             measure<R>(opts: {
                 scope: string;
                 args: unknown;
@@ -78,7 +78,7 @@ export declare class StaticAssetControllerFactory {
                 };
                 range?: import("@venizia/ignis-kernel").TDataRange;
                 extra?: Record<string, import("@venizia/ignis-kernel").TResponseExtra>;
-            }): ValueOrPromise<import("@venizia/ignis-inversion").TNullable<R | {
+            }): TValueOrPromise<import("@venizia/ignis-inversion").TNullable<R | {
                 count?: number;
                 data?: import("@venizia/ignis-inversion").TNullable<R>;
                 extra?: Record<string, unknown>;
@@ -112,19 +112,19 @@ export declare class StaticAssetControllerFactory {
                 total: number;
             })): void;
             toHonoHandler<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig = import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {
-                handler: (context: import("@venizia/ignis-kernel").TContextOf<RouteConfig, import("hono").Env>) => ValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
+                handler: (context: import("@venizia/ignis-kernel").TContextOf<RouteConfig, import("hono").Env>) => TValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
             }): import("hono").Handler<import("hono").Env, string, import("hono").Input, (Response | Promise<Response>) | (import("@hono/zod-openapi").RouteConfigToTypedResponse<import("@hono/zod-openapi").RouteConfig> | Promise<import("@hono/zod-openapi").RouteConfigToTypedResponse<import("@hono/zod-openapi").RouteConfig>>)>;
             bindRoute<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
             }): import("@venizia/ignis-kernel").IBindRouteOptions<RouteConfig, import("hono").Env, {}, "/">;
             defineRoute<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
-                handler: (context: import("@venizia/ignis-kernel").TContextOf<RouteConfig, import("hono").Env>) => ValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
+                handler: (context: import("@venizia/ignis-kernel").TContextOf<RouteConfig, import("hono").Env>) => TValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
                 hook?: import("@hono/zod-openapi").Hook<any, import("hono").Env, string, any> | undefined;
             }): import("@venizia/ignis-kernel").IDefineRouteOptions<RouteConfig, import("hono").Env, {}, "/">;
             defineJSXRoute<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
-                handler: (context: import("@venizia/ignis-kernel").TContextOf<RouteConfig, import("hono").Env>) => ValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
+                handler: (context: import("@venizia/ignis-kernel").TContextOf<RouteConfig, import("hono").Env>) => TValueOrPromise<Response | import("hono").TypedResponse<unknown>>;
                 hook?: import("@hono/zod-openapi").Hook<any, import("hono").Env, string, any> | undefined;
             }): import("@venizia/ignis-kernel").IDefineRouteOptions<RouteConfig, import("hono").Env, {}, "/">;
             isConfigured: boolean;
@@ -153,7 +153,7 @@ export declare class StaticAssetControllerFactory {
             }): RouteConfig & import("@hono/zod-openapi").RouteConfig & {
                 getRoutingPath(): string;
             };
-            bindDefaultRoutes(): ValueOrPromise<void>;
+            bindDefaultRoutes(): TValueOrPromise<void>;
             scope: string;
             identifier: string;
             get logger(): import("@venizia/ignis-helpers").ILogger;
@@ -678,7 +678,7 @@ export type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLink
         fileStat: IFileStat;
         /** The caller's labels: form fields on an upload, beside the commit token on a direct one. */
         labels: TStaticAssetUploadLabels;
-    }) => ValueOrPromise<{
+    }) => TValueOrPromise<{
         count: number;
         data: TTableObject<Schema>;
     }>;

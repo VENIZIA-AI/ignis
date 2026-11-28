@@ -145,7 +145,7 @@ export declare abstract class AbstractTemporalHelper extends BaseHelper implemen
     }): Date;
     protected static notADate(opts: {
         value: unknown;
-    }): import("@venizia/ignis-inversion").ApplicationError;
+    }): ApplicationError;
     /** `toDate`, answering `null` where `toDate` refuses the value: null, undefined, bad text, NaN. */
     tryToDate(opts: {
         value: TNullable<TTemporalInput>;

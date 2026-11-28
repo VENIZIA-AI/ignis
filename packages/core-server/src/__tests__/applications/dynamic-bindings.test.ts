@@ -4,12 +4,12 @@ import { BaseApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications';
 import { BindingNamespaces, BindingKeys } from '@venizia/ignis-kernel';
 import type { Binding } from '@venizia/ignis-kernel';
-import type { IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { IConfigurable, TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { beforeEach, describe, expect, test } from 'bun:test';
 
 class BareApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'bare-app', version: '0.0.0', description: 'Dynamic binding test app' };
   }
 
@@ -39,7 +39,7 @@ class BareApplication extends BaseApplication {
 const buildConfigurable = (opts: {
   name: string;
   order: string[];
-  onConfigure?: () => ValueOrPromise<void>;
+  onConfigure?: () => TValueOrPromise<void>;
 }): IConfigurable => {
   return {
     configure: async () => {

@@ -8,7 +8,7 @@ tags: [architecture, grpc]
 
 `GrpcErrors.toAnswer` passes every error that is not a `ConnectError` to the default `AppErrorMiddleware`, once,
 which logs it and decides status and message; an application's own `onError` is not used. A 4xx answer reaches the client for an
-`ApplicationError` (`isApplicationError`), a Hono `HTTPException`, and an answer whose `normalized.code` is a
+`ApplicationError` (`ApplicationError.isApplicationError`), a Hono `HTTPException`, and an answer whose `normalized.code` is a
 `DatabaseErrorCodes` value or `CoreErrorCodes.DATABASE_CONFLICT`. The log level is the handler's own rule (see
 [Error handling flow](/architecture/error-handling-flow.md)).
 

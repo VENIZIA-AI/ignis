@@ -307,30 +307,6 @@ export interface ISecretsHelperOptions {
 
 Source: `packages/helpers/src/modules/secrets/common/types/helper.ts`
 
-## `isPromiseLike`
-
-*const*
-
-Check if a value is a promise.
-
-```ts
-export declare const isPromiseLike: <T>(value: T | PromiseLike<T>) => value is PromiseLike<T>;
-```
-
-Source: `packages/helpers/src/modules/execution/execution.ts`
-
-## `isRedisHelper`
-
-*const*
-
-Brand check, never `instanceof`: two installed copies of this package are two distinct classes, so a helper built by one is rejected by the other. `Symbol.for` is realm-keyed and survives that.
-
-```ts
-export declare const isRedisHelper: (value: unknown) => value is AbstractRedisHelper;
-```
-
-Source: `packages/helpers/src/modules/redis/base/abstract.helper.ts`
-
 ## `IStorageHelper`
 
 *interface*
@@ -515,7 +491,7 @@ export interface ITcpSocketServerOptions<SocketServerOptions extends ServerOpts 
         id: string;
         socket: SocketClientType;
         args: unknown;
-    }) => ValueOrPromise<void>>;
+    }) => TValueOrPromise<void>>;
     createServerFn: (options: Partial<SocketServerOptions>, connectionListener: (socket: SocketClientType) => void) => SocketServerType;
     onServerReady?: (opts: {
         server: SocketServerType;
@@ -840,19 +816,19 @@ A managed `Worker` and the hooks fired for its lifecycle events.
 export interface IWorker<MessageType> {
     worker: Worker;
     options: WorkerOptions;
-    onOnline(): ValueOrPromise<void>;
+    onOnline(): TValueOrPromise<void>;
     onExit(opts: {
         code: string | number;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     onError(opts: {
         error: Error;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     onMessage(opts: {
         message: MessageType;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     onMessageError(opts: {
         error: Error;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
 }
 ```
 
@@ -870,14 +846,14 @@ export interface IWorkerBus<IConsumePayload, IPublishPayload> {
     handler: IWorkerMessageBusHandler<IConsumePayload>;
     onBeforePostMessage?(opts: {
         message: IPublishPayload;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     onAfterPostMessage?(opts: {
         message: IPublishPayload;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
     postMessage(opts: {
         message: IPublishPayload;
         transferList: readonly Transferable[] | undefined;
-    }): ValueOrPromise<void>;
+    }): TValueOrPromise<void>;
 }
 ```
 
@@ -893,14 +869,14 @@ The callbacks a bus invokes for the events of its port.
 export interface IWorkerMessageBusHandler<IConsumePayload> {
     onMessage: (opts: {
         message: IConsumePayload;
-    }) => ValueOrPromise<void>;
-    onClose: () => ValueOrPromise<void>;
+    }) => TValueOrPromise<void>;
+    onClose: () => TValueOrPromise<void>;
     onError: (opts: {
         error: Error;
-    }) => ValueOrPromise<void>;
+    }) => TValueOrPromise<void>;
     onExit: (opts: {
         exitCode: number | string;
-    }) => ValueOrPromise<void>;
+    }) => TValueOrPromise<void>;
 }
 ```
 
@@ -1364,7 +1340,7 @@ interface INetworkUdpClientProps {
             groups?: Array<string>;
             interface?: string;
         };
-    }) => ValueOrPromise<void>;
+    }) => TValueOrPromise<void>;
 }
 ```
 
@@ -1413,7 +1389,7 @@ Source: `packages/helpers/src/modules/queue/internal/sequential/common/types.ts`
 
 *const*
 
-Registry symbol that marks an instance as a Redis helper; `isRedisHelper` tests for it.
+Registry symbol that marks an instance as a Redis helper; `AbstractRedisHelper.isRedisHelper` tests for it.
 
 ```ts
 export declare const REDIS_HELPER_BRAND: unique symbol;
@@ -1448,6 +1424,32 @@ Ceiling on a caller-sized fan-out over one connection; a burst larger than this 
 ```ts
 export declare class RedisConcurrency {
     static readonly PUBLISH_LIMIT = 32;
+}
+```
+
+Source: `packages/helpers/src/modules/redis/common/constants.ts`
+
+## `RedisDefaults`
+
+*class*
+
+Reconnect defaults of a Redis helper.
+
+```ts
+export declare class RedisDefaults {
+    /** The port of a data node when none is given. */
+    static readonly PORT = 6379;
+    /** Reconnect attempts before the helper gives up: `0` never reconnects, `RETRY_FOREVER` never stops. */
+    static readonly MAX_RETRY = 5;
+    static readonly RETRY_FOREVER = -1;
+    /** The wait before reconnect attempt N, computed by `RetryUtility.computeBackoffDelayMs`. */
+    static readonly RECONNECT_BACKOFF: {
+        strategy: "exponential";
+        initialDelayMs: number;
+        multiplier: number;
+        maxDelayMs: number;
+        jitter: "equal";
+    };
 }
 ```
 

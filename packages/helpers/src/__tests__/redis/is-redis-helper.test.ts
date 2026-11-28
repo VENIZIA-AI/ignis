@@ -1,13 +1,8 @@
-/** isRedisHelper - the brand check that replaced `instanceof AbstractRedisHelper` at the two component call sites. */
+/** AbstractRedisHelper.isRedisHelper - the brand check that replaced `instanceof AbstractRedisHelper` at the two component call sites. */
 
 import { describe, expect, it } from 'bun:test';
 import { EventEmitter } from 'node:events';
-import {
-  AbstractRedisHelper,
-  isRedisHelper,
-  REDIS_HELPER_BRAND,
-  type TRedisClient,
-} from '@/modules/redis';
+import { AbstractRedisHelper, REDIS_HELPER_BRAND, type TRedisClient } from '@/modules/redis';
 
 const isRedisClient = (value: unknown): value is TRedisClient => {
   return value instanceof EventEmitter;
@@ -27,9 +22,9 @@ const buildHelper = () => {
   });
 };
 
-describe('isRedisHelper', () => {
+describe('AbstractRedisHelper.isRedisHelper', () => {
   it('accepts a real helper', () => {
-    expect(isRedisHelper(buildHelper())).toBe(true);
+    expect(AbstractRedisHelper.isRedisHelper(buildHelper())).toBe(true);
   });
 
   it('accepts a helper built by a SECOND copy of this package', () => {
@@ -43,16 +38,16 @@ describe('isRedisHelper', () => {
     const foreign = new ForeignRedisHelper();
 
     expect(foreign instanceof AbstractRedisHelper).toBe(false);
-    expect(isRedisHelper(foreign)).toBe(true);
+    expect(AbstractRedisHelper.isRedisHelper(foreign)).toBe(true);
   });
 
   it('rejects anything without the brand', () => {
-    expect(isRedisHelper(null)).toBe(false);
-    expect(isRedisHelper(undefined)).toBe(false);
-    expect(isRedisHelper({})).toBe(false);
-    expect(isRedisHelper({ client: {}, name: 'looks-like-one' })).toBe(false);
-    expect(isRedisHelper('redis')).toBe(false);
-    expect(isRedisHelper(AbstractRedisHelper)).toBe(false);
+    expect(AbstractRedisHelper.isRedisHelper(null)).toBe(false);
+    expect(AbstractRedisHelper.isRedisHelper(undefined)).toBe(false);
+    expect(AbstractRedisHelper.isRedisHelper({})).toBe(false);
+    expect(AbstractRedisHelper.isRedisHelper({ client: {}, name: 'looks-like-one' })).toBe(false);
+    expect(AbstractRedisHelper.isRedisHelper('redis')).toBe(false);
+    expect(AbstractRedisHelper.isRedisHelper(AbstractRedisHelper)).toBe(false);
   });
 
   it('anchors the brand on Symbol.for, so both copies compute the same key', () => {

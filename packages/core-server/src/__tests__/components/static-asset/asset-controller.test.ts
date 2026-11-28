@@ -16,7 +16,7 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import { AppErrorMiddleware } from '@/base/middlewares';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { FakeMetaLinkRepository } from './fake-meta-link.repository';
 import { FakeStorageHelper } from './fake-storage.helper';
@@ -30,7 +30,7 @@ const TEST_CONFIGS: IApplicationConfigs = {
 };
 
 class TestApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'test-app', version: '0.0.0', description: 'Static asset component test app' };
   }
 

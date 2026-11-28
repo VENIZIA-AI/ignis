@@ -1,5 +1,5 @@
 import type { Binding } from '@/helpers/inversion';
-import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TClass, TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { IApplication, TArtifactIndexInput } from '../../applications';
 import type { BaseComponent } from '../../components';
 import type { BaseConfiguration } from '../../configurations';
@@ -27,7 +27,7 @@ export interface IConfigurationMixin {
     target: TClass<Base>,
     opts?: TMixinOpts<Options>,
   ): Binding<Base>;
-  registerConfigurations(): ValueOrPromise<void>;
+  registerConfigurations(): TValueOrPromise<void>;
 }
 
 /** Mixin contract for registering components on the application. */
@@ -36,21 +36,21 @@ export interface IComponentMixin {
     target: TClass<Base>,
     opts?: TMixinOpts<Options>,
   ): Binding<Base>;
-  registerComponents(): ValueOrPromise<void>;
+  registerComponents(): TValueOrPromise<void>;
 }
 
 /** Mixin contract for the application lifecycle hooks of a server and its reported version. */
 export interface IServerConfigMixin {
-  staticConfigure(): ValueOrPromise<void>;
-  preConfigure(): ValueOrPromise<void>;
-  postConfigure(): ValueOrPromise<void>;
-  getApplicationVersion(): ValueOrPromise<string>;
+  staticConfigure(): TValueOrPromise<void>;
+  preConfigure(): TValueOrPromise<void>;
+  postConfigure(): TValueOrPromise<void>;
+  getApplicationVersion(): TValueOrPromise<string>;
 }
 
 /** Mixin contract for registering controllers on the application. */
 export interface IControllerMixin {
   controller<Base>(target: TClass<Base>, opts?: TMixinOpts): Binding<Base>;
-  registerControllers(): ValueOrPromise<void>;
+  registerControllers(): TValueOrPromise<void>;
 }
 
 /** Mixin contract for registering datasources and repositories on the application. */

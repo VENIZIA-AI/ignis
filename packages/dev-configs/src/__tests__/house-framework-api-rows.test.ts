@@ -65,9 +65,9 @@ const lint = (
 };
 
 describe('@venizia/prefer-framework-api, rows outside React', () => {
-  test('instanceof ApplicationError names isApplicationError', () => {
+  test('instanceof ApplicationError names ApplicationError.isApplicationError', () => {
     expect(lint('const is = error instanceof ApplicationError;')).toEqual([
-      "Use `isApplicationError(error)`, not `instanceof ApplicationError`, which fails across two installed copies: `import { isApplicationError } from '@venizia/ignis-helpers/core';`",
+      "Use `ApplicationError.isApplicationError(error)`, not `instanceof ApplicationError`, which fails across two installed copies: `import { ApplicationError } from '@venizia/ignis-helpers/core';`",
     ]);
   });
 
@@ -228,7 +228,7 @@ describe('@venizia/prefer-framework-api, rows outside React', () => {
     expect(lint(code, { hooks: false })).toHaveLength(1);
   });
 
-  test('ignis-inversion, which writes isApplicationError, is not reported for instanceof', () => {
+  test('ignis-inversion, which writes ApplicationError.isApplicationError, is not reported for instanceof', () => {
     const inversion = project({
       name: '@venizia/ignis-inversion',
       dependencies: ['@venizia/ignis-helpers'],

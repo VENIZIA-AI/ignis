@@ -167,7 +167,7 @@ See [Server upload](./server-upload).
 | `secretKey` | `string` | - | yes | Signs the commit token. |
 | `maxBytes` | `number` | - | yes | The `content-length-range` ceiling of a policy. |
 | `validation` | `TToggle` | - | yes | `{ use: false }`, or `StaticAssetValidation.define({ issueSchema, handler })`. |
-| `authorize` | `({ context }) => ValueOrPromise<boolean>` | the entry's `auth` | only without `auth` | Who may use direct upload. |
+| `authorize` | `({ context }) => TValueOrPromise<boolean>` | the entry's `auth` | only without `auth` | Who may use direct upload. |
 | `resolvers` | `{ owner, metadata?, commit?: { destination? } }` | - | yes | Who owns an upload, its metadata, the final key. See [Resolvers](./direct-upload#resolvers). |
 | `maxFiles` | `number` | `20` | no | Most files one policy request may name. |
 | `pendingPrefix` | `string` | `'pending/'` | no | Where a policy may write. Disjoint from `keyPrefix`. See [The pending prefix](./security#the-pending-prefix). |
@@ -189,7 +189,7 @@ See [Direct upload](./direct-upload#options).
 | Option | Type | Default | Meaning |
 |---|---|---|---|
 | `repository` | `IMetaLinkRepository` (a `DefaultCRUDRepository` over a MetaLink-compatible table fits) or a resolver | - | The repository that writes rows. Required with `use: true`. |
-| `createMetaLink` | `({ uploadResult, fileStat, labels }) => ValueOrPromise<{ count, data }>` | a default insert of every standard field | Replaces the insert. |
+| `createMetaLink` | `({ uploadResult, fileStat, labels }) => TValueOrPromise<{ count, data }>` | a default insert of every standard field | Replaces the insert. |
 
 See [`TMetaLinkConfig`](#tmetalinkconfig) and the [MetaLink SQL schema](#metalink-sql-schema).
 
@@ -312,7 +312,7 @@ interface IStaticAssetValidation<IssueSchema extends z.ZodType> {
     file: StaticAssetPinnedFile;
     owner: string;
     metadata: Record<string, string>;
-  }) => ValueOrPromise<IStaticAssetValidationResult<z.infer<IssueSchema>>>;
+  }) => TValueOrPromise<IStaticAssetValidationResult<z.infer<IssueSchema>>>;
 }
 
 interface IStaticAssetValidateResult<Issue> extends IStaticAssetValidationResult<Issue> {
@@ -819,7 +819,7 @@ type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema>
     uploadResult: IUploadResult;
     fileStat: IFileStat;
     labels: TStaticAssetUploadLabels;
-  }) => ValueOrPromise<{ count: number; data: TTableObject<Schema> }>;
+  }) => TValueOrPromise<{ count: number; data: TTableObject<Schema> }>;
 };
 
 type TStaticAssetUploadLabels = {

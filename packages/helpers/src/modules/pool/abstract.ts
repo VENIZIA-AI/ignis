@@ -1,4 +1,4 @@
-import { type TNullable, type ValueOrPromise } from '@/common/types';
+import { type TNullable, type TValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { HfQueueHelper } from '@/modules/queue/internal/hf';
@@ -29,20 +29,20 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
   // ----------------------------------------------------------------------------------------------------------
 
   /** Create one resource. Required. */
-  protected abstract create(): ValueOrPromise<T>;
+  protected abstract create(): TValueOrPromise<T>;
 
   /** Validate an idle resource just before hand-out; false → destroyed + replaced. Default: always valid. */
-  protected validateResource(_opts: { resource: T }): ValueOrPromise<boolean> {
+  protected validateResource(_opts: { resource: T }): TValueOrPromise<boolean> {
     return true;
   }
 
   /** Reset an idle resource before hand-out (e.g. clear state). Throw → resource discarded. Default: no-op. */
-  protected resetResource(_opts: { resource: T }): ValueOrPromise<void> {
+  protected resetResource(_opts: { resource: T }): TValueOrPromise<void> {
     return undefined;
   }
 
   /** Tear down a resource being removed from the pool. Default: no-op. */
-  protected onDestroyResource(_opts: { resource: T }): ValueOrPromise<void> {
+  protected onDestroyResource(_opts: { resource: T }): TValueOrPromise<void> {
     return undefined;
   }
 
@@ -133,7 +133,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
     this.safeDispatch({ action: 'warmup' });
   }
 
-  async use<R>(opts: { execution: (resource: T) => ValueOrPromise<R> }): Promise<R> {
+  async use<R>(opts: { execution: (resource: T) => TValueOrPromise<R> }): Promise<R> {
     const resource = await this.acquire();
 
     try {

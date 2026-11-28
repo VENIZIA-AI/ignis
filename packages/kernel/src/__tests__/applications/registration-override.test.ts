@@ -5,13 +5,13 @@ import { service } from '@/base/metadata';
 import type { TMixinOpts } from '@/base/mixins/common';
 import { BindingNamespaces } from '@/common/bindings';
 import { BindingScopes, BindingValueTypes } from '@/helpers/inversion';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 import { ProbeDataSource, ProbeRepository } from '../support/artifact-fixtures';
 import { BindingKeys } from '@/helpers/inversion';
 
 class ConcreteRestApplication extends RestApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'registration-override-app', version: '0.0.0', description: '' };
   }
 
@@ -23,11 +23,11 @@ class ConcreteRestApplication extends RestApplication {
 }
 
 class ProbeComponent extends BaseComponent {
-  override binding(): ValueOrPromise<void> {}
+  override binding(): TValueOrPromise<void> {}
 }
 
 class OtherProbeComponent extends BaseComponent {
-  override binding(): ValueOrPromise<void> {}
+  override binding(): TValueOrPromise<void> {}
 }
 
 /** The guard reads only the derived key, so one bare class stands in for controller and service; repository and datasource use the typed fixtures. */

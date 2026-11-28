@@ -2,7 +2,7 @@ import type { IUniqueKey, TTableSchemaWithId } from '@/relational/core/models';
 import type { IRelationalQueryExecutor } from '@/relational/core/repositories/common';
 import type { TRepositoryPort } from './repository-port';
 import type { TScopeResolution } from './scope-resolution';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { RepositoryErrorCodes, ScopeOperations } from '@venizia/ignis-kernel';
 import type { ITransaction, TScopeOperation } from '@venizia/ignis-kernel';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
@@ -96,11 +96,11 @@ const ME = 'm1';
 const MINE = { merchantId: ME };
 
 const codeOf = (error: unknown): unknown => {
-  return isApplicationError(error) ? error.normalized.code : undefined;
+  return ApplicationError.isApplicationError(error) ? error.normalized.code : undefined;
 };
 
 const statusOf = (error: unknown): unknown => {
-  return isApplicationError(error) ? error.statusCode : undefined;
+  return ApplicationError.isApplicationError(error) ? error.statusCode : undefined;
 };
 
 export const defineUpsertCases = <TTransaction extends ITransaction>(

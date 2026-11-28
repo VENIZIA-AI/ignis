@@ -3,7 +3,7 @@ import { RejectionUtility } from '@venizia/dev-configs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { model, RepositoryErrorCodes, ScopeFilters } from '@venizia/ignis-kernel';
 import type { TWhere } from '@venizia/ignis-kernel';
 import { BaseRelationalEntity } from '@/relational/core/models';
@@ -89,7 +89,7 @@ const refusal = async (task: Promise<unknown>) => {
   try {
     await task;
   } catch (error) {
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       return error;
     }
 

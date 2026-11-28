@@ -1,6 +1,6 @@
 import type { AESAlgorithmType } from '@venizia/ignis-helpers';
 import { AES } from '@venizia/ignis-helpers';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import type {
@@ -505,7 +505,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     claims?: IJWTIssueClaims;
   }): Promise<SignJWT>;
 
-  protected abstract getSigningKey(): ValueOrPromise<Uint8Array | CryptoKey>;
+  protected abstract getSigningKey(): TValueOrPromise<Uint8Array | CryptoKey>;
 
   protected abstract getDefaultTokenExpiresFn(): TGetTokenExpiresFn;
 }

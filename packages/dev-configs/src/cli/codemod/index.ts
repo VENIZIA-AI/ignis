@@ -11,6 +11,7 @@ import { ExecutionScopeCommand } from './execution-scope';
 import { FunctionToArrowCommand } from './function-to-arrow';
 import { DropRedundantCastsCommand } from './drop-redundant-casts';
 import { NamespaceFunctionsCommand } from './namespace-functions';
+import { PublicNamesCommand } from './public-names';
 import { TypedRouteContextCommand } from './typed-route-context';
 import { CliOutput } from '../../common/cli-output';
 
@@ -29,6 +30,7 @@ const USAGE = [
   FunctionToArrowCommand.USAGE,
   TypedRouteContextCommand.USAGE,
   AsyncContextCommand.USAGE,
+  PublicNamesCommand.USAGE,
 ].join('\n\n');
 
 /** The codemods `devz codemod <name>` runs. */
@@ -47,6 +49,7 @@ const NAME_LIST = [
   'async-context',
   'function-to-arrow',
   'typed-route-context',
+  'public-names',
 ];
 const NAMES = NAME_LIST.join(', ');
 
@@ -63,6 +66,7 @@ const NOT_REVERSIBLE = new Set([
   'binding-keys',
   'function-to-arrow',
   'typed-route-context',
+  'public-names',
 ]);
 
 /** `devz codemod <name> [args]`: hands the arguments to the codemod called `name`. */
@@ -133,6 +137,10 @@ export class CodemodCommand {
 
     if (name === 'async-context') {
       return AsyncContextCommand.run({ root: opts.root, args: rest });
+    }
+
+    if (name === 'public-names') {
+      return PublicNamesCommand.run({ root: opts.root, args: rest });
     }
 
     if (name === 'class-renames') {

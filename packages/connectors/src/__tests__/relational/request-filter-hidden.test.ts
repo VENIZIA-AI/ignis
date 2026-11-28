@@ -1,6 +1,6 @@
 import { PGlite } from '@electric-sql/pglite';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { isApplicationError, type ApplicationError } from '@venizia/ignis-helpers/core';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { datasource, model, type TAnyDataSourceSchema, type TFilter } from '@venizia/ignis-kernel';
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { integer, jsonb, pgTable, serial, text } from 'drizzle-orm/pg-core';
@@ -76,9 +76,9 @@ class RfhDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {},
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 
-  override getConnectionString(): ValueOrPromise<string> {
+  override getConnectionString(): TValueOrPromise<string> {
     return 'pglite://memory';
   }
 }
@@ -104,7 +104,7 @@ const refusal = (task: () => void): ApplicationError => {
   try {
     task();
   } catch (error) {
-    if (isApplicationError(error)) {
+    if (ApplicationError.isApplicationError(error)) {
       return error;
     }
 
@@ -167,7 +167,7 @@ describe('the request filter of a model that hides `secret`', () => {
       try {
         await posts.find({ filter });
       } catch (error) {
-        if (isApplicationError(error)) {
+        if (ApplicationError.isApplicationError(error)) {
           return error;
         }
 
@@ -255,7 +255,7 @@ describe('the first refusal in the order the query reads the filter', () => {
         await posts.find({ filter: opts.filter });
       }
     } catch (error) {
-      if (isApplicationError(error)) {
+      if (ApplicationError.isApplicationError(error)) {
         return error;
       }
 

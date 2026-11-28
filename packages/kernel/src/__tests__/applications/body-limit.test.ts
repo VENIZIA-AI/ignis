@@ -1,12 +1,12 @@
 import { BodyLimits } from '@/base/applications/body-limit';
 import { RestApplication } from '@/base/applications/rest';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications/common';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 
 class BodyLimitApplication extends RestApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'body-limit-app', version: '0.0.0', description: '' };
   }
 

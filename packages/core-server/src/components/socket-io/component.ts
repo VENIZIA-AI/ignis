@@ -4,8 +4,8 @@ import { inject } from '@/base/metadata';
 import { CoreBindings } from '@venizia/ignis-kernel';
 import { Binding } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
-import { HTTP, RuntimeModules, type ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { isRedisHelper } from '@venizia/ignis-helpers';
+import { HTTP, RuntimeModules, type TValueOrPromise } from '@venizia/ignis-helpers/common';
+import { AbstractRedisHelper } from '@venizia/ignis-helpers';
 import { SocketIOServerHelper } from '@venizia/ignis-helpers/socket-io';
 import {
   SocketIOBindingKeys,
@@ -62,7 +62,7 @@ export class SocketIOComponent extends BaseComponent {
       key: SocketIOBindingKeys.REDIS_CONNECTION,
     });
 
-    if (!isRedisHelper(redisConnection)) {
+    if (!AbstractRedisHelper.isRedisHelper(redisConnection)) {
       throw getError({
         message:
           '[SocketIOComponent][resolveBindings] Invalid instance of redisConnection | Please init connection with RedisSingleHelper (single), RedisClusterHelper (cluster), or RedisSentinelHelper (sentinel)!',
@@ -132,7 +132,7 @@ export class SocketIOComponent extends BaseComponent {
     });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     const logger = this.logger.for(this.binding.name);
 
     if (!this.application) {

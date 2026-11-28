@@ -642,7 +642,7 @@ Called when a broker connects or disconnects.
 ```ts
 export type TKafkaBrokerEventCallback = (opts: {
     broker: Broker;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 ```
 
 Source: `packages/helpers/src/modules/queue/kafka/common/types/callbacks.ts`
@@ -670,7 +670,7 @@ export type TKafkaGroupJoinCallback = (opts: {
     groupId: string;
     memberId: string;
     generationId?: number;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 ```
 
 Source: `packages/helpers/src/modules/queue/kafka/common/types/callbacks.ts`
@@ -685,7 +685,7 @@ Called when the consumer leaves its group; `memberId` is `null` when it has none
 export type TKafkaGroupLeaveCallback = (opts: {
     groupId: string;
     memberId: string | null;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 ```
 
 Source: `packages/helpers/src/modules/queue/kafka/common/types/callbacks.ts`
@@ -711,7 +711,7 @@ Called when the consumer group rebalances.
 ```ts
 export type TKafkaGroupRebalanceCallback = (opts: {
     groupId: string;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 ```
 
 Source: `packages/helpers/src/modules/queue/kafka/common/types/callbacks.ts`
@@ -739,7 +739,7 @@ export type TKafkaHeartbeatErrorCallback = (opts: {
     error: Error;
     groupId?: string;
     memberId?: string | null;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 ```
 
 Source: `packages/helpers/src/modules/queue/kafka/common/types/callbacks.ts`
@@ -753,7 +753,7 @@ Called with the consumer lag offsets from the lag monitor.
 ```ts
 export type TKafkaLagCallback = (opts: {
     lag: Offsets;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 ```
 
 Source: `packages/helpers/src/modules/queue/kafka/common/types/callbacks.ts`
@@ -767,7 +767,7 @@ Called when the lag monitor fails to read lag.
 ```ts
 export type TKafkaLagErrorCallback = (opts: {
     error: Error;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 ```
 
 Source: `packages/helpers/src/modules/queue/kafka/common/types/callbacks.ts`
@@ -781,7 +781,7 @@ Called with each consumed message.
 ```ts
 export type TKafkaMessageCallback<KeyType = string, ValueType = string, HeaderKeyType = string, HeaderValueType = string> = (opts: {
     message: Message<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 ```
 
 Source: `packages/helpers/src/modules/queue/kafka/common/types/callbacks.ts`
@@ -795,7 +795,7 @@ Called after a message has been handled.
 ```ts
 export type TKafkaMessageDoneCallback<KeyType = string, ValueType = string, HeaderKeyType = string, HeaderValueType = string> = (opts: {
     message: Message<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 ```
 
 Source: `packages/helpers/src/modules/queue/kafka/common/types/callbacks.ts`
@@ -810,7 +810,7 @@ Called when handling fails; `message` is absent when the error is not tied to on
 export type TKafkaMessageErrorCallback<KeyType = string, ValueType = string, HeaderKeyType = string, HeaderValueType = string> = (opts: {
     error: Error;
     message?: Message<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 ```
 
 Source: `packages/helpers/src/modules/queue/kafka/common/types/callbacks.ts`
@@ -826,7 +826,7 @@ export type TKafkaReconnectErrorCallback = (opts: {
     error: Error;
     attempt: number;
     maxAttempts: number;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 ```
 
 Source: `packages/helpers/src/modules/queue/kafka/common/types/callbacks.ts`
@@ -840,7 +840,7 @@ The stream 'error' event - falls back to `onMessageError` when unset.
 ```ts
 export type TKafkaStreamErrorCallback = (opts: {
     error: Error;
-}) => ValueOrPromise<void>;
+}) => TValueOrPromise<void>;
 ```
 
 Source: `packages/helpers/src/modules/queue/kafka/common/types/callbacks.ts`

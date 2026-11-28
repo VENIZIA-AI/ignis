@@ -1,7 +1,7 @@
 import type { TScopeResolution } from './scope-resolution';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { datasource, model, ScopeThrough, type TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
@@ -128,7 +128,7 @@ class SharedThroughDataSource extends BaseSqliteDataSource<
     this.client = opts.client;
   }
 
-  override configure(): ValueOrPromise<void> {}
+  override configure(): TValueOrPromise<void> {}
 }
 
 let client: Client;

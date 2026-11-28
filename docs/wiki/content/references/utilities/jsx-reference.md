@@ -100,7 +100,7 @@ Defines and registers a JSX/HTML route in a single call - the JSX counterpart of
 ```typescript
 defineJSXRoute<RouteConfig extends IAuthRouteConfig>(opts: {
   configs: RouteConfig;
-  handler: (context: TContextOf<RouteConfig, RouteEnv>) => ValueOrPromise<Response | TypedResponse<unknown>>;
+  handler: (context: TContextOf<RouteConfig, RouteEnv>) => TValueOrPromise<Response | TypedResponse<unknown>>;
 }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>
 ```
 
@@ -219,7 +219,7 @@ export const HomePage: FC<HomePageProps> = ({ timestamp }) => (
 ### Wiring pages into a controller
 
 ```tsx
-import { BaseRestController, controller, OpenApiResponses, type IControllerOptions, type ValueOrPromise } from '@venizia/ignis';
+import { BaseRestController, controller, OpenApiResponses, type IControllerOptions, type TValueOrPromise } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { HomePage } from '@/views/pages/home.page';
 
@@ -229,7 +229,7 @@ export class ViewController extends BaseRestController {
     super({ ...opts, scope: ViewController.name, path: '/' });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding(): TValueOrPromise<void> {
     this.defineJSXRoute({
       configs: {
         path: '/',

@@ -280,7 +280,7 @@ Step 3 matters in exactly one case. The registry otherwise finds options only th
 ```typescript
 class AuthorizeComponent extends BaseComponent {
   constructor(@inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication);
-  override binding(): ValueOrPromise<void>;
+  override binding(): TValueOrPromise<void>;
   private bindAlwaysAllowRoles(opts: { options: IAuthorizeOptions }): void;
 }
 ```
@@ -389,7 +389,7 @@ interface ICasbinEnforcerCachedRedis {
   options: {
     connection: IRedisHelper;
     expiresIn: number;
-    keyFn: (opts: { user: IAuthorizationUser }) => ValueOrPromise<string>;
+    keyFn: (opts: { user: IAuthorizationUser }) => TValueOrPromise<string>;
   };
 }
 ```
@@ -432,7 +432,7 @@ interface IAuthorizationDomainSource {
 
 type TAuthorizationDomainResolver<E extends Env = Env> = (opts: {
   context: TContext<E, string>;
-}) => ValueOrPromise<TNullable<{ type: string; id: IdType }>>;
+}) => TValueOrPromise<TNullable<{ type: string; id: IdType }>>;
 ```
 
 `RequestDomainResolver.resolveRequestDomain({ spec, context, options })` (`providers/request-domain.ts`) turns either shape into a casbin domain string. Precedence: `spec.domain` (resolver, then declarative `RequestDomainResolver.readDeclarative()`) -> `IAuthorizeOptions.domainResolver` -> `AuthorizationDomainScopes.SYSTEM_WIDE`.
@@ -447,7 +447,7 @@ type TAuthorizationConditions<KeyType extends string | symbol = string | symbol,
 
 type TAuthorizationVoter<E extends Env = Env, TAction = string, TResource = string> = (opts: {
   user: IAuthUser; action: TAction; resource: TResource; context: TContext<E, string>;
-}) => ValueOrPromise<TAuthorizationDecision>;
+}) => TValueOrPromise<TAuthorizationDecision>;
 
 type TAuthorizeFn<E extends Env = Env, TAction = string, TResource = string> = (opts: {
   spec: IAuthorizationSpec<E, TAction, TResource>;
@@ -756,10 +756,10 @@ Source -> [`enforcers/enforcer-registry.ts`](https://github.com/VENIZIA-AI/ignis
 ```typescript
 interface IAuthorizationEnforcer<
   E extends Env = Env, TAction = string, TResource = string, TRules = unknown,
-  TBuildRulesReturn = ValueOrPromise<TRules>, TEvaluateReturn = ValueOrPromise<TAuthorizationDecision>,
+  TBuildRulesReturn = TValueOrPromise<TRules>, TEvaluateReturn = TValueOrPromise<TAuthorizationDecision>,
 > {
   name: string;
-  configure(): ValueOrPromise<void>;
+  configure(): TValueOrPromise<void>;
   buildRules(opts: { user: IAuthorizationUser; context: TContext<E, string> }): TBuildRulesReturn;
   evaluate(opts: { rules: TRules; request: IAuthorizationRequest<TAction, TResource>; context: TContext<E, string> }): TEvaluateReturn;
 
@@ -774,8 +774,8 @@ interface IAuthorizationEnforcer<
 | `E` | `Env` | Hono `Env` type for typed context access |
 | `TAction` / `TResource` | `string` | Action / resource type |
 | `TRules` | `unknown` | Rules type produced by `buildRules`, consumed by `evaluate` |
-| `TBuildRulesReturn` | `ValueOrPromise<TRules>` | Return type of `buildRules` |
-| `TEvaluateReturn` | `ValueOrPromise<TAuthorizationDecision>` | Return type of `evaluate` |
+| `TBuildRulesReturn` | `TValueOrPromise<TRules>` | Return type of `buildRules` |
+| `TEvaluateReturn` | `TValueOrPromise<TAuthorizationDecision>` | Return type of `evaluate` |
 
 | Method | Input | Returns | Called by |
 |--------|-------|---------|-----------|

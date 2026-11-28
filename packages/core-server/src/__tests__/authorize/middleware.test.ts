@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import {
   Authorization,
   AuthorizationDecisions,
@@ -745,9 +745,9 @@ describe('Enforcer Registry Middleware Flow', () => {
       const { hasCalledNext, error } = await runMiddleware(middleware, context);
 
       expect(hasCalledNext).toBe(false);
-      expect(isApplicationError(error)).toBe(true);
+      expect(ApplicationError.isApplicationError(error)).toBe(true);
 
-      if (isApplicationError(error)) {
+      if (ApplicationError.isApplicationError(error)) {
         expect(error.normalized.code).toBe('core.authorization.enforcer_not_registered');
       }
     });

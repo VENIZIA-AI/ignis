@@ -4,7 +4,7 @@ import { BaseApplication } from '@/base/applications';
 import { WebSocketBindingKeys, WebSocketComponent } from '@/components/websocket';
 import { z } from '@hono/zod-openapi';
 import { AbstractRedisHelper, type TRedisClient } from '@venizia/ignis-helpers';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { IApplicationInfo } from '@venizia/ignis-kernel';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { EventEmitter } from 'node:events';
@@ -43,7 +43,7 @@ class FakeRedisHelper extends AbstractRedisHelper {
 const received: unknown[] = [];
 
 class SocketApplication extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+  getAppInfo(): TValueOrPromise<IApplicationInfo> {
     return { name: 'socket-app', version: '0.0.0', description: 'WebSocket authentication probe' };
   }
 

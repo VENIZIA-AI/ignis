@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/common, from the built decl
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-50 exports, 50 with TSDoc. 14 more are re-exported from other entries (listed at the end).
+49 exports, 49 with TSDoc. 12 more are re-exported from other entries (listed at the end).
 
 ## `ClassResolver`
 
@@ -647,7 +647,7 @@ Something set up by a `configure` call, which may be asynchronous.
 
 ```ts
 export interface IConfigurable<Options extends object = object, Result = unknown> {
-    configure(opts?: Options): ValueOrPromise<Result>;
+    configure(opts?: Options): TValueOrPromise<Result>;
 }
 ```
 
@@ -778,18 +778,6 @@ export declare class RuntimeModules {
 
 Source: `packages/helpers/src/common/constants/app.ts`
 
-## `TAbstractClass`
-
-*type*
-
-An abstract class producing `T`.
-
-```ts
-export type TAbstractClass<T> = TAbstractConstructor<T>;
-```
-
-Source: `packages/helpers/src/common/types/class.ts`
-
 ## `TAbstractMixinConstructor`
 
 *type*
@@ -897,7 +885,7 @@ Source: `packages/helpers/src/common/constants/mime.ts`
 A gRPC call kind from `GRPC.Methods`, lowercase.
 
 ```ts
-export type TGrpcMethod = ValueOf<typeof GRPC.Methods>;
+export type TGrpcMethod = TValueOf<typeof GRPC.Methods>;
 
 /** gRPC constants: call kinds, protocol headers and header values, and the numeric status codes by name. */
 export declare class GRPC {
@@ -967,7 +955,7 @@ Source: `packages/helpers/src/common/constants/grpc.ts`
 A numeric gRPC status code from `GRPC.ResultCodes` (`0` is OK).
 
 ```ts
-export type TGrpcResultCode = ValueOf<typeof GRPC.ResultCodes>;
+export type TGrpcResultCode = TValueOf<typeof GRPC.ResultCodes>;
 
 /** gRPC constants: call kinds, protocol headers and header values, and the numeric status codes by name. */
 export declare class GRPC {
@@ -1037,7 +1025,7 @@ Source: `packages/helpers/src/common/constants/grpc.ts`
 An HTTP method from `HTTP.Methods`, in lowercase or uppercase.
 
 ```ts
-export type THttpMethod = ValueOf<typeof HTTP.Methods> | Uppercase<ValueOf<typeof HTTP.Methods>>;
+export type THttpMethod = TValueOf<typeof HTTP.Methods> | Uppercase<TValueOf<typeof HTTP.Methods>>;
 ```
 
 Source: `packages/helpers/src/common/constants/http.ts`
@@ -1049,7 +1037,7 @@ Source: `packages/helpers/src/common/constants/http.ts`
 An HTTP protocol from `HTTP.Protocols`, in lowercase or uppercase.
 
 ```ts
-export type THttpProtocol = ValueOf<typeof HTTP.Protocols> | Uppercase<ValueOf<typeof HTTP.Protocols>>;
+export type THttpProtocol = TValueOf<typeof HTTP.Protocols> | Uppercase<TValueOf<typeof HTTP.Protocols>>;
 ```
 
 Source: `packages/helpers/src/common/constants/http.ts`
@@ -1061,7 +1049,7 @@ Source: `packages/helpers/src/common/constants/http.ts`
 A numeric HTTP status code from any class in `HTTP.ResultCodes`.
 
 ```ts
-export type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>;
+export type THttpResultCode = TValueOf<typeof HTTP.ResultCodes>;
 ```
 
 Source: `packages/helpers/src/common/constants/http.ts`
@@ -1156,7 +1144,7 @@ Source: `packages/helpers/src/common/types/class.ts`
 The number values held by the `static readonly` members of const class `T`, as a plain union.
 
 ```ts
-export type TNumberConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, number> & {};
+export type TNumberConstValue<T extends TClass<unknown>> = Extract<TValueOf<T>, number> & {};
 ```
 
 Source: `packages/helpers/src/common/types/const-value.ts`
@@ -1244,7 +1232,7 @@ Source: `packages/helpers/src/common/constants/app.ts`
 The string values held by the `static readonly` members of const class `T`, as a plain union.
 
 ```ts
-export type TStringConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string> & {};
+export type TStringConstValue<T extends TClass<unknown>> = Extract<TValueOf<T>, string> & {};
 ```
 
 Source: `packages/helpers/src/common/types/const-value.ts`
@@ -1275,17 +1263,15 @@ Source: `packages/helpers/src/common/types/utility.ts`
 
 ## Re-exported
 
-- `isClass` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `ObjectUtility` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `ResolverUtility` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
-- `TAbstractConstructor` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `TAbstractClass` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TAsyncResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TClass` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
-- `TConstructor` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TConstValue` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TNullable` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `TValueOf` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TValueOrAsyncResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `TValueOrPromise` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TValueOrResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
-- `ValueOf` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
-- `ValueOrPromise` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)

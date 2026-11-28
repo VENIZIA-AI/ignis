@@ -1,7 +1,7 @@
 import type { Hook, OpenAPIHono } from '@hono/zod-openapi';
 import { DataRangeUtility } from '@/base/repositories/common/types';
 import type { TDataRange } from '@/base/repositories/common/types';
-import type { TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TNullable, TValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { LoggerFactory, PerformanceUtility, ParseUtility } from '@venizia/ignis-helpers/core';
 import type { Context, Env, Schema, TypedResponse } from 'hono';
@@ -136,7 +136,7 @@ export abstract class BaseRestController<
     payload: { count: number; data?: TNullable<R> };
     range?: TDataRange;
     extra?: Record<string, TResponseExtra>;
-  }): ValueOrPromise<
+  }): TValueOrPromise<
     TNullable<R | { count?: number; data?: TNullable<R>; extra?: Record<string, unknown> }>
   >;
   respond<R>(opts: {
@@ -221,12 +221,12 @@ export abstract class BaseRestController<
   toHonoHandler<RouteConfig extends IAuthRouteConfig = IAuthRouteConfig>(opts: {
     handler: (
       context: TContextOf<RouteConfig, RouteEnv>,
-    ) => ValueOrPromise<Response | TypedResponse<unknown>>;
+    ) => TValueOrPromise<Response | TypedResponse<unknown>>;
   }) {
     // The context side is checked here: a route context takes Hono's `Context`, whose `valid()` answers `never`.
     const handler: (
       context: Context<RouteEnv>,
-    ) => ValueOrPromise<Response | TypedResponse<unknown>> = opts.handler;
+    ) => TValueOrPromise<Response | TypedResponse<unknown>> = opts.handler;
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- asserts the response side only: a handler's answer is not typed against the route's responses, and Hono's handler types are not inferred here on purpose
     return handler as Parameters<OpenAPIHono<RouteEnv>['openapi']>[1];
@@ -254,8 +254,8 @@ export abstract class BaseRestController<
     configs: RouteConfig;
     handler: (
       context: TContextOf<RouteConfig, RouteEnv>,
-    ) => ValueOrPromise<Response | TypedResponse<unknown>>;
-    hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
+    ) => TValueOrPromise<Response | TypedResponse<unknown>>;
+    hook?: Hook<any, RouteEnv, string, TValueOrPromise<any>>;
   }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath> {
     const routeConfigs = this.getRouteConfigs<RouteConfig>({ configs: opts.configs });
 
@@ -274,8 +274,8 @@ export abstract class BaseRestController<
     configs: RouteConfig;
     handler: (
       context: TContextOf<RouteConfig, RouteEnv>,
-    ) => ValueOrPromise<Response | TypedResponse<unknown>>;
-    hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
+    ) => TValueOrPromise<Response | TypedResponse<unknown>>;
+    hook?: Hook<any, RouteEnv, string, TValueOrPromise<any>>;
   }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath> {
     const routeConfigs = this.getJSXRouteConfigs<RouteConfig>({ configs: opts.configs });
 
