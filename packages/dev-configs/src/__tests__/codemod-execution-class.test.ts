@@ -79,6 +79,44 @@ describe('devz codemod execution-class', () => {
     ]);
   });
 
+  for (const [name, taken] of [
+    ['a named import', `import { Execution } from './local';`],
+    ['an aliased import', `import { Job as Execution } from './local';`],
+    ['a default import', `import Execution from './local';`],
+    ['a namespace import', `import * as Execution from './local';`],
+    ['an import equals', `import Execution = require('./local');`],
+  ] as const) {
+    test(`a name Execution taken by ${name} gets the import aliased`, () => {
+      expect(
+        rewrite([
+          `import { PromiseUtility } from '@venizia/ignis-helpers';`,
+          taken,
+          'PromiseUtility.sleep({ ms: 1 });',
+        ]),
+      ).toEqual([
+        `import { Execution as IgnisExecution } from '@venizia/ignis-helpers';`,
+        taken,
+        'IgnisExecution.sleep({ ms: 1 });',
+      ]);
+    });
+  }
+
+  test('a method read with brackets is renamed too', () => {
+    expect(
+      rewrite([
+        `import { PromiseUtility } from '@venizia/ignis-helpers';`,
+        `import * as helpers from '@venizia/ignis';`,
+        "PromiseUtility['voidExecution']({ scope, execution });",
+        'helpers["PromiseUtility"]["executeWithLimit"]({ tasks, limit: 1 });',
+      ]),
+    ).toEqual([
+      `import { Execution } from '@venizia/ignis-helpers';`,
+      `import * as helpers from '@venizia/ignis';`,
+      "Execution['fireAndForget']({ scope, execution });",
+      'helpers["Execution"]["withLimit"]({ tasks, limit: 1 });',
+    ]);
+  });
+
   test("another package's PromiseUtility is left alone, and a second run changes nothing", () => {
     const own = [`import { PromiseUtility } from './local';`, 'PromiseUtility.voidExecution({});'];
     const once = rewrite([

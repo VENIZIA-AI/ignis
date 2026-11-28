@@ -113,7 +113,6 @@ export class ClassRenames {
     return { ...row, oldName: row.newName, newName: row.oldName, members };
   }
 
-  /** Whether the file declares a name of its own that a renamed import would collide with. */
   /** The renamed class of `ns.Class`, for the members read through a namespace import. */
   private static namespaceOwner(opts: {
     typescript: typeof import('typescript');
@@ -121,19 +120,28 @@ export class ClassRenames {
     namespaces: Map<string, ReadonlyArray<IClassRename>>;
   }): IClassRename | undefined {
     const { typescript: ts, node, namespaces } = opts;
-    const isAccess = ts.isPropertyAccessExpression(node);
+    let scope: import('typescript').Node;
+    let member: string;
 
-    if (!isAccess && !ts.isQualifiedName(node)) {
+    if (ts.isPropertyAccessExpression(node)) {
+      [scope, member] = [node.expression, node.name.text];
+    } else if (ts.isQualifiedName(node)) {
+      [scope, member] = [node.left, node.right.text];
+    } else if (
+      ts.isElementAccessExpression(node) &&
+      ts.isStringLiteralLike(node.argumentExpression)
+    ) {
+      [scope, member] = [node.expression, node.argumentExpression.text];
+    } else {
       return undefined;
     }
 
-    const [scope, member] = isAccess ? [node.expression, node.name] : [node.left, node.right];
-
     return ts.isIdentifier(scope)
-      ? namespaces.get(scope.text)?.find((row) => row.oldName === member.text)
+      ? namespaces.get(scope.text)?.find((row) => row.oldName === member)
       : undefined;
   }
 
+  /** Whether the file declares or imports a name that a renamed import would collide with. */
   private static declares(opts: {
     typescript: typeof import('typescript');
     file: import('typescript').SourceFile;
@@ -151,7 +159,11 @@ export class ClassRenames {
         ts.isClassDeclaration(node) ||
         ts.isInterfaceDeclaration(node) ||
         ts.isTypeAliasDeclaration(node) ||
-        ts.isEnumDeclaration(node);
+        ts.isEnumDeclaration(node) ||
+        ts.isImportClause(node) ||
+        ts.isImportSpecifier(node) ||
+        ts.isNamespaceImport(node) ||
+        ts.isImportEqualsDeclaration(node);
 
       if (isDeclaration && node.name && ts.isIdentifier(node.name) && node.name.text === name) {
         isDeclared = true;
@@ -306,6 +318,22 @@ export class ClassRenames {
               node.parent.name === node);
 
           rename(node, row, isShorthand ? `${node.text}: ${row.newName}` : row.newName);
+        }
+      }
+
+      if (ts.isElementAccessExpression(node) && ts.isStringLiteralLike(node.argumentExpression)) {
+        const { expression, argumentExpression } = node;
+        const name = argumentExpression.text;
+        const owned = ts.isIdentifier(expression) ? namespaces.get(expression.text) : undefined;
+        const holder = ts.isIdentifier(expression)
+          ? owners.get(expression.text)
+          : ClassRenames.namespaceOwner({ typescript: ts, node: expression, namespaces });
+        const row = owned?.find((entry) => entry.oldName === name) ?? holder;
+        const renamed = owned ? row?.newName : holder?.members?.[name];
+
+        if (row && renamed) {
+          const quote = argumentExpression.getText(file).charAt(0);
+          rename(argumentExpression, row, `${quote}${renamed}${quote}`);
         }
       }
 

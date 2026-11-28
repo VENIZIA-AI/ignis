@@ -954,6 +954,11 @@ export declare class PreferExecutionSleepRule {
     private static delayOf;
     /** `Execution.sleep({ ms })`, with the shorthand when the delay is a variable named `ms`. */
     private static call;
+    /**
+     * Whether the file binds `Execution` to something else: an import from a module other than the helpers or the
+     * configured `source`. The fix would call that one.
+     */
+    private static isForeign;
     /** Whether `setTimeout` at `node` resolves to a binding of the file (not the global timer). */
     private static isRebound;
     static readonly RULE: Rule.RuleModule;

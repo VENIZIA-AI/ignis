@@ -86,6 +86,45 @@ export class PreferExecutionSleepRule {
     return `${utility}.sleep({ ${text === 'ms' ? 'ms' : `ms: ${text}`} })`;
   }
 
+  /**
+   * Whether the file binds `Execution` to something else: an import from a module other than the helpers or the
+   * configured `source`. The fix would call that one.
+   */
+  private static isForeign(opts: { context: Rule.RuleContext; source: string }): boolean {
+    const { context, source } = opts;
+
+    return context.sourceCode.ast.body.some((statement) => {
+      const specifiers: unknown = AstNode.readField({ node: statement, key: 'specifiers' });
+      const from = AstNode.readField({
+        node: AstNode.readField({ node: statement, key: 'source' }),
+        key: 'value',
+      });
+
+      if (
+        !Array.isArray(specifiers) ||
+        typeof from !== 'string' ||
+        from === source ||
+        from === '@venizia/ignis-helpers' ||
+        from.startsWith('@venizia/ignis-helpers/')
+      ) {
+        return false;
+      }
+
+      return specifiers.some((specifier) => {
+        const imported = AstNode.readField({
+          node: AstNode.readField({ node: specifier, key: 'imported' }),
+          key: 'name',
+        });
+        const local = AstNode.readField({
+          node: AstNode.readField({ node: specifier, key: 'local' }),
+          key: 'name',
+        });
+
+        return local === 'Execution' || imported === 'Execution';
+      });
+    });
+  }
+
   /** Whether `setTimeout` at `node` resolves to a binding of the file (not the global timer). */
   private static isRebound(opts: { context: Rule.RuleContext; node: Rule.Node }): boolean {
     const { context, node } = opts;
@@ -163,6 +202,15 @@ export class PreferExecutionSleepRule {
             messageId: 'sleep',
             data: { source: source ?? PreferExecutionSleepRule.DEFAULT_SOURCE },
             fix: (fixer) => {
+              if (
+                PreferExecutionSleepRule.isForeign({
+                  context,
+                  source: source ?? PreferExecutionSleepRule.DEFAULT_SOURCE,
+                })
+              ) {
+                return null;
+              }
+
               if (
                 source === undefined &&
                 !ImportSupport.isInScope({ context, name: 'Execution' })

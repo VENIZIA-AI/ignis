@@ -303,6 +303,28 @@ describe('@venizia/prefer-execution-sleep', () => {
     expect(fixed.match(/Execution/g)).toHaveLength(1);
   });
 
+  test.each([
+    ['another module', `import { Execution } from './jobs';`],
+    ['a default import', `import Execution from './jobs';`],
+    ['a class of the file', `class Execution {}`],
+  ])('an Execution from %s is not used: reported, not fixed', (_name, taken) => {
+    const code = `${taken}\nexport const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));\n`;
+    const { findings, fixed } = run({ name: NAME, code });
+
+    expect(findings).toHaveLength(1);
+    expect(fixed).toBe(code);
+  });
+
+  test('an Execution imported from the helpers root is reused', () => {
+    const { fixed } = run({
+      name: NAME,
+      code: `import { Execution } from '@venizia/ignis-helpers';\nexport const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));\n`,
+    });
+
+    expect(fixed).toContain('Execution.sleep({ ms })');
+    expect(fixed.match(/import/g)).toHaveLength(1);
+  });
+
   test('a type-only import is not used as a value: a value import is added beside it', () => {
     const { fixed } = run({
       name: NAME,
