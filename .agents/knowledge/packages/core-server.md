@@ -93,7 +93,7 @@ repository. gRPC controllers (ConnectRPC) are the one controller tier left in co
 `transport: 'grpc'`. The application port serves Connect and gRPC-Web. Native gRPC is an optional `node:http2`
 listener (`GrpcComponent` options `native: { use: true, port }`, peer `@connectrpc/connect-node`): it passes each call
 through the application's `fetch` with a `GrpcNativeCallStore` as env, and the RPC route writes the answer on the node
-stream. See [Controller system](/architecture/controller-system.md).
+stream. See [Controller system](/architecture/controller-system.md) and [gRPC native port](/architecture/grpc-native-port.md).
 
 ## Repository hierarchy
 

@@ -1,445 +1,123 @@
-# gRPC Controllers
+---
+title: gRPC controllers
+description: Serve Protobuf services from IGNIS with ConnectRPC - guides and how to write a gRPC controller
+---
 
-IGNIS serves Protobuf services with [ConnectRPC](https://connectrpc.com/): clients use the Connect or gRPC-Web protocol on the application port. A native gRPC request to that port answers `415`; the [native gRPC port](#native-grpc-port) serves those clients. gRPC controllers use Protobuf service definitions for strongly-typed RPC methods, and are served over the same Hono HTTP server as REST controllers.
+# gRPC controllers
 
-> **Deep Dive:** See [gRPC Controllers Reference](../../references/base/grpc-controllers.md) for the complete API.
-
-## Peer Dependencies
-
-gRPC support requires the following packages to be installed:
-
-```bash
-bun add @connectrpc/connect @bufbuild/protobuf
-```
-
-## Enabling gRPC Transport
-
-To use gRPC controllers, you must enable the gRPC transport in your application configuration:
+IGNIS serves Protobuf services with [ConnectRPC](https://connectrpc.com/). A gRPC controller is a class with one method per RPC, with dependency injection, `authenticate` and `authorize` as in REST.
 
 ```typescript
-import { ControllerTransports } from '@venizia/ignis';
-
-export const appConfigs: IApplicationConfigs = {
-  // ... other config
-  transports: [ControllerTransports.REST, ControllerTransports.GRPC],
-};
-```
-
-If `transports` is not specified, only `REST` is enabled by default. If gRPC controllers are discovered but the gRPC transport is not enabled, the framework will log an error warning.
-
-## Creating a gRPC Controller
-
-Extend `BaseGrpcController` and use the `@controller` decorator with `transport: ControllerTransports.GRPC` and a `service` reference to your generated Protobuf service definition.
-
-```typescript
-import { create } from '@bufbuild/protobuf';
-import {
-  BaseGrpcController,
-  ControllerTransports,
-  controller,
-  inject,
-  unary,
-  TRouteContext, BindingKeys,
-} from '@venizia/ignis';
-// The generated service descriptor is a value, not a type. Alias it so it does not
-// collide with your own application service class of the same name.
-import {
-  GreeterService as GreeterServiceDefinition,
-  SayHelloResponseSchema,
-  type SayHelloRequest,
-  type SayHelloResponse,
-} from './generated/greeter_pb';
-import { GreeterService } from '../../services/greeter.service';
-
-@controller({
-  path: '/grpc',
-  transport: ControllerTransports.GRPC,
-  service: GreeterServiceDefinition,
-})
+@controller({ path: '/grpc', transport: ControllerTransports.GRPC, service: GreeterDefinition })
 export class GreeterController extends BaseGrpcController {
-  constructor(
-    @inject({ key: BindingKeys.build<GreeterService>({ key: 'services.GreeterService' }) })
-    private readonly greeterService: GreeterService,
-  ) {
-    super({ scope: 'GreeterController' });
+  constructor() {
+    super({ scope: GreeterController.name });
   }
 
   override binding() {}
 
   @unary({ configs: { name: 'sayHello' } })
-  async sayHello(opts: { request: SayHelloRequest; context: TRouteContext }): Promise<SayHelloResponse> {
-    const message = await this.greeterService.greet({ name: opts.request.name });
-    return create(SayHelloResponseSchema, { message });
+  async sayHello(opts: { request: SayHelloRequest }) {
+    return create(SayHelloResponseSchema, { message: `Hello, ${opts.request.name}!` });
   }
 }
 ```
 
-### Key Points
+New here? Start with [Build a gRPC service](/guides/core-concepts/grpc/build-a-service).
 
-- The `service` field in `@controller` must reference the generated ConnectRPC service definition
-- That descriptor is a `const`, so it cannot be used as a type. Writing `private readonly greeterService: GreeterService` against it is a compile error. The injected dependency is your own service class, which is a different symbol
-- The `path` determines the URL prefix where the gRPC service is mounted
-- `binding()` must be implemented (even if empty) - it is called during `configure()`
-- Handler methods receive `{ request, context, rpc }` and return a Protobuf message object
+## gRPC guides
 
-The name of an RPC is the method of the service as the generated code writes it (`sayHello` for `rpc SayHello`). A name the service does not declare stops the application at startup, with the declared names in the error, and so does a decorator of another kind than the method (`@unary` on a `returns (stream ...)` method).
-
-## Deadlines, cancellation, headers and trailers
-
-`rpc` is ConnectRPC's context of the call (`HandlerContext` from `@connectrpc/connect`):
-
-```typescript
-@unary({ configs: { name: 'sayHello' } })
-async sayHello(opts: { request: SayHelloRequest; context: TRouteContext; rpc: HandlerContext }) {
-  const { request, rpc } = opts;
-
-  // Aborted at the client's deadline and when the client leaves.
-  const message = await this.greeterService.greet({ name: request.name, signal: rpc.signal });
-  rpc.responseHeader.set('x-greeter', 'v2');
-  rpc.responseTrailer.set('x-cost', '3');
-
-  return create(SayHelloResponseSchema, { message });
-}
-```
-
-A deadline is a signal, not a kill: a handler that ignores `rpc.signal` runs on and answers. `rpc.timeoutMs()` gives the time left, and `rpc.requestHeader` the request headers.
-
-## Request size
-
-An RPC route reads its own body: the application's body limit (`middlewares.bodyLimit`) does not apply to it, and the request spy does not read or log it. Each message is limited instead, decompressed, to 5 MiB by default. A larger one answers `resource_exhausted`.
-
-```typescript
-this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({
-  limits: { messageSize: 10 * 1024 * 1024 },
-});
-```
-
-The whole request is still held to the server's own cap, `server.maxRequestBodySize` (Bun's default is 128 MiB). A middleware of your own that reads the body of an RPC route is bounded only by that cap.
-
-The limit steps aside by matched route, as `BodyLimits.route` does: a route of your own registered on the same path as an RPC takes no application body limit either.
-
-## RPC Method Decorators
-
-IGNIS provides a decorator for each gRPC method type:
-
-- `@unary(opts)` -- one request, one answer.
-- `@serverStream(opts)` -- one request, a stream of answers.
-- `@clientStream(opts)` -- a stream of requests, one answer.
-- `@bidiStream(opts)` -- streams both ways; the application port refuses it (it needs HTTP/2).
-- `@rpc(opts)` -- Generic RPC decorator where you specify the `method` in the configs.
-
-The `opts` object contains a `configs` property with at minimum a `name` field that matches the RPC method name in your Protobuf service definition. You can also specify `authenticate` and `authorize` options, just like REST routes.
-
-```typescript
-// Unary
-@unary({ configs: { name: 'sayHello' } })
-async sayHello(opts: { request: SayHelloRequest; context: TRouteContext }): Promise<SayHelloResponse> { ... }
-
-// With authentication
-@unary({
-  configs: {
-    name: 'getUser',
-    authenticate: { strategies: ['jwt'], mode: 'any' },
-  },
-})
-async getUser(opts: { request: GetUserRequest; context: TRouteContext }): Promise<GetUserResponse> { ... }
-
-// With authorization
-@unary({
-  configs: {
-    name: 'deleteUser',
-    authenticate: { strategies: ['jwt'] },
-    authorize: { action: 'delete', resource: 'user' },
-  },
-})
-async deleteUser(opts: { request: DeleteUserRequest; context: TRouteContext }): Promise<DeleteUserResponse> { ... }
-```
-
-## Streaming
-
-| Call | Application port | The handler |
-|---|---|---|
-| unary | Connect, gRPC-Web | returns the answer |
-| server stream | Connect, gRPC-Web | an async generator: `yield` each message |
-| client stream | Connect, gRPC-Web | reads `request` with `for await`, returns one answer |
-| bidi | refused with HTTP 505: it needs HTTP/2 | |
-
-A browser cannot stream a request body: from a browser only unary and server streaming work.
-
-```typescript
-@serverStream({ configs: { name: 'listHellos', authenticate: { strategies: ['jwt'] } } })
-async *listHellos(opts: { request: ListRequest; context: TRouteContext; rpc: HandlerContext }) {
-  for await (const row of this.greeterService.rows({ signal: opts.rpc.signal })) {
-    yield create(SayHelloResponseSchema, row);
-  }
-}
-
-@clientStream({ configs: { name: 'collect', authenticate: { strategies: ['jwt'] } } })
-async collect(opts: { request: AsyncIterable<HelloRequest> }) {
-  const names: string[] = [];
-
-  for await (const message of opts.request) {
-    names.push(message.name);
-  }
-
-  return create(SayHelloResponseSchema, { message: names.join(', ') });
-}
-```
-
-The middlewares run before the handler. When the client leaves, `rpc.signal` aborts and the generator is closed, so a `finally` in it runs. A reader that stops reading pauses the generator.
-
-### Quiet calls
-
-`Bun.serve` closes a request that stays quiet longer than `server.idleTimeout` (10 seconds by default).
-
-| Call | Idle timeout |
+| Guide | Answers |
 |---|---|
-| passed `authenticate` or `authorize` | lifted: it may stay quiet as long as its handler needs |
-| refused, or still without credentials | kept |
-| a public method (no `authenticate`) | kept: raise `server.idleTimeout` if it must pause longer |
+| [Build a gRPC service](/guides/core-concepts/grpc/build-a-service) | proto file to first call |
+| [Ports and protocols](/guides/core-concepts/grpc/ports) | Connect, gRPC-Web or gRPC; the native port |
+| [Call kinds and streaming](/guides/core-concepts/grpc/call-kinds) | unary, server, client and bidi handlers |
+| [Authentication and authorization](/guides/core-concepts/grpc/authentication) | protect a method, send a token |
+| [Configuration and limits](/guides/core-concepts/grpc/configuration) | every option and default |
+| [TLS](/guides/core-concepts/grpc/tls) | certificates, h2c |
+| [Errors and status codes](/guides/core-concepts/grpc/errors) | what the client reads |
+| [Deadlines and timeouts](/guides/core-concepts/grpc/deadlines-and-timeouts) | deadline, cancel, idle timeout |
+| [Shutdown](/guides/core-concepts/grpc/shutdown) | calls running at stop |
+| [Bun limits](/guides/core-concepts/grpc/bun-limits) | quiet streams and other limits |
+| [Testing](/guides/core-concepts/grpc/testing) | test over both ports |
+| [Troubleshooting](/guides/core-concepts/grpc/troubleshooting) | symptom, cause, fix |
 
-When the call ends, the connection gets `server.idleTimeout` back. A call counts as passed when its middlewares let it on, an `authenticate` skipped with `Authentication.SKIP_AUTHENTICATION` included. A call whose idle timeout is lifted ends with the client's deadline, the client leaving, or the handler. Send a deadline from the client, and pass `rpc.signal` to slow work.
+API details: [gRPC controllers reference](/references/base/grpc-controllers).
 
-The whole request of a client stream is held to `server.maxRequestBodySize` (128 MiB by default).
+## Enable the gRPC transport
 
-The connection gets its idle timeout back as the call ends. A client that stops reading a large unary answer for longer than that may lose its tail: `Bun.serve` closes the quiet connection, as for a REST answer.
-
-## Native gRPC port
-
-`Bun.serve` sends no response trailers, so clients of the gRPC protocol (grpc-go, grpc-java, `grpcurl`) get their own port: a `node:http2` listener that runs the same controllers. It is off unless you turn it on.
+`@connectrpc/connect` and `@bufbuild/protobuf` are yours to install. Then add `GRPC` to `transports`; the default is REST only.
 
 ```bash
-bun add @connectrpc/connect-node
+bun add @connectrpc/connect @bufbuild/protobuf
 ```
 
 ```typescript
-this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({
-  native: {
-    use: true,
-    port: 50051,
-    host: '127.0.0.1',                 // default
-    tls: { use: true, key, cert },     // default { use: false }: clear text (h2c)
-    shutdownTimeout: 10_000,           // default
-    limits: { concurrentStreams: 100 }, // per connection, default 100
-  },
-});
+config: {
+  path: { base: '/api', isStrict: false },
+  transports: [ControllerTransports.REST, ControllerTransports.GRPC],
+}
 ```
 
-| Topic | Rule |
+A gRPC controller found while the transport is off logs an error and serves nothing.
+
+## RPC method decorators
+
+| Decorator | Kind |
 |---|---|
-| Paths | clients call `/package.Service/Method`, with no base or controller path; two controllers of one service stop the boot |
-| What it serves | RPC paths, with POST; a REST route is not reachable there |
-| Calls | all four kinds, bidi included |
-| Global middleware | runs with the headers only: it reads no body, and cannot change an answer after `next()` |
-| A middleware that answers | the client gets the matching gRPC status with the answer's `message` (at most 1,024 bytes once percent-encoded, cut between whole characters) and its headers, such as `retry-after` (429, 502, 503 and 504 read `unavailable`) |
-| Errors of auth and handlers | the same codes as on the HTTP port |
-| Idle streams | closed after `server.idleTimeout` until the call passes `authenticate` or `authorize` |
-| Size | `limits.messageSize` per message; a stream has no total limit here, and connections are not capped |
-| TLS | HTTP/2 only. Without TLS the port expects a mesh or a TLS-terminating proxy; keep `host` on loopback otherwise |
-| Start and stop | after the HTTP server; `stop()` waits `shutdownTimeout`, then aborts `rpc.signal` (the client reads `unavailable`) and closes the connections |
-| Client address | `getConnInfo` from `hono/bun` answers it |
+| `@unary` | one request, one answer |
+| `@serverStream` | one request, many answers |
+| `@clientStream` | many requests, one answer |
+| `@bidiStream` | many both ways, [native port only](/guides/core-concepts/grpc/call-kinds) |
+| `@rpc` | any kind, with `method` in `configs` |
 
-The listener is bound at `GrpcBindingKeys.GRPC_NATIVE_LISTENER`; with `port: 0` its `getAddress()` answers the port taken. The server has no reflection or health service: give `grpcurl` the `.proto`.
+`configs.name` is the method as the generated code writes it (`sayHello` for `rpc SayHello`). `configs` also takes `authenticate` and `authorize`.
 
-Bun's `node:http2` is younger than Node's; see [oven-sh/bun#39796](https://github.com/oven-sh/bun/issues/39796) before you put heavy load on this port.
+## Handler arguments
 
-A compiled binary passes `@connectrpc/connect-node` as `module.node`, or registers it with `ModuleUtility.register`.
+Every handler receives `{ request, context, rpc }`.
 
-## Transport Configuration
+| Field | What it is |
+|---|---|
+| `request` | the decoded message, or an async iterable of them for client and bidi streams |
+| `context` | the Hono context of the call |
+| `rpc` | ConnectRPC `HandlerContext`: `signal`, `timeoutMs()`, `requestHeader`, `responseHeader`, `responseTrailer` |
 
-The transport type is set via the `transport` field in the `@controller` decorator:
+Build answers with `create(ResponseSchema, fields)` from `@bufbuild/protobuf`.
 
-```typescript
-// REST controller (default -- transport can be omitted)
-@controller({ path: '/users' })
+## Define RPCs without decorators
 
-// gRPC controller
-@controller({ path: '/grpc', transport: ControllerTransports.GRPC, service: MyService })
-```
-
-The `ControllerTransports` class provides the available transport constants:
-
-- `ControllerTransports.REST` -- Default HTTP/JSON transport
-- `ControllerTransports.GRPC` -- ConnectRPC transport
-
-## Manual Route Definition
-
-Just like REST controllers, gRPC controllers support manual route definition via `defineRoute` and `bindRoute`:
+`defineRoute` and `bindRoute` register in `binding()`.
 
 ```typescript
 import { GRPC } from '@venizia/ignis-helpers';
 
 override binding() {
-  // Using defineRoute
   this.defineRoute({
     configs: { name: 'sayHello', method: GRPC.Methods.UNARY },
-    handler: async (opts) => {
-      return create(SayHelloResponseSchema, { message: `Hello ${opts.request.name}` });
-    },
+    handler: async () => create(SayHelloResponseSchema, { message: 'Hello' }),
   });
 
-  // Using bindRoute (fluent API)
-  this.bindRoute({
-    configs: { name: 'getUser', method: GRPC.Methods.UNARY },
-  }).to({
-    handler: async (opts) => {
-      return create(GetUserResponseSchema, { name: 'John' });
-    },
+  this.bindRoute({ configs: { name: 'collect', method: GRPC.Methods.CLIENT_STREAMING } }).to({
+    handler: async () => create(SayHelloResponseSchema, { message: 'Done' }),
   });
 }
 ```
 
-## Minimal Controller (No DI)
+## Differences from REST controllers
 
-For simple services that don't need injected dependencies:
+| Aspect | REST | gRPC |
+|---|---|---|
+| Base class | `BaseRestController` | `BaseGrpcController` |
+| Route identifier | path and HTTP method | RPC name |
+| Handler | `(context) => Response` | `({ request, context, rpc }) => message` |
+| Schema | Zod and OpenAPI | Protobuf |
+| `binding()` | optional | required, may be empty |
+| Request body limit | `middlewares.bodyLimit` | [`limits.messageSize`](/guides/core-concepts/grpc/configuration#grpc-message-size-limit) |
 
-```typescript
-import { create } from '@bufbuild/protobuf';
-import { BaseGrpcController, ControllerTransports, controller, unary } from '@venizia/ignis';
-import { EchoService, EchoResponseSchema, type EchoRequest, type EchoResponse } from './generated/echo_pb';
+## See also
 
-@controller({
-  path: '/echo',
-  transport: ControllerTransports.GRPC,
-  service: EchoService,
-})
-export class EchoController extends BaseGrpcController {
-  constructor() {
-    super({ scope: 'EchoController' });
-  }
-
-  override binding() {}
-
-  @unary({ configs: { name: 'echo' } })
-  async echo(opts: { request: EchoRequest }): Promise<EchoResponse> {
-    return create(EchoResponseSchema, { message: opts.request.message });
-  }
-}
-```
-
-## Key Differences from REST Controllers
-
-| Aspect | REST Controller | gRPC Controller |
-| :--- | :--- | :--- |
-| **Base class** | `BaseRestController` | `BaseGrpcController` |
-| **Router** | `OpenAPIHono` | `Hono` (plain) |
-| **Route identifier** | `path` + HTTP method | `name` (Protobuf method name) |
-| **Handler signature** | `(c: TRouteContext) => Response` | `(opts: { request, context }) => ResponseMessage` |
-| **Response format** | `context.json()` calls | Protobuf message objects via `create()` |
-| **Schema** | Zod + OpenAPI | Protobuf (`@bufbuild/protobuf`) |
-| **`binding()` method** | Optional (can use decorators only) | Must be implemented (even if empty) |
-| **`configure()` return** | `OpenAPIHono` router | `void` (adapter mounted internally) |
-| **Peer dependencies** | None | `@connectrpc/connect`, `@bufbuild/protobuf` |
-
-## Errors
-
-An RPC fails the way a REST route does: throw `getError({ statusCode, message })`, or Hono's `HTTPException`. For a 4xx the client reads the code of the status and the message a REST request would get.
-
-| Status | gRPC code |
-|---|---|
-| 400, 422 | `invalid_argument` |
-| 401 | `unauthenticated` |
-| 403 | `permission_denied` |
-| 404 | `not_found` |
-| 409 | `aborted` |
-| 429 | `resource_exhausted` |
-| Any other 4xx | `failed_precondition` |
-
-Everything else, a 5xx and another library's error with a `statusCode` included, answers `internal` with its text hidden. Throw a ConnectRPC `ConnectError` to choose the code yourself.
-
-A middleware of an RPC passes the call on by calling `next()`. One that returns a `Response`, or returns without calling `next()`, ends the call: the handler does not run. A 4xx `Response` gives the code of its status, anything else `internal`; the body and the headers of that response (`WWW-Authenticate` included) are not sent.
-
-Every middleware runs before the handler starts: `next()` only marks the call as passed on, so code after `await next()` does not wrap the handler (a `finally`, an async context or a `catch` there never sees it).
-
-The status and the message come from the default error handler: an error handler your application overrides is not used for an RPC.
-
-## Protobuf Setup
-
-gRPC controllers require Protobuf service definitions. The typical workflow:
-
-### 1. Define your `.proto` file
-
-```protobuf
-// proto/greeter.proto
-syntax = "proto3";
-
-package greeter;
-
-service GreeterService {
-  rpc SayHello (SayHelloRequest) returns (SayHelloResponse);
-  rpc ListUsers (ListUsersRequest) returns (ListUsersResponse);
-}
-
-message SayHelloRequest {
-  string name = 1;
-}
-
-message SayHelloResponse {
-  string message = 1;
-}
-
-message ListUsersRequest {}
-
-message ListUsersResponse {
-  repeated User users = 1;
-}
-
-message User {
-  string id = 1;
-  string name = 2;
-  string email = 3;
-}
-```
-
-### 2. Generate TypeScript code
-
-Use [Buf](https://buf.build/) to generate TypeScript from your `.proto` files:
-
-```yaml
-# buf.gen.yaml
-version: v2
-plugins:
-  - remote: buf.build/bufbuild/es
-    out: src/controllers/greeter/generated
-```
-
-```bash
-bun add -d @bufbuild/buf @bufbuild/protoc-gen-es
-node_modules/.bin/buf generate src/controllers/greeter/proto
-```
-
-### 3. Use the generated types in your controller
-
-The generated `*_pb.ts` files export service definitions, message schemas, and TypeScript types that you use directly in your controller (as shown in the examples above).
-
-## Client Usage
-
-You can test gRPC controllers using the ConnectRPC client:
-
-```typescript
-import { createClient } from '@connectrpc/connect';
-import { createConnectTransport } from '@connectrpc/connect-web';
-import { GreeterService } from './controllers/greeter/generated/greeter_pb';
-
-const transport = createConnectTransport({
-  baseUrl: 'http://localhost:3000',
-});
-
-const client = createClient(GreeterService, transport);
-
-const response = await client.sayHello({ name: 'World' });
-console.log(response.message); // "Hello, World!"
-```
-
-## See Also
-
-- **Related Concepts:**
-  - [Application](/guides/core-concepts/application/) - Registering controllers and enabling transports
-  - [REST Controllers](/guides/core-concepts/rest-controllers) - HTTP/JSON controllers
-  - [Services](/guides/core-concepts/services) - Business logic layer called by controllers
-  - [Dependency Injection](/guides/core-concepts/dependency-injection) - Injecting services into controllers
-
-- **References:**
-  - [BaseGrpcController API](/references/base/grpc-controllers) - Complete gRPC controller API reference
-  - [Authentication](/extensions/components/authentication/) - Securing gRPC endpoints
-  - [Authorization](/extensions/components/authorization/) - Role-based access control for RPCs
+- [Application](/guides/core-concepts/application/)
+- [REST controllers](/guides/core-concepts/rest-controllers)
+- [Services](/guides/core-concepts/services)
+- [Dependency injection](/guides/core-concepts/dependency-injection)

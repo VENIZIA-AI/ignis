@@ -9,6 +9,21 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 Part 2 of 4 of [`@venizia/ignis`](/references/api/venizia-ignis).
 
+## `DocumentUITypes`
+
+*class*
+
+The document UI implementations the API reference can render. `isValid` checks a string against them.
+
+```ts
+export declare class DocumentUITypes extends ConstClass {
+    static readonly SWAGGER = "swagger";
+    static readonly SCALAR = "scalar";
+}
+```
+
+Source: `packages/core-server/src/components/api-reference/common/constants.ts`
+
 ## `DomainHierarchyRoleManager`
 
 *class*
@@ -251,6 +266,7 @@ export declare class GrpcNativeCallStore {
     static read(opts: {
         env: unknown;
     }): IGrpcNativeCall | undefined;
+    /** The caller's address from the TCP connection, or `null` when the socket gives none. */
     requestIP(): {
         address: string;
         family: string | undefined;
@@ -304,7 +320,8 @@ Source: `packages/core-server/src/base/controllers/grpc/native/native.writer.ts`
 
 Bridges IGNIS gRPC controllers with ConnectRPC: loads the peer deps with `ModuleUtility.load` (the ES module copy an
 application's own import gets) and registers one Hono route per RPC, which hands the request to ConnectRPC's handler
-with the Hono context in its context values. Connect and gRPC-Web only: native gRPC needs response trailers.
+with the Hono context in its context values. That route serves Connect and gRPC-Web; with the native port on, it
+also writes a native gRPC call on the node stream, which can send the response trailers `Bun.serve` cannot.
 
 ```ts
 export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ServiceType = Parameters<ConnectRouter['service']>[0], ConfigurableOptions extends object = {}> extends BaseHelper {
@@ -775,6 +792,7 @@ Result from GrpcRequestAdapter.build().
 
 ```ts
 export interface IConnectAdapterResult<RouteEnv extends Env = Env> {
+    /** The RPC paths, `/package.Service/Method`, without the controller's path. */
     paths: string[];
     /** One route per RPC, at ConnectRPC's path (`/package.Service/Method`); mount it under the controller's path. */
     router: Hono<RouteEnv>;
@@ -838,8 +856,11 @@ gRPC controller interface defining RPC registration and configuration contract.
 
 ```ts
 export interface IGrpcController<RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ServiceType = unknown, ConfigurableOptions extends object = {}> extends IConfigurable<ConfigurableOptions> {
+    /** The generated service descriptor, from `@controller`. */
     service: ServiceType;
+    /** Holds one route per RPC once `configure()` ran; mounted under the controller's path. */
     router: Hono<RouteEnv, RouteSchema, BasePath>;
+    /** The registered RPCs, keyed by the method name of the service. */
     definitions: Record<string, IRpcRegistration<RouteEnv>>;
     getRouter(): Hono<RouteEnv, RouteSchema, BasePath>;
     bindRoute(opts: {
@@ -862,6 +883,7 @@ Configuration options for gRPC controller instantiation.
 
 ```ts
 export interface IGrpcControllerOptions {
+    /** The logger scope, usually the class name. */
     scope: string;
     /** Falls back to @controller decorator path if not provided. */
     path?: string;
@@ -1038,6 +1060,7 @@ Unified registration entry: metadata + handler + pre-built middlewares stored to
 export interface IRpcRegistration<RouteEnv extends Env = Env> {
     configs: IRpcMetadata;
     handler: TRpcHandler<unknown, unknown, RouteEnv>;
+    /** `authenticate` first, then one per `authorize` spec. An empty list is a public RPC: it keeps the idle timeout. */
     middlewares: TRpcMiddleware<RouteEnv>[];
 }
 ```
@@ -1220,53 +1243,3 @@ export interface IServerRuntimeConfigs {
 ```
 
 Source: `packages/core-server/src/base/applications/common/types.ts`
-
-## `IServerTime`
-
-*interface*
-
-Body of `GET <path>/time`. Every field comes from ONE captured instant, so they never disagree.
-
-**Example**
-```json
-{
-  "server": {
-    "date": "2026-11-10",
-    "time": "15:00:00.123",
-    "epoch": 1794297600123,
-    "iso": "2026-11-10T15:00:00.123+07:00"
-  },
-  "tz": "Asia/Ho_Chi_Minh",
-  "utc": { "offset": "+07:00", "minutes": 420, "iso": "2026-11-10T08:00:00.123Z" }
-}
-```
-
-```ts
-export interface IServerTime {
-    server: {
-        /** Calendar date in the server time zone, `YYYY-MM-DD`. */
-        date: string;
-        /** Wall-clock time in the server time zone, `HH:mm:ss.SSS`. */
-        time: string;
-        /** Milliseconds since 1970-01-01T00:00:00Z (`Date.now()`). Compute clock skew from this field. */
-        epoch: number;
-        /** `date`, `time` and `utc.offset` joined as ISO-8601, e.g. `2026-11-10T15:00:00.123+07:00`. */
-        iso: string;
-    };
-    /** IANA time zone the server process resolved, e.g. `Asia/Ho_Chi_Minh`. */
-    tz: string;
-    utc: {
-        /** Offset of `tz` from UTC at response time, `+07:00` style. */
-        offset: string;
-        /**
-         * The same offset in minutes, POSITIVE east of UTC (`420` for `+07:00`). This is the opposite
-         * sign of JavaScript's `Date.prototype.getTimezoneOffset()`.
-         */
-        minutes: number;
-        /** The same instant in UTC, ISO-8601 with milliseconds (`toISOString()`). */
-        iso: string;
-    };
-}
-```
-
-Source: `packages/core-server/src/components/server-info/common/types.ts`

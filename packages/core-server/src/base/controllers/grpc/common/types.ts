@@ -48,6 +48,7 @@ export interface IGrpcLimits {
 
 /** Configuration options for gRPC controller instantiation. */
 export interface IGrpcControllerOptions {
+  /** The logger scope, usually the class name. */
   scope: string;
   /** Falls back to @controller decorator path if not provided. */
   path?: string;
@@ -78,6 +79,7 @@ export type TRpcMiddleware<RouteEnv extends Env = Env> = (
 export interface IRpcRegistration<RouteEnv extends Env = Env> {
   configs: IRpcMetadata;
   handler: TRpcHandler<unknown, unknown, RouteEnv>;
+  /** `authenticate` first, then one per `authorize` spec. An empty list is a public RPC: it keeps the idle timeout. */
   middlewares: TRpcMiddleware<RouteEnv>[];
 }
 
@@ -100,9 +102,12 @@ export interface IGrpcController<
   ServiceType = unknown,
   ConfigurableOptions extends object = {},
 > extends IConfigurable<ConfigurableOptions> {
+  /** The generated service descriptor, from `@controller`. */
   service: ServiceType;
+  /** Holds one route per RPC once `configure()` ran; mounted under the controller's path. */
   router: Hono<RouteEnv, RouteSchema, BasePath>;
 
+  /** The registered RPCs, keyed by the method name of the service. */
   definitions: Record<string, IRpcRegistration<RouteEnv>>;
 
   getRouter(): Hono<RouteEnv, RouteSchema, BasePath>;
@@ -116,6 +121,7 @@ export interface IGrpcController<
 
 /** Result from GrpcRequestAdapter.build(). */
 export interface IConnectAdapterResult<RouteEnv extends Env = Env> {
+  /** The RPC paths, `/package.Service/Method`, without the controller's path. */
   paths: string[];
   /** One route per RPC, at ConnectRPC's path (`/package.Service/Method`); mount it under the controller's path. */
   router: Hono<RouteEnv>;

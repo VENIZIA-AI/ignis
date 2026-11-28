@@ -11,7 +11,9 @@ export type { IGrpcLimits, IGrpcNativeOptions };
 
 /** Options of `GrpcComponent`, bound at `GrpcBindingKeys.GRPC_COMPONENT_OPTIONS`. */
 export interface IGrpcComponentConfig {
+  /** ConnectRPC `Interceptor`s of every RPC. They run before `authenticate` and `authorize`. */
   interceptors?: unknown[];
+  /** Limits of both ports. */
   limits?: IGrpcLimits;
   /** The ConnectRPC peer, for a compiled binary that has no `node_modules` to resolve it from. */
   module?: IConnectRpcModule;

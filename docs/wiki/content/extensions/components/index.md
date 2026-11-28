@@ -16,7 +16,7 @@ Self-contained feature modules you register with `this.component(SomeComponent)`
 | [WebSocket](./websocket/) | Native Bun WebSocket, Redis pub/sub, heartbeat | `@venizia/ignis/websocket` | Clients need a raw WebSocket without Socket.IO |
 | [Static Asset](./static-asset/) | Upload/download files - S3-compatible or local disk | `@venizia/ignis/static-asset` | The app stores or serves user-uploaded files |
 | [API Reference](./api-reference) | OpenAPI generation, Scalar UI by default, Swagger UI optional | `@venizia/ignis` | You want a browsable UI for your REST routes |
-| [gRPC](/references/base/grpc-controllers) | ConnectRPC transport, unary RPC, decorator-based | `@venizia/ignis/grpc` | The app serves gRPC alongside or instead of REST |
+| [gRPC](/references/base/grpc-controllers) | ConnectRPC transport: Connect, gRPC-Web and native gRPC, all four call kinds | `@venizia/ignis/grpc` | The app serves gRPC alongside or instead of REST |
 
 Mail, Socket.IO, WebSocket and Static Asset are kept off the root barrel on purpose, so importing one never drags the others' optional peers into your bundle. gRPC lives on its own subpath for the same reason. Use the exact specifier in the table.
 
