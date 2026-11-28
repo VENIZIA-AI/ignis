@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis/grpc, from the built declarations (
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-4 exports, 4 with TSDoc.
+5 exports, 5 with TSDoc.
 
 ## `GrpcBindingKeys`
 
@@ -76,9 +76,25 @@ Options of `GrpcComponent`, bound at `GrpcBindingKeys.GRPC_COMPONENT_OPTIONS`.
 ```ts
 export interface IGrpcComponentConfig {
     interceptors?: unknown[];
+    limits?: IGrpcLimits;
     /** The ConnectRPC peer, for a compiled binary that has no `node_modules` to resolve it from. */
     module?: IConnectRpcModule;
 }
 ```
 
 Source: `packages/core-server/src/components/controller/grpc/common/types.ts`
+
+## `IGrpcLimits`
+
+*interface*
+
+Size limits of the RPCs of a controller.
+
+```ts
+export interface IGrpcLimits {
+    /** The largest message a client may send, decoded, in bytes. Default 5 MiB (`BodyLimits.DEFAULT_MAX_SIZE`). */
+    messageSize?: number;
+}
+```
+
+Source: `packages/core-server/src/base/controllers/grpc/common/types.ts`

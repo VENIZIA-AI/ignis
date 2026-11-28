@@ -6,6 +6,7 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import { ModuleUtility } from '@venizia/ignis-helpers';
 import type { Context, Env, Schema } from 'hono';
 import { Hono } from 'hono';
+import { BodyLimits } from '@venizia/ignis-kernel';
 import type { TRouteContext } from '@venizia/ignis-kernel';
 import type { AbstractGrpcController } from './abstract';
 import { GrpcErrors } from './errors';
@@ -13,6 +14,7 @@ import { AppErrorMiddleware } from '@/base/middlewares/app-error/app-error.middl
 import type {
   IConnectAdapterResult,
   IConnectRpcModule,
+  IGrpcLimits,
   IRpcRegistration,
   TRpcMiddleware,
 } from './common/types';
@@ -42,6 +44,7 @@ interface IAdapterOptions<
   >;
   interceptors?: unknown[];
   module?: IConnectRpcModule;
+  limits?: IGrpcLimits;
 }
 
 /**
@@ -241,6 +244,14 @@ export class GrpcRequestAdapter<
   >(
     opts: IAdapterOptions<RouteEnv, RouteSchema, BasePath, ServiceType, ConfigurableOptions>,
   ): Promise<IConnectAdapterResult<RouteEnv>> {
+    const messageSize = opts.limits?.messageSize ?? BodyLimits.DEFAULT_MAX_SIZE;
+
+    if (!Number.isInteger(messageSize) || messageSize <= 0) {
+      throw getError({
+        message: `[${opts.controller.constructor.name}] limits.messageSize must be a positive integer of bytes | value: ${String(messageSize)}`,
+      });
+    }
+
     let peers = opts.module;
 
     if (!peers) {
@@ -251,7 +262,8 @@ export class GrpcRequestAdapter<
     const adapter = new GrpcRequestAdapter(opts, peers);
 
     // `Bun.serve` sends no response trailers, so the gRPC protocol is off here.
-    const routerOpts: Record<string, unknown> = { grpc: false };
+    // ConnectRPC's own default accepts a message of 4 GiB.
+    const routerOpts: Record<string, unknown> = { grpc: false, readMaxBytes: messageSize };
 
     if (opts.interceptors?.length) {
       routerOpts.interceptors = opts.interceptors;
@@ -269,8 +281,11 @@ export class GrpcRequestAdapter<
 
     for (const handler of connectRouter.handlers) {
       paths.push(handler.requestPath);
-      router.on(handler.allowedMethods, handler.requestPath, (context) =>
-        adapter.serve({ context, handler }),
+      router.on(
+        handler.allowedMethods,
+        handler.requestPath,
+        BodyLimits.stream(),
+        (context: Context<RouteEnv>) => adapter.serve({ context, handler }),
       );
     }
 

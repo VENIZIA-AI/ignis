@@ -89,6 +89,7 @@ export class GrpcComponent extends BaseComponent {
 
         instance.connectRpcModule = options?.module;
         instance.interceptors = options?.interceptors;
+        instance.limits = options?.limits;
         await instance.configure();
 
         router.route(metadata.path, instance.getRouter());

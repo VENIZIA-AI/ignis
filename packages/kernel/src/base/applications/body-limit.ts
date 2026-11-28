@@ -6,6 +6,9 @@ import { RequestErrors } from '../middlewares/common/errors';
 /** Marks a middleware as the body limit of ONE route. A registry symbol, so two installed copies of this package still read each other's marks. */
 const ROUTE_BODY_LIMIT: unique symbol = Symbol.for('@venizia/ignis-kernel/route-body-limit');
 
+/** Marks a route whose handler reads the body itself, as it arrives. */
+const STREAMED_BODY: unique symbol = Symbol.for('@venizia/ignis-kernel/streamed-body');
+
 /**
  * The request body limit: the default every route gets, and the limit one route sets for itself.
  *
@@ -55,6 +58,27 @@ export class BodyLimits {
     }
 
     return Object.assign(BodyLimits.limiter(opts), { [ROUTE_BODY_LIMIT]: maxSize });
+  }
+
+  /**
+   * The marker of a route that reads its body itself: the limit of every route steps aside and no framework middleware
+   * reads the body first. It limits NOTHING: the route's handler must bound what it reads (an RPC route bounds each
+   * message). The host's own cap (`configs.server.maxRequestBodySize`) still holds.
+   */
+  static stream(): MiddlewareHandler {
+    const pass: MiddlewareHandler = (_context, next) => next();
+
+    return Object.assign(pass, {
+      [ROUTE_BODY_LIMIT]: Number.POSITIVE_INFINITY,
+      [STREAMED_BODY]: true,
+    });
+  }
+
+  /** Whether the route this request matched reads its body itself (`BodyLimits.stream`). */
+  static isStreamed(context: Context): boolean {
+    return context.req.matchedRoutes.some(
+      (matched) => Reflect.get(matched.handler, STREAMED_BODY) !== undefined,
+    );
   }
 
   /** Whether the route this request matched carries its own limit, so the default stands aside. */

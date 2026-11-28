@@ -142,6 +142,8 @@ export declare abstract class AbstractGrpcController<RouteEnv extends Env = Env,
     connectRpcModule?: IConnectRpcModule;
     /** ConnectRPC interceptors, assigned by GrpcComponent from its options before configure(). Applied to every RPC this controller registers. */
     interceptors?: unknown[];
+    /** Size limits, assigned by GrpcComponent from its options before configure(). */
+    limits?: IGrpcLimits;
     router: Hono<RouteEnv, RouteSchema, BasePath>;
     constructor(opts: IGrpcControllerOptions);
     /** Returns the per-controller sub-router. */
