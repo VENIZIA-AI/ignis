@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-108 exports, 108 with TSDoc. 1020 more are re-exported from other entries (listed at the end).
+109 exports, 109 with TSDoc. 1020 more are re-exported from other entries (listed at the end).
 
 The declarations are on 3 pages; each export below links to its own.
 
@@ -106,6 +106,10 @@ The declarations are on 3 pages; each export below links to its own.
 ## `GrpcRequestAdapter`
 
 *class* - [Declaration](/references/api/venizia-ignis--part-2#grpcrequestadapter)
+
+## `GrpcTimeoutGuard`
+
+*class* - [Declaration](/references/api/venizia-ignis--part-2#grpctimeoutguard)
 
 ## `HealthCheckBindingKeys`
 

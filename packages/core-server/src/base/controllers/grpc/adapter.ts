@@ -1,15 +1,14 @@
 import type { ConnectRouter, ContextKey, HandlerContext } from '@connectrpc/connect';
 import type { UniversalHandler } from '@connectrpc/connect/protocol';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError, RecordUtility } from '@venizia/ignis-helpers/core';
-import { HTTP } from '@venizia/ignis-helpers/common';
+import { GRPC, HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { ModuleUtility } from '@venizia/ignis-helpers';
 import type { Context, Env, Schema } from 'hono';
 import { Hono } from 'hono';
-import { BodyLimits } from '@venizia/ignis-kernel';
-import type { TRouteContext } from '@venizia/ignis-kernel';
+import { BodyLimits, type TRouteContext } from '@venizia/ignis-kernel';
 import type { AbstractGrpcController } from './abstract';
 import { GrpcErrors } from './errors';
+import { GrpcTimeoutGuard } from './timeout.guard';
 import { AppErrorMiddleware } from '@/base/middlewares/app-error/app-error.middleware';
 import type {
   IConnectAdapterResult,
@@ -25,7 +24,14 @@ const CONNECT_RPC_PROTOCOL_MODULE = '@connectrpc/connect/protocol';
 type TConnectHandler<RequestType = unknown, ResponseType = unknown> = (
   request: RequestType,
   context: HandlerContext,
-) => ValueOrPromise<ResponseType>;
+) => ValueOrPromise<ResponseType> | AsyncIterable<ResponseType>;
+
+/** One call of one RPC. */
+interface IRpcCall<RouteEnv extends Env> {
+  name: string;
+  definition: IRpcRegistration<RouteEnv>;
+  rpc: HandlerContext;
+}
 
 /** What an adapter is built from. */
 interface IAdapterOptions<
@@ -94,40 +100,97 @@ export class GrpcRequestAdapter<
     return { connect, protocol };
   }
 
-  /** One RPC: the middlewares, then the handler; a throw becomes the answer a gRPC client reads. */
+  /**
+   * One RPC in the shape ConnectRPC calls: a call that streams its answer is a generator, the others answer a promise.
+   * The middlewares run first, then the handler; a throw becomes the answer a gRPC client reads.
+   */
   private wrap(opts: { name: string; definition: IRpcRegistration<RouteEnv> }): TConnectHandler {
     const { name, definition } = opts;
-    const { handler, middlewares } = definition;
+    const { method } = definition.configs;
+
+    if (method === GRPC.Methods.SERVER_STREAMING || method === GRPC.Methods.BIDI_STREAMING) {
+      return (request: unknown, rpc: HandlerContext) =>
+        this.stream({ name, definition, request, rpc });
+    }
 
     return async (request: unknown, rpc: HandlerContext) => {
-      const requestContext = rpc.values.get(this.honoContext);
-
-      if (!requestContext) {
-        throw getError({
-          statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-          message: `[GrpcRequestAdapter] Missing Hono context for RPC "${name}"`,
-        });
-      }
-
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Hono's context is what runs; `TRouteContext` is built on it but declares `json` and `req.valid` differently, so it is no subtype
-      const context = requestContext as TRouteContext<RouteEnv>;
-
       try {
-        await this.passMiddlewares({ context, middlewares });
-
-        const response = await handler({ request, context, rpc });
+        const context = await this.open({ name, definition, rpc });
+        const response = await definition.handler({ request, context, rpc });
 
         return response;
       } catch (error) {
-        const answer = await GrpcErrors.toAnswer({
-          error,
-          context: requestContext,
-          connect: this.peers.connect,
-          handle: this.handleError,
-        });
+        const answer = await this.toAnswer({ error, rpc });
         throw answer;
       }
     };
+  }
+
+  /** A call that streams its answer: the handler's messages, one by one. */
+  private async *stream(opts: IRpcCall<RouteEnv> & { request: unknown }) {
+    const { name, definition, request, rpc } = opts;
+
+    try {
+      const context = await this.open({ name, definition, rpc });
+      const messages: unknown = await definition.handler({ request, context, rpc });
+
+      if (!this.isMessageStream(messages)) {
+        throw getError({
+          message: `[GrpcRequestAdapter] RPC "${name}" streams its answer: the handler must return an async iterable, such as an async generator`,
+        });
+      }
+
+      yield* messages;
+    } catch (error) {
+      const answer = await this.toAnswer({ error, rpc });
+      throw answer;
+    }
+  }
+
+  private isMessageStream(value: unknown): value is AsyncIterable<unknown> {
+    return typeof value === 'object' && value !== null && Symbol.asyncIterator in value;
+  }
+
+  /** The Hono context of the call. */
+  private readContext(opts: { rpc: HandlerContext }): Context<RouteEnv> {
+    const context = opts.rpc.values.get(this.honoContext);
+
+    if (!context) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        message: `[GrpcRequestAdapter] Missing Hono context for RPC "${opts.rpc.method.name}"`,
+      });
+    }
+
+    return context;
+  }
+
+  /** Runs the middlewares of a call and answers the context its handler reads. A call that passed one may stay quiet. */
+  private async open(opts: IRpcCall<RouteEnv>) {
+    const { definition, rpc } = opts;
+    const honoContext = this.readContext({ rpc });
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Hono's context is what runs; `TRouteContext` is built on it but declares `json` and `req.valid` differently, so it is no subtype
+    const context = honoContext as TRouteContext<RouteEnv>;
+
+    await this.passMiddlewares({ context, middlewares: definition.middlewares });
+
+    // Only after the middlewares: a caller with no credentials keeps the idle timeout, and so does a public method.
+    if (definition.middlewares.length > 0) {
+      GrpcTimeoutGuard.lift({ context: honoContext });
+    }
+
+    return context;
+  }
+
+  private async toAnswer(opts: { error: unknown; rpc: HandlerContext }) {
+    const answer = await GrpcErrors.toAnswer({
+      error: opts.error,
+      context: this.readContext({ rpc: opts.rpc }),
+      connect: this.peers.connect,
+      handle: this.handleError,
+    });
+
+    return answer;
   }
 
   /**

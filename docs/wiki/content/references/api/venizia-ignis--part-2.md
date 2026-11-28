@@ -133,8 +133,19 @@ export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema 
      * which is what a compiled binary has). A missing peer rejects with the error that names what to install.
      */
     private static loadModule;
-    /** One RPC: the middlewares, then the handler; a throw becomes the answer a gRPC client reads. */
+    /**
+     * One RPC in the shape ConnectRPC calls: a call that streams its answer is a generator, the others answer a promise.
+     * The middlewares run first, then the handler; a throw becomes the answer a gRPC client reads.
+     */
     private wrap;
+    /** A call that streams its answer: the handler's messages, one by one. */
+    private stream;
+    private isMessageStream;
+    /** The Hono context of the call. */
+    private readContext;
+    /** Runs the middlewares of a call and answers the context its handler reads. A call that passed one may stay quiet. */
+    private open;
+    private toAnswer;
     /**
      * Runs the pre-built auth middlewares (`AbstractGrpcController.buildRpcMiddlewares`) in order. Each one must call
      * `next()` to pass the call on; one that answers, or does neither, ends it.
@@ -165,6 +176,26 @@ interface IAdapterOptions<RouteEnv extends Env, RouteSchema extends Schema, Base
 ```
 
 Source: `packages/core-server/src/base/controllers/grpc/adapter.ts`
+
+## `GrpcTimeoutGuard`
+
+*class*
+
+The idle timeout of the server for one call: `Bun.serve` closes a request that stays quiet for `idleTimeout`.
+
+```ts
+export declare class GrpcTimeoutGuard {
+    /**
+     * Lifts the idle timeout of this request, so a call may stay quiet for as long as its handler needs. A request with no
+     * Bun server behind it (`router.request` in a test) has no timeout to lift.
+     */
+    static lift<RouteEnv extends Env>(opts: {
+        context: Context<RouteEnv>;
+    }): void;
+}
+```
+
+Source: `packages/core-server/src/base/controllers/grpc/timeout.guard.ts`
 
 ## `HealthCheckBindingKeys`
 

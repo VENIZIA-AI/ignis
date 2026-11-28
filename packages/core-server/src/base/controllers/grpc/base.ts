@@ -1,6 +1,4 @@
 import type { IRpcMetadata } from '@venizia/ignis-kernel';
-import { getError } from '@venizia/ignis-helpers/core';
-import { GRPC } from '@venizia/ignis-helpers/common';
 import type { Env, Schema } from 'hono';
 import { AbstractGrpcController } from './abstract';
 import type { IGrpcBindRouteOptions, IGrpcDefineRouteOptions, TRpcHandler } from './common/types';
@@ -44,19 +42,13 @@ export abstract class BaseGrpcController<
     return { configs };
   }
 
-  /** Internal: validates and stores handler + configs in definitions. Throws on non-unary methods. */
+  /** Internal: stores handler + configs in definitions. */
   private registerRoute(opts: {
     configs: IRpcMetadata;
     handler: TRpcHandler<unknown, unknown, RouteEnv>;
   }): void {
     const { configs, handler } = opts;
     const logger = this.logger.for('registerRoute');
-
-    if (configs.method !== GRPC.Methods.UNARY) {
-      throw getError({
-        message: `[${this.constructor.name}] RPC method "${configs.name}" uses "${configs.method}" which is not supported. Only unary RPCs are supported in the current version (HTTP/1.1 Connect protocol).`,
-      });
-    }
 
     if (this.definitions[configs.name]) {
       logger.warn('Overwriting RPC handler | name: %s', configs.name);

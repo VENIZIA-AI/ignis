@@ -1,4 +1,3 @@
-import { BodyLimits } from '@venizia/ignis-kernel';
 import { NetworkUtility } from '@/utilities/network.utility';
 import { Environment } from '@venizia/ignis-helpers';
 import { BaseHelper, EnvironmentNames, getError } from '@venizia/ignis-helpers/core';
@@ -6,7 +5,7 @@ import { HTTP, REDACTED } from '@venizia/ignis-helpers/common';
 import type { IProvider } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
 import type { MiddlewareHandler } from 'hono/types';
-import { REQUEST_ID_KEY, RequestErrors, type TContext } from '@venizia/ignis-kernel';
+import { BodyLimits, REQUEST_ID_KEY, RequestErrors, type TContext } from '@venizia/ignis-kernel';
 
 /** What the debug log shows for the body of a route that reads it itself. */
 const STREAMED_BODY_LABEL = '<read by the route>';

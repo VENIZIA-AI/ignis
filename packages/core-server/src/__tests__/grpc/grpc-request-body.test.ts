@@ -1,12 +1,10 @@
 import 'reflect-metadata';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { fileDesc, serviceDesc } from '@bufbuild/protobuf/codegenv2';
-import { GRPC, HTTP } from '@venizia/ignis-helpers/common';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { ControllerTransports } from '@venizia/ignis-kernel';
+import { GRPC, HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { ControllerTransports, type IApplicationInfo } from '@venizia/ignis-kernel';
 import { Hono } from 'hono';
 import { RejectionUtility } from '@venizia/dev-configs/testing';
-import type { IApplicationInfo } from '@venizia/ignis-kernel';
 import { BaseApplication } from '@/base/applications';
 import { BaseGrpcController } from '@/base/controllers/grpc/base';
 import { GrpcBindingKeys } from '@/components/controller/grpc';
@@ -163,6 +161,53 @@ describe('an RPC route owns its request body', () => {
     await probe.request('/echo', init);
 
     expect(parsed).toEqual(['/echo']);
+  });
+
+  test('the debug log of an RPC call carries no body', async () => {
+    const previous = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'development';
+    const spy = new RequestSpyMiddleware();
+    process.env.NODE_ENV = previous;
+    const captured: unknown[][] = [];
+
+    const capture = (...args: unknown[]) => {
+      captured.push(args);
+    };
+
+    const logger = {
+      info: capture,
+      error: capture,
+      warn: capture,
+      debug: capture,
+      emerg: capture,
+      log: capture,
+      for: () => logger,
+    };
+    spy.logger = logger;
+
+    const server = new GreeterController();
+    server.service = GreeterService;
+    await server.configure();
+    const probe = new Hono();
+    probe.use('*', spy.value());
+    probe.route('/grpc', server.getRouter());
+    probe.post('/echo', (context) => context.json({ ok: true }));
+
+    const send = (path: string, name: string) => {
+      return probe.request(path, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+    };
+
+    await send('/grpc/greeter.v1.GreeterService/SayHello', 'rpc-secret');
+    await send('/echo', 'rest-body');
+    const logged = JSON.stringify(captured);
+
+    expect(logged).toContain('rest-body');
+    expect(logged).toContain('<read by the route>');
+    expect(logged).not.toContain('rpc-secret');
   });
 
   for (const messageSize of [0, -1, 1.5, Number.NaN]) {

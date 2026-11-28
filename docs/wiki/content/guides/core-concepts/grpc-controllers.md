@@ -4,9 +4,6 @@ IGNIS serves Protobuf services with [ConnectRPC](https://connectrpc.com/): clien
 
 > **Deep Dive:** See [gRPC Controllers Reference](../../references/base/grpc-controllers.md) for the complete API.
 
-> [!IMPORTANT]
-> The current version only supports **unary** RPCs (single request, single response) over HTTP/1.1 Connect protocol. Streaming methods (`@serverStream`, `@clientStream`, `@bidiStream`) have decorators defined for metadata registration, but will throw an error at runtime if used.
-
 ## Peer Dependencies
 
 gRPC support requires the following packages to be installed:
@@ -119,20 +116,22 @@ this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({
 
 The whole request is still held to the server's own cap, `server.maxRequestBodySize` (Bun's default is 128 MiB). A middleware of your own that reads the body of an RPC route is bounded only by that cap.
 
+The limit steps aside by matched route, as `BodyLimits.route` does: a route of your own registered on the same path as an RPC takes no application body limit either.
+
 ## RPC Method Decorators
 
 IGNIS provides a decorator for each gRPC method type:
 
-- `@unary(opts)` -- Single request, single response. **This is the only supported method type** in the current version.
-- `@serverStream(opts)` -- Decorator exists for metadata, but throws at runtime.
-- `@clientStream(opts)` -- Decorator exists for metadata, but throws at runtime.
-- `@bidiStream(opts)` -- Decorator exists for metadata, but throws at runtime.
+- `@unary(opts)` -- one request, one answer.
+- `@serverStream(opts)` -- one request, a stream of answers.
+- `@clientStream(opts)` -- a stream of requests, one answer.
+- `@bidiStream(opts)` -- streams both ways; the application port refuses it (it needs HTTP/2).
 - `@rpc(opts)` -- Generic RPC decorator where you specify the `method` in the configs.
 
 The `opts` object contains a `configs` property with at minimum a `name` field that matches the RPC method name in your Protobuf service definition. You can also specify `authenticate` and `authorize` options, just like REST routes.
 
 ```typescript
-// Unary (supported)
+// Unary
 @unary({ configs: { name: 'sayHello' } })
 async sayHello(opts: { request: SayHelloRequest; context: TRouteContext }): Promise<SayHelloResponse> { ... }
 
@@ -155,6 +154,53 @@ async getUser(opts: { request: GetUserRequest; context: TRouteContext }): Promis
 })
 async deleteUser(opts: { request: DeleteUserRequest; context: TRouteContext }): Promise<DeleteUserResponse> { ... }
 ```
+
+## Streaming
+
+| Call | Application port | The handler |
+|---|---|---|
+| unary | Connect, gRPC-Web | returns the answer |
+| server stream | Connect, gRPC-Web | an async generator: `yield` each message |
+| client stream | Connect | reads `request` with `for await`, returns one answer |
+| bidi | refused with HTTP 505: it needs HTTP/2 | |
+
+A browser cannot stream a request body: from a browser only unary and server streaming work.
+
+```typescript
+@serverStream({ configs: { name: 'listHellos', authenticate: { strategies: ['jwt'] } } })
+async *listHellos(opts: { request: ListRequest; context: TRouteContext; rpc: HandlerContext }) {
+  for await (const row of this.greeterService.rows({ signal: opts.rpc.signal })) {
+    yield create(SayHelloResponseSchema, row);
+  }
+}
+
+@clientStream({ configs: { name: 'collect', authenticate: { strategies: ['jwt'] } } })
+async collect(opts: { request: AsyncIterable<HelloRequest> }) {
+  const names: string[] = [];
+
+  for await (const message of opts.request) {
+    names.push(message.name);
+  }
+
+  return create(SayHelloResponseSchema, { message: names.join(', ') });
+}
+```
+
+The middlewares run before the handler. When the client leaves, `rpc.signal` aborts and the generator is closed, so a `finally` in it runs. A reader that stops reading pauses the generator.
+
+### Quiet calls
+
+`Bun.serve` closes a request that stays quiet longer than `server.idleTimeout` (10 seconds by default).
+
+| Call | Idle timeout |
+|---|---|
+| passed `authenticate` or `authorize` | lifted: it may stay quiet as long as its handler needs |
+| refused, or still without credentials | kept |
+| a public method (no `authenticate`) | kept: raise `server.idleTimeout` if it must pause longer |
+
+A call whose idle timeout is lifted ends with the client's deadline, the client leaving, or the handler. Send a deadline from the client, and pass `rpc.signal` to slow work.
+
+The whole request of a client stream is held to `server.maxRequestBodySize` (128 MiB by default).
 
 ## Transport Configuration
 

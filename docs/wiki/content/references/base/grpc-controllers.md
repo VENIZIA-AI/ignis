@@ -14,6 +14,7 @@ IGNIS gRPC controllers follow the same patterns as REST controllers (decorator-b
 - `packages/core-server/src/base/controllers/grpc/abstract.ts`
 - `packages/core-server/src/base/controllers/grpc/base.ts`
 - `packages/core-server/src/base/controllers/grpc/adapter.ts`
+- `packages/core-server/src/base/controllers/grpc/timeout.guard.ts`
 - `packages/core-server/src/base/controllers/grpc/common/types.ts`
 - `packages/kernel/src/base/metadata/routes/rpc.ts`
 - `packages/core-server/src/components/controller/grpc/grpc.component.ts`
@@ -29,13 +30,10 @@ IGNIS gRPC controllers follow the same patterns as REST controllers (decorator-b
 | **GrpcComponent** | Auto-discovers gRPC controllers and mounts them on the application router |
 | **@controller** | Class decorator with `transport: ControllerTransports.GRPC` and `service` field |
 | **@unary** | Method decorator for unary RPCs |
-| **@serverStream** | Method decorator for server-streaming RPCs (**unsupported -- throws at boot**) |
-| **@clientStream** | Method decorator for client-streaming RPCs (**unsupported -- throws at boot**) |
-| **@bidiStream** | Method decorator for bidirectional-streaming RPCs (**unsupported -- throws at boot**) |
+| **@serverStream** | Method decorator for server-streaming RPCs |
+| **@clientStream** | Method decorator for client-streaming RPCs |
+| **@bidiStream** | Method decorator for bidirectional-streaming RPCs (refused on the HTTP/1.1 application port) |
 | **@rpc** | Generic method decorator (requires explicit `method` in configs) |
-
-> [!WARNING]
-> **Current version supports unary RPCs only.** The `@serverStream`, `@clientStream`, and `@bidiStream` decorators still exist and set metadata correctly. But `BaseGrpcController.registerRoute()` throws a clear error at boot time if a non-unary RPC is registered - the Connect protocol over HTTP/1.1 cannot support streaming. The decorators are preserved for forward compatibility.
 
 ## Prerequisites
 
@@ -253,17 +251,19 @@ async sayHello(opts: { request: SayHelloRequest }): Promise<SayHelloResponse> {
 }
 ```
 
-### `@serverStream` (unsupported)
+### `@serverStream`
 
-Shorthand for `@rpc` with `method: 'server_streaming'`. **Throws at boot time in the current version** -- streaming is not supported over HTTP/1.1 Connect protocol. Decorator preserved for forward compatibility.
+Shorthand for `@rpc` with `method: 'server_streaming'`. The handler is an async generator, or returns an async iterable.
 
-### `@clientStream` (unsupported)
+### `@clientStream`
 
-Shorthand for `@rpc` with `method: 'client_streaming'`. **Throws at boot time in the current version.**
+Shorthand for `@rpc` with `method: 'client_streaming'`. `request` is an async iterable of the messages; the handler returns one answer.
 
-### `@bidiStream` (unsupported)
+### `@bidiStream`
 
-Shorthand for `@rpc` with `method: 'bidi_streaming'`. **Throws at boot time in the current version.**
+Shorthand for `@rpc` with `method: 'bidi_streaming'`. The application port answers HTTP 505: bidi needs HTTP/2.
+
+See [Streaming](/guides/core-concepts/grpc-controllers#streaming) for the idle timeout and cancellation.
 
 ### Decorator Config
 

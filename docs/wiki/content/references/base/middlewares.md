@@ -219,7 +219,7 @@ const application = new MyApplication({
 
 ### A route's own limit
 
-A route that reads its body itself, as it arrives, carries `BodyLimits.stream()`: the default limit steps aside and the request spy does not read the body. The marker limits nothing, so the route must bound what it reads; every gRPC route uses it and bounds each message (`limits.messageSize`).
+A route that reads its body itself, as it arrives, carries `BodyLimits.stream()`: the default limit steps aside and the request spy does not read the body. The marker limits nothing, so the route must bound what it reads; every gRPC route uses it and bounds each message (`limits.messageSize`). As with `BodyLimits.route`, the marker counts for every handler matched on the request: a route of yours on the same path loses the default limit too.
 
 An upload or an import that takes bodies over the default puts `BodyLimits.route({ maxSize })` in the route's `middleware`. The default limit stands aside for that route, and this one answers instead - larger or smaller than the default, declared length or chunked.
 

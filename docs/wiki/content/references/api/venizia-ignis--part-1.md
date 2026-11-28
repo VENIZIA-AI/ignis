@@ -672,7 +672,7 @@ export declare abstract class BaseGrpcController<RouteEnv extends Env = Env, Rou
         configs: IRpcMetadata;
         handler: TRpcHandler<unknown, unknown, RouteEnv>;
     }): IGrpcDefineRouteOptions;
-    /** Internal: validates and stores handler + configs in definitions. Throws on non-unary methods. */
+    /** Internal: stores handler + configs in definitions. */
     private registerRoute;
 }
 ```

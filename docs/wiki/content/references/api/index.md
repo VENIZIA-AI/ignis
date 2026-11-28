@@ -15,7 +15,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters) | 42 | 42 |
 | [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint) | 30 | 30 |
 | [`@venizia/dev-configs/testing`](/references/api/venizia-dev-configs-testing) | 5 | 5 |
-| [`@venizia/ignis`](/references/api/venizia-ignis) | 108 | 108 |
+| [`@venizia/ignis`](/references/api/venizia-ignis) | 109 | 109 |
 | [`@venizia/ignis-boot`](/references/api/venizia-ignis-boot) | 0 | 0 |
 | [`@venizia/ignis-boot/auto`](/references/api/venizia-ignis-boot-auto) | 1 | 1 |
 | [`@venizia/ignis-boot/build-info`](/references/api/venizia-ignis-boot-build-info) | 3 | 3 |

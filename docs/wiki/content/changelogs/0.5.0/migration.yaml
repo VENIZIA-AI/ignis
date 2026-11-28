@@ -1484,6 +1484,10 @@ grpc-route-body:
     before: |-
       middlewares: { bodyLimit: { maxSize: 20 * 1024 * 1024 } },
     after: |-
+      // Keep this for the REST routes.
+      middlewares: { bodyLimit: { maxSize: 20 * 1024 * 1024 } },
+
+      // And limit each RPC message.
       this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({
         limits: { messageSize: 20 * 1024 * 1024 },
       });
@@ -1495,4 +1499,19 @@ grpc-route-body:
   downgrade:
     steps:
       - "Pin @venizia/ignis and @venizia/ignis-kernel to the release before this one."
+  data: Nothing stored changes.
+
+grpc-idle-after-gate:
+  symbols: [BaseGrpcController, GrpcTimeoutGuard]
+  upgrade:
+    before: |-
+      const answer = await client.slowReport({});
+    after: |-
+      const answer = await client.slowReport({}, { timeoutMs: 30_000 });
+    steps:
+      - "A call that passed authenticate or authorize is no longer closed at server.idleTimeout: send a deadline from the client where it relied on that."
+      - "In the handler, pass rpc.signal to slow work, so a deadline or a client that leaves stops it."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis to the release before this one."
   data: Nothing stored changes.
