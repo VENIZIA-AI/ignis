@@ -60,6 +60,11 @@ tags: [process, test, bun]
    Kafka or S3 is named in `skipComponents`. It adds a duplicate-route check of its own, because
    boot has none. It does NOT run `setupMiddlewares()` (the application's own start-time step: user code that may open connections); the framework's default stack, which validates `configs.middlewares` (an invalid CORS pattern), is a boot step of `initialize()` and does run. The `ignis` preset generates `src/boot.test.ts` with it; the smoke gate runs that test.
 
+9. A test that boots no `BaseApplication` (a repository test, a preload, a bare Hono app) gets execution frames from
+   `ExecutionTestHarness` in `@venizia/ignis/testing` (`packages/core-server/src/testing/execution-test-harness.ts`):
+   `install()` calls `ExecutionRunner.install()`; `mount({ app })` also mounts `RequestFrameMiddleware`, and covers only
+   the routes added after it.
+
 ## Related
 
 - [Build system](/process/build-system.md)

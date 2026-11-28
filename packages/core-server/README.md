@@ -137,7 +137,7 @@ you use.
 | `/socket-io` | `SocketIOComponent` | `socket.io`, `@socket.io/redis-adapter`, `@socket.io/redis-emitter` |
 | `/websocket` | `WebSocketComponent` | none |
 | `/static-asset` | `StaticAssetComponent` | none |
-| `/testing` | Test-only: the `@venizia/ignis-connectors/testing` doubles and the application boot helper; never in the root barrel | none |
+| `/testing` | Test-only: the `@venizia/ignis-connectors/testing` doubles, the application boot helper and execution frames for a test that boots no application; never in the root barrel | none |
 
 "None to load" means the entry imports cleanly; the component loads its client library (for example
 `nodemailer` or `@connectrpc/connect`) when you configure it.

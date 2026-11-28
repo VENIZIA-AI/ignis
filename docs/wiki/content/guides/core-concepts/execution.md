@@ -326,6 +326,61 @@ await Execution.run({
 
 Without a runner, `run` throws and `current()` is `undefined`. The framework's listeners and queues run their tasks as before, and `sleep`, `withTimeout`, `withLimit` and `fireAndForget` work, in a browser too. The first install wins.
 
+## Tests that do not boot an application
+
+A test that starts no `BaseApplication` has no runner and no request frame: a repository test, a shared test preload, or a bare Hono app. `ExecutionTestHarness` from `@venizia/ignis/testing` adds what is missing.
+
+```typescript
+// test/preload.ts - listed under [test] preload in bunfig.toml
+import { ExecutionTestHarness } from '@venizia/ignis/testing';
+
+ExecutionTestHarness.install();
+```
+
+With the runner installed, name who each call runs for:
+
+```typescript
+// __tests__/invoice-repository.test.ts
+import { Execution, ExecutionModes } from '@venizia/ignis';
+import { expect, test } from 'bun:test';
+import { invoiceRepository } from './helpers/invoices';
+
+test('a tenant reads its own invoices', async () => {
+  const rows = await Execution.run({
+    mode: ExecutionModes.SCOPED,
+    values: { tenantId: 'tenant-a' },
+    task: () => invoiceRepository.find({ filter: {} }),
+  });
+
+  expect(rows.every((row) => row.tenantId === 'tenant-a')).toBe(true);
+});
+```
+
+A bare Hono app needs the request frame too. `mount` installs the runner and runs every request in a scoped frame. Call it before you add routes: Hono runs handlers in the order you register them, so a route added earlier gets no frame.
+
+```typescript
+// __tests__/frame.test.ts
+import { useRequestContext } from '@venizia/ignis';
+import { ExecutionTestHarness } from '@venizia/ignis/testing';
+import { expect, test } from 'bun:test';
+import { Hono } from 'hono';
+
+test('a request has a frame', async () => {
+  const app = ExecutionTestHarness.mount({ app: new Hono() });
+  app.get('/frame', (context) => context.json({ isFramed: useRequestContext() === context }));
+
+  const response = await app.request('/frame');
+
+  const body = await response.json();
+
+  expect(body).toEqual({ isFramed: true });
+});
+```
+
+- Both methods are safe to call again.
+- The frame names no tenant, and authentication is your own middleware: a scoped model reads nothing until a user or `values` give `resolve` a scope.
+- A `BaseApplication` installs the runner when it is constructed, and its server frames each request. A request sent straight to `getRootRouter()` skips the server, so it has no frame, also after a boot, and `mount` cannot add one to routes already registered.
+
 ## Lint rules
 
 | Rule | Default | Reports |
@@ -394,7 +449,8 @@ Run `devz codemod execution-scope --help` for the call shapes it reads.
 | The same code with another detail | The written row, or the parent of a [`through`](/guides/core-concepts/persistent/model-settings#scope-a-child-through-its-parent) child, is outside the scope, or the write guard [cannot verify](/guides/core-concepts/persistent/model-settings#write-mode) the scope | Write inside the scope, with a scope the guard can read |
 | A read in a job returns nothing, with no error | The frame names nobody | As above |
 | An update or delete returns `count: 0` | The row is outside a resolved scope | Check the frame's `values` |
-| `[Execution] no runner \| call ExecutionRunner.install()` | A script or a test with no application | Call `ExecutionRunner.install()` first |
+| `[Execution] no runner \| call ExecutionRunner.install()` | A script or a test with no application | Call `ExecutionRunner.install()` first; in a test, see [Tests that do not boot an application](#tests-that-do-not-boot-an-application) |
+| A request in a test has no frame: `useRequestContext()` is `undefined` | A bare Hono app, or a route added before `mount` | Call [`ExecutionTestHarness.mount`](#tests-that-do-not-boot-an-application) before the routes |
 | Boot fails: `settings.access declared while no execution runner is installed` | Models with `access` on a host with no runner | Serve them from a server application, or call `ExecutionRunner.install()` before boot |
 
 Match the code, not the message: `error.normalized.code` equals `RepositoryErrorCodes.SCOPE_WRITE_DENIED`.

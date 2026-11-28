@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis/testing, from the built declaration
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-3 exports, 3 with TSDoc. 13 more are re-exported from other entries (listed at the end).
+4 exports, 4 with TSDoc. 13 more are re-exported from other entries (listed at the end).
 
 ## `ApplicationBootAssertion`
 
@@ -60,6 +60,38 @@ export declare class ApplicationBootAssertion {
 ```
 
 Source: `packages/core-server/src/testing/assert-application-boots.ts`
+
+## `ExecutionTestHarness`
+
+*class*
+
+Execution frames for a test that boots no `BaseApplication`: a repository test, a test preload or a bare Hono app.
+A `BaseApplication` installs the runner itself and frames the requests of its server, not those of `getRootRouter()`.
+
+**Example**
+```typescript
+import { ExecutionTestHarness } from '@venizia/ignis/testing';
+import { Hono } from 'hono';
+
+const app = ExecutionTestHarness.mount({ app: new Hono() });
+app.get('/invoices', (context) => context.json([]));
+```
+
+```ts
+export declare class ExecutionTestHarness {
+    /** Installs the execution runner, so `Execution.run` and models with `access` work; safe to call again. */
+    static install(): void;
+    /**
+     * Installs the runner and runs each request of `app` in a scoped frame. Call it before you add routes: a route added
+     * earlier gets no frame.
+     */
+    static mount<AppEnv extends Env, AppSchema extends Schema, BasePath extends string>(opts: {
+        app: Hono<AppEnv, AppSchema, BasePath>;
+    }): Hono<AppEnv, AppSchema, BasePath>;
+}
+```
+
+Source: `packages/core-server/src/testing/execution-test-harness.ts`
 
 ## `IAssertApplicationBootsOptions`
 
