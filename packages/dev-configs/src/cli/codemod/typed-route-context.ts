@@ -17,11 +17,15 @@ First, a config declared wide is rewritten, so that it keeps its schemas:
   on an object literal.
 
 Listed as "left", with the reason, and kept: let, var, a property that is not readonly, no initializer, a value that
-is no object literal, a declaration the lint rule is turned off on, a binding that is written to later, a Record
-indexed with a key that is not a literal (without noImplicitAny, also with one it does not hold), and a declaration whose rewrite adds a type error to a project of the run.
+is no object literal, a config typed through import(), a declaration the lint rule is turned off on, a binding that is written to later, a Record
+indexed with a key that is not a literal (without noImplicitAny, also with one it does not hold), and a declaration
+whose rewrite adds a type error to a project of the run. The error is traced to a declaration through what its statement
+reads; where that leads to several or to none, they are written by halves. After 40 typecheck rounds the ones not tried
+are listed.
 An empty object filled later is not listed, as the lint rule does not report it. Only the projects (tsconfig.json) of
 the files the codemod reads are checked, and a package that imports a rewritten config through its build output is
-read as it was last built: rebuild, then typecheck the packages that import it.
+read as it was last built: rebuild, then typecheck the packages that import it. The summary counts the exported configs
+it rewrites.
 
 Then, in a file that imports the types from @venizia/ignis or @venizia/ignis-kernel:
 
@@ -1111,7 +1115,11 @@ export class TypedRouteContextCommand {
     sources: ReadonlyMap<string, string>;
     dirtyFiles: ReadonlySet<string>;
     refused: Set<string>;
-  }): { files: Map<string, { output: string; rewritten: number }>; left: ILeftConfig[] } {
+  }): {
+    files: Map<string, { output: string; rewritten: number }>;
+    left: ILeftConfig[];
+    exported: number;
+  } {
     const { typescript, root, sources, dirtyFiles, refused } = opts;
     const scanned = [...sources].map(([fileName, source]) =>
       SatisfiesRewrite.scan({ typescript, fileName, source }),
@@ -1127,15 +1135,24 @@ export class TypedRouteContextCommand {
 
         return !isDirty;
       });
+    let proving = [...sources.keys()];
     const proof = SatisfiesRewrite.prove({
       typescript,
       root,
       sources,
       candidates,
-      programs: (contents) =>
-        TypedRouteContext.programs({ typescript, root, files: [...sources.keys()], contents }).map(
-          ({ program }) => program,
-        ),
+      // Only a project that reads a candidate is built again for the next round.
+      programs: (contents) => {
+        const holding = TypedRouteContext.programs({
+          typescript,
+          root,
+          files: proving,
+          contents,
+        }).filter(({ program }) => candidates.some(({ file }) => program.getSourceFile(file)));
+        proving = holding.flatMap(({ owned }) => owned);
+
+        return holding.map(({ program }) => program);
+      },
     });
     const { contents } = TextEdits.writeAll({ sources, candidates: proof.accepted });
     const files = new Map(
@@ -1149,7 +1166,14 @@ export class TypedRouteContextCommand {
       (a, b) => a.file.localeCompare(b.file) || a.line - b.line,
     );
 
-    return { files, left };
+    // A declaration with several assertions is one config.
+    const exported = new Set(
+      proof.accepted
+        .filter((candidate) => candidate.isExported)
+        .map(({ file, binding, start }) => `${file}:${binding ?? start}`),
+    ).size;
+
+    return { files, left, exported };
   }
 
   static async run(opts: { root: string; args: string[] }): Promise<number> {
@@ -1335,6 +1359,12 @@ export class TypedRouteContextCommand {
         (leftCount > 0 ? `, ${leftCount} config(s) left as declared` : '') +
         (refusedCount > 0 ? `, ${refusedCount} refused` : ''),
     );
+
+    if (satisfied.exported > 0) {
+      CliOutput.log(
+        `devz codemod typed-route-context: ${satisfied.exported} exported config(s) ${isWrite ? 'rewritten' : 'would be rewritten'}: typecheck their importers outside this run`,
+      );
+    }
 
     if (!isWrite && changedCount > 0) {
       CliOutput.log(

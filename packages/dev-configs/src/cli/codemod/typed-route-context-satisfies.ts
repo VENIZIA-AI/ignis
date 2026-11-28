@@ -6,6 +6,8 @@ type TTypeScript = typeof TypeScript;
 /** The type whose annotation loses the schemas of a route config. */
 const CONFIG_TYPE = 'IAuthRouteConfig';
 const RULE = 'typed-route-context';
+/** How many times the projects are typechecked with candidates written, at most. */
+const ROUND_LIMIT = 40;
 
 /** Why a config declared wide is left as it is. */
 class LeftReasons {
@@ -18,6 +20,7 @@ class LeftReasons {
   static readonly OPTIONAL = 'an optional or definite property';
   static readonly MUTABLE_PROPERTY = 'a property that is not readonly';
   static readonly DISABLED = 'the lint rule is turned off here';
+  static readonly IMPORT_TYPE = 'typed through import()';
   static readonly OPEN_KEY = 'indexed with a key that is not a literal';
   static readonly ABSENT_KEY = 'indexed with a key the object does not hold';
 }
@@ -56,6 +59,8 @@ export interface ISatisfiesCandidate {
   end: number;
   /** Where the name of the declared binding starts; `undefined` for an assertion that declares none. */
   binding: number | undefined;
+  /** Whether code outside the file can reach the declaration. */
+  isExported: boolean;
   /** For a `Record`: the keys its literal writes. */
   recordKeys: ReadonlySet<string> | undefined;
   edits: ITextEdit[];
@@ -167,6 +172,10 @@ class ConfigDeclarations {
   private isWide(type: TypeScript.TypeNode | undefined, seen = new Set<string>()): boolean {
     const { typescript: ts } = this.options;
 
+    if (type && ts.isImportTypeNode(type)) {
+      return type.qualifier?.getText(this.file) === CONFIG_TYPE;
+    }
+
     if (!type || !ts.isTypeReferenceNode(type)) {
       return false;
     }
@@ -189,6 +198,15 @@ class ConfigDeclarations {
     }
 
     return name === CONFIG_TYPE;
+  }
+
+  private hasImportType(node: TypeScript.Node): boolean {
+    return (
+      this.options.typescript.isImportTypeNode(node) ||
+      this.options.typescript.forEachChild(node, (child) =>
+        this.hasImportType(child) ? true : undefined,
+      ) === true
+    );
   }
 
   private isRecord(type: TypeScript.TypeNode, seen = new Set<string>()): boolean {
@@ -261,7 +279,9 @@ class ConfigDeclarations {
     }
 
     const name = declaration.name.getText(this.file);
-    const refusal = this.refusalOf(declaration);
+    const refusal = this.hasImportType(type)
+      ? LeftReasons.IMPORT_TYPE
+      : this.refusalOf(declaration);
 
     if (refusal) {
       this.leave({ node: declaration, name, reason: refusal });
@@ -316,7 +336,11 @@ class ConfigDeclarations {
 
     const current = this.isDeclaration(node) ? node : undefined;
     const name = current ? current.name.getText(this.file) : 'an assertion';
-    const refusal = current ? this.refusalOf(current) : this.disabledAt(assertion);
+    const refusal = this.hasImportType(assertion.type)
+      ? LeftReasons.IMPORT_TYPE
+      : current
+        ? this.refusalOf(current)
+        : this.disabledAt(assertion);
 
     if (refusal) {
       this.leave({ node: assertion, name, reason: refusal });
@@ -463,8 +487,53 @@ class ConfigDeclarations {
       start: node.getStart(this.file),
       end: node.getEnd(),
       binding: declaration?.name.getStart(this.file),
+      isExported: this.isExported(node),
       recordKeys: keys ? new Set(keys) : undefined,
       edits,
+    });
+  }
+
+  /** Exported where it stands, or named by an `export` of its file; nothing declared in a function is. */
+  private isExported(node: TypeScript.Node): boolean {
+    const { typescript: ts } = this.options;
+    let statement = node;
+
+    while (!ts.isSourceFile(statement.parent)) {
+      statement = statement.parent;
+
+      if (ts.isFunctionLike(statement)) {
+        return false;
+      }
+    }
+
+    const isModified =
+      ts.canHaveModifiers(statement) &&
+      ts.getModifiers(statement)?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword);
+
+    if (isModified || ts.isExportAssignment(statement)) {
+      return true;
+    }
+
+    const names = ts.isVariableStatement(statement)
+      ? statement.declarationList.declarations.map((item) => item.name.getText(this.file))
+      : ts.isClassDeclaration(statement) && statement.name
+        ? [statement.name.text]
+        : [];
+
+    return this.file.statements.some((item) => {
+      if (ts.isExportAssignment(item)) {
+        return names.includes(item.expression.getText(this.file));
+      }
+
+      return (
+        ts.isExportDeclaration(item) &&
+        !item.moduleSpecifier &&
+        item.exportClause !== undefined &&
+        ts.isNamedExports(item.exportClause) &&
+        item.exportClause.elements.some((element) =>
+          names.includes((element.propertyName ?? element.name).text),
+        )
+      );
     });
   }
 
@@ -495,6 +564,8 @@ interface IFoundError {
 class SatisfiesProof {
   private readonly accepted: Set<ISatisfiesCandidate>;
   private readonly left: ILeftConfig[] = [];
+  /** How many times the projects were typechecked with candidates written. */
+  private rounds = 0;
 
   constructor(
     private readonly options: {
@@ -504,6 +575,7 @@ class SatisfiesProof {
       candidates: ISatisfiesCandidate[];
       /** The program of each project of the run, with `contents` read in place of the files. */
       programs: (contents: ReadonlyMap<string, string>) => TypeScript.Program[];
+      roundLimit?: number;
     },
   ) {
     this.accepted = new Set(options.candidates);
@@ -564,16 +636,64 @@ class SatisfiesProof {
     return found;
   }
 
+  /** What an identifier stands for, through an import and a shorthand property. */
+  private symbolOf(opts: { checker: TypeScript.TypeChecker; name: TypeScript.Identifier }) {
+    const { typescript: ts } = this.options;
+    const { checker, name } = opts;
+    const { parent } = name;
+    const symbol =
+      ts.isShorthandPropertyAssignment(parent) && parent.name === name
+        ? checker.getShorthandAssignmentValueSymbol(parent)
+        : checker.getSymbolAtLocation(name);
+
+    return symbol && symbol.flags & ts.SymbolFlags.Alias
+      ? checker.getAliasedSymbol(symbol)
+      : symbol;
+  }
+
+  /** The declaration of the value a member of an object literal holds, through any number of such members. */
+  private heldBy(opts: {
+    checker: TypeScript.TypeChecker;
+    declaration: TypeScript.Declaration | undefined;
+  }): TypeScript.Declaration | undefined {
+    const { typescript: ts } = this.options;
+    const { checker } = opts;
+    const seen = new Set<TypeScript.Declaration>();
+    let { declaration } = opts;
+
+    while (declaration && !seen.has(declaration)) {
+      seen.add(declaration);
+      let held: TypeScript.Symbol | undefined;
+
+      if (ts.isShorthandPropertyAssignment(declaration)) {
+        held = checker.getShorthandAssignmentValueSymbol(declaration);
+      } else if (ts.isPropertyAssignment(declaration) && ts.isIdentifier(declaration.initializer)) {
+        held = checker.getSymbolAtLocation(declaration.initializer);
+      } else {
+        return declaration;
+      }
+
+      declaration =
+        held && held.flags & ts.SymbolFlags.Alias
+          ? checker.getAliasedSymbol(held).valueDeclaration
+          : held?.valueDeclaration;
+    }
+
+    return declaration;
+  }
+
   /** Calls `found` for each identifier under `node` that reads the binding of a candidate. */
   private forEachReference(opts: {
     program: TypeScript.Program;
     node: TypeScript.Node;
     edits: ReadonlyMap<string, ITextEdit[]>;
     bindings: ReadonlyMap<string, ISatisfiesCandidate[]>;
+    /** Also reads a member of an object literal (`ALL.A`) as the binding it holds. */
+    isThroughMembers?: boolean;
     found: (reference: TypeScript.Identifier, candidates: ISatisfiesCandidate[]) => void;
   }) {
     const { typescript: ts } = this.options;
-    const { program, node, edits, bindings, found } = opts;
+    const { program, node, edits, bindings, isThroughMembers = false, found } = opts;
     const checker = program.getTypeChecker();
     const names = new Set([...bindings.values()].flat().map((candidate) => candidate.name));
 
@@ -584,17 +704,8 @@ class SatisfiesProof {
         return;
       }
 
-      const { parent } = current;
-      let symbol =
-        ts.isShorthandPropertyAssignment(parent) && parent.name === current
-          ? checker.getShorthandAssignmentValueSymbol(parent)
-          : checker.getSymbolAtLocation(current);
-
-      if (symbol && symbol.flags & ts.SymbolFlags.Alias) {
-        symbol = checker.getAliasedSymbol(symbol);
-      }
-
-      const declaration = symbol?.valueDeclaration;
+      const read = this.symbolOf({ checker, name: current })?.valueDeclaration;
+      const declaration = isThroughMembers ? this.heldBy({ checker, declaration: read }) : read;
 
       if (
         !declaration ||
@@ -804,7 +915,10 @@ class SatisfiesProof {
     });
   }
 
-  /** The candidates a new error points into, or reads in its statement. */
+  /**
+   * The candidates a new error leads to: those it points into, else those its statement reads, else those read by the
+   * variables and types that statement names, one step further at a time.
+   */
   private blamed(opts: {
     programs: TypeScript.Program[];
     error: IFoundError;
@@ -845,57 +959,191 @@ class SatisfiesProof {
     };
 
     ts.forEachChild(file, descend);
-    const read: ISatisfiesCandidate[] = [];
-    this.forEachReference({
-      program,
-      node: statement,
-      edits,
-      bindings: this.bindings(),
-      found: (_reference, candidates) => {
-        read.push(...candidates);
-      },
-    });
+    const bindings = this.bindings();
+    const seen = new Set<TypeScript.Node>();
+    let nodes: TypeScript.Node[] = [statement];
 
-    return read;
+    while (nodes.length > 0) {
+      const read: ISatisfiesCandidate[] = [];
+
+      for (const node of nodes) {
+        this.forEachReference({
+          program,
+          node,
+          edits,
+          bindings,
+          isThroughMembers: true,
+          found: (_reference, candidates) => {
+            read.push(...candidates);
+          },
+        });
+      }
+
+      if (read.length > 0) {
+        return [...new Set(read)];
+      }
+
+      nodes = nodes
+        .flatMap((node) => this.namedBy({ program, node }))
+        .filter((node) => !seen.has(node) && seen.add(node));
+    }
+
+    return [];
+  }
+
+  /** The values and types of the variables, properties and type declarations that `node` names. */
+  private namedBy(opts: { program: TypeScript.Program; node: TypeScript.Node }): TypeScript.Node[] {
+    const { typescript: ts } = this.options;
+    const { program, node } = opts;
+    const checker = program.getTypeChecker();
+    const own = new Set(this.ownFiles(program));
+    const found: TypeScript.Node[] = [];
+
+    const visit = (current: TypeScript.Node): void => {
+      ts.forEachChild(current, visit);
+
+      if (!ts.isIdentifier(current)) {
+        return;
+      }
+
+      for (const declaration of this.symbolOf({ checker, name: current })?.declarations ?? []) {
+        if (!own.has(declaration.getSourceFile())) {
+          continue;
+        }
+
+        if (ts.isVariableDeclaration(declaration) || ts.isPropertyDeclaration(declaration)) {
+          const { initializer, type } = declaration;
+          found.push(...[initializer, type].filter((part) => part !== undefined));
+        }
+
+        if (ts.isTypeAliasDeclaration(declaration) || ts.isInterfaceDeclaration(declaration)) {
+          found.push(declaration);
+        }
+      }
+    };
+
+    visit(node);
+
+    return found;
+  }
+
+  /** Typechecks the projects with `candidates` written, and answers the errors that adds. */
+  private check(opts: { candidates: ISatisfiesCandidate[]; baseline: ReadonlySet<string> }) {
+    const { candidates, baseline } = opts;
+    this.rounds += 1;
+    const { edits, contents } = TextEdits.writeAll({ sources: this.options.sources, candidates });
+    const programs = this.holding(this.options.programs(contents));
+    const added = this.errorsOf(programs, edits).filter((error) => !baseline.has(error.key));
+
+    return { edits, programs, added };
+  }
+
+  private whereOf(error: IFoundError): string {
+    return `${this.shown(error.file)}:${error.line} TS${error.code}`;
+  }
+
+  private rejectBroken(opts: { candidate: ISatisfiesCandidate; error: IFoundError }) {
+    const reason = `the typecheck fails with it: ${this.whereOf(opts.error)}`;
+    this.reject({ candidate: opts.candidate, reason });
+  }
+
+  private rejectUntried(candidates: ISatisfiesCandidate[]) {
+    const reason = `not tried: the codemod stops after ${this.roundLimit} typecheck rounds; run it again after writing the others`;
+
+    for (const candidate of candidates) {
+      this.reject({ candidate, reason });
+    }
+  }
+
+  private get roundLimit(): number {
+    return this.options.roundLimit ?? ROUND_LIMIT;
   }
 
   /** Leaves candidates out until the rest add no error to what the projects already had. */
   private dropBreaking(baseline: ReadonlySet<string>) {
     while (this.accepted.size > 0) {
-      const { edits, contents } = TextEdits.writeAll({
-        sources: this.options.sources,
-        candidates: [...this.accepted],
-      });
-      const programs = this.holding(this.options.programs(contents));
-      const added = this.errorsOf(programs, edits).filter((error) => !baseline.has(error.key));
+      if (this.rounds >= this.roundLimit) {
+        this.rejectUntried([...this.accepted]);
+
+        return;
+      }
+
+      const { edits, programs, added } = this.check({ candidates: [...this.accepted], baseline });
 
       if (added.length === 0) {
         return;
       }
 
-      const blames = added.map((error) => {
-        const where = `${this.shown(error.file)}:${error.line} TS${error.code}`;
+      const blames = added.map((error) => ({
+        error,
+        candidates: this.blamed({ programs, error, edits }),
+      }));
+      const certain = blames.filter((blame) => blame.candidates.length === 1);
 
-        return { where, candidates: this.blamed({ programs, error, edits }) };
-      });
-      const found = blames.filter((blame) => blame.candidates.length > 0);
-
-      for (const { where, candidates } of found) {
-        for (const candidate of candidates) {
-          this.reject({ candidate, reason: `the typecheck fails with it: ${where}` });
+      if (certain.length > 0) {
+        for (const { error, candidates } of certain) {
+          for (const candidate of candidates) {
+            this.rejectBroken({ candidate, error });
+          }
         }
+
+        continue;
       }
 
-      const [unknown] = blames;
+      // Several suspects, or none: which of them it takes is for the typecheck to say.
+      const suspects = new Set(blames.flatMap((blame) => blame.candidates));
+      const others = [...this.accepted].filter((candidate) => !suspects.has(candidate));
+      const first =
+        suspects.size === 0 ? this.halves(others) : [others, ...this.halves([...suspects])];
+      this.bisect({ baseline, groups: first.filter((group) => group.length > 0) });
 
-      // An error that points to no declaration cannot be narrowed down, so none of them is written.
-      if (found.length === 0 && unknown) {
-        for (const candidate of [...this.accepted]) {
-          const reason = `the typecheck fails at ${unknown.where}, and the codemod cannot tell which declaration causes it`;
-          this.reject({ candidate, reason });
-        }
+      return;
+    }
+  }
+
+  private halves(group: ISatisfiesCandidate[]): ISatisfiesCandidate[][] {
+    const middle = Math.ceil(group.length / 2);
+
+    return [group.slice(0, middle), group.slice(middle)].filter((half) => half.length > 0);
+  }
+
+  /**
+   * For errors no single candidate answers for, with all of them known to fail together: adds `groups` to those already
+   * proved, halving a group that fails, and leaves each candidate that fails alone on top of them. Which of two that
+   * only fail together stays follows the order of the groups.
+   */
+  private bisect(opts: { baseline: ReadonlySet<string>; groups: ISatisfiesCandidate[][] }) {
+    const { baseline } = opts;
+    const all = [...this.accepted];
+    const proved: ISatisfiesCandidate[] = [];
+    const queue = [...opts.groups];
+
+    // The one group that is everything is known to fail: halve it without asking.
+    if (queue.length === 1 && queue[0]?.length === all.length && all.length > 1) {
+      queue.splice(0, 1, ...this.halves(all));
+    }
+
+    while (this.rounds < this.roundLimit) {
+      const group = queue.shift();
+
+      if (!group) {
+        break;
+      }
+
+      const [only, ...others] = group;
+      const { added } = this.check({ candidates: [...proved, ...group], baseline });
+      const [error] = added;
+
+      if (!error) {
+        proved.push(...group);
+      } else if (only && others.length === 0) {
+        this.rejectBroken({ candidate: only, error });
+      } else {
+        queue.unshift(...this.halves(group));
       }
     }
+
+    this.rejectUntried(all.filter((candidate) => !proved.includes(candidate)));
   }
 }
 
@@ -913,6 +1161,7 @@ export class SatisfiesRewrite {
     sources: ReadonlyMap<string, string>;
     candidates: ISatisfiesCandidate[];
     programs: (contents: ReadonlyMap<string, string>) => TypeScript.Program[];
+    roundLimit?: number;
   }): { accepted: ISatisfiesCandidate[]; left: ILeftConfig[] } {
     return new SatisfiesProof(opts).run();
   }
