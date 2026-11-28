@@ -83,6 +83,7 @@ export class SqliteUserAuditEnricher {
     const { baseSchema, opts: enricherOpts } = opts;
     const defs = SqliteUserAuditEnricher.generateColumnDefs(enricherOpts);
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a spread of two generics is not proven to be the mapped result type that names both
     return { ...baseSchema, ...defs } as TUserAuditEnricherResult<ColumnDefinitions>;
   }
 }

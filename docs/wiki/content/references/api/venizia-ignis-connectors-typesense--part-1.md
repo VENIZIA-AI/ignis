@@ -959,7 +959,7 @@ interface ITypesenseDocumentsApi {
     upsert(document: unknown, options?: unknown): Promise<unknown>;
     update(document: unknown, options: unknown): Promise<unknown>;
     delete(query?: unknown): Promise<unknown>;
-    import(documents: unknown[], options?: unknown): Promise<unknown>;
+    import(documents: unknown[], options?: unknown): Promise<TImportResponse[]>;
     search(searchParameters: unknown, options?: unknown): Promise<unknown>;
     export(options?: unknown): Promise<string>;
     /** The export as a stream of NDJSON text: a Node `Readable` (`typesense-js`), which is async-iterable. */

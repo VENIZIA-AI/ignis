@@ -36,6 +36,7 @@ export abstract class SearchBaseRepository<
   }
 
   override get dataSource(): TDataSource {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the base class stores it wider; this class only ever receives its own generic
     return super.dataSource as TDataSource;
   }
 
@@ -44,6 +45,7 @@ export abstract class SearchBaseRepository<
   }
 
   override get entity(): BaseSearchEntity {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the base getter has no generic of its own; a search repository only ever receives a `BaseSearchEntity`
     return super.entity as BaseSearchEntity;
   }
 
@@ -56,6 +58,7 @@ export abstract class SearchBaseRepository<
   }
 
   protected get connector(): ReturnType<TDataSource['getConnector']> {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the data source answers its connector through the shared contract; the type names it from the same generic
     return this.dataSource.getConnector() as ReturnType<TDataSource['getConnector']>;
   }
 
@@ -176,6 +179,7 @@ export abstract class SearchBaseRepository<
     }
 
     if (Array.isArray(highlight)) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a filtered list is a list of the same entries, which the unresolved `R` cannot show
       return highlight.filter((entry) => {
         const name =
           entry !== null && typeof entry === 'object' ? Reflect.get(entry, 'field') : undefined;

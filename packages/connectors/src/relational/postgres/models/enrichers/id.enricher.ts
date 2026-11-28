@@ -63,6 +63,7 @@ export class PostgresIdEnricher {
 
     switch (id.dataType) {
       case 'string': {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the columns built depend on the options; TypeScript cannot narrow the generic return type per branch
         return {
           id: text('id')
             .primaryKey()
@@ -70,11 +71,13 @@ export class PostgresIdEnricher {
         } as TIdColumnDef<Opts>;
       }
       case 'number': {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the columns built depend on the options; TypeScript cannot narrow the generic return type per branch
         return {
           id: integer('id').primaryKey().generatedAlwaysAsIdentity(id.sequenceOptions),
         } as TIdColumnDef<Opts>;
       }
       case 'big-number': {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the columns built depend on the options; TypeScript cannot narrow the generic return type per branch
         return {
           id: bigint('id', { mode: id.numberMode ?? 'number' })
             .primaryKey()

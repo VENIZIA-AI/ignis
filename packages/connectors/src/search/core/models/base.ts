@@ -53,13 +53,16 @@ export class BaseSearchEntity<
 
     super({ name });
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the static `schema` of the subclass is the definition its generic names; `new.target` does not carry that
     this.schema = opts?.schema ?? (ctor.schema as Schema);
   }
 
   getSchema<T = unknown>(opts: { type: TSchemaType }): T {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `this.constructor` is typed `Function`; here it is the class of this entity
     const ctor = this.constructor as typeof BaseSearchEntity;
 
     if (ctor.documentSchema) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the schema type of the declared `documentSchema`
       return ctor.documentSchema as T;
     }
 
@@ -70,6 +73,7 @@ export class BaseSearchEntity<
     }
 
     if (this.schema !== ctor.schema) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the type of the schema derived from the definition
       return SearchCollectionFactory.deriveDocumentSchema({
         definition: this.schema,
         type: opts.type,
@@ -86,6 +90,7 @@ export class BaseSearchEntity<
     const cached = byType.get(opts.type);
 
     if (cached) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the type of the cached derived schema
       return cached as T;
     }
 
@@ -95,6 +100,7 @@ export class BaseSearchEntity<
     });
     byType.set(opts.type, derived);
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the type of the schema derived from the definition
     return derived as T;
   }
 }

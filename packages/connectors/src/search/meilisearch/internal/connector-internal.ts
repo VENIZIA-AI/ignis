@@ -96,6 +96,7 @@ export class MeilisearchInternal {
       document[key] = value;
     }
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the hit without the engine's reserved keys, named by the caller and not checked
     return document as TDocument;
   }
 

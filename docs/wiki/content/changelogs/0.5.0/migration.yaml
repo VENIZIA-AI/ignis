@@ -1316,7 +1316,7 @@ typesense-client-typed:
       })
     steps:
       - "Run your typecheck. Only a client or a fake you wrote yourself is affected; the SDK Client needs no change."
-      - "Answer a full CollectionSchema from collections().create, collections().retrieve and collections(name).retrieve, and a string from documents().export."
+      - "Answer a full CollectionSchema from collections().create, collections().retrieve and collections(name).retrieve, a string from documents().export and one TImportResponse per document from documents().import (a failed one carries its error)."
   downgrade:
     steps:
       - "Pin @venizia/ignis-connectors to the release before this one."

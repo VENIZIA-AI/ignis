@@ -522,6 +522,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       method: this.createDocument.name,
       run: async () => {
         const result = await this.client.collections(collection).documents().create(document);
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the document type; the engine's answer is not checked against it
         const created = result as T;
 
         return created;
@@ -550,6 +551,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       method: this.getDocument.name,
       run: async () => {
         const result = await this.client.collections(collection).documents(id).retrieve();
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the document type; the engine's answer is not checked against it
         const document = result as T;
 
         return document;
@@ -576,6 +578,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       method: this.findDocument.name,
       run: async () => {
         const result = await this.client.collections(collection).documents(id).retrieve();
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the document type; the engine's answer is not checked against it
         const document = result as T;
 
         return document;
@@ -624,6 +627,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       method: this.upsertDocument.name,
       run: async () => {
         const result = await this.client.collections(collection).documents().upsert(document);
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the document type; the engine's answer is not checked against it
         const upserted = result as T;
 
         return upserted;
@@ -650,6 +654,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       method: this.updateDocument.name,
       run: async () => {
         const result = await this.client.collections(collection).documents(id).update(document);
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the document type; the engine's answer is not checked against it
         const updated = result as T;
 
         return updated;
@@ -843,8 +848,10 @@ export class TypesenseConnector extends BaseSearchConnector {
           ...(dirtyValues ? { ['dirty_values']: dirtyValues } : {}),
         };
 
-        const result = await client.collections(collection).documents().import(batch, importParams);
-        const batchResult = result as TImportResponse[];
+        const batchResult = await client
+          .collections(collection)
+          .documents()
+          .import(batch, importParams);
 
         const tally = this.tallyImportResponses({ batchResult, responses });
         successCount += tally.successCount;

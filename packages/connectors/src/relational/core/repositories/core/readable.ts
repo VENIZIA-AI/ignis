@@ -89,7 +89,7 @@ export class ReadableRelationalRepository<
         return {
           merged: this.queryDialect.mergeFilter({
             defaultFilter: this.getDefaultFilter(),
-            // The request filter is unvalidated here; `mergeFilter` is what rejects a malformed one.
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the request filter is unchecked here; `mergeFilter` is what refuses a malformed one
             userFilter: filter as TFilter<DataObject>,
           }),
         };
@@ -239,7 +239,7 @@ export class ReadableRelationalRepository<
       limit: baseFilter.limit ?? this.getDefaultLimit() ?? DEFAULT_LIMIT,
     };
 
-    // ExtraOptions is caller-bound and otherwise unconstrained, so the spread cannot be proven to still satisfy the generic bound.
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `ExtraOptions` is caller-bound and otherwise unconstrained, so the spread cannot be proven to satisfy it
     const effectiveOptions = { ...options, shouldSkipDefaultFilter: true } as ExtraOptions;
     const useCoreAPI = this.canUseCoreAPI(mergedFilter);
 

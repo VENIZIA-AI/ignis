@@ -60,6 +60,7 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
 
     super({ name });
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the static `schema` of the subclass is the schema its generic names; `new.target` does not carry that
     this.schema = opts?.schema ?? (ctor.schema as Schema);
   }
 
@@ -75,12 +76,15 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
 
     switch (opts.type) {
       case SchemaTypes.CREATE: {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the schema type; the factory's zod type depends on the table
         return factory.createInsertSchema(this.schema) as T;
       }
       case SchemaTypes.UPDATE: {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the schema type; the factory's zod type depends on the table
         return factory.createUpdateSchema(this.schema) as T;
       }
       case SchemaTypes.SELECT: {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the schema type; the factory's zod type depends on the table
         return factory.createSelectSchema(this.schema) as T;
       }
       default: {

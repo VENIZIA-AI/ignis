@@ -2,6 +2,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import type { ITypesenseClientLike } from '@/search/typesense/connector';
 import type { CollectionSchema } from 'typesense/lib/Typesense/Collection';
 import type { CollectionCreateSchema } from 'typesense/lib/Typesense/Collections';
+import type { TImportResponse } from '@/search/typesense/common';
 import { toFakeSchema } from '../../typesense/connector/fake-schema';
 
 interface IFakeCollection {
@@ -252,7 +253,7 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
           collection.documents.set(String(row['id']), { ...row });
         }
 
-        return documents.map(() => ({ success: true }));
+        return documents.map((): TImportResponse => ({ success: true }));
       },
 
       async search(searchParameters: unknown) {

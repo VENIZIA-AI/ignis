@@ -47,6 +47,7 @@ export class SqliteIdEnricher {
 
     switch (id.dataType) {
       case 'string': {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the columns built depend on the options; TypeScript cannot narrow the generic return type per branch
         return {
           id: text('id')
             .primaryKey()
@@ -54,6 +55,7 @@ export class SqliteIdEnricher {
         } as TIdColumnDef<Opts>;
       }
       case 'number': {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the columns built depend on the options; TypeScript cannot narrow the generic return type per branch
         return {
           id: integer('id').primaryKey({ autoIncrement: id.autoIncrement ?? true }),
         } as TIdColumnDef<Opts>;

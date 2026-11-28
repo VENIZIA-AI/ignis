@@ -8,6 +8,7 @@ import type { BaseRawSqlDataSource } from './datasource';
 /** A raw-SQL repository has a name but no model and no schema. */
 export class RawSqlEntity extends AbstractEntity {
   getSchema<T = unknown>(_opts: { type: TSchemaType }): T {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a raw-SQL repository has no schema: an empty object stands for whatever type the caller asks
     return {} as T;
   }
 }

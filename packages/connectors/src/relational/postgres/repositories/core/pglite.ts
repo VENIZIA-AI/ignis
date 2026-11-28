@@ -24,6 +24,7 @@ export type PGliteCRUDRepository<EntitySchema extends TTableSchemaWithId = TTabl
   >;
 
 /** The class itself, typed for PGlite: `extends PGliteCRUDRepository<typeof table>`. See the type of the same name. */
+// eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the same class at run time, typed with the generics of a PGlite repository filled in; no constructor type relates the two
 export const PGliteCRUDRepository = DefaultCRUDRepository as unknown as new <
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
 >(

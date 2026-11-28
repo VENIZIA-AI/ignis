@@ -18,6 +18,7 @@ export class TypesenseMapper {
     const { hit } = opts;
 
     if (!RecordUtility.isRecord(hit)) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a hit that is no object answers an empty document of the caller's unchecked type
       return { document: {} as TDocument };
     }
 
@@ -29,6 +30,7 @@ export class TypesenseMapper {
       rankFusionScore?: number;
       vectorDistance?: number;
     } = {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the document type; the engine's answer is not checked against it
       document: hit['document'] as TDocument,
     };
 

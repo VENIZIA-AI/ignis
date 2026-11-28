@@ -149,6 +149,7 @@ export class LibSqlDriver<
       query: async <R>(queryOpts: { statement: string }) => {
         const result = await client.execute(queryOpts.statement);
 
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the row type of the query; the driver types rows loosely and nothing here checks them
         return (result.rows ?? []) as Array<R>;
       },
 

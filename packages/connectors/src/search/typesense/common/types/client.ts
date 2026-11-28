@@ -1,6 +1,8 @@
 import type { CollectionSchema } from 'typesense/lib/Typesense/Collection';
 import type { CollectionCreateSchema } from 'typesense/lib/Typesense/Collections';
 
+import type { TImportResponse } from './search';
+
 /** One Typesense server node; `protocol` falls back to `http` when omitted. */
 export interface ITypesenseNode {
   host: string;
@@ -14,7 +16,7 @@ interface ITypesenseDocumentsApi {
   upsert(document: unknown, options?: unknown): Promise<unknown>;
   update(document: unknown, options: unknown): Promise<unknown>;
   delete(query?: unknown): Promise<unknown>;
-  import(documents: unknown[], options?: unknown): Promise<unknown>;
+  import(documents: unknown[], options?: unknown): Promise<TImportResponse[]>;
   search(searchParameters: unknown, options?: unknown): Promise<unknown>;
   export(options?: unknown): Promise<string>;
   /** The export as a stream of NDJSON text: a Node `Readable` (`typesense-js`), which is async-iterable. */

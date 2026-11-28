@@ -62,6 +62,7 @@ export class PostgresJsDriver<
         // postgres-js resolves an array-like result; spreading it gives the plain rows.
         const result = await reserved.unsafe(queryOpts.statement);
 
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the caller names the row type of the query; the driver types rows loosely and nothing here checks them
         return [...result] as Array<R>;
       },
       release: () => {

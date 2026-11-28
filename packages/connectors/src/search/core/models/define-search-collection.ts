@@ -28,6 +28,7 @@ const buildField = <
 }): { name: N; type: Ty } & O => {
   const { name, type, flags } = opts;
 
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- spreading an optional generic is not proven to yield `O`
   return { name, type, ...flags } as { name: N; type: Ty } & O;
 };
 
@@ -73,7 +74,7 @@ export const field = {
     const { optional: isOptional, ...vector } = opts;
     const base = { name, type: SearchFieldTypes.VECTOR, vector };
 
-    // The cast is unavoidable: the conditional-optional branch can't be proven from the runtime shape without widening `O`.
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the optional branch of the conditional type cannot be proven from the run-time shape without widening `O`
     return (isOptional ? { ...base, optional: isOptional } : base) as {
       name: N;
       type: typeof SearchFieldTypes.VECTOR;
@@ -181,7 +182,7 @@ export class SearchCollectionFactory {
       SearchCollectionFactory.assertUniqueSynonymIds({ name, synonyms });
     }
 
-    // The runtime result is only structurally an ISearchCollectionDefinition; the cast back to the caller's literal T is deliberate - `id` is guaranteed at the type level via TSearchDocument.
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the object is structurally a definition; the caller's literal type, whose `id` field its own type requires, is given back
     return {
       name,
       fields: resolvedFields,
