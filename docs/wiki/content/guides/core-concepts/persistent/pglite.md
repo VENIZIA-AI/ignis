@@ -25,7 +25,7 @@ export class TestDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSch
 }
 ```
 
-Your models, repositories and filters do not change. PGlite reports `PostgreSQL 18.3`, so every statement the filter builder emits works unchanged - `#>>` JSON paths, `ILIKE`, regex operators, arrays, `SELECT ... FOR UPDATE`.
+Your models, repositories and filters do not change. PGlite 0.5 is PostgreSQL 18 and PGlite 0.6 is PostgreSQL 19, and every statement the filter builder emits works unchanged - `#>>` JSON paths, `ILIKE`, regex operators, arrays, `SELECT ... FOR UPDATE`.
 
 A repository on PGlite extends `PGliteCRUDRepository` from `@venizia/ignis-connectors/postgres`, beside `DefaultCRUDRepository`. It is `DefaultCRUDRepository` with the datasource typed as PGlite, so `new NoteRepository(dataSource)` takes your PGlite datasource and `this.dataSource.getClient()` is a `PGlite`, with no generics beyond the table. Under `@repository({ model, dataSource })` it behaves like any other repository; a `pg.Pool` datasource is a type error.
 
@@ -42,6 +42,9 @@ export class NoteRepository extends PGliteCRUDRepository<typeof noteTable> {}
 > ```bash
 > bun add @electric-sql/pglite
 > ```
+
+> [!WARNING] A data directory belongs to one version line
+> PGlite 0.6 does not open a data directory that 0.5 wrote: it fails with `PGlite failed to initialize properly`. Moving a persisted database from 0.5 to 0.6 means writing the data out with 0.5 and loading it into a new directory with 0.6, or staying on 0.5, which IGNIS still accepts.
 
 ## What PGlite is good for
 
