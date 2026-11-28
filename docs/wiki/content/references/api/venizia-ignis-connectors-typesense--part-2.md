@@ -607,7 +607,7 @@ export declare const SearchInputSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
         limit: z.ZodOptional<z.ZodNumber>;
         offset: z.ZodOptional<z.ZodNumber>;
         skip: z.ZodOptional<z.ZodNumber>;
-    }, z.core.$strip>>;
+    }, z.core.$strict>>;
 }, z.core.$strip>, z.ZodObject<{
     distanceThreshold: z.ZodOptional<z.ZodNumber>;
     ef: z.ZodOptional<z.ZodNumber>;
@@ -636,7 +636,7 @@ export declare const SearchInputSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
         limit: z.ZodOptional<z.ZodNumber>;
         offset: z.ZodOptional<z.ZodNumber>;
         skip: z.ZodOptional<z.ZodNumber>;
-    }, z.core.$strip>>;
+    }, z.core.$strict>>;
 }, z.core.$strip>, z.ZodObject<{
     distanceThreshold: z.ZodOptional<z.ZodNumber>;
     ef: z.ZodOptional<z.ZodNumber>;
@@ -667,7 +667,7 @@ export declare const SearchInputSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
         limit: z.ZodOptional<z.ZodNumber>;
         offset: z.ZodOptional<z.ZodNumber>;
         skip: z.ZodOptional<z.ZodNumber>;
-    }, z.core.$strip>>;
+    }, z.core.$strict>>;
 }, z.core.$strip>, z.ZodObject<{
     mode: z.ZodLiteral<"raw">;
     params: z.ZodRecord<z.ZodString, z.ZodAny>;

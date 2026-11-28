@@ -224,7 +224,7 @@ Relations to include: an array of `{ relation, scope? }` where `scope` is a nest
 export declare const InclusionSchema: z.ZodOptional<z.ZodArray<z.ZodObject<{
     relation: z.ZodString;
     scope: z.ZodOptional<z.ZodLazy<z.ZodType<import("@venizia/ignis-filter").TFilter | undefined, unknown, z.core.$ZodTypeInternals<import("@venizia/ignis-filter").TFilter | undefined, unknown>>>>;
-}, z.core.$strip>>>;
+}, z.core.$strict>>>;
 ```
 
 Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`

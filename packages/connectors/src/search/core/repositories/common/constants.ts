@@ -21,7 +21,7 @@ export type TSearchMode = TConstValue<typeof SearchModes>;
 
 /** Reassembled from FilterSchema's atomic pieces minus `include`: search has no relations. */
 const SearchFilterSchema = z
-  .object({
+  .strictObject({
     where: WhereSchema.optional(),
     fields: FieldsSchema,
     order: OrderBySchema,

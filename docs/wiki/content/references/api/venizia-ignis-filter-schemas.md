@@ -34,23 +34,23 @@ export declare const FilterSchema: import("zod").ZodOptional<import("zod").ZodUn
     include: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
         relation: import("zod").ZodString;
         scope: import("zod").ZodOptional<import("zod").ZodLazy<import("zod").ZodType<import("../index.js").TFilter | undefined, unknown, import("zod/v4/core").$ZodTypeInternals<import("../index.js").TFilter | undefined, unknown>>>>;
-    }, import("zod/v4/core").$strip>>>;
+    }, import("zod/v4/core").$strict>>>;
     order: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodString>>;
     limit: import("zod").ZodOptional<import("zod").ZodNumber>;
     offset: import("zod").ZodOptional<import("zod").ZodNumber>;
     skip: import("zod").ZodOptional<import("zod").ZodNumber>;
-}, import("zod/v4/core").$strip>, import("zod").ZodPipe<import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<any, string>>, import("zod").ZodObject<{
+}, import("zod/v4/core").$strict>, import("zod").ZodPipe<import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<any, string>>, import("zod").ZodObject<{
     where: import("zod").ZodOptional<import("zod").ZodUnion<readonly [import("zod").ZodPipe<import("zod").ZodPipe<import("zod").ZodAny, import("zod").ZodTransform<any, any>>, import("zod").ZodType<import("../index.js").TWhere, unknown, import("zod/v4/core").$ZodTypeInternals<import("../index.js").TWhere, unknown>>>, import("zod").ZodPipe<import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<any, string>>, import("zod").ZodPipe<import("zod").ZodPipe<import("zod").ZodAny, import("zod").ZodTransform<any, any>>, import("zod").ZodType<import("../index.js").TWhere, unknown, import("zod/v4/core").$ZodTypeInternals<import("../index.js").TWhere, unknown>>>>]>>;
     fields: import("zod").ZodOptional<import("zod").ZodUnion<[import("zod").ZodRecord<import("zod").ZodString, import("zod").ZodBoolean>, import("zod").ZodArray<import("zod").ZodString>]>>;
     include: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
         relation: import("zod").ZodString;
         scope: import("zod").ZodOptional<import("zod").ZodLazy<import("zod").ZodType<import("../index.js").TFilter | undefined, unknown, import("zod/v4/core").$ZodTypeInternals<import("../index.js").TFilter | undefined, unknown>>>>;
-    }, import("zod/v4/core").$strip>>>;
+    }, import("zod/v4/core").$strict>>>;
     order: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodString>>;
     limit: import("zod").ZodOptional<import("zod").ZodNumber>;
     offset: import("zod").ZodOptional<import("zod").ZodNumber>;
     skip: import("zod").ZodOptional<import("zod").ZodNumber>;
-}, import("zod/v4/core").$strip>>]>>;
+}, import("zod/v4/core").$strict>>]>>;
 ```
 
 Source: `packages/filter/src/schemas/index.ts`
@@ -65,7 +65,7 @@ The `include` array: each entry names a `relation` and may carry a nested `scope
 export declare const InclusionSchema: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
     relation: import("zod").ZodString;
     scope: import("zod").ZodOptional<import("zod").ZodLazy<import("zod").ZodType<import("../index.js").TFilter | undefined, unknown, import("zod/v4/core").$ZodTypeInternals<import("../index.js").TFilter | undefined, unknown>>>>;
-}, import("zod/v4/core").$strip>>>;
+}, import("zod/v4/core").$strict>>>;
 ```
 
 Source: `packages/filter/src/schemas/index.ts`
@@ -131,27 +131,27 @@ export declare class QuerySchemaFactory {
             include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                 relation: z.ZodString;
                 scope: z.ZodOptional<z.ZodLazy<z.ZodType<TFilter | undefined, unknown, z.core.$ZodTypeInternals<TFilter | undefined, unknown>>>>;
-            }, z.core.$strip>>>;
+            }, z.core.$strict>>>;
             order: z.ZodOptional<z.ZodArray<z.ZodString>>;
             limit: z.ZodOptional<z.ZodNumber>;
             offset: z.ZodOptional<z.ZodNumber>;
             skip: z.ZodOptional<z.ZodNumber>;
-        }, z.core.$strip>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
+        }, z.core.$strict>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
             where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<TWhere, unknown, z.core.$ZodTypeInternals<TWhere, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<TWhere, unknown, z.core.$ZodTypeInternals<TWhere, unknown>>>>]>>;
             fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
             include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                 relation: z.ZodString;
                 scope: z.ZodOptional<z.ZodLazy<z.ZodType<TFilter | undefined, unknown, z.core.$ZodTypeInternals<TFilter | undefined, unknown>>>>;
-            }, z.core.$strip>>>;
+            }, z.core.$strict>>>;
             order: z.ZodOptional<z.ZodArray<z.ZodString>>;
             limit: z.ZodOptional<z.ZodNumber>;
             offset: z.ZodOptional<z.ZodNumber>;
             skip: z.ZodOptional<z.ZodNumber>;
-        }, z.core.$strip>>]>>;
+        }, z.core.$strict>>]>>;
         InclusionSchema: z.ZodOptional<z.ZodArray<z.ZodObject<{
             relation: z.ZodString;
             scope: z.ZodOptional<z.ZodLazy<z.ZodType<TFilter | undefined, unknown, z.core.$ZodTypeInternals<TFilter | undefined, unknown>>>>;
-        }, z.core.$strip>>>;
+        }, z.core.$strict>>>;
         LimitSchema: z.ZodOptional<z.ZodNumber>;
         OffsetSchema: z.ZodOptional<z.ZodNumber>;
         OrderBySchema: z.ZodOptional<z.ZodArray<z.ZodString>>;

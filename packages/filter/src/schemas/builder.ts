@@ -120,7 +120,7 @@ export class QuerySchemaFactory {
     const InclusionSchema = decorate(
       z
         .array(
-          z.object({
+          z.strictObject({
             relation: decorate(z.string(), { description: 'Model relation name' }),
             scope: decorate(
               z
@@ -146,7 +146,7 @@ export class QuerySchemaFactory {
     );
 
     /** @internal Filter schema object definition. */
-    const InternalFilterSchema = z.object({
+    const InternalFilterSchema = z.strictObject({
       where: WhereSchema.optional(),
       fields: FieldsSchema,
       include: InclusionSchema,
