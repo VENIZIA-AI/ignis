@@ -1,0 +1,693 @@
+import 'reflect-metadata';
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { Code, ConnectError, createClient } from '@connectrpc/connect';
+import type { HandlerContext } from '@connectrpc/connect';
+import { createGrpcTransport } from '@connectrpc/connect-node';
+import { fileDesc, serviceDesc } from '@bufbuild/protobuf/codegenv2';
+import { HTTP, type TClass, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { getError, PromiseUtility } from '@venizia/ignis-helpers/core';
+import {
+  AuthenticationStrategyRegistry,
+  bidiStream,
+  clientStream,
+  Container,
+  ControllerTransports,
+  serverStream,
+  unary,
+  type IApplicationInfo,
+  type IAuthenticationStrategy,
+  type TContext,
+  type TRouteContext,
+  AuthorizationEnforcerTypes,
+  AuthorizeBindingKeys,
+  type IAuthorizeOptions,
+} from '@venizia/ignis-kernel';
+import { connect as connectHttp2 } from 'node:http2';
+import type { ClientHttp2Session } from 'node:http2';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { BaseApplication } from '@/base/applications';
+import { BaseGrpcController } from '@/base/controllers/grpc/base';
+import type { IGrpcNativeOptions } from '@/base/controllers/grpc/native/common/types';
+import { GrpcBindingKeys } from '@/components/controller/grpc';
+import { controller, useRequestContext } from '@/base/metadata';
+import type { GrpcNativeCallStore } from '@/base/controllers/grpc/native/call.store';
+import { createFreshRegistry, TestAuthorizationEnforcer } from '../authorize/helpers';
+
+/** `greeter.v1.GreeterService`: unary `SayHello`, `ListHellos` (server), `Collect` (client), `Chat` (bidi). */
+const GreeterService = serviceDesc(
+  fileDesc(
+    'Cg1ncmVldGVyLnByb3RvEgpncmVldGVyLnYxIi4KDEhlbGxvUmVxdWVzdBIMCgRuYW1lGAEgASgJEhAKCHNsZWVwX21zGAIgASgFIiAKDUhlbGxvUmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCTKZAgoOR3JlZXRlclNlcnZpY2USPwoIU2F5SGVsbG8SGC5ncmVldGVyLnYxLkhlbGxvUmVxdWVzdBoZLmdyZWV0ZXIudjEuSGVsbG9SZXNwb25zZRJDCgpMaXN0SGVsbG9zEhguZ3JlZXRlci52MS5IZWxsb1JlcXVlc3QaGS5ncmVldGVyLnYxLkhlbGxvUmVzcG9uc2UwARJACgdDb2xsZWN0EhguZ3JlZXRlci52MS5IZWxsb1JlcXVlc3QaGS5ncmVldGVyLnYxLkhlbGxvUmVzcG9uc2UoARI/CgRDaGF0EhguZ3JlZXRlci52MS5IZWxsb1JlcXVlc3QaGS5ncmVldGVyLnYxLkhlbGxvUmVzcG9uc2UoATABYgZwcm90bzM',
+  ),
+  0,
+);
+
+const KEY = 'x-native-key';
+
+class NativeKeyStrategy implements IAuthenticationStrategy {
+  name = KEY;
+
+  async authenticate(context: TContext) {
+    if (context.req.header(KEY) !== 'ok') {
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.Unauthorized, message: 'Bad key' });
+    }
+
+    return { userId: 'u1', principalType: 'user' };
+  }
+}
+
+AuthenticationStrategyRegistry.getInstance().register({
+  container: new Container({ scope: 'grpc-native-strategies' }),
+  strategies: [{ name: KEY, strategy: NativeKeyStrategy }],
+});
+
+const GATE = { authenticate: { strategies: [KEY] } };
+const seen: { aborted: number; ip?: string | null } = { aborted: 0 };
+const textOf = (request: unknown) => String(Reflect.get(Object(request), 'name'));
+
+/** Sleeps `ms`, or rejects when `signal` aborts. */
+const wait = (opts: { ms: number; signal: AbortSignal }) => {
+  return new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(resolve, opts.ms);
+    opts.signal.addEventListener('abort', () => {
+      seen.aborted += 1;
+      clearTimeout(timer);
+      reject(opts.signal.reason);
+    });
+  });
+};
+
+@controller({ path: '/grpc', transport: ControllerTransports.GRPC, service: GreeterService })
+class GreeterController extends BaseGrpcController {
+  constructor() {
+    super({ scope: 'GreeterController' });
+  }
+
+  override binding() {}
+
+  @unary({ configs: { name: 'sayHello', ...GATE } })
+  async sayHello(opts: {
+    request: unknown;
+    rpc: HandlerContext;
+    context: TRouteContext<{ Bindings: GrpcNativeCallStore }>;
+  }) {
+    const text = textOf(opts.request);
+
+    if (text === 'conflict') {
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.Conflict, message: 'Already there' });
+    }
+
+    if (text === 'crash') {
+      throw getError({ statusCode: 500, message: 'secret detail' });
+    }
+
+    if (text.startsWith('sleep:')) {
+      await wait({ ms: Number(text.slice(6)), signal: opts.rpc.signal });
+    }
+
+    opts.rpc.responseHeader.set('x-greeter', 'v2');
+    opts.rpc.responseTrailer.set('x-cost', '3');
+    seen.ip = opts.context.env.requestIP()?.address;
+
+    return { message: `hello ${text} context=${useRequestContext() !== undefined}` };
+  }
+
+  @serverStream({ configs: { name: 'listHellos', ...GATE } })
+  async *listHellos(opts: { request: unknown }) {
+    yield { message: 'first' };
+
+    if (textOf(opts.request) === 'fail') {
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.Conflict, message: 'Changed meanwhile' });
+    }
+
+    await PromiseUtility.sleep({ ms: Number(textOf(opts.request)) });
+    yield { message: 'second' };
+  }
+
+  @clientStream({ configs: { name: 'collect', ...GATE } })
+  async collect(opts: { request: AsyncIterable<unknown> }) {
+    const received: string[] = [];
+
+    for await (const message of opts.request) {
+      received.push(textOf(message));
+    }
+
+    return { message: received.join(',') };
+  }
+
+  @bidiStream({ configs: { name: 'chat', ...GATE } })
+  async *chat(opts: { request: AsyncIterable<unknown> }) {
+    for await (const message of opts.request) {
+      yield { message: textOf(message) };
+    }
+  }
+}
+
+/** The real `authorize` middleware on unary and client stream, and a public server stream. */
+@controller({ path: '/secure', transport: ControllerTransports.GRPC, service: GreeterService })
+class SecureController extends BaseGrpcController {
+  constructor() {
+    super({ scope: 'SecureController' });
+  }
+
+  override binding() {}
+
+  @unary({
+    configs: { name: 'sayHello', ...GATE, authorize: { action: 'read', resource: 'Greeting' } },
+  })
+  async sayHello() {
+    return { message: 'allowed' };
+  }
+
+  @clientStream({
+    configs: { name: 'collect', ...GATE, authorize: { action: 'delete', resource: 'Greeting' } },
+  })
+  async collect() {
+    return { message: 'deleted' };
+  }
+
+  @serverStream({ configs: { name: 'listHellos' } })
+  async *listHellos() {
+    yield { message: 'first' };
+    await PromiseUtility.sleep({ ms: 2_500 });
+    yield { message: 'second' };
+  }
+}
+
+const IDLE_SECONDS = 1;
+const QUIET_MS = 2_500;
+
+class NativeApplication extends BaseApplication {
+  constructor(
+    private native: IGrpcNativeOptions | undefined,
+    private greeter: TClass<BaseGrpcController> = GreeterController,
+  ) {
+    super({
+      scope: 'NativeApplication',
+      config: {
+        host: '127.0.0.1',
+        port: 0,
+        path: { base: '/api', isStrict: false },
+        transports: [ControllerTransports.REST, ControllerTransports.GRPC],
+        asyncContext: { enable: true },
+        server: { idleTimeout: IDLE_SECONDS },
+        error: { rootKey: 'error' },
+      },
+    });
+  }
+
+  override getAppInfo(): ValueOrPromise<IApplicationInfo> {
+    return { name: 'grpc-native', version: '0.0.0', description: 'native gRPC' };
+  }
+
+  override staticConfigure() {}
+
+  override preConfigure() {
+    this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue(
+      this.native ? { native: { use: true, ...this.native } } : {},
+    );
+    this.controller(this.greeter);
+  }
+
+  override postConfigure() {}
+
+  override setupMiddlewares() {
+    this.getServer().use('*', async (context, next) => {
+      if (context.req.header('x-block')) {
+        return context.json({ message: 'blocked early' }, 429);
+      }
+
+      context.header('x-seen-by', 'global');
+      await next();
+
+      return undefined;
+    });
+    this.getRootRouter().get('/echo', (context) => context.json({ ok: true }));
+  }
+}
+
+const start = async (
+  native: IGrpcNativeOptions | undefined,
+  greeter?: TClass<BaseGrpcController>,
+) => {
+  const application = new NativeApplication(native, greeter);
+  application.init();
+  await application.start();
+
+  return application;
+};
+
+const addressOf = (application: NativeApplication) => {
+  const listener = application.get({ key: GrpcBindingKeys.GRPC_NATIVE_LISTENER });
+  const address = listener.getAddress();
+
+  if (!address) {
+    throw getError({ message: 'The native listener is not listening' });
+  }
+
+  return `${address.host}:${address.port}`;
+};
+
+let application: NativeApplication;
+
+beforeAll(async () => {
+  const started = await start({ port: 0, limits: { concurrentStreams: 2 } });
+  application = started;
+});
+
+afterAll(async () => {
+  await application.stop();
+});
+
+const client = (opts?: { url?: string; ca?: Buffer }) => {
+  return createClient(
+    GreeterService,
+    createGrpcTransport({
+      baseUrl: opts?.url ?? `http://${addressOf(application)}`,
+      nodeOptions: opts?.ca ? { ca: opts.ca } : undefined,
+    }),
+  );
+};
+
+const SIGNED_IN = { [KEY]: 'ok' };
+
+/** The `ConnectError` a call fails with. */
+const failureOf = async (task: Promise<unknown>) => {
+  const [outcome] = await Promise.allSettled([task]);
+
+  if (outcome.status === 'fulfilled') {
+    throw getError({ message: 'expected the call to fail' });
+  }
+
+  const error = ConnectError.from(outcome.reason);
+
+  return { code: error.code, message: error.rawMessage };
+};
+
+const invoke = (
+  name: string,
+  opts?: { headers?: Record<string, string>; timeoutMs?: number; signal?: AbortSignal },
+) => {
+  const method: unknown = Reflect.get(client(), 'sayHello');
+
+  if (typeof method !== 'function') {
+    throw getError({ message: 'no method' });
+  }
+
+  const answer: Promise<unknown> = method({ name }, { headers: SIGNED_IN, ...opts });
+
+  return answer;
+};
+
+const collectStream = async (
+  method: string,
+  request: unknown,
+  headers: Record<string, string> = SIGNED_IN,
+) => {
+  const run: unknown = Reflect.get(client(), method);
+
+  if (typeof run !== 'function') {
+    throw getError({ message: 'no method' });
+  }
+
+  const messages: AsyncIterable<unknown> = run(request, { headers });
+  const texts: string[] = [];
+
+  for await (const message of messages) {
+    texts.push(String(Reflect.get(Object(message), 'message')));
+  }
+
+  return texts;
+};
+
+async function* names(pauseMs = 0) {
+  yield { name: 'a' };
+  await PromiseUtility.sleep({ ms: pauseMs });
+  yield { name: 'b' };
+}
+
+/** One raw HTTP/2 request: how it ended, for the cases no gRPC client sends. */
+const raw = (opts: {
+  headers: Record<string, string>;
+  endStream?: boolean;
+  session?: ClientHttp2Session;
+}) => {
+  const session = opts.session ?? connectHttp2(`http://${addressOf(application)}`);
+
+  return new Promise<{
+    status?: string;
+    code?: string;
+    message?: string;
+    reset?: number;
+    ms: number;
+  }>((resolve) => {
+    const startedAt = performance.now();
+    const stream = session.request(opts.headers, { endStream: opts.endStream ?? true });
+    const result: { status?: string; code?: string; message?: string } = {};
+
+    const read = (headers: Record<string, unknown>) => {
+      result.status ??= headers[':status'] === undefined ? undefined : String(headers[':status']);
+      result.code ??=
+        headers['grpc-status'] === undefined ? undefined : String(headers['grpc-status']);
+      result.message ??=
+        headers['grpc-message'] === undefined ? undefined : String(headers['grpc-message']);
+    };
+
+    stream.on('response', read);
+    stream.on('trailers', read);
+    stream.on('data', () => {});
+    stream.on('error', () => {});
+    stream.once('close', () => {
+      resolve({ ...result, reset: stream.rstCode, ms: performance.now() - startedAt });
+
+      if (!opts.session) {
+        session.close();
+      }
+    });
+  });
+};
+
+const SAY_HELLO = '/greeter.v1.GreeterService/SayHello';
+const grpcHeaders = (extra: Record<string, string> = {}) => ({
+  ':method': 'POST',
+  ':path': SAY_HELLO,
+  'content-type': 'application/grpc',
+  te: 'trailers',
+  ...extra,
+});
+
+describe('native gRPC port - calls', () => {
+  test('a unary call answers with headers, trailers, middleware headers, context and the caller address', async () => {
+    const received: Record<string, string | null> = {};
+    const method: unknown = Reflect.get(client(), 'sayHello');
+
+    if (typeof method !== 'function') {
+      throw getError({ message: 'no method' });
+    }
+
+    const answer: unknown = await method(
+      { name: 'ann' },
+      {
+        headers: SIGNED_IN,
+        onHeader: (headers: Headers) => {
+          received.greeter = headers.get('x-greeter');
+          received.global = headers.get('x-seen-by');
+          received.requestId = headers.get('x-request-id');
+        },
+        onTrailer: (trailers: Headers) => {
+          received.cost = trailers.get('x-cost');
+        },
+      },
+    );
+
+    expect(answer).toHaveProperty('message', 'hello ann context=true');
+    expect(received).toMatchObject({ greeter: 'v2', global: 'global', cost: '3' });
+    expect(received.requestId).toBeTruthy();
+    expect(seen.ip).toBe('127.0.0.1');
+  });
+
+  test('the four kinds of call', async () => {
+    const result = await collectStream('listHellos', { name: '0' });
+    expect(result).toEqual(['first', 'second']);
+    const result2 = await collectStream('chat', names());
+    expect(result2).toEqual(['a', 'b']);
+    const collect: unknown = Reflect.get(client(), 'collect');
+
+    if (typeof collect !== 'function') {
+      throw getError({ message: 'no method' });
+    }
+
+    const answer: unknown = await collect(names(), { headers: SIGNED_IN });
+    expect(answer).toHaveProperty('message', 'a,b');
+  });
+
+  test('errors keep their codes and the public message policy', async () => {
+    const result3 = await failureOf(invoke('conflict'));
+    expect(result3).toEqual({
+      code: Code.Aborted,
+      message: 'Already there',
+    });
+    const crash = await failureOf(invoke('crash'));
+
+    expect(crash.code).toBe(Code.Internal);
+    expect(crash.message).not.toContain('secret');
+  });
+
+  test('authenticate refuses before the first message, on a client stream and a bidi call', async () => {
+    const collect: unknown = Reflect.get(client(), 'collect');
+
+    if (typeof collect !== 'function') {
+      throw getError({ message: 'no method' });
+    }
+
+    const pending: Promise<unknown> = collect(names(QUIET_MS), { headers: {} });
+    const onClientStream = await failureOf(pending);
+    const onBidi = await failureOf(collectStream('chat', names(QUIET_MS), {}));
+
+    expect(onClientStream.code).toBe(Code.Unauthenticated);
+    expect(onBidi.code).toBe(Code.Unauthenticated);
+  });
+
+  test('a failure after the first message ends the stream with its code', async () => {
+    const result4 = await failureOf(collectStream('listHellos', { name: 'fail' }));
+    expect(result4).toEqual({
+      code: Code.Aborted,
+      message: 'Changed meanwhile',
+    });
+  });
+
+  test('a deadline and a client that leaves reach rpc.signal', async () => {
+    seen.aborted = 0;
+    const late = await failureOf(invoke('sleep:5000', { timeoutMs: 100 }));
+    const abort = new AbortController();
+    const left = failureOf(invoke('sleep:5000', { signal: abort.signal }));
+    await PromiseUtility.sleep({ ms: 200 });
+    abort.abort();
+    const canceled = await left;
+    await PromiseUtility.sleep({ ms: 200 });
+
+    expect(late.code).toBe(Code.DeadlineExceeded);
+    expect(canceled.code).toBe(Code.Canceled);
+    expect(seen.aborted).toBe(2);
+  });
+});
+
+describe('native gRPC port - refusals and limits', () => {
+  test('a middleware that answers early is a trailers-only refusal with the mapped code', async () => {
+    const result = await raw({ headers: grpcHeaders({ 'x-block': '1' }) });
+
+    expect(result).toMatchObject({
+      status: '200',
+      code: String(14),
+      message: encodeURIComponent('blocked early'),
+    });
+  });
+
+  test('only RPC paths are served, with POST', async () => {
+    const rest = await raw({ headers: grpcHeaders({ ':path': '/api/echo' }) });
+    const get = await raw({ headers: grpcHeaders({ ':method': 'GET' }) });
+
+    expect(rest.code).toBe(String(Code.Unimplemented));
+    expect(get.code).toBe(String(Code.Unimplemented));
+  });
+
+  test('an odd authority does not take the listener down', async () => {
+    await raw({ headers: grpcHeaders({ ':authority': '[[[' }) });
+    const after = await invoke('still');
+
+    expect(after).toHaveProperty('message', 'hello still context=true');
+  });
+
+  test('a stream with headers and nothing else is closed at the idle timeout', async () => {
+    const result = await raw({ headers: grpcHeaders(SIGNED_IN), endStream: false });
+
+    expect(result.ms).toBeGreaterThanOrEqual(IDLE_SECONDS * 1_000 - 100);
+    expect(result.ms).toBeLessThan(QUIET_MS);
+  });
+
+  test('a signed-in call may stay quiet longer than the idle timeout', async () => {
+    const [stream, answer] = await Promise.all([
+      collectStream('listHellos', { name: String(QUIET_MS) }),
+      invoke(`sleep:${QUIET_MS}`),
+    ]);
+
+    expect(stream).toEqual(['first', 'second']);
+    expect(answer).toHaveProperty('message', `hello sleep:${QUIET_MS} context=true`);
+  });
+
+  test('one connection holds the configured number of streams at once', async () => {
+    const session = connectHttp2(`http://${addressOf(application)}`);
+    const settings = new Promise<number | undefined>((resolve) => {
+      session.once('remoteSettings', (remote) => resolve(remote.maxConcurrentStreams));
+    });
+
+    const result2 = await settings;
+    expect(result2).toBe(2);
+    session.close();
+  });
+});
+
+describe('native gRPC port - authorize and public calls', () => {
+  test('authorize allows and denies, and a public stream keeps the idle timeout', async () => {
+    const registry = createFreshRegistry();
+    const container = new Container({ scope: 'grpc-native-enforcer' });
+    container
+      .bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS })
+      .toValue({ defaultDecision: 'deny' });
+    registry.register({
+      container,
+      enforcers: [
+        {
+          enforcer: TestAuthorizationEnforcer,
+          name: 'test',
+          type: AuthorizationEnforcerTypes.CUSTOM,
+        },
+      ],
+    });
+    TestAuthorizationEnforcer.rules = [
+      { action: 'read', resource: 'Greeting', effect: 'allow' },
+      { action: 'delete', resource: 'Greeting', effect: 'deny' },
+    ];
+    const secure = await start({ port: 0 }, SecureController);
+    const url = `http://${addressOf(secure)}`;
+
+    const run = (method: string, request: unknown, headers: Record<string, string>) => {
+      const task: unknown = Reflect.get(client({ url }), method);
+
+      if (typeof task !== 'function') {
+        throw getError({ message: 'no method' });
+      }
+
+      return Reflect.apply(task, undefined, [request, { headers }]);
+    };
+
+    const allowed: unknown = await run('sayHello', {}, SIGNED_IN);
+    const denied = await failureOf(run('collect', names(), SIGNED_IN));
+    const stream: AsyncIterable<unknown> = run('listHellos', {}, {});
+    const texts: unknown[] = [];
+    const cut = await failureOf(
+      (async () => {
+        for await (const message of stream) {
+          texts.push(message);
+        }
+      })(),
+    );
+    await secure.stop();
+
+    expect(allowed).toHaveProperty('message', 'allowed');
+    expect(denied.code).toBe(Code.PermissionDenied);
+    expect(texts).toHaveLength(1);
+    expect(cut.code).not.toBe(Code.Unauthenticated);
+  });
+
+  test('a caller with no credentials and a body that never ends is closed at the idle timeout', async () => {
+    const result = await raw({ headers: grpcHeaders(), endStream: false });
+
+    expect(result.ms).toBeLessThan(QUIET_MS);
+  });
+});
+
+describe('native gRPC port - lifecycle', () => {
+  test('off: no listener is bound', async () => {
+    const off = await start(undefined);
+
+    expect(
+      off.get({ key: GrpcBindingKeys.GRPC_NATIVE_LISTENER, isOptional: true }),
+    ).toBeUndefined();
+    await off.stop();
+  });
+
+  test('a port in use fails start()', async () => {
+    const [, port] = addressOf(application).split(':');
+    const second = new NativeApplication({ port: Number(port) });
+    second.init();
+    const [outcome] = await Promise.allSettled([second.start()]);
+
+    expect(outcome.status).toBe('rejected');
+    await second.stop();
+  });
+
+  test('stop() aborts a call still running after shutdownTimeout', async () => {
+    const short = await start({ port: 0, shutdownTimeout: 300 });
+    const method: unknown = Reflect.get(client({ url: `http://${addressOf(short)}` }), 'sayHello');
+
+    if (typeof method !== 'function') {
+      throw getError({ message: 'no method' });
+    }
+
+    seen.aborted = 0;
+    const pending: Promise<unknown> = method({ name: 'sleep:20000' }, { headers: SIGNED_IN });
+    const failure = failureOf(pending);
+    await PromiseUtility.sleep({ ms: 200 });
+    const startedAt = performance.now();
+    await short.stop();
+
+    expect(performance.now() - startedAt).toBeLessThan(3_000);
+    expect(seen.aborted).toBe(1);
+    const result = await failure;
+    expect(result.code).not.toBe(Code.DeadlineExceeded);
+  });
+
+  for (const native of [
+    { port: -1 },
+    { port: 0, limits: { concurrentStreams: 0 } },
+    { port: 0, shutdownTimeout: 0 },
+    { port: 0, tls: { use: true as const, key: '', cert: '' } },
+  ]) {
+    test(`${JSON.stringify(native)} stops the boot`, async () => {
+      const bad = new NativeApplication(native);
+      bad.init();
+      const [outcome] = await Promise.allSettled([bad.start()]);
+
+      expect(outcome.status).toBe('rejected');
+      await bad.stop();
+    });
+  }
+
+  test('TLS serves a client that trusts the certificate', async () => {
+    const folder = mkdtempSync(path.join(tmpdir(), 'ignis-grpc-tls-'));
+    const keyFile = path.join(folder, 'key.pem');
+    const certFile = path.join(folder, 'cert.pem');
+    const openssl = Bun.spawnSync([
+      'openssl',
+      'req',
+      '-x509',
+      '-newkey',
+      'rsa:2048',
+      '-nodes',
+      '-keyout',
+      keyFile,
+      '-out',
+      certFile,
+      '-days',
+      '1',
+      '-subj',
+      '/CN=localhost',
+      '-addext',
+      'subjectAltName=DNS:localhost,IP:127.0.0.1',
+    ]);
+
+    expect(openssl.exitCode).toBe(0);
+    const cert = readFileSync(certFile);
+    const secure = await start({
+      port: 0,
+      tls: { use: true, key: readFileSync(keyFile), cert },
+    });
+    const [, port] = addressOf(secure).split(':');
+    const method: unknown = Reflect.get(
+      client({ url: `https://localhost:${port}`, ca: cert }),
+      'sayHello',
+    );
+
+    if (typeof method !== 'function') {
+      throw getError({ message: 'no method' });
+    }
+
+    const answer: unknown = await method({ name: 'tls' }, { headers: SIGNED_IN });
+
+    expect(answer).toHaveProperty('message', 'hello tls context=true');
+    await secure.stop();
+    rmSync(folder, { recursive: true, force: true });
+  });
+});

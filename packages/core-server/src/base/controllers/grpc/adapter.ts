@@ -9,17 +9,22 @@ import { BodyLimits, type TRouteContext } from '@venizia/ignis-kernel';
 import type { AbstractGrpcController } from './abstract';
 import { GrpcErrors } from './errors';
 import { GrpcTimeoutGuard } from './timeout.guard';
+import { GrpcNativeCallStore } from './native/call.store';
+import type { IConnectNodeModule } from './native/common/types';
+import { GrpcNativeWriter } from './native/native.writer';
 import { AppErrorMiddleware } from '@/base/middlewares/app-error/app-error.middleware';
 import type {
   IConnectAdapterResult,
   IConnectRpcModule,
   IGrpcLimits,
+  IGrpcNativeAdapterOptions,
   IRpcRegistration,
   TRpcMiddleware,
 } from './common/types';
 
 const CONNECT_RPC_MODULES = ['@connectrpc/connect'];
 const CONNECT_RPC_PROTOCOL_MODULE = '@connectrpc/connect/protocol';
+const CONNECT_RPC_NODE_MODULE = '@connectrpc/connect-node';
 
 type TConnectHandler<RequestType = unknown, ResponseType = unknown> = (
   request: RequestType,
@@ -51,6 +56,8 @@ interface IAdapterOptions<
   interceptors?: unknown[];
   module?: IConnectRpcModule;
   limits?: IGrpcLimits;
+  /** Set when the native gRPC port is on: handlers of the gRPC protocol are built too. */
+  native?: IGrpcNativeAdapterOptions;
   /** The server's `idleTimeout` in seconds, given back to a connection when a call ends. */
   idleTimeout?: number;
 }
@@ -91,15 +98,24 @@ export class GrpcRequestAdapter<
    * The ConnectRPC peers, loaded as ES modules from the project root (or taken from `ModuleUtility.register`,
    * which is what a compiled binary has). A missing peer rejects with the error that names what to install.
    */
-  private static async loadModule(): Promise<IConnectRpcModule> {
-    ModuleUtility.assertInstalled({ modules: CONNECT_RPC_MODULES, allowRegistered: true });
+  private static async loadModule(opts: { isNative: boolean }): Promise<IConnectRpcModule> {
+    const modules = opts.isNative
+      ? [...CONNECT_RPC_MODULES, CONNECT_RPC_NODE_MODULE]
+      : CONNECT_RPC_MODULES;
+    ModuleUtility.assertInstalled({ modules, allowRegistered: true });
 
     const [connect, protocol] = await Promise.all([
       ModuleUtility.load<IConnectRpcModule['connect']>({ module: CONNECT_RPC_MODULES[0] }),
       ModuleUtility.load<IConnectRpcModule['protocol']>({ module: CONNECT_RPC_PROTOCOL_MODULE }),
     ]);
 
-    return { connect, protocol };
+    if (!opts.isNative) {
+      return { connect, protocol };
+    }
+
+    const node = await ModuleUtility.load<IConnectNodeModule>({ module: CONNECT_RPC_NODE_MODULE });
+
+    return { connect, protocol, node };
   }
 
   /**
@@ -325,19 +341,38 @@ export class GrpcRequestAdapter<
 
   /**
    * One request of one RPC: handed to ConnectRPC's handler, answered through `context.newResponse` so the headers
-   * earlier middleware set are kept. A failure outside ConnectRPC reaches the application's error handler.
+   * earlier middleware set are kept. A call of the native gRPC port is written on its node stream instead. A failure
+   * outside ConnectRPC reaches the application's error handler.
    */
-  private async serve(opts: { context: Context<RouteEnv>; handler: UniversalHandler }) {
-    const { context, handler } = opts;
+  private async serve(opts: {
+    context: Context<RouteEnv>;
+    handler: UniversalHandler;
+    nativeHandler?: UniversalHandler;
+  }) {
+    const { context, handler, nativeHandler } = opts;
+    const call = GrpcNativeCallStore.read({ env: context.env });
+    const { node } = this.peers;
+    const contextValues = this.peers.connect.createContextValues().set(this.honoContext, context);
+
+    if (call && nativeHandler && node) {
+      await GrpcNativeWriter.answer({
+        call,
+        handler: nativeHandler,
+        contextValues,
+        headers: context.newResponse(null).headers,
+        node,
+      });
+
+      // The answer is on the stream: this one only ends the middleware chain.
+      return context.body(null);
+    }
+
     const request = await this.readRequest({ context });
 
     const universalRequest = this.peers.protocol.universalServerRequestFromFetch(request, {
       httpVersion: '1.1',
     });
-    const universalResponse = await handler({
-      ...universalRequest,
-      contextValues: this.peers.connect.createContextValues().set(this.honoContext, context),
-    });
+    const universalResponse = await handler({ ...universalRequest, contextValues });
     const response = this.peers.protocol.universalServerResponseToFetch(universalResponse);
 
     return context.newResponse(response.body, response);
@@ -361,11 +396,18 @@ export class GrpcRequestAdapter<
       });
     }
 
+    const isNative = opts.native !== undefined;
     let peers = opts.module;
 
     if (!peers) {
-      const loaded = await GrpcRequestAdapter.loadModule();
+      const loaded = await GrpcRequestAdapter.loadModule({ isNative });
       peers = loaded;
+    }
+
+    if (isNative && !peers.node) {
+      throw getError({
+        message: `[${opts.controller.constructor.name}] The native gRPC port needs ${CONNECT_RPC_NODE_MODULE}: pass it as module.node`,
+      });
     }
 
     const adapter = new GrpcRequestAdapter(opts, peers);
@@ -379,11 +421,28 @@ export class GrpcRequestAdapter<
     }
 
     const connectRouter = peers.connect.createConnectRouter(routerOpts);
+    const nativeRouter =
+      opts.native &&
+      peers.connect.createConnectRouter({
+        ...routerOpts,
+        grpc: true,
+        connect: false,
+        grpcWeb: false,
+        shutdownSignal: opts.native.shutdownSignal,
+      });
 
     if (opts.controller.service) {
       adapter.assertDeclaredRpcs();
       adapter.registerService({ router: connectRouter });
+
+      if (nativeRouter) {
+        adapter.registerService({ router: nativeRouter });
+      }
     }
+
+    const nativeHandlers = new Map(
+      nativeRouter?.handlers.map((handler) => [handler.requestPath, handler]),
+    );
 
     const router = new Hono<RouteEnv>();
     const paths: string[] = [];
@@ -394,7 +453,12 @@ export class GrpcRequestAdapter<
         handler.allowedMethods,
         handler.requestPath,
         BodyLimits.stream(),
-        (context: Context<RouteEnv>) => adapter.serve({ context, handler }),
+        (context: Context<RouteEnv>) =>
+          adapter.serve({
+            context,
+            handler,
+            nativeHandler: nativeHandlers.get(handler.requestPath),
+          }),
       );
     }
 

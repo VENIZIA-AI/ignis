@@ -1,4 +1,5 @@
 import type { Context, Env } from 'hono';
+import { GrpcNativeCallStore } from './native/call.store';
 
 /** The idle timeout of the server for one call: `Bun.serve` closes a request that stays quiet for `idleTimeout`. */
 export class GrpcTimeoutGuard {
@@ -6,10 +7,19 @@ export class GrpcTimeoutGuard {
   static readonly DEFAULT_IDLE_TIMEOUT_SECONDS = 10;
 
   /**
-   * Lifts the idle timeout of this request, so a call may stay quiet for as long as its handler needs. A request with no
-   * Bun server behind it (`router.request` in a test) has no timeout to lift. Call `restore` when the call ends.
+   * Lifts the idle timeout of this request, so a call may stay quiet for as long as its handler needs: the stream's on
+   * the native gRPC port, the request's on the HTTP server. A request with no server behind it (`router.request` in a
+   * test) has no timeout to lift. Call `restore` when the call ends.
    */
   static lift<RouteEnv extends Env>(opts: { context: Context<RouteEnv> }) {
+    const call = GrpcNativeCallStore.read({ env: opts.context.env });
+
+    if (call) {
+      call.request.stream.setTimeout(0);
+
+      return;
+    }
+
     GrpcTimeoutGuard.set({ context: opts.context, seconds: 0 });
   }
 

@@ -145,6 +145,7 @@
     "@asteasolutions/zod-to-openapi": "^9.1.0",
     "@bufbuild/protobuf": "^2.17.0",
     "@connectrpc/connect": "catalog:",
+    "@connectrpc/connect-node": "catalog:",
     "@electric-sql/pglite": "^0.6.1",
     "@hono/swagger-ui": "^0.6.2",
     "@libsql/client": "^0.17.4",
@@ -168,6 +169,7 @@
     "@asteasolutions/zod-to-openapi": "^9.1.0",
     "@aws-sdk/client-sesv2": "^3.1154.0",
     "@connectrpc/connect": "^2.2.0",
+    "@connectrpc/connect-node": "^2.2.0",
     "@hono/swagger-ui": "^0.6.1",
     "@hono/zod-openapi": "^1.6.3",
     "@scalar/hono-api-reference": "^0.12.13",
@@ -190,6 +192,9 @@
       "optional": true
     },
     "@connectrpc/connect": {
+      "optional": true
+    },
+    "@connectrpc/connect-node": {
       "optional": true
     },
     "@hono/swagger-ui": {

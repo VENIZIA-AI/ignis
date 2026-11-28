@@ -9,6 +9,7 @@ import type {
 import type { UniversalServerRequest, UniversalServerResponse } from '@connectrpc/connect/protocol';
 import type { IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { Env, Hono, Next, Schema } from 'hono';
+import type { IConnectNodeModule } from '../native/common/types';
 
 /**
  * The ConnectRPC peer itself, handed over by an application that already holds it. A
@@ -25,10 +26,18 @@ export interface IConnectRpcModule {
     createContextKey: typeof createContextKey;
     createContextValues: typeof createContextValues;
   };
+  /** `@connectrpc/connect-node`: only the native gRPC port needs it. */
+  node?: IConnectNodeModule;
   protocol: {
     universalServerRequestFromFetch: (request: Request, context: object) => UniversalServerRequest;
     universalServerResponseToFetch: (response: UniversalServerResponse) => Response;
   };
+}
+
+/** What the adapter needs to answer calls of the native gRPC port too. */
+export interface IGrpcNativeAdapterOptions {
+  /** Aborted when the port stops: every handler's `rpc.signal` follows it. */
+  shutdownSignal: AbortSignal;
 }
 
 /** Size limits of the RPCs of a controller. */
