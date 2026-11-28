@@ -35,7 +35,7 @@ export class ToggleUtility {
     return use;
   }
 
-  /** The options of a toggle that is on, without `use`; `undefined` when it is off or absent. */
+  /** The options of a toggle that is on, without `use`; `undefined` when it is off or absent. Throws as `isUsed` does. */
   static pick<Options extends object>(
     toggle: TToggle<Options> | undefined,
   ): Omit<Extract<TToggle<Options>, { use: true }>, 'use'> | undefined {

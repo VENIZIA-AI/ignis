@@ -1,6 +1,7 @@
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IModelMetadata } from '@/helpers/inversion';
 import { ModelTypes } from '../models/common/constants';
+import { ToggleUtility } from '@/utilities/toggle.utility';
 
 export class ModelMetadataUtility {
   /**
@@ -25,6 +26,12 @@ export class ModelMetadataUtility {
       return metadata;
     }
 
-    return { ...metadata, migration: { ...migration, use: migration.use !== false } };
+    // An object that leaves `use` out is on; what is not an object goes to `isUsed`, which refuses it.
+    const use =
+      typeof migration === 'object' && migration !== null
+        ? migration.use === undefined || ToggleUtility.isUsed({ use: migration.use })
+        : ToggleUtility.isUsed(migration);
+
+    return { ...metadata, migration: { ...migration, use } };
   }
 }

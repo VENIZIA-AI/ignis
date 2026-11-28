@@ -150,7 +150,7 @@ options - or registers them with `ModuleUtility.register({ modules: { ioredis, b
 executor's `redis` is a READY `IRedisHelper` (single, sentinel or cluster, never options): `BullMQHelper`
 duplicates its client per queue and worker and wraps a cluster queue name in a `{hash tag}`, and the
 executor never constructs, disconnects or closes the helper - the application owns it. The in-process
-executor caps its retry delay at the timer maximum (2147483647 ms); `options.delay` is not capped.
+executor caps both `options.delay` and its retry delay at the timer maximum (2147483647 ms).
 Mail attachments are resolved in ONE place, `MailService.send()` via `MailAttachmentUtility.resolve`
 (`mail/utilities/attachment.utility.ts`, internal - not in the `/mail` barrel): every attachment
 becomes `content` bytes and loses `path`/`href`/`raw`/`encoding` before any transport sees it.

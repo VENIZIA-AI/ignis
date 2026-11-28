@@ -367,6 +367,7 @@ interface ICasbinEnforcerOptions<E extends Env = Env, TAction = string, TResourc
 ```
 
 > [!NOTE]
+> `cached` is required, and its `use` must be a boolean: `configure` throws otherwise.
 > `cached.options.expiresIn` must be `>= 10_000` ms (`MIN_EXPIRES_IN`). Caching is **Redis-only** - the in-memory driver was removed.
 
 ### Domain hierarchy edges (`g3`)
@@ -1072,7 +1073,7 @@ Only reachable edges are emitted: `role_inherits` edges from the principal's rol
 
 **The permission join is a `LEFT JOIN`, not `INNER JOIN`.** A grant whose target does not resolve (missing or soft-deleted `Permission` row) is logged and skipped by `buildGrantLines`, not silently dropped from the result set.
 
-All queries use the `sql` template tag from `drizzle-orm`. Tables are schema-qualified via `sql.identifier` (injection-safe); interpolated values are bound parameters. The soft-delete clause (`AND <alias>.<col> IS NULL`) is appended when `entities.softDelete.use` is true.
+All queries use the `sql` template tag from `drizzle-orm`. Tables are schema-qualified via `sql.identifier` (injection-safe); interpolated values are bound parameters. The soft-delete clause (`AND <alias>.<col> IS NULL`) is appended when `entities.softDelete.use` is true. Leave `softDelete` out to turn it off; `null` or a `use` that is not a boolean throws at the policy query, not at boot.
 
 ```typescript
 import { ScopedCasbinAdapter } from '@venizia/ignis';

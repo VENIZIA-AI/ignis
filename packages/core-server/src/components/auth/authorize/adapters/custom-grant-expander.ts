@@ -6,6 +6,7 @@ import {
   AuthorizationPermissionBuilder,
   AuthorizationPolicyVariants,
   GrantBuilder,
+  ToggleUtility,
   type TCustomGrantMetadata,
 } from '@venizia/ignis-kernel';
 import { sql, type SQL } from 'drizzle-orm';
@@ -140,7 +141,7 @@ export class CustomGrantExpander extends BaseHelper {
   private softDeleteClause(opts: { alias: string }): SQL {
     const sd = this.softDelete;
 
-    if (!sd?.use) {
+    if (!ToggleUtility.isUsed(sd)) {
       return sql.empty();
     }
 

@@ -1645,17 +1645,25 @@ execution-scope:
   data: Nothing stored changes.
 
 toggle-boolean-use:
-  symbols: [ToggleUtility, TToggle, IGrpcNativeOptions, TStaticAssetEntry]
+  symbols: [ToggleUtility, TToggle, IGrpcNativeOptions, TStaticAssetEntry, IModelMigrationSettings, ICasbinEnforcerOptions, IScopedCasbinEntities, TRepositoryLogOptions]
   upgrade:
     before: |-
-      // a string from a config file: read as on
-      auth: { authenticate, publicRead: { use: process.env.APP_ENV_PUBLIC_READ } },
+      // a string from the environment: read as on
+      await this.productRepository.create({
+        data,
+        options: { log: { use: process.env.APP_ENV_REPOSITORY_LOG } },
+      });
     after: |-
-      auth: { authenticate, publicRead: { use: process.env.APP_ENV_PUBLIC_READ === 'true' } },
+      await this.productRepository.create({
+        data,
+        options: { log: { use: process.env.APP_ENV_REPOSITORY_LOG === 'true' } },
+      });
     steps:
-      - "Find every toggle built from a config file, an environment variable or plain JavaScript: static-asset serverUpload, directUpload, directUpload.validation, metaLink, auth.publicRead and routes, and the gRPC native and native.tls."
+      - "Find every toggle built from a config file, an environment variable or plain JavaScript: static-asset serverUpload, directUpload, directUpload.validation, metaLink, auth.publicRead and routes, the gRPC native and native.tls, the model migration setting, the casbin enforcer cached, the scoped casbin softDelete and the repository log option."
       - "Give use a boolean: compare the text you read, do not pass it through."
-      - "Write a switch that is off as { use: false } or leave it out. false, null and {} now stop the boot."
+      - "Write a switch that is off as { use: false }, or leave it out where it is optional. false, null and {} now throw, except the model migration: {}, which stays on."
+      - "Replace softDelete: null and log: null with { use: false }, or leave the key out."
+      - "Replace migration: false or migration: null with migration: { use: false }. migration left out, or with no use, stays on."
   downgrade:
     steps:
       - "Pin the @venizia packages to the release before this one."

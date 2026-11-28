@@ -1,7 +1,7 @@
 import type { IdType } from '@/base';
 import { type Model } from 'casbin';
 import { sql, type SQL } from 'drizzle-orm';
-import { GrantBuilder } from '@venizia/ignis-kernel';
+import { GrantBuilder, ToggleUtility } from '@venizia/ignis-kernel';
 import {
   AuthorizationActions,
   AuthorizationDecisions,
@@ -230,7 +230,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
   protected softDeleteClause(opts: { alias: string }): SQL {
     const sd = this.entities.softDelete;
 
-    if (!sd?.use) {
+    if (!ToggleUtility.isUsed(sd)) {
       return sql.empty();
     }
 

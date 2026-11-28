@@ -19,7 +19,7 @@ import { MailBackoffTypes, MailDefaults, MailErrorCodes, MailExecutorErrors } fr
 /** In-process mail queue executor: jobs are lost on restart. Supports `delay`, `attempts` and `backoff`; call `close` to clear pending timers. */
 export class InternalQueueMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {
   // `setTimeout` fires after about 1 ms for any longer delay.
-  private static readonly MAX_BACKOFF_DELAY_MS = 2_147_483_647;
+  private static readonly MAX_TIMER_DELAY_MS = 2_147_483_647;
 
   private queue: SequentialQueueHelper<IQueueJobPayload>;
   private jobIdCounter = 0;
@@ -78,6 +78,7 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
     this.logger.for(this.enqueueVerificationEmail.name).debug('Queuing email | jobId: %s', jobId);
 
     if (options?.delay && options.delay > 0) {
+      const delayMs = Math.min(options.delay, InternalQueueMailExecutorHelper.MAX_TIMER_DELAY_MS);
       const timeout = setTimeout(() => {
         this.queue.enqueue(job).catch((error) => {
           this.logger
@@ -85,13 +86,13 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
             .error('Failed to enqueue delayed job | jobId: %s | error: %s', jobId, error);
         });
         this.delayedJobs.delete(jobId);
-      }, options.delay);
+      }, delayMs);
 
       this.delayedJobs.set(jobId, timeout);
 
       this.logger
         .for(this.enqueueVerificationEmail.name)
-        .info('Job scheduled with delay | jobId: %s | delay: %dms', jobId, options.delay);
+        .info('Job scheduled with delay | jobId: %s | delay: %dms', jobId, delayMs);
     } else {
       await this.queue.enqueue(job);
     }
@@ -211,7 +212,7 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
             ? RetryBackoffStrategies.EXPONENTIAL
             : RetryBackoffStrategies.FIXED,
         initialDelayMs: backoff.delay,
-        maxDelayMs: InternalQueueMailExecutorHelper.MAX_BACKOFF_DELAY_MS,
+        maxDelayMs: InternalQueueMailExecutorHelper.MAX_TIMER_DELAY_MS,
         jitter: RetryJitterModes.NONE,
       },
     });

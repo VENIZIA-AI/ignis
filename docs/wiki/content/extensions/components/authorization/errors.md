@@ -107,6 +107,8 @@ The step 5 message ends with <code v-pre>&#124; path: {{path}}</code>.
 |---------------|--------|--------|-------|
 | `[CasbinAuthorizationEnforcer] "casbin" is not installed` | 400 | `configure` | The optional `casbin` peer dependency isn't installed |
 | `[CasbinAuthorizationEnforcer] options.model is required.` | 400 | `configure` | `model` is missing from the enforcer options |
+| `[CasbinAuthorizationEnforcer] options.cached is required.` | 400 | `configure` | `cached` is missing from the enforcer options |
+| `[ToggleUtility] A toggle must be { use: true } or { use: false }` | 400 | `configure` | `cached` is not an object with a boolean `use` |
 | <code v-pre>[registerMatchers] Role definition "{{name}}" is not declared in the Casbin model.</code> | 400 | `configure` (via `registerMatchers`) | `domainMatching.roleDefinition` isn't declared in `[role_definition]` (only checked when `domainMatching` is set) |
 | `[CasbinAuthorizationEnforcer] Matcher smoke test failed at warmup` | 400 | `configure` (via `assertMatcherCompilesSync`) | The matcher expression doesn't compile: syntax error, an unregistered function, or an arity mismatch |
 | `[CasbinAuthorizationEnforcer] cached.options.expiresIn must be >= 10000 (ms)` | 400 | `configure` (via `validateExpiresIn`) | `cached.options.expiresIn` is below `MIN_EXPIRES_IN` (10,000 ms) |

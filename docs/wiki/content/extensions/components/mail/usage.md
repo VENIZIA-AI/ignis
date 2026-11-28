@@ -363,7 +363,7 @@ Retry backoff:
 | `{ type: 'fixed', delay }` | the raw `delay` |
 | Not set | `1000ms` |
 
-A retry waits at most `2147483647ms` (about 24.8 days), the longest delay a timer holds.
+The `delay` option and a retry wait at most `2147483647ms` (about 24.8 days), the longest delay a timer holds.
 
 ### BullMQ executor
 

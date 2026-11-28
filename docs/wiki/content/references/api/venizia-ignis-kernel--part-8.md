@@ -1450,7 +1450,7 @@ export declare class ToggleUtility {
     static isUsed<Options extends object>(toggle: TToggle<Options> | undefined): toggle is Extract<TToggle<Options>, {
         use: true;
     }>;
-    /** The options of a toggle that is on, without `use`; `undefined` when it is off or absent. */
+    /** The options of a toggle that is on, without `use`; `undefined` when it is off or absent. Throws as `isUsed` does. */
     static pick<Options extends object>(toggle: TToggle<Options> | undefined): Omit<Extract<TToggle<Options>, {
         use: true;
     }>, 'use'> | undefined;
@@ -1642,15 +1642,3 @@ export type TRepositoryLogOptions = {
 ```
 
 Source: `packages/kernel/src/base/repositories/common/types/options.ts`
-
-## `TRepositoryMetadata`
-
-*type*
-
-What `@repository` accepts, discriminated on `type`.
-
-```ts
-export type TRepositoryMetadata<Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource> = IRepositoryMetadata<Model, DataSource> | IRemoteRepositoryMetadata<DataSource>;
-```
-
-Source: `packages/kernel/src/helpers/inversion/common/types/persistence.ts`

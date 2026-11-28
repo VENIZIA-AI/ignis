@@ -242,6 +242,23 @@ describe('InternalQueueMailExecutorHelper - backoff', () => {
     expect(delayAfter({ attempts: 1, backoff: fixed })).toBe(TIMER_MAX_MS);
   });
 
+  test('an enqueue delay past the timer limit waits, it does not fire at once', async () => {
+    const executor = new InternalQueueMailExecutorHelper({ identifier: 'mail-long-delay' });
+    const tracker = new ProcessorCallTracker();
+
+    executor.setProcessor(async (email: string) => {
+      tracker.record(email);
+
+      return successProcessorResult;
+    });
+
+    await executor.enqueueVerificationEmail('a@b.com', { delay: 2 ** 31 });
+    await sleep(50);
+    await executor.close();
+
+    expect(tracker.calls).toHaveLength(0);
+  });
+
   test('a retry past the timer limit waits, it does not fire at once', async () => {
     const executor = new InternalQueueMailExecutorHelper({ identifier: 'mail-long-backoff' });
     const tracker = new ProcessorCallTracker();

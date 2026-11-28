@@ -9,6 +9,18 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 Part 9 of 9 of [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel).
 
+## `TRepositoryMetadata`
+
+*type*
+
+What `@repository` accepts, discriminated on `type`.
+
+```ts
+export type TRepositoryMetadata<Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource> = IRepositoryMetadata<Model, DataSource> | IRemoteRepositoryMetadata<DataSource>;
+```
+
+Source: `packages/kernel/src/helpers/inversion/common/types/persistence.ts`
+
 ## `TRepositoryOperationScope`
 
 *type*

@@ -84,6 +84,18 @@ describe('normalizeModelMetadata - migration', () => {
     expect('skipMigrate' in off).toBe(false);
   });
 
+  test('a use that is not a boolean is refused when the model is declared', () => {
+    for (const written of ['{"use":"false"}', '{"use":"true"}', '{"use":0}', '{"use":null}']) {
+      expect(() => declare({ migration: JSON.parse(written) })).toThrow('A toggle must be');
+    }
+  });
+
+  test('a migration that is not an object is refused when the model is declared', () => {
+    for (const written of ['false', 'null', 'true', '"off"']) {
+      expect(() => declare({ migration: JSON.parse(written) })).toThrow('A toggle must be');
+    }
+  });
+
   test('the other metadata is carried through', () => {
     const result = normalize({
       migration: { use: false },
