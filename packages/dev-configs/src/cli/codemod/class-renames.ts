@@ -106,6 +106,8 @@ export interface ICodemodRewrite {
   rewritten: number;
   /** The lines the codemod leaves to a person. */
   manual: Array<{ line: number; note: string }>;
+  /** Lines worth a review that are no work of the codemod: `--check` does not fail on them. */
+  info?: Array<{ line: number; note: string }>;
 }
 
 /** A codemod that runs through the command of this file: which files it reads, and what it does to one. */
@@ -115,6 +117,8 @@ export interface IFileCodemod {
   isReversible: boolean;
   /** Whether the codemod removes the names it counts, so the summary does not say it renamed them. */
   isRemoval?: boolean;
+  /** What the summary counts, and what a write did to it; renamed names by default. */
+  unit?: { noun: string; verb: string };
   /** A file holding none of these is not read. */
   marks: (opts: { reverse: boolean }) => ReadonlyArray<string>;
   rewrite: (input: {
@@ -508,7 +512,10 @@ export class ClassRenamesCommand {
     let renamedCount = 0;
     let refusedCount = 0;
     let manualCount = 0;
-    const verb = codemod.isRemoval ? 'removed' : 'renamed';
+    const { noun, verb } = codemod.unit ?? {
+      noun: 'name(s)',
+      verb: codemod.isRemoval ? 'removed' : 'renamed',
+    };
 
     for (const target of targets) {
       const files = CodemodFiles.collect({ target });
@@ -541,6 +548,10 @@ export class ClassRenamesCommand {
           CliOutput.log(`manual  ${shown}:${entry.line}  ${entry.note}`);
         }
 
+        for (const entry of result.info ?? []) {
+          CliOutput.log(`review  ${shown}:${entry.line}  ${entry.note}`);
+        }
+
         if (!result.changed) {
           continue;
         }
@@ -556,7 +567,7 @@ export class ClassRenamesCommand {
         changedCount += 1;
         renamedCount += result.rewritten;
         CliOutput.log(
-          `${isWrite ? 'changed' : 'would change'}  ${shown}  (${result.rewritten} name(s))`,
+          `${isWrite ? 'changed' : 'would change'}  ${shown}  (${result.rewritten} ${noun})`,
         );
 
         if (isWrite) {
@@ -566,7 +577,7 @@ export class ClassRenamesCommand {
     }
 
     CliOutput.log(
-      `devz codemod ${codemod.name}: ${changedCount} file(s) ${isWrite ? 'changed' : 'would change'}, ${renamedCount} name(s) ${isWrite ? verb : `would be ${verb}`}` +
+      `devz codemod ${codemod.name}: ${changedCount} file(s) ${isWrite ? 'changed' : 'would change'}, ${renamedCount} ${noun} ${isWrite ? verb : `would be ${verb}`}` +
         (refusedCount > 0 ? `, ${refusedCount} refused` : ''),
     );
 

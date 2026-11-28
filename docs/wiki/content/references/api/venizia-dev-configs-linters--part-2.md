@@ -152,6 +152,73 @@ export declare const reactNamingConventionConfigs: Linter.Config[];
 
 Source: `packages/dev-configs/src/linters/react-eslint.ts`
 
+## `RestrictExecutionCallSitesRule`
+
+*class*
+
+`@venizia/restrict-execution-call-sites`. A scoped run takes the values its caller names, so an application lists
+the files that may say who is running: `Execution.run`, `ExecutionFrames.run` and `ExecutionFrames.root` are
+reported everywhere else. `Execution.sleep` and the other methods are never reported.
+
+- `allow`: globs, relative to the working directory, of files that may call `Execution.run` without `isRoot`.
+- `allowRoot`: globs of files that may also open a root frame: `isRoot`, `ExecutionFrames.run` and `.root`.
+  Options the rule cannot read (a spread, a variable, `run` passed as a value) may set `isRoot`, so they count.
+
+A computed name that cannot be read, on either class, counts as one that may open a root.
+With no list, every call is reported. The presets do not turn the rule on. It follows imports of the framework's
+packages only: a re-export of the application's own, or `Execution` held in another variable, is not followed.
+
+```ts
+export declare class RestrictExecutionCallSitesRule {
+    static readonly NAME = "@venizia/restrict-execution-call-sites";
+    /** The restricted methods of each class, and whether the method opens a frame of any shape by itself. */
+    private static readonly METHODS;
+    private static matches;
+    /** Whether the `Execution.run` read at `member` opens a root frame, or may. */
+    private static mayBeRoot;
+    static readonly RULE: Rule.RuleModule;
+    static build(opts?: {
+        severity?: TRuleSeverity;
+        allow?: string[];
+        allowRoot?: string[];
+    }): Linter.RuleEntry;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/restrict-execution-call-sites.rule.ts`
+
+## `StaticExecutionReasonRule`
+
+*class*
+
+`@venizia/static-execution-reason`. The reason of a system run is logged and names the place, so it is written in
+the code and is not blank: a string, a template without expressions, a `const` of the file holding one, or a
+`static readonly` field of a class of the file (`Reasons.REAPER`, `this.REASON` in a static method or field). A constant
+imported from another file cannot be read here, so it is reported.
+
+Only `Execution.run` of the framework's packages is read, with an object literal whose `mode` is
+`ExecutionModes.SYSTEM` or `'system'`. A missing `reason` is left to the type checker.
+
+```ts
+export declare class StaticExecutionReasonRule {
+    static readonly NAME = "@venizia/static-execution-reason";
+    /** The text of a string literal or of a template without expressions. */
+    private static literalOf;
+    /** The class `this` stands for at `node`: that of the static method or static field it is written in. */
+    private static staticClassOf;
+    /** The text of the `static readonly` field `member` reads, from a class of the file. */
+    private static fieldOf;
+    /** The text of a reason written in the code, or `undefined` when it is built elsewhere. */
+    private static reasonOf;
+    static readonly RULE: Rule.RuleModule;
+    static build(opts?: {
+        severity?: TRuleSeverity;
+    }): Linter.RuleEntry;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/static-execution-reason.rule.ts`
+
 ## `TBrowserApiMatch`
 
 *type*

@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/relational, from the bui
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-81 exports, 81 with TSDoc.
+82 exports, 82 with TSDoc.
 
 The declarations are on 3 pages; each export below links to its own.
 
@@ -133,7 +133,7 @@ The declarations are on 3 pages; each export below links to its own.
 
 ## `IUpdateOptions`
 
-*interface* - [Declaration](/references/api/venizia-ignis-connectors-relational--part-1#iupdateoptions)
+*interface* - [Declaration](/references/api/venizia-ignis-connectors-relational--part-2#iupdateoptions)
 
 ## `IWriteResult`
 
@@ -181,7 +181,7 @@ The declarations are on 3 pages; each export below links to its own.
 
 ## `RelationalDialects`
 
-*class* - [Declaration](/references/api/venizia-ignis-connectors-relational--part-2#relationaldialects)
+*class* - [Declaration](/references/api/venizia-ignis-connectors-relational--part-3#relationaldialects)
 
 ## `RelationalEntityUtility`
 
@@ -218,6 +218,10 @@ The declarations are on 3 pages; each export below links to its own.
 ## `TableColumnCache`
 
 *class* - [Declaration](/references/api/venizia-ignis-connectors-relational--part-3#tablecolumncache)
+
+## `TAuditUserId`
+
+*type* - [Declaration](/references/api/venizia-ignis-connectors-relational--part-3#taudituserid)
 
 ## `TColumnDefinition`
 

@@ -51,6 +51,102 @@ const isRegistration = (node: ts.CallExpression, file: ts.SourceFile) => {
   return METHODS.has(name) && (hasFunction || node.arguments.length > 1);
 };
 
+const isFramesCall = (opts: { node: ts.Node; methods: string[] }) => {
+  const { node, methods } = opts;
+
+  if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) {
+    return false;
+  }
+
+  const { expression, name } = node.expression;
+
+  return (
+    ts.isIdentifier(expression) &&
+    expression.text === 'ExecutionFrames' &&
+    methods.includes(name.text)
+  );
+};
+
+const isLoopRegistration = (node: ts.Node) =>
+  ts.isForOfStatement(node) && node.awaitModifier !== undefined;
+
+const SHORT_CIRCUITS: ReadonlySet<ts.SyntaxKind> = new Set([
+  ts.SyntaxKind.AmpersandAmpersandToken,
+  ts.SyntaxKind.BarBarToken,
+  ts.SyntaxKind.QuestionQuestionToken,
+]);
+
+/**
+ * Whether a body opens a frame itself. What a registration inside it hands over is judged on its own. Not read: a
+ * frame skipped by an early return, a `switch` case or a `try` block counts as opened.
+ */
+const opensFrame = (node: ts.Node, file: ts.SourceFile): boolean => {
+  if (isLoopRegistration(node) || (ts.isCallExpression(node) && isRegistration(node, file))) {
+    return false;
+  }
+
+  // A frame opened on one branch only leaves the other unframed.
+  if (ts.isIfStatement(node)) {
+    return (
+      opensFrame(node.expression, file) ||
+      (opensFrame(node.thenStatement, file) &&
+        node.elseStatement !== undefined &&
+        opensFrame(node.elseStatement, file))
+    );
+  }
+
+  if (ts.isConditionalExpression(node)) {
+    return (
+      opensFrame(node.condition, file) ||
+      (opensFrame(node.whenTrue, file) && opensFrame(node.whenFalse, file))
+    );
+  }
+
+  // The right side runs on one outcome of the left only.
+  if (ts.isBinaryExpression(node) && SHORT_CIRCUITS.has(node.operatorToken.kind)) {
+    return opensFrame(node.left, file);
+  }
+
+  return (
+    isFramesCall({ node, methods: ['root', 'run'] }) ||
+    ts.forEachChild(node, (child) => opensFrame(child, file) || undefined) === true
+  );
+};
+
+/** For each callback an argument hands over, whether it is framed. One passed by name or built by a call is not read. */
+const callbacksOf = (node: ts.Node, file: ts.SourceFile): boolean[] => {
+  if (ts.isArrowFunction(node) || ts.isFunctionExpression(node) || ts.isMethodDeclaration(node)) {
+    return [node.body !== undefined && opensFrame(node.body, file)];
+  }
+
+  if (isFramesCall({ node, methods: ['listener'] })) {
+    return [true];
+  }
+
+  if (ts.isObjectLiteralExpression(node)) {
+    return node.properties.flatMap((property) =>
+      callbacksOf(ts.isPropertyAssignment(property) ? property.initializer : property, file),
+    );
+  }
+
+  if (ts.isBinaryExpression(node)) {
+    return [...callbacksOf(node.left, file), ...callbacksOf(node.right, file)];
+  }
+
+  return [];
+};
+
+/** A registration is framed when it hands over at least one framed callback and no unframed one. */
+const isFramed = (node: ts.CallExpression | ts.ForOfStatement, file: ts.SourceFile) => {
+  if (ts.isForOfStatement(node)) {
+    return opensFrame(node.statement, file);
+  }
+
+  const callbacks = node.arguments.flatMap((item) => callbacksOf(item, file));
+
+  return callbacks.length > 0 && callbacks.every(Boolean);
+};
+
 const scan = (opts: { path: string; text: string }) => {
   const file = ts.createSourceFile(opts.path, opts.text, ts.ScriptTarget.Latest, true);
   const unframed: string[] = [];
@@ -59,7 +155,7 @@ const scan = (opts: { path: string; text: string }) => {
     const isLoop = ts.isForOfStatement(node) && node.awaitModifier !== undefined;
     const isCall = ts.isCallExpression(node) && isRegistration(node, file);
 
-    if ((isLoop || isCall) && !node.getText(file).includes('ExecutionFrames.')) {
+    if ((isLoop || isCall) && !isFramed(node, file)) {
       let key = 'for await';
 
       if (ts.isCallExpression(node)) {
@@ -86,7 +182,8 @@ const scan = (opts: { path: string; text: string }) => {
 
 /**
  * The registrations that open no frame, each with why. Any other listener, timer or hand-off must open one through
- * `ExecutionFrames` in the call itself: it would otherwise run with the rights of whoever started it.
+ * `ExecutionFrames` in the callback it hands over (`listener` around it, or `root` or `run` in its own body): it
+ * would otherwise run with the rights of whoever started it.
  */
 const UNFRAMED: Readonly<Record<string, { count: number; reason: string }>> = {
   'core-server/base/applications/server.ts | on()': {
@@ -292,6 +389,10 @@ const UNFRAMED: Readonly<Record<string, { count: number; reason: string }>> = {
     count: 1,
     reason: 'the injected timer; the handler it gets is a framed listener',
   },
+  'helpers/modules/socket/socket-io/server/helper.ts | on()': {
+    count: 1,
+    reason: 'binds the listener made a line above, kept so off can remove it',
+  },
   'helpers/modules/socket/socket-io/server/helper.ts | on(error)': {
     count: 3,
     reason: 'Redis errors: log only',
@@ -363,6 +464,15 @@ describe('the listener registrations of the framework', () => {
       'process.nextTick(handle);',
       'stream.subscribe((value) => handle(value));',
       "client.on('message', (m) => ExecutionFrames.root({ task: () => handle(m) }));",
+      "client.on('data', ExecutionFrames.listener({ handler: handle }));",
+      "client.on('end', (m) => guard({ task: () => ExecutionFrames.run({ frame, task }) }));",
+      // A frame opened on one branch only.
+      "client.on('if', (m) => { if (m) { ExecutionFrames.root({ task }); } });",
+      "client.on('ternary', (m) => (m ? ExecutionFrames.root({ task }) : handle(m)));",
+      "client.on('and', (m) => m && ExecutionFrames.root({ task }));",
+      "client.on('or', (m) => m || ExecutionFrames.root({ task }));",
+      "client.on('nullish', (m) => m ?? ExecutionFrames.root({ task }));",
+      "client.on('both', (m) => { if (m) { ExecutionFrames.root({ task }); } else { ExecutionFrames.run({ frame, task }); } });",
     ].join('\n');
 
     expect(scan({ path: 'a.ts', text })).toEqual([
@@ -370,6 +480,53 @@ describe('the listener registrations of the framework', () => {
       'a.ts | queueMicrotask()',
       'a.ts | nextTick()',
       'a.ts | subscribe()',
+      'a.ts | on(if)',
+      'a.ts | on(ternary)',
+      'a.ts | on(and)',
+      'a.ts | on(or)',
+      'a.ts | on(nullish)',
+    ]);
+  });
+
+  test('a framed listener inside does not frame the listener around it', () => {
+    const text = [
+      "io.on('connection', (socket) => {",
+      "  socket.on('chat', ExecutionFrames.listener({ handler: handle }));",
+      "  socket.on('typing', () => ExecutionFrames.root({ task: handle }));",
+      '});',
+    ].join('\n');
+
+    expect(scan({ path: 'a.ts', text })).toEqual(['a.ts | on(connection)']);
+  });
+
+  test('a framed listener around does not frame the listeners inside', () => {
+    const text = [
+      "io.on('connection', ExecutionFrames.listener({",
+      "  handler: (socket) => socket.on('chat', () => handle()),",
+      '}));',
+      "server.on('open', (socket) => {",
+      '  ExecutionFrames.root({ task: handle });',
+      "  socket.on('close', () => handle());",
+      '});',
+    ].join('\n');
+
+    expect(scan({ path: 'a.ts', text })).toEqual(['a.ts | on(chat)', 'a.ts | on(close)']);
+  });
+
+  test('every callback handed over is framed on its own', () => {
+    const text = [
+      'CronJob.from({ onTick: () => handle(), errorHandler: ExecutionFrames.listener({ handler }) });',
+      'stream.subscribe(ExecutionFrames.listener({ handler }), (error) => handle(error));',
+      "client.on('a', (m) => ExecutionFrames.listener({ handler }));",
+      'for await (const m of ExecutionFrames.root({ task: open })) { handle(m); }',
+      'for await (const m of messages) { await ExecutionFrames.root({ task: () => handle(m) }); }',
+    ].join('\n');
+
+    expect(scan({ path: 'a.ts', text })).toEqual([
+      'a.ts | from()',
+      'a.ts | subscribe()',
+      'a.ts | on(a)',
+      'a.ts | for await',
     ]);
   });
 });

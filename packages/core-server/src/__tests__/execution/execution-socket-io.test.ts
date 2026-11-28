@@ -8,6 +8,32 @@ import { io as connectClient } from 'socket.io-client';
 
 ExecutionRunner.install();
 
+describe('socket.io on Bun, the websocket handler', () => {
+  test('hands on every setting of the engine, with each callback of it framed', async () => {
+    const { engineHandler } = await SocketIOBunHandler.createEngine({ serverOptions: {} });
+    const { websocket } = engineHandler;
+    const framed = SocketIOBunHandler.createWebSocketHandler({ engineHandler });
+
+    // A callback a later engine adds is handed on unframed: this fails until it is framed or named a setting.
+    expect(Object.keys(framed).sort()).toEqual(Object.keys(websocket).sort());
+    expect(framed.maxPayloadLength).toBe(websocket.maxPayloadLength);
+
+    for (const key of ['open', 'message', 'close'] as const) {
+      expect(framed[key]).not.toBe(websocket[key]);
+    }
+  });
+
+  test('hands on a setting this version of the engine does not have', async () => {
+    const { engineHandler } = await SocketIOBunHandler.createEngine({ serverOptions: {} });
+    const websocket = { ...engineHandler.websocket, idleTimeout: 7 };
+    const framed = SocketIOBunHandler.createWebSocketHandler({
+      engineHandler: { ...engineHandler, websocket },
+    });
+
+    expect(framed).toMatchObject({ idleTimeout: 7 });
+  });
+});
+
 describe('socket.io on Bun, the server started inside a system run', () => {
   for (const transport of ['websocket', 'polling'] as const) {
     test(`application code on the ${transport} transport reads a root frame`, async () => {
