@@ -1432,3 +1432,24 @@ error-response-policy:
     steps:
       - "Pin @venizia/ignis-kernel to the release before this one."
   data: Nothing stored changes.
+
+grpc-gate-ends-call:
+  symbols: [BaseGrpcController, AbstractGrpcController, TRpcMiddleware]
+  upgrade:
+    before: |-
+      override buildRpcMiddlewares() {
+        return [(context) => { this.logger.info('RPC %s', context.req.path); }];
+      }
+    after: |-
+      override buildRpcMiddlewares() {
+        return [async (context, next) => { this.logger.info('RPC %s', context.req.path); await next(); }];
+      }
+    steps:
+      - "Only a middleware you add yourself by overriding buildRpcMiddlewares is affected; authenticate and authorize need no change."
+      - "Call await next() in every middleware that lets the call go on."
+      - "Every middleware runs before the handler starts: next() only marks the call as passed on. Move work that must wrap the handler (a finally, an async context, a catch) into an interceptor or into the handler."
+      - "To refuse a call, throw getError with a statusCode: the client reads the code of the status and the message."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis to the release before this one."
+  data: Nothing stored changes.

@@ -14,7 +14,12 @@ import type { TRouteContext } from '@venizia/ignis-kernel';
 import type { AbstractGrpcController } from './abstract';
 import { GrpcErrors } from './errors';
 import { AppErrorMiddleware } from '@/base/middlewares/app-error/app-error.middleware';
-import type { IConnectAdapterResult, IConnectRpcModule, IRpcRegistration } from './common/types';
+import type {
+  IConnectAdapterResult,
+  IConnectRpcModule,
+  IRpcRegistration,
+  TRpcMiddleware,
+} from './common/types';
 
 const CONNECT_RPC_MODULES = ['@connectrpc/connect'];
 const CONNECT_RPC_PROTOCOL_MODULE = '@connectrpc/connect/protocol';
@@ -110,10 +115,7 @@ export class GrpcRequestAdapter<
         const context = requestContext as TRouteContext<RouteEnv>;
 
         try {
-          // Run pre-built auth middlewares (built by AbstractGrpcController.buildRpcMiddlewares)
-          for (const mw of middlewares) {
-            await mw(context, async () => {});
-          }
+          await this.passMiddlewares({ context, middlewares });
 
           const response = await handler({ request, context });
 
@@ -131,6 +133,32 @@ export class GrpcRequestAdapter<
     }
 
     return handlers;
+  }
+
+  /**
+   * Runs the pre-built auth middlewares (`AbstractGrpcController.buildRpcMiddlewares`) in order. Each one must call
+   * `next()` to pass the call on; one that answers, or does neither, ends it.
+   */
+  private async passMiddlewares(opts: {
+    context: TRouteContext<RouteEnv>;
+    middlewares: Array<TRpcMiddleware<RouteEnv>>;
+  }) {
+    const { context, middlewares } = opts;
+
+    for (const middleware of middlewares) {
+      let isPassed = false;
+      const answer = await middleware(context, async () => {
+        isPassed = true;
+      });
+
+      if (answer instanceof Response) {
+        throw GrpcErrors.endedByMiddleware({ status: answer.status });
+      }
+
+      if (!isPassed) {
+        throw GrpcErrors.notPassed();
+      }
+    }
   }
 
   /** ConnectRPC drops a handler whose name the service does not declare, and the call then answers `unimplemented`: refused at boot instead. */

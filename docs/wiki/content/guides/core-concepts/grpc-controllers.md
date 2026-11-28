@@ -226,6 +226,10 @@ An RPC fails the way a REST route does: throw `getError({ statusCode, message })
 
 Everything else, a 5xx and another library's error with a `statusCode` included, answers `internal` with its text hidden. Throw a ConnectRPC `ConnectError` to choose the code yourself.
 
+A middleware of an RPC passes the call on by calling `next()`. One that returns a `Response`, or returns without calling `next()`, ends the call: the handler does not run. A 4xx `Response` gives the code of its status, anything else `internal`; the body and the headers of that response (`WWW-Authenticate` included) are not sent.
+
+Every middleware runs before the handler starts: `next()` only marks the call as passed on, so code after `await next()` does not wrap the handler (a `finally`, an async context or a `catch` there never sees it).
+
 The status and the message come from the default error handler: an error handler your application overrides is not used for an RPC.
 
 ## Protobuf Setup

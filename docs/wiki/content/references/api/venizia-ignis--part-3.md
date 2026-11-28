@@ -9,6 +9,24 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 Part 3 of 3 of [`@venizia/ignis`](/references/api/venizia-ignis).
 
+## `PolicyConnectorResolver`
+
+*class*
+
+Connector-resolution logic shared by every adapter/loader reading the casbin policy store.
+
+```ts
+export declare class PolicyConnectorResolver {
+    /** Resolve the wired connector off a policy datasource, once the datasource is open (one that opens on first use opens here). */
+    static resolve(opts: {
+        source: ICasbinPolicySource;
+        caller: string;
+    }): Promise<TCasbinPolicyConnector>;
+}
+```
+
+Source: `packages/core-server/src/components/auth/authorize/adapters/connector.ts`
+
 ## `PolicyLineCodec`
 
 *class*
