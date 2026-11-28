@@ -1485,7 +1485,7 @@ grpc-adapter-routes:
 
       this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({ module: { connect, protocol } });
     steps:
-      - "A client that used the native gRPC protocol (application/grpc) never got a status back and now gets 415: use the Connect or gRPC-Web transport."
+      - "A client that used the native gRPC protocol (application/grpc) on the HTTP port never got a status back and now gets 415 there: use the Connect or gRPC-Web transport, or point it at the native gRPC port (GrpcComponent option native)."
       - "Where you build the module yourself, pass the whole modules, so createContextKey and createContextValues are there."
       - "Code that calls GrpcRequestAdapter.build() mounts the answer with router.route('/', adapter.router) instead of router.use('*', adapter.middleware)."
       - "A test that read the { message, code } body of a failure outside ConnectRPC reads the application error handler's answer."

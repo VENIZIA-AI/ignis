@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis/grpc, from the built declarations (
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-5 exports, 5 with TSDoc.
+6 exports, 6 with TSDoc.
 
 ## `GrpcBindingKeys`
 
@@ -18,6 +18,8 @@ Container keys of the gRPC component.
 ```ts
 export declare class GrpcBindingKeys {
     static readonly GRPC_COMPONENT_OPTIONS: import("@venizia/ignis-inversion").TBindingKey<IGrpcComponentConfig>;
+    /** The listener of the native gRPC port, bound when it is on: `getAddress()` answers where it listens. */
+    static readonly GRPC_NATIVE_LISTENER: import("@venizia/ignis-inversion").TBindingKey<GrpcListenerHelper>;
 }
 ```
 
@@ -34,6 +36,10 @@ export declare class GrpcComponent extends BaseComponent {
     private application;
     constructor(application: BaseApplication);
     binding(): Promise<void>;
+    /** gRPC clients call `/package.Service/Method` with no prefix, so each such path has one owner. */
+    private collectRoutes;
+    /** The port starts after the HTTP server and stops before it, and before the datasources close. */
+    private registerNativeListener;
 }
 ```
 
@@ -58,6 +64,8 @@ export interface IConnectRpcModule {
         createContextKey: typeof createContextKey;
         createContextValues: typeof createContextValues;
     };
+    /** `@connectrpc/connect-node`: only the native gRPC port needs it. */
+    node?: IConnectNodeModule;
     protocol: {
         universalServerRequestFromFetch: (request: Request, context: object) => UniversalServerRequest;
         universalServerResponseToFetch: (response: UniversalServerResponse) => Response;
@@ -79,6 +87,8 @@ export interface IGrpcComponentConfig {
     limits?: IGrpcLimits;
     /** The ConnectRPC peer, for a compiled binary that has no `node_modules` to resolve it from. */
     module?: IConnectRpcModule;
+    /** The native gRPC port. Absent or `{ use: false }`: no second socket, and `node:http2` is not loaded. */
+    native?: TToggle<IGrpcNativeOptions>;
 }
 ```
 
@@ -98,3 +108,28 @@ export interface IGrpcLimits {
 ```
 
 Source: `packages/core-server/src/base/controllers/grpc/common/types.ts`
+
+## `IGrpcNativeOptions`
+
+*interface*
+
+The native gRPC port: a `node:http2` listener beside the HTTP server, off unless `use` is true.
+
+```ts
+export interface IGrpcNativeOptions {
+    /** `0` takes a free port, read back from the listener's `getAddress()`. */
+    port: number;
+    /** Default `127.0.0.1`: a clear-text port is not public unless you say so. */
+    host?: string;
+    /** Default `{ use: false }`. */
+    tls?: TGrpcNativeTls;
+    /** How long `stop()` waits for calls in flight before it aborts them, in milliseconds. Default 10 000. */
+    shutdownTimeout?: number;
+    limits?: {
+        /** Streams one connection may have open at once. A positive integer, default 100. */
+        concurrentStreams?: number;
+    };
+}
+```
+
+Source: `packages/core-server/src/base/controllers/grpc/native/common/types.ts`

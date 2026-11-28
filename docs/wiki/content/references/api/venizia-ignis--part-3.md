@@ -9,6 +9,190 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 Part 3 of 4 of [`@venizia/ignis`](/references/api/venizia-ignis).
 
+## `JWKSIssuerAuthenticationStrategy`
+
+*class*
+
+JWT authentication strategy that verifies the bearer token with `JWKSIssuerTokenService`, for an application that issues its own tokens.
+
+```ts
+export declare class JWKSIssuerAuthenticationStrategy<E extends Env = Env> extends BaseHelper implements IAuthenticationStrategy<E> {
+    private service;
+    name: string;
+    standard: string;
+    constructor(service: JWKSIssuerTokenService<E>);
+    authenticate(context: TContext<E, string>): Promise<IAuthUser>;
+}
+```
+
+Source: `packages/core-server/src/components/auth/authenticate/strategies/jwks/issuer.ts`
+
+## `JWKSIssuerTokenService`
+
+*class*
+
+Signs tokens with a private key loaded from `IJWKSIssuerOptions` and exposes the matching public keys as a JWKS via `getJWKSAsync()`.
+
+```ts
+export declare class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTokenService<E> {
+    protected options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWKS_ISSUER_OPTIONS>;
+    protected privateKey: TNullable<CryptoKey | Uint8Array>;
+    protected publicKey: TNullable<CryptoKey | Uint8Array>;
+    protected jwks: {
+        keys: JWK[];
+    } | null;
+    constructor(options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWKS_ISSUER_OPTIONS>);
+    protected initialize(): Promise<void>;
+    protected resolveKeyContent(opts: {
+        keys: IJWKSIssuerOptions['keys'];
+    }): Promise<{
+        priv: string;
+        pub: string;
+    }>;
+    /**
+     * Refuses a JWK carrying private material where a PUBLIC key is expected.
+     *
+     * The `pem` format cannot reach this state - `importSPKI` rejects a private PEM outright. The
+     * `jwk` format can: `importJWK` imports whatever it is handed, and a private JWK marked
+     * `"ext": true` yields an EXTRACTABLE key, so `exportJWK` then carries `d` straight into the
+     * document `/certs` serves without authentication. Measured on jose 6.2.3: with `ext: true` the
+     * round trip returns `d`; without it, export throws. So the only thing standing between a
+     * mis-pasted key and a published signing key was an optional flag on attacker-irrelevant input.
+     *
+     * Named members, not a blanket scan: `d` covers EC/OKP and RSA's private exponent, and the CRT
+     * members are the rest of an RSA private key.
+     */
+    protected assertPublicJWK(opts: {
+        jwk: JWK;
+    }): void;
+    protected parseKeyMaterial(opts: {
+        raw: {
+            priv: string;
+            pub: string;
+        };
+        algorithm: IJWKSIssuerOptions['algorithm'];
+        keys: IJWKSIssuerOptions['keys'];
+    }): Promise<{
+        priv: import("node:crypto").webcrypto.CryptoKey | Uint8Array<ArrayBufferLike>;
+        pub: import("node:crypto").webcrypto.CryptoKey | Uint8Array<ArrayBufferLike>;
+    }>;
+    private parseJWK;
+    protected doVerify(token: string): Promise<IJWTTokenPayload>;
+    getSigner(opts: {
+        payload: IJWTTokenPayload;
+        getTokenExpiresFn: TGetTokenExpiresFn;
+        claims?: IJWTIssueClaims;
+    }): Promise<import("jose").SignJWT>;
+    protected getSigningKey(): ValueOrPromise<Uint8Array | CryptoKey>;
+    protected getDefaultTokenExpiresFn(): TGetTokenExpiresFn;
+    getJWKS(): {
+        keys: JWK[];
+    };
+    getJWKSAsync(): Promise<{
+        keys: JWK[];
+    }>;
+}
+```
+
+Source: `packages/core-server/src/components/auth/authenticate/services/bearer/jwks/issuer.service.ts`
+
+## `JWKSUrlPolicy`
+
+*class*
+
+Where a JWKS may be fetched from. A key set read over plain `http:` can be replaced on the way, and
+whoever replaces it signs tokens that verify, so a JWKS URL is `https:` unless its host is loopback or
+its origin is listed in `jwks.trusted`. The one policy serves the JWKS verifier and the service-assertion
+callers: both fetch a key set to decide who may call.
+
+The opt-in is an EXACT origin, never a pattern or a range, in the form the URL parser writes it
+(`http://identity-service`, `http://10.0.0.5:8080`, `http://[fd00::1]:8443`). The shape check is the url guard's own
+(`UrlPolicy.resolveTrustedOrigins`), so a JWKS entry and a `policy.hosts.trusted` entry follow one rule.
+
+```ts
+export declare class JWKSUrlPolicy {
+    /** Refuses a `jwks.trusted` list that is not exactly a list of origins, and answers the origins as a set. */
+    static resolveTrustedOrigins(opts: {
+        scope: string;
+        trusted?: unknown;
+    }): ReadonlySet<string>;
+    /** Whether the URL parser's hostname is a loopback one: `localhost`, `127.0.0.0/8` or `::1`. */
+    static isLoopback(hostname: string): boolean;
+    /**
+     * Parses a JWKS URL and refuses it unless it is `https:`, or `http:` to a loopback host or an origin listed in
+     * `jwks.trusted`. Only the host name goes into the message: a URL may carry credentials.
+     */
+    static assertUrl(opts: {
+        scope: string;
+        label: string;
+        url: string;
+        trusted?: unknown;
+    }): URL;
+}
+```
+
+Source: `packages/core-server/src/components/auth/authenticate/services/jwks-url-policy.ts`
+
+## `JWKSVerifierAuthenticationStrategy`
+
+*class*
+
+JWT authentication strategy that verifies the bearer token with `JWKSVerifierTokenService`, for an application that trusts a remote JWKS.
+
+```ts
+export declare class JWKSVerifierAuthenticationStrategy<E extends Env = Env> extends BaseHelper implements IAuthenticationStrategy<E> {
+    private service;
+    name: string;
+    standard: string;
+    constructor(service: JWKSVerifierTokenService<E>);
+    authenticate(context: TContext<E, string>): Promise<IAuthUser>;
+}
+```
+
+Source: `packages/core-server/src/components/auth/authenticate/strategies/jwks/verifier.ts`
+
+## `JWKSVerifierTokenService`
+
+*class*
+
+Verifies tokens against a remote JWKS fetched from `jwksUrl`. The key set is cached for `cacheTtlMs` (default 43_200_000 ms) with a `cooldownMs` refetch cooldown (default 30_000 ms).
+
+```ts
+export declare class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKSTokenService<E> {
+    protected options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWKS_VERIFIER_OPTIONS>;
+    protected jwksVerifier: ReturnType<typeof createRemoteJWKSet> | null;
+    constructor(options: TBindingKeyValue<typeof AuthenticateBindingKeys.JWKS_VERIFIER_OPTIONS>);
+    protected initialize(): Promise<void>;
+    protected doVerify(token: string): Promise<IJWTTokenPayload>;
+    getSigner(_opts: {
+        payload: IJWTTokenPayload;
+        getTokenExpiresFn: TGetTokenExpiresFn;
+    }): Promise<SignJWT>;
+    protected getSigningKey(): never;
+    protected getDefaultTokenExpiresFn(): never;
+}
+```
+
+Source: `packages/core-server/src/components/auth/authenticate/services/bearer/jwks/verifier.service.ts`
+
+## `JWSAuthenticationStrategy`
+
+*class*
+
+JWT authentication strategy that verifies the bearer token with `JWSTokenService` (JWS, HS256 by default).
+
+```ts
+export declare class JWSAuthenticationStrategy<E extends Env = Env> extends BaseHelper implements IAuthenticationStrategy<E> {
+    private service;
+    name: string;
+    standard: string;
+    constructor(service: JWSTokenService<E>);
+    authenticate(context: TContext<E, string>): Promise<IAuthUser>;
+}
+```
+
+Source: `packages/core-server/src/components/auth/authenticate/strategies/jws.strategy.ts`
+
 ## `JWSTokenService`
 
 *class*
@@ -903,6 +1087,21 @@ export type TGrantRow = {
 
 Source: `packages/core-server/src/components/auth/authorize/adapters/scoped-casbin/common/types.ts`
 
+## `TGrpcNativeTls`
+
+*type*
+
+The TLS of the native gRPC port: `{ use: false }` is clear text (h2c), for a mesh or a TLS-terminating proxy.
+
+```ts
+export type TGrpcNativeTls = TToggle<{
+    key: string | Buffer;
+    cert: string | Buffer;
+}>;
+```
+
+Source: `packages/core-server/src/base/controllers/grpc/native/common/types.ts`
+
 ## `TPermissionCommonColumns`
 
 *type*
@@ -936,188 +1135,3 @@ export type TPermissionOptions = {
 ```
 
 Source: `packages/core-server/src/components/auth/models/entities/permission.model.ts`
-
-## `TPolicyDefinitionCommonColumns`
-
-*type*
-
-Drizzle column set shared by every policy-definition table; `ExtraVariant` widens the allowed `variant` values and `Metadata` types the `metadata` column.
-
-```ts
-export type TPolicyDefinitionCommonColumns<ExtraVariant extends string = never, Metadata extends object = TSubsetGrantMetadata> = ReturnType<typeof buildCommonPolicyDefinitionColumns<ExtraVariant, Metadata>>;
-
-/** Column shape is inferred, never hand-declared, so it can never drift from the `$type<>()` narrowing below. */
-declare const buildCommonPolicyDefinitionColumns: <ExtraVariant extends string = never, Metadata extends object = TSubsetGrantMetadata>() => {
-    metadata: import("drizzle-orm").$Type<import("drizzle-orm/pg-core").PgJsonbBuilderInitial<"metadata">, Metadata>;
-    variant: import("drizzle-orm").NotNull<import("drizzle-orm").$Type<PgTextBuilderInitial<"variant", [string, ...string[]]>, "join_domain" | "assign_role" | "grant" | "role_inherits" | "domain_inherits" | "resource_inherits" | "action_inherits" | ExtraVariant>>;
-    subjectType: import("drizzle-orm").NotNull<PgTextBuilderInitial<"subject_type", [string, ...string[]]>>;
-    targetType: import("drizzle-orm").NotNull<PgTextBuilderInitial<"target_type", [string, ...string[]]>>;
-    domainType: PgTextBuilderInitial<"domain_type", [string, ...string[]]>;
-    action: PgTextBuilderInitial<"action", [string, ...string[]]>;
-    effect: import("drizzle-orm").$Type<PgTextBuilderInitial<"effect", [string, ...string[]]>, TAuthorizationDecision>;
-};
-```
-
-Source: `packages/core-server/src/components/auth/models/entities/columns.ts`
-
-## `TPolicyDefinitionOptions`
-
-*type*
-
-Options of the policy-definition table builder; `idType` selects the key type and `extraVariants` declares app-defined variants.
-
-```ts
-export type TPolicyDefinitionOptions<ExtraVariant extends string = never> = {
-    idType?: TIdSchemaType;
-    /**
-     * App-only edge kinds stored in this same table alongside IGNIS's seven (e.g. `merchant_role`).
-     * `ScopedCasbinAdapter` never selects an undeclared variant - it is purely the consumer's data.
-     * Pass as an inline array literal; the `const` type parameter below infers the literal union
-     * from it without needing `as const`.
-     */
-    extraVariants?: ReadonlyArray<ExtraVariant>;
-};
-```
-
-Source: `packages/core-server/src/components/auth/models/entities/policy-definition.model.ts`
-
-## `TPolicyLineLoader`
-
-*type*
-
-Computes a user's policy lines on a cache miss - CasbinAuthorizationEnforcer wires this to its isolated-enforcer extraction (PolicyLineCodec.extractUserLines).
-
-```ts
-export type TPolicyLineLoader = (opts: {
-    user: IAuthorizationUser;
-}) => Promise<string[]>;
-```
-
-Source: `packages/core-server/src/components/auth/authorize/enforcers/user-policy-line-cache.ts`
-
-## `TPrincipalPolicyRow`
-
-*type*
-
-A row from the single principal-policy statement; `edge` says which branch produced it.
-
-```ts
-export type TPrincipalPolicyRow = TGrantRow & {
-    edge: TConstValue<typeof PrincipalPolicyEdges>;
-    variant: string;
-    targetType: TNullable<string>;
-    targetId: IdType;
-};
-```
-
-Source: `packages/core-server/src/components/auth/authorize/adapters/scoped-casbin/policy-edges.ts`
-
-## `TResolveDomainEdgesFn`
-
-*type*
-
-Per-principal domain edges sourced from business data the app already owns (e.g. a tenant
-foreign key) - read live on every cache miss, never duplicated into `domain_inherits`. An app
-whose hierarchy genuinely lives in `domain_inherits` rows does not need this hook at all: the
-DOMAIN_EDGE branch above already emits those as `g3` lines. `domains` is the principal's own
-domain closure, already `<Type>_<id>` tokens; the returned edges must be too - neither side
-re-formats them.
-
-`domains` is the principal's **membership closure** - built from `join_domain` rows plus both
-ends of every `domainEdge` row. It is NOT the set of domains the principal holds a role in via
-`assign_role`: a principal can carry `assign_role` at a domain it never joined. A hook ported
-from a mechanism that derived its domains from `assign_role` will silently lose access for
-exactly those principals - no error, no log, just fewer edges reaching `g`/`g2`/`g3` than before.
-
-More than one hierarchy axis (e.g. an organizer tree and a separate region tree)? Write one
-function per axis and concatenate their results here - this hook deliberately takes a single
-function, so composition stays visible in the application, not hidden inside the framework:
-`resolveDomainEdges: async opts => [...(await organizerEdges(opts)), ...(await regionEdges(opts))]`.
-
-```ts
-export type TResolveDomainEdgesFn = (opts: {
-    principal: {
-        type: string;
-        id: IdType;
-    };
-    domains: string[];
-}) => Promise<TDomainHierarchyEdge[]>;
-```
-
-Source: `packages/core-server/src/components/auth/authorize/adapters/scoped-casbin/common/types.ts`
-
-## `TRpcHandler`
-
-*type*
-
-Typed handler signature for gRPC RPC methods. `rpc` is ConnectRPC's own context of the call: `signal` (aborted at the
-deadline and when the client leaves; a handler that ignores it runs on), `timeoutMs()`, `requestHeader`,
-`responseHeader` and `responseTrailer`.
-
-```ts
-export type TRpcHandler<RequestType = unknown, ResponseType = unknown, RouteEnv extends Env = Env> = (opts: {
-    request: RequestType;
-    context: TRouteContext<RouteEnv>;
-    rpc: HandlerContext;
-}) => ValueOrPromise<ResponseType>;
-```
-
-Source: `packages/core-server/src/base/controllers/grpc/common/types.ts`
-
-## `TRpcMiddleware`
-
-*type*
-
-Pre-built middleware function for gRPC auth enforcement.
-
-```ts
-export type TRpcMiddleware<RouteEnv extends Env = Env> = (context: TRouteContext<RouteEnv>, next: Next) => ValueOrPromise<void | Response>;
-```
-
-Source: `packages/core-server/src/base/controllers/grpc/common/types.ts`
-
-## `TServerBootStep`
-
-*type*
-
-Union of the step names in `ServerBootSteps`, accepted by `BootSequence.insertAfter` and `skipSteps`.
-
-```ts
-export type TServerBootStep = TConstValue<typeof ServerBootSteps>;
-```
-
-Source: `packages/core-server/src/base/applications/boot-steps.ts`
-
-## `UIProviderFactory`
-
-*class*
-
-Process-wide registry of UI providers by type; obtain it with `getInstance()`. `register` creates the built-in `swagger` and `scalar` providers and throws for any other type.
-
-```ts
-export declare class UIProviderFactory extends MemoryStorageHelper<{
-    [key: string | symbol]: IUIProvider;
-}> {
-    private static instance;
-    static getInstance(): UIProviderFactory;
-    getProvider({ type }: IGetProviderParams): IUIProvider;
-    register(opts: {
-        type: string;
-    }): void;
-    getRegisteredProviders(): (string | number | symbol)[];
-}
-```
-
-Source: `packages/core-server/src/components/api-reference/ui/factory.ts`
-
-## `useRequestContext`
-
-*const*
-
-Returns the Hono context of the request being handled, or `undefined` outside a request (uses `tryGetContext`, so it never throws).
-
-```ts
-export declare const useRequestContext: <AppEnv extends Env = Env>() => import("hono").Context<AppEnv, any, {}> | undefined;
-```
-
-Source: `packages/core-server/src/base/metadata/request-context.ts`

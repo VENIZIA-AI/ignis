@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-109 exports, 109 with TSDoc. 1020 more are re-exported from other entries (listed at the end).
+120 exports, 120 with TSDoc. 1021 more are re-exported from other entries (listed at the end).
 
 The declarations are on 4 pages; each export below links to its own.
 
@@ -103,9 +103,29 @@ The declarations are on 4 pages; each export below links to its own.
 
 *class* - [Declaration](/references/api/venizia-ignis--part-2#environmentkeys)
 
+## `GrpcHeaderUtility`
+
+*class* - [Declaration](/references/api/venizia-ignis--part-2#grpcheaderutility)
+
+## `GrpcListenerHelper`
+
+*class* - [Declaration](/references/api/venizia-ignis--part-2#grpclistenerhelper)
+
+## `GrpcNativeCallStore`
+
+*class* - [Declaration](/references/api/venizia-ignis--part-2#grpcnativecallstore)
+
+## `GrpcNativeWriter`
+
+*class* - [Declaration](/references/api/venizia-ignis--part-2#grpcnativewriter)
+
 ## `GrpcRequestAdapter`
 
 *class* - [Declaration](/references/api/venizia-ignis--part-2#grpcrequestadapter)
+
+## `GrpcStatusUtility`
+
+*class* - [Declaration](/references/api/venizia-ignis--part-2#grpcstatusutility)
 
 ## `GrpcTimeoutGuard`
 
@@ -159,6 +179,10 @@ The declarations are on 4 pages; each export below links to its own.
 
 *interface* - [Declaration](/references/api/venizia-ignis--part-2#iconnectadapterresult)
 
+## `IConnectNodeModule`
+
+*interface* - [Declaration](/references/api/venizia-ignis--part-2#iconnectnodemodule)
+
 ## `IGetProviderParams`
 
 *interface* - [Declaration](/references/api/venizia-ignis--part-2#igetproviderparams)
@@ -178,6 +202,22 @@ The declarations are on 4 pages; each export below links to its own.
 ## `IGrpcDefineRouteOptions`
 
 *interface* - [Declaration](/references/api/venizia-ignis--part-2#igrpcdefinerouteoptions)
+
+## `IGrpcListenerOptions`
+
+*interface* - [Declaration](/references/api/venizia-ignis--part-2#igrpclisteneroptions)
+
+## `IGrpcNativeAdapterOptions`
+
+*interface* - [Declaration](/references/api/venizia-ignis--part-2#igrpcnativeadapteroptions)
+
+## `IGrpcNativeAnswer`
+
+*interface* - [Declaration](/references/api/venizia-ignis--part-2#igrpcnativeanswer)
+
+## `IGrpcNativeCall`
+
+*interface* - [Declaration](/references/api/venizia-ignis--part-2#igrpcnativecall)
 
 ## `IHealthCheckOptions`
 
@@ -245,27 +285,27 @@ The declarations are on 4 pages; each export below links to its own.
 
 ## `JWKSIssuerAuthenticationStrategy`
 
-*class* - [Declaration](/references/api/venizia-ignis--part-2#jwksissuerauthenticationstrategy)
+*class* - [Declaration](/references/api/venizia-ignis--part-3#jwksissuerauthenticationstrategy)
 
 ## `JWKSIssuerTokenService`
 
-*class* - [Declaration](/references/api/venizia-ignis--part-2#jwksissuertokenservice)
+*class* - [Declaration](/references/api/venizia-ignis--part-3#jwksissuertokenservice)
 
 ## `JWKSUrlPolicy`
 
-*class* - [Declaration](/references/api/venizia-ignis--part-2#jwksurlpolicy)
+*class* - [Declaration](/references/api/venizia-ignis--part-3#jwksurlpolicy)
 
 ## `JWKSVerifierAuthenticationStrategy`
 
-*class* - [Declaration](/references/api/venizia-ignis--part-2#jwksverifierauthenticationstrategy)
+*class* - [Declaration](/references/api/venizia-ignis--part-3#jwksverifierauthenticationstrategy)
 
 ## `JWKSVerifierTokenService`
 
-*class* - [Declaration](/references/api/venizia-ignis--part-2#jwksverifiertokenservice)
+*class* - [Declaration](/references/api/venizia-ignis--part-3#jwksverifiertokenservice)
 
 ## `JWSAuthenticationStrategy`
 
-*class* - [Declaration](/references/api/venizia-ignis--part-2#jwsauthenticationstrategy)
+*class* - [Declaration](/references/api/venizia-ignis--part-3#jwsauthenticationstrategy)
 
 ## `JWSTokenService`
 
@@ -395,6 +435,10 @@ The declarations are on 4 pages; each export below links to its own.
 
 *type* - [Declaration](/references/api/venizia-ignis--part-3#tgrantrow)
 
+## `TGrpcNativeTls`
+
+*type* - [Declaration](/references/api/venizia-ignis--part-3#tgrpcnativetls)
+
 ## `TPermissionCommonColumns`
 
 *type* - [Declaration](/references/api/venizia-ignis--part-3#tpermissioncommoncolumns)
@@ -405,43 +449,43 @@ The declarations are on 4 pages; each export below links to its own.
 
 ## `TPolicyDefinitionCommonColumns`
 
-*type* - [Declaration](/references/api/venizia-ignis--part-3#tpolicydefinitioncommoncolumns)
+*type* - [Declaration](/references/api/venizia-ignis--part-4#tpolicydefinitioncommoncolumns)
 
 ## `TPolicyDefinitionOptions`
 
-*type* - [Declaration](/references/api/venizia-ignis--part-3#tpolicydefinitionoptions)
+*type* - [Declaration](/references/api/venizia-ignis--part-4#tpolicydefinitionoptions)
 
 ## `TPolicyLineLoader`
 
-*type* - [Declaration](/references/api/venizia-ignis--part-3#tpolicylineloader)
+*type* - [Declaration](/references/api/venizia-ignis--part-4#tpolicylineloader)
 
 ## `TPrincipalPolicyRow`
 
-*type* - [Declaration](/references/api/venizia-ignis--part-3#tprincipalpolicyrow)
+*type* - [Declaration](/references/api/venizia-ignis--part-4#tprincipalpolicyrow)
 
 ## `TResolveDomainEdgesFn`
 
-*type* - [Declaration](/references/api/venizia-ignis--part-3#tresolvedomainedgesfn)
+*type* - [Declaration](/references/api/venizia-ignis--part-4#tresolvedomainedgesfn)
 
 ## `TRpcHandler`
 
-*type* - [Declaration](/references/api/venizia-ignis--part-3#trpchandler)
+*type* - [Declaration](/references/api/venizia-ignis--part-4#trpchandler)
 
 ## `TRpcMiddleware`
 
-*type* - [Declaration](/references/api/venizia-ignis--part-3#trpcmiddleware)
+*type* - [Declaration](/references/api/venizia-ignis--part-4#trpcmiddleware)
 
 ## `TServerBootStep`
 
-*type* - [Declaration](/references/api/venizia-ignis--part-3#tserverbootstep)
+*type* - [Declaration](/references/api/venizia-ignis--part-4#tserverbootstep)
 
 ## `UIProviderFactory`
 
-*class* - [Declaration](/references/api/venizia-ignis--part-3#uiproviderfactory)
+*class* - [Declaration](/references/api/venizia-ignis--part-4#uiproviderfactory)
 
 ## `useRequestContext`
 
-*const* - [Declaration](/references/api/venizia-ignis--part-3#userequestcontext)
+*const* - [Declaration](/references/api/venizia-ignis--part-4#userequestcontext)
 
 ## `UserPolicyLineCache`
 
@@ -766,6 +810,7 @@ The declarations are on 4 pages; each export below links to its own.
 - `IGetSecretOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IGrpcControllerMetadata` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IGrpcLimits` from [`@venizia/ignis/grpc`](/references/api/venizia-ignis-grpc)
+- `IGrpcNativeOptions` from [`@venizia/ignis/grpc`](/references/api/venizia-ignis-grpc)
 - `IHashiCorpSecretsRegistration` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IHeightWhereOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IHfLogFlusherOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)

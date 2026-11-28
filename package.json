@@ -64,6 +64,7 @@
       "typesense": "^3.3.0",
       "zod": "^4.6.7",
       "@connectrpc/connect": "^2.3.0",
+      "@connectrpc/connect-node": "^2.3.0",
       "@socket.io/bun-engine": "^0.1.2",
       "@types/bun": "^1.4.5",
       "@types/pg": "^8.23.1",

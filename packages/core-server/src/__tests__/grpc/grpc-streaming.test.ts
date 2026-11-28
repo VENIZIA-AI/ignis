@@ -67,6 +67,10 @@ class GreeterController extends BaseGrpcController {
 
   @unary({ configs: { name: 'sayHello', ...GATE } })
   async sayHello(opts: { request: unknown }) {
+    if (nameOf(opts.request) === 'fail') {
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.Conflict, message: 'Already there' });
+    }
+
     await PromiseUtility.sleep({ ms: Number(nameOf(opts.request)) });
 
     return { message: 'done' };
@@ -311,6 +315,20 @@ describe('gRPC streaming on the application port', () => {
     expect(result.messages).toEqual([{ message: 'a,b' }]);
   });
 
+  test('a client stream works over gRPC-Web too', async () => {
+    seen.received = [];
+    const response = await send({
+      path: method('Collect'),
+      headers: { ...SIGNED_IN, 'content-type': 'application/grpc-web+json' },
+      body: paced({ pauseMs: 100 }),
+    });
+    const answer = await response.text();
+
+    expect(seen.received).toEqual(['a', 'b']);
+    expect(answer).toContain('{"message":"a,b"}');
+    expect(answer).toContain('grpc-status: 0');
+  });
+
   test('bidi is refused on HTTP/1.1', async () => {
     const response = await send({
       path: method('Chat'),
@@ -370,12 +388,19 @@ describe('gRPC streaming on the application port', () => {
     expect(body).toEqual({ message: 'done' });
   }, 20_000);
 
-  for (const kind of ['unary', 'server stream'] as const) {
-    test(`the socket of a signed-in ${kind} call is idle again once the call ended`, async () => {
+  const ended = [
+    { kind: 'unary', name: '0' },
+    { kind: 'server stream', name: '0' },
+    { kind: 'unary', name: 'fail' },
+    { kind: 'server stream', name: 'fail' },
+  ];
+
+  for (const { kind, name } of ended) {
+    test(`the socket of a signed-in ${kind} call (${name}) is idle again once the call ended`, async () => {
       const isUnary = kind === 'unary';
       const payload = isUnary
-        ? new TextEncoder().encode(JSON.stringify({ name: '0' }))
-        : envelope({ name: '0' });
+        ? new TextEncoder().encode(JSON.stringify({ name }))
+        : envelope({ name });
       const head = [
         `POST /api${method(isUnary ? 'SayHello' : 'ListHellos')} HTTP/1.1`,
         'host: localhost',
@@ -402,7 +427,7 @@ describe('gRPC streaming on the application port', () => {
       ]);
       socket.destroy();
 
-      expect(answer).toContain('200 OK');
+      expect(answer).toContain(isUnary && name === 'fail' ? '409' : '200 OK');
       expect(isClosed).toBe(true);
     }, 20_000);
   }

@@ -15,6 +15,7 @@ IGNIS gRPC controllers follow the same patterns as REST controllers (decorator-b
 - `packages/core-server/src/base/controllers/grpc/base.ts`
 - `packages/core-server/src/base/controllers/grpc/adapter.ts`
 - `packages/core-server/src/base/controllers/grpc/timeout.guard.ts`
+- `packages/core-server/src/base/controllers/grpc/native/` (the native gRPC port)
 - `packages/core-server/src/base/controllers/grpc/common/types.ts`
 - `packages/kernel/src/base/metadata/routes/rpc.ts`
 - `packages/core-server/src/components/controller/grpc/grpc.component.ts`
@@ -428,7 +429,7 @@ Hono request
     -> context.newResponse(...): headers set by earlier middleware are kept
 ```
 
-The application port serves the Connect and gRPC-Web protocols. A native gRPC request (`application/grpc`) answers `415`: it needs response trailers, which `Bun.serve` does not send.
+The application port serves the Connect and gRPC-Web protocols. A native gRPC request (`application/grpc`) answers `415` there: it needs response trailers, which `Bun.serve` does not send. The [native gRPC port](/guides/core-concepts/grpc-controllers#native-grpc-port) serves it.
 
 ### Static `build()` Method
 
