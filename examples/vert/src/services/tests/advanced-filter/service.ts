@@ -1,5 +1,5 @@
 import { service } from '@venizia/ignis';
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestService } from '../base-test.service';
 import { CompositionCases } from './composition.cases';
 import { EdgeCases } from './edge.cases';
@@ -139,7 +139,7 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
 
       this.logger.info('[SETUP] PASSED | Created advanced test data');
     } catch (e) {
-      this.logger.error('[SETUP] FAILED | %s', (e as Error).message);
+      this.logger.error('[SETUP] FAILED | %s', ErrorUtility.toError({ error: e }).message);
     }
   }
 

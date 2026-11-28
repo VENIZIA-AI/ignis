@@ -1,4 +1,5 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read keys of a JSON column, whose type the model does not describe */
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -16,7 +17,10 @@ export class EdgeCases extends BaseTestCases {
       const deleted = await repo.deleteBy({ where: { group: 'JSON_FILTER_TEST' } });
       this.context.logger.info('[CASE 16] PASSED | Deleted %d records', deleted.count);
     } catch (error) {
-      this.context.logger.error('[CASE 16] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 16] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -83,12 +87,18 @@ export class EdgeCases extends BaseTestCases {
       // Cleanup
       await repo.deleteBy({ where: { group } });
     } catch (error) {
-      this.context.logger.error('[CASE 18] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 18] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
 
       try {
         await repo.deleteBy({ where: { group } });
       } catch (cleanupError) {
-        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+        this.context.logger.error(
+          'Cleanup failed: %s',
+          ErrorUtility.toError({ error: cleanupError }).message,
+        );
       }
     }
   }
@@ -152,12 +162,18 @@ export class EdgeCases extends BaseTestCases {
       // Cleanup
       await repo.deleteBy({ where: { group } });
     } catch (error) {
-      this.context.logger.error('[CASE 19] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 19] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
 
       try {
         await repo.deleteBy({ where: { group } });
       } catch (cleanupError) {
-        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+        this.context.logger.error(
+          'Cleanup failed: %s',
+          ErrorUtility.toError({ error: cleanupError }).message,
+        );
       }
     }
   }
@@ -248,7 +264,10 @@ export class EdgeCases extends BaseTestCases {
       // Cleanup
       await repo.deleteBy({ where: { group } });
     } catch (error) {
-      this.context.logger.error('[CASE 20] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 20] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
       this.context.logger.error(
         '[CASE 20] This likely means numeric casting crashed on non-numeric values',
       );
@@ -256,7 +275,10 @@ export class EdgeCases extends BaseTestCases {
       try {
         await repo.deleteBy({ where: { group } });
       } catch (cleanupError) {
-        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+        this.context.logger.error(
+          'Cleanup failed: %s',
+          ErrorUtility.toError({ error: cleanupError }).message,
+        );
       }
     }
   }

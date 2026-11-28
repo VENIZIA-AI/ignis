@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read relations the row type of the read does not carry */
+import { ErrorUtility } from '@venizia/ignis-helpers';
 import { eq } from 'drizzle-orm';
 import { User } from '../../../models/entities';
 import { BaseTestCases } from '../base-test.cases';
@@ -128,7 +130,10 @@ export class RelationsCases extends BaseTestCases {
       });
       this.context.logger.info('[CASE 21] Cleaned up test user');
     } catch (error) {
-      this.context.logger.error('[CASE 21] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 21] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

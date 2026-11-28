@@ -1,4 +1,4 @@
-import { ParseUtility } from '@venizia/ignis-helpers';
+import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -55,7 +55,10 @@ export class ContainsCases extends BaseTestCases {
 
       this.context.logger.info('[CASE 1] PASSED | Created 5 products with array tags');
     } catch (error) {
-      this.context.logger.error('[CASE 1] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 1] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -72,7 +75,7 @@ export class ContainsCases extends BaseTestCases {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             tags: { contains: ['electronics', 'featured'] },
-          } as any,
+          },
         },
       });
 
@@ -89,7 +92,10 @@ export class ContainsCases extends BaseTestCases {
         this.context.logger.error('[CASE 2] FAILED | Expected 1 product | Got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[CASE 2] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 2] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -106,7 +112,7 @@ export class ContainsCases extends BaseTestCases {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             tags: { contains: ['featured'] },
-          } as any,
+          },
         },
       });
 
@@ -126,7 +132,10 @@ export class ContainsCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 3] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 3] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -143,7 +152,7 @@ export class ContainsCases extends BaseTestCases {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             tags: { contains: [] },
-          } as any,
+          },
         },
       });
 
@@ -157,7 +166,10 @@ export class ContainsCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 4] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 4] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -174,7 +186,7 @@ export class ContainsCases extends BaseTestCases {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             tags: { containedBy: ['electronics', 'featured', 'sale', 'premium'] },
-          } as any,
+          },
         },
       });
 
@@ -196,7 +208,10 @@ export class ContainsCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 5] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 5] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -213,7 +228,7 @@ export class ContainsCases extends BaseTestCases {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             tags: { containedBy: [] },
-          } as any,
+          },
         },
       });
 
@@ -229,7 +244,10 @@ export class ContainsCases extends BaseTestCases {
         this.context.logger.error('[CASE 6] FAILED | Expected 1 product | Got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[CASE 6] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 6] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

@@ -1,4 +1,4 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -146,7 +146,7 @@ export class CreateCases extends BaseTestCases {
       // Empty batch might throw an error - that's also valid behavior
       this.context.logger.info(
         '[case10EmptyBatchCreate] PASSED | Empty batch handled (threw error): %s',
-        (error as Error).message.substring(0, 50),
+        ErrorUtility.toError({ error }).message.substring(0, 50),
       );
     }
   }

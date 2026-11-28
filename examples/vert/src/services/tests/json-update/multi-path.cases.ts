@@ -1,4 +1,5 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases write dotted JSON paths, which the typed update data refuses, and read the stored JSON, whose type the model does not describe */
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -53,7 +54,10 @@ export class MultiPathCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 5] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 5] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -108,7 +112,10 @@ export class MultiPathCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 6] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 6] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -169,7 +176,10 @@ export class MultiPathCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 7] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 7] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

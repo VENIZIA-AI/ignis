@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read keys of a JSON column, whose type the model does not describe */
+import { ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -27,7 +29,10 @@ export class ArraysCases extends BaseTestCases {
         this.context.logger.error('[CASE 4] FAILED | Expected 1 record | got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[CASE 4] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 4] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -67,7 +72,10 @@ export class ArraysCases extends BaseTestCases {
         this.context.logger.error('[CASE 9] FAILED | Expected 3 records | got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[CASE 9] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 9] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -112,7 +120,10 @@ export class ArraysCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 10] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 10] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -149,7 +160,10 @@ export class ArraysCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 11] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 11] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -168,7 +182,7 @@ export class ArraysCases extends BaseTestCases {
           where: {
             group,
             and: [{ 'jValue.priority': { gt: 2 } }, { 'jValue.metadata.level': 'high' }],
-          } as any,
+          },
         },
       });
 
@@ -199,7 +213,10 @@ export class ArraysCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 13] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 13] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -218,7 +235,7 @@ export class ArraysCases extends BaseTestCases {
           where: {
             group,
             or: [{ 'jValue.priority': 1 }, { 'jValue.priority': 5 }],
-          } as any,
+          },
         },
       });
 
@@ -239,7 +256,10 @@ export class ArraysCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 14] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 14] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

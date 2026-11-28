@@ -1,5 +1,5 @@
 import { LockStrengths } from '@venizia/ignis';
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -49,7 +49,10 @@ export class StrengthsCases extends BaseTestCases {
       try {
         await repo.deleteBy({ where: { code } });
       } catch (cleanupError) {
-        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+        this.context.logger.error(
+          'Cleanup failed: %s',
+          ErrorUtility.toError({ error: cleanupError }).message,
+        );
       }
     }
   }
@@ -100,7 +103,10 @@ export class StrengthsCases extends BaseTestCases {
       try {
         await repo.deleteBy({ where: { group } });
       } catch (cleanupError) {
-        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+        this.context.logger.error(
+          'Cleanup failed: %s',
+          ErrorUtility.toError({ error: cleanupError }).message,
+        );
       }
     }
   }
@@ -144,7 +150,10 @@ export class StrengthsCases extends BaseTestCases {
       try {
         await repo.deleteBy({ where: { code } });
       } catch (cleanupError) {
-        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+        this.context.logger.error(
+          'Cleanup failed: %s',
+          ErrorUtility.toError({ error: cleanupError }).message,
+        );
       }
     }
   }
@@ -188,7 +197,10 @@ export class StrengthsCases extends BaseTestCases {
       try {
         await repo.deleteBy({ where: { code } });
       } catch (cleanupError) {
-        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+        this.context.logger.error(
+          'Cleanup failed: %s',
+          ErrorUtility.toError({ error: cleanupError }).message,
+        );
       }
     }
   }
@@ -232,7 +244,10 @@ export class StrengthsCases extends BaseTestCases {
       try {
         await repo.deleteBy({ where: { code } });
       } catch (cleanupError) {
-        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+        this.context.logger.error(
+          'Cleanup failed: %s',
+          ErrorUtility.toError({ error: cleanupError }).message,
+        );
       }
     }
   }
@@ -276,7 +291,10 @@ export class StrengthsCases extends BaseTestCases {
       try {
         await repo.deleteBy({ where: { code } });
       } catch (cleanupError) {
-        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+        this.context.logger.error(
+          'Cleanup failed: %s',
+          ErrorUtility.toError({ error: cleanupError }).message,
+        );
       }
     }
   }

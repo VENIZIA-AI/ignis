@@ -1,3 +1,4 @@
+import { ErrorUtility } from '@venizia/ignis-helpers';
 import { LockStrengths } from '@venizia/ignis';
 import { BaseTestCases } from '../base-test.cases';
 
@@ -24,7 +25,7 @@ export class EdgeCases extends BaseTestCases {
         '[CASE 9] FAILED - Should have thrown for lock without transaction',
       );
     } catch (error) {
-      const message = (error as Error).message;
+      const message = ErrorUtility.toError({ error }).message;
 
       if (message.includes('requires a transaction')) {
         this.context.logger.info('[CASE 9] PASSED - Correctly threw: %s', message);
@@ -58,7 +59,7 @@ export class EdgeCases extends BaseTestCases {
       this.context.logger.error('[CASE 10] FAILED - Should have thrown for lock with include');
       await transaction.rollback();
     } catch (error) {
-      const message = (error as Error).message;
+      const message = ErrorUtility.toError({ error }).message;
 
       if (message.includes('incompatible with Query API')) {
         this.context.logger.info('[CASE 10] PASSED - Correctly threw: %s', message);
@@ -69,7 +70,10 @@ export class EdgeCases extends BaseTestCases {
       try {
         await transaction.rollback();
       } catch (rollbackError) {
-        this.context.logger.error('Rollback failed: %s', (rollbackError as Error).message);
+        this.context.logger.error(
+          'Rollback failed: %s',
+          ErrorUtility.toError({ error: rollbackError }).message,
+        );
       }
     }
   }
@@ -97,7 +101,7 @@ export class EdgeCases extends BaseTestCases {
       this.context.logger.error('[CASE 11] FAILED - Should have thrown for lock with fields');
       await transaction.rollback();
     } catch (error) {
-      const message = (error as Error).message;
+      const message = ErrorUtility.toError({ error }).message;
 
       if (message.includes('incompatible with Query API')) {
         this.context.logger.info('[CASE 11] PASSED - Correctly threw: %s', message);
@@ -108,7 +112,10 @@ export class EdgeCases extends BaseTestCases {
       try {
         await transaction.rollback();
       } catch (rollbackError) {
-        this.context.logger.error('Rollback failed: %s', (rollbackError as Error).message);
+        this.context.logger.error(
+          'Rollback failed: %s',
+          ErrorUtility.toError({ error: rollbackError }).message,
+        );
       }
     }
   }

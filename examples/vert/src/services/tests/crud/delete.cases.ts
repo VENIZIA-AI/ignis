@@ -1,4 +1,4 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -105,7 +105,7 @@ export class DeleteCases extends BaseTestCases {
       // Some implementations might throw an error - that's also valid
       this.context.logger.info(
         '[case12DeleteNonExistentRecord] PASSED | Non-existent ID handled (threw error): %s',
-        (error as Error).message.substring(0, 50),
+        ErrorUtility.toError({ error }).message.substring(0, 50),
       );
     }
   }

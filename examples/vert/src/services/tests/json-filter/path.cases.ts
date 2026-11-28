@@ -1,4 +1,5 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read keys of a JSON column, whose type the model does not describe */
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -79,7 +80,10 @@ export class PathCases extends BaseTestCases {
         '[CASE 1] PASSED | Created 5 records with nested JSON for filter tests',
       );
     } catch (error) {
-      this.context.logger.error('[CASE 1] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 1] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -106,7 +110,10 @@ export class PathCases extends BaseTestCases {
         this.context.logger.error('[CASE 2] FAILED | Expected 1 record | got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[CASE 2] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 2] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -143,7 +150,10 @@ export class PathCases extends BaseTestCases {
         this.context.logger.error('[CASE 3] FAILED | Expected 2 records | got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[CASE 3] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 3] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -174,7 +184,10 @@ export class PathCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 15] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 15] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -223,12 +236,18 @@ export class PathCases extends BaseTestCases {
       // Cleanup
       await repo.deleteBy({ where: { group } });
     } catch (error) {
-      this.context.logger.error('[CASE 17] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 17] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
 
       try {
         await repo.deleteBy({ where: { group } });
       } catch (cleanupError) {
-        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+        this.context.logger.error(
+          'Cleanup failed: %s',
+          ErrorUtility.toError({ error: cleanupError }).message,
+        );
       }
     }
   }

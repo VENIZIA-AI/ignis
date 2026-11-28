@@ -1,4 +1,5 @@
-import { ParseUtility } from '@venizia/ignis-helpers';
+/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read relations the row type of the read does not carry */
+import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -109,7 +110,10 @@ export class FilteredCases extends BaseTestCases {
         options: { force: true },
       });
     } catch (error) {
-      this.context.logger.error('[CASE 7] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 7] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -197,7 +201,10 @@ export class FilteredCases extends BaseTestCases {
         options: { force: true },
       });
     } catch (error) {
-      this.context.logger.error('[CASE 8] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 8] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -276,7 +283,10 @@ export class FilteredCases extends BaseTestCases {
         options: { force: true },
       });
     } catch (error) {
-      this.context.logger.error('[CASE 9] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 9] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -354,7 +364,10 @@ export class FilteredCases extends BaseTestCases {
       });
       await saleChannelRepo.deleteBy({ where: { id: channel.data.id }, options: { force: true } });
     } catch (error) {
-      this.context.logger.error('[CASE 12] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 12] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -427,7 +440,10 @@ export class FilteredCases extends BaseTestCases {
 
       await saleChannelRepo.deleteBy({ where: { id: channel.data.id }, options: { force: true } });
     } catch (error) {
-      this.context.logger.error('[CASE 15] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 15] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

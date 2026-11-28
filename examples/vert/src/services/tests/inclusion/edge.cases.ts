@@ -1,4 +1,5 @@
-import { ParseUtility } from '@venizia/ignis-helpers';
+/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read relations the row type of the read does not carry */
+import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -78,7 +79,10 @@ export class EdgeCases extends BaseTestCases {
         deletedChannelsCount,
       );
     } catch (error) {
-      this.context.logger.error('[CASE 6] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 6] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -128,7 +132,10 @@ export class EdgeCases extends BaseTestCases {
         options: { force: true, shouldSkipDefaultFilter: true },
       });
     } catch (error) {
-      this.context.logger.error('[CASE 10] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 10] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -188,7 +195,10 @@ export class EdgeCases extends BaseTestCases {
       await configRepo.deleteBy({ where: { id: config.data.id } });
       await userRepo.deleteBy({ where: { id: user.data.id } });
     } catch (error) {
-      this.context.logger.error('[CASE 11] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 11] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -265,7 +275,10 @@ export class EdgeCases extends BaseTestCases {
 
       await saleChannelRepo.deleteBy({ where: { id: channel.data.id }, options: { force: true } });
     } catch (error) {
-      this.context.logger.error('[CASE 14] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 14] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

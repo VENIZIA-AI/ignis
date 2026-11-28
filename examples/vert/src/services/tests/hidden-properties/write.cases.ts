@@ -1,4 +1,4 @@
-import { ParseUtility } from '@venizia/ignis-helpers';
+import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { eq } from 'drizzle-orm';
 import { User } from '../../../models/entities';
 import { BaseTestCases } from '../base-test.cases';
@@ -51,7 +51,10 @@ export class WriteCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 1] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 1] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -98,7 +101,10 @@ export class WriteCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 5] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 5] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -164,7 +170,10 @@ export class WriteCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 8] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 8] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -219,7 +228,10 @@ export class WriteCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 9] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 9] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -269,7 +281,10 @@ export class WriteCases extends BaseTestCases {
         this.context.logger.info('[CASE 10] Response keys: %s', deletedKeys.join(', '));
       }
     } catch (error) {
-      this.context.logger.error('[CASE 10] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 10] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -352,7 +367,10 @@ export class WriteCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 19] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 19] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

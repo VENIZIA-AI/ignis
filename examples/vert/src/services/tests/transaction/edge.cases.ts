@@ -1,4 +1,4 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -32,7 +32,7 @@ export class EdgeCases extends BaseTestCases {
     } catch (error) {
       this.context.logger.info(
         '[CASE 6] PASSED - Error thrown for inactive transaction: %s',
-        (error as Error).message,
+        ErrorUtility.toError({ error }).message,
       );
     }
   }
@@ -64,7 +64,7 @@ export class EdgeCases extends BaseTestCases {
     } catch (error) {
       this.context.logger.info(
         '[CASE 7] PASSED - Error thrown for inactive transaction: %s',
-        (error as Error).message,
+        ErrorUtility.toError({ error }).message,
       );
     }
   }
@@ -136,7 +136,7 @@ export class EdgeCases extends BaseTestCases {
       } catch (error) {
         this.context.logger.info(
           '[CASE 14] PASSED | Double commit handled correctly: %s',
-          (error as Error).message.substring(0, 50),
+          ErrorUtility.toError({ error }).message.substring(0, 50),
         );
       }
     } catch (error) {
@@ -163,7 +163,7 @@ export class EdgeCases extends BaseTestCases {
       } catch (error) {
         this.context.logger.info(
           '[CASE 15] PASSED | Double rollback handled correctly: %s',
-          (error as Error).message.substring(0, 50),
+          ErrorUtility.toError({ error }).message.substring(0, 50),
         );
       }
     } catch (error) {
@@ -261,7 +261,10 @@ export class EdgeCases extends BaseTestCases {
       try {
         await transaction.rollback();
       } catch (rollbackError) {
-        this.context.logger.error('Rollback failed: %s', (rollbackError as Error).message);
+        this.context.logger.error(
+          'Rollback failed: %s',
+          ErrorUtility.toError({ error: rollbackError }).message,
+        );
       }
 
       this.context.logger.error('[CASE 20] FAILED with error: %o', error);
@@ -269,7 +272,10 @@ export class EdgeCases extends BaseTestCases {
       try {
         await repo.deleteBy({ where: { group } });
       } catch (cleanupError) {
-        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+        this.context.logger.error(
+          'Cleanup failed: %s',
+          ErrorUtility.toError({ error: cleanupError }).message,
+        );
       }
     }
   }

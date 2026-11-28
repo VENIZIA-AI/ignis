@@ -1,3 +1,4 @@
+import { ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -34,7 +35,10 @@ export class LogicalCases extends BaseTestCases {
         this.context.logger.error('[NESTED] FAILED | Expected 0 records | Got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[NESTED] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[NESTED] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -64,7 +68,10 @@ export class LogicalCases extends BaseTestCases {
         this.context.logger.error('[DEEP-NESTED] FAILED | Expected [10, 50] | Got: %j', values);
       }
     } catch (error) {
-      this.context.logger.error('[DEEP-NESTED] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[DEEP-NESTED] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -97,7 +104,10 @@ export class LogicalCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[OR-MULTI] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[OR-MULTI] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -129,7 +139,10 @@ export class LogicalCases extends BaseTestCases {
         this.context.logger.error('[AND-OR] FAILED | Expected 2 records | Got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[AND-OR] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[AND-OR] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -158,7 +171,10 @@ export class LogicalCases extends BaseTestCases {
         this.context.logger.error('[EMPTY-WHERE] FAILED | Expected records | Got: 0');
       }
     } catch (error) {
-      this.context.logger.error('[EMPTY-WHERE] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[EMPTY-WHERE] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -189,7 +205,10 @@ export class LogicalCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[UNDEFINED] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[UNDEFINED] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

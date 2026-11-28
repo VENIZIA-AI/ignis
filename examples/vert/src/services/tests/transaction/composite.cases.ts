@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read relations the row type of the read does not carry */
 import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 

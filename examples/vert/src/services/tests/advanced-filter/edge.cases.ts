@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases send values of the wrong type on purpose */
+import { ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -31,7 +33,7 @@ export class EdgeCases extends BaseTestCases {
     } catch (e) {
       this.context.logger.info(
         '[TYPE] PASSED | Strict type validation prevented invalid type: %s',
-        (e as Error).message,
+        ErrorUtility.toError({ error: e }).message,
       );
     }
   }
@@ -44,7 +46,7 @@ export class EdgeCases extends BaseTestCases {
       await this.context.configurationRepository.find({
         filter: {
           where: { code: null },
-        } as any,
+        },
       });
       // If it runs returning 0, that's valid (WHERE code IS NULL -> find nothing).
       // If it throws "Invalid type", that's also valid.
@@ -54,7 +56,7 @@ export class EdgeCases extends BaseTestCases {
     } catch (e) {
       this.context.logger.info(
         '[TYPE] PASSED | Query caught invalid null: %s',
-        (e as Error).message,
+        ErrorUtility.toError({ error: e }).message,
       );
     }
   }
@@ -87,7 +89,7 @@ export class EdgeCases extends BaseTestCases {
     } catch (e) {
       this.context.logger.error(
         '[STRESS] FAILED | Stack overflow or DB error: %s',
-        (e as Error).message,
+        ErrorUtility.toError({ error: e }).message,
       );
     }
   }
@@ -104,7 +106,7 @@ export class EdgeCases extends BaseTestCases {
           where: {
             group: 'ADVANCED_TEST',
             [maliciousKey]: 'value',
-          } as any,
+          },
         },
       });
 
@@ -117,7 +119,7 @@ export class EdgeCases extends BaseTestCases {
       // Expected error: Invalid JSON path or Column not found
       this.context.logger.info(
         '[SECURITY] PASSED | Caught malicious/invalid path: %s',
-        (e as Error).message,
+        ErrorUtility.toError({ error: e }).message,
       );
     }
   }

@@ -1,4 +1,5 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases write dotted JSON paths, which the typed update data refuses, and read the stored JSON, whose type the model does not describe */
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -46,7 +47,10 @@ export class EdgeCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 12] FAILED | Setup error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 12] FAILED | Setup error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -92,7 +96,10 @@ export class EdgeCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 13] FAILED | Setup error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 13] FAILED | Setup error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -131,13 +138,16 @@ export class EdgeCases extends BaseTestCases {
         try {
           await repo.updateById({
             id,
-            data: { [path]: 'value' } as any,
+            data: { [path]: 'value' },
           });
           this.context.logger.error('[CASE 14] FAILED | Path should be rejected: %s', path);
           allRejected = false;
         } catch (error) {
           // Expected to throw
-          this.context.logger.info('[CASE 14] Rejected: %s', (error as Error).message);
+          this.context.logger.info(
+            '[CASE 14] Rejected: %s',
+            ErrorUtility.toError({ error }).message,
+          );
         }
       }
 
@@ -147,7 +157,10 @@ export class EdgeCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 14] FAILED | Setup error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 14] FAILED | Setup error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -186,7 +199,7 @@ export class EdgeCases extends BaseTestCases {
         try {
           await repo.updateById({
             id,
-            data: { [path]: 'value' } as any,
+            data: { [path]: 'value' },
           });
           this.context.logger.error(
             '[CASE 15] FAILED | SQL injection should be rejected: %s',
@@ -195,7 +208,10 @@ export class EdgeCases extends BaseTestCases {
           allRejected = false;
         } catch (error) {
           // Expected - SQL injection should be rejected
-          this.context.logger.info('[CASE 15] Rejected: %s', (error as Error).message);
+          this.context.logger.info(
+            '[CASE 15] Rejected: %s',
+            ErrorUtility.toError({ error }).message,
+          );
         }
       }
 
@@ -205,7 +221,10 @@ export class EdgeCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 15] FAILED | Setup error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 15] FAILED | Setup error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -262,7 +281,10 @@ export class EdgeCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 16] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 16] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

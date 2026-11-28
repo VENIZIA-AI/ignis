@@ -1,4 +1,4 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { eq } from 'drizzle-orm';
 import { Configuration } from '../../../models/entities';
 import { UserAuditCases } from './support';
@@ -80,7 +80,10 @@ export class EdgeCases extends UserAuditCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 8] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 8] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -168,7 +171,10 @@ export class EdgeCases extends UserAuditCases {
       // Cleanup
       await repo.deleteBy({ where: { group: 'AUDIT_TX_TEST' } });
     } catch (error) {
-      this.context.logger.error('[CASE 11] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 11] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -245,8 +251,8 @@ export class EdgeCases extends UserAuditCases {
         );
         this.context.logger.info(
           '[CASE 12] INFO | In-transaction value was: modifiedBy=%s nValue=%s',
-          (inTxRecord as any)?.modifiedBy,
-          (inTxRecord as any)?.nValue,
+          inTxRecord?.modifiedBy,
+          inTxRecord?.nValue,
         );
       } else {
         this.context.logger.error(
@@ -259,7 +265,10 @@ export class EdgeCases extends UserAuditCases {
       // Cleanup
       await repo.deleteBy({ where: { group: 'AUDIT_ROLLBACK_TEST' } });
     } catch (error) {
-      this.context.logger.error('[CASE 12] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 12] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -322,7 +331,7 @@ export class EdgeCases extends UserAuditCases {
           this.context.logger.error(
             '[CASE 16] FAILED | %s threw error | %s',
             description,
-            (createError as Error).message.substring(0, 50),
+            ErrorUtility.toError({ error: createError }).message.substring(0, 50),
           );
         }
       }
@@ -330,7 +339,10 @@ export class EdgeCases extends UserAuditCases {
       // Cleanup
       await repo.deleteBy({ where: { group } });
     } catch (error) {
-      this.context.logger.error('[CASE 16] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 16] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -381,8 +393,8 @@ export class EdgeCases extends UserAuditCases {
       if (hasCreatedBy && hasModifiedBy) {
         this.context.logger.info(
           '[CASE 18] PASSED | DeleteById returns audit fields | createdBy: %s | modifiedBy: %s',
-          (deleted.data as any).createdBy,
-          (deleted.data as any).modifiedBy,
+          deleted.data.createdBy,
+          deleted.data.modifiedBy,
         );
       } else {
         this.context.logger.info(
@@ -392,7 +404,10 @@ export class EdgeCases extends UserAuditCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 18] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 18] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -462,7 +477,7 @@ export class EdgeCases extends UserAuditCases {
           this.context.logger.info(
             '[CASE 19] PASSED | %s rejected | error: %s',
             description,
-            (createError as Error).message.substring(0, 50),
+            ErrorUtility.toError({ error: createError }).message.substring(0, 50),
           );
         }
       }
@@ -476,7 +491,7 @@ export class EdgeCases extends UserAuditCases {
     } catch (error) {
       this.context.logger.error(
         '[CASE 19] FAILED | Security test error: %s',
-        (error as Error).message,
+        ErrorUtility.toError({ error }).message,
       );
     }
   }
@@ -560,7 +575,10 @@ export class EdgeCases extends UserAuditCases {
       // Cleanup
       await repo.deleteBy({ where: { group } });
     } catch (error) {
-      this.context.logger.error('[CASE 20] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 20] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -586,7 +604,10 @@ export class EdgeCases extends UserAuditCases {
 
       this.context.logger.info('[CASE 21] PASSED | Cleanup completed');
     } catch (error) {
-      this.context.logger.error('[CASE 21] FAILED | Cleanup error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 21] FAILED | Cleanup error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

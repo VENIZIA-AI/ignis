@@ -1,4 +1,4 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { eq } from 'drizzle-orm';
 import { Configuration } from '../../../models/entities';
 import { UserAuditCases } from './support';
@@ -40,8 +40,8 @@ export class CreatedByCases extends UserAuditCases {
       const hasModifiedBy = 'modifiedBy' in created.data;
 
       if (hasCreatedBy && hasModifiedBy) {
-        const createdByValue = (created.data as any).createdBy;
-        const modifiedByValue = (created.data as any).modifiedBy;
+        const createdByValue = created.data.createdBy;
+        const modifiedByValue = created.data.modifiedBy;
 
         if (createdByValue === testUserId && modifiedByValue === testUserId) {
           this.context.logger.info(
@@ -66,7 +66,10 @@ export class CreatedByCases extends UserAuditCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 1] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 1] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -131,7 +134,10 @@ export class CreatedByCases extends UserAuditCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 2] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 2] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -195,7 +201,7 @@ export class CreatedByCases extends UserAuditCases {
       let allCorrect = true;
 
       for (const record of records) {
-        if (!expectedUsers.includes(record.createdBy as string)) {
+        if (!expectedUsers.some((user) => user === record.createdBy)) {
           allCorrect = false;
           this.context.logger.error(
             '[CASE 3] FAILED | Unexpected createdBy | code: %s | createdBy: %s',
@@ -223,7 +229,10 @@ export class CreatedByCases extends UserAuditCases {
       // Cleanup
       await repo.deleteBy({ where: { group: 'AUDIT_BULK_TEST' } });
     } catch (error) {
-      this.context.logger.error('[CASE 3] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 3] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -310,11 +319,14 @@ export class CreatedByCases extends UserAuditCases {
         // Some implementations might reject changing createdBy
         this.context.logger.info(
           '[CASE 5] PASSED | Update rejected attempt to change createdBy | error: %s',
-          (updateError as Error).message.substring(0, 50),
+          ErrorUtility.toError({ error: updateError }).message.substring(0, 50),
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 5] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 5] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

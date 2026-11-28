@@ -1,4 +1,4 @@
-import { ParseUtility } from '@venizia/ignis-helpers';
+import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -19,7 +19,7 @@ export class CompositionCases extends BaseTestCases {
             description: 'ARRAY_OPERATOR_TEST',
             price: { gt: 150 },
             tags: { contains: ['featured'] },
-          } as any,
+          },
         },
       });
 
@@ -41,7 +41,10 @@ export class CompositionCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 10] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 10] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -58,7 +61,7 @@ export class CompositionCases extends BaseTestCases {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             or: [{ tags: { contains: ['electronics'] } }, { tags: { contains: ['furniture'] } }],
-          } as any,
+          },
         },
       });
 
@@ -76,7 +79,10 @@ export class CompositionCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 11] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 11] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -115,7 +121,7 @@ export class CompositionCases extends BaseTestCases {
             description: 'ARRAY_OPERATOR_TEST',
             name: { like: 'Combo Product%' },
             and: [{ tags: { contains: ['red'] } }, { tags: { overlaps: ['blue', 'purple'] } }],
-          } as any,
+          },
         },
       });
 
@@ -129,7 +135,10 @@ export class CompositionCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[CASE 18] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 18] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -146,7 +155,7 @@ export class CompositionCases extends BaseTestCases {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             tags: { overlaps: ['electronics', 'clothing', 'furniture'] },
-          } as any,
+          },
           order: ['price DESC'],
           limit: 2,
         },
@@ -178,7 +187,10 @@ export class CompositionCases extends BaseTestCases {
         }
       }
     } catch (error) {
-      this.context.logger.error('[CASE 20] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 20] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

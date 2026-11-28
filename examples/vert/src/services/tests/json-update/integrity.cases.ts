@@ -1,4 +1,5 @@
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases write dotted JSON paths, which the typed update data refuses, and read the stored JSON, whose type the model does not describe */
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -66,7 +67,10 @@ export class IntegrityCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 8] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 8] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -133,7 +137,10 @@ export class IntegrityCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 9] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 9] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -179,7 +186,10 @@ export class IntegrityCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { code } });
     } catch (error) {
-      this.context.logger.error('[CASE 10] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 10] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -248,7 +258,10 @@ export class IntegrityCases extends BaseTestCases {
 
       await repo.deleteBy({ where: { group: groupId } });
     } catch (error) {
-      this.context.logger.error('[CASE 11] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[CASE 11] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

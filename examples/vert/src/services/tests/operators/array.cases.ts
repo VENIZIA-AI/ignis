@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read keys of a JSON column, whose type the model does not describe */
+import { ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -31,7 +33,7 @@ export class ArrayCases extends BaseTestCases {
         this.context.logger.error('[IN] FAILED | Expected 3 records | Got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[IN] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error('[IN] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 
@@ -58,7 +60,10 @@ export class ArrayCases extends BaseTestCases {
         this.context.logger.error('[INQ] FAILED | Expected 2 records | Got: %d', results.length);
       }
     } catch (error) {
-      this.context.logger.error('[INQ] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[INQ] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -76,7 +81,9 @@ export class ArrayCases extends BaseTestCases {
       // IMPORTANT: SQL NIN does NOT return NULL values!
       // NULL NOT IN (values) = UNKNOWN, which is excluded from results
       // Should find: 0, 100, -100, 2147483647 = 4 records (NULLs excluded)
-      const noneInList = results.every((r) => ![10, 20, 30, 40, 50].includes(r.nValue as number));
+      const noneInList = results.every(
+        (r) => ![10, 20, 30, 40, 50].some((value) => value === r.nValue),
+      );
       const noNulls = results.every((r) => r.nValue !== null);
 
       if (noneInList && noNulls && results.length === 4) {
@@ -103,7 +110,10 @@ export class ArrayCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[NIN] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[NIN] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -129,7 +139,10 @@ export class ArrayCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[IN-EMPTY] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[IN-EMPTY] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -159,7 +172,10 @@ export class ArrayCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[NIN-EMPTY] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[NIN-EMPTY] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -194,7 +210,10 @@ export class ArrayCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[BETWEEN] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[BETWEEN] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -235,7 +254,10 @@ export class ArrayCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[NOT-BETWEEN] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[NOT-BETWEEN] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -262,7 +284,10 @@ export class ArrayCases extends BaseTestCases {
         this.context.logger.error('[JSON-ARRAY] FAILED | Expected records | Got: 0');
       }
     } catch (error) {
-      this.context.logger.error('[JSON-ARRAY] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[JSON-ARRAY] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -284,7 +309,10 @@ export class ArrayCases extends BaseTestCases {
       );
       this.context.logger.info('[JSON-EMPTY-ARR] PASSED | Query executed without error');
     } catch (error) {
-      this.context.logger.error('[JSON-EMPTY-ARR] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[JSON-EMPTY-ARR] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }

@@ -1,5 +1,5 @@
 import { service } from '@venizia/ignis';
-import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestService } from './base-test.service';
 
 // ----------------------------------------------------------------
@@ -62,7 +62,7 @@ export class FieldSelectionTestService extends BaseTestService {
 
       this.logger.info('[CASE 1] PASSED | Created 3 records for field selection tests');
     } catch (error) {
-      this.logger.error('[CASE 1] FAILED | Error: %s', (error as Error).message);
+      this.logger.error('[CASE 1] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 
@@ -112,7 +112,7 @@ export class FieldSelectionTestService extends BaseTestService {
         this.logger.error('[CASE 2] Record: %j', firstRecord);
       }
     } catch (error) {
-      this.logger.error('[CASE 2] FAILED | Error: %s', (error as Error).message);
+      this.logger.error('[CASE 2] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 
@@ -153,7 +153,7 @@ export class FieldSelectionTestService extends BaseTestService {
         this.logger.error('[CASE 3] FAILED | Unexpected fields | Record: %j', firstRecord);
       }
     } catch (error) {
-      this.logger.error('[CASE 3] FAILED | Error: %s', (error as Error).message);
+      this.logger.error('[CASE 3] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 
@@ -201,7 +201,7 @@ export class FieldSelectionTestService extends BaseTestService {
         this.logger.error('[CASE 4] Record: %j', firstRecord);
       }
     } catch (error) {
-      this.logger.error('[CASE 4] FAILED | Error: %s', (error as Error).message);
+      this.logger.error('[CASE 4] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 
@@ -258,7 +258,7 @@ export class FieldSelectionTestService extends BaseTestService {
         );
       }
     } catch (error) {
-      this.logger.error('[CASE 5] FAILED | Error: %s', (error as Error).message);
+      this.logger.error('[CASE 5] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 
@@ -273,7 +273,7 @@ export class FieldSelectionTestService extends BaseTestService {
       const deleted = await repo.deleteBy({ where: { group: 'FIELDS_TEST' } });
       this.logger.info('[CASE 6] PASSED | Deleted %d records', deleted.count);
     } catch (error) {
-      this.logger.error('[CASE 6] FAILED | Error: %s', (error as Error).message);
+      this.logger.error('[CASE 6] FAILED | Error: %s', ErrorUtility.toError({ error }).message);
     }
   }
 }

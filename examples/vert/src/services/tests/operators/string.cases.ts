@@ -1,3 +1,4 @@
+import { ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -29,7 +30,10 @@ export class StringCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[LIKE] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[LIKE] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -58,7 +62,10 @@ export class StringCases extends BaseTestCases {
         this.context.logger.error('[NLIKE] FAILED | Some records contain "alpha"');
       }
     } catch (error) {
-      this.context.logger.error('[NLIKE] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[NLIKE] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -85,7 +92,10 @@ export class StringCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[ILIKE] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[ILIKE] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -116,7 +126,10 @@ export class StringCases extends BaseTestCases {
         this.context.logger.error('[NILIKE] FAILED | Some records contain "beta"');
       }
     } catch (error) {
-      this.context.logger.error('[NILIKE] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[NILIKE] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -143,7 +156,10 @@ export class StringCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[REGEXP] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[REGEXP] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -170,7 +186,10 @@ export class StringCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[IREGEXP] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[IREGEXP] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -199,7 +218,10 @@ export class StringCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[EMPTY-STR] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[EMPTY-STR] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -225,7 +247,10 @@ export class StringCases extends BaseTestCases {
         );
       }
     } catch (error) {
-      this.context.logger.error('[SPECIAL-LIKE] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[SPECIAL-LIKE] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 
@@ -247,7 +272,10 @@ export class StringCases extends BaseTestCases {
         this.context.logger.info('[JSON-SPECIAL] INFO | No records with special chars found');
       }
     } catch (error) {
-      this.context.logger.error('[JSON-SPECIAL] FAILED | Error: %s', (error as Error).message);
+      this.context.logger.error(
+        '[JSON-SPECIAL] FAILED | Error: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
   }
 }
