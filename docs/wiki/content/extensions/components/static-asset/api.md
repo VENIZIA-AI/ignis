@@ -87,7 +87,7 @@ type TToggle<Options extends object = Record<never, never>> =
   | ({ use: true } & Options);
 ```
 
-`{ use: false }` is the whole off state, so an option is never read from a feature that is off. `use` must be a boolean: `{ use: 'false' }`, `false`, `null` or `{}` stops the boot. `serverUpload`, `directUpload`, `metaLink` and `directUpload.validation` are required: leave one out and the entry does not compile. `routes`, `auth.publicRead` and `extend` are optional, and absent means the default.
+`{ use: false }` is the whole off state, so an option is never read from a feature that is off. A toggle is a plain object with its own boolean `use`: `{ use: 'false' }`, `false`, `null` or `{}` stops the boot, and the error names the entry and the option. `serverUpload`, `directUpload`, `metaLink` and `directUpload.validation` are required: leave one out and the entry does not compile. `routes`, `auth.publicRead` and `extend` are optional, and absent means the default.
 
 ## Entry options
 

@@ -50,7 +50,12 @@ describe('PersistableRepository - the log toggle', () => {
         verb,
         outcome: {
           status: 'rejected',
-          reason: { message: expect.stringContaining('A toggle must be') },
+          reason: {
+            statusCode: 500,
+            message: expect.stringMatching(
+              /option: \[PersistableRepository\]\[_(create|upsert|update|delete)\] options\.log \|/,
+            ),
+          },
         },
       });
     }

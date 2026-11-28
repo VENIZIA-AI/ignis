@@ -92,7 +92,9 @@ export class StaticAssetEntryUtility {
       });
     }
 
-    const directUpload = StaticAssetToggleUtility.isUsed(entry.directUpload)
+    const directUpload = StaticAssetToggleUtility.isUsed(entry.directUpload, {
+      name: `[${name}] directUpload`,
+    })
       ? entry.directUpload
       : undefined;
 
@@ -132,7 +134,9 @@ export class StaticAssetEntryUtility {
             helper,
             scope: name,
           });
-    const serverUpload = StaticAssetToggleUtility.isUsed(entry.serverUpload)
+    const serverUpload = StaticAssetToggleUtility.isUsed(entry.serverUpload, {
+      name: `[${name}] serverUpload`,
+    })
       ? entry.serverUpload
       : undefined;
     const maxFolderDepth = entry.maxFolderDepth ?? BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH;
@@ -145,16 +149,23 @@ export class StaticAssetEntryUtility {
       const toggle = entry.routes?.[routeKey];
 
       if (toggle !== undefined) {
+        const option = { name: `[${name}] routes.${routeKey}` };
+
         routes[routeKey] = {
-          isEnabled: StaticAssetToggleUtility.isUsed(toggle),
-          override: StaticAssetToggleUtility.pick(toggle) ?? {},
+          isEnabled: StaticAssetToggleUtility.isUsed(toggle, option),
+          override: StaticAssetToggleUtility.pick(toggle, option) ?? {},
         };
       }
     }
 
-    const metaLink = StaticAssetToggleUtility.isUsed(entry.metaLink) ? entry.metaLink : undefined;
+    const metaLink = StaticAssetToggleUtility.isUsed(entry.metaLink, { name: `[${name}] metaLink` })
+      ? entry.metaLink
+      : undefined;
     const validation =
-      directUpload && StaticAssetToggleUtility.isUsed(directUpload.validation)
+      directUpload &&
+      StaticAssetToggleUtility.isUsed(directUpload.validation, {
+        name: `[${name}] directUpload.validation`,
+      })
         ? directUpload.validation
         : undefined;
 
@@ -170,7 +181,9 @@ export class StaticAssetEntryUtility {
       auth: auth && {
         authenticate: auth.authenticate,
         authorize: auth.authorize,
-        isPublicRead: StaticAssetToggleUtility.isUsed(auth.publicRead),
+        isPublicRead: StaticAssetToggleUtility.isUsed(auth.publicRead, {
+          name: `[${name}] auth.publicRead`,
+        }),
       },
       routes,
       helper,

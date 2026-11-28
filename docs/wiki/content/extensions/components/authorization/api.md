@@ -1073,7 +1073,7 @@ Only reachable edges are emitted: `role_inherits` edges from the principal's rol
 
 **The permission join is a `LEFT JOIN`, not `INNER JOIN`.** A grant whose target does not resolve (missing or soft-deleted `Permission` row) is logged and skipped by `buildGrantLines`, not silently dropped from the result set.
 
-All queries use the `sql` template tag from `drizzle-orm`. Tables are schema-qualified via `sql.identifier` (injection-safe); interpolated values are bound parameters. The soft-delete clause (`AND <alias>.<col> IS NULL`) is appended when `entities.softDelete.use` is true. Leave `softDelete` out to turn it off; `null` or a `use` that is not a boolean throws at the policy query, not at boot.
+All queries use the `sql` template tag from `drizzle-orm`. Tables are schema-qualified via `sql.identifier` (injection-safe); interpolated values are bound parameters. The soft-delete clause (`AND <alias>.<col> IS NULL`) is appended when `entities.softDelete.use` is true. Leave `softDelete` out to turn it off. The adapter checks it when it is built: `null`, a `use` that is not a boolean, or `use: true` without a non-empty `columnName` throws.
 
 ```typescript
 import { ScopedCasbinAdapter } from '@venizia/ignis';

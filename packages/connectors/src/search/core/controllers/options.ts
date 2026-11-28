@@ -106,7 +106,7 @@ export class SearchControllerOptionsUtility {
     toggle: TToggle<ISearchRouteOptions> | undefined;
   }) {
     const { scope, name, toggle } = opts;
-    const headers = ToggleUtility.pick(toggle)?.request?.headers;
+    const headers = ToggleUtility.pick(toggle, { name: `[${scope}] ${name}` })?.request?.headers;
 
     if (headers !== undefined && typeof headers.safeParse !== 'function') {
       throw SearchControllerOptionsUtility.fail({

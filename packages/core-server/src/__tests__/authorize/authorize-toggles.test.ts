@@ -30,7 +30,10 @@ describe('CasbinAuthorizationEnforcer - the cached toggle', () => {
 
     expect(outcome).toMatchObject({
       status: 'rejected',
-      reason: { message: expect.stringContaining('A toggle must be') },
+      reason: {
+        statusCode: 500,
+        message: expect.stringContaining('option: [CasbinAuthorizationEnforcer] options.cached |'),
+      },
     });
   });
 
@@ -72,31 +75,60 @@ const entities = (softDelete: IScopedCasbinEntities['softDelete']): IScopedCasbi
   softDelete,
 });
 
-/** The clause each of the two builders adds for one `softDelete` setting. */
-const clauses = (of: IScopedCasbinEntities) => {
-  const adapter = new ScopedCasbinAdapter({ dataSource, entities: of });
-  const expander = new CustomGrantExpander({ dataSource, entities: of });
+/** The two builders of the soft-delete clause, built from one `softDelete` setting. */
+const builders = [
+  {
+    scope: 'ScopedCasbinAdapter',
+    build: (softDelete: IScopedCasbinEntities['softDelete']) => {
+      const adapter = new ScopedCasbinAdapter({ dataSource, entities: entities(softDelete) });
 
-  return [
-    () => adapter['softDeleteClause']({ alias: 'p' }),
-    () => expander['softDeleteClause']({ alias: 'p' }),
-  ];
-};
+      return () => adapter['softDeleteClause']({ alias: 'p' });
+    },
+  },
+  {
+    scope: 'CustomGrantExpander',
+    build: (softDelete: IScopedCasbinEntities['softDelete']) => {
+      const expander = new CustomGrantExpander({ dataSource, entities: entities(softDelete) });
+
+      return () => expander['softDeleteClause']({ alias: 'p' });
+    },
+  },
+];
 
 describe('scoped casbin - the softDelete toggle', () => {
-  test('both query builders refuse a use that is not a boolean', () => {
-    const refused = entities(undefined);
-    Reflect.set(refused, 'softDelete', { use: 'false', columnName: 'deleted_at' });
+  test('both refuse a use that is not a boolean when they are built, naming the option', () => {
+    for (const { scope, build } of builders) {
+      for (const written of ['{"use":"false","columnName":"deleted_at"}', 'null', '{}']) {
+        expect(() => build(JSON.parse(written))).toThrow(
+          `option: [${scope}] entities.softDelete |`,
+        );
+      }
+    }
+  });
 
-    for (const clause of clauses(refused)) {
-      expect(clause).toThrow('A toggle must be');
+  test('both refuse a switch that is on with no column name when they are built', () => {
+    for (const { scope, build } of builders) {
+      for (const written of [
+        '{"use":true}',
+        '{"use":true,"columnName":""}',
+        '{"use":true,"columnName":1}',
+      ]) {
+        expect(() => build(JSON.parse(written))).toThrow(
+          expect.objectContaining({
+            statusCode: 500,
+            message: expect.stringContaining(
+              `[${scope}] entities.softDelete.columnName must be a non-empty string`,
+            ),
+          }),
+        );
+      }
     }
   });
 
   test('absent and off add no clause, on adds one', () => {
     const dialect = new PgDialect();
     const textOf = (softDelete: IScopedCasbinEntities['softDelete']) =>
-      clauses(entities(softDelete)).map((clause) => dialect.sqlToQuery(clause()).sql);
+      builders.map(({ build }) => dialect.sqlToQuery(build(softDelete)()).sql);
 
     expect(textOf(undefined)).toEqual(['', '']);
     expect(textOf({ use: false })).toEqual(['', '']);

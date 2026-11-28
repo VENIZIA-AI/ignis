@@ -191,14 +191,14 @@ An entry is `{ basePath, name?, bucket, helper, keyPrefix?, rawObjectPath?, link
 directUpload, metaLink, routes?, extend? }`. Every switch is a `TToggle<Options>`: `{ use: false }` or
 `{ use: true, ...options }`. `serverUpload`, `directUpload`, `metaLink` and `directUpload.validation` are
 REQUIRED (a missing one is a type error); `routes`, `auth.publicRead` and `extend` are optional. The only
-place `use` is read is `StaticAssetToggleUtility.isUsed`, which throws on anything but an object with a
+place `use` is read is `StaticAssetToggleUtility.isUsed`, which throws on anything but a plain object with its own
 boolean `use` (a route entry is read whenever it is not `undefined`). `TToggle` and that utility live in the kernel
 (`ToggleUtility`, `src/utilities/toggle.utility.ts`, shared by components and controllers); static-asset
 re-exports them under the old names.
 `StaticAssetEntryUtility.resolve({ key, entry })` (`utilities/entry.utility.ts`) is the one place that reads
 the toggles, applies the defaults and makes the cross-checks the types cannot (plain JavaScript, a cast, a
-custom helper); every boot error is thrown with the entry's name, except a refused toggle: that error comes from
-`ToggleUtility` and names neither the entry nor the field. `name` is optional and derived from the
+custom helper); every boot error is thrown with the entry's name; a refused toggle names the entry and the field
+(`[<name>] <field>`, passed to `isUsed`/`pick`). `name` is optional and derived from the
 key (`staticAsset` -> `StaticAssetController`). The helper declares its backend: `helper.storageType`
 (`StorageTypes.DISK` or `BUN_S3`, from helpers; optional on `IStorageHelper`) replaces the old `storage`
 field, and the entry refuses a helper that declares neither. `StaticAssetControllerFactory.build<Schema>({

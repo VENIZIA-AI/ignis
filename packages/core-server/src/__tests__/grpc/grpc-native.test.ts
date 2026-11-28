@@ -809,7 +809,7 @@ describe('native gRPC port - lifecycle', () => {
 
     expect(outcome).toMatchObject({
       status: 'rejected',
-      reason: { message: expect.stringContaining('A toggle must be') },
+      reason: { message: expect.stringContaining('option: [GrpcComponent] native |') },
     });
   });
 
@@ -826,7 +826,7 @@ describe('native gRPC port - lifecycle', () => {
             idleTimeoutMs: 0,
             shutdown: new AbortController(),
           }),
-      ).toThrow('A toggle must be');
+      ).toThrow('option: [GrpcListenerHelper] native.tls |');
     }
   });
 

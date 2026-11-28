@@ -37,6 +37,8 @@ type TNormalizePayloadFn<E extends Env, TAction, TResource> = (opts: {
   context: TContext<E, string>;
 }) => { subject: string; resource: string; action: string; domain?: string };
 
+const CACHED_OPTION = { name: '[CasbinAuthorizationEnforcer] options.cached' };
+
 // Wraps casbin (optional peer dep). Each request borrows its own pooled enforcer; any error during use destroys it (fail-closed). Pooled enforcers carry no adapter - only extractUserLines uses one.
 
 /** Authorization enforcer backed by casbin (an optional peer dependency); `configure()` throws when `options.model` is missing. */
@@ -90,7 +92,7 @@ export class CasbinAuthorizationEnforcer<
       });
     }
 
-    if (ToggleUtility.isUsed(cached)) {
+    if (ToggleUtility.isUsed(cached, CACHED_OPTION)) {
       this.validateExpiresIn({ expiresIn: cached.options.expiresIn });
     }
 
@@ -115,7 +117,7 @@ export class CasbinAuthorizationEnforcer<
       .info(
         'Casbin enforcer pool ready (size: %s, cached: %s)',
         this.options.poolSize ?? 16,
-        ToggleUtility.isUsed(cached) ? cached.driver : 'none',
+        ToggleUtility.isUsed(cached, CACHED_OPTION) ? cached.driver : 'none',
       );
   }
 
@@ -153,7 +155,7 @@ export class CasbinAuthorizationEnforcer<
 
     let lines: string[];
 
-    if (ToggleUtility.isUsed(cached)) {
+    if (ToggleUtility.isUsed(cached, CACHED_OPTION)) {
       const fetched = await this.requireRedisCache().fetch({ user });
       lines = fetched;
     } else {
@@ -282,7 +284,7 @@ export class CasbinAuthorizationEnforcer<
   protected requireRedisCache(): UserPolicyLineCache {
     const { cached } = this.options;
 
-    if (!ToggleUtility.isUsed(cached)) {
+    if (!ToggleUtility.isUsed(cached, CACHED_OPTION)) {
       throw getError({
         message:
           '[CasbinAuthorizationEnforcer] Cache management requires the redis cache driver, but caching is disabled.',

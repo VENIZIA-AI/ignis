@@ -90,10 +90,22 @@ describe('normalizeModelMetadata - migration', () => {
     }
   });
 
-  test('a migration that is not an object is refused when the model is declared', () => {
-    for (const written of ['false', 'null', 'true', '"off"']) {
-      expect(() => declare({ migration: JSON.parse(written) })).toThrow('A toggle must be');
+  test('a migration that is not a plain object is refused when the model is declared', () => {
+    for (const written of ['false', 'null', 'true', '"off"', '[]']) {
+      expect(() => declare({ migration: JSON.parse(written) })).toThrow(
+        /\[model\]\[Probe\] migration must be a plain object/,
+      );
     }
+
+    expect(() => declare({ migration: Object.create({ use: true }) })).toThrow(
+      'migration must be a plain object',
+    );
+  });
+
+  test('a refused use names the model and the option', () => {
+    expect(() => declare({ migration: JSON.parse('{"use":"false"}') })).toThrow(
+      'option: [model][Probe] migration |',
+    );
   });
 
   test('the other metadata is carried through', () => {

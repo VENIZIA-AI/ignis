@@ -255,9 +255,16 @@ describe('a toggle is on only with a boolean use', () => {
     ],
   ];
 
+  const paths: Record<string, string> = {
+    routes: 'routes.deleteObject',
+    'a route written as false': 'routes.deleteObject',
+  };
+
   for (const [name, entry] of entries) {
-    test(`${name} is refused at resolve`, () => {
-      expect(() => resolve(entry())).toThrow('A toggle must be');
+    test(`${name} is refused at resolve, naming the entry and the option`, () => {
+      expect(() => resolve(entry())).toThrow(
+        `option: [StaticAssetController] ${paths[name] ?? name} |`,
+      );
     });
   }
 });

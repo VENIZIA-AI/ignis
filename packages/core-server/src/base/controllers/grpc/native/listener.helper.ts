@@ -20,6 +20,7 @@ const DEFAULT_SHUTDOWN_TIMEOUT_MS = 10_000;
 /** What aborted calls get to write their answer before the connections are destroyed. */
 const ABORT_GRACE_MS = 1_000;
 const MAX_PORT = 65_535;
+const TLS_OPTION = { name: '[GrpcListenerHelper] native.tls' };
 /** The largest `maxConcurrentStreams` an HTTP/2 SETTINGS frame carries; a larger value fails every connection. */
 const MAX_CONCURRENT_STREAMS = 4_294_967_295;
 /** The largest delay a timer takes; a larger one fires at once. */
@@ -88,7 +89,7 @@ export class GrpcListenerHelper extends BaseHelper {
       this.onRequest({ request, response });
     };
 
-    const server = ToggleUtility.isUsed(tls)
+    const server = ToggleUtility.isUsed(tls, TLS_OPTION)
       ? http2.createSecureServer(
           { settings, allowHTTP1: false, key: tls.key, cert: tls.cert },
           onRequest,
@@ -127,7 +128,7 @@ export class GrpcListenerHelper extends BaseHelper {
     const logger = this.logger.for(this.start.name);
     logger.info('Native gRPC STARTED | address: %s:%s', host, this.getAddress()?.port);
 
-    if (!ToggleUtility.isUsed(tls) && !LOOPBACK_HOSTS.has(host)) {
+    if (!ToggleUtility.isUsed(tls, TLS_OPTION) && !LOOPBACK_HOSTS.has(host)) {
       logger.info('Native gRPC is clear text (h2c) on %s: it expects a mesh or a TLS proxy', host);
     }
   }
@@ -287,7 +288,7 @@ export class GrpcListenerHelper extends BaseHelper {
       refuse(`native.host must be a string | value: ${String(host)}`);
     }
 
-    if (ToggleUtility.isUsed(tls) && (!tls.key || !tls.cert)) {
+    if (ToggleUtility.isUsed(tls, TLS_OPTION) && (!tls.key || !tls.cert)) {
       refuse('native.tls needs key and cert');
     }
   }

@@ -230,6 +230,17 @@ describe('InternalQueueMailExecutorHelper - backoff', () => {
     expect(delayAfter({ attempts: 3 })).toBe(MailDefaults.BACKOFF_DELAY_MS);
   });
 
+  test('a backoff that is not a number, or zero for very many attempts, is no delay', () => {
+    const fixed: IMailQueueOptions['backoff'] = { type: MailBackoffTypes.FIXED, delay: Number.NaN };
+    const exponential: IMailQueueOptions['backoff'] = {
+      type: MailBackoffTypes.EXPONENTIAL,
+      delay: 0,
+    };
+
+    expect(delayAfter({ attempts: 1, backoff: fixed })).toBe(0);
+    expect(delayAfter({ attempts: 2000, backoff: exponential })).toBe(0);
+  });
+
   test('a delay never passes the longest delay a timer can hold', () => {
     const exponential: IMailQueueOptions['backoff'] = {
       type: MailBackoffTypes.EXPONENTIAL,

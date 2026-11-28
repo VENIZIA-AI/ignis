@@ -135,7 +135,7 @@ Prefer named constants? `RetryBackoffStrategies.EXPONENTIAL`, `RetryJitterModes.
 |---|---|
 | `RetryUtility.runWithTimeout({ operation, timeoutMs, execution })` | Races `execution` against a timeout. Omitted or `<= 0` means no timeout. |
 | `RetryUtility.isRetryTimeoutError(error)` | `true` when the error is a timeout from `runWithTimeout`/`executeWithRetry`. |
-| `RetryUtility.computeBackoffDelayMs({ attempt, backoff })` | The delay both helpers use, exposed for your own loops. |
+| `RetryUtility.computeBackoffDelayMs({ attempt, backoff })` | The delay both helpers use, exposed for your own loops. It is never `NaN`: input that is not a number answers `0`. |
 
 ## See also
 

@@ -10,6 +10,7 @@ import {
   type TCustomGrantMetadata,
 } from '@venizia/ignis-kernel';
 import { sql, type SQL } from 'drizzle-orm';
+import { ScopedCasbinSoftDelete } from './soft-delete.utility';
 import { PolicyConnectorResolver } from './connector';
 import type { ICasbinPolicySource, IScopedCasbinEntities } from './common';
 
@@ -39,6 +40,10 @@ export class CustomGrantExpander extends BaseHelper {
     entities: Pick<IScopedCasbinEntities, 'permission' | 'softDelete'>;
   }) {
     super({ scope: CustomGrantExpander.name });
+    ScopedCasbinSoftDelete.assert({
+      scope: CustomGrantExpander.name,
+      softDelete: opts.entities.softDelete,
+    });
     this.dataSource = opts.dataSource;
     this.permission = opts.entities.permission;
     this.softDelete = opts.entities.softDelete;
@@ -141,7 +146,7 @@ export class CustomGrantExpander extends BaseHelper {
   private softDeleteClause(opts: { alias: string }): SQL {
     const sd = this.softDelete;
 
-    if (!ToggleUtility.isUsed(sd)) {
+    if (!ToggleUtility.isUsed(sd, { name: `[${CustomGrantExpander.name}] entities.softDelete` })) {
       return sql.empty();
     }
 
