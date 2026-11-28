@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package notes.v1;
+
+// The one contract of the example. Edit it, then run `bun run proto:gen`.
+service NotesService {
+  // Public: no token needed. Answers the token every other call sends as `authorization: Bearer <token>`.
+  rpc SignIn(SignInRequest) returns (SignInResponse);
+
+  // Unary. Role policy: `note:read`.
+  rpc GetNote(GetNoteRequest) returns (GetNoteResponse);
+
+  // Server stream: the caller's notes, then (with `follow`) every new one until the call ends. Role policy: `note:read`.
+  rpc WatchNotes(WatchNotesRequest) returns (stream WatchNotesResponse);
+
+  // Client stream: all notes are saved in one write, or none is. Role policy: `note:create`.
+  rpc ImportNotes(stream ImportNotesRequest) returns (ImportNotesResponse);
+
+  // Bidirectional stream: one answer per note sent, a refused note does not end the call. Role policy: `note:create`.
+  // Needs HTTP/2: only the native gRPC port serves it.
+  rpc SyncNotes(stream SyncNotesRequest) returns (stream SyncNotesResponse);
+}
+
+message Note {
+  string id = 1;
+  string title = 2;
+  string body = 3;
+}
+
+message SignInRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message SignInResponse {
+  string token = 1;
+}
+
+message GetNoteRequest {
+  string id = 1;
+}
+
+message GetNoteResponse {
+  Note note = 1;
+}
+
+message WatchNotesRequest {
+  // Keep the stream open and send notes created from now on.
+  bool follow = 1;
+}
+
+message WatchNotesResponse {
+  Note note = 1;
+}
+
+message ImportNotesRequest {
+  string title = 1;
+  string body = 2;
+}
+
+message ImportNotesResponse {
+  repeated string ids = 1;
+}
+
+message SyncNotesRequest {
+  // Chosen by the client, repeated on the answer so the client can match them.
+  string client_ref = 1;
+  string title = 2;
+  string body = 3;
+}
+
+message SyncNotesResponse {
+  string client_ref = 1;
+  oneof result {
+    Note saved = 2;
+    // Why the note was refused.
+    string rejected = 3;
+  }
+}

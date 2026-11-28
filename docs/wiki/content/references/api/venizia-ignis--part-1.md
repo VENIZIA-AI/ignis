@@ -134,9 +134,11 @@ Abstract base class for gRPC controllers, providing RPC registration and Connect
 ```ts
 export declare abstract class AbstractGrpcController<RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ServiceType = Parameters<ConnectRouter['service']>[0], ConfigurableOptions extends object = {}> extends BaseHelper implements IGrpcController<RouteEnv, RouteSchema, BasePath, ServiceType, ConfigurableOptions> {
     isConfigured: boolean;
+    /** The registered RPCs, keyed by the method name of the service. */
     definitions: Record<string, IRpcRegistration<RouteEnv>>;
     /** ConnectRPC service definition from @controller metadata. */
     service: ServiceType;
+    /** The mount path under the application's base path; `@controller`'s `path` wins over the constructor's. */
     path: string;
     /** Assigned by GrpcComponent from its options, before configure(). Absent means the adapter resolves the peer itself. */
     connectRpcModule?: IConnectRpcModule;
@@ -947,18 +949,3 @@ export declare class CustomGrantExpander extends BaseHelper {
 ```
 
 Source: `packages/core-server/src/components/auth/authorize/adapters/custom-grant-expander.ts`
-
-## `DocumentUITypes`
-
-*class*
-
-The document UI implementations the API reference can render. `isValid` checks a string against them.
-
-```ts
-export declare class DocumentUITypes extends ConstClass {
-    static readonly SWAGGER = "swagger";
-    static readonly SCALAR = "scalar";
-}
-```
-
-Source: `packages/core-server/src/components/api-reference/common/constants.ts`

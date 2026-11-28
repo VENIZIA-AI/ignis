@@ -1,0 +1,3 @@
+# Paths bun fmt skips: one gitignore-style pattern per line, relative to this app.
+# drizzle-kit writes these snapshots; a regenerate must not turn lint red.
+migration/meta/**

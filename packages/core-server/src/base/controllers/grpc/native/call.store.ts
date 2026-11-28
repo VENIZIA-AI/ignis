@@ -13,6 +13,7 @@ export class GrpcNativeCallStore {
     return opts.env instanceof GrpcNativeCallStore ? opts.env.call : undefined;
   }
 
+  /** The caller's address from the TCP connection, or `null` when the socket gives none. */
   requestIP() {
     const socket = this.call.request.stream.session?.socket;
 

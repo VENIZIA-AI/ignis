@@ -4,13 +4,15 @@
   "compilerOptions": {
     "module": "preserve",
     "moduleResolution": "bundler",
+    "lib": ["ESNext", "DOM", "DOM.Iterable", "DOM.AsyncIterable"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@clients/*": ["./clients/*"]
     },
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "useDefineForClassFields": false
   },
-  "include": ["src", "scripts"],
+  "include": ["src", "clients", "scripts"],
   "exclude": ["node_modules", "dist", "app_data"]
 }

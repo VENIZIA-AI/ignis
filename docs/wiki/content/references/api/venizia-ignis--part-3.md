@@ -9,6 +9,56 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 Part 3 of 4 of [`@venizia/ignis`](/references/api/venizia-ignis).
 
+## `IServerTime`
+
+*interface*
+
+Body of `GET <path>/time`. Every field comes from ONE captured instant, so they never disagree.
+
+**Example**
+```json
+{
+  "server": {
+    "date": "2026-11-10",
+    "time": "15:00:00.123",
+    "epoch": 1794297600123,
+    "iso": "2026-11-10T15:00:00.123+07:00"
+  },
+  "tz": "Asia/Ho_Chi_Minh",
+  "utc": { "offset": "+07:00", "minutes": 420, "iso": "2026-11-10T08:00:00.123Z" }
+}
+```
+
+```ts
+export interface IServerTime {
+    server: {
+        /** Calendar date in the server time zone, `YYYY-MM-DD`. */
+        date: string;
+        /** Wall-clock time in the server time zone, `HH:mm:ss.SSS`. */
+        time: string;
+        /** Milliseconds since 1970-01-01T00:00:00Z (`Date.now()`). Compute clock skew from this field. */
+        epoch: number;
+        /** `date`, `time` and `utc.offset` joined as ISO-8601, e.g. `2026-11-10T15:00:00.123+07:00`. */
+        iso: string;
+    };
+    /** IANA time zone the server process resolved, e.g. `Asia/Ho_Chi_Minh`. */
+    tz: string;
+    utc: {
+        /** Offset of `tz` from UTC at response time, `+07:00` style. */
+        offset: string;
+        /**
+         * The same offset in minutes, POSITIVE east of UTC (`420` for `+07:00`). This is the opposite
+         * sign of JavaScript's `Date.prototype.getTimezoneOffset()`.
+         */
+        minutes: number;
+        /** The same instant in UTC, ISO-8601 with milliseconds (`toISOString()`). */
+        iso: string;
+    };
+}
+```
+
+Source: `packages/core-server/src/components/server-info/common/types.ts`
+
 ## `IShutdownSignalsOptions`
 
 *interface*
@@ -1083,60 +1133,6 @@ An OpenAPI security scheme (`apiKey`, `http`, `oauth2`, `openIdConnect`) or a re
 
 ```ts
 export type TApiReferenceSecurityScheme = Parameters<typeof OpenAPIRegistry.prototype.registerComponent<'securitySchemes'>>[2];
-```
-
-Source: `packages/core-server/src/components/api-reference/common/types.ts`
-
-## `TBunServerInstance`
-
-*type*
-
-Lives here, not in the kernel: `Bun.serve` resolves only through `@types/bun`, and emitting `Bun` into the kernel's published `.d.ts` would force that dependency on every browser consumer of `@venizia/ignis-kernel`. This package legitimately has Bun types - it is the layer that calls `Bun.serve`.
-
-```ts
-export type TBunServerInstance = ReturnType<typeof Bun.serve>;
-```
-
-Source: `packages/core-server/src/base/applications/server.ts`
-
-## `TCasbinPolicyConnector`
-
-*type*
-
-Drizzle connector for policy queries, typed on the shared `PgDatabase` base so postgres-js fits too. Declared here rather than imported from `@/connectors/postgres`: components depend on a minimal local contract, never a connector class.
-
-```ts
-export type TCasbinPolicyConnector = PgDatabase<PgQueryResultHKT, Record<string, unknown>>;
-```
-
-Source: `packages/core-server/src/components/auth/authorize/adapters/common/types.ts`
-
-## `TCustomGrantRow`
-
-*type*
-
-A custom row that survived {@link CustomGrantExpander.rejectCustomRow}, ready for op-to-catalog resolution.
-
-```ts
-export type TCustomGrantRow = {
-    subjectId: IdType;
-    objectSubject: string;
-    ops: string[];
-    domain: string;
-    effect: string;
-};
-```
-
-Source: `packages/core-server/src/components/auth/authorize/adapters/custom-grant-expander.ts`
-
-## `TDocumentUIType`
-
-*type*
-
-One of the `DocumentUITypes` values.
-
-```ts
-export type TDocumentUIType = TConstValue<typeof DocumentUITypes>;
 ```
 
 Source: `packages/core-server/src/components/api-reference/common/types.ts`

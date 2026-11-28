@@ -9,6 +9,60 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 Part 4 of 4 of [`@venizia/ignis`](/references/api/venizia-ignis).
 
+## `TBunServerInstance`
+
+*type*
+
+Lives here, not in the kernel: `Bun.serve` resolves only through `@types/bun`, and emitting `Bun` into the kernel's published `.d.ts` would force that dependency on every browser consumer of `@venizia/ignis-kernel`. This package legitimately has Bun types - it is the layer that calls `Bun.serve`.
+
+```ts
+export type TBunServerInstance = ReturnType<typeof Bun.serve>;
+```
+
+Source: `packages/core-server/src/base/applications/server.ts`
+
+## `TCasbinPolicyConnector`
+
+*type*
+
+Drizzle connector for policy queries, typed on the shared `PgDatabase` base so postgres-js fits too. Declared here rather than imported from `@/connectors/postgres`: components depend on a minimal local contract, never a connector class.
+
+```ts
+export type TCasbinPolicyConnector = PgDatabase<PgQueryResultHKT, Record<string, unknown>>;
+```
+
+Source: `packages/core-server/src/components/auth/authorize/adapters/common/types.ts`
+
+## `TCustomGrantRow`
+
+*type*
+
+A custom row that survived {@link CustomGrantExpander.rejectCustomRow}, ready for op-to-catalog resolution.
+
+```ts
+export type TCustomGrantRow = {
+    subjectId: IdType;
+    objectSubject: string;
+    ops: string[];
+    domain: string;
+    effect: string;
+};
+```
+
+Source: `packages/core-server/src/components/auth/authorize/adapters/custom-grant-expander.ts`
+
+## `TDocumentUIType`
+
+*type*
+
+One of the `DocumentUITypes` values.
+
+```ts
+export type TDocumentUIType = TConstValue<typeof DocumentUITypes>;
+```
+
+Source: `packages/core-server/src/components/api-reference/common/types.ts`
+
 ## `TDomainHierarchyEdge`
 
 *type*

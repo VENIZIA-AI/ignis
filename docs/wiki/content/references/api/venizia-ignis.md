@@ -89,7 +89,7 @@ The declarations are on 4 pages; each export below links to its own.
 
 ## `DocumentUITypes`
 
-*class* - [Declaration](/references/api/venizia-ignis--part-1#documentuitypes)
+*class* - [Declaration](/references/api/venizia-ignis--part-2#documentuitypes)
 
 ## `DomainHierarchyRoleManager`
 
@@ -269,7 +269,7 @@ The declarations are on 4 pages; each export below links to its own.
 
 ## `IServerTime`
 
-*interface* - [Declaration](/references/api/venizia-ignis--part-2#iservertime)
+*interface* - [Declaration](/references/api/venizia-ignis--part-3#iservertime)
 
 ## `IShutdownSignalsOptions`
 
@@ -421,19 +421,19 @@ The declarations are on 4 pages; each export below links to its own.
 
 ## `TBunServerInstance`
 
-*type* - [Declaration](/references/api/venizia-ignis--part-3#tbunserverinstance)
+*type* - [Declaration](/references/api/venizia-ignis--part-4#tbunserverinstance)
 
 ## `TCasbinPolicyConnector`
 
-*type* - [Declaration](/references/api/venizia-ignis--part-3#tcasbinpolicyconnector)
+*type* - [Declaration](/references/api/venizia-ignis--part-4#tcasbinpolicyconnector)
 
 ## `TCustomGrantRow`
 
-*type* - [Declaration](/references/api/venizia-ignis--part-3#tcustomgrantrow)
+*type* - [Declaration](/references/api/venizia-ignis--part-4#tcustomgrantrow)
 
 ## `TDocumentUIType`
 
-*type* - [Declaration](/references/api/venizia-ignis--part-3#tdocumentuitype)
+*type* - [Declaration](/references/api/venizia-ignis--part-4#tdocumentuitype)
 
 ## `TDomainHierarchyEdge`
 

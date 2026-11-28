@@ -20,6 +20,7 @@ export interface IGrpcNativeOptions {
   tls?: TGrpcNativeTls;
   /** How long `stop()` waits for calls in flight before it aborts them, in milliseconds. Default 10 000. */
   shutdownTimeout?: number;
+  /** Limits of the native port alone; `limits.messageSize` of the component applies to it too. */
   limits?: {
     /** Streams one connection may have open at once. A positive integer, default 100. */
     concurrentStreams?: number;

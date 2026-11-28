@@ -1,46 +1,33 @@
 ---
 type: Example
 title: grpc-test
-description: An application answering the same kind of request over gRPC (ConnectRPC) and REST, registered side by side, with one unary proto service.
+description: The reference gRPC application - a notes service with all four call kinds on Connect, gRPC-Web and native gRPC, with JWT, a role policy and a row scope.
 resource: examples/grpc-test
 tags: [examples, grpc]
 ---
 
-`grpc-test` runs `ControllerTransports.REST` and `ControllerTransports.GRPC` side by side in one
-`config.transports` array. `GreeterController` (`@controller({ transport: ControllerTransports.GRPC,
-service })`, one `@unary` RPC, `SayHello`) is the gRPC side; `StatusController` (`GET /status`) is a
-plain REST controller. Both register through `discoverArtifacts: true` - `src/application.ts` only
-imports the decorated modules.
+`grpc-test` runs one controller, `NotesController`, over both ports: Connect and gRPC-Web on the application port,
+native gRPC on its own. The contract is `proto/notes/v1/notes.proto`; `bun run proto:gen` writes `src/generated`,
+which is committed.
 
 ## What it demonstrates
 
-- **Two transports, one `Application`** - `config.transports: [ControllerTransports.REST,
-  ControllerTransports.GRPC]` in `src/index.ts` is what makes the gRPC branch exist at all; drop
-  `GRPC` from that array and `GreeterController` boots with a warning instead of a route.
-- **The Connect protocol needs no gRPC client** - a unary RPC is one `curl -X POST` away, plain JSON
-  over HTTP/1.1, at `/api/grpc/greeter.v1.GreeterService/SayHello`.
-- **It shows one unary RPC** - streaming RPCs work on the application port (bidi excepted), and
-  the example does not show them yet.
-- **Generated code is committed, never imported directly** - `buf generate` (via `bun run
-  proto:gen`) writes `src/controllers/greeter/generated/greeter_pb.ts` from
-  `src/controllers/greeter/proto/greeter.proto`; `definition.ts` re-exports the generated names, and
-  controller code imports from there.
+- **All four call kinds** - `SignIn` (public) and `GetNote` (unary), `WatchNotes` (server stream), `ImportNotes`
+  (client stream), `SyncNotes` (bidi, native port only).
+- **Auth** - JWT `authenticate` and a role-policy `authorize` per RPC; the note model's row scope limits every query
+  to the caller. Boot seeding runs in a system `Execution` frame.
+- **Options** - the native port is read from the environment (`src/common/grpc-native-settings.ts`), TLS included; an
+  interceptor logs one line per RPC.
+- **Shutdown** - a post-stop hook registered in `preConfigure` ends followed streams before the native port stops.
+- **Clients** - connect-es, `@grpc/grpc-js`, a browser page and a `grpcurl` script under `clients/` and `scripts/`.
 
 ## How to run it
 
-```bash
-bun install
-bun run server:dev        # http://localhost:3000/api/status, explorer at /api/doc/explorer
-bun test              # smoke test: GET /status over fetch, SayHello over a ConnectRPC client
-```
-
-## Notable / non-obvious
-
-- `GreeterService` is injected into `GreeterController` from `GreeterService` in
-  `src/services/greeter.service.ts` - the business logic sits in a service like any REST controller,
-  not inline in the gRPC handler.
-- The smoke test runs with `bun test` inside the example folder, not in CI. No docker needed.
+From the repository root once: `bun install && make build`. Then in `examples/grpc-test`: copy `.env.example` to
+`.env` and `bun run server:dev`. `bun run test` runs the end-to-end test. PGlite in memory: no docker, no Postgres.
 
 ## Related
-- [Controller system](/architecture/controller-system.md)
+
+- [gRPC request path](/architecture/grpc-request-path.md)
+- [gRPC timeouts and shutdown](/architecture/grpc-timeouts-and-shutdown.md)
 - [core package](/packages/core-server.md)

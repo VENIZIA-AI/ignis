@@ -39,10 +39,12 @@ export abstract class AbstractGrpcController<
 {
   isConfigured = false;
 
+  /** The registered RPCs, keyed by the method name of the service. */
   definitions: Record<string, IRpcRegistration<RouteEnv>> = {};
 
   /** ConnectRPC service definition from @controller metadata. */
   service: ServiceType;
+  /** The mount path under the application's base path; `@controller`'s `path` wins over the constructor's. */
   path: string;
   /** Assigned by GrpcComponent from its options, before configure(). Absent means the adapter resolves the peer itself. */
   connectRpcModule?: IConnectRpcModule;

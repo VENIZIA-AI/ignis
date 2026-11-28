@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>IGNIS gRPC-Web demo</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 2rem;
+      }
+      input,
+      button {
+        font: inherit;
+        padding: 0.25rem 0.5rem;
+      }
+      pre {
+        background: #f4f4f4;
+        padding: 1rem;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>NotesService over gRPC-Web</h1>
+    <p>
+      <label>User <input id="username" value="bob" /></label>
+      <label>Password <input id="password" type="password" /></label>
+      <button id="sign-in" type="button">Sign in</button>
+    </p>
+    <p>
+      <button id="watch" type="button">Watch notes (server stream)</button>
+      <button id="stop" type="button">Stop</button>
+    </p>
+    <p>
+      <label>Note id <input id="id" size="40" /></label>
+      <button id="get" type="button">Get note (unary)</button>
+    </p>
+    <pre id="output" aria-live="polite"></pre>
+    <script type="module" src="/demo/main.js"></script>
+  </body>
+</html>
