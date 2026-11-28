@@ -18,7 +18,7 @@ The application port is `Bun.serve`. These limits come from Bun, not from your h
 
 ## Quiet server streams are cut
 
-On the application port, a server stream of a **public** method can be cut by `Bun.serve`'s `idleTimeout` ([issue #1522](https://github.com/VENIZIA-AI/ignis/issues/1522)):
+On the application port, a server stream of a **public** method can be cut by `Bun.serve`'s `idleTimeout` ([issue #1522](https://github.com/VENIZIA-AI/ignis/issues/1522), reported to Bun as [oven-sh/bun#49702](https://github.com/oven-sh/bun/issues/49702)):
 
 | `idleTimeout` (seconds) | Public server stream |
 |---|---|
