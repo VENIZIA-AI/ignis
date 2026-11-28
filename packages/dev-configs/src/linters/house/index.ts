@@ -23,6 +23,8 @@ export * from './prefer-framework-api.rule';
 export * from './prefer-http-method.rule';
 export * from './prefer-execution-sleep.rule';
 export * from './prefer-tnullable.rule';
+export * from './restrict-execution-call-sites.rule';
+export * from './static-execution-reason.rule';
 export * from './typed-route-context.rule';
 export * from './zod-schema-convention.rule';
 export * from './plugin';

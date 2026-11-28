@@ -9,6 +9,25 @@ description: "Every export of @venizia/ignis-connectors/relational, from the bui
 
 Part 2 of 3 of [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational).
 
+## `IUpdateOptions`
+
+*interface*
+
+Input of an `update` call on the query executor; `where` omitted updates every row.
+
+```ts
+export interface IUpdateOptions<TConnector> {
+    connector: TConnector;
+    table: TTableSchemaWithId;
+    data: Record<string, unknown>;
+    where?: SQL;
+    returning?: TColumnSelection;
+    shouldReturn: boolean;
+}
+```
+
+Source: `packages/connectors/src/relational/core/repositories/common/executor.ts`
+
 ## `IWriteResult`
 
 *interface*
@@ -1066,18 +1085,3 @@ export declare abstract class RelationalBaseRepository<EntitySchema extends TTab
 ```
 
 Source: `packages/connectors/src/relational/core/repositories/core/base.ts`
-
-## `RelationalDialects`
-
-*class*
-
-The SQL engines a relational driver can speak. Only the migration ledger reads it today: Postgres has schemas to create, SQLite has only `main`.
-
-```ts
-export declare class RelationalDialects extends ConstClass {
-    static readonly POSTGRES = "postgres";
-    static readonly SQLITE = "sqlite";
-}
-```
-
-Source: `packages/connectors/src/relational/core/drivers/driver.ts`

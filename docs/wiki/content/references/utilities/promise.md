@@ -33,6 +33,8 @@ const results = await Execution.withLimit({
 
 An execution frame says who is running: one web request, one job, one piece of system work. A `BaseApplication` opens a frame for every request; your code opens its own with `run`.
 
+The guide [Execution frames](/guides/core-concepts/execution) covers jobs, hand-offs, row access, lint rules and troubleshooting.
+
 ```typescript
 import { Execution, ExecutionModes } from '@venizia/ignis';
 

@@ -9,6 +9,21 @@ description: "Every export of @venizia/ignis-connectors/relational, from the bui
 
 Part 3 of 3 of [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational).
 
+## `RelationalDialects`
+
+*class*
+
+The SQL engines a relational driver can speak. Only the migration ledger reads it today: Postgres has schemas to create, SQLite has only `main`.
+
+```ts
+export declare class RelationalDialects extends ConstClass {
+    static readonly POSTGRES = "postgres";
+    static readonly SQLITE = "sqlite";
+}
+```
+
+Source: `packages/connectors/src/relational/core/drivers/driver.ts`
+
 ## `RelationalEntityUtility`
 
 *class*
@@ -390,6 +405,18 @@ export declare class TableColumnCache {
 ```
 
 Source: `packages/connectors/src/relational/core/repositories/common/shared.ts`
+
+## `TAuditUserId`
+
+*type*
+
+What an audit column can hold.
+
+```ts
+export type TAuditUserId = string | number | bigint;
+```
+
+Source: `packages/connectors/src/relational/core/models/enrichers/audit-user.ts`
 
 ## `TColumnDefinition`
 

@@ -7,6 +7,7 @@ import { ConnectorImportsCommand } from './connector-imports';
 import { ConstClassesCommand } from './const-classes';
 import { EnvGetCommand } from './env-get';
 import { ExecutionClassCommand } from './execution-class';
+import { ExecutionScopeCommand } from './execution-scope';
 import { FunctionToArrowCommand } from './function-to-arrow';
 import { DropRedundantCastsCommand } from './drop-redundant-casts';
 import { NamespaceFunctionsCommand } from './namespace-functions';
@@ -24,6 +25,7 @@ const USAGE = [
   BindingKeysCommand.USAGE,
   ClassRenamesCommand.USAGE,
   ExecutionClassCommand.USAGE,
+  ExecutionScopeCommand.USAGE,
   FunctionToArrowCommand.USAGE,
   TypedRouteContextCommand.USAGE,
   AsyncContextCommand.USAGE,
@@ -41,6 +43,7 @@ const NAME_LIST = [
   'binding-keys',
   'class-renames',
   'execution-class',
+  'execution-scope',
   'async-context',
   'function-to-arrow',
   'typed-route-context',
@@ -122,6 +125,10 @@ export class CodemodCommand {
 
     if (name === 'execution-class') {
       return ExecutionClassCommand.run({ root: opts.root, args: rest });
+    }
+
+    if (name === 'execution-scope') {
+      return ExecutionScopeCommand.run({ root: opts.root, args: rest });
     }
 
     if (name === 'async-context') {

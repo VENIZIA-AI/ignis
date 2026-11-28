@@ -635,6 +635,7 @@ const config = defineConfig({
               ],
             },
             { text: 'Services', link: '/guides/core-concepts/services' },
+            { text: 'Execution Frames', link: '/guides/core-concepts/execution' },
             { text: 'Secrets & Vault', link: '/guides/core-concepts/secrets-vault' },
             {
               text: 'Browser and Web Worker',

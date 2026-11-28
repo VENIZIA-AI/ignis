@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -281,6 +281,7 @@ describe('devz codemod --list and --reverse', () => {
 
   afterEach(() => {
     rmSync(root, { recursive: true, force: true });
+    mock.restore();
   });
 
   test('--list prints one name per line and nothing else', async () => {
@@ -299,6 +300,7 @@ describe('devz codemod --list and --reverse', () => {
         'binding-keys',
         'class-renames',
         'execution-class',
+        'execution-scope',
         'async-context',
         'function-to-arrow',
         'typed-route-context',

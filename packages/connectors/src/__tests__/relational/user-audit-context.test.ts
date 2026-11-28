@@ -20,6 +20,7 @@ import {
   type TAnyDataSourceSchema,
   type TCrudRepositoryClass,
 } from '@venizia/ignis-kernel';
+import { AuditUserResolver } from '@/relational/core/models/enrichers';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import {
@@ -565,4 +566,57 @@ describe.each(ROUTE_TIERS)('a generated CRUD route on $name stamps the signed-in
     const result2 = await readRow({ id });
     expect(result2).toMatchObject({ code: 'KEEP', createdBy: 42, modifiedBy: 42 });
   });
+});
+
+describe('the user an audit column can hold', () => {
+  afterEach(() => {
+    RequestContextRegistry.clearResolver();
+  });
+
+  /** A request whose authentication set `user`, whatever it is. */
+  const requestOf = (user: unknown) => {
+    const context = new Context(new Request('http://localhost/'));
+    // A request carries whatever its authentication put there, typed or not.
+    Reflect.apply(context.set, context, [Authentication.AUDIT_USER_ID, user]);
+    RequestContextRegistry.setResolver({ resolver: () => context });
+  };
+
+  for (const tier of TIERS) {
+    test(`${tier.name}: a number column reads a number written as text, and refuses other text`, () => {
+      requestOf('42');
+      expect(stampCreatedBy({ table: tier.anonymous })).toBe(42);
+
+      requestOf('-7');
+      expect(stampCreatedBy({ table: tier.anonymous })).toBe(-7);
+
+      for (const user of [1.5, Number.NaN, Infinity]) {
+        requestOf(user);
+        expect(() =>
+          AuditUserResolver.resolveAuditUserText({
+            columnField: 'createdBy',
+            allowAnonymous: true,
+          }),
+        ).toThrow(/audit user/);
+      }
+
+      const refused = [
+        'abc',
+        '4.5',
+        ' ',
+        ' 42 ',
+        '0x1A',
+        '1e3',
+        1.5,
+        Number.NaN,
+        Infinity,
+        { id: 1 },
+        true,
+      ];
+
+      for (const user of refused) {
+        requestOf(user);
+        expect(() => stampCreatedBy({ table: tier.anonymous })).toThrow(/audit user/);
+      }
+    });
+  }
 });

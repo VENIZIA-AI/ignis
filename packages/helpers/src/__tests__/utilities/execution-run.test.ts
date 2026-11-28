@@ -72,6 +72,23 @@ describe('Execution without a runner', () => {
   });
 });
 
+describe('ExecutionFrames.listener', () => {
+  test('a listener asked for is answered as it is, never wrapped twice', () => {
+    const handler = (name: string) => name;
+    const listener = ExecutionFrames.listener({ handler });
+
+    expect(listener).not.toBe(handler);
+    expect(ExecutionFrames.listener({ handler: listener })).toBe(listener);
+    expect(listener('chat')).toBe('chat');
+  });
+
+  test('a listener with a user wraps again, so the user is read at each call', () => {
+    const listener = ExecutionFrames.listener({ handler: () => undefined });
+
+    expect(ExecutionFrames.listener({ handler: listener, userId: () => 1 })).not.toBe(listener);
+  });
+});
+
 describe('Execution with a runner', () => {
   test('run, a framework frame and current go to the runner, and the first one installed stays', async () => {
     const calls: string[] = [];

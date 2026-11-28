@@ -49,10 +49,17 @@ A host with no resolver installed reports "no request context" - the first branc
 
 ```ts
 export declare class AuditUserResolver {
-    static resolveAuditUserId<T>(opts: {
-        allowAnonymous: boolean;
-        columnField: string;
-    }): T | null;
+    /** The user to stamp, or `null` for nobody where anonymous writes are allowed. */
+    static resolveAuditUserId(opts: IAuditUserOptions): TAuditUserId | null;
+    /** The user for a text column; a number must be a safe integer. As text, because some engines store a number as `42.0`. */
+    static resolveAuditUserText(opts: IAuditUserOptions): string | null;
+    /** The user for a number column: a safe integer, written as one or as decimal text. */
+    static resolveAuditUserNumber(opts: IAuditUserOptions): number | null;
+}
+
+interface IAuditUserOptions {
+    allowAnonymous: boolean;
+    columnField: string;
 }
 ```
 
@@ -1023,22 +1030,3 @@ export interface IUniqueKey<Schema extends TTableSchemaWithId = TTableSchemaWith
 ```
 
 Source: `packages/connectors/src/relational/core/models/common/types.ts`
-
-## `IUpdateOptions`
-
-*interface*
-
-Input of an `update` call on the query executor; `where` omitted updates every row.
-
-```ts
-export interface IUpdateOptions<TConnector> {
-    connector: TConnector;
-    table: TTableSchemaWithId;
-    data: Record<string, unknown>;
-    where?: SQL;
-    returning?: TColumnSelection;
-    shouldReturn: boolean;
-}
-```
-
-Source: `packages/connectors/src/relational/core/repositories/common/executor.ts`
