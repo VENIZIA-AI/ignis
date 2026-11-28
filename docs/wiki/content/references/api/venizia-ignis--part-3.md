@@ -9,6 +9,28 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 Part 3 of 3 of [`@venizia/ignis`](/references/api/venizia-ignis).
 
+## `JWTTokenPayloadSchema`
+
+*const*
+
+Zod schema of the JWT payload: `userId`, the `roles` (id, identifier, integer priority) and optional `clientId`, `provider` and `email`.
+
+```ts
+export declare const JWTTokenPayloadSchema: z.ZodObject<{
+    userId: z.ZodUnion<[z.ZodString, z.ZodNumber]>;
+    roles: z.ZodArray<z.ZodObject<{
+        id: z.ZodUnion<[z.ZodString, z.ZodNumber]>;
+        identifier: z.ZodString;
+        priority: z.ZodNumber;
+    }, z.core.$strip>>;
+    clientId: z.ZodOptional<z.ZodString>;
+    provider: z.ZodOptional<z.ZodString>;
+    email: z.ZodOptional<z.ZodEmail>;
+}, z.core.$strip>;
+```
+
+Source: `packages/core-server/src/components/auth/authenticate/controllers/factory.ts`
+
 ## `MembershipRoleManager`
 
 *class*

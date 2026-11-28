@@ -273,7 +273,7 @@ The declarations are on 3 pages; each export below links to its own.
 
 ## `JWTTokenPayloadSchema`
 
-*const* - [Declaration](/references/api/venizia-ignis--part-2#jwttokenpayloadschema)
+*const* - [Declaration](/references/api/venizia-ignis--part-3#jwttokenpayloadschema)
 
 ## `MembershipRoleManager`
 

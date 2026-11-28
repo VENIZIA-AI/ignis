@@ -1515,3 +1515,17 @@ grpc-idle-after-gate:
     steps:
       - "Pin @venizia/ignis to the release before this one."
   data: Nothing stored changes.
+
+grpc-rpc-kind:
+  symbols: [BaseGrpcController, unary, serverStream, clientStream, bidiStream]
+  upgrade:
+    before: |-
+      @unary({ configs: { name: 'listHellos' } }) // listHellos is "returns (stream ...)" in the .proto
+    after: |-
+      @serverStream({ configs: { name: 'listHellos' } })
+    steps:
+      - "Start the application: the error names each RPC declared as another kind, with the decorator to use. Declare it as the .proto does."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis to the release before this one."
+  data: Nothing stored changes.

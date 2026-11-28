@@ -82,7 +82,7 @@ export class GreeterController extends BaseGrpcController {
 - `binding()` must be implemented (even if empty) - it is called during `configure()`
 - Handler methods receive `{ request, context, rpc }` and return a Protobuf message object
 
-The name of an RPC is the method of the service as the generated code writes it (`sayHello` for `rpc SayHello`). A name the service does not declare stops the application at startup, with the declared names in the error.
+The name of an RPC is the method of the service as the generated code writes it (`sayHello` for `rpc SayHello`). A name the service does not declare stops the application at startup, with the declared names in the error, and so does a decorator of another kind than the method (`@unary` on a `returns (stream ...)` method).
 
 ## Deadlines, cancellation, headers and trailers
 

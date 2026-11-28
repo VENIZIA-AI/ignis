@@ -151,8 +151,12 @@ export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema 
      * `next()` to pass the call on; one that answers, or does neither, ends it.
      */
     private passMiddlewares;
-    /** ConnectRPC drops a handler whose name the service does not declare, and the call then answers `unimplemented`: refused at boot instead. */
+    /**
+     * ConnectRPC drops a handler whose name the service does not declare, and a handler of another kind than the service's
+     * fails only when called: both are refused at boot.
+     */
     private assertDeclaredRpcs;
+    private decoratorOf;
     /** Registers every RPC of the controller on the ConnectRPC router, each wrapped into ConnectRPC's `(request, context) => response`. */
     private registerService;
     /** The request ConnectRPC reads. A body an earlier middleware consumed is in Hono's cache: the request is rebuilt with it. */
@@ -1247,25 +1251,3 @@ export declare class JWSTokenService<E extends Env = Env> extends AbstractBearer
 ```
 
 Source: `packages/core-server/src/components/auth/authenticate/services/bearer/jws.service.ts`
-
-## `JWTTokenPayloadSchema`
-
-*const*
-
-Zod schema of the JWT payload: `userId`, the `roles` (id, identifier, integer priority) and optional `clientId`, `provider` and `email`.
-
-```ts
-export declare const JWTTokenPayloadSchema: z.ZodObject<{
-    userId: z.ZodUnion<[z.ZodString, z.ZodNumber]>;
-    roles: z.ZodArray<z.ZodObject<{
-        id: z.ZodUnion<[z.ZodString, z.ZodNumber]>;
-        identifier: z.ZodString;
-        priority: z.ZodNumber;
-    }, z.core.$strip>>;
-    clientId: z.ZodOptional<z.ZodString>;
-    provider: z.ZodOptional<z.ZodString>;
-    email: z.ZodOptional<z.ZodEmail>;
-}, z.core.$strip>;
-```
-
-Source: `packages/core-server/src/components/auth/authenticate/controllers/factory.ts`

@@ -219,7 +219,10 @@ export class GrpcRequestAdapter<
     }
   }
 
-  /** ConnectRPC drops a handler whose name the service does not declare, and the call then answers `unimplemented`: refused at boot instead. */
+  /**
+   * ConnectRPC drops a handler whose name the service does not declare, and a handler of another kind than the service's
+   * fails only when called: both are refused at boot.
+   */
   private assertDeclaredRpcs() {
     const service: unknown = this.options.controller.service;
 
@@ -231,18 +234,43 @@ export class GrpcRequestAdapter<
       return;
     }
 
-    const declared = service.methods.map((method: unknown) =>
-      RecordUtility.isRecord(method) ? String(method.localName) : '',
-    );
-    const unknownName = Object.keys(this.options.controller.definitions).find(
-      (name) => !declared.includes(name),
-    );
+    const kinds = new Map(
+      service.methods.map((method: unknown) => {
+        const described = RecordUtility.isRecord(method) ? method : {};
 
-    if (unknownName !== undefined) {
-      throw getError({
-        message: `[${this.options.controller.constructor.name}] ${String(service.typeName)} declares no RPC "${unknownName}" | declared: ${declared.join(', ')}`,
-      });
+        return [String(described.localName ?? ''), described.methodKind];
+      }),
+    );
+    const { constructor, definitions } = this.options.controller;
+
+    for (const [name, definition] of Object.entries(definitions)) {
+      if (!kinds.has(name)) {
+        throw getError({
+          message: `[${constructor.name}] ${String(service.typeName)} declares no RPC "${name}" | declared: ${[...kinds.keys()].join(', ')}`,
+        });
+      }
+
+      const kind = kinds.get(name);
+      const { method } = definition.configs;
+
+      // A hand-written descriptor may carry no kind: there is nothing to hold the declaration to.
+      if (typeof kind === 'string' && kind !== method) {
+        throw getError({
+          message: `[${constructor.name}] ${String(service.typeName)}.${name} is ${kind}, declared ${method} | declare it with ${this.decoratorOf({ kind })} or method "${kind}"`,
+        });
+      }
     }
+  }
+
+  private decoratorOf(opts: { kind: string }) {
+    const decorators = new Map<string, string>([
+      [GRPC.Methods.UNARY, '@unary'],
+      [GRPC.Methods.SERVER_STREAMING, '@serverStream'],
+      [GRPC.Methods.CLIENT_STREAMING, '@clientStream'],
+      [GRPC.Methods.BIDI_STREAMING, '@bidiStream'],
+    ]);
+
+    return decorators.get(opts.kind) ?? '@rpc';
   }
 
   /** Registers every RPC of the controller on the ConnectRPC router, each wrapped into ConnectRPC's `(request, context) => response`. */
