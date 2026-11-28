@@ -14,7 +14,7 @@ import { UidRandom } from './common/random';
 import { UidSegments } from './common/segments';
 import type { INextOpaqueUidOptions, IOpaqueUidOptions } from './common/types';
 
-/** Local, not `@/utilities/promise.utility`: that module imports the logger BARREL, which reaches `node:module` and would take this browser-pure module with it. */
+/** Local, not `@/modules/execution`: that module imports the logger BARREL, which reaches `node:module` and would take this browser-pure module with it. */
 const isPromiseLike = (value: unknown): value is PromiseLike<boolean> => {
   return (
     (typeof value === 'object' || typeof value === 'function') &&

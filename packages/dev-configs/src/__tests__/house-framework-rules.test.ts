@@ -9,7 +9,7 @@ import {
   houseConfigs,
   houseEslintPlugin,
   NoParentImportRule,
-  PreferPromiseSleepRule,
+  PreferExecutionSleepRule,
   PreferTNullableRule,
   reactHouseConfigs,
 } from '../linters/house';
@@ -248,9 +248,9 @@ describe('@venizia/prefer-tnullable', () => {
   });
 });
 
-describe('@venizia/prefer-promise-sleep', () => {
-  const NAME = PreferPromiseSleepRule.NAME;
-  const IMPORT = `import { PromiseUtility } from '@venizia/ignis-helpers/core';`;
+describe('@venizia/prefer-execution-sleep', () => {
+  const NAME = PreferExecutionSleepRule.NAME;
+  const IMPORT = `import { Execution } from '@venizia/ignis-helpers/core';`;
 
   test.each([
     [
@@ -267,7 +267,7 @@ describe('@venizia/prefer-promise-sleep', () => {
 
     expect(findings).toHaveLength(1);
     expect(fixed).toBe(
-      `${IMPORT}\nexport async function f() {\n  await PromiseUtility.sleep({ ms: 50 });\n}\n`,
+      `${IMPORT}\nexport async function f() {\n  await Execution.sleep({ ms: 50 });\n}\n`,
     );
   });
 
@@ -277,10 +277,8 @@ describe('@venizia/prefer-promise-sleep', () => {
       code: `import { getError } from '@venizia/ignis-helpers/core';\nexport const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));\n`,
     });
 
-    expect(fixed).toContain(`PromiseUtility.sleep({ ms })`);
-    expect(fixed).toContain(
-      `import { getError, PromiseUtility } from '@venizia/ignis-helpers/core';`,
-    );
+    expect(fixed).toContain(`Execution.sleep({ ms })`);
+    expect(fixed).toContain(`import { getError, Execution } from '@venizia/ignis-helpers/core';`);
     expect(fixed.match(/import/g)).toHaveLength(1);
   });
 
@@ -289,36 +287,34 @@ describe('@venizia/prefer-promise-sleep', () => {
     const messageOf = (opts: { source?: string }) =>
       run({ name: NAME, options: ['error', opts], code }).findings[0]?.message;
 
-    expect(messageOf({})).toContain(
-      `import { PromiseUtility } from '@venizia/ignis-helpers/core';`,
-    );
+    expect(messageOf({})).toContain(`import { Execution } from '@venizia/ignis-helpers/core';`);
     expect(messageOf({ source: '#src/utilities' })).toContain(
-      `import { PromiseUtility } from '#src/utilities';`,
+      `import { Execution } from '#src/utilities';`,
     );
   });
 
-  test('an aliased PromiseUtility import is reused', () => {
+  test('an aliased Execution import is reused', () => {
     const { fixed } = run({
       name: NAME,
-      code: `import { PromiseUtility as Timing } from '@venizia/ignis-helpers/core';\nexport const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));\n`,
+      code: `import { Execution as Timing } from '@venizia/ignis-helpers/core';\nexport const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));\n`,
     });
 
     expect(fixed).toContain(`Timing.sleep({ ms })`);
-    expect(fixed.match(/PromiseUtility/g)).toHaveLength(1);
+    expect(fixed.match(/Execution/g)).toHaveLength(1);
   });
 
   test('a type-only import is not used as a value: a value import is added beside it', () => {
     const { fixed } = run({
       name: NAME,
-      code: `import type { PromiseUtility as P } from '@venizia/ignis-helpers/core';\nexport const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));\n`,
+      code: `import type { Execution as P } from '@venizia/ignis-helpers/core';\nexport const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));\n`,
     });
 
-    expect(fixed).toContain(`PromiseUtility.sleep({ ms })`);
-    expect(fixed).toContain(`import { PromiseUtility } from '@venizia/ignis-helpers/core';`);
+    expect(fixed).toContain(`Execution.sleep({ ms })`);
+    expect(fixed).toContain(`import { Execution } from '@venizia/ignis-helpers/core';`);
 
     const clash = run({
       name: NAME,
-      code: `import type { PromiseUtility } from '@venizia/ignis-helpers/core';\nexport const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));\n`,
+      code: `import type { Execution } from '@venizia/ignis-helpers/core';\nexport const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));\n`,
     });
 
     expect(clash.findings).toHaveLength(1);
@@ -331,7 +327,7 @@ describe('@venizia/prefer-promise-sleep', () => {
       code: `export const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms * 2));\n`,
     });
 
-    expect(fixed).toContain(`PromiseUtility.sleep({ ms: ms * 2 })`);
+    expect(fixed).toContain(`Execution.sleep({ ms: ms * 2 })`);
   });
 
   test('a callback that does more, or a timer that resolves with a value, is not a sleep', () => {

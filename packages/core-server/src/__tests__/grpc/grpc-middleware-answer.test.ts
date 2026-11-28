@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { describe, expect, test } from 'bun:test';
 import { fileDesc, serviceDesc } from '@bufbuild/protobuf/codegenv2';
 import { GRPC, HTTP } from '@venizia/ignis-helpers/common';
-import { PromiseUtility } from '@venizia/ignis-helpers/core';
+import { Execution } from '@venizia/ignis-helpers/core';
 import { BaseGrpcController } from '@/base/controllers/grpc/base';
 import type { TRpcMiddleware } from '@/base/controllers/grpc/common/types';
 
@@ -137,7 +137,7 @@ describe('gRPC adapter - a middleware ends a call it does not pass on', () => {
         }, 0);
       },
     ]);
-    await PromiseUtility.sleep({ ms: 10 });
+    await Execution.sleep({ ms: 10 });
 
     expect(result.status).toBe(500);
     expect(result.ran).toEqual([]);

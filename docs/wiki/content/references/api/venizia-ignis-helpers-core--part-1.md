@@ -648,6 +648,51 @@ export declare class EnvironmentNames {
 
 Source: `packages/helpers/src/modules/env/names.ts`
 
+## `Execution`
+
+*class*
+
+Running work: waiting, a time limit, bounded concurrency and fire-and-forget. `fireAndForget` is not a `BaseHelper` member: TS cannot emit protected members on an exported ANONYMOUS class (TS4094), which is what factory-built controllers return; a static on a separate class has no such limit.
+
+```ts
+export declare class Execution {
+    /** The longest delay a timer takes (a signed 32-bit integer of milliseconds); a larger one fires after 1 ms. */
+    private static readonly MAX_TIMER_MS;
+    static sleep(opts: {
+        ms: number;
+    }): Promise<void>;
+    /**
+     * Runs `call` and resolves with its result, or rejects with an `ApplicationError` when `timeoutMs` passes first
+     * (`message` is the error text; the default names the limit). The timer is cleared on every path - the call wins,
+     * the timeout wins, the call throws - so none is left behind. The call's own rejection passes through unchanged.
+     * The losing call keeps running: a promise cannot be cancelled. The timeout error carries status 504 (Gateway
+     * Timeout). `timeoutMs` must be a positive number no larger than `2_147_483_647` (the most a timer takes: a larger
+     * one fires at once), else this rejects without running `call`.
+     */
+    static withTimeout<T>(opts: {
+        call: () => ValueOrPromise<T>;
+        timeoutMs: number;
+        message?: string;
+    }): Promise<T>;
+    /** Execute async tasks with bounded concurrency. */
+    static withLimit<T>(opts: {
+        tasks: Array<TTask<T>>;
+        limit: number;
+        onTaskDone?: <R>(opts: {
+            result: R;
+        }) => ValueOrPromise<void>;
+    }): Promise<Awaited<T>[]>;
+    /** Fire-and-forget: routes rejection to `logger` (or the framework logger of `scope`), passes sync results through untouched. */
+    static fireAndForget(opts: {
+        logger?: ILogger;
+        scope: string;
+        execution: ValueOrPromise<unknown>;
+    }): void;
+}
+```
+
+Source: `packages/helpers/src/modules/execution/execution.ts`
+
 ## `FetchRequestContext`
 
 *class*
@@ -1100,80 +1145,3 @@ export interface IECDHExtraOptions {
 ```
 
 Source: `packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts`
-
-## `IFetchable`
-
-*interface*
-
-Contract of an HTTP fetcher: `send` takes the method from the options, the verb methods fix it, and `getWorker` returns the underlying client (`W`). Without a `schema` a call answers the raw response `RS`; with one, `IFetchParsed`.
-
-```ts
-export interface IFetchable<V extends TFetcherVariant, RQ extends IRequestOptions, RS, W = unknown> {
-    send(opts: RQ & {
-        schema?: undefined;
-    }, logger?: TFetcherLogger): Promise<RS>;
-    send<S extends z.ZodType>(opts: RQ & {
-        schema: S;
-    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
-    get(opts: RQ & {
-        schema?: undefined;
-    }, logger?: TFetcherLogger): Promise<RS>;
-    get<S extends z.ZodType>(opts: RQ & {
-        schema: S;
-    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
-    post(opts: RQ & {
-        schema?: undefined;
-    }, logger?: TFetcherLogger): Promise<RS>;
-    post<S extends z.ZodType>(opts: RQ & {
-        schema: S;
-    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
-    put(opts: RQ & {
-        schema?: undefined;
-    }, logger?: TFetcherLogger): Promise<RS>;
-    put<S extends z.ZodType>(opts: RQ & {
-        schema: S;
-    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
-    patch(opts: RQ & {
-        schema?: undefined;
-    }, logger?: TFetcherLogger): Promise<RS>;
-    patch<S extends z.ZodType>(opts: RQ & {
-        schema: S;
-    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
-    delete(opts: RQ & {
-        schema?: undefined;
-    }, logger?: TFetcherLogger): Promise<RS>;
-    delete<S extends z.ZodType>(opts: RQ & {
-        schema: S;
-    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
-    query(opts: RQ & {
-        schema?: undefined;
-    }, logger?: TFetcherLogger): Promise<RS>;
-    query<S extends z.ZodType>(opts: RQ & {
-        schema: S;
-    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
-    getVariant(): V;
-    getWorker(): W;
-}
-```
-
-Source: `packages/helpers/src/modules/network/http-request/fetcher/base-fetcher.ts`
-
-## `IFetcherDefaults`
-
-*interface*
-
-What a fetcher applies to every call unless the call says otherwise.
-
-```ts
-export interface IFetcherDefaults {
-    /** Per attempt, in milliseconds. */
-    timeout?: number;
-    headers?: THttpHeaders;
-    retry?: IHttpRetryOptions;
-    maxBytes?: number;
-    /** A call may replace this policy with its own; it cannot switch the guard off. */
-    guard?: IUrlSafetyPolicy;
-}
-```
-
-Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`

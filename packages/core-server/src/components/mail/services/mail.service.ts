@@ -11,7 +11,7 @@ import type {
 import { MailDefaults, MailErrorCodes, MailErrors, MailKeys, MailTemplateFormats } from '../common';
 import { inject } from '@/base/metadata';
 import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
-import { ErrorUtility, PromiseUtility } from '@venizia/ignis-helpers';
+import { ErrorUtility, Execution } from '@venizia/ignis-helpers';
 import { MailAttachmentUtility } from '../utilities/attachment.utility';
 import { MailBodyUtility } from '../utilities/body.utility';
 import { MailHeaderUtility } from '../utilities/header.utility';
@@ -106,7 +106,7 @@ export class MailService extends BaseService implements IMailService {
         }
       });
 
-      const results = await PromiseUtility.executeWithLimit<IMailSendResult>({
+      const results = await Execution.withLimit<IMailSendResult>({
         tasks,
         limit: concurrency,
       });

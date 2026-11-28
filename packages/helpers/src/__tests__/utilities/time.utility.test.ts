@@ -1,15 +1,16 @@
 import { describe, expect, test } from 'bun:test';
-import { HrTimeUtility, PromiseUtility } from '@/utilities';
+import { Execution } from '@/modules/execution';
+import { HrTimeUtility } from '@/utilities';
 
 describe('sleep', () => {
   test('resolves after at least the requested delay', async () => {
     const started = performance.now();
-    await PromiseUtility.sleep({ ms: 20 });
+    await Execution.sleep({ ms: 20 });
     expect(performance.now() - started).toBeGreaterThanOrEqual(15);
   });
 
   test('resolves immediately for 0', async () => {
-    await PromiseUtility.sleep({ ms: 0 });
+    await Execution.sleep({ ms: 0 });
     expect(true).toBe(true);
   });
 });

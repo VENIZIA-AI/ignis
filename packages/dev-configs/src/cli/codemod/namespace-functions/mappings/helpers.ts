@@ -202,27 +202,27 @@ export const HELPERS_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
     params: [{ key: 'source' }, { key: 'path' }],
   },
 
-  // utilities/sleep.utility.ts, utilities/promise.utility.ts
+  // utilities/sleep.utility.ts, modules/execution
   {
     modules: [ROOT],
     oldName: 'sleep',
-    className: 'PromiseUtility',
+    className: 'Execution',
     method: 'sleep',
     params: [{ key: 'ms' }],
   },
   {
     modules: [ROOT],
     oldName: 'executePromiseWithLimit',
-    className: 'PromiseUtility',
-    method: 'executeWithLimit',
+    className: 'Execution',
+    method: 'withLimit',
     params: [],
     keepsOptions: true,
   },
   {
     modules: [ROOT],
     oldName: 'voidExecution',
-    className: 'PromiseUtility',
-    method: 'voidExecution',
+    className: 'Execution',
+    method: 'fireAndForget',
     params: [],
     keepsOptions: true,
   },

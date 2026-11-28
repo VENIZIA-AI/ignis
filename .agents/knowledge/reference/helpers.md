@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Package: [helpers](/packages/helpers.md).
 
-**45 helper classes across 18 modules, 14 utilities.**
+**45 helper classes across 19 modules, 13 utilities.**
 
 ## Modules
 
@@ -20,6 +20,7 @@ generated:
 | `crypto/` | _(see source)_ |
 | `env/` | _(see source)_ |
 | `error/` | _(see source)_ |
+| `execution/` | _(see source)_ |
 | `logger/` | _(see source)_ |
 | `network/` | `AbstractNetworkFetchableHelper` |
 | `pool/` | `AbstractPoolHelper` · `BasePoolHelper` |
@@ -37,4 +38,4 @@ generated:
 
 ## Utilities
 
-`build-info` · `echo` · `error` · `form-body` · `hr-time` · `module` · `parse` · `performance` · `project-root` · `promise` · `record` · `request` · `retry` · `slug`
+`build-info` · `echo` · `error` · `form-body` · `hr-time` · `module` · `parse` · `performance` · `project-root` · `record` · `request` · `retry` · `slug`

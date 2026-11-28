@@ -953,7 +953,7 @@ export declare class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> exten
         port: MessagePort;
         busHandler: IWorkerMessageBusHandler<IConsumePayload>;
     });
-    /** Bus handlers run inside MessagePort listeners; a sync throw there is uncaught and kills the worker thread, so wrap it - voidExecution alone can't catch a throw evaluated before it's called. */
+    /** Bus handlers run inside MessagePort listeners; a sync throw there is uncaught and kills the worker thread, so wrap it - fireAndForget alone can't catch a throw evaluated before it's called. */
     protected invokeHook(opts: {
         scope: string;
         execution: () => ValueOrPromise<void>;
@@ -989,7 +989,7 @@ export declare class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<
         options: WorkerOptions;
         eventHandlers?: Partial<Pick<IWorker<MessageType>, 'onOnline' | 'onExit' | 'onError' | 'onMessage' | 'onMessageError'>>;
     });
-    /** User handlers run inside worker listeners; a sync throw there is uncaught and kills the process, so wrap it - voidExecution alone can't catch a throw evaluated before it's called. */
+    /** User handlers run inside worker listeners; a sync throw there is uncaught and kills the process, so wrap it - fireAndForget alone can't catch a throw evaluated before it's called. */
     protected invokeHook(opts: {
         scope: string;
         execution: () => ValueOrPromise<void>;

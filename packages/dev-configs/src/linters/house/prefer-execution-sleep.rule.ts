@@ -4,15 +4,15 @@ import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 import { ImportSupport } from './import-support';
 
 /**
- * `@venizia/prefer-promise-sleep`. A sleep written by hand, `new Promise((resolve) => setTimeout(resolve, ms))`, is
- * `PromiseUtility.sleep({ ms })` (`@venizia/ignis-helpers/core`). Only that exact shape is reported: a callback that
+ * `@venizia/prefer-execution-sleep`. A sleep written by hand, `new Promise((resolve) => setTimeout(resolve, ms))`, is
+ * `Execution.sleep({ ms })` (`@venizia/ignis-helpers/core`). Only that exact shape is reported: a callback that
  * does anything else is not a sleep.
  *
- * The fix replaces the expression and adds the import; `source` is where `PromiseUtility` comes from, `null` turns
+ * The fix replaces the expression and adds the import; `source` is where `Execution` comes from, `null` turns
  * the fix off.
  */
-export class PreferPromiseSleepRule {
-  static readonly NAME = `${HOUSE_PLUGIN_NAMESPACE}/prefer-promise-sleep`;
+export class PreferExecutionSleepRule {
+  static readonly NAME = `${HOUSE_PLUGIN_NAMESPACE}/prefer-execution-sleep`;
 
   static readonly DEFAULT_SOURCE = '@venizia/ignis-helpers/core';
 
@@ -76,12 +76,11 @@ export class PreferPromiseSleepRule {
     return isResolver && AstNode.isNode(delay) ? delay : undefined;
   }
 
-  /** `PromiseUtility.sleep({ ms })`, with the shorthand when the delay is a variable named `ms`. */
+  /** `Execution.sleep({ ms })`, with the shorthand when the delay is a variable named `ms`. */
   private static call(opts: { context: Rule.RuleContext; delay: Rule.Node }): string {
     const { context, delay } = opts;
     const utility =
-      ImportSupport.importedAs({ context, name: 'PromiseUtility', asValue: true }) ??
-      'PromiseUtility';
+      ImportSupport.importedAs({ context, name: 'Execution', asValue: true }) ?? 'Execution';
     const text = context.sourceCode.getText(delay);
 
     return `${utility}.sleep({ ${text === 'ms' ? 'ms' : `ms: ${text}`} })`;
@@ -118,7 +117,7 @@ export class PreferPromiseSleepRule {
       ],
       messages: {
         sleep:
-          "Use `await PromiseUtility.sleep({ ms })`, not a hand-written `new Promise(resolve => setTimeout(resolve, ms))`: `import { PromiseUtility } from '{{source}}';`",
+          "Use `await Execution.sleep({ ms })`, not a hand-written `new Promise(resolve => setTimeout(resolve, ms))`: `import { Execution } from '{{source}}';`",
       },
     },
     create: (context) => {
@@ -129,7 +128,7 @@ export class PreferPromiseSleepRule {
           ? undefined
           : typeof configured === 'string'
             ? configured
-            : PreferPromiseSleepRule.DEFAULT_SOURCE;
+            : PreferExecutionSleepRule.DEFAULT_SOURCE;
 
       return {
         [AstNodeTypes.NEW_EXPRESSION]: (node: Rule.Node) => {
@@ -144,7 +143,7 @@ export class PreferPromiseSleepRule {
             return;
           }
 
-          const delay = PreferPromiseSleepRule.delayOf({ callback: args[0] });
+          const delay = PreferExecutionSleepRule.delayOf({ callback: args[0] });
 
           if (delay === undefined) {
             return;
@@ -153,7 +152,7 @@ export class PreferPromiseSleepRule {
           // A `setTimeout` the file binds itself (a parameter, a local, an import) is not the timer, and a comma expression is
           // not one delay: neither is a sleep.
           if (
-            PreferPromiseSleepRule.isRebound({ context, node }) ||
+            PreferExecutionSleepRule.isRebound({ context, node }) ||
             AstNode.getType({ node: delay }) === AstNodeTypes.SEQUENCE_EXPRESSION
           ) {
             return;
@@ -162,11 +161,11 @@ export class PreferPromiseSleepRule {
           context.report({
             node,
             messageId: 'sleep',
-            data: { source: source ?? PreferPromiseSleepRule.DEFAULT_SOURCE },
+            data: { source: source ?? PreferExecutionSleepRule.DEFAULT_SOURCE },
             fix: (fixer) => {
               if (
                 source === undefined &&
-                !ImportSupport.isInScope({ context, name: 'PromiseUtility' })
+                !ImportSupport.isInScope({ context, name: 'Execution' })
               ) {
                 return null;
               }
@@ -174,14 +173,14 @@ export class PreferPromiseSleepRule {
               const imports = ImportSupport.ensure({
                 context,
                 fixer,
-                name: 'PromiseUtility',
-                source: source ?? PreferPromiseSleepRule.DEFAULT_SOURCE,
+                name: 'Execution',
+                source: source ?? PreferExecutionSleepRule.DEFAULT_SOURCE,
                 isType: false,
               });
 
               return imports
                 ? [
-                    fixer.replaceText(node, PreferPromiseSleepRule.call({ context, delay })),
+                    fixer.replaceText(node, PreferExecutionSleepRule.call({ context, delay })),
                     ...imports,
                   ]
                 : null;

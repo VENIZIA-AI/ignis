@@ -678,12 +678,12 @@ house-rules-framework-use:
       await new Promise((resolve) => setTimeout(resolve, 100));
     after: |-
       import type { TNullable } from '@venizia/ignis-helpers/common';
-      import { PromiseUtility } from '@venizia/ignis-helpers/core';
+      import { Execution } from '@venizia/ignis-helpers/core';
 
       type Name = TNullable<string>;
-      await PromiseUtility.sleep({ ms: 100 });
+      await Execution.sleep({ ms: 100 });
     steps:
-      - "Run eslint --fix on a tree that was lint-clean: it then changes only what prefer-tnullable and prefer-promise-sleep report. Review the diff before you commit it."
+      - "Run eslint --fix on a tree that was lint-clean: it then changes only what prefer-tnullable and prefer-execution-sleep report. Review the diff before you commit it."
       - "An app that does not depend on @venizia/ignis-helpers sets the module the names are imported from, or turns the fix off: { rules: { '@venizia/prefer-tnullable': ['error', { source: '#src/types' }] } } (source: null reports without a fix)."
       - "no-shadow-framework-type has no fix: replace your own ValueOrPromise, TNullable, TConstValue and the like with the framework's (the message names the module), or list a type that is yours on purpose in { allow: ['Name'] }."
       - "prefer-framework-api (reactHouseConfigs) has no fix: replace the browser API with the @venizia/ardor-react hook the message names, keep one on purpose with an eslint-disable-next-line and the reason, or list its id in { ignore: ['confirm'] }."
@@ -1546,4 +1546,25 @@ grpc-rpc-kind:
   downgrade:
     steps:
       - "Pin @venizia/ignis to the release before this one."
+  data: Nothing stored changes.
+
+execution-class:
+  symbols: [Execution, PromiseUtility, executeWithLimit, voidExecution, PreferExecutionSleepRule]
+  upgrade:
+    before: |-
+      import { PromiseUtility } from '@venizia/ignis-helpers';
+
+      await PromiseUtility.executeWithLimit({ tasks, limit: 5 });
+      PromiseUtility.voidExecution({ logger: this.logger, scope: 'send', execution: this.send() });
+    after: |-
+      import { Execution } from '@venizia/ignis-helpers';
+
+      await Execution.withLimit({ tasks, limit: 5 });
+      Execution.fireAndForget({ logger: this.logger, scope: 'send', execution: this.send() });
+    steps:
+      - "Run bun node_modules/.bin/devz codemod execution-class [paths...] --write, then your typecheck: it reports a method taken apart from the class, which the codemod leaves."
+      - "Rename the lint rule @venizia/prefer-promise-sleep to @venizia/prefer-execution-sleep in your ESLint configs and disable comments."
+  downgrade:
+    steps:
+      - "Run bun node_modules/.bin/devz codemod execution-class [paths...] --reverse --write, then pin the @venizia packages to the release before this one."
   data: Nothing stored changes.

@@ -1,7 +1,7 @@
 import type { ValueOrPromise } from '@/common';
 import { getError } from '@/modules/error';
 import type { ILogger } from '@/modules/logger';
-import { PromiseUtility } from '@/utilities/promise.utility';
+import { Execution } from '@/modules/execution';
 import { RetryBackoffStrategies, RetryJitterModes } from '@/modules/retry/common/constants';
 import type { IRetryBackoffOptions, IRetryContext } from '@/modules/retry/common/types';
 
@@ -49,7 +49,7 @@ export class RetryUtility {
     const { ms, operation, signal } = opts;
 
     if (!signal) {
-      await PromiseUtility.sleep({ ms });
+      await Execution.sleep({ ms });
 
       return;
     }

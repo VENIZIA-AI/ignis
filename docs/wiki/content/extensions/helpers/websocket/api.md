@@ -275,7 +275,7 @@ Details for the table:
 
 `handshake.fn` runs inside the same promise chain as `authenticate.fn`, so a throw lands in the same handler.
 
-- **Failures do not crash the process.** A synchronous throw inside a Bun socket handler is caught and logged. A rejected promise is logged the same way, via `PromiseUtility.voidExecution`.
+- **Failures do not crash the process.** A synchronous throw inside a Bun socket handler is caught and logged. A rejected promise is logged the same way, via `Execution.fireAndForget`.
 
 ### `configure()`
 
@@ -473,7 +473,7 @@ Local delivery only.
 | Condition | Strategy |
 |-----------|----------|
 | No `outboundTransformer`, no `exclude` | Bun native `server.publish(room, payload)` - O(1) C++ fan-out |
-| `outboundTransformer` set, no `exclude` | Iterates room clients via `PromiseUtility.executeWithLimit` (max `encryptedBatchLimit` concurrent) |
+| `outboundTransformer` set, no `exclude` | Iterates room clients via `Execution.withLimit` (max `encryptedBatchLimit` concurrent) |
 | `exclude` provided | Always iterates clients individually - Bun pub/sub cannot exclude |
 
 ### `broadcast()`

@@ -516,7 +516,7 @@ interface IMailService {
 
 **`sendBatch(messages, options?)`**
 
-Sends every message via `send()` with concurrency bounded by `PromiseUtility.executeWithLimit()`, default `MailDefaults.BATCH_CONCURRENCY` (`5`). A `send()` that throws is caught per-message and downgraded to `{ success: false, error }`; a failure in the batch operation itself throws `MailErrorCodes.BATCH_SEND_FAILED`.
+Sends every message via `send()` with concurrency bounded by `Execution.withLimit()`, default `MailDefaults.BATCH_CONCURRENCY` (`5`). A `send()` that throws is caught per-message and downgraded to `{ success: false, error }`; a failure in the batch operation itself throws `MailErrorCodes.BATCH_SEND_FAILED`.
 
 **`sendTemplate(opts)`**
 

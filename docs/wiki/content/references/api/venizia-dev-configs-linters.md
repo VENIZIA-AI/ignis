@@ -135,17 +135,17 @@ The declarations are on 2 pages; each export below links to its own.
 
 *const* - [Declaration](/references/api/venizia-dev-configs-linters--part-1#paddingconfigs)
 
+## `PreferExecutionSleepRule`
+
+*class* - [Declaration](/references/api/venizia-dev-configs-linters--part-1#preferexecutionsleeprule)
+
 ## `PreferFrameworkApiRule`
 
 *class* - [Declaration](/references/api/venizia-dev-configs-linters--part-1#preferframeworkapirule)
 
 ## `PreferHttpMethodRule`
 
-*class* - [Declaration](/references/api/venizia-dev-configs-linters--part-1#preferhttpmethodrule)
-
-## `PreferPromiseSleepRule`
-
-*class* - [Declaration](/references/api/venizia-dev-configs-linters--part-2#preferpromisesleeprule)
+*class* - [Declaration](/references/api/venizia-dev-configs-linters--part-2#preferhttpmethodrule)
 
 ## `PreferTNullableRule`
 

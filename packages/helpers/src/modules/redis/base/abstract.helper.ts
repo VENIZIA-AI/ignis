@@ -1,5 +1,5 @@
 import { ObjectUtility } from '@venizia/ignis-inversion';
-import { PromiseUtility } from '@/utilities/promise.utility';
+import { Execution } from '@/modules/execution';
 import { getError } from '@/modules/error';
 import { LoggerFactory } from '@/modules/logger';
 import { RetryUtility } from '@/modules/retry';
@@ -612,7 +612,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     const packet = useCompress ? zlib.deflateSync(message) : message;
 
     // `topics` is caller-supplied, so an unbounded fan-out here is a caller-sized burst on one connection.
-    await PromiseUtility.executeWithLimit({
+    await Execution.withLimit({
       limit: RedisConcurrency.PUBLISH_LIMIT,
       tasks: validTopics.map((topic) => () => this.client.publish(topic, packet)),
     });
@@ -628,7 +628,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
       return;
     }
 
-    PromiseUtility.voidExecution({
+    Execution.fireAndForget({
       logger: this.logger,
       scope: this.subscribe.name,
       execution: this.client.subscribe(topic, (error, count) => {
@@ -653,7 +653,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
       return;
     }
 
-    PromiseUtility.voidExecution({
+    Execution.fireAndForget({
       logger: this.logger,
       scope: this.unsubscribe.name,
       execution: this.client.unsubscribe(topic, (error, count) => {

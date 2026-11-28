@@ -5,7 +5,7 @@ import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { RedisUtility, type TRedisClient } from '@/modules/redis';
 import { UuidHelper } from '@/modules/uid';
-import { PromiseUtility } from '@/utilities/promise.utility';
+import { Execution } from '@/modules/execution';
 import {
   type IBunWebSocketConfig,
   type IBunWebSocketHandler,
@@ -256,12 +256,12 @@ export class WebSocketServerHelper<
     return this.path;
   }
 
-  /** Hooks run inside Bun socket handlers - a sync throw there kills the process; voidExecution only catches promise rejections since its argument is evaluated before the try/catch runs. */
+  /** Hooks run inside Bun socket handlers - a sync throw there kills the process; fireAndForget only catches promise rejections since its argument is evaluated before the try/catch runs. */
   protected invokeHook(opts: { scope: string; execution: () => ValueOrPromise<void> }) {
     const { scope, execution } = opts;
 
     try {
-      PromiseUtility.voidExecution({ logger: this.logger, scope, execution: execution() });
+      Execution.fireAndForget({ logger: this.logger, scope, execution: execution() });
     } catch (error) {
       this.logger.for(scope).error('Hook execution FAILED | Error: %s', error);
     }
@@ -433,7 +433,7 @@ export class WebSocketServerHelper<
       }
     }
 
-    PromiseUtility.voidExecution({
+    Execution.fireAndForget({
       logger: this.logger,
       scope: this.publishToRedis.name,
       execution: this.redisPub.publish(channel, JSON.stringify(message)),

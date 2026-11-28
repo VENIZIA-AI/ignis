@@ -317,7 +317,7 @@ Check if a value is a promise.
 export declare const isPromiseLike: <T>(value: T | PromiseLike<T>) => value is PromiseLike<T>;
 ```
 
-Source: `packages/helpers/src/utilities/promise.utility.ts`
+Source: `packages/helpers/src/modules/execution/execution.ts`
 
 ## `isRedisHelper`
 

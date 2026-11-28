@@ -1,6 +1,6 @@
 /** Kafka Consumer lifecycle & reconnect regression tests (no broker required) */
 
-import { PromiseUtility } from '@/utilities/promise.utility';
+import { Execution } from '@/modules/execution';
 import { KafkaConsumerHelper } from '@/modules/queue/kafka';
 import { KafkaClientEvents, KafkaHealthStatuses } from '@/modules/queue/kafka/common/constants';
 import { describe, expect, test } from 'bun:test';
@@ -52,7 +52,7 @@ describe('KafkaConsumerHelper - dead stream reconnect', () => {
       maxReconnectAttempts: 5,
     });
 
-    await PromiseUtility.sleep({ ms: 50 });
+    await Execution.sleep({ ms: 50 });
     helper['destroyDeadStream']();
 
     await guard(advancedPromise, 2_000, 'consume loop never reached attemptReconnect');
@@ -667,7 +667,7 @@ describe('KafkaConsumerHelper - one delivery per stream error on a real Readable
 
     await helper.start({ topics: ['t'], maxReconnectAttempts: 0 });
     stream.destroy(new Error('broker dropped'));
-    await PromiseUtility.sleep({ ms: 50 });
+    await Execution.sleep({ ms: 50 });
 
     expect(streamErrors.map((error) => error.message)).toEqual(['broker dropped']);
     expect(messageErrors).toEqual([]);
@@ -689,7 +689,7 @@ describe('KafkaConsumerHelper - one delivery per stream error on a real Readable
 
     await helper.start({ topics: ['t'] });
     stream.destroy(new Error('broker dropped'));
-    await PromiseUtility.sleep({ ms: 20 });
+    await Execution.sleep({ ms: 20 });
 
     expect(streamErrors.map((error) => error.message)).toEqual(['broker dropped']);
   });
@@ -717,11 +717,11 @@ describe('KafkaConsumerHelper - errors after the loop gave up are still reported
 
     await helper.start({ topics: ['t'], maxReconnectAttempts: 0 });
     stream.destroy(new Error('first drop'));
-    await PromiseUtility.sleep({ ms: 50 });
+    await Execution.sleep({ ms: 50 });
     expect(helper['consumeLoop']).toBeNull();
 
     stream.emit('error', new Error('late error'));
-    await PromiseUtility.sleep({ ms: 20 });
+    await Execution.sleep({ ms: 20 });
 
     expect(streamErrors.map((error) => error.message)).toEqual(['first drop', 'late error']);
     expect(messageErrors).toEqual([]);

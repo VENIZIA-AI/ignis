@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { isApplicationError } from '@/modules/error';
-import { PromiseUtility } from '@/utilities/promise.utility';
+import { Execution } from '@/modules/execution';
 
 /** Counts the timers `withTimeout` arms with the given delay and how many of them were cleared. */
 const trackTimers = (delay: number) => {
@@ -47,7 +47,7 @@ const rejectionOf = async (execution: Promise<unknown>): Promise<unknown> => {
 
 const LIMIT_MS = 4321;
 
-describe('PromiseUtility.withTimeout', () => {
+describe('Execution.withTimeout', () => {
   let timers: ReturnType<typeof trackTimers>;
 
   beforeEach(() => {
@@ -59,7 +59,7 @@ describe('PromiseUtility.withTimeout', () => {
   });
 
   test('the call wins: resolves with its result and leaves no timer behind', async () => {
-    const result = await PromiseUtility.withTimeout({
+    const result = await Execution.withTimeout({
       call: async () => 'done',
       timeoutMs: LIMIT_MS,
     });
@@ -69,7 +69,7 @@ describe('PromiseUtility.withTimeout', () => {
   });
 
   test('a synchronous return value is accepted', async () => {
-    const result2 = await PromiseUtility.withTimeout({ call: () => 7, timeoutMs: LIMIT_MS });
+    const result2 = await Execution.withTimeout({ call: () => 7, timeoutMs: LIMIT_MS });
     expect(result2).toBe(7);
     expect(timers.pending()).toBe(0);
   });
@@ -78,7 +78,7 @@ describe('PromiseUtility.withTimeout', () => {
     timers.restore();
 
     const error = await rejectionOf(
-      PromiseUtility.withTimeout({
+      Execution.withTimeout({
         call: () => new Promise<never>(() => {}),
         timeoutMs: 5,
         message: 'upstream too slow',
@@ -91,11 +91,11 @@ describe('PromiseUtility.withTimeout', () => {
 
   test('the timeout error carries 504, the largest timer is accepted', async () => {
     const error = await rejectionOf(
-      PromiseUtility.withTimeout({ call: () => new Promise<never>(() => {}), timeoutMs: 5 }),
+      Execution.withTimeout({ call: () => new Promise<never>(() => {}), timeoutMs: 5 }),
     );
 
     expect((error as { statusCode?: number }).statusCode).toBe(504);
-    const result4 = await PromiseUtility.withTimeout({
+    const result4 = await Execution.withTimeout({
       call: () => 'ok',
       timeoutMs: 2_147_483_647,
     });
@@ -104,7 +104,7 @@ describe('PromiseUtility.withTimeout', () => {
 
   test('the default message names the limit', async () => {
     const error = await rejectionOf(
-      PromiseUtility.withTimeout({
+      Execution.withTimeout({
         call: () => new Promise<never>(() => {}),
         timeoutMs: 5,
       }),
@@ -118,7 +118,7 @@ describe('PromiseUtility.withTimeout', () => {
     const failure = new Error('boom');
 
     const error = await rejectionOf(
-      PromiseUtility.withTimeout({
+      Execution.withTimeout({
         call: async () => {
           throw failure;
         },
@@ -134,7 +134,7 @@ describe('PromiseUtility.withTimeout', () => {
     const failure = new Error('sync boom');
 
     const error = await rejectionOf(
-      PromiseUtility.withTimeout({
+      Execution.withTimeout({
         call: () => {
           throw failure;
         },
@@ -154,7 +154,7 @@ describe('PromiseUtility.withTimeout', () => {
 
     try {
       const result3 = await rejectionOf(
-        PromiseUtility.withTimeout({
+        Execution.withTimeout({
           call: () =>
             new Promise<never>((_resolve, reject) =>
               setTimeout(() => reject(new Error('late')), 20),
@@ -163,7 +163,7 @@ describe('PromiseUtility.withTimeout', () => {
         }),
       );
       expect(isApplicationError(result3)).toBe(true);
-      await PromiseUtility.sleep({ ms: 40 });
+      await Execution.sleep({ ms: 40 });
     } finally {
       process.off('unhandledRejection', onUnhandled);
     }
@@ -176,7 +176,7 @@ describe('PromiseUtility.withTimeout', () => {
 
     for (const timeoutMs of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, 2 ** 31, 3_000_000_000]) {
       const error = await rejectionOf(
-        PromiseUtility.withTimeout({
+        Execution.withTimeout({
           call: () => {
             ran = true;
           },
@@ -191,9 +191,9 @@ describe('PromiseUtility.withTimeout', () => {
   });
 });
 
-describe('PromiseUtility.sleep', () => {
+describe('Execution.sleep', () => {
   test('resolves with undefined', async () => {
-    const value: void = await PromiseUtility.sleep({ ms: 1 });
+    const value: void = await Execution.sleep({ ms: 1 });
 
     expect(value).toBeUndefined();
   });

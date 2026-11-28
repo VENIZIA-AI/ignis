@@ -154,7 +154,7 @@ The constructor always sets the logger scope to `BaseWorkerHelper.name`, so `opt
 
 The constructor calls `binding()` automatically. It throws `[binding] Invalid worker instance to bind event handlers` if `this.worker` is falsy.
 
-Every handler runs through `HookUtility.invoke`, which wraps the call in a `try/catch`. A synchronous throw inside a user handler is caught and logged as `"Hook execution FAILED | Error: %s"`, rather than crashing the process. Async rejections are settled the same way, via `PromiseUtility.voidExecution`.
+Every handler runs through `HookUtility.invoke`, which wraps the call in a `try/catch`. A synchronous throw inside a user handler is caught and logged as `"Hook execution FAILED | Error: %s"`, rather than crashing the process. Async rejections are settled the same way, via `Execution.fireAndForget`.
 
 ### AbstractWorkerHelper (subclassing)
 

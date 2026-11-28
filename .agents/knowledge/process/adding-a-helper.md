@@ -31,8 +31,8 @@ tags: [process, helper, helpers]
    inline from a factory function) - TypeScript cannot emit a protected/private member in the
    declaration file of an exported ANONYMOUS class (error TS4094), and factory-built classes are
    exactly that shape. If your helper is built through a factory, keep it `public` or hoist the
-   logic to a standalone function instead (see the comment on `PromiseUtility.voidExecution` in
-   `packages/helpers/src/utilities/promise.utility.ts` for the exact rationale).
+   logic to a standalone function instead (see the comment on `Execution.fireAndForget` in
+   `packages/helpers/src/modules/execution/execution.ts` for the exact rationale).
 6. Export the new module from `packages/helpers/src/modules/index.ts` (`export * from
    './<name>'`) only if it has NO heavy optional peer dependency. If it wraps an optional peer
    (a driver, SDK, or protocol client not everyone needs), give it its OWN sub-path export instead

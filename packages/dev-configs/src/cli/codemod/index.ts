@@ -5,6 +5,7 @@ import { ClassRenamesCommand } from './class-renames';
 import { ConnectorImportsCommand } from './connector-imports';
 import { ConstClassesCommand } from './const-classes';
 import { EnvGetCommand } from './env-get';
+import { ExecutionClassCommand } from './execution-class';
 import { FunctionToArrowCommand } from './function-to-arrow';
 import { DropRedundantCastsCommand } from './drop-redundant-casts';
 import { NamespaceFunctionsCommand } from './namespace-functions';
@@ -21,6 +22,7 @@ const USAGE = [
   AnyAliasesCommand.USAGE,
   BindingKeysCommand.USAGE,
   ClassRenamesCommand.USAGE,
+  ExecutionClassCommand.USAGE,
   FunctionToArrowCommand.USAGE,
   TypedRouteContextCommand.USAGE,
 ].join('\n\n');
@@ -36,6 +38,7 @@ const NAME_LIST = [
   'any-aliases',
   'binding-keys',
   'class-renames',
+  'execution-class',
   'function-to-arrow',
   'typed-route-context',
 ];
@@ -112,6 +115,10 @@ export class CodemodCommand {
 
     if (name === 'typed-route-context') {
       return TypedRouteContextCommand.run({ root: opts.root, args: rest });
+    }
+
+    if (name === 'execution-class') {
+      return ExecutionClassCommand.run({ root: opts.root, args: rest });
     }
 
     if (name === 'class-renames') {

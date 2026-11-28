@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { connect as connectTcp } from 'node:net';
 import { fileDesc, serviceDesc } from '@bufbuild/protobuf/codegenv2';
 import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { getError, PromiseUtility } from '@venizia/ignis-helpers/core';
+import { getError, Execution } from '@venizia/ignis-helpers/core';
 import {
   AuthenticationStrategyRegistry,
   bidiStream,
@@ -71,7 +71,7 @@ class GreeterController extends BaseGrpcController {
       throw getError({ statusCode: HTTP.ResultCodes.RS_4.Conflict, message: 'Already there' });
     }
 
-    await PromiseUtility.sleep({ ms: Number(nameOf(opts.request)) });
+    await Execution.sleep({ ms: Number(nameOf(opts.request)) });
 
     return { message: 'done' };
   }
@@ -100,7 +100,7 @@ class GreeterController extends BaseGrpcController {
       throw getError({ statusCode: HTTP.ResultCodes.RS_4.Conflict, message: 'Changed meanwhile' });
     }
 
-    await PromiseUtility.sleep({ ms: Number(nameOf(opts.request)) });
+    await Execution.sleep({ ms: Number(nameOf(opts.request)) });
     yield { message: `second context=${useRequestContext() !== undefined}` };
   }
 
@@ -135,7 +135,7 @@ class OpenController extends BaseGrpcController {
   @serverStream({ configs: { name: 'listHellos' } })
   async *listHellos(opts: { request: unknown }) {
     yield { message: 'first' };
-    await PromiseUtility.sleep({ ms: Number(nameOf(opts.request)) });
+    await Execution.sleep({ ms: Number(nameOf(opts.request)) });
     yield { message: 'second' };
   }
 }
@@ -255,7 +255,7 @@ const paced = (opts: { pauseMs: number; onPause?: () => void }) => {
   return new ReadableStream<Uint8Array>({
     async start(source) {
       source.enqueue(envelope({ name: 'a' }));
-      await PromiseUtility.sleep({ ms: opts.pauseMs });
+      await Execution.sleep({ ms: opts.pauseMs });
       opts.onPause?.();
       source.enqueue(envelope({ name: 'b' }));
       source.close();
@@ -296,7 +296,7 @@ describe('gRPC streaming on the application port', () => {
     );
     await response.body?.getReader().read();
     abort.abort();
-    await PromiseUtility.sleep({ ms: 500 });
+    await Execution.sleep({ ms: 500 });
 
     expect(seen.released).toEqual(['signal', 'finally']);
   });
@@ -419,11 +419,11 @@ describe('gRPC streaming on the application port', () => {
       socket.write(head);
       socket.write(payload);
       // The answer is in, then the start of a second request that never finishes.
-      await PromiseUtility.sleep({ ms: 500 });
+      await Execution.sleep({ ms: 500 });
       socket.write('POST /api HTTP/1.1\r\nhost: localhost\r\n');
       const isClosed = await Promise.race([
         closed,
-        PromiseUtility.sleep({ ms: QUIET_MS }).then(() => false),
+        Execution.sleep({ ms: QUIET_MS }).then(() => false),
       ]);
       socket.destroy();
 

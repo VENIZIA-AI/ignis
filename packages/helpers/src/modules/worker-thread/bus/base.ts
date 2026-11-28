@@ -1,5 +1,5 @@
 import { type ValueOrPromise } from '@/common/types';
-import { PromiseUtility } from '@/utilities/promise.utility';
+import { Execution } from '@/modules/execution';
 import { type MessagePort, type Transferable } from 'node:worker_threads';
 import { type IWorkerMessageBusHandler } from '../common';
 import { AbstractWorkerBusHelper } from './abstract';
@@ -40,12 +40,12 @@ export class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends Abstr
     });
   }
 
-  /** Bus handlers run inside MessagePort listeners; a sync throw there is uncaught and kills the worker thread, so wrap it - voidExecution alone can't catch a throw evaluated before it's called. */
+  /** Bus handlers run inside MessagePort listeners; a sync throw there is uncaught and kills the worker thread, so wrap it - fireAndForget alone can't catch a throw evaluated before it's called. */
   protected invokeHook(opts: { scope: string; execution: () => ValueOrPromise<void> }) {
     const { scope, execution } = opts;
 
     try {
-      PromiseUtility.voidExecution({ logger: this.logger, scope, execution: execution() });
+      Execution.fireAndForget({ logger: this.logger, scope, execution: execution() });
     } catch (error) {
       this.logger.for(scope).error('Hook execution FAILED | Error: %s', error);
     }
