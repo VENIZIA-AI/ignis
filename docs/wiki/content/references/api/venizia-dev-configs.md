@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-0 exports, 0 with TSDoc. 73 more are re-exported from other entries (listed at the end).
+0 exports, 0 with TSDoc. 75 more are re-exported from other entries (listed at the end).
 
 ## Re-exported
 
@@ -67,7 +67,9 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 - `reactHouseConfigs` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `reactNamingConventionConfigs` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `ReactOxlintConfigs` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
+- `RestrictExecutionCallSitesRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `RuleSeverities` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
+- `StaticExecutionReasonRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `SwitchCaseBracesModes` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `SwitchCaseBracesRule` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `TBrowserApiMatch` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)

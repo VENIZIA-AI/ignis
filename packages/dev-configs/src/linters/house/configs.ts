@@ -16,6 +16,7 @@ import { PreferFrameworkApiRule } from './prefer-framework-api.rule';
 import { PreferHttpMethodRule } from './prefer-http-method.rule';
 import { PreferExecutionSleepRule } from './prefer-execution-sleep.rule';
 import { PreferTNullableRule } from './prefer-tnullable.rule';
+import { StaticExecutionReasonRule } from './static-execution-reason.rule';
 import { TypedRouteContextRule } from './typed-route-context.rule';
 import { ZodSchemaConventionRule } from './zod-schema-convention.rule';
 import { houseEslintPlugin } from './plugin';
@@ -32,7 +33,8 @@ const NO_CAST_RULE = '@typescript-eslint/consistent-type-assertions';
 /**
  * The house rules: at most 5 positional parameters on a function we write, and errors thrown through
  * `getError` only. Tests are exempt from `no-new-error`: a test throws a plain `Error` on purpose, to
- * stand in for what a driver or a third-party library throws.
+ * stand in for what a driver or a third-party library throws. `restrict-execution-call-sites` is not here:
+ * an application turns it on with its own list of files.
  *
  * Two rules only warn, so a project adopts them without failing its lint: `const-class-values` (V-C-08, a
  * string-literal union in an exported declaration) and `consistent-type-assertions` (V-C-10, an `as X`
@@ -48,6 +50,7 @@ const houseRuleConfigs: Linter.Config[] = [
       [NoShadowFrameworkTypeRule.NAME]: NoShadowFrameworkTypeRule.build(),
       [PreferTNullableRule.NAME]: PreferTNullableRule.build(),
       [PreferExecutionSleepRule.NAME]: PreferExecutionSleepRule.build(),
+      [StaticExecutionReasonRule.NAME]: StaticExecutionReasonRule.build(),
       [PreferHttpMethodRule.NAME]: PreferHttpMethodRule.build(),
       [PreferFrameworkApiRule.NAME]: PreferFrameworkApiRule.build({ hooks: false }),
       [ConstClassValuesRule.NAME]: ConstClassValuesRule.build({ severity: 'warn' }),
@@ -62,6 +65,7 @@ const houseRuleConfigs: Linter.Config[] = [
       [NoNewErrorRule.NAME]: 'off',
       [NoShadowFrameworkTypeRule.NAME]: 'off',
       [PreferExecutionSleepRule.NAME]: 'off',
+      [StaticExecutionReasonRule.NAME]: 'off',
       [PreferHttpMethodRule.NAME]: 'off',
       [PreferFrameworkApiRule.NAME]: 'off',
       [ConstClassValuesRule.NAME]: 'off',

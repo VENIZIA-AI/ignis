@@ -12,7 +12,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/dev-configs`](/references/api/venizia-dev-configs) | 0 | 0 |
 | [`@venizia/dev-configs/checks`](/references/api/venizia-dev-configs-checks) | 43 | 43 |
 | [`@venizia/dev-configs/compilers`](/references/api/venizia-dev-configs-compilers) | 1 | 1 |
-| [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters) | 42 | 42 |
+| [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters) | 44 | 44 |
 | [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint) | 30 | 30 |
 | [`@venizia/dev-configs/testing`](/references/api/venizia-dev-configs-testing) | 5 | 5 |
 | [`@venizia/ignis`](/references/api/venizia-ignis) | 122 | 122 |
@@ -31,7 +31,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-connectors/postgres/postgres-js`](/references/api/venizia-ignis-connectors-postgres-postgres-js) | 1 | 1 |
 | [`@venizia/ignis-connectors/postgres/supabase`](/references/api/venizia-ignis-connectors-postgres-supabase) | 14 | 14 |
 | [`@venizia/ignis-connectors/raw-sql`](/references/api/venizia-ignis-connectors-raw-sql) | 8 | 8 |
-| [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational) | 81 | 81 |
+| [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational) | 82 | 82 |
 | [`@venizia/ignis-connectors/search`](/references/api/venizia-ignis-connectors-search) | 0 | 0 |
 | [`@venizia/ignis-connectors/search/controllers`](/references/api/venizia-ignis-connectors-search-controllers) | 0 | 0 |
 | [`@venizia/ignis-connectors/sqlite`](/references/api/venizia-ignis-connectors-sqlite) | 49 | 49 |

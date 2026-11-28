@@ -20,6 +20,8 @@ The app listens on `http://localhost:3000` (set `PORT` to change it). Browse the
 | `src/repositories/*.repository.ts` | An empty class under `@repository({ model, dataSource })` |
 | `src/controllers/*.controller.ts` | The CRUD routes from `CrudControllerFactory.build` |
 | `src/datasources/sqlite.datasource.ts` | The only libsql-specific file: opens the client and applies migrations |
+| `src/models/task.model.ts` | A model with `access`: each row belongs to a tenant |
+| `src/services/task.service.ts` | `Execution.run`: a scoped job for one tenant and a system run across tenants |
 | `src/application.ts` | The application class: it turns on the API docs and health check components |
 | `src/index.ts` | Starts the server; `artifacts: AutoArtifacts` registers every decorated class under `src` |
 
@@ -78,6 +80,21 @@ bun test
 The smoke test boots the same `Application` on a free port against an in-memory database
 (`APP_ENV_SQLITE_URL=:memory:`), then calls each endpoint over HTTP.
 
+## Work with no request
+
+A job has no user and no request, so it opens an
+[execution frame](https://ignis.venizia.ai/guides/core-concepts/execution) that says who it runs for.
+`Task` declares `access`, so what a call reaches depends on that frame:
+
+| Frame | `Task` rows it reaches |
+|---|---|
+| none | A read finds nothing; a write throws `403` |
+| scoped, `values: { tenantId }` | That tenant's rows |
+| system, with a `reason` | Every row; the run is logged |
+
+`TaskService` shows the last two, and `src/__tests__/task.test.ts` shows all three. `Task` has no
+controller: an HTTP request names no tenant in this app.
+
 ## Where the data goes
 
 `bun run server:dev` keeps the database in `app_data/database/local.db` and logs in `app_data/logs`.
@@ -91,7 +108,7 @@ The smoke test boots the same `Application` on a free port against an in-memory 
 
 ## Change the schema
 
-Edit `src/models/note.model.ts`, then generate a migration:
+Edit a file in `src/models`, then generate a migration:
 
 ```bash
 bun run migrate:generate   # writes migration/NNNN_*.sql
