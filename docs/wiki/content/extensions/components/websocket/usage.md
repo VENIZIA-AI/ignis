@@ -244,7 +244,7 @@ The helper picks a delivery path per call, based on encryption and `exclude`:
 | Encryption active | Per-client iteration through `outboundTransformer`, no Bun topics |
 | `outboundTransformer` bound at all | Per-client iteration for every room/broadcast send |
 
-With encryption active, clients unsubscribe from Bun topics and the helper iterates them individually through `outboundTransformer`, bounded by `PromiseUtility.executeWithLimit({ limit: encryptedBatchLimit })`. Once `outboundTransformer` is bound at all, **every** room/broadcast send falls back to per-client iteration, even for non-encrypted clients in the same room, because Bun's native pub/sub cannot selectively transform.
+With encryption active, clients unsubscribe from Bun topics and the helper iterates them individually through `outboundTransformer`, bounded by `Execution.withLimit({ limit: encryptedBatchLimit })`. Once `outboundTransformer` is bound at all, **every** room/broadcast send falls back to per-client iteration, even for non-encrypted clients in the same room, because Bun's native pub/sub cannot selectively transform.
 
 > [!IMPORTANT]
 > Only bind `outboundTransformer` when you actually need per-client message transformation (for example per-client encryption). Binding it removes the fast path for every room/broadcast send, encrypted or not.

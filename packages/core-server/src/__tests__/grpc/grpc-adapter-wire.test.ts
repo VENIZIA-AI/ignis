@@ -5,7 +5,7 @@ import * as protocol from '@connectrpc/connect/protocol';
 import type { HandlerContext } from '@connectrpc/connect';
 import { fileDesc, serviceDesc } from '@bufbuild/protobuf/codegenv2';
 import { GRPC, HTTP } from '@venizia/ignis-helpers/common';
-import { PromiseUtility } from '@venizia/ignis-helpers/core';
+import { Execution } from '@venizia/ignis-helpers/core';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
@@ -146,10 +146,10 @@ describe('gRPC adapter on the wire', () => {
     const abort = new AbortController();
     // The client's own request rejects when it leaves: settled here so the rejection is expected.
     const pending = Promise.allSettled([post({ body: '{"name":"slow"}', signal: abort.signal })]);
-    await PromiseUtility.sleep({ ms: 100 });
+    await Execution.sleep({ ms: 100 });
     abort.abort();
     await pending;
-    await PromiseUtility.sleep({ ms: 100 });
+    await Execution.sleep({ ms: 100 });
 
     expect(seen.aborted).toHaveLength(1);
   });

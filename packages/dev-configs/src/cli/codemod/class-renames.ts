@@ -56,6 +56,8 @@ export interface IClassRename {
   newName: string;
   /** The packages that export it; a module specifier is theirs when it is the package or a sub-path of it. */
   packages: ReadonlyArray<string>;
+  /** Static members renamed with the class: old name to new. */
+  members?: Readonly<Record<string, string>>;
 }
 
 /** `@venizia/ignis` re-exports the helpers as types only, so a value import of these classes comes from `@venizia/ignis-helpers`. */
@@ -97,18 +99,96 @@ export interface IClassRenamesResult {
   rewritten: number;
 }
 
+/** The prefix of the alias a renamed import gets when the file already declares the new name. */
+const ALIAS_PREFIX = 'Ignis';
+
 /** Renames the classes of `ClassRenameTable` where a file imports them. */
 export class ClassRenames {
+  private static reversed(opts: { row: IClassRename }): IClassRename {
+    const { row } = opts;
+    const members = Object.fromEntries(
+      Object.entries(row.members ?? {}).map(([from, to]) => [to, from]),
+    );
+
+    return { ...row, oldName: row.newName, newName: row.oldName, members };
+  }
+
+  /** The renamed class of `ns.Class`, for the members read through a namespace import. */
+  private static namespaceOwner(opts: {
+    typescript: typeof import('typescript');
+    node: import('typescript').Node;
+    namespaces: Map<string, ReadonlyArray<IClassRename>>;
+  }): IClassRename | undefined {
+    const { typescript: ts, node, namespaces } = opts;
+    let scope: import('typescript').Node;
+    let member: string;
+
+    if (ts.isPropertyAccessExpression(node)) {
+      [scope, member] = [node.expression, node.name.text];
+    } else if (ts.isQualifiedName(node)) {
+      [scope, member] = [node.left, node.right.text];
+    } else if (
+      ts.isElementAccessExpression(node) &&
+      ts.isStringLiteralLike(node.argumentExpression)
+    ) {
+      [scope, member] = [node.expression, node.argumentExpression.text];
+    } else {
+      return undefined;
+    }
+
+    return ts.isIdentifier(scope)
+      ? namespaces.get(scope.text)?.find((row) => row.oldName === member)
+      : undefined;
+  }
+
+  /** Whether the file declares or imports a name that a renamed import would collide with. */
+  private static declares(opts: {
+    typescript: typeof import('typescript');
+    file: import('typescript').SourceFile;
+    name: string;
+  }): boolean {
+    const { typescript: ts, file, name } = opts;
+    let isDeclared = false;
+
+    const walk = (node: import('typescript').Node): void => {
+      const isDeclaration =
+        ts.isVariableDeclaration(node) ||
+        ts.isBindingElement(node) ||
+        ts.isParameter(node) ||
+        ts.isFunctionDeclaration(node) ||
+        ts.isClassDeclaration(node) ||
+        ts.isInterfaceDeclaration(node) ||
+        ts.isTypeAliasDeclaration(node) ||
+        ts.isEnumDeclaration(node) ||
+        ts.isImportClause(node) ||
+        ts.isImportSpecifier(node) ||
+        ts.isNamespaceImport(node) ||
+        ts.isImportEqualsDeclaration(node);
+
+      if (isDeclaration && node.name && ts.isIdentifier(node.name) && node.name.text === name) {
+        isDeclared = true;
+      }
+
+      ts.forEachChild(node, walk);
+    };
+
+    walk(file);
+
+    return isDeclared;
+  }
+
   static rewrite(opts: {
     typescript: typeof import('typescript');
     fileName: string;
     source: string;
     /** Rename the new names back to the old ones. */
     reverse?: boolean;
+    /** The renames to apply; the class rename table by default. */
+    rows?: ReadonlyArray<IClassRename>;
   }): IClassRenamesResult {
     const { typescript: ts, fileName, source, reverse = false } = opts;
-    const rows = ClassRenameTable.ROWS.map((row) =>
-      reverse ? { ...row, oldName: row.newName, newName: row.oldName } : row,
+    const rows = (opts.rows ?? ClassRenameTable.ROWS).map((row) =>
+      reverse ? ClassRenames.reversed({ row }) : row,
     );
     const scriptKind = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
     const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, scriptKind);
@@ -127,6 +207,8 @@ export class ClassRenames {
     /** The local names to rename everywhere in the file, and the namespace imports whose members are renamed. */
     const locals = new Map<string, IClassRename>();
     const namespaces = new Map<string, ReadonlyArray<IClassRename>>();
+    /** Every local name of a renamed class, aliases included: its members are renamed through it. */
+    const owners = new Map<string, IClassRename>();
 
     for (const statement of file.statements) {
       if (
@@ -160,11 +242,17 @@ export class ClassRenames {
               continue;
             }
 
-            rename(imported, row);
+            owners.set(element.name.text, row);
 
-            if (!element.propertyName) {
-              locals.set(element.name.text, row);
+            if (element.propertyName) {
+              rename(imported, row);
+              continue;
             }
+
+            const isTaken = ClassRenames.declares({ typescript: ts, file, name: row.newName });
+            const local = isTaken ? `${ALIAS_PREFIX}${row.newName}` : row.newName;
+            rename(imported, row, isTaken ? `${row.newName} as ${local}` : row.newName);
+            locals.set(element.name.text, { ...row, newName: local });
           }
         } else if (statement.exportClause && ts.isNamedExports(statement.exportClause)) {
           for (const element of statement.exportClause.elements) {
@@ -233,6 +321,22 @@ export class ClassRenames {
         }
       }
 
+      if (ts.isElementAccessExpression(node) && ts.isStringLiteralLike(node.argumentExpression)) {
+        const { expression, argumentExpression } = node;
+        const name = argumentExpression.text;
+        const owned = ts.isIdentifier(expression) ? namespaces.get(expression.text) : undefined;
+        const holder = ts.isIdentifier(expression)
+          ? owners.get(expression.text)
+          : ClassRenames.namespaceOwner({ typescript: ts, node: expression, namespaces });
+        const row = owned?.find((entry) => entry.oldName === name) ?? holder;
+        const renamed = owned ? row?.newName : holder?.members?.[name];
+
+        if (row && renamed) {
+          const quote = argumentExpression.getText(file).charAt(0);
+          rename(argumentExpression, row, `${quote}${renamed}${quote}`);
+        }
+      }
+
       if (ts.isPropertyAccessExpression(node) || ts.isQualifiedName(node)) {
         const [scope, member] = ts.isPropertyAccessExpression(node)
           ? [node.expression, node.name]
@@ -242,6 +346,16 @@ export class ClassRenames {
 
         if (row) {
           rename(member, row);
+        }
+
+        // A static member of the class: through its local name, or through a namespace import.
+        const holder = ts.isIdentifier(scope)
+          ? owners.get(scope.text)
+          : ClassRenames.namespaceOwner({ typescript: ts, node: scope, namespaces });
+        const renamed = holder?.members?.[member.text];
+
+        if (holder && renamed) {
+          rename(member, holder, renamed);
         }
       }
 
@@ -268,11 +382,21 @@ export class ClassRenames {
 export class ClassRenamesCommand {
   static readonly USAGE = USAGE;
 
-  static async run(opts: { root: string; args: string[] }): Promise<number> {
+  static async run(opts: {
+    root: string;
+    args: string[];
+    /** Another table of renames under its own command name; the class renames by default. */
+    codemod?: { name: string; usage: string; rows: ReadonlyArray<IClassRename> };
+  }): Promise<number> {
     const { root, args } = opts;
+    const codemod = opts.codemod ?? {
+      name: 'class-renames',
+      usage: USAGE,
+      rows: ClassRenameTable.ROWS,
+    };
 
     if (args.includes(ClassRenameFlags.HELP) || args.includes(ClassRenameFlags.HELP_SHORT)) {
-      CliOutput.log(USAGE);
+      CliOutput.log(codemod.usage);
 
       return 0;
     }
@@ -283,7 +407,7 @@ export class ClassRenamesCommand {
 
     if (unknown.length > 0) {
       CliOutput.error(
-        `devz codemod: unknown option ${unknown.map((flag) => `"${flag}"`).join(', ')}\n${USAGE}`,
+        `devz codemod: unknown option ${unknown.map((flag) => `"${flag}"`).join(', ')}\n${codemod.usage}`,
       );
 
       return USAGE_ERROR_CODE;
@@ -295,21 +419,21 @@ export class ClassRenamesCommand {
 
     if (isWrite && isCheck) {
       CliOutput.error(
-        `devz codemod: ${ClassRenameFlags.WRITE} and ${ClassRenameFlags.CHECK} contradict each other\n${USAGE}`,
+        `devz codemod: ${ClassRenameFlags.WRITE} and ${ClassRenameFlags.CHECK} contradict each other\n${codemod.usage}`,
       );
 
       return USAGE_ERROR_CODE;
     }
 
     const refusal = CodemodFiles.refusal({
-      command: 'class-renames',
+      command: codemod.name,
       isWrite,
       isAll: flags.includes(ClassRenameFlags.ALL),
       paths,
     });
 
     if (refusal) {
-      CliOutput.error(`${refusal}\n${USAGE}`);
+      CliOutput.error(`${refusal}\n${codemod.usage}`);
 
       return USAGE_ERROR_CODE;
     }
@@ -325,7 +449,7 @@ export class ClassRenamesCommand {
       return 1;
     }
 
-    const names = ClassRenameTable.ROWS.map((row) => (isReverse ? row.newName : row.oldName));
+    const names = codemod.rows.map((row) => (isReverse ? row.newName : row.oldName));
     const targets = (paths.length > 0 ? paths : ['.']).map((path) => resolve(root, path));
     let changedCount = 0;
     let renamedCount = 0;
@@ -353,6 +477,7 @@ export class ClassRenamesCommand {
           fileName: file,
           source,
           reverse: isReverse,
+          rows: codemod.rows,
         });
 
         if (!result.changed) {
@@ -382,7 +507,7 @@ export class ClassRenamesCommand {
     }
 
     CliOutput.log(
-      `devz codemod class-renames: ${changedCount} file(s) ${isWrite ? 'changed' : 'would change'}, ${renamedCount} name(s) ${isWrite ? 'renamed' : 'would be renamed'}` +
+      `devz codemod ${codemod.name}: ${changedCount} file(s) ${isWrite ? 'changed' : 'would change'}, ${renamedCount} name(s) ${isWrite ? 'renamed' : 'would be renamed'}` +
         (refusedCount > 0 ? `, ${refusedCount} refused` : ''),
     );
 

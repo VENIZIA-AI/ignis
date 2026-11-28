@@ -14,12 +14,12 @@ The helpers utilities used to be bare functions (`int`, `sleep`, `executePromise
 | **Module** | `ignis-helpers` | Optional peer loading | `ModuleUtility` |
 | **Parse** | `ignis-helpers` | Data type conversion | `ParseUtility.toInt()`, `.toFloat()`, `.toBoolean()`, `.toCamel()` |
 | **Performance** | `ignis-helpers` | Execution timing | `PerformanceUtility.executeWithMeasure()`, `.getCheckpoint()` |
-| **Promise** | `ignis-helpers` | Promise helpers | `PromiseUtility.executeWithLimit()`, `.withTimeout()`, `isPromiseLike()`, `ErrorUtility.toError()` |
+| **Promise** | `ignis-helpers` | Promise helpers | `Execution.withLimit()`, `.withTimeout()`, `isPromiseLike()`, `ErrorUtility.toError()` |
 | **Request** | `ignis-helpers` | HTTP utilities | `RequestUtility.parseMultipartBody()`, `.sanitizeFilename()`, `.buildContentDispositionHeader()` |
 | **Retry** | `ignis-helpers` | Backoff-driven retries | `RetryUtility` |
 | **Schema** | `ignis` | Zod schema helpers | `OpenApiResponses.jsonContent()`, `.jsonResponse()`; `OpenApiSchemas.requiredString()`, `.idParams()` |
 | **Statuses** | `ignis` | Status code constants | `Statuses`, `CommonStatuses`, `UserStatuses`, `RoleStatuses` |
-| **Timing** | `ignis-helpers` | Pause and measure | `PromiseUtility.sleep()`, `.withTimeout()`, `HrTimeUtility.getSeconds()` |
+| **Timing** | `ignis-helpers` | Pause and measure | `Execution.sleep()`, `.withTimeout()`, `HrTimeUtility.getSeconds()` |
 
 Calendar dates - parsing, formatting, adding a month in a time zone - live in [`TemporalHelper`](/extensions/helpers/temporal/).
 
@@ -33,7 +33,7 @@ Calendar dates - parsing, formatting, adding a month in a time zone - live in [`
 
 ### Time & Performance
 
-- [**Timing**](#timing) - `PromiseUtility.sleep()` to pause, `HrTimeUtility.getSeconds()` to read a high-resolution clock
+- [**Timing**](#timing) - `Execution.sleep()` to pause, `HrTimeUtility.getSeconds()` to read a high-resolution clock
 - [**Duration**](./duration.md) - A unit vocabulary, written-duration parsing, and conversion between units and milliseconds
 - [**Performance**](./performance.md) - Utilities for measuring code execution time and performance profiling
 
@@ -54,10 +54,10 @@ Utilities are imported from `@venizia/ignis` (schema, JSX, and status helpers) o
 
 ```typescript
 import { OpenApiResponses, OpenApiSchemas, Statuses } from '@venizia/ignis';
-import { ParseUtility, PromiseUtility } from '@venizia/ignis-helpers';
+import { ParseUtility, Execution } from '@venizia/ignis-helpers';
 
 // Timing
-await PromiseUtility.sleep({ ms: 1000 });
+await Execution.sleep({ ms: 1000 });
 
 // Parse
 const myInt = ParseUtility.toInt({ input: '1,000' }); // 1000
@@ -88,20 +88,20 @@ Two small methods with no page of their own. Both ship from the root of `@venizi
 
 | Method | Signature | What it does |
 |---|---|---|
-| `PromiseUtility.sleep` | `sleep({ ms: number }): Promise<unknown>` | Resolves after `ms` milliseconds, through `setTimeout` |
+| `Execution.sleep` | `sleep({ ms: number }): Promise<void>` | Resolves after `ms` milliseconds, through `setTimeout` |
 | `HrTimeUtility.getSeconds` | `getSeconds(): number` | Seconds from `process.hrtime()`, to nine decimals - for measuring, not for dates. Bun only |
 
 ```typescript
-import { HrTimeUtility, PromiseUtility } from '@venizia/ignis-helpers';
+import { HrTimeUtility, Execution } from '@venizia/ignis-helpers';
 
 const startedAt = HrTimeUtility.getSeconds();
-await PromiseUtility.sleep({ ms: 250 });
+await Execution.sleep({ ms: 250 });
 const elapsedSeconds = HrTimeUtility.getSeconds() - startedAt; // about 0.25
 ```
 
 **Files:**
 
-- [`packages/helpers/src/utilities/promise.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/promise.utility.ts) - `PromiseUtility.sleep`
+- [`packages/helpers/src/modules/execution/execution.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/execution/execution.ts) - `Execution.sleep`
 - [`packages/helpers/src/utilities/hr-time.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/hr-time.utility.ts) - `HrTimeUtility`
 
 > **Related:** [Helpers Reference](/extensions/helpers/) | [Core Concepts Guide](../../guides/core-concepts/application/)

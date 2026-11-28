@@ -134,7 +134,7 @@ export declare class SocketIOServerHelper extends BaseHelper {
     private setRuntime;
     private initRedisClients;
     getIOServer(): IOServer;
-    /** Handlers run inside socket.io event listeners - a sync throw there kills the process; voidExecution only catches promise rejections since its argument evaluates before the try/catch. */
+    /** Handlers run inside socket.io event listeners - a sync throw there kills the process; fireAndForget only catches promise rejections since its argument evaluates before the try/catch. */
     protected invokeHook(opts: {
         scope: string;
         execution: () => ValueOrPromise<void>;

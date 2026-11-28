@@ -1,7 +1,7 @@
 import { HTTP } from '@/common';
 import { getError } from '@/modules/error';
 import type { ILogger } from '@/modules/logger';
-import { PromiseUtility } from '@/utilities/promise.utility';
+import { Execution } from '@/modules/execution';
 import type { TRedisClient } from './common';
 
 const REDIS_READY_TIMEOUT = 30_000;
@@ -74,7 +74,7 @@ export class RedisUtility {
         continue;
       }
 
-      PromiseUtility.voidExecution({ logger, scope, execution: client.connect() });
+      Execution.fireAndForget({ logger, scope, execution: client.connect() });
     }
   }
 }

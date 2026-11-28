@@ -9,6 +9,83 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 Part 2 of 4 of [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core).
 
+## `IFetchable`
+
+*interface*
+
+Contract of an HTTP fetcher: `send` takes the method from the options, the verb methods fix it, and `getWorker` returns the underlying client (`W`). Without a `schema` a call answers the raw response `RS`; with one, `IFetchParsed`.
+
+```ts
+export interface IFetchable<V extends TFetcherVariant, RQ extends IRequestOptions, RS, W = unknown> {
+    send(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    send<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+    get(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    get<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+    post(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    post<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+    put(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    put<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+    patch(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    patch<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+    delete(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    delete<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+    query(opts: RQ & {
+        schema?: undefined;
+    }, logger?: TFetcherLogger): Promise<RS>;
+    query<S extends z.ZodType>(opts: RQ & {
+        schema: S;
+    }, logger?: TFetcherLogger): Promise<IFetchParsed<z.infer<S>, RS>>;
+    getVariant(): V;
+    getWorker(): W;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/base-fetcher.ts`
+
+## `IFetcherDefaults`
+
+*interface*
+
+What a fetcher applies to every call unless the call says otherwise.
+
+```ts
+export interface IFetcherDefaults {
+    /** Per attempt, in milliseconds. */
+    timeout?: number;
+    headers?: THttpHeaders;
+    retry?: IHttpRetryOptions;
+    maxBytes?: number;
+    /** A call may replace this policy with its own; it cannot switch the guard off. */
+    guard?: IUrlSafetyPolicy;
+}
+```
+
+Source: `packages/helpers/src/modules/network/http-request/fetcher/common/types.ts`
+
 ## `IFetcherHooks`
 
 *interface*

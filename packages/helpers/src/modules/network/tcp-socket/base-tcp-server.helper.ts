@@ -3,7 +3,7 @@ import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { ParseUtility } from '@/utilities/parse.utility';
-import { PromiseUtility } from '@/utilities/promise.utility';
+import { Execution } from '@/modules/execution';
 import {
   type ListenOptions,
   type ServerOpts,
@@ -236,7 +236,7 @@ export class BaseNetworkTcpServer<
 
     for (const extraEvent in this.extraEvents) {
       socket.on(extraEvent, (args) => {
-        PromiseUtility.voidExecution({
+        Execution.fireAndForget({
           logger: this.logger,
           scope: 'onClientConnect',
           // The async wrapper turns a SYNCHRONOUS throw from the handler into a rejection; calling it bare would throw out of this listener as an uncaught exception.

@@ -9,27 +9,26 @@ description: "Every export of @venizia/dev-configs/linters, from the built decla
 
 Part 2 of 2 of [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters).
 
-## `PreferPromiseSleepRule`
+## `PreferHttpMethodRule`
 
 *class*
 
-`@venizia/prefer-promise-sleep`. A sleep written by hand, `new Promise((resolve) => setTimeout(resolve, ms))`, is
-`PromiseUtility.sleep({ ms })` (`@venizia/ignis-helpers/core`). Only that exact shape is reported: a callback that
-does anything else is not a sleep.
+`@venizia/prefer-http-method`. An HTTP method written by hand (`method: 'get'`) is `HTTP.Methods.GET`
+(`@venizia/ignis-helpers/common`). Read where the syntax says it is one: `method`, `verb` or `httpMethod` in a route
+config or a request, and a variable or parameter of those names.
 
-The fix replaces the expression and adds the import; `source` is where `PromiseUtility` comes from, `null` turns
-the fix off.
+The fix is offered for a string that is exactly the constant's value (lowercase), so what is sent does not change,
+and for an uppercase one where the framework reads it (see `isFrameworkRead`). Anything else is reported only:
+the constants are lowercase, and the platform `fetch` does not uppercase `patch`.
+
+It reads syntax only. Another client reached through `require`, a dynamic `import()` or a sub-path of its package
+is not seen, and neither is a `send` on a client socket that carries a `path`: check the diff `--fix` makes. It applies in a project that depends on an IGNIS
+package. `source` is where `HTTP` is imported from; `null` turns the import, and so the fix, off.
 
 ```ts
-export declare class PreferPromiseSleepRule {
-    static readonly NAME = "@venizia/prefer-promise-sleep";
-    static readonly DEFAULT_SOURCE = "@venizia/ignis-helpers/core";
-    /** The `setTimeout(<resolve>, <delay>)` call a sleep callback consists of, or `undefined`. */
-    private static delayOf;
-    /** `PromiseUtility.sleep({ ms })`, with the shorthand when the delay is a variable named `ms`. */
-    private static call;
-    /** Whether `setTimeout` at `node` resolves to a binding of the file (not the global timer). */
-    private static isRebound;
+export declare class PreferHttpMethodRule {
+    static readonly NAME = "@venizia/prefer-http-method";
+    static readonly DEFAULT_SOURCE = "@venizia/ignis-helpers/common";
     static readonly RULE: Rule.RuleModule;
     static build(opts?: {
         severity?: TRuleSeverity;
@@ -38,7 +37,7 @@ export declare class PreferPromiseSleepRule {
 }
 ```
 
-Source: `packages/dev-configs/src/linters/house/prefer-promise-sleep.rule.ts`
+Source: `packages/dev-configs/src/linters/house/prefer-http-method.rule.ts`
 
 ## `PreferTNullableRule`
 

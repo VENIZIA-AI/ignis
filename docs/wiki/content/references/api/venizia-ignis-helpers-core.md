@@ -91,6 +91,10 @@ The declarations are on 4 pages; each export below links to its own.
 
 *class* - [Declaration](/references/api/venizia-ignis-helpers-core--part-1#environmentnames)
 
+## `Execution`
+
+*class* - [Declaration](/references/api/venizia-ignis-helpers-core--part-1#execution)
+
 ## `FetchRequestContext`
 
 *class* - [Declaration](/references/api/venizia-ignis-helpers-core--part-1#fetchrequestcontext)
@@ -149,11 +153,11 @@ The declarations are on 4 pages; each export below links to its own.
 
 ## `IFetchable`
 
-*interface* - [Declaration](/references/api/venizia-ignis-helpers-core--part-1#ifetchable)
+*interface* - [Declaration](/references/api/venizia-ignis-helpers-core--part-2#ifetchable)
 
 ## `IFetcherDefaults`
 
-*interface* - [Declaration](/references/api/venizia-ignis-helpers-core--part-1#ifetcherdefaults)
+*interface* - [Declaration](/references/api/venizia-ignis-helpers-core--part-2#ifetcherdefaults)
 
 ## `IFetcherHooks`
 
@@ -370,10 +374,6 @@ The declarations are on 4 pages; each export below links to its own.
 ## `ProjectRootRegistry`
 
 *class* - [Declaration](/references/api/venizia-ignis-helpers-core--part-3#projectrootregistry)
-
-## `PromiseUtility`
-
-*class* - [Declaration](/references/api/venizia-ignis-helpers-core--part-3#promiseutility)
 
 ## `QueryStringNestedModes`
 

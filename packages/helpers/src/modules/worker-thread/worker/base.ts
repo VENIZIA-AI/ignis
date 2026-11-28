@@ -1,5 +1,5 @@
 import { ErrorUtility } from '@/utilities/error.utility';
-import { PromiseUtility } from '@/utilities/promise.utility';
+import { Execution } from '@/modules/execution';
 import { Worker, type WorkerOptions } from 'node:worker_threads';
 
 import { type ValueOrPromise } from '@/common/types';
@@ -29,12 +29,12 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
     this.binding();
   }
 
-  /** User handlers run inside worker listeners; a sync throw there is uncaught and kills the process, so wrap it - voidExecution alone can't catch a throw evaluated before it's called. */
+  /** User handlers run inside worker listeners; a sync throw there is uncaught and kills the process, so wrap it - fireAndForget alone can't catch a throw evaluated before it's called. */
   protected invokeHook(opts: { scope: string; execution: () => ValueOrPromise<void> }) {
     const { scope, execution } = opts;
 
     try {
-      PromiseUtility.voidExecution({ logger: this.logger, scope, execution: execution() });
+      Execution.fireAndForget({ logger: this.logger, scope, execution: execution() });
     } catch (error) {
       this.logger.for(scope).error('Hook execution FAILED | Error: %s', error);
     }

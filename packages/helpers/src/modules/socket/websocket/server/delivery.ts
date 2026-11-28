@@ -1,5 +1,5 @@
 import { BaseHelper } from '@/modules/base';
-import { PromiseUtility } from '@/utilities';
+import { Execution } from '@/modules/execution';
 import {
   type IBunServer,
   type IWebSocketClient,
@@ -225,10 +225,10 @@ export class WebSocketDeliveryHelper<
     }
 
     if (tasks.length) {
-      PromiseUtility.voidExecution({
+      Execution.fireAndForget({
         logger: this.logger,
         scope: this.sendToRoom.name,
-        execution: PromiseUtility.executeWithLimit({ tasks, limit: this.encryptedBatchLimit }),
+        execution: Execution.withLimit({ tasks, limit: this.encryptedBatchLimit }),
       });
     }
   }
@@ -282,10 +282,10 @@ export class WebSocketDeliveryHelper<
     }
 
     if (tasks.length) {
-      PromiseUtility.voidExecution({
+      Execution.fireAndForget({
         logger: this.logger,
         scope: this.broadcast.name,
-        execution: PromiseUtility.executeWithLimit({ tasks, limit: this.encryptedBatchLimit }),
+        execution: Execution.withLimit({ tasks, limit: this.encryptedBatchLimit }),
       });
     }
   }

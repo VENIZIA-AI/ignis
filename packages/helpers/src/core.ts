@@ -66,7 +66,7 @@ export type { IBuildInfo, TBuildInfoRecord } from './utilities/build-info.utilit
 export { EchoUtility } from './utilities/echo.utility';
 export { ParseUtility } from './utilities/parse.utility';
 export { PerformanceUtility } from './utilities/performance.utility';
-export { PromiseUtility } from './utilities/promise.utility';
+export { Execution } from './modules/execution';
 export { RecordUtility } from './utilities/record.utility';
 export { FormBodyUtility, RequestBodyErrors } from './utilities/form-body.utility';
 export { ProjectRootRegistry } from './utilities/project-root.utility';

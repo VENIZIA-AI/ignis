@@ -1,5 +1,5 @@
 import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { BaseHelper, getError, PromiseUtility } from '@venizia/ignis-helpers/core';
+import { BaseHelper, getError, Execution } from '@venizia/ignis-helpers/core';
 import { ErrorPrettier } from '@venizia/ignis-helpers';
 import { ToggleUtility } from '@venizia/ignis-kernel';
 import type {
@@ -189,7 +189,7 @@ export class GrpcListenerHelper extends BaseHelper {
   /** Waits for `task`, at most `ms`; the caller reads whether it finished. */
   private async settle(opts: { task: Promise<void>; ms: number }) {
     try {
-      await PromiseUtility.withTimeout({ call: () => opts.task, timeoutMs: opts.ms });
+      await Execution.withTimeout({ call: () => opts.task, timeoutMs: opts.ms });
     } catch (error) {
       this.logger.for(this.settle.name).debug('Not finished in time | %s', error);
     }

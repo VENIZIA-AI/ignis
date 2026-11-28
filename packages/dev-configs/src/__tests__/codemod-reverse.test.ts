@@ -298,6 +298,7 @@ describe('devz codemod --list and --reverse', () => {
         'any-aliases',
         'binding-keys',
         'class-renames',
+        'execution-class',
         'function-to-arrow',
         'typed-route-context',
       ].join('\n'),

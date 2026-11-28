@@ -1,10 +1,10 @@
 import { type ValueOrPromise } from '@/common/types';
 import type { ILogger } from '@/modules/logger';
-import { PromiseUtility } from '@/utilities/promise.utility';
+import { Execution } from '@/modules/execution';
 
 /** Runs user-supplied hooks so a throw or rejection is logged and never breaks the caller. */
 export class HookUtility {
-  /** Fire-and-forget a hook from inside an event listener. Takes a thunk because `PromiseUtility.voidExecution` takes a VALUE - a synchronous throw would escape the guard and, inside an emitter callback, take the process down. Rejections still route to the logger. */
+  /** Fire-and-forget a hook from inside an event listener. Takes a thunk because `Execution.fireAndForget` takes a VALUE - a synchronous throw would escape the guard and, inside an emitter callback, take the process down. Rejections still route to the logger. */
   static invoke(opts: {
     logger: ILogger;
     scope: string;
@@ -13,7 +13,7 @@ export class HookUtility {
     const { logger, scope, execution } = opts;
 
     try {
-      PromiseUtility.voidExecution({ logger, scope, execution: execution() });
+      Execution.fireAndForget({ logger, scope, execution: execution() });
     } catch (error) {
       logger.for(scope).error('Hook execution FAILED | Error: %s', error);
     }

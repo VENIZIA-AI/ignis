@@ -1,5 +1,5 @@
 import { SequentialQueueHelper } from '@/modules/queue';
-import { PromiseUtility } from '@/utilities';
+import { Execution } from '@/modules/execution';
 import { describe, expect, test } from 'bun:test';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
@@ -18,7 +18,7 @@ const buildQueue = (opts?: { autoDispatch: boolean }) => {
     autoDispatch: opts?.autoDispatch,
     onMessage: async ({ queueElement }) => {
       record('start', queueElement.payload);
-      await PromiseUtility.sleep({ ms: 5 });
+      await Execution.sleep({ ms: 5 });
       record('end', queueElement.payload);
     },
     onDataDequeue: ({ queueElement }) => record('dequeued', queueElement.payload),
@@ -43,7 +43,7 @@ describe('SequentialQueueHelper - each element runs in the context it was enqueu
       request.run('A', () => queue.enqueue('a2')),
       request.run('B', () => queue.enqueue('b2')),
     ]);
-    await PromiseUtility.sleep({ ms: 60 });
+    await Execution.sleep({ ms: 60 });
 
     expect(seen).toEqual([
       ...expected('a1', 'A'),
@@ -58,7 +58,7 @@ describe('SequentialQueueHelper - each element runs in the context it was enqueu
 
     await request.run('A', () => queue.enqueue('a1'));
     await queue.enqueue('plain');
-    await PromiseUtility.sleep({ ms: 40 });
+    await Execution.sleep({ ms: 40 });
 
     expect(seen).toEqual([...expected('a1', 'A'), ...expected('plain', 'none')]);
   });
@@ -69,7 +69,7 @@ describe('SequentialQueueHelper - each element runs in the context it was enqueu
     await request.run('A', () => queue.enqueue('a1'));
     await request.run('B', () => queue.enqueue('b1'));
     request.run('C', () => queue.nextMessage());
-    await PromiseUtility.sleep({ ms: 40 });
+    await Execution.sleep({ ms: 40 });
 
     expect(seen.slice(0, 3)).toEqual(expected('a1', 'A'));
   });
@@ -79,7 +79,7 @@ describe('SequentialQueueHelper - each element runs in the context it was enqueu
 
     queue.storage.push({ isLocked: false, payload: 'direct' });
     request.run('C', () => queue.nextMessage());
-    await PromiseUtility.sleep({ ms: 40 });
+    await Execution.sleep({ ms: 40 });
 
     expect(seen).toEqual(expected('direct', 'boot'));
   });

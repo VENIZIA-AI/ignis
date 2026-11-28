@@ -5,7 +5,7 @@ import type { HandlerContext } from '@connectrpc/connect';
 import { createGrpcTransport } from '@connectrpc/connect-node';
 import { fileDesc, serviceDesc } from '@bufbuild/protobuf/codegenv2';
 import { HTTP, type TClass, type ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { getError, PromiseUtility } from '@venizia/ignis-helpers/core';
+import { getError, Execution } from '@venizia/ignis-helpers/core';
 import {
   AuthenticationStrategyRegistry,
   bidiStream,
@@ -122,7 +122,7 @@ class GreeterController extends BaseGrpcController {
       throw getError({ statusCode: HTTP.ResultCodes.RS_4.Conflict, message: 'Changed meanwhile' });
     }
 
-    await PromiseUtility.sleep({ ms: Number(textOf(opts.request)) });
+    await Execution.sleep({ ms: Number(textOf(opts.request)) });
     yield { message: 'second' };
   }
 
@@ -171,7 +171,7 @@ class SecureController extends BaseGrpcController {
   @serverStream({ configs: { name: 'listHellos' } })
   async *listHellos() {
     yield { message: 'first' };
-    await PromiseUtility.sleep({ ms: 2_500 });
+    await Execution.sleep({ ms: 2_500 });
     yield { message: 'second' };
   }
 }
@@ -344,7 +344,7 @@ const collectStream = async (
 
 async function* names(pauseMs = 0) {
   yield { name: 'a' };
-  await PromiseUtility.sleep({ ms: pauseMs });
+  await Execution.sleep({ ms: pauseMs });
   yield { name: 'b' };
 }
 
@@ -522,10 +522,10 @@ describe('native gRPC port - calls', () => {
     const late = await failureOf(invoke('sleep:5000', { timeoutMs: 100 }));
     const abort = new AbortController();
     const left = failureOf(invoke('sleep:5000', { signal: abort.signal }));
-    await PromiseUtility.sleep({ ms: 200 });
+    await Execution.sleep({ ms: 200 });
     abort.abort();
     const canceled = await left;
-    await PromiseUtility.sleep({ ms: 200 });
+    await Execution.sleep({ ms: 200 });
 
     expect(late.code).toBe(Code.DeadlineExceeded);
     expect(canceled.code).toBe(Code.Canceled);
@@ -721,10 +721,7 @@ describe('native gRPC port - lifecycle', () => {
     const startedAt = performance.now();
     await secure.stop();
     const took = performance.now() - startedAt;
-    const isClosed = await Promise.race([
-      closed,
-      PromiseUtility.sleep({ ms: 1_000 }).then(() => false),
-    ]);
+    const isClosed = await Promise.race([closed, Execution.sleep({ ms: 1_000 }).then(() => false)]);
     socket.destroy();
     rmSync(folder, { recursive: true, force: true });
 
@@ -741,7 +738,7 @@ describe('native gRPC port - lifecycle', () => {
     }
 
     const failure = failureOf(method({ name: 'sleep:20000' }, { headers: SIGNED_IN }));
-    await PromiseUtility.sleep({ ms: 200 });
+    await Execution.sleep({ ms: 200 });
     const listener = twice.get({ key: GrpcBindingKeys.GRPC_NATIVE_LISTENER });
     const first = listener.stop();
     const startedAt = performance.now();
@@ -775,7 +772,7 @@ describe('native gRPC port - lifecycle', () => {
     seen.aborted = 0;
     const pending: Promise<unknown> = method({ name: 'sleep:20000' }, { headers: SIGNED_IN });
     const failure = failureOf(pending);
-    await PromiseUtility.sleep({ ms: 200 });
+    await Execution.sleep({ ms: 200 });
     const startedAt = performance.now();
     await short.stop();
 

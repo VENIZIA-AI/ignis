@@ -852,13 +852,13 @@ Source: `packages/helpers/src/modules/storage/common/constants.ts`
 
 *type*
 
-An async task as `executeWithLimit` takes it.
+An async task as `Execution.withLimit` takes it.
 
 ```ts
 export type TTask<T> = (...args: never[]) => Promise<T>;
 ```
 
-Source: `packages/helpers/src/utilities/promise.utility.ts`
+Source: `packages/helpers/src/modules/execution/execution.ts`
 
 ## `TTcpClientState`
 
@@ -1384,7 +1384,7 @@ export declare class WebSocketServerHelper<AuthDataType extends Record<string, u
         room: string;
     }): IWebSocketClient<MetadataType>[];
     getPath(): string;
-    /** Hooks run inside Bun socket handlers - a sync throw there kills the process; voidExecution only catches promise rejections since its argument is evaluated before the try/catch runs. */
+    /** Hooks run inside Bun socket handlers - a sync throw there kills the process; fireAndForget only catches promise rejections since its argument is evaluated before the try/catch runs. */
     protected invokeHook(opts: {
         scope: string;
         execution: () => ValueOrPromise<void>;

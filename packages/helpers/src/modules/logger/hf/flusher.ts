@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { isPromiseLike } from '@/utilities/promise.utility';
+import { isPromiseLike } from '@/modules/execution';
 import {
   BUFFER_SIZE,
   ENTRY_SIZE,

@@ -4,7 +4,7 @@ import { getError } from '@/modules/error';
 import type { ILogger } from '@/modules/logger';
 import { LoggerFactory } from '@/modules/logger/factory';
 
-/** An async task as `executeWithLimit` takes it. */
+/** An async task as `Execution.withLimit` takes it. */
 export type TTask<T> = (...args: never[]) => Promise<T>;
 
 /** Check if a value is a promise. */
@@ -17,13 +17,13 @@ export const isPromiseLike = <T>(value: T | PromiseLike<T>): value is PromiseLik
   );
 };
 
-/** Waiting, bounded concurrency and fire-and-forget. `voidExecution` is not a `BaseHelper` member: TS cannot emit protected members on an exported ANONYMOUS class (TS4094), which is what factory-built controllers return; a static on a separate class has no such limit. */
-export class PromiseUtility {
+/** Running work: waiting, a time limit, bounded concurrency and fire-and-forget. `fireAndForget` is not a `BaseHelper` member: TS cannot emit protected members on an exported ANONYMOUS class (TS4094), which is what factory-built controllers return; a static on a separate class has no such limit. */
+export class Execution {
   /** The longest delay a timer takes (a signed 32-bit integer of milliseconds); a larger one fires after 1 ms. */
   private static readonly MAX_TIMER_MS = 2_147_483_647;
 
   static sleep(opts: { ms: number }): Promise<void> {
-    // eslint-disable-next-line @venizia/prefer-promise-sleep -- this is the implementation the rule points at
+    // eslint-disable-next-line @venizia/prefer-execution-sleep -- this is the implementation the rule points at
     return new Promise((resolve) => setTimeout(resolve, opts.ms));
   }
 
@@ -42,9 +42,9 @@ export class PromiseUtility {
   }): Promise<T> {
     const { call, timeoutMs, message } = opts;
 
-    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > PromiseUtility.MAX_TIMER_MS) {
+    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > Execution.MAX_TIMER_MS) {
       throw getError({
-        message: `[withTimeout] timeoutMs must be positive and at most ${PromiseUtility.MAX_TIMER_MS} | received: ${timeoutMs}`,
+        message: `[withTimeout] timeoutMs must be positive and at most ${Execution.MAX_TIMER_MS} | received: ${timeoutMs}`,
       });
     }
 
@@ -70,7 +70,7 @@ export class PromiseUtility {
   }
 
   /** Execute async tasks with bounded concurrency. */
-  static async executeWithLimit<T>(opts: {
+  static async withLimit<T>(opts: {
     tasks: Array<TTask<T>>;
     limit: number;
     onTaskDone?: <R>(opts: { result: R }) => ValueOrPromise<void>;
@@ -79,7 +79,7 @@ export class PromiseUtility {
 
     if (!Number.isInteger(limit) || limit < 1) {
       throw getError({
-        message: `[executePromiseWithLimit] limit must be a positive integer | received: ${limit}`,
+        message: `[withLimit] limit must be a positive integer | received: ${limit}`,
       });
     }
 
@@ -108,7 +108,7 @@ export class PromiseUtility {
   }
 
   /** Fire-and-forget: routes rejection to `logger` (or the framework logger of `scope`), passes sync results through untouched. */
-  static voidExecution(opts: {
+  static fireAndForget(opts: {
     logger?: ILogger;
     scope: string;
     execution: ValueOrPromise<unknown>;

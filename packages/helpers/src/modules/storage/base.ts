@@ -3,7 +3,7 @@ import { ContentTypeTable, MimeTypes } from '@/common';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { EchoUtility } from '@/utilities/echo.utility';
-import { PromiseUtility } from '@/utilities/promise.utility';
+import { Execution } from '@/modules/execution';
 import type { Readable } from 'node:stream';
 import {
   type IBucketInfo,
@@ -462,7 +462,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       return [];
     }
 
-    return PromiseUtility.executeWithLimit({
+    return Execution.withLimit({
       limit: Math.max(1, opts.limit ?? StorageConcurrency.DEFAULT_LIMIT),
       tasks: items.map((item, index) => () => task({ item, index })),
     });

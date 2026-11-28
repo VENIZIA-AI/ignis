@@ -1,6 +1,6 @@
 import { getError } from '@/modules/error';
 import { ErrorUtility } from '@/utilities/error.utility';
-import { PromiseUtility } from '@/utilities/promise.utility';
+import { Execution } from '@/modules/execution';
 import type {
   ConsumerGroupJoinPayload,
   ConsumerGroupLeavePayload,
@@ -445,7 +445,7 @@ export class KafkaConsumerHelper<
       this.consumeStartOptions?.topics,
       this.getConnectedBrokerCount(),
     );
-    await PromiseUtility.sleep({ ms: delayMs });
+    await Execution.sleep({ ms: delayMs });
 
     if (!this.consumeStartOptions) {
       return;

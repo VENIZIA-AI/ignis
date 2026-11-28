@@ -6,7 +6,7 @@ import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { RedisUtility, type TRedisClient } from '@/modules/redis';
-import { PromiseUtility } from '@/utilities/promise.utility';
+import { Execution } from '@/modules/execution';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { Emitter } from '@socket.io/redis-emitter';
 import { Server as IOServer, type Socket as IOSocket, type ServerOptions } from 'socket.io';
@@ -109,12 +109,12 @@ export class SocketIOServerHelper extends BaseHelper {
     return this.io;
   }
 
-  /** Handlers run inside socket.io event listeners - a sync throw there kills the process; voidExecution only catches promise rejections since its argument evaluates before the try/catch. */
+  /** Handlers run inside socket.io event listeners - a sync throw there kills the process; fireAndForget only catches promise rejections since its argument evaluates before the try/catch. */
   protected invokeHook(opts: { scope: string; execution: () => ValueOrPromise<void> }) {
     const { scope, execution } = opts;
 
     try {
-      PromiseUtility.voidExecution({ logger: this.logger, scope, execution: execution() });
+      Execution.fireAndForget({ logger: this.logger, scope, execution: execution() });
     } catch (error) {
       this.logger.for(scope).error('Hook execution FAILED | Error: %s', error);
     }
@@ -483,7 +483,7 @@ export class SocketIOServerHelper extends BaseHelper {
           joinLogger.info('Joining rooms | id: %s | rooms: %j', id, allowedRooms);
 
           for (const room of allowedRooms) {
-            PromiseUtility.voidExecution({
+            Execution.fireAndForget({
               logger: this.logger,
               scope: SocketIOConstants.EVENT_JOIN,
               execution: socket.join(room),
@@ -647,7 +647,7 @@ export class SocketIOServerHelper extends BaseHelper {
         return;
       }
 
-      PromiseUtility.voidExecution({
+      Execution.fireAndForget({
         logger: this.logger,
         scope: 'close',
         execution: this.io.close((error) => {

@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test
 import { getError } from '@/modules/error';
 import { ErrorUtility } from '@/utilities/error.utility';
 import { ParseUtility } from '@/utilities/parse.utility';
-import { PromiseUtility, isPromiseLike } from '@/utilities/promise.utility';
+import { Execution, isPromiseLike } from '@/modules/execution';
 
 const defer = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -34,7 +34,7 @@ const buildInstrumentedTasks = (opts: { count: number; delayMs?: number }) => {
   return { state, tasks };
 };
 
-describe('executePromiseWithLimit', () => {
+describe('Execution.withLimit', () => {
   const unhandled: unknown[] = [];
 
   const onUnhandled = (reason: unknown) => {
@@ -72,14 +72,14 @@ describe('executePromiseWithLimit', () => {
       },
     ];
 
-    const results = await PromiseUtility.executeWithLimit({ tasks, limit: 3 });
+    const results = await Execution.withLimit({ tasks, limit: 3 });
     expect(results).toEqual(['slow-first', 'fast-second', 'medium-third']);
   });
 
   test('caps concurrency at `limit`', async () => {
     const { state, tasks } = buildInstrumentedTasks({ count: 20 });
 
-    const results = await PromiseUtility.executeWithLimit({ tasks, limit: 4 });
+    const results = await Execution.withLimit({ tasks, limit: 4 });
 
     expect(results).toEqual(Array.from({ length: 20 }, (_unused, index) => index));
     expect(state.peak).toBeLessThanOrEqual(4);
@@ -90,24 +90,22 @@ describe('executePromiseWithLimit', () => {
   test('a limit larger than the task count runs everything in parallel', async () => {
     const { state, tasks } = buildInstrumentedTasks({ count: 3 });
 
-    const results = await PromiseUtility.executeWithLimit({ tasks, limit: 100 });
+    const results = await Execution.withLimit({ tasks, limit: 100 });
 
     expect(results).toEqual([0, 1, 2]);
     expect(state.peak).toBe(3);
   });
 
   test('an empty task list resolves to an empty array', async () => {
-    const result = await PromiseUtility.executeWithLimit({ tasks: [], limit: 5 });
+    const result = await Execution.withLimit({ tasks: [], limit: 5 });
     expect(result).toEqual([]);
   });
 
   test('rejects a limit below 1 instead of silently degrading to serial execution', async () => {
     const { tasks } = buildInstrumentedTasks({ count: 3 });
 
-    const zeroLimit = await captureRejection(PromiseUtility.executeWithLimit({ tasks, limit: 0 }));
-    const negativeLimit = await captureRejection(
-      PromiseUtility.executeWithLimit({ tasks, limit: -5 }),
-    );
+    const zeroLimit = await captureRejection(Execution.withLimit({ tasks, limit: 0 }));
+    const negativeLimit = await captureRejection(Execution.withLimit({ tasks, limit: -5 }));
 
     expect(zeroLimit.message).toMatch(/limit must be a positive integer/);
     expect(negativeLimit.message).toMatch(/limit must be a positive integer/);
@@ -117,7 +115,7 @@ describe('executePromiseWithLimit', () => {
     const { tasks } = buildInstrumentedTasks({ count: 6 });
     const done: unknown[] = [];
 
-    await PromiseUtility.executeWithLimit({
+    await Execution.withLimit({
       tasks,
       limit: 2,
       onTaskDone: async ({ result }) => {
@@ -137,7 +135,7 @@ describe('executePromiseWithLimit', () => {
       async () => 'ok-3',
     ];
 
-    const rejection = await captureRejection(PromiseUtility.executeWithLimit({ tasks, limit: 2 }));
+    const rejection = await captureRejection(Execution.withLimit({ tasks, limit: 2 }));
     expect(rejection.message).toBe('task-2-blew-up');
   });
 
@@ -156,7 +154,7 @@ describe('executePromiseWithLimit', () => {
     let caught: unknown;
 
     try {
-      await PromiseUtility.executeWithLimit({ tasks, limit: 2 });
+      await Execution.withLimit({ tasks, limit: 2 });
     } catch (error) {
       caught = error;
     }
@@ -216,11 +214,9 @@ describe('getDeepProperty', () => {
   });
 });
 
-describe('PromiseUtility.voidExecution logging a rejection', () => {
+describe('Execution.fireAndForget logging a rejection', () => {
   /** A driver error carries the query it failed on: a log must not print the error's own fields. */
-  const script = (opts: {
-    logger: string;
-  }) => `import { PromiseUtility } from '@/utilities/promise.utility';
+  const script = (opts: { logger: string }) => `import { Execution } from '@/modules/execution';
     import { LogFormatUtility } from '@/modules/logger/formatting';
     const deepSplat = {
       for: () => ({
@@ -228,7 +224,7 @@ describe('PromiseUtility.voidExecution logging a rejection', () => {
       }),
     };
     const failure = Object.assign(new TypeError('boom'), { query: 'SELECT secret-token' });
-    PromiseUtility.voidExecution({ scope: 'Fire', logger: ${opts.logger}, execution: Promise.reject(failure) });`;
+    Execution.fireAndForget({ scope: 'Fire', logger: ${opts.logger}, execution: Promise.reject(failure) });`;
 
   test.each([
     ['without a logger', 'undefined'],
