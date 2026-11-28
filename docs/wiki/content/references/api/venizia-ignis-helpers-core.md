@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-140 exports, 140 with TSDoc. 59 more are re-exported from other entries (listed at the end).
+146 exports, 146 with TSDoc. 59 more are re-exported from other entries (listed at the end).
 
 The declarations are on 4 pages; each export below links to its own.
 
@@ -95,6 +95,10 @@ The declarations are on 4 pages; each export below links to its own.
 
 *class* - [Declaration](/references/api/venizia-ignis-helpers-core--part-1#execution)
 
+## `ExecutionModes`
+
+*class* - [Declaration](/references/api/venizia-ignis-helpers-core--part-1#executionmodes)
+
 ## `FetchRequestContext`
 
 *class* - [Declaration](/references/api/venizia-ignis-helpers-core--part-1#fetchrequestcontext)
@@ -150,6 +154,18 @@ The declarations are on 4 pages; each export below links to its own.
 ## `IECDHExtraOptions`
 
 *interface* - [Declaration](/references/api/venizia-ignis-helpers-core--part-1#iecdhextraoptions)
+
+## `IExecutionFrame`
+
+*interface* - [Declaration](/references/api/venizia-ignis-helpers-core--part-2#iexecutionframe)
+
+## `IExecutionRunner`
+
+*interface* - [Declaration](/references/api/venizia-ignis-helpers-core--part-2#iexecutionrunner)
+
+## `IExecutionValues`
+
+*interface* - [Declaration](/references/api/venizia-ignis-helpers-core--part-2#iexecutionvalues)
 
 ## `IFetchable`
 
@@ -430,6 +446,14 @@ The declarations are on 4 pages; each export below links to its own.
 ## `TBuildInfoRecord`
 
 *type* - [Declaration](/references/api/venizia-ignis-helpers-core--part-3#tbuildinforecord)
+
+## `TExecutionMode`
+
+*type* - [Declaration](/references/api/venizia-ignis-helpers-core--part-3#texecutionmode)
+
+## `TExecutionRunOptions`
+
+*type* - [Declaration](/references/api/venizia-ignis-helpers-core--part-3#texecutionrunoptions)
 
 ## `TFetcherLogger`
 

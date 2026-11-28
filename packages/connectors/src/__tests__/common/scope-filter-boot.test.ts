@@ -5,10 +5,11 @@
  */
 
 import { AbstractEntity, MetadataRegistry } from '@venizia/ignis-kernel';
-import { afterEach, describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, test, beforeEach, afterAll } from 'bun:test';
 import { pgTable, serial, text } from 'drizzle-orm/pg-core';
 import { ScopeFilterUtility } from '@/common';
 import { BaseSearchEntity } from '@/search/core/models';
+import { useExecutionRunner } from '../testing/execution-runner';
 
 class RelationalOrder extends AbstractEntity {
   getSchema<T = unknown>(): T {
@@ -34,61 +35,58 @@ const register = (opts: {
   });
 };
 
+beforeEach(() => useExecutionRunner({ isInstalled: true }));
+afterAll(() => useExecutionRunner({ isInstalled: false }));
+
 describe('ScopeFilterUtility.assertScopeFilterSupported', () => {
   afterEach(() => {
     registry.getAllModels().clear();
   });
 
-  test('passes when nothing declares a scope filter', () => {
+  test('passes when nothing declares a scope filter, runner or not', () => {
+    useExecutionRunner({ isInstalled: false });
     register({ name: 'Order', target: RelationalOrder, withScopeFilter: false });
     register({ name: 'SearchOrder', target: SearchOrder, withScopeFilter: false });
 
-    expect(() =>
-      ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: false }),
-    ).not.toThrow();
+    expect(() => ScopeFilterUtility.assertScopeFilterSupported({})).not.toThrow();
   });
 
-  test('passes for a relational model when the context store is on', () => {
+  test('passes for a relational model when a runner is installed', () => {
     register({ name: 'Order', target: RelationalOrder, withScopeFilter: true });
 
-    expect(() =>
-      ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: true }),
-    ).not.toThrow();
+    expect(() => ScopeFilterUtility.assertScopeFilterSupported({})).not.toThrow();
   });
 
   test('refuses a search-backed model, and names it', () => {
     register({ name: 'SearchOrder', target: SearchOrder, withScopeFilter: true });
 
-    expect(() =>
-      ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: true }),
-    ).toThrow(/SearchOrder/);
+    expect(() => ScopeFilterUtility.assertScopeFilterSupported({})).toThrow(/SearchOrder/);
   });
 
-  /** The search branch is about the repository, not the config - enabling the store must not mask it. */
-  test('the search branch fires regardless of the context store', () => {
+  /** The search branch is about the repository, not the host - a runner must not mask it. */
+  test('the search branch fires without a runner too', () => {
+    useExecutionRunner({ isInstalled: false });
     register({ name: 'SearchOrder', target: SearchOrder, withScopeFilter: true });
 
-    expect(() =>
-      ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: false }),
-    ).toThrow(/search-backed/);
+    expect(() => ScopeFilterUtility.assertScopeFilterSupported({})).toThrow(/search-backed/);
   });
 
-  test('refuses a relational model when the context store is off, and names the flag', () => {
+  test('refuses a relational model when no runner is installed, and names the fix', () => {
+    useExecutionRunner({ isInstalled: false });
     register({ name: 'Order', target: RelationalOrder, withScopeFilter: true });
 
-    expect(() =>
-      ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: false }),
-    ).toThrow(/asyncContext\.enable/);
+    expect(() => ScopeFilterUtility.assertScopeFilterSupported({})).toThrow(
+      /ExecutionRunner\.install\(\)/,
+    );
   });
 
-  /** Search is reported first: it needs a code change, while the other may be one config line. */
+  /** Search is reported first: it needs a code change, while the other may be one line. */
   test('reports the search model when both problems exist', () => {
+    useExecutionRunner({ isInstalled: false });
     register({ name: 'Order', target: RelationalOrder, withScopeFilter: true });
     register({ name: 'SearchOrder', target: SearchOrder, withScopeFilter: true });
 
-    expect(() =>
-      ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: false }),
-    ).toThrow(/search-backed/);
+    expect(() => ScopeFilterUtility.assertScopeFilterSupported({})).toThrow(/search-backed/);
   });
 });
 
@@ -120,44 +118,34 @@ describe('ScopeFilterUtility.assertScopeFilterSupported - the write guard settin
   test('declared columns that exist on the model pass', () => {
     registerGuarded({ columns: ['merchantId'] });
 
-    expect(() =>
-      ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: true }),
-    ).not.toThrow();
+    expect(() => ScopeFilterUtility.assertScopeFilterSupported({})).not.toThrow();
   });
 
   test('a declared column the model does not have fails at boot, naming the model and the column', () => {
     registerGuarded({ columns: ['merchantId', 'tenantId'] });
 
-    expect(() =>
-      ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: true }),
-    ).toThrow(/GuardedOrder.*tenantId/);
+    expect(() => ScopeFilterUtility.assertScopeFilterSupported({})).toThrow(
+      /GuardedOrder.*tenantId/,
+    );
   });
 
   test('an empty columns list fails at boot', () => {
     registerGuarded({ columns: [] });
 
-    expect(() =>
-      ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: true }),
-    ).toThrow(/non-empty list/);
+    expect(() => ScopeFilterUtility.assertScopeFilterSupported({})).toThrow(/non-empty list/);
   });
 
   test('a write mode that is neither reject nor assign fails at boot', () => {
     registerGuarded({ write: { mode: 'ignore' } });
 
-    expect(() =>
-      ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: true }),
-    ).toThrow(/write\.mode 'ignore'/);
+    expect(() => ScopeFilterUtility.assertScopeFilterSupported({})).toThrow(/write\.mode 'ignore'/);
   });
 
   test('reject and assign pass', () => {
     registerGuarded({ write: { mode: 'assign' } });
-    expect(() =>
-      ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: true }),
-    ).not.toThrow();
+    expect(() => ScopeFilterUtility.assertScopeFilterSupported({})).not.toThrow();
 
     registerGuarded({ write: { mode: 'reject' } });
-    expect(() =>
-      ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: true }),
-    ).not.toThrow();
+    expect(() => ScopeFilterUtility.assertScopeFilterSupported({})).not.toThrow();
   });
 });

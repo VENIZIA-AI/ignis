@@ -12,6 +12,7 @@ import type {
   IServerRuntimeConfigs,
   IShutdownSignalsOptions,
 } from './common';
+import { ExecutionRunner } from '../execution';
 
 /** Lives here, not in the kernel: `Bun.serve` resolves only through `@types/bun`, and emitting `Bun` into the kernel's published `.d.ts` would force that dependency on every browser consumer of `@venizia/ignis-kernel`. This package legitimately has Bun types - it is the layer that calls `Bun.serve`. */
 export type TBunServerInstance = ReturnType<typeof Bun.serve>;
@@ -133,6 +134,8 @@ export abstract class ServerApplication<
    */
   constructor(opts: { scope: string; config: IServerApplicationConfigs }) {
     super(opts);
+    // Before anything can run work: a listener or a timer started while booting must find the frames.
+    ExecutionRunner.install();
 
     this.configs.host =
       [opts.config.host, process.env.HOST, process.env.APP_ENV_SERVER_HOST].find(Boolean) ??
@@ -159,11 +162,6 @@ export abstract class ServerApplication<
 
   override getRootRouter(): OpenAPIHono<AppEnv, AppSchema, BasePath> {
     return this.rootRouter;
-  }
-
-  /** Restores the pre-split default: a server-capable application installs `hono/context-storage` unless the caller opts out explicitly. */
-  protected override getDefaultAsyncContextEnabled(): boolean {
-    return true;
   }
 
   /** `configs.projectRoot` wins, else the process cwd. The value is bound AND handed to `ModuleUtility`, so every peer lookup (optional modules, the gRPC adapter) resolves under it - a compiled binary sets it to where its `node_modules` really is. */

@@ -55,7 +55,7 @@ export const productTable = pgTable('Product', {
 });
 ```
 
-The merchant of the current request comes from the authenticated user. This helper is used by the examples below; `RequestContextRegistry` reads the ambient request context, which needs `asyncContext.enable` (on by default in a `BaseApplication`):
+The merchant of the current request comes from the authenticated user. This helper is used by the examples below; `RequestContextRegistry` reads the request of the current [execution frame](/references/utilities/promise#frames), which a `BaseApplication` opens for every request:
 
 ```typescript
 // src/utilities/merchant.ts
@@ -181,7 +181,7 @@ export const findIncludingDeleted = (opts: { repository: ProductRepository }) =>
 
 ### resolve
 
-`resolve()` runs on every query and returns the scope for the current caller. It reads the current request from the ambient request context (`asyncContext.enable` is on by default in a `BaseApplication`). Its one argument, `{ operation }`, says what the call does: `ScopeOperations.READ`, `CREATE`, `UPDATE` or `DELETE`. A resolver that ignores the operation takes no parameter. It returns one of three outcomes:
+`resolve()` runs on every query and returns the scope for the current caller. It reads the current request from the [execution frame](/references/utilities/promise#frames) that a `BaseApplication` opens for every request. Its one argument, `{ operation }`, says what the call does: `ScopeOperations.READ`, `CREATE`, `UPDATE` or `DELETE`. A resolver that ignores the operation takes no parameter. It returns one of three outcomes:
 
 | `resolve()` returns | The query |
 |---|---|
@@ -765,7 +765,7 @@ The tail of the "cannot be verified" message names the column and the operator, 
 At boot, `ScopeFilterUtility.assertScopeFilterSupported` runs as the last boot step of a `BaseApplication` and refuses four kinds of model:
 
 - **Search-backed.** An `access` on a model whose repository never reads it.
-- **No async context.** An `access` while `asyncContext.enable` is off (every query would match zero rows).
+- **No execution runner.** An `access` on a host that has none: no request can be read, so every query would match zero rows. A `BaseApplication` installs it.
 - **Bad write guard.** A `write.mode` other than `reject` or `assign`, and `columns` that is empty or names a property the model does not have.
 - **Bad `through`.** A model with both or neither of `resolve` and `through`, `onMissing`, `columns` or `write` next to `through`, a relation that is not a `one` with a single-column key, a parent with no `access`, a cycle, or a chain longer than 5 hops.
 

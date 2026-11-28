@@ -43,6 +43,9 @@ Before reading this document, you should understand:
 protected async registerDefaultMiddlewares() {
   const server = this.getServer();
 
+  // First of all, from BaseApplication: the request frame. Everything that follows runs inside it.
+  server.use(RequestFrameMiddleware.create());
+
   // The kernel's five, from RestApplication.registerDefaultMiddlewares():
   // 0. CORS - first of all, so a 413 or a 400 the framework answers itself still carries the
   // headers. Only when configs.middlewares.cors is set and enable !== false.
@@ -67,22 +70,16 @@ protected async registerDefaultMiddlewares() {
   server.notFound(notFoundHandler({ logger }));
 
   // Then what only a listening server adds:
-  // 5. Async context storage (if enabled)
-  if (this.configs.asyncContext?.enable) {
-    server.use(contextStorage());
-  }
-
-  // 6. RequestTrackerComponent (RequestSpyMiddleware; the requestId it reads is already installed)
+  // 5. RequestTrackerComponent (RequestSpyMiddleware; the requestId it reads is already installed)
   this.component(RequestTrackerComponent);
 
-  // 7. Emoji favicon
+  // 6. Emoji favicon
   server.use(EmojiFaviconMiddleware.create({ icon: this.configs.favicon ?? '🔥' }));
 }
 ```
 
 Steps 0 to 4 live on the kernel's `RestApplication`, so a browser Worker answers with the same
-envelope. `BaseApplication` calls `super.registerDefaultMiddlewares()` first, then adds steps 5 to
-7.
+envelope. `BaseApplication` mounts the request frame, calls `super.registerDefaultMiddlewares()`, then adds steps 5 and 6.
 
 > [!NOTE]
 > `configs.middlewares.cors` and `configs.middlewares.bodyLimit` are the `IMiddlewareConfigs` keys the framework installs by itself - see [CORS](#cors-configs-middlewares-cors) and [Body limit](#body-limit-configs-middlewares-bodylimit) below. Every other key in `IMiddlewareConfigs` is a shape for your own `setupMiddlewares()` to read; the framework does not wire it.
@@ -732,7 +729,6 @@ Several middleware behaviors are configured through `IApplicationConfigs`:
 interface IApplicationConfigs {
   favicon?: string;                    // Emoji for EmojiFaviconMiddleware.create (default: '🔥')
   error?: { rootKey?: string; environment?: string }; // Root key wrapper for AppErrorMiddleware; ambient environment name
-  asyncContext?: { enable: boolean };  // Enable Hono contextStorage() middleware (default: true on BaseApplication, false on Rest and Worker)
   middlewares?: IMiddlewareConfigs;    // Only bodyLimit is installed by the framework - see Body limit
   // ...
 }

@@ -165,8 +165,7 @@ the probe matches the **bundled text**, not the import graph, so a node global s
 list, so the bare `'fs'` spelling is caught alongside `'node:fs'`.
 
 Anything needing a filesystem, a real cwd, or the environment is a method the kernel leaves empty and
-core's `ServerApplication` overrides - `getProjectRoot` and `getDefaultAsyncContextEnabled` (which
-gates `hono/context-storage`, hence `node:async_hooks`). Add the override, do not reach for `process`
+core's `ServerApplication` overrides - `getProjectRoot`. What needs `node:async_hooks` (the execution runner) lives in core-server. Add the override, do not reach for `process`
 in the kernel. Address resolution is not a seam at all: `host`/`port` live on `ServerApplication`
 only, since a host with no socket has no use for either.
 

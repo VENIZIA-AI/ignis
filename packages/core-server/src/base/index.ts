@@ -6,4 +6,5 @@ export * from '@venizia/ignis-kernel';
 
 export * from './applications';
 export * from './controllers';
+export * from './execution';
 export * from './metadata';

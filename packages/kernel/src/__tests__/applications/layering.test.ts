@@ -10,7 +10,6 @@ const ABSTRACT_APPLICATION_MEMBERS = [
   'constructor',
   'executePostStartHooks',
   'executePostStopHooks',
-  'getDefaultAsyncContextEnabled',
   'getProjectConfigs',
   'getProjectRoot',
   'init',

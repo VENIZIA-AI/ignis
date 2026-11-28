@@ -5,7 +5,7 @@ import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 
 /** The methods `AbstractApplication` leaves inert and `@venizia/ignis`'s `ServerApplication` overrides. A browser Worker has no `process` and no working directory, so each one is a seam rather than a value. */
-const HOST_SEAMS = ['getProjectRoot', 'getDefaultAsyncContextEnabled'];
+const HOST_SEAMS = ['getProjectRoot'];
 
 /** No `host`/`port` seam any more: address resolution belongs to the layer that binds a socket - see `server-address.test.ts` in `@venizia/ignis`. */
 const RETIRED_SEAMS = ['getEnvServerHost', 'getEnvServerPort'];
@@ -24,10 +24,6 @@ class KernelApplication extends RestApplication {
 
 /** Stands in for `ServerApplication`: it overrides exactly the seams, which is the whole contract this test exists to hold. */
 class HostedApplication extends KernelApplication {
-  protected override getDefaultAsyncContextEnabled(): boolean {
-    return true;
-  }
-
   override getProjectRoot(): string {
     const projectRoot = '/srv/app';
     this.bind<string>({ key: CoreBindings.APPLICATION_PROJECT_ROOT }).toValue(projectRoot);
@@ -62,12 +58,11 @@ describe('the host seams the kernel leaves inert', () => {
     }
   });
 
-  test('the kernel answers are inert: no root, no async context', () => {
+  test('the kernel answer is inert: no root', () => {
     const application = buildApplication();
     const reachable = application as unknown as Record<string, () => unknown>;
 
     expect(reachable.getProjectRoot()).toBe('');
-    expect(reachable.getDefaultAsyncContextEnabled()).toBe(false);
   });
 
   test('getProjectRoot binds the root it returns, so a consumer of the binding sees the same value', () => {
@@ -80,25 +75,6 @@ describe('the host seams the kernel leaves inert', () => {
       config: buildConfigs(),
     });
     expect(hosted.get<string>({ key: CoreBindings.APPLICATION_PROJECT_ROOT })).toBe('/srv/app');
-  });
-
-  /** The one assertion that proves these are seams rather than constants: the SAME constructor produces different config once a subclass overrides them. */
-  test('an overriding subclass changes the resolved config, which is how the server layer works', () => {
-    const hosted = new HostedApplication({
-      scope: HostedApplication.name,
-      config: buildConfigs(),
-    });
-
-    expect(hosted.getProjectConfigs().asyncContext?.enable).toBe(true);
-  });
-
-  test('an explicit config still wins over the seam', () => {
-    const hosted = new HostedApplication({
-      scope: HostedApplication.name,
-      config: buildConfigs({ asyncContext: { enable: false } }),
-    });
-
-    expect(hosted.getProjectConfigs().asyncContext?.enable).toBe(false);
   });
 });
 

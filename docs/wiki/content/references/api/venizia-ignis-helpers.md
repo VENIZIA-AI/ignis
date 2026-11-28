@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-227 exports, 227 with TSDoc. 261 more are re-exported from other entries (listed at the end).
+227 exports, 227 with TSDoc. 267 more are re-exported from other entries (listed at the end).
 
 The declarations are on 4 pages; each export below links to its own.
 
@@ -961,6 +961,7 @@ The declarations are on 4 pages; each export below links to its own.
 - `ErrorLogLevels` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `ErrorScopes` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `Execution` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `ExecutionModes` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `FetchRequestContext` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `FetchSchemaError` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `FieldMappingDataTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
@@ -986,6 +987,9 @@ The declarations are on 4 pages; each export below links to its own.
 - `IECDHEncryptedPayload` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IECDHExtraOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IErrorKeyRegistry` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `IExecutionFrame` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IExecutionRunner` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IExecutionValues` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IFetchable` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IFetcherDefaults` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IFetcherHooks` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -1108,6 +1112,8 @@ The declarations are on 4 pages; each export below links to its own.
 - `TErrorNormalized` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TErrorNormalizeTransformFn` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TErrorScope` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `TExecutionMode` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `TExecutionRunOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TFetcherLogger` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TFetcherResponse` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TFetcherWorker` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)

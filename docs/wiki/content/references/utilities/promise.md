@@ -29,6 +29,55 @@ const results = await Execution.withLimit({
 });
 ```
 
+## Frames
+
+An execution frame says who is running: one web request, one job, one piece of system work. A `BaseApplication` opens a frame for every request; your code opens its own with `run`.
+
+```typescript
+import { Execution, ExecutionModes } from '@venizia/ignis';
+
+// a job: it runs for one user
+await Execution.run({
+  mode: ExecutionModes.SCOPED,
+  userId: job.data.userId,
+  task: () => this.service.handle({ job }),
+});
+
+// work that belongs to nobody
+await Execution.run({
+  mode: ExecutionModes.SYSTEM,
+  reason: 'draft order reaper',
+  task: () => this.reapAll(),
+});
+
+const frame = Execution.current(); // undefined outside every frame
+```
+
+| Rule | Meaning |
+|---|---|
+| The innermost frame wins | the mode comes from that call alone |
+| A nested frame inherits | the request, the user and the values; never the mode or the reason |
+| `isRoot: true` | a scoped frame that inherits nothing: for a listener of your own. Warned once when it leaves a request or a user |
+| A system run | needs a `reason` that is not blank, and is logged with it (and the request id inside a request) |
+| After `run` returns | a promise still running keeps its frame |
+| `values` | the frame holds a frozen copy: arrays and plain objects at any depth |
+
+`values` and `userId` are claims your code makes. Never copy them from a request (body, query, header, path) without checking them against the caller.
+
+Declare your own value keys once:
+
+```typescript
+declare module '@venizia/ignis' {
+  interface IExecutionValues {
+    tenantIds?: string[];
+  }
+}
+```
+
+A frame does not change what a query sees yet: a model's `access` reads the request as before.
+
+A script or a test with no application calls `ExecutionRunner.install()` first. Without a runner, `run` throws and `current()` is `undefined`; the other methods work, a browser included.
+
 ## Methods
 
 | Method | What it does |

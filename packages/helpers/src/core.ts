@@ -66,7 +66,14 @@ export type { IBuildInfo, TBuildInfoRecord } from './utilities/build-info.utilit
 export { EchoUtility } from './utilities/echo.utility';
 export { ParseUtility } from './utilities/parse.utility';
 export { PerformanceUtility } from './utilities/performance.utility';
-export { Execution } from './modules/execution';
+export { Execution, ExecutionFrames, ExecutionModes } from './modules/execution';
+export type {
+  IExecutionFrame,
+  IExecutionRunner,
+  IExecutionValues,
+  TExecutionMode,
+  TExecutionRunOptions,
+} from './modules/execution';
 export { RecordUtility } from './utilities/record.utility';
 export { FormBodyUtility, RequestBodyErrors } from './utilities/form-body.utility';
 export { ProjectRootRegistry } from './utilities/project-root.utility';

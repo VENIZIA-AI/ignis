@@ -49,21 +49,20 @@ constructor(opts: { scope: string; config: IApplicationConfigs })
 
 The constructor:
 1. Merges the provided config with defaults
-2. Resolves `asyncContext.enable` from `getDefaultAsyncContextEnabled()`: `false` here, `true` in `ServerApplication` (see [The two constructor hooks](#the-two-constructor-hooks))
-3. Sets `projectRoot` from `getProjectRoot()`
+2. Sets `projectRoot` from `getProjectRoot()`
 
 It resolves no host and no port. Both mean nothing to a host that binds no socket, so `ServerApplication` resolves them in its own constructor instead.
 
 The constructor binds nothing. `registerCoreBindings()` runs from `init()`, and `init()` is not called for you - see [Lifecycle](#initialize-method-flow) below.
 
-### The two constructor hooks
+### The constructor hook
 
-`getDefaultAsyncContextEnabled()` and `getProjectRoot()` return `false` and `''` here. `ServerApplication` overrides both to restore server behaviour - `true`, and `configs.projectRoot ?? process.cwd()`. The kernel layers read no `process`, because a browser Worker has none.
+`getProjectRoot()` returns `''` here. `ServerApplication` overrides it with `configs.projectRoot ?? process.cwd()`. The kernel layers read no `process`, because a browser Worker has none.
 
 `getEnvServerHost()` and `getEnvServerPort()` are gone. Address resolution now lives in `ServerApplication`'s constructor.
 
 > [!WARNING]
-> Both hooks run inside this constructor, before any subclass field is assigned. An override must return a literal or read module-level state only. Reading `this.something` from one yields `undefined`, silently. `getProjectRoot()` is the one applications most often override - keep it free of instance state.
+> `getProjectRoot()` runs inside this constructor, before any subclass field is assigned. An override must return a literal or read module-level state only: reading `this.something` from it yields `undefined`, silently.
 
 ## `RestApplication`
 
@@ -369,7 +368,9 @@ To run this sequence in a test without a database, a port or a network, call `Ap
 
 Automatically registers these default middlewares during `initialize()`:
 
-`RestApplication` installs the three every host needs, in this order:
+`BaseApplication` mounts the **request frame** first: every request runs in an [execution frame](/references/utilities/promise#frames) that holds it.
+
+`RestApplication` then installs the three every host needs, in this order:
 
 1. **Request id** (`requestId`) - the generator is `RequestIdGenerator`, not hono's default, which calls `crypto.randomUUID` unguarded
 2. **Error handler** (`AppErrorMiddleware`) - with optional `rootKey` from `configs.error.rootKey`
@@ -377,10 +378,8 @@ Automatically registers these default middlewares during `initialize()`:
 
 `BaseApplication` then adds what only a listening server has:
 
-4. **Request context resolver** - always set, so `tryGetContext()` answers "no context" rather than throwing
-5. **Async context storage** (`contextStorage`) - only when `configs.asyncContext.enable` is true
-6. **RequestTrackerComponent** - request-body parsing and the access log; it reads the request id installed at step 1 and registers none of its own
-7. **Emoji favicon** - defaults to the flame emoji, configurable via `configs.favicon`
+4. **RequestTrackerComponent** - request-body parsing and the access log; it reads the request id installed at step 1 and registers none of its own
+5. **Emoji favicon** - defaults to the flame emoji, configurable via `configs.favicon`
 
 ### registerControllers and Transport Support
 
@@ -411,7 +410,6 @@ interface IApplicationConfigs {
   requestId?: { isStrict: boolean };      // Typed, but nothing in the framework reads it
   favicon?: string;                       // Favicon emoji (default: '🔥')
   error?: { rootKey?: string; environment?: string }; // Error envelope root key, ambient environment name
-  asyncContext?: { enable: boolean };     // Hono async context storage (default: true on BaseApplication, false on Rest and Worker)
   middlewares?: IMiddlewareConfigs;       // cors and bodyLimit are installed by the framework, read BEFORE staticConfigure(): pass them here; see Middlewares Reference
   artifacts?: TArtifactIndexInput;        // Generated indexes registered before preConfigure
   discoverArtifacts?: boolean;            // Register every decorated class the application imports (default: false)

@@ -1,4 +1,5 @@
 import { AnyAliasesCommand } from './any-aliases';
+import { AsyncContextCommand } from './async-context';
 import { AsyncStyleCommand } from './async-style';
 import { BindingKeysCommand } from './binding-keys';
 import { ClassRenamesCommand } from './class-renames';
@@ -25,6 +26,7 @@ const USAGE = [
   ExecutionClassCommand.USAGE,
   FunctionToArrowCommand.USAGE,
   TypedRouteContextCommand.USAGE,
+  AsyncContextCommand.USAGE,
 ].join('\n\n');
 
 /** The codemods `devz codemod <name>` runs. */
@@ -39,6 +41,7 @@ const NAME_LIST = [
   'binding-keys',
   'class-renames',
   'execution-class',
+  'async-context',
   'function-to-arrow',
   'typed-route-context',
 ];
@@ -119,6 +122,10 @@ export class CodemodCommand {
 
     if (name === 'execution-class') {
       return ExecutionClassCommand.run({ root: opts.root, args: rest });
+    }
+
+    if (name === 'async-context') {
+      return AsyncContextCommand.run({ root: opts.root, args: rest });
     }
 
     if (name === 'class-renames') {

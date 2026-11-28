@@ -1,9 +1,10 @@
 import { AbstractEntity, MetadataRegistry, model } from '@venizia/ignis-kernel';
-import { afterEach, describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, test, beforeEach, afterAll } from 'bun:test';
 import { pgTable, serial, text } from 'drizzle-orm/pg-core';
 import { ScopeFilterUtility } from '@/common';
 import { BaseRelationalEntity } from '@/relational/core/models';
 import { ScopeThroughLink } from '@/relational/core/repositories/common/scope-through';
+import { useExecutionRunner } from '../testing/execution-runner';
 
 /**
  * Two `@model` classes on one table: the registry keeps one entry per table name, and a lookup by schema answers for
@@ -20,6 +21,9 @@ const scoped = { access: { resolve: () => ({ name: 'x' }) } };
 afterEach(() => {
   registry.clearAll();
 });
+
+beforeEach(() => useExecutionRunner({ isInstalled: true }));
+afterAll(() => useExecutionRunner({ isInstalled: false }));
 
 describe('two model classes on one table', () => {
   test('are marked, and the lookup by schema answers for neither', () => {
@@ -74,9 +78,9 @@ describe('two model classes on one table', () => {
 
     expect(Owner.name).toBe('Owner');
     expect(Twin.name).toBe('Twin');
-    expect(() =>
-      ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: true }),
-    ).toThrow(/two model classes share a table.*shared_table_items/s);
+    expect(() => ScopeFilterUtility.assertScopeFilterSupported({})).toThrow(
+      /two model classes share a table.*shared_table_items/s,
+    );
   });
 
   test('two classes with no access between them are fine, and so is one class', () => {
@@ -94,9 +98,7 @@ describe('two model classes on one table', () => {
 
     expect(Plain1.name).toBe('Plain1');
     expect(Plain2.name).toBe('Plain2');
-    expect(() =>
-      ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: true }),
-    ).not.toThrow();
+    expect(() => ScopeFilterUtility.assertScopeFilterSupported({})).not.toThrow();
 
     registry.clearAll();
 
@@ -107,9 +109,7 @@ describe('two model classes on one table', () => {
     }
 
     expect(ScopeThroughLink.entryOf({ schema: sharedTable })?.target).toBe(Alone);
-    expect(() =>
-      ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: true }),
-    ).not.toThrow();
+    expect(() => ScopeFilterUtility.assertScopeFilterSupported({})).not.toThrow();
   });
 
   describe('two classes on one table under different registry names', () => {
@@ -143,17 +143,15 @@ describe('two model classes on one table', () => {
       }
 
       expect(registry.getModelEntry({ name: 'Product' })?.isShared).toBeUndefined();
-      expect(() =>
-        ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: true }),
-      ).toThrow(/is not the model its table resolves to.*MerchantProduct/s);
+      expect(() => ScopeFilterUtility.assertScopeFilterSupported({})).toThrow(
+        /is not the model its table resolves to.*MerchantProduct/s,
+      );
     });
 
     test('the scoped class alone, under another registry name than its table, is fine', () => {
       declareScoped();
 
-      expect(() =>
-        ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: true }),
-      ).not.toThrow();
+      expect(() => ScopeFilterUtility.assertScopeFilterSupported({})).not.toThrow();
     });
   });
 
@@ -164,8 +162,6 @@ describe('two model classes on one table', () => {
       schema: {},
     });
 
-    expect(() =>
-      ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: true }),
-    ).not.toThrow();
+    expect(() => ScopeFilterUtility.assertScopeFilterSupported({})).not.toThrow();
   });
 });

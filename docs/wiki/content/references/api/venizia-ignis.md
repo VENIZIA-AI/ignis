@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-120 exports, 120 with TSDoc. 1021 more are re-exported from other entries (listed at the end).
+122 exports, 122 with TSDoc. 1027 more are re-exported from other entries (listed at the end).
 
 The declarations are on 4 pages; each export below links to its own.
 
@@ -102,6 +102,10 @@ The declarations are on 4 pages; each export below links to its own.
 ## `EnvironmentKeys`
 
 *class* - [Declaration](/references/api/venizia-ignis--part-2#environmentkeys)
+
+## `ExecutionRunner`
+
+*class* - [Declaration](/references/api/venizia-ignis--part-2#executionrunner)
 
 ## `GrpcHeaderUtility`
 
@@ -269,19 +273,19 @@ The declarations are on 4 pages; each export below links to its own.
 
 ## `IShutdownSignalsOptions`
 
-*interface* - [Declaration](/references/api/venizia-ignis--part-2#ishutdownsignalsoptions)
+*interface* - [Declaration](/references/api/venizia-ignis--part-3#ishutdownsignalsoptions)
 
 ## `IUIConfig`
 
-*interface* - [Declaration](/references/api/venizia-ignis--part-2#iuiconfig)
+*interface* - [Declaration](/references/api/venizia-ignis--part-3#iuiconfig)
 
 ## `IUIProvider`
 
-*interface* - [Declaration](/references/api/venizia-ignis--part-2#iuiprovider)
+*interface* - [Declaration](/references/api/venizia-ignis--part-3#iuiprovider)
 
 ## `JWKSController`
 
-*class* - [Declaration](/references/api/venizia-ignis--part-2#jwkscontroller)
+*class* - [Declaration](/references/api/venizia-ignis--part-3#jwkscontroller)
 
 ## `JWKSIssuerAuthenticationStrategy`
 
@@ -330,6 +334,10 @@ The declarations are on 4 pages; each export below links to its own.
 ## `PrincipalPolicyEdges`
 
 *class* - [Declaration](/references/api/venizia-ignis--part-3#principalpolicyedges)
+
+## `RequestFrameMiddleware`
+
+*class* - [Declaration](/references/api/venizia-ignis--part-3#requestframemiddleware)
 
 ## `RequestTrackerComponent`
 
@@ -429,23 +437,23 @@ The declarations are on 4 pages; each export below links to its own.
 
 ## `TDomainHierarchyEdge`
 
-*type* - [Declaration](/references/api/venizia-ignis--part-3#tdomainhierarchyedge)
+*type* - [Declaration](/references/api/venizia-ignis--part-4#tdomainhierarchyedge)
 
 ## `TGrantRow`
 
-*type* - [Declaration](/references/api/venizia-ignis--part-3#tgrantrow)
+*type* - [Declaration](/references/api/venizia-ignis--part-4#tgrantrow)
 
 ## `TGrpcNativeTls`
 
-*type* - [Declaration](/references/api/venizia-ignis--part-3#tgrpcnativetls)
+*type* - [Declaration](/references/api/venizia-ignis--part-4#tgrpcnativetls)
 
 ## `TPermissionCommonColumns`
 
-*type* - [Declaration](/references/api/venizia-ignis--part-3#tpermissioncommoncolumns)
+*type* - [Declaration](/references/api/venizia-ignis--part-4#tpermissioncommoncolumns)
 
 ## `TPermissionOptions`
 
-*type* - [Declaration](/references/api/venizia-ignis--part-3#tpermissionoptions)
+*type* - [Declaration](/references/api/venizia-ignis--part-4#tpermissionoptions)
 
 ## `TPolicyDefinitionCommonColumns`
 
@@ -673,6 +681,7 @@ The declarations are on 4 pages; each export below links to its own.
 - `EventDispatchRetry` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `EventHandlerTypes` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `Execution` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `ExecutionModes` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `FC` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `FetchRequestContext` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `FetchSchemaError` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -794,6 +803,9 @@ The declarations are on 4 pages; each export below links to its own.
 - `IEventHandlerBindingKeyReference` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IEventHandlerFunctionReference` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IEventHandlerRetryOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `IExecutionFrame` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IExecutionRunner` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IExecutionValues` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IExtraOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IFetchable` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IFetcherDefaults` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -1275,6 +1287,8 @@ The declarations are on 4 pages; each export below links to its own.
 - `TEventHandlerFunction` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TEventHandlerReference` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TEventHandlerType` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `TExecutionMode` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `TExecutionRunOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TFetcherLogger` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TFetcherResponse` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TFetcherWorker` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)

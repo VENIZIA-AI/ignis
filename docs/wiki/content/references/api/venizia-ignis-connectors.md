@@ -136,11 +136,9 @@ export declare class ScopeFilterUtility {
     /**
      * Refuses to boot when `settings.access` is declared where it cannot be honoured. Both cases
      * are silent at runtime and fail in OPPOSITE directions: a search-backed model returns more rows,
-     * a context-less one returns none. The caller supplies `asyncContextEnabled` so no application
-     * config type reaches into this tier.
+     * a context-less one returns none: with no execution runner installed there is no request to read.
      */
     static assertScopeFilterSupported(opts: {
-        asyncContextEnabled: boolean;
         logger?: ILogger;
     }): void;
 }

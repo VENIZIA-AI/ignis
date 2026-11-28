@@ -9,7 +9,6 @@ import {
   BindingValueTypes,
   BootSequence,
   MetadataRegistry,
-  RequestContextRegistry,
 } from '@venizia/ignis-kernel';
 import type { ILogger } from '@venizia/ignis-helpers/core';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
@@ -29,7 +28,7 @@ import {
   Environment,
   SecretProviders,
 } from '@venizia/ignis-helpers';
-import { contextStorage, tryGetContext } from 'hono/context-storage';
+import { RequestFrameMiddleware } from '../execution';
 import { AppErrorMiddleware, EmojiFaviconMiddleware } from '../middlewares';
 import { serveStatic } from 'hono/bun';
 import { ServerLoggerStartup } from './common';
@@ -404,16 +403,11 @@ export abstract class BaseApplication extends ServerApplication implements IRest
       task: async () => {
         const server = this.getServer();
 
+        // First of all: every request starts in its own frame. Without it, what runs ahead would keep the frame the
+        // server was started in, which `Bun.serve` carries into each request.
+        server.use(RequestFrameMiddleware.create());
+
         await super.registerDefaultMiddlewares();
-
-        // Always installed, not only under `asyncContext.enable`: `tryGetContext()` answers "no context"
-        // without a store, and a `contextStorage()` the application registered itself stays visible to
-        // the enrichers. Inside a method body because every package declares `sideEffects: false`.
-        RequestContextRegistry.setResolver({ resolver: () => tryGetContext() });
-
-        if (this.configs.asyncContext?.enable) {
-          server.use(contextStorage());
-        }
 
         // Request-body parsing and the access log; the request id it reads is already installed
         // above (also works around the Bun + Hono body-parsing bug: https://github.com/honojs/middleware/issues/81).
@@ -534,9 +528,6 @@ export abstract class BaseApplication extends ServerApplication implements IRest
    * silent at runtime and opposite: a search-backed model returns too many rows, a context-less one none.
    */
   protected validateScopeFilterSupport(): void {
-    ScopeFilterUtility.assertScopeFilterSupported({
-      asyncContextEnabled: this.configs.asyncContext?.enable ?? false,
-      logger: this.logger,
-    });
+    ScopeFilterUtility.assertScopeFilterSupported({ logger: this.logger });
   }
 }

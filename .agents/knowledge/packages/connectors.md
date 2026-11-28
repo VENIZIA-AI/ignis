@@ -480,14 +480,14 @@ deletes nothing, and reports success. When adding `access` to a model, audit eve
 method on the repository passing `dangerouslySkipScopeFilter`, never a flag in the request context.
 
 **Declaring `access` where it cannot take effect now REFUSES TO BOOT** -
-`ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled })` in `src/common/scope-filter.ts`, called from
+`ScopeFilterUtility.assertScopeFilterSupported({ logger })` in `src/common/scope-filter.ts`, called from
 core-server's `BaseApplication` as its last boot step (`validateScopeFilterSupport`, after `verifyBindings`) so component-contributed models are covered, and by `ApplicationBootAssertion.assert`. It
-refuses four groups of configuration: a search-backed model, `asyncContext.enable: false`, an invalid `through` (neither or both of `resolve` and `through`, `onMissing`/`columns`/`write` beside `through`, a bad relation, a cycle, more than 5 hops, a parent without `access`) and an invalid write guard (`write.mode`, `columns`). The first two are silent at run time and fail in OPPOSITE directions: a search-backed model
+refuses four groups of configuration: a search-backed model, a host with no execution runner (`Execution.isInstalled()`), an invalid `through` (neither or both of `resolve` and `through`, `onMissing`/`columns`/`write` beside `through`, a bad relation, a cycle, more than 5 hops, a parent without `access`) and an invalid write guard (`write.mode`, `columns`). The first two are silent at run time and fail in OPPOSITE directions: a search-backed model
 (`BaseSearchEntity` in the prototype chain) never reads the setting and returns MORE rows, while
-`asyncContext.enable: false` leaves `resolve()` with no ambient context so `onMissing` denies EVERY
-query - and nothing named the flag as the cause. Search is reported first: it needs a code change,
-the other may be one config line. Lives in connectors because this package both applies the setting
-(relational) and ignores it (search); the caller passes the flag so no app config type reaches down.
+without a runner `resolve()` has no request to read so `onMissing` denies EVERY
+query - and nothing would name the cause. Search is reported first: it needs a code change,
+the other may be one line. Lives in connectors because this package both applies the setting
+(relational) and ignores it (search).
 **Adopting it next to an existing ownership guard: REPLACE, never run both.** AND-ing the same
 predicate twice is idempotent, so results stay correct and nothing looks wrong - which is exactly
 why it is a trap. The redundancy adds no safety and HIDES divergence; a subclass overriding one hook
@@ -623,13 +623,8 @@ distinguishes the same three states, and each still carries its own message and 
 | a context, no `AUDIT_USER_ID` | a request with no authenticated user | stamps `null` | throws `No AUDIT_USER_ID found in request context` |
 | a context with one | a request with an authenticated user | stamps the id | stamps the id |
 
-`packages/core-server/src/base/applications/base.ts` installs the `hono/context-storage`-backed resolver in
-`registerDefaultMiddlewares()`, the first step of `initialize()`. Deliberately NOT inside the
-`asyncContext.enable` branch beside it: `tryGetContext()` already answers "no context" when no store
-exists, so an unconditional install costs nothing and keeps a `contextStorage()` that an application
-registered itself visible to the enrichers - which reading the module directly used to do. A method
-body rather than the module body, because every package here declares `sideEffects: false`.
-
+core-server opens a frame for every request (`RequestFrameMiddleware`, in `registerDefaultMiddlewares()`) and installs
+`ExecutionRunner` when an application is constructed; the registry reads the frame.
 Both tiers reach `LoggerFactory` nowhere either: `drivers/libsql.ts`, `repositories/executor.ts` and
 `repositories/dialect/query.ts` all resolve their logger through `BaseHelper` from
 `@venizia/ignis-helpers/core`, so the ioredis edge that once failed `/sqlite` on `require('tls')` is

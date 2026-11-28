@@ -38,7 +38,6 @@ export declare abstract class AbstractApplication extends Container {
         middlewares?: Record<string | symbol, unknown>;
     }): ValueOrPromise<void>;
     abstract initialize(): Promise<void>;
-    protected getDefaultAsyncContextEnabled(): boolean;
     getProjectConfigs(): IApplicationConfigs;
     getProjectRoot(): string;
     registerPostStartHook(opts: {

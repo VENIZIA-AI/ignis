@@ -859,9 +859,6 @@ export interface IApplicationConfigs {
      * @default ['rest']
      */
     transports?: TControllerTransport[];
-    asyncContext?: {
-        enable: boolean;
-    };
     debug?: {
         /** @default false */
         shouldShowRoutes?: boolean;
@@ -981,3 +978,40 @@ export interface IAuthorizationDomainSource {
 ```
 
 Source: `packages/kernel/src/base/auth/authorize/common/types/request.ts`
+
+## `IAuthorizationEnforcer`
+
+*interface*
+
+Builds rules and evaluates requests. Cache management (`invalidateUserCache`/`rebuildUserCache`) is OPTIONAL - only on per-user-caching enforcers; the registry feature-detects it at runtime.
+
+```ts
+export interface IAuthorizationEnforcer<E extends Env = Env, TAction = string, TResource = string, TRules = unknown, TBuildRulesReturn = ValueOrPromise<TRules>, TEvaluateReturn = ValueOrPromise<TAuthorizationDecision>> {
+    name: string;
+    configure(): ValueOrPromise<void>;
+    buildRules(opts: {
+        user: IAuthorizationUser;
+        context: TContext<E, string>;
+    }): TBuildRulesReturn;
+    evaluate(opts: {
+        rules: TRules;
+        request: IAuthorizationRequest<TAction, TResource>;
+        context: TContext<E, string>;
+    }): TEvaluateReturn;
+    /** Drop a user's cached policies. Implemented only by caching enforcers. */
+    invalidateUserCache?(opts: {
+        user: IAuthorizationUser;
+    }): Promise<{
+        invalidatedKeys: number;
+    }>;
+    /** Drop + rebuild a user's cached policies. Implemented only by caching enforcers. */
+    rebuildUserCache?(opts: {
+        user: IAuthorizationUser;
+    }): Promise<{
+        cacheKey: string;
+        lineCount: number;
+    }>;
+}
+```
+
+Source: `packages/kernel/src/base/auth/authorize/common/types/enforcer.ts`

@@ -1568,3 +1568,26 @@ execution-class:
     steps:
       - "Run bun node_modules/.bin/devz codemod execution-class [paths...] --reverse --write, then pin the @venizia packages to the release before this one."
   data: Nothing stored changes.
+
+execution-frames:
+  symbols: [Execution, ExecutionRunner, useRequestContext, RequestContextRegistry, ScopeFilterUtility]
+  upgrade:
+    before: |-
+      import { getContext } from 'hono/context-storage';
+
+      const config = { path: { base: '/api', isStrict: true }, asyncContext: { enable: true } };
+      const userId = getContext().get(Authentication.AUDIT_USER_ID);
+    after: |-
+      import { useRequestContext } from '@venizia/ignis';
+
+      const config = { path: { base: '/api', isStrict: true } };
+      const userId = useRequestContext()?.get(Authentication.AUDIT_USER_ID);
+    steps:
+      - "Run bun node_modules/.bin/devz codemod async-context [paths...] --write: it removes the key from application configs and lists what it leaves to you: other asyncContext properties, overrides of getDefaultAsyncContextEnabled and reads of configs.asyncContext."
+      - "Replace Hono's getContext() and tryGetContext() with useRequestContext(), or mount contextStorage() yourself."
+      - "Where you call ScopeFilterUtility.assertScopeFilterSupported, drop asyncContextEnabled."
+      - "A script or a test that queries models with an access, without an application, calls ExecutionRunner.install() and runs inside Execution.run."
+  downgrade:
+    steps:
+      - "Add asyncContext back where you set enable to false, then pin the @venizia packages to the release before this one."
+  data: Nothing stored changes.

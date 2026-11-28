@@ -9,6 +9,91 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 Part 4 of 4 of [`@venizia/ignis`](/references/api/venizia-ignis).
 
+## `TDomainHierarchyEdge`
+
+*type*
+
+A parent-child edge between two domain tokens, in the `<Type>_<id>` form, as returned by `TResolveDomainEdgesFn`.
+
+```ts
+export type TDomainHierarchyEdge = {
+    child: string;
+    parent: string;
+};
+```
+
+Source: `packages/core-server/src/components/auth/authorize/adapters/scoped-casbin/common/types.ts`
+
+## `TGrantRow`
+
+*type*
+
+A grant row as fetched, before it becomes casbin lines. Permission columns are null when the join misses.
+
+```ts
+export type TGrantRow = {
+    subjectId: IdType;
+    objectCode: TNullable<string>;
+    objectSubject: TNullable<string>;
+    objectMethod: TNullable<string>;
+    action: TNullable<string>;
+    effect: TNullable<string>;
+    domain: TNullable<string>;
+    metadata?: unknown;
+};
+```
+
+Source: `packages/core-server/src/components/auth/authorize/adapters/scoped-casbin/common/types.ts`
+
+## `TGrpcNativeTls`
+
+*type*
+
+The TLS of the native gRPC port: `{ use: false }` is clear text (h2c), for a mesh or a TLS-terminating proxy.
+
+```ts
+export type TGrpcNativeTls = TToggle<{
+    key: string | Buffer;
+    cert: string | Buffer;
+}>;
+```
+
+Source: `packages/core-server/src/base/controllers/grpc/native/common/types.ts`
+
+## `TPermissionCommonColumns`
+
+*type*
+
+Drizzle column set of the permission table: text `code`, `name`, `method`, `subject`, `action`, `scope` (all not null) and a nullable `description`.
+
+```ts
+export type TPermissionCommonColumns = {
+    code: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
+    name: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
+    method: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
+    subject: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
+    action: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
+    scope: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
+    description: PgTextBuilderInitial<string, [string, ...string[]]>;
+};
+```
+
+Source: `packages/core-server/src/components/auth/models/entities/permission.model.ts`
+
+## `TPermissionOptions`
+
+*type*
+
+Options of the permission table builder; `idType` selects the primary key type.
+
+```ts
+export type TPermissionOptions = {
+    idType?: TIdSchemaType;
+};
+```
+
+Source: `packages/core-server/src/components/auth/models/entities/permission.model.ts`
+
 ## `TPolicyDefinitionCommonColumns`
 
 *type*
@@ -186,10 +271,10 @@ Source: `packages/core-server/src/components/api-reference/ui/factory.ts`
 
 *const*
 
-Returns the Hono context of the request being handled, or `undefined` outside a request (uses `tryGetContext`, so it never throws).
+The Hono context of the request of the current execution frame, or `undefined` when the frame has none. It never throws.
 
 ```ts
-export declare const useRequestContext: <AppEnv extends Env = Env>() => import("hono").Context<AppEnv, any, {}> | undefined;
+export declare const useRequestContext: <AppEnv extends Env = Env>() => Context<AppEnv> | undefined;
 ```
 
 Source: `packages/core-server/src/base/metadata/request-context.ts`
