@@ -134,6 +134,8 @@ export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema 
     private static loadModule;
     /** Wraps IGNIS RPC registrations into ConnectRPC's (request, context) => response signature. */
     private buildConnectHandlers;
+    /** ConnectRPC drops a handler whose name the service does not declare, and the call then answers `unimplemented`: refused at boot instead. */
+    private assertDeclaredRpcs;
     /** Loose signature on purpose - the IGNIS `ServiceType` is opaque (`unknown`) while ConnectRPC expects `DescService`. */
     private registerService;
     /** Creates the Hono middleware that dispatches to ConnectRPC universal handlers. */
