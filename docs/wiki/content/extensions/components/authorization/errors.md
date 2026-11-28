@@ -107,6 +107,8 @@ The step 5 message ends with <code v-pre>&#124; path: {{path}}</code>.
 |---------------|--------|--------|-------|
 | `[CasbinAuthorizationEnforcer] "casbin" is not installed` | 400 | `configure` | The optional `casbin` peer dependency isn't installed |
 | `[CasbinAuthorizationEnforcer] options.model is required.` | 400 | `configure` | `model` is missing from the enforcer options |
+| `[CasbinAuthorizationEnforcer] options.cached is required.` | 400 | `configure` | `cached` is missing from the enforcer options |
+| `[ToggleUtility] A toggle must be { use: true } or { use: false }` | 500 | `configure` | `cached` is not a plain object with a boolean `use`; the message names `options.cached` |
 | <code v-pre>[registerMatchers] Role definition "{{name}}" is not declared in the Casbin model.</code> | 400 | `configure` (via `registerMatchers`) | `domainMatching.roleDefinition` isn't declared in `[role_definition]` (only checked when `domainMatching` is set) |
 | `[CasbinAuthorizationEnforcer] Matcher smoke test failed at warmup` | 400 | `configure` (via `assertMatcherCompilesSync`) | The matcher expression doesn't compile: syntax error, an unregistered function, or an arity mismatch |
 | `[CasbinAuthorizationEnforcer] cached.options.expiresIn must be >= 10000 (ms)` | 400 | `configure` (via `validateExpiresIn`) | `cached.options.expiresIn` is below `MIN_EXPIRES_IN` (10,000 ms) |
@@ -121,6 +123,13 @@ Three messages continue past the cell:
 
 > [!NOTE]
 > `cached` is a typed discriminated union (`{ use: false } | { use: true; driver: 'redis'; ... }`), so an unsupported cache driver fails at compile time - there is no `Invalid cached.driver` runtime error. Caching is **Redis-only**.
+
+### Scoped Casbin Adapter Errors - Construction (`ScopedCasbinAdapter`, `CustomGrantExpander`)
+
+| Error Message | Status | Cause |
+|---------------|--------|-------|
+| `[ToggleUtility] A toggle must be { use: true } or { use: false }` | 500 | `entities.softDelete` is set and is not a plain object with a boolean `use` |
+| <code v-pre>[{{adapter}}] entities.softDelete.columnName must be a non-empty string when use is true</code> | 500 | `softDelete.use` is true and `columnName` is missing, empty or not a string |
 
 ### Casbin Enforcer Errors - Runtime (`buildRules` / `evaluate` / cache management)
 

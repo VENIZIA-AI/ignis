@@ -1341,7 +1341,7 @@ The declarations are on 9 pages; each export below links to its own.
 
 ## `TRepositoryMetadata`
 
-*type* - [Declaration](/references/api/venizia-ignis-kernel--part-8#trepositorymetadata)
+*type* - [Declaration](/references/api/venizia-ignis-kernel--part-9#trepositorymetadata)
 
 ## `TRepositoryOperationScope`
 

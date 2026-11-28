@@ -38,7 +38,7 @@ export class GrpcComponent extends BaseComponent {
       isOptional: true,
     });
 
-    const native = ToggleUtility.pick(options?.native);
+    const native = ToggleUtility.pick(options?.native, { name: '[GrpcComponent] native' });
     const shutdown = new AbortController();
     /** The application port's, apart from `shutdown`, which the native listener aborts only for calls of its own. */
     const httpShutdown = new AbortController();

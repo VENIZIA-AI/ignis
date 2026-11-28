@@ -346,7 +346,7 @@ The `@model` decorator accepts the following metadata:
 
 ## Migrations
 
-IGNIS generates no migrations. `drizzle-kit` reads the schema file you give it (`migration-schema.ts` in the examples) and writes the SQL; the framework only applies the files at startup. `migration: { use: false }` on a model is a marker in the public registry for tooling of yours that decides which models to migrate. IGNIS itself does not read it.
+IGNIS generates no migrations. `drizzle-kit` reads the schema file you give it (`migration-schema.ts` in the examples) and writes the SQL; the framework only applies the files at startup. `migration: { use: false }` on a model is a marker in the public registry for tooling of yours that decides which models to migrate. IGNIS itself does not read it. A model that leaves out `migration`, or its `use`, is migrated; `migration: false`, `null` or a `use` that is not a boolean throws when the class is declared.
 
 ```typescript
 // scripts/migrated-tables.ts

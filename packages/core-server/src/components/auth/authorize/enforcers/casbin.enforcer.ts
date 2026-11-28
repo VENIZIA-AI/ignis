@@ -1,5 +1,5 @@
 import { type TContext } from '@venizia/ignis-kernel';
-import { inject } from '@venizia/ignis-kernel';
+import { inject, ToggleUtility } from '@venizia/ignis-kernel';
 import { BaseHelper, BasePoolHelper, getError } from '@venizia/ignis-helpers/core';
 import { type TNullable } from '@venizia/ignis-helpers/common';
 import type { Enforcer as CasbinEnforcerType, Helper as CasbinHelperType } from 'casbin';
@@ -36,6 +36,8 @@ type TNormalizePayloadFn<E extends Env, TAction, TResource> = (opts: {
   resource: TResource;
   context: TContext<E, string>;
 }) => { subject: string; resource: string; action: string; domain?: string };
+
+const CACHED_OPTION = { name: '[CasbinAuthorizationEnforcer] options.cached' };
 
 // Wraps casbin (optional peer dep). Each request borrows its own pooled enforcer; any error during use destroys it (fail-closed). Pooled enforcers carry no adapter - only extractUserLines uses one.
 
@@ -83,7 +85,14 @@ export class CasbinAuthorizationEnforcer<
 
     const { cached } = this.options;
 
-    if (cached.use) {
+    // `isUsed` reads an absent toggle as off; `cached` is required.
+    if (cached === undefined) {
+      throw getError({
+        message: '[CasbinAuthorizationEnforcer] options.cached is required.',
+      });
+    }
+
+    if (ToggleUtility.isUsed(cached, CACHED_OPTION)) {
       this.validateExpiresIn({ expiresIn: cached.options.expiresIn });
     }
 
@@ -108,7 +117,7 @@ export class CasbinAuthorizationEnforcer<
       .info(
         'Casbin enforcer pool ready (size: %s, cached: %s)',
         this.options.poolSize ?? 16,
-        cached.use ? cached.driver : 'none',
+        ToggleUtility.isUsed(cached, CACHED_OPTION) ? cached.driver : 'none',
       );
   }
 
@@ -146,7 +155,7 @@ export class CasbinAuthorizationEnforcer<
 
     let lines: string[];
 
-    if (cached.use) {
+    if (ToggleUtility.isUsed(cached, CACHED_OPTION)) {
       const fetched = await this.requireRedisCache().fetch({ user });
       lines = fetched;
     } else {
@@ -275,7 +284,7 @@ export class CasbinAuthorizationEnforcer<
   protected requireRedisCache(): UserPolicyLineCache {
     const { cached } = this.options;
 
-    if (!cached.use) {
+    if (!ToggleUtility.isUsed(cached, CACHED_OPTION)) {
       throw getError({
         message:
           '[CasbinAuthorizationEnforcer] Cache management requires the redis cache driver, but caching is disabled.',

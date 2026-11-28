@@ -3,6 +3,7 @@ import { LogFormatUtility } from '@/modules/logger';
 import { HashiCorpVaultHelper } from '@/modules/secrets/hashicorp/hashicorp.helper';
 import { VaultAuthMethods } from '@/modules/secrets/common';
 import type { IClock, ITimerAdapter, TTimerHandle } from '@/modules/secrets/common';
+import { getError } from '@/modules/error';
 
 /** Routes captured log calls through the REAL formatter, so the test proves the raw error object (with its enumerable `config.headers['X-Vault-Token']`) is redacted by the logger's deep-inspect path before reaching a sink. */
 const formatLogArgs = ([message, ...args]: unknown[]) =>
@@ -51,9 +52,11 @@ class ManualClock implements IClock {
 class ManualTimers implements ITimerAdapter {
   private handlers = new Map<TTimerHandle, () => void>();
   private seq = 0;
-  set(handler: () => void): TTimerHandle {
+  delays: number[] = [];
+  set(handler: () => void, ms: number): TTimerHandle {
     const handle = ++this.seq;
     this.handlers.set(handle, handler);
+    this.delays.push(ms);
 
     return handle;
   }
@@ -346,6 +349,34 @@ describe('HashiCorpVaultHelper', () => {
 
       await provider.shutdown();
       expect(timers.pendingCount).toBe(0);
+    });
+
+    test('token renewal retries wait 1 s, double each time and stop growing at 60 s', async () => {
+      const timers = new ManualTimers();
+      const client = fakeClient();
+      const provider = new HashiCorpVaultHelper({
+        endpoint: 'http://vault',
+        auth: { method: VaultAuthMethods.APP_ROLE, roleId: 'r', secretId: 's' },
+        client,
+        timers,
+      });
+      await provider.configure();
+
+      const down = async () => {
+        throw getError({ message: 'vault unreachable' });
+      };
+
+      client.tokenRenewSelf = down;
+      client.approleLogin = down;
+
+      for (let i = 0; i < 9; i += 1) {
+        await timers.fireAll();
+      }
+
+      expect(timers.delays.slice(1)).toEqual([
+        1000, 2000, 4000, 8000, 16_000, 32_000, 60_000, 60_000, 60_000,
+      ]);
+      await provider.shutdown();
     });
 
     test('shutdown clears the token timer so it never fires', async () => {

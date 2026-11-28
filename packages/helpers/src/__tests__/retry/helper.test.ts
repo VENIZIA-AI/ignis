@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { getError } from '@/modules/error';
 import type { ILogger, TLogLevel } from '@/modules/logger';
 import { RetryBackoffStrategies, RetryUtility, RetryJitterModes } from '@/modules/retry';
+import type { IRetryBackoffOptions } from '@/modules/retry';
 
 const NO_JITTER = { jitter: RetryJitterModes.NONE } as const;
 
@@ -77,6 +78,27 @@ describe('computeBackoffDelayMs', () => {
         backoff: { initialDelayMs: 100, maxDelayMs: 500, ...NO_JITTER },
       }),
     ).toBe(500);
+  });
+
+  test('never answers NaN: a delay that is not a number is no delay', () => {
+    const cases: { attempt: number; backoff: IRetryBackoffOptions }[] = [
+      { attempt: 1, backoff: { initialDelayMs: Number.NaN } },
+      { attempt: 2000, backoff: { initialDelayMs: 0 } },
+      { attempt: 2, backoff: { multiplier: Number.NaN } },
+      { attempt: 2, backoff: { maxDelayMs: Number.NaN } },
+      {
+        attempt: 1,
+        backoff: { strategy: RetryBackoffStrategies.FIXED, initialDelayMs: Number.NaN },
+      },
+    ];
+
+    for (const { attempt, backoff } of cases) {
+      for (const jitter of RetryJitterModes.values()) {
+        expect(
+          RetryUtility.computeBackoffDelayMs({ attempt, backoff: { ...backoff, jitter } }),
+        ).toBe(0);
+      }
+    }
   });
 
   test('SCHEDULE indexes per attempt and repeats the last entry', () => {

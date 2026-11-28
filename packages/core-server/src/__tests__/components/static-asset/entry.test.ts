@@ -220,6 +220,55 @@ describe('an entry resolves to its defaults', () => {
   });
 });
 
+describe('a toggle is on only with a boolean use', () => {
+  const base = {
+    basePath: '/a',
+    bucket: 'images',
+    keyPrefix: 'tenant-a/',
+    serverUpload: { use: false },
+    directUpload: { use: false },
+    metaLink: { use: false },
+    helper: s3Helper,
+  } as const;
+  const written = '{"use":"false"}';
+  const authenticate = { strategies: ['jwt'] };
+
+  const entries: [string, () => TStaticAssetEntry][] = [
+    ['serverUpload', () => ({ ...base, serverUpload: JSON.parse(written) })],
+    ['directUpload', () => ({ ...base, directUpload: JSON.parse(written) })],
+    ['metaLink', () => ({ ...base, metaLink: JSON.parse(written) })],
+    [
+      'directUpload.validation',
+      () => ({
+        ...base,
+        directUpload: { ...directUpload, authorize: () => true, validation: JSON.parse(written) },
+      }),
+    ],
+    [
+      'auth.publicRead',
+      () => ({ ...base, auth: { authenticate, publicRead: JSON.parse(written) } }),
+    ],
+    ['routes', () => ({ ...base, routes: { deleteObject: JSON.parse(written) } })],
+    [
+      'a route written as false',
+      () => ({ ...base, routes: { deleteObject: JSON.parse('false') } }),
+    ],
+  ];
+
+  const paths: Record<string, string> = {
+    routes: 'routes.deleteObject',
+    'a route written as false': 'routes.deleteObject',
+  };
+
+  for (const [name, entry] of entries) {
+    test(`${name} is refused at resolve, naming the entry and the option`, () => {
+      expect(() => resolve(entry())).toThrow(
+        `option: [StaticAssetController] ${paths[name] ?? name} |`,
+      );
+    });
+  }
+});
+
 describe('a helper has to say which storage it is', () => {
   test('a helper with no storageType is refused, with the entry name', () => {
     const message = messageOf(() =>

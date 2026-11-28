@@ -601,6 +601,7 @@ In-process mail queue executor: jobs are lost on restart. Supports `delay`, `att
 
 ```ts
 export declare class InternalQueueMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {
+    private static readonly MAX_TIMER_DELAY_MS;
     private queue;
     private jobIdCounter;
     private delayedJobs;

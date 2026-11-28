@@ -26,6 +26,65 @@ describe('ToggleUtility', () => {
     expect(toggle.label).toBe('a');
   });
 
+  test('anything but a boolean use is refused, by isUsed and by pick', () => {
+    const invalid = [
+      '{"use":"false"}',
+      '{"use":"true"}',
+      '{"use":1}',
+      '{"use":0}',
+      '{}',
+      'null',
+      'true',
+      '"on"',
+    ];
+
+    for (const written of invalid) {
+      expect(() => ToggleUtility.isUsed(JSON.parse(written))).toThrow('A toggle must be');
+      expect(() => ToggleUtility.pick(JSON.parse(written))).toThrow('A toggle must be');
+    }
+  });
+
+  test('a refused toggle never puts its values in the message', () => {
+    const written = '{"use":"SECRET-use","key":"SECRET-key"}';
+
+    expect(() => ToggleUtility.isUsed(JSON.parse(written))).toThrow(
+      /^(?!.*SECRET).*A toggle must be/s,
+    );
+  });
+
+  test('a refusal names the option it was given, and is a server error', () => {
+    const name = '[Probe] options.feature';
+    const invalid: TToggle = JSON.parse('{"use":"false"}');
+
+    for (const read of [
+      () => ToggleUtility.isUsed(invalid, { name }),
+      () => ToggleUtility.pick(invalid, { name }),
+    ]) {
+      expect(read).toThrow(`option: ${name} |`);
+      expect(read).toThrow(expect.objectContaining({ statusCode: 500 }));
+    }
+  });
+
+  test('use must be an own property of a plain object', () => {
+    class Switch {
+      readonly use = true;
+    }
+
+    const invalid: TToggle[] = [
+      Object.create({ use: true }),
+      Object.assign(JSON.parse('[]'), { use: true }),
+      new Switch(),
+    ];
+
+    for (const toggle of invalid) {
+      expect(() => ToggleUtility.isUsed(toggle)).toThrow('A toggle must be');
+    }
+
+    const bare: TToggle = Object.assign(Object.create(null), { use: true });
+
+    expect(ToggleUtility.isUsed(bare)).toBe(true);
+  });
+
   test('pick is undefined when the toggle is off or absent', () => {
     const off: TToggle<TOptions> = { use: false };
 
