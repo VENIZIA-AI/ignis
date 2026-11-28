@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read JSON keys and relations the row type does not carry */
 import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
@@ -81,6 +80,7 @@ export class ScenariosCases extends BaseTestCases {
       this.context.logger.error('[SCENARIO] FAILED | Expected 2 records (2025)');
       this.context.logger.error(
         'Results: %j',
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         results.map((r) => ({ code: r.code, created: (r.jValue as any)?.metadata?.created })),
       );
     } catch (e) {
@@ -146,6 +146,7 @@ export class ScenariosCases extends BaseTestCases {
         return;
       }
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const scp = (result as any).saleChannelProducts;
 
       if (scp && scp.length > 0) {

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases write dotted JSON paths, which the typed update data refuses, and read the stored JSON, whose type the model does not describe */
 import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
@@ -31,6 +30,7 @@ export class EdgeCases extends BaseTestCases {
       try {
         await repo.updateById({
           id,
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a path that is invalid on purpose, which the typed update data refuses
           data: { 'nonexistent.field': 'value' } as any,
         });
         this.context.logger.error('[CASE 12] FAILED | Should have thrown error');
@@ -80,6 +80,7 @@ export class EdgeCases extends BaseTestCases {
         // description is a text column, not JSON
         await repo.updateById({
           id,
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a path that is invalid on purpose, which the typed update data refuses
           data: { 'description.nested': 'value' } as any,
         });
         this.context.logger.error('[CASE 13] FAILED | Should have thrown error');
@@ -255,10 +256,12 @@ export class EdgeCases extends BaseTestCases {
       // This should succeed - the value is stored as a string
       await repo.updateById({
         id,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the typed update data refuses a dotted JSON path, which this case writes
         data: { 'jValue.userInput': sqlInjectionPayload } as any,
       });
 
       const verified = await repo.findById({ id });
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       const jValue = verified?.jValue as Record<string, any>;
 
       if (jValue?.userInput === sqlInjectionPayload) {

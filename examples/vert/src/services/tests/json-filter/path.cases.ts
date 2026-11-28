@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read keys of a JSON column, whose type the model does not describe */
 import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
@@ -103,8 +102,10 @@ export class PathCases extends BaseTestCases {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       if (results.length === 1 && (results[0].jValue as any)?.priority === 3) {
         this.context.logger.info('[CASE 2] PASSED | Found 1 record with priority = 3');
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         this.context.logger.info('[CASE 2] Record name: %s', (results[0].jValue as any)?.name);
       } else {
         this.context.logger.error('[CASE 2] FAILED | Expected 1 record | got: %d', results.length);
@@ -134,6 +135,7 @@ export class PathCases extends BaseTestCases {
       });
 
       if (results.length === 2) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const levels = results.map((r) => (r.jValue as any)?.metadata?.level);
         const allHigh = levels.every((l) => l === 'high');
 
@@ -141,6 +143,7 @@ export class PathCases extends BaseTestCases {
           this.context.logger.info('[CASE 3] PASSED | Found 2 records with level = "high"');
           this.context.logger.info(
             '[CASE 3] Names: %j',
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
             results.map((r) => (r.jValue as any)?.name),
           );
         } else {
@@ -227,6 +230,7 @@ export class PathCases extends BaseTestCases {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       if (results.length === 1 && (results[0].jValue as any)?.['user-id'] === 'usr-001') {
         this.context.logger.info('[CASE 17] PASSED | Kebab-case key "user-id" works correctly');
       } else {

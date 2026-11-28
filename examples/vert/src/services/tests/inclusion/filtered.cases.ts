@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read relations the row type of the read does not carry */
 import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
@@ -63,6 +62,7 @@ export class FilteredCases extends BaseTestCases {
         options: { shouldSkipDefaultFilter: true },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const saleChannelProducts = (productWithFiltered as any)?.saleChannelProducts ?? [];
       const activeChannels = saleChannelProducts.filter(
         (scp: any) => scp.saleChannel?.name === 'Active Channel',
@@ -165,6 +165,7 @@ export class FilteredCases extends BaseTestCases {
         options: { shouldSkipDefaultFilter: true },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const saleChannelProducts = (productWithOrdered as any)?.saleChannelProducts ?? [];
 
       if (saleChannelProducts.length === 3) {
@@ -258,6 +259,7 @@ export class FilteredCases extends BaseTestCases {
         options: { shouldSkipDefaultFilter: true },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const saleChannelProducts = (productWithLimited as any)?.saleChannelProducts ?? [];
 
       if (saleChannelProducts.length === 2) {
@@ -340,6 +342,7 @@ export class FilteredCases extends BaseTestCases {
         options: { shouldSkipDefaultFilter: true },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const scp = (productWithFields as any)?.saleChannelProducts?.[0];
       const sc = scp?.saleChannel;
 
@@ -416,6 +419,7 @@ export class FilteredCases extends BaseTestCases {
       });
 
       if (expensiveWithRelations.length === 1 && expensiveWithRelations[0].price === 1000) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
         const hasChannel = (expensiveWithRelations[0] as any).saleChannelProducts?.length === 1;
 
         if (hasChannel) {

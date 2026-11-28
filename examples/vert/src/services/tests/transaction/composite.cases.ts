@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read relations the row type of the read does not carry */
 import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
@@ -108,6 +107,7 @@ export class CompositeCases extends BaseTestCases {
         options: { shouldSkipDefaultFilter: true },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const saleChannelProducts = (productWithRelations as any)?.saleChannelProducts;
 
       if (saleChannelProducts?.length === 1) {

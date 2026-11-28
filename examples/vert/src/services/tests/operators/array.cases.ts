@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read keys of a JSON column, whose type the model does not describe */
 import { ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
@@ -273,6 +272,7 @@ export class ArrayCases extends BaseTestCases {
       });
 
       if (results.length >= 1) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const tag = (results[0].jValue as any)?.metadata?.tags?.[0];
 
         if (tag === 'a') {

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read keys of a JSON column, whose type the model does not describe */
 import { service } from '@venizia/ignis';
 import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestService } from './base-test.service';
@@ -117,6 +116,7 @@ export class JsonOrderByTestService extends BaseTestService {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       const ascPriorities = ascResult.map((r) => (r.jValue as any)?.priority);
       this.logger.info('[CASE 2] ASC priorities: %j', ascPriorities);
 
@@ -142,6 +142,7 @@ export class JsonOrderByTestService extends BaseTestService {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       const descPriorities = descResult.map((r) => (r.jValue as any)?.priority);
       this.logger.info('[CASE 2] DESC priorities: %j', descPriorities);
 
@@ -181,6 +182,7 @@ export class JsonOrderByTestService extends BaseTestService {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       const ascScores = ascResult.map((r) => (r.jValue as any)?.metadata?.score);
       this.logger.info('[CASE 3] ASC scores: %j', ascScores);
 
@@ -206,6 +208,7 @@ export class JsonOrderByTestService extends BaseTestService {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       const descScores = descResult.map((r) => (r.jValue as any)?.metadata?.score);
       this.logger.info('[CASE 3] DESC scores: %j', descScores);
 
@@ -244,6 +247,7 @@ export class JsonOrderByTestService extends BaseTestService {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       const ascTags = ascResult.map((r) => (r.jValue as any)?.tags?.[0]);
       this.logger.info('[CASE 4] ASC tags[0]: %j', ascTags);
 
@@ -265,6 +269,7 @@ export class JsonOrderByTestService extends BaseTestService {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
       const descTags = descResult.map((r) => (r.jValue as any)?.tags?.[0]);
       this.logger.info('[CASE 4] DESC tags[0]: %j', descTags);
 

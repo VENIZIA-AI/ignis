@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read relations the row type of the read does not carry */
 import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
@@ -36,6 +35,7 @@ export class NestedCases extends BaseTestCases {
         let totalChannels = 0;
 
         for (const product of testProducts) {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
           const scp = (product as any).saleChannelProducts ?? [];
           totalChannels += scp.length;
         }
@@ -118,6 +118,7 @@ export class NestedCases extends BaseTestCases {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const saleChannelProducts = (channelWithExpensive as any)?.saleChannelProducts ?? [];
       const expensiveProducts = saleChannelProducts.filter((scp: any) => scp.product?.price > 100);
       const nullProducts = saleChannelProducts.filter(

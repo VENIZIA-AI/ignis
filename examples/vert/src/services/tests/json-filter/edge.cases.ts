@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read keys of a JSON column, whose type the model does not describe */
 import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
@@ -68,6 +67,7 @@ export class EdgeCases extends BaseTestCases {
       });
 
       if (results.length === 2) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const allAdmin = results.every((r) => (r.jValue as any)?.role === 'admin');
 
         if (allAdmin) {
@@ -147,6 +147,7 @@ export class EdgeCases extends BaseTestCases {
       });
 
       if (results.length === 1) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const metadata = (results[0].jValue as any)?.metadata;
         const isEmpty = metadata && Object.keys(metadata).length === 0;
 
@@ -238,6 +239,7 @@ export class EdgeCases extends BaseTestCases {
       // Should find 2 records: priority=5 and priority=10
       // Should NOT crash on priority='high', priority=null, or missing priority
       if (results.length === 2) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const priorities = results.map((r) => (r.jValue as any)?.priority);
         const allNumericAndGreater = priorities.every((p) => typeof p === 'number' && p > 3);
 

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases send values of the wrong type on purpose */
 import { ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
@@ -16,6 +15,7 @@ export class EdgeCases extends BaseTestCases {
     try {
       const results = await this.context.configurationRepository.find({
         filter: {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a value of the wrong type on purpose
           where: {
             group: 'ADVANCED_TEST',
             nValue: '100', // Sending string '100' for number column

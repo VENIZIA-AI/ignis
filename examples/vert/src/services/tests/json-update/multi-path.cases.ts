@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases write dotted JSON paths, which the typed update data refuses, and read the stored JSON, whose type the model does not describe */
 import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
@@ -31,6 +30,7 @@ export class MultiPathCases extends BaseTestCases {
       // Update multiple paths on same column
       const updateResult = await repo.updateById({
         id,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the typed update data refuses a dotted JSON path, which this case writes
         data: {
           'jValue.theme': 'dark',
           'jValue.fontSize': 16,
@@ -39,6 +39,7 @@ export class MultiPathCases extends BaseTestCases {
 
       if (updateResult.count === 1) {
         const verified = await repo.findById({ id });
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const jValue = verified?.jValue as Record<string, any>;
 
         if (jValue?.theme === 'dark' && jValue?.fontSize === 16 && jValue?.language === 'en') {
@@ -86,6 +87,7 @@ export class MultiPathCases extends BaseTestCases {
       // Update multiple paths
       const updateResult = await repo.updateById({
         id,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the typed update data refuses a dotted JSON path, which this case writes
         data: {
           'jValue.theme': 'dark',
           'jValue.settings.debug': true,
@@ -95,6 +97,7 @@ export class MultiPathCases extends BaseTestCases {
 
       if (updateResult.count === 1) {
         const verified = await repo.findById({ id });
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const jValue = verified?.jValue as Record<string, any>;
 
         if (
@@ -145,6 +148,7 @@ export class MultiPathCases extends BaseTestCases {
       // Mix regular column update with JSON path
       const updateResult = await repo.updateById({
         id,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the typed update data refuses a dotted JSON path, which this case writes
         data: {
           description: 'Updated description',
           'jValue.theme': 'dark',
@@ -153,6 +157,7 @@ export class MultiPathCases extends BaseTestCases {
 
       if (updateResult.count === 1) {
         const verified = await repo.findById({ id });
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const jValue = verified?.jValue as Record<string, any>;
 
         if (

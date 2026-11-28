@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read relations the row type of the read does not carry */
 import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
@@ -89,6 +88,7 @@ export class SingleCases extends BaseTestCases {
         return;
       }
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const saleChannelProducts = (productA as any).saleChannelProducts;
 
       if (saleChannelProducts?.length === 2) {
@@ -140,6 +140,7 @@ export class SingleCases extends BaseTestCases {
         return;
       }
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const saleChannelProducts = (onlineStore as any).saleChannelProducts;
 
       if (saleChannelProducts?.length === 2) {

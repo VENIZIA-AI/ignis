@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read relations the row type of the read does not carry */
 import { ErrorUtility } from '@venizia/ignis-helpers';
 import { eq } from 'drizzle-orm';
 import { User } from '../../../models/entities';
@@ -80,6 +79,7 @@ export class RelationsCases extends BaseTestCases {
         return;
       }
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const creator = (configWithCreator as any).creator;
 
       if (!creator) {

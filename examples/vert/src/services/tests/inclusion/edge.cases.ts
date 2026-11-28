@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read relations the row type of the read does not carry */
 import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
@@ -113,6 +112,7 @@ export class EdgeCases extends BaseTestCases {
         options: { shouldSkipDefaultFilter: true },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const saleChannelProducts = (productWithEmpty as any)?.saleChannelProducts;
 
       if (Array.isArray(saleChannelProducts) && saleChannelProducts.length === 0) {
@@ -178,7 +178,9 @@ export class EdgeCases extends BaseTestCases {
         },
       });
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const creator = (configWithRelations as any)?.creator;
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const modifier = (configWithRelations as any)?.modifier;
 
       if (creator?.id === user.data.id && modifier?.id === user.data.id) {

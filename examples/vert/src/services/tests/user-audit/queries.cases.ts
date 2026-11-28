@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read relations the row type of the read does not carry */
 import { DataTypes, ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { eq } from 'drizzle-orm';
 import { Configuration } from '../../../models/entities';
@@ -240,6 +239,7 @@ export class QueriesCases extends UserAuditCases {
         return;
       }
 
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the row type of this read does not carry the relations it includes
       const creator = (configWithCreator as any).creator;
       const hasAuditFields = 'createdBy' in configWithCreator && 'modifiedBy' in configWithCreator;
 

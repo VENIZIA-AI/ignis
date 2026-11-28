@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases send filters the typed `where` refuses */
 import { ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
@@ -84,6 +83,7 @@ export class CompositionCases extends BaseTestCases {
     try {
       const results = await this.context.configurationRepository.find({
         filter: {
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the typed filter refuses this shape, which the case sends
           where: {
             group: 'ADVANCED_TEST',
             ...nestedFilter,

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases send hostile input on purpose and probe for a polluted prototype */
 import { ParseUtility, ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
@@ -117,6 +116,7 @@ export class SecurityCases extends BaseTestCases {
       await repo.find({ filter: maliciousFilter });
 
       // Verify prototype is not polluted
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- reads a property that must not exist, to detect a polluted prototype
       if (({} as any).polluted === undefined) {
         this.context.logger.info('[CASE 16] PASSED | Prototype pollution attempt blocked');
       } else {
@@ -311,6 +311,7 @@ export class SecurityCases extends BaseTestCases {
           const results = await repo.find({
             filter: {
               where: { code: testCode },
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- hostile input on purpose, which the types refuse
               fields: [maliciousField] as any,
             },
             options: { shouldSkipDefaultFilter: true },

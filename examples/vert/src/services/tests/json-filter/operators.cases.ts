@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the cases read keys of a JSON column, whose type the model does not describe */
 import { ErrorUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
@@ -23,6 +22,7 @@ export class OperatorsCases extends BaseTestCases {
       });
 
       if (results.length === 4) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const priorities = results.map((r) => (r.jValue as any)?.priority);
         const hasNoThree = priorities.every((p) => p !== 3);
 
@@ -61,6 +61,7 @@ export class OperatorsCases extends BaseTestCases {
       });
 
       if (gtResults.length === 2) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const priorities = gtResults.map((r) => (r.jValue as any)?.priority);
         const allGreater = priorities.every((p) => p > 3);
 
@@ -85,6 +86,7 @@ export class OperatorsCases extends BaseTestCases {
       });
 
       if (gteResults.length === 3) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const priorities = gteResults.map((r) => (r.jValue as any)?.priority);
         const allGte = priorities.every((p) => p >= 3);
 
@@ -126,6 +128,7 @@ export class OperatorsCases extends BaseTestCases {
       });
 
       if (ltResults.length === 2) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const scores = ltResults.map((r) => (r.jValue as any)?.metadata?.score);
         const allLess = scores.every((s) => s < 80);
 
@@ -150,6 +153,7 @@ export class OperatorsCases extends BaseTestCases {
       });
 
       if (lteResults.length === 3) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const scores = lteResults.map((r) => (r.jValue as any)?.metadata?.score);
         const allLte = scores.every((s) => s <= 85);
 
@@ -191,6 +195,7 @@ export class OperatorsCases extends BaseTestCases {
       });
 
       if (likeResults.length === 2) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const levels = likeResults.map((r) => (r.jValue as any)?.metadata?.level);
         const allMatch = levels.every((l) => l.includes('igh'));
 
@@ -249,6 +254,7 @@ export class OperatorsCases extends BaseTestCases {
       });
 
       if (results.length === 3) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `jValue` is a JSON column whose keys the model does not describe
         const priorities = results.map((r) => (r.jValue as any)?.priority);
         const allCorrect = priorities.every((p) => p > 2);
 
