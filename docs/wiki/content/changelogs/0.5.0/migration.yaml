@@ -1434,7 +1434,7 @@ error-response-policy:
   data: Nothing stored changes.
 
 grpc-gate-ends-call:
-  symbols: [BaseGrpcController, AbstractGrpcController, buildRpcMiddlewares, TRpcMiddleware]
+  symbols: [BaseGrpcController, AbstractGrpcController, TRpcMiddleware]
   upgrade:
     before: |-
       override buildRpcMiddlewares() {
@@ -1447,6 +1447,7 @@ grpc-gate-ends-call:
     steps:
       - "Only a middleware you add yourself by overriding buildRpcMiddlewares is affected; authenticate and authorize need no change."
       - "Call await next() in every middleware that lets the call go on."
+      - "Every middleware runs before the handler starts: next() only marks the call as passed on. Move work that must wrap the handler (a finally, an async context, a catch) into an interceptor or into the handler."
       - "To refuse a call, throw getError with a statusCode: the client reads the code of the status and the message."
   downgrade:
     steps:

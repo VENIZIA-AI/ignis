@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { describe, expect, test } from 'bun:test';
 import { fileDesc, serviceDesc } from '@bufbuild/protobuf/codegenv2';
 import { GRPC, HTTP } from '@venizia/ignis-helpers/common';
+import { PromiseUtility } from '@venizia/ignis-helpers/core';
 import { BaseGrpcController } from '@/base/controllers/grpc/base';
 import type { TRpcMiddleware } from '@/base/controllers/grpc/common/types';
 
@@ -47,7 +48,12 @@ const call = async (middlewares: TRpcMiddleware[]) => {
     );
   const body = await response.json();
 
-  return { status: response.status, body, ran };
+  return {
+    status: response.status,
+    body,
+    ran,
+    challenge: response.headers.get('www-authenticate'),
+  };
 };
 
 const answering = (status: number): TRpcMiddleware => {
@@ -62,7 +68,7 @@ describe('gRPC adapter - a middleware ends a call it does not pass on', () => {
   test('a 4xx answer ends it with the code of the status; the handler does not run', async () => {
     const result = await call([answering(HTTP.ResultCodes.RS_4.Forbidden)]);
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       status: 403,
       body: { code: 'permission_denied', message: 'A middleware ended the call' },
       ran: [],
@@ -72,7 +78,7 @@ describe('gRPC adapter - a middleware ends a call it does not pass on', () => {
   test('any other answer ends it as internal', async () => {
     const result = await call([answering(HTTP.ResultCodes.RS_2.Ok)]);
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       status: 500,
       body: { code: 'internal', message: 'internal error' },
       ran: [],
@@ -101,7 +107,7 @@ describe('gRPC adapter - a middleware ends a call it does not pass on', () => {
       },
     ]);
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       status: 500,
       body: { code: 'internal', message: 'internal error' },
       ran: [],
@@ -109,9 +115,58 @@ describe('gRPC adapter - a middleware ends a call it does not pass on', () => {
     expect(later).toEqual([]);
   });
 
+  test('a middleware that answers after next() still ends the call', async () => {
+    const result = await call([
+      async (_context, next) => {
+        await next();
+
+        return new Response('late answer', { status: HTTP.ResultCodes.RS_4.Forbidden });
+      },
+    ]);
+
+    expect(result.status).toBe(403);
+    expect(result.ran).toEqual([]);
+  });
+
+  test('next() called after the middleware returned does not pass the call on', async () => {
+    const late: Array<unknown> = [];
+    const result = await call([
+      (_context, next) => {
+        setTimeout(() => {
+          late.push(next());
+        }, 0);
+      },
+    ]);
+    await PromiseUtility.sleep({ ms: 10 });
+
+    expect(result.status).toBe(500);
+    expect(result.ran).toEqual([]);
+    expect(late).toHaveLength(1);
+  });
+
+  test('a later middleware ends a call an earlier one passed on', async () => {
+    const result = await call([passing, answering(HTTP.ResultCodes.RS_4.Unauthorized)]);
+
+    expect(result.status).toBe(401);
+    expect(result.ran).toEqual([]);
+  });
+
+  test('the headers of a Response a middleware answers are not sent', async () => {
+    const result = await call([
+      () =>
+        new Response('no', {
+          status: HTTP.ResultCodes.RS_4.Unauthorized,
+          headers: { 'www-authenticate': 'Bearer' },
+        }),
+    ]);
+
+    expect(result.status).toBe(401);
+    expect(result.challenge).toBeNull();
+  });
+
   test('a middleware that calls next() lets the handler run', async () => {
     const result = await call([passing]);
 
-    expect(result).toEqual({ status: 200, body: { message: 'hello' }, ran: ['handler'] });
+    expect(result).toMatchObject({ status: 200, body: { message: 'hello' }, ran: ['handler'] });
   });
 });
