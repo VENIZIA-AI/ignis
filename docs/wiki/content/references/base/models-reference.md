@@ -757,7 +757,7 @@ Defaults:
 
 **How it works**
 
-- **Retrieval.** The enricher reads the request context from `RequestContextRegistry` at insert/update time, then takes the user ID off the `Authentication.AUDIT_USER_ID` key. The registry answers the request of the current [execution frame](/references/utilities/promise#frames). A host with no execution runner - a browser Worker - has no request context at all, which is the `allowAnonymous` case below.
+- **Retrieval.** At insert or update time the enricher takes the `userId` of the current [execution frame](/references/utilities/promise#frames), else the `Authentication.AUDIT_USER_ID` of its request, read through `RequestContextRegistry`. A job or a system run names its user in `Execution.run`. With neither a user nor a request, the `allowAnonymous` case below applies.
 - **`createdBy`.** Set via `$default()` - creation only.
 - **`modifiedBy`.** Set via both `$default()` and `$onUpdate()` - creation and every modification.
 - **A value in the data wins.** `$default()` and `$onUpdate()` fill only a key the data leaves out, so server code can still set these columns. A generated CRUD route never takes them from the request body, so over HTTP the request context always decides them. See [`CrudControllerFactory`](/references/base/controllers#crudcontrollerfactory).
@@ -771,7 +771,7 @@ Emitted columns:
 
 `allowAnonymous` behavior:
 
-| `allowAnonymous` | No context | No user ID | Has user ID |
+| `allowAnonymous` | No request and no frame user | No user ID | Has user ID |
 |------------------|------------|------------|-------------|
 | `true` (default) | Returns `null` | Returns `null` | Returns user ID |
 | `false` | Throws error | Throws error | Returns user ID |
@@ -782,7 +782,7 @@ Emitted columns:
 The enricher validates `dataType` and throws for invalid values (only `'number'` and `'string'` are valid).
 
 > [!WARNING]
-> Fire-and-forget promises may run outside the async context, losing access to `AUDIT_USER_ID`. Ensure audit-critical operations complete within the request lifecycle.
+> A promise still running after its request or run keeps that frame. Work handed to a queue does not carry the request: name the user in the frame where it is handled.
 
 Convenience wrapper:
 

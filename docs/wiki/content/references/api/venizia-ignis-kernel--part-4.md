@@ -1190,7 +1190,7 @@ export interface IModelAccessSettings {
      * internal operator, a caller the application has decided sees everything); or null/undefined
      * when this caller's scope cannot be determined at all.
      *
-     * Receives `{ operation }`: the one concrete operation the call performs (`ScopeOperations.READ`,
+     * Receives `{ operation, scope }`: the one concrete operation the call performs (`ScopeOperations.READ`,
      * `CREATE`, `UPDATE` or `DELETE`, never a group), so one function can answer a wide scope for a
      * read and a narrow one for a write. A read, and an included relation, pass `READ`; a create passes
      * `CREATE`; an update passes `UPDATE` for the payload check and for choosing the rows to update; a
@@ -1200,6 +1200,8 @@ export interface IModelAccessSettings {
      */
     resolve: (context: {
         operation: TScopeOperation;
+        /** The current execution frame, or `undefined` outside every frame. A system frame never reaches `resolve`. */
+        scope?: IExecutionFrame;
     }) => TNullable<TWhere> | typeof ScopeFilters.UNRESTRICTED;
     /**
      * What `applyScopeFilter` does when `resolve()` returns null/undefined - no request context, no

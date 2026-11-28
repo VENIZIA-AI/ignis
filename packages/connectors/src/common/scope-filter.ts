@@ -228,7 +228,7 @@ export class ScopeFilterUtility {
       throw getError({
         message: [
           `[assertScopeFilterSupported] settings.access declared while no execution runner is installed | models: ${withoutAmbientContext.join(', ')}`,
-          'access.resolve() reads the request of the current execution frame; the operation is its only argument.',
+          'access.resolve() reads the current execution frame and its request.',
           'With no context store every resolve() returns undefined, onMissing denies by default, and EVERY query on these models matches zero rows - with nothing naming the flag as the cause.',
           'Serve the models from an application of @venizia/ignis, or call ExecutionRunner.install(), or remove settings.access.',
         ].join(' | '),

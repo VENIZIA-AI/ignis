@@ -377,12 +377,12 @@ describe("access.resolve on SQLite - onMissing: 'deny' (the default)", () => {
     expect(count).toBe(0);
   });
 
-  test('restoreById denies a row that exists when the scope cannot be resolved', async () => {
+  test('restoreById is refused when the scope cannot be resolved', async () => {
     scope = null;
 
-    const result = await buildSoft(SoftItem).restoreById({ id: 2 });
+    const error = await refusal(buildSoft(SoftItem).restoreById({ id: 2 }));
 
-    expect(result.count).toBe(0);
+    expect(error.statusCode).toBe(403);
     const rowsAfter = await allRows();
     expect(rowsAfter[1].deletedAt).not.toBeNull();
   });
@@ -399,12 +399,12 @@ describe("access.resolve on SQLite - onMissing: 'deny' (the default)", () => {
     expect(untouched).toHaveLength(4);
   });
 
-  test('an update under an unresolved scope is left to the scoped where, which matches no row', async () => {
+  test('an update under an unresolved scope is refused', async () => {
     scope = undefined;
 
-    const result = await build(RejectItem).updateById({ id: 1, data: { name: 'changed' } });
+    const error = await refusal(build(RejectItem).updateById({ id: 1, data: { name: 'changed' } }));
 
-    expect(result.count).toBe(0);
+    expect(error.normalized.code).toBe(RepositoryErrorCodes.SCOPE_WRITE_DENIED);
     const untouched = await names();
     expect(untouched[0]).toBe('a-active');
   });

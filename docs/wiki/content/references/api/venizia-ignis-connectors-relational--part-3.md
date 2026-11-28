@@ -225,6 +225,14 @@ every row, so it is nothing: the scope was not resolved, and `onMissing` decides
 export declare class ScopeResolution {
     /** A non-empty plain object whose every value is defined, and whose `and` / `or` branches are themselves usable (an `and` has at least one). */
     private static isUsableWhere;
+    /**
+     * The scope of one call, the single place it is asked for: every row in a system frame, without calling `resolve`;
+     * else what `resolve` answers for the operation and the current frame.
+     */
+    static resolve<DataObject>(opts: {
+        settings: IModelAccessSettings;
+        operation: TScopeOperation;
+    }): TNullable<TWhere<DataObject>> | typeof ScopeFilters.UNRESTRICTED;
     static normalize<DataObject>(opts: {
         value: unknown;
     }): TNullable<TWhere<DataObject>> | typeof ScopeFilters.UNRESTRICTED;

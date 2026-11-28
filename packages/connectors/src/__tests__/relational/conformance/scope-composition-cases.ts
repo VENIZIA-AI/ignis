@@ -353,7 +353,7 @@ export const defineScopeCompositionCases = <TTransaction extends ITransaction>(
     ];
 
     test.each(UNUSABLE)(
-      '%s: reads, counts, updates and deletes match nothing',
+      '%s: reads and counts match nothing, and updates and deletes are refused',
       async (_label, scope) => {
         const ctx = context();
         await ctx.reset();
@@ -361,20 +361,24 @@ export const defineScopeCompositionCases = <TTransaction extends ITransaction>(
 
         const found = await ctx.products.find({ filter: {} });
         const counted = await ctx.products.count({ where: {} });
-        const updated = await ctx.products.updateBy({
-          where: {},
-          data: { name: 'renamed' },
-          options: { force: true, shouldReturn: false },
-        });
-        const deleted = await ctx.products.deleteBy({
-          where: {},
-          options: { force: true, shouldReturn: false },
-        });
+        const updated = await rejectionOf(
+          ctx.products.updateBy({
+            where: {},
+            data: { name: 'renamed' },
+            options: { force: true, shouldReturn: false },
+          }),
+        );
+        const deleted = await rejectionOf(
+          ctx.products.deleteBy({
+            where: {},
+            options: { force: true, shouldReturn: false },
+          }),
+        );
 
         expect(found).toEqual([]);
         expect(counted.count).toBe(0);
-        expect(updated.count).toBe(0);
-        expect(deleted.count).toBe(0);
+        expect(updated).toMatchObject({ statusCode: 403 });
+        expect(deleted).toMatchObject({ statusCode: 403 });
         const result12 = await ctx.productNames();
         expect(result12).toHaveLength(ROWS.length);
       },

@@ -442,7 +442,16 @@ export abstract class RelationalBaseRepository<
     }
 
     // 'deny' (default): an unresolved scope means the framework does not know what this caller may
-    // see, and the safe reading of "I do not know" is "nothing" - never "everything".
+    // see, and the safe reading of "I do not know" is "nothing" - never "everything". A write says so: a silent count
+    // of zero would let a job that lost its scope look done.
+    if (mutation !== undefined) {
+      throw ScopeWriteGuard.denied({
+        model: this.entity.name,
+        operation: mutation,
+        detail: 'no scope could be resolved for this caller',
+      });
+    }
+
     return this.queryDialect.composeScope({
       scopeWhere: ScopeFilterDenial.where<DO>(),
       userFilter,

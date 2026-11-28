@@ -1,4 +1,4 @@
-import { getError } from '@venizia/ignis-helpers/core';
+import { Execution, getError } from '@venizia/ignis-helpers/core';
 import { Authentication, RequestContextRegistry } from '@venizia/ignis-kernel';
 
 /**
@@ -6,7 +6,8 @@ import { Authentication, RequestContextRegistry } from '@venizia/ignis-kernel';
  * differ per dialect, this decision does not, and it was byte-identical in the postgres and sqlite
  * enrichers - so every review of this security-adjacent path had to happen twice.
  *
- * CAUTION: fire-and-forget promises may run outside async context, losing AUDIT_USER_ID.
+ * The user is the one of the execution frame, else the one authentication put on the request: a job or a system run
+ * names it in `Execution.run`.
  *
  * The context comes from the registry, never from `hono/context-storage` directly: that module
  * constructs an `AsyncLocalStorage` in its own body, which is a `TypeError` at import in a browser.
@@ -15,8 +16,10 @@ import { Authentication, RequestContextRegistry } from '@venizia/ignis-kernel';
 export class AuditUserResolver {
   static resolveAuditUserId<T>(opts: { allowAnonymous: boolean; columnField: string }): T | null {
     const context = RequestContextRegistry.resolve();
+    // The user the frame names wins over the one its request's authentication set.
+    const frameUserId = Execution.current()?.userId;
 
-    if (!context) {
+    if (!context && frameUserId === undefined) {
       if (!opts.allowAnonymous) {
         throw getError({
           message: `[getCurrentUserId] Invalid request context to identify user | columnName: ${opts.columnField} | allowAnonymous: ${opts.allowAnonymous}`,
@@ -26,7 +29,7 @@ export class AuditUserResolver {
       return null;
     }
 
-    const userId = context.get(Authentication.AUDIT_USER_ID);
+    const userId: unknown = frameUserId ?? context?.get(Authentication.AUDIT_USER_ID);
 
     if (!userId && !opts.allowAnonymous) {
       throw getError({

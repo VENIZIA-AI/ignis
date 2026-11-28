@@ -1,5 +1,6 @@
 import { QueryOperators, ScopeFilters } from '@venizia/ignis-kernel';
-import type { TWhere } from '@venizia/ignis-kernel';
+import type { IModelAccessSettings, TScopeOperation, TWhere } from '@venizia/ignis-kernel';
+import { Execution, ExecutionModes } from '@venizia/ignis-helpers/core';
 import type { TNullable } from '@venizia/ignis-helpers/common';
 
 /**
@@ -72,6 +73,24 @@ export class ScopeResolution {
 
       return true;
     });
+  }
+
+  /**
+   * The scope of one call, the single place it is asked for: every row in a system frame, without calling `resolve`;
+   * else what `resolve` answers for the operation and the current frame.
+   */
+  static resolve<DataObject>(opts: {
+    settings: IModelAccessSettings;
+    operation: TScopeOperation;
+  }): TNullable<TWhere<DataObject>> | typeof ScopeFilters.UNRESTRICTED {
+    const { settings, operation } = opts;
+    const scope = Execution.current();
+
+    if (scope?.mode === ExecutionModes.SYSTEM) {
+      return ScopeFilters.UNRESTRICTED;
+    }
+
+    return ScopeResolution.normalize({ value: settings.resolve({ operation, scope }) });
   }
 
   static normalize<DataObject>(opts: {

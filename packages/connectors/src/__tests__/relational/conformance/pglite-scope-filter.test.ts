@@ -266,12 +266,12 @@ describe("scopeFilter - onMissing: 'deny' (the default) matches zero rows for ev
     expect(count).toBe(0);
   });
 
-  test('restoreById denies even a row that DOES exist, when the scope cannot be resolved', async () => {
+  test('restoreById is refused, even for a row that DOES exist, when the scope cannot be resolved', async () => {
     currentTenant = null;
 
-    const result = await repository.restoreById({ id: 2 });
+    const [outcome] = await Promise.allSettled([repository.restoreById({ id: 2 })]);
 
-    expect(result.count).toBe(0);
+    expect(outcome).toMatchObject({ status: 'rejected', reason: { statusCode: 403 } });
     const row2 = await rawRow(2);
     expect(row2?.deletedAt).not.toBeNull();
   });

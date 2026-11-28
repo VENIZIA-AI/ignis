@@ -457,15 +457,15 @@ export class ScopeWriteGuard {
 
     ScopeWriteGuard.assertWrite({ model, operation });
 
-    const scope = ScopeResolution.normalize({ value: settings.resolve({ operation }) });
+    const scope = ScopeResolution.resolve({ settings, operation });
 
     if (scope === ScopeFilters.UNRESTRICTED) {
       return rows;
     }
 
     if (scope === null || scope === undefined) {
-      // An update is already confined by the scoped `where`, which under `deny` matches no row; the
-      // guard adds nothing there. A create has no such `where`, so an unresolved scope refuses it.
+      // An update with no scope is already refused where its rows are chosen (`applyScopeFilter`), under `deny`; the
+      // guard adds nothing there. A create chooses no rows, so an unresolved scope is refused here.
       if (
         settings.onMissing === ScopeFilterMissingBehaviors.ALLOW ||
         operation !== ScopeOperations.CREATE
@@ -680,7 +680,7 @@ export class ScopeWriteGuard {
   }
 
   /** Names the model and the column, never a value: the caller may be a request. */
-  private static denied(opts: {
+  static denied(opts: {
     model: string;
     operation: TScopeOperation;
     column?: string;

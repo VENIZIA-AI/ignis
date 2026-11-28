@@ -419,7 +419,7 @@ export abstract class FilterBuilder extends BaseHelper {
     const { settings, schema, operation, depth } = opts;
 
     if (!settings.through) {
-      return ScopeResolution.normalize({ value: settings.resolve({ operation }) });
+      return ScopeResolution.resolve({ settings, operation });
     }
 
     const { link, scope } = this.resolveThrough({ settings, schema, operation, depth });

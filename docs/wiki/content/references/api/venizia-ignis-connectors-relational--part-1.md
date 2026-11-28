@@ -40,7 +40,8 @@ Who to stamp on `created_by` / `modified_by`. Engine-neutral on purpose: the col
 differ per dialect, this decision does not, and it was byte-identical in the postgres and sqlite
 enrichers - so every review of this security-adjacent path had to happen twice.
 
-CAUTION: fire-and-forget promises may run outside async context, losing AUDIT_USER_ID.
+The user is the one of the execution frame, else the one authentication put on the request: a job or a system run
+names it in `Execution.run`.
 
 The context comes from the registry, never from `hono/context-storage` directly: that module
 constructs an `AsyncLocalStorage` in its own body, which is a `TypeError` at import in a browser.
