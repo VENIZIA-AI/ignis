@@ -1,3 +1,4 @@
+import type { Interceptor } from '@connectrpc/connect';
 import type { IConnectRpcModule, IGrpcLimits } from '@/base/controllers/grpc/common/types';
 import type { IGrpcNativeOptions } from '@/base/controllers/grpc/native/common/types';
 import type { GrpcListenerHelper } from '@/base/controllers/grpc/native/listener.helper';
@@ -12,7 +13,7 @@ export type { IGrpcLimits, IGrpcNativeOptions };
 /** Options of `GrpcComponent`, bound at `GrpcBindingKeys.GRPC_COMPONENT_OPTIONS`. */
 export interface IGrpcComponentConfig {
   /** ConnectRPC `Interceptor`s of every RPC. They run before `authenticate` and `authorize`. */
-  interceptors?: unknown[];
+  interceptors?: Interceptor[];
   /** Limits of both ports. */
   limits?: IGrpcLimits;
   /** The ConnectRPC peer, for a compiled binary that has no `node_modules` to resolve it from. */

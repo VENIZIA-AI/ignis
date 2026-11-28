@@ -724,7 +724,7 @@ The `configs` object is an `IAuthRouteConfig`, which follows an OpenAPI operatio
 | `tags` | `string[]` | OpenAPI tags. The controller's `scope` is automatically appended |
 | `summary` | `string` | Short summary of the operation |
 | `description` | `string` | Detailed description of the operation |
-| `authenticate` | `{ strategies?: TAuthStrategy[]; mode?: TAuthMode }` | Auth strategies. If provided, framework injects auth middleware automatically |
+| `authenticate` | `{ strategies?: TAuthStrategy[]; mode?: TAuthMode }` | Auth strategies, at least one. If provided, framework injects auth middleware automatically; leave it out for a public route |
 | `authorize` | `IAuthorizationSpec \| IAuthorizationSpec[]` | Authorization spec(s). If provided, framework injects authorize middleware after authenticate |
 | `middleware` | `MiddlewareHandler \| MiddlewareHandler[]` | Custom middleware(s) appended after auth middleware |
 
@@ -935,8 +935,11 @@ type TCustomizableRouteConfig = TRouteAuthConfig & {
 When resolving authentication for a route:
 
 1. **Endpoint `authenticate: { skip: true }`** - No auth (ignores controller `authenticate`)
-2. **Endpoint `authenticate: { strategies }`** - Override controller (empty array = no auth)
+2. **Endpoint `authenticate: { strategies }`** - Override controller
 3. **Controller `authenticate`** - Default fallback
+4. **Neither** - The route is public
+
+An `authenticate` that ends up with no strategy, such as `strategies: []`, stops the boot.
 
 When resolving authorization for a route:
 

@@ -221,9 +221,7 @@ export declare class CrudControllerFactory extends BaseHelper {
                 configs: RouteConfig;
             }): {
                 restConfig: Omit<RouteConfig, "authenticate" | "authorize">;
-                security: {
-                    [x: string]: never[];
-                }[];
+                security: Record<string, string[]>[];
                 mws: import("hono").MiddlewareHandler<Env>[];
             };
             getRouteConfigs<RouteConfig extends import("../index.js").IAuthRouteConfig>(opts: {

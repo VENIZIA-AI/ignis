@@ -18,7 +18,8 @@ which is committed.
   to the caller. Boot seeding runs in a system `Execution` frame.
 - **Options** - the native port is read from the environment (`src/common/grpc-native-settings.ts`), TLS included; an
   interceptor logs one line per RPC.
-- **Shutdown** - a post-stop hook registered in `preConfigure` ends followed streams before the native port stops.
+- **Shutdown** - followed streams wait on `rpc.signal`, which `stop()` aborts on both ports after
+  `native.shutdownTimeout`.
 - **Clients** - connect-es, `@grpc/grpc-js`, a browser page and a `grpcurl` script under `clients/` and `scripts/`.
 
 ## How to run it

@@ -9,6 +9,7 @@ import {
 } from './definition';
 import { PostgresErrors } from './postgres-errors';
 
+/** The database errors the error handler answers as the caller's: 400 for a request-caused one, 409 for a retryable conflict. */
 export class DatabaseErrorHandler {
   /** True for a database error caused by the request (SQLSTATE class 22/23/44) -> HTTP 400; in production the detail/table/constraint context is suppressed so no row values or schema internals leak. */
   static isDatabaseClientError(opts: { error: Error; isProduction: boolean }): {

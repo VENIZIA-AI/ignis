@@ -68,7 +68,7 @@ The `IGNIS` application has a well-defined lifecycle, managed primarily by the `
 | **`constructor(opts)`** | Initializes the application, sets up the Hono server (`OpenAPIHono`), and reads the runtime (Bun) |
 | **`init()`** | Registers the core bindings, including `CoreBindings.APPLICATION_INSTANCE`. Call it before `start()`. |
 | **`start()`** | The main entry point. It calls `initialize()`, sets up middlewares, mounts the root router, and starts the HTTP server. |
-| **`stop()`** | Runs the post-stop hooks, stops the server, then closes every datasource the boot configured |
+| **`stop()`** | Runs the post-stop hooks, stops the server (requests still running after the [shutdown limit](/guides/core-concepts/grpc/shutdown#the-limit-of-the-application-port), 11 seconds by default, are cut), then closes every datasource the boot configured |
 | **`initialize()`** | Orchestrates the entire setup process, calling the various configuration and registration methods in the correct order. |
 
 The `Application` extends `Container` (the IoC container). `stop()` calls `Bun.serve().stop()`, and closing every datasource means no pool, socket or PGlite instance outlives the application. Each datasource gets `dataSourceCloseTimeoutMs` (default 10 s) to close.

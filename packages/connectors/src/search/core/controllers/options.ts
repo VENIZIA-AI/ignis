@@ -51,7 +51,8 @@ export interface ISearchResolvedOptions<
   TExtra extends object = {},
   Inject extends TInjectMap = {},
 > {
-  authenticate: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
+  /** Left out when `{ skip: true }` opens the routes. */
+  authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
   /** `authenticate: { skip: true }` drops it, as for any route: with no caller, no authorization applies. */
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
   isRawAllowed: boolean;
@@ -154,7 +155,7 @@ export class SearchControllerOptionsUtility {
     }
 
     if (authenticate.skip === true) {
-      return {};
+      return undefined;
     }
 
     if (!authenticate.strategies || authenticate.strategies.length === 0) {
@@ -245,7 +246,7 @@ export class SearchControllerOptionsUtility {
 
     const resolved: ISearchResolvedOptions<RouteEnv, TExtra, Inject> = {
       authenticate,
-      authorize: 'strategies' in authenticate ? options.authorize : undefined,
+      authorize: authenticate ? options.authorize : undefined,
       isRawAllowed,
       allowedModes,
       allowedEngineParams,

@@ -694,6 +694,22 @@ describe('AppErrorMiddleware - the thrown error picks its own log level', () => 
     expect(levels).toEqual(['error']);
   });
 
+  test.each([401, 403, 404])('a %i without a logLevel logs at warn', async (statusCode) => {
+    const levels = await runWith(() => {
+      throw getError({ message: 'refused', statusCode });
+    });
+
+    expect(levels).toEqual(['warn']);
+  });
+
+  test('an error of another library with such a status logs at error', async () => {
+    const levels = await runWith(() => {
+      throw Object.assign(new Error('upstream'), { statusCode: 403 });
+    });
+
+    expect(levels).toEqual(['error']);
+  });
+
   test('a plain (non-ApplicationError) throw logs at error', async () => {
     const levels = await runWith(() => {
       throw new TypeError('unexpected');

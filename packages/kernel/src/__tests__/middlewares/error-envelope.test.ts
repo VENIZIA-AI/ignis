@@ -322,6 +322,69 @@ describe('a Hono HTTPException keeps its client status', () => {
   });
 });
 
+describe('the level a failed request is logged at', () => {
+  const levelsOf = async (thrower: () => void) => {
+    const { logger } = await probe({ thrower });
+
+    return logger.linesFrom({ sink: 'log' }).map((line) => line.level);
+  };
+
+  const refusal = (opts: { statusCode: number; logLevel?: TLogLevel }) => () => {
+    throw getError({ ...opts, message: 'refused' });
+  };
+
+  const rows: Array<{ statusCode: number; level: TLogLevel }> = [
+    { statusCode: 400, level: 'error' },
+    { statusCode: 401, level: 'warn' },
+    { statusCode: 403, level: 'warn' },
+    { statusCode: 404, level: 'warn' },
+    { statusCode: 409, level: 'error' },
+    { statusCode: 422, level: 'error' },
+    { statusCode: 500, level: 'error' },
+    { statusCode: 503, level: 'error' },
+  ];
+
+  test.each(rows)('$statusCode is logged at $level', async (row) => {
+    const levels = await levelsOf(refusal({ statusCode: row.statusCode }));
+
+    expect(levels).toEqual([row.level]);
+  });
+
+  test('a Hono HTTPException 401 is logged at warn', async () => {
+    const levels = await levelsOf(() => {
+      throw new HTTPException(401, { message: 'refused' });
+    });
+
+    expect(levels).toEqual(['warn']);
+  });
+
+  test('a logLevel the throw site set wins', async () => {
+    const raised = await levelsOf(refusal({ statusCode: 401, logLevel: 'error' }));
+    const lowered = await levelsOf(refusal({ statusCode: 500, logLevel: 'info' }));
+
+    expect([raised, lowered]).toEqual([['error'], ['info']]);
+  });
+
+  const unexpected = [
+    {
+      name: 'a foreign error with statusCode 404',
+      failure: Object.assign(new Error('upstream'), { statusCode: 404 }),
+    },
+    {
+      name: 'a malformed logLevel on a 404',
+      failure: Object.assign(getError({ statusCode: 404, message: 'gone' }), { logLevel: 'loud' }),
+    },
+  ];
+
+  test.each(unexpected)('$name is logged at error', async (row) => {
+    const levels = await levelsOf(() => {
+      throw row.failure;
+    });
+
+    expect(levels).toEqual(['error']);
+  });
+});
+
 /**
  * The two host reads - the ambient environment name and the error formatter - are the ONLY reason
  * this class could not be browser-pure, so both are seams. A regression that inlined either would

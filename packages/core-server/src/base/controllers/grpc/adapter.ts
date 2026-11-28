@@ -1,18 +1,19 @@
-import type { ConnectRouter, ContextKey, HandlerContext } from '@connectrpc/connect';
+import type { ConnectRouter, ContextKey, HandlerContext, Interceptor } from '@connectrpc/connect';
 import type { UniversalHandler } from '@connectrpc/connect/protocol';
-import { BaseHelper, getError, RecordUtility } from '@venizia/ignis-helpers/core';
+import { BaseHelper, Execution, getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { GRPC, HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { ModuleUtility } from '@venizia/ignis-helpers';
 import type { Context, Env, Schema } from 'hono';
 import { Hono } from 'hono';
 import { BodyLimits, type TRouteContext } from '@venizia/ignis-kernel';
+import { AppErrorMiddleware } from '@/base/middlewares/app-error/app-error.middleware';
 import type { AbstractGrpcController } from './abstract';
 import { GrpcErrors } from './errors';
 import { GrpcTimeoutGuard } from './timeout.guard';
 import { GrpcNativeCallStore } from './native/call.store';
 import type { IConnectNodeModule } from './native/common/types';
 import { GrpcNativeWriter } from './native/native.writer';
-import { AppErrorMiddleware } from '@/base/middlewares/app-error/app-error.middleware';
+import { GrpcSignalIterable } from './signal-iterable';
 import type {
   IConnectAdapterResult,
   IConnectRpcModule,
@@ -53,11 +54,13 @@ interface IAdapterOptions<
     ServiceType,
     ConfigurableOptions
   >;
-  interceptors?: unknown[];
+  interceptors?: Interceptor[];
   module?: IConnectRpcModule;
   limits?: IGrpcLimits;
   /** Set when the native gRPC port is on: handlers of the gRPC protocol are built too. */
   native?: IGrpcNativeAdapterOptions;
+  /** Aborted when `stop()` runs out of time on the application port: every handler's `rpc.signal` follows it. */
+  shutdownSignal?: AbortSignal;
   /** The server's `idleTimeout` in seconds, given back to a connection when a call ends. */
   idleTimeout?: number;
 }
@@ -135,7 +138,11 @@ export class GrpcRequestAdapter<
     return async (request: unknown, rpc: HandlerContext) => {
       try {
         const context = await this.open({ name, definition, rpc });
-        const response = await definition.handler({ request, context, rpc });
+        const response = await definition.handler({
+          request: this.followRequest({ method, request, rpc }),
+          context,
+          rpc,
+        });
 
         return response;
       } catch (error) {
@@ -153,7 +160,11 @@ export class GrpcRequestAdapter<
 
     try {
       const context = await this.open({ name, definition, rpc });
-      const messages: unknown = await definition.handler({ request, context, rpc });
+      const messages: unknown = await definition.handler({
+        request: this.followRequest({ method: definition.configs.method, request, rpc }),
+        context,
+        rpc,
+      });
 
       if (!this.isMessageStream(messages)) {
         throw getError({
@@ -161,7 +172,13 @@ export class GrpcRequestAdapter<
         });
       }
 
-      yield* messages;
+      // The answer stops with the call too: a handler that ignores `rpc.signal` would keep `stop()` waiting.
+      yield* GrpcSignalIterable.follow({
+        source: messages,
+        signal: rpc.signal,
+        toError: () => this.toAbortError({ rpc }),
+        abandon: ({ iterator }) => this.abandonAnswer({ name, iterator }),
+      });
     } catch (error) {
       const answer = await this.toAnswer({ error, rpc });
       throw answer;
@@ -172,6 +189,36 @@ export class GrpcRequestAdapter<
 
   private isMessageStream(value: unknown): value is AsyncIterable<unknown> {
     return typeof value === 'object' && value !== null && Symbol.asyncIterator in value;
+  }
+
+  /** The request a handler reads: a stream of the client stops with `rpc.signal`, a single message is as it is. */
+  private followRequest(opts: { method: unknown; request: unknown; rpc: HandlerContext }) {
+    const { method, request, rpc } = opts;
+    const isStreamed =
+      method === GRPC.Methods.CLIENT_STREAMING || method === GRPC.Methods.BIDI_STREAMING;
+
+    if (!isStreamed || !this.isMessageStream(request)) {
+      return request;
+    }
+
+    return GrpcSignalIterable.follow({
+      source: request,
+      signal: rpc.signal,
+      toError: () => this.toAbortError({ rpc }),
+    });
+  }
+
+  private toAbortError(opts: { rpc: HandlerContext }) {
+    return GrpcErrors.aborted({ connect: this.peers.connect, reason: opts.rpc.signal.reason });
+  }
+
+  /** Returns a handler's answer that is no longer read, without waiting for it: its `finally` runs once it is free. */
+  private abandonAnswer(opts: { name: string; iterator: AsyncIterator<unknown> }) {
+    Execution.fireAndForget({
+      logger: this.logger,
+      scope: `abandonAnswer | rpc: ${opts.name}`,
+      execution: opts.iterator.return?.(),
+    });
   }
 
   /** The Hono context of the call. */
@@ -322,7 +369,7 @@ export class GrpcRequestAdapter<
     (opts.router.service as Function)(service, handlers);
   }
 
-  /** The signal of the native handlers: it aborts with the listener's, carrying what the client should read. */
+  /** The signal a router hands its handlers: it aborts with a port's, carrying what the client should read. */
   private toShutdownSignal(opts: { signal: AbortSignal }) {
     const shutdown = new AbortController();
     opts.signal.addEventListener('abort', () => {
@@ -431,7 +478,11 @@ export class GrpcRequestAdapter<
       routerOpts.interceptors = opts.interceptors;
     }
 
-    const connectRouter = peers.connect.createConnectRouter(routerOpts);
+    const connectRouter = peers.connect.createConnectRouter({
+      ...routerOpts,
+      shutdownSignal:
+        opts.shutdownSignal && adapter.toShutdownSignal({ signal: opts.shutdownSignal }),
+    });
     const nativeRouter =
       opts.native &&
       peers.connect.createConnectRouter({

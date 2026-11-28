@@ -11,7 +11,7 @@
     "lint:fix": "devz lint --fix",
     "test": "bun test --max-concurrency=6",
     "clean": "sh scripts/clean.sh",
-    "migrate:dev": "NODE_ENV=development drizzle-kit migrate --config=src/migration.ts",
+    "migrate:dev": "NODE_ENV=development bun --bun drizzle-kit migrate --config=src/migration.ts",
     "migrate:generate": "bun --bun drizzle-kit generate --config=src/migration.ts"
   },
   "dependencies": {

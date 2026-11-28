@@ -3,7 +3,7 @@ import 'dotenv-flow/config';
 import { AppEnvs, ParseUtility } from '@venizia/ignis-helpers';
 import { defineConfig } from 'drizzle-kit';
 
-// drizzle-kit runs under Node, so dotenv-flow loads the .env files Bun would load by itself.
+// dotenv-flow loads the .env files, also where drizzle-kit runs under Node.
 export default defineConfig({
   dialect: 'postgresql',
   out: './migration',

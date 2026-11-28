@@ -164,9 +164,10 @@ Everything from `summarize` down is the SERVER renderer. The kernel default that
 deliberately smaller: no `cause` chain, no `pg` diagnostics, no `APP_ENV_LOGGER_FORMAT` switch. It
 changes the log only, never a byte of the response body.
 
-The log level defaults to `error`, but a throw site can lower it by passing `logLevel` to `getError`
-(an expected `404`/`409` logs at `warn` or `info`, `emerg` for a true emergency); a malformed value
-falls back to `error`. Then it is routed:
+The log level is `warn` for a 401, 403 or 404 of `getError` or `HTTPException`, over REST and RPC, and `error`
+for everything else (a foreign error with such a status included). A throw site sets another by passing
+`logLevel` to `getError`; a malformed value falls back to `error`. The rule is the private
+`BaseAppErrorMiddleware.resolveLogLevel`. Then it is routed:
 
 - **ZodError** -> 422, formatted by `ZodErrorHandler.formatZodError`.
 - **DB client error** -> 400. `DatabaseErrorHandler.isDatabaseClientError` accepts only SQLSTATE classes caused by the

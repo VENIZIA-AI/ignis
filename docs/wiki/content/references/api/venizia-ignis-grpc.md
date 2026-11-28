@@ -36,6 +36,11 @@ export declare class GrpcComponent extends BaseComponent {
     private application;
     constructor(application: BaseApplication);
     binding(): Promise<void>;
+    /**
+     * `stop()` waits for the requests in flight on the application port, so an RPC still running after `timeoutMs` is
+     * aborted. The hook only starts the clock; the timer alone keeps no process running.
+     */
+    private registerApplicationPortShutdown;
     /** gRPC clients call `/package.Service/Method` with no prefix, so each such path has one owner. */
     private collectRoutes;
     /** The port starts after the HTTP server and stops before it, and before the datasources close. */
@@ -84,7 +89,7 @@ Options of `GrpcComponent`, bound at `GrpcBindingKeys.GRPC_COMPONENT_OPTIONS`.
 ```ts
 export interface IGrpcComponentConfig {
     /** ConnectRPC `Interceptor`s of every RPC. They run before `authenticate` and `authorize`. */
-    interceptors?: unknown[];
+    interceptors?: Interceptor[];
     /** Limits of both ports. */
     limits?: IGrpcLimits;
     /** The ConnectRPC peer, for a compiled binary that has no `node_modules` to resolve it from. */

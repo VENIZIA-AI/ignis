@@ -143,11 +143,13 @@ export declare abstract class AbstractGrpcController<RouteEnv extends Env = Env,
     /** Assigned by GrpcComponent from its options, before configure(). Absent means the adapter resolves the peer itself. */
     connectRpcModule?: IConnectRpcModule;
     /** ConnectRPC interceptors, assigned by GrpcComponent from its options before configure(). Applied to every RPC this controller registers. */
-    interceptors?: unknown[];
+    interceptors?: Interceptor[];
     /** Size limits, assigned by GrpcComponent from its options before configure(). */
     limits?: IGrpcLimits;
     /** Assigned by GrpcComponent when the native gRPC port is on, before configure(). */
     native?: IGrpcNativeAdapterOptions;
+    /** Assigned by GrpcComponent before configure(): aborted when `stop()` runs out of time on the application port. */
+    shutdownSignal?: AbortSignal;
     /** The `/package.Service/Method` paths this controller serves; empty until configure(). */
     rpcPaths: string[];
     /** The server's `idleTimeout` in seconds, assigned by GrpcComponent before configure(). */
@@ -373,9 +375,7 @@ export declare class AuthControllerFactory {
                 configs: RouteConfig;
             }): {
                 restConfig: Omit<RouteConfig, "authenticate" | "authorize">;
-                security: {
-                    [x: string]: never[];
-                }[];
+                security: Record<string, string[]>[];
                 mws: import("hono").MiddlewareHandler<import("hono").Env>[];
             };
             getRouteConfigs<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {

@@ -13,11 +13,8 @@ describe('RouteConfigResolver.resolveAuthenticate', () => {
     ).toEqual({ strategies: ['jwt'], mode: 'all' });
   });
 
-  test('nothing anywhere is no strategy at all', () => {
-    expect(RouteConfigResolver.resolveAuthenticate({})).toEqual({
-      strategies: [],
-      mode: undefined,
-    });
+  test('nothing anywhere is no authenticate at all', () => {
+    expect(RouteConfigResolver.resolveAuthenticate({})).toBeUndefined();
   });
 
   test('an endpoint config beats the controller, field by field', () => {
@@ -29,13 +26,13 @@ describe('RouteConfigResolver.resolveAuthenticate', () => {
     ).toEqual({ strategies: ['basic'], mode: 'all' });
   });
 
-  test('skip leaves the route with no strategy', () => {
+  test('skip leaves the route with no authenticate', () => {
     expect(
       RouteConfigResolver.resolveAuthenticate({
         controller: { strategies: ['jwt'] },
         endpoint: { skip: true },
       }),
-    ).toEqual({ strategies: [] });
+    ).toBeUndefined();
   });
 });
 

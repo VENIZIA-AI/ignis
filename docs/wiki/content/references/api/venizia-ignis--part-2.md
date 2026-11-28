@@ -345,6 +345,11 @@ export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema 
     /** A call that streams its answer: the handler's messages, one by one. */
     private stream;
     private isMessageStream;
+    /** The request a handler reads: a stream of the client stops with `rpc.signal`, a single message is as it is. */
+    private followRequest;
+    private toAbortError;
+    /** Returns a handler's answer that is no longer read, without waiting for it: its `finally` runs once it is free. */
+    private abandonAnswer;
     /** The Hono context of the call. */
     private readContext;
     /** Runs the middlewares of a call and answers the context its handler reads. A call that passed one may stay quiet. */
@@ -365,7 +370,7 @@ export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema 
     private decoratorOf;
     /** Registers every RPC of the controller on the ConnectRPC router, each wrapped into ConnectRPC's `(request, context) => response`. */
     private registerService;
-    /** The signal of the native handlers: it aborts with the listener's, carrying what the client should read. */
+    /** The signal a router hands its handlers: it aborts with a port's, carrying what the client should read. */
     private toShutdownSignal;
     /** The request ConnectRPC reads. A body an earlier middleware consumed is in Hono's cache: the request is rebuilt with it. */
     private readRequest;
@@ -382,11 +387,13 @@ export declare class GrpcRequestAdapter<RouteEnv extends Env = Env, RouteSchema 
 /** What an adapter is built from. */
 interface IAdapterOptions<RouteEnv extends Env, RouteSchema extends Schema, BasePath extends string, ServiceType, ConfigurableOptions extends object> {
     controller: AbstractGrpcController<RouteEnv, RouteSchema, BasePath, ServiceType, ConfigurableOptions>;
-    interceptors?: unknown[];
+    interceptors?: Interceptor[];
     module?: IConnectRpcModule;
     limits?: IGrpcLimits;
     /** Set when the native gRPC port is on: handlers of the gRPC protocol are built too. */
     native?: IGrpcNativeAdapterOptions;
+    /** Aborted when `stop()` runs out of time on the application port: every handler's `rpc.signal` follows it. */
+    shutdownSignal?: AbortSignal;
     /** The server's `idleTimeout` in seconds, given back to a connection when a call ends. */
     idleTimeout?: number;
 }

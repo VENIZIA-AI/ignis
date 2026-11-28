@@ -14,11 +14,11 @@ The application port is `Bun.serve`. These limits come from Bun, not from your h
 | HTTP/1.1 only, so no bidi | native gRPC port |
 | Idle timeout at most 255 s | authenticate longer-quiet calls |
 | Request body at most `maxRequestBodySize` (128 MiB) | raise the setting, or split the upload |
-| `stop()` waits for requests in flight | [end streams in a hook](/guides/core-concepts/grpc/shutdown) |
+| `stop()` cannot cut one request alone | [pass `rpc.signal` to what a handler waits on](/guides/core-concepts/grpc/shutdown#the-limit-of-the-application-port) |
 
 ## Quiet server streams are cut
 
-On the application port, a server stream of a **public** method can be cut by `Bun.serve`'s `idleTimeout` ([issue #1522](https://github.com/VENIZIA-AI/ignis/issues/1522)):
+On the application port, a server stream of a **public** method can be cut by `Bun.serve`'s `idleTimeout` ([issue #1522](https://github.com/VENIZIA-AI/ignis/issues/1522), reported to Bun as [oven-sh/bun#49702](https://github.com/oven-sh/bun/issues/49702)):
 
 | `idleTimeout` (seconds) | Public server stream |
 |---|---|

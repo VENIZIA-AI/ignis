@@ -28,7 +28,7 @@ On the server, `rpc.signal` aborts at the deadline and `rpc.timeoutMs()` gives t
 
 ## Honour the deadline in a handler
 
-A deadline is a signal, not a kill: a handler that ignores `rpc.signal` runs on and answers, although the client has given up. Pass the signal to slow work, and check it before work worth skipping.
+A deadline ends the streams of a call: a read of a client stream rejects, and a streaming answer ends. Other work is not killed: a handler that ignores `rpc.signal` runs on, although the client has given up. Pass the signal to slow work, and check it before work worth skipping.
 
 ```typescript
 @unary({ configs: { name: 'getReport' } })

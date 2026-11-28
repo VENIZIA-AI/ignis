@@ -87,6 +87,8 @@ async *chat(opts: { request: AsyncIterable<HelloRequest> }) {
 
 `rpc.signal` aborts and the generator is closed, so a `finally` in it runs. A reader that stops reading pauses the generator.
 
+The same happens at a deadline and at [shutdown](/guides/core-concepts/grpc/shutdown#what-ends-by-itself-at-shutdown). A read of a client stream rejects with a `ConnectError` once the signal aborts.
+
 A handler that waits on something else (a queue, a notification) is not interrupted by itself. Pass `rpc.signal` to that wait:
 
 ```typescript

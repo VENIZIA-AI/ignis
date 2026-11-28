@@ -264,8 +264,9 @@ browser-pure parent `BaseAppErrorMiddleware` is exported, and takes the same opt
 ### Signature
 
 `AppErrorMiddleware` extends `BaseAppErrorMiddleware` and overrides nothing. It exists to supply
-the two host reads as defaults: the ambient environment name through `Environment.ambient`, and
-`ErrorPrettier` as the log formatter. Neither can live in the kernel.
+the host reads as defaults: the ambient environment name through `Environment.ambient`,
+`ErrorPrettier` as the log formatter, and the URL a log line names for a native gRPC call. None can
+live in the kernel.
 
 ```typescript
 class AppErrorMiddleware extends BaseAppErrorMiddleware {
@@ -291,6 +292,18 @@ class AppErrorMiddleware extends BaseAppErrorMiddleware {
 
 `value(): ErrorHandler` comes from `BaseAppErrorMiddleware`, which extends `BaseHelper` and
 implements `IProvider<ErrorHandler>`.
+
+### Log level
+
+Each failed request is logged once.
+
+| Failure | Level |
+|---------|-------|
+| the error sets `logLevel` | that level |
+| 401, 403 or 404 thrown with `getError` or `HTTPException` | `warn` |
+| any other, a 5xx or an error of another library included | `error` |
+
+An alert that counts `error` lines for refused requests must count `warn` lines too, or the throw site sets `logLevel: 'error'`.
 
 ### Error Handling Logic
 

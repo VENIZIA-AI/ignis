@@ -19,7 +19,7 @@ import {
   type TChangePasswordRequest,
   type TContext,
 } from '@venizia/ignis-kernel';
-import { afterEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
 const CONFIGS: IApplicationConfigs = {
   host: '127.0.0.1',
@@ -51,11 +51,15 @@ class ChangePasswordApplication extends BaseApplication {
   setupMiddlewares(): void {}
 }
 
+const authenticated: string[] = [];
+
 /** Stands in for the JWT strategy the route names, so a request reaches the handler signed in. */
 class SignedInStrategy implements IAuthenticationStrategy {
   name = 'jwt';
 
-  async authenticate(_context: TContext): Promise<IAuthUser> {
+  async authenticate(context: TContext): Promise<IAuthUser> {
+    authenticated.push(context.req.path);
+
     return { userId: 'user-1' };
   }
 }
@@ -83,8 +87,9 @@ class RecordingAuthService implements IAuthService {
 
 const mountAuthController = async (opts: {
   service: RecordingAuthService;
+  requireAuthenticatedSignUp?: boolean;
 }): Promise<OpenAPIHono> => {
-  const { service } = opts;
+  const { service, requireAuthenticatedSignUp } = opts;
 
   const application = new ChangePasswordApplication({
     scope: 'ChangePasswordApplication',
@@ -98,7 +103,10 @@ const mountAuthController = async (opts: {
     strategies: [{ name: 'jwt', strategy: SignedInStrategy }],
   });
 
-  const AuthController = AuthControllerFactory.build({ serviceKey: SERVICE_KEY });
+  const AuthController = AuthControllerFactory.build({
+    serviceKey: SERVICE_KEY,
+    requireAuthenticatedSignUp,
+  });
   application.controller(AuthController);
   await application.registerControllers();
 
@@ -137,6 +145,34 @@ describe('POST /auth/change-password', () => {
     expect(response.status).toBe(422);
     expect(service.received).toEqual([]);
   });
+});
+
+describe('POST /auth/sign-up', () => {
+  beforeEach(() => {
+    authenticated.length = 0;
+  });
+
+  afterEach(() => {
+    AuthenticationStrategyRegistry.getInstance().reset();
+  });
+
+  for (const requireAuthenticatedSignUp of [undefined, false, true]) {
+    test(`requireAuthenticatedSignUp ${requireAuthenticatedSignUp}`, async () => {
+      const server = await mountAuthController({
+        service: new RecordingAuthService(),
+        requireAuthenticatedSignUp,
+      });
+
+      const response = await server.request('/auth/sign-up', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'new_user', credential: 'new_password' }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(authenticated).toEqual(requireAuthenticatedSignUp ? ['/auth/sign-up'] : []);
+    });
+  }
 });
 
 describe('ChangePasswordRequestSchema documents what it validates', () => {

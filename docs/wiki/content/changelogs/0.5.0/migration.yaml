@@ -1644,6 +1644,97 @@ execution-scope:
       - "Pin the @venizia packages to the release before this one."
   data: Nothing stored changes.
 
+grpc-empty-strategies:
+  symbols: [BaseGrpcController, AbstractGrpcController, unary, serverStream, clientStream, bidiStream]
+  upgrade:
+    before: |-
+      @unary({ configs: { name: 'signIn', authenticate: { strategies: [] } } })
+    after: |-
+      // A public RPC has no authenticate.
+      @unary({ configs: { name: 'signIn' } })
+    steps:
+      - "Start the application: the error names the controller and the RPC whose authenticate names no strategy."
+      - "Remove authenticate where the RPC is meant to be public; name its strategies where it is not, and check which calls reached it without signing in."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis to the release before this one."
+  data: Nothing stored changes.
+
+rest-empty-strategies:
+  symbols: [BaseRestController, AbstractRestController, CrudControllerFactory, RouteConfigResolver.resolveAuthenticate, ISearchResolvedOptions.authenticate]
+  upgrade:
+    before: |-
+      @get({ configs: { path: '/health', authenticate: { strategies: [] }, responses } })
+    after: |-
+      // A public route has no authenticate.
+      @get({ configs: { path: '/health', responses } })
+    steps:
+      - "Start the application: the error names the controller and the route whose authenticate names no strategy."
+      - "Remove authenticate where the route is meant to be public; name its strategies where it is not, and check which requests reached it without signing in."
+      - "Search for strategies built at run time, such as a list read from configuration: leave authenticate out when the list is meant to be empty."
+      - "Where your code reads RouteConfigResolver.resolveAuthenticate, handle undefined: it is the answer for a public route."
+      - "Where your code reads ISearchResolvedOptions.authenticate, handle undefined: search routes opened with skip have none."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-kernel and @venizia/ignis to the release before this one."
+  data: Nothing stored changes.
+
+refusal-log-level:
+  symbols: [BaseAppErrorMiddleware, AppErrorMiddleware, getError]
+  upgrade:
+    before: |-
+      // logged at error
+      throw getError({ statusCode: 403, message: 'Not your order' });
+    after: |-
+      // logged at warn; name the level where it must stay an error
+      throw getError({ statusCode: 403, message: 'Not your order', logLevel: 'error' });
+    steps:
+      - "Find the alerts, dashboards and log filters that count error lines for 401, 403 or 404 requests: include warn lines in them."
+      - "Check that the log level of your deployment keeps warn lines."
+      - "Set logLevel: 'error' on a refusal that must stay an error."
+  downgrade:
+    steps:
+      - "Pin the @venizia packages to the release before this one."
+  data: Nothing stored changes.
+
+stop-bounded:
+  symbols: [BaseApplication, ServerApplication, IGrpcNativeOptions.shutdownTimeout]
+  upgrade:
+    before: |-
+      // stop() waited for a 30 second export to finish
+      await application.stop();
+    after: |-
+      // the export is cut after 11 seconds; with the native gRPC port its shutdownTimeout sets the limit
+      this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({
+        native: { use: true, port: 50051, shutdownTimeout: 40_000 },
+      });
+    steps:
+      - "Find the requests that may run longer than 11 seconds: exports, uploads, downloads, long polls, streams and WebSocket connections."
+      - "Make each safe to cut and retry, or move the work to a queue."
+      - "With the native gRPC port on, set native.shutdownTimeout to the time they need, and keep the installShutdownSignals timeoutMs above it plus one second."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis to the release before this one."
+  data: Nothing stored changes. Work a handler had not finished when its connection closed may be half done.
+
+grpc-interceptors-typed:
+  symbols: [IGrpcComponentConfig, AbstractGrpcController]
+  upgrade:
+    before: |-
+      const interceptors: unknown[] = [logInterceptor];
+      this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({ interceptors });
+    after: |-
+      import type { Interceptor } from '@connectrpc/connect';
+
+      const interceptors: Interceptor[] = [logInterceptor];
+      this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({ interceptors });
+    steps:
+      - "Type each interceptor, and the list that holds them, as Interceptor from @connectrpc/connect."
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis to the release before this one."
+  data: Nothing stored changes.
+
 toggle-boolean-use:
   symbols: [ToggleUtility, TToggle, IGrpcNativeOptions, TStaticAssetEntry, IModelMigrationSettings, ICasbinEnforcerOptions, IScopedCasbinEntities, TRepositoryLogOptions]
   upgrade:

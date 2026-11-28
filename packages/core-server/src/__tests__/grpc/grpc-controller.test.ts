@@ -9,7 +9,8 @@ import { BodyLimits, ControllerTransports, MetadataRegistry } from '@venizia/ign
 import { BaseGrpcController } from '@/base/controllers/grpc/base';
 import type { IConnectRpcModule } from '@/base/controllers/grpc/common/types';
 import { GRPC } from '@venizia/ignis-helpers/common';
-import type { ConnectRouter } from '@connectrpc/connect';
+import type { ConnectRouter, Interceptor } from '@connectrpc/connect';
+import type { IGrpcComponentConfig } from '@/components/controller/grpc';
 import type { UniversalHandler } from '@connectrpc/connect/protocol';
 
 /** A router that only records that a service was registered on it. */
@@ -399,7 +400,7 @@ describe('BaseGrpcController - ConnectRPC module handed over through the options
 });
 
 describe('BaseGrpcController - interceptors from the component options', () => {
-  const buildController = async (interceptors?: unknown[]) => {
+  const buildController = async (interceptors?: Interceptor[]) => {
     class TestCtrl extends BaseGrpcController {
       async binding() {}
     }
@@ -427,9 +428,8 @@ describe('BaseGrpcController - interceptors from the component options', () => {
   };
 
   test('reaches createConnectRouter', async () => {
-    const first = () => {};
-
-    const second = () => {};
+    const first: Interceptor = (next) => next;
+    const second: Interceptor = (next) => next;
 
     const result = await buildController([first, second]);
     expect(result).toEqual({
@@ -524,5 +524,19 @@ describe('BaseGrpcController - ConnectRPC peers registered through ModuleUtility
     }
 
     expect(String(error)).toContain("Please install '@connectrpc/connect'");
+  });
+});
+
+describe('gRPC interceptors are typed', () => {
+  test('a ConnectRPC interceptor compiles, another value does not', () => {
+    const passThrough: Interceptor = (next) => (request) => next(request);
+    const valid: IGrpcComponentConfig = { interceptors: [passThrough] };
+    // @ts-expect-error a name is not an interceptor
+    const named: IGrpcComponentConfig = { interceptors: ['log'] };
+    const onController: BaseGrpcController['interceptors'] = [passThrough];
+    // @ts-expect-error an object is not an interceptor
+    const wrong: BaseGrpcController['interceptors'] = [{ name: 'log' }];
+
+    expect([valid.interceptors, named.interceptors, onController, wrong]).toHaveLength(4);
   });
 });

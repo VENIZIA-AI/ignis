@@ -12,6 +12,7 @@ tags: [architecture, controllers, rest, hono, openapi]
 - [The class hierarchy](#the-class-hierarchy)
 - [Three ways to declare a route](#three-ways-to-declare-a-route)
 - [The CRUD controller factory](#the-crud-controller-factory)
+- [Route authentication](#route-authentication)
 - [Mounting](#mounting)
 - [The decorator-semantics trap](#the-decorator-semantics-trap)
 - [Related](#related)
@@ -106,6 +107,14 @@ called the shared read directly, so a subclass that overrode `find()` or `count(
 application scopes rows by tenant through a service - changed only the GET, and the POST read every
 row. A body-filter read is written by hand next to its GET and passes the parsed filter to the same
 code. Do not reintroduce a generated twin without routing it through the overridable method.
+
+## Route authentication
+
+A route is public only with no `authenticate`. One that names no strategy (`strategies` empty, absent or not a list,
+`{ skip: true }` on a raw config included) throws when the route is built, over REST
+(`AbstractRestController.buildRouteMiddlewares`) and over gRPC. `RouteConfigResolver.resolveAuthenticate` answers
+`undefined` for `{ skip: true }` and for nothing configured, which is what the CRUD, search and static asset factories
+rely on; the auth controller leaves `authenticate` out of a public sign-up.
 
 ## Mounting
 

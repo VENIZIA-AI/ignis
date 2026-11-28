@@ -173,7 +173,7 @@ Inherited from `AbstractAuthRegistry`.
 |---------|--------|--------|-------|-----|
 | `[getKey] Invalid name \| name: {name}` | 400 | `getKey` | Strategy name empty or falsy | Pass a non-empty strategy name |
 | `[AuthenticationStrategyRegistry] No items registered` | 400 | `getDefaultName` | No strategies registered yet | Register at least one strategy |
-| `[AuthenticationStrategyRegistry] Descriptor not found: {name}` | 400 | `resolveDescriptor` | Route references a strategy name that was never registered | Register it after the component - see below |
+| `[AuthenticationStrategyRegistry] Descriptor not found: {name}` | 400 | `resolveDescriptor` | Your code resolves a strategy name that was never registered. A route answers `401` (`any`) or `500` (`all`) instead and logs this | Register it after the component - see below |
 | `[AuthenticationStrategyRegistry] Failed to resolve: {name}` | 400 | `resolveDescriptor` | Strategy registered but the container returned null | Check the strategy's own constructor dependencies |
 
 **Fix for "Descriptor not found":** strategies are **not** auto-registered by `AuthenticateComponent`.
@@ -196,6 +196,8 @@ The middleware that executes strategies in the configured mode.
 | `Authentication failed. Tried strategies: {strategies}` | 401 | `executeAnyMode` | Every strategy failed in `'any'` mode, or answered without a `userId` |
 | `Failed to identify authenticated user` | 401 | `executeAllMode` | All strategies passed in `'all'` mode, but the first strategy's `userId` is falsy |
 | `Invalid authentication mode \| mode: {mode}` | 500 | `createAuthenticateMiddleware` | `mode` is not `'any'` or `'all'` |
+| `Authentication is not available` | 500 | `executeAllMode` | A strategy `'all'` mode requires does not resolve. The server log names it |
+| `[{controller}] Route "{method} {path}": authenticate names no strategy` | boot | `buildRouteMiddlewares` | A route's `authenticate` has no strategy. Name one, or remove `authenticate` for a public route |
 
 **Fix for "Authentication failed":** verify the client sends the right header - `Bearer <token>` or `Basic <base64>`. Common causes: an expired token, a token signed with a different key, or the wrong strategy name in the route config.
 

@@ -68,7 +68,7 @@ curl -s -X POST http://127.0.0.1:3000/api/grpc/notes.v1.NotesService/SignIn \
 | [`src/services/auth.service.ts`](src/services/auth.service.ts)                       | Password check and token                                                     |
 | [`src/security/role-policy.enforcer.ts`](src/security/role-policy.enforcer.ts)       | Which role may do what                                                       |
 | [`src/models/note.model.ts`](src/models/note.model.ts)                               | The table and its row scope                                                  |
-| [`src/application.ts`](src/application.ts)                                           | Authentication, authorization, the gRPC options, the seed, the shutdown hook |
+| [`src/application.ts`](src/application.ts)                                           | Authentication, authorization, the gRPC options, the seed                    |
 | [`src/common/grpc-native-settings.ts`](src/common/grpc-native-settings.ts)           | The native port from the environment: TLS, stream limit, shutdown timeout    |
 | [`src/interceptors/rpc-log.interceptor.ts`](src/interceptors/rpc-log.interceptor.ts) | One log line per RPC                                                         |
 | [`clients/`](clients)                                                                | connect-es, grpc-js and browser clients                                      |
@@ -87,7 +87,7 @@ curl -s -X POST http://127.0.0.1:3000/api/grpc/notes.v1.NotesService/SignIn \
 | Cancel and deadline      | pass `rpc.signal` to anything that waits                                               | the framework does not stop your handler                                     |
 | Deadlines                | set one on every client call                                                           | a signed-in call has no idle limit on the server                             |
 | Limits                   | `limits.messageSize`, `native.limits.concurrentStreams`, and your own count per stream | a stream has no total size limit on the native port                          |
-| Shutdown                 | end long streams in a post-stop hook registered in `preConfigure`                      | on the application port `stop()` waits for open streams                      |
+| Shutdown                 | pass `rpc.signal` to every stream that waits, and set `native.shutdownTimeout`         | `stop()` aborts it after that timeout, on both ports                         |
 
 Errors this service answers:
 
@@ -98,7 +98,7 @@ Errors this service answers:
 | Invalid input                            | 400            | `invalid_argument`   |
 | A note that is absent, or another user's | 404            | `not_found`          |
 | A followed stream read too slowly        | 429            | `resource_exhausted` |
-| The server stops                         | `ConnectError` | `unavailable`        |
+| The server stops, after the timeout      | `rpc.signal`   | `unavailable`        |
 
 ### Request id and logs
 
@@ -107,9 +107,9 @@ duration and that id. Set `APP_ENV_LOGGER_FOLDER_PATH` to also write log files (
 
 ### Shutdown
 
-`installShutdownSignals` in [`src/index.ts`](src/index.ts) handles `SIGTERM` and `SIGINT`: followed streams end with
-`unavailable`, the native port waits `APP_ENV_GRPC_SHUTDOWN_TIMEOUT_MS` for the calls in flight, then both servers and
-the database close.
+`installShutdownSignals` in [`src/index.ts`](src/index.ts) handles `SIGTERM` and `SIGINT`: both ports wait
+`APP_ENV_GRPC_SHUTDOWN_TIMEOUT_MS` for the calls in flight, then abort their `rpc.signal`. A followed stream waits on it,
+so it ends with `unavailable`. Then both servers and the database close.
 
 ## TLS on the native port
 

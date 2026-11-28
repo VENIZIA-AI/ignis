@@ -64,7 +64,7 @@ type TErrorCommon = {
   cause?: unknown;
   extra?: Record<string, unknown>;
   transform?: TErrorNormalizeTransformFn;
-  /** @default 'error' */
+  /** Without one the IGNIS error handler logs a 401, 403 or 404 at `warn`, and anything else at `error`. */
   logLevel?: TErrorLogLevel;
 };
 

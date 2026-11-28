@@ -5,7 +5,7 @@ description: How a thrown error becomes a gRPC status code in IGNIS
 
 # gRPC errors and status codes
 
-An RPC fails the way a REST route does: throw `getError({ statusCode, message })` or Hono's `HTTPException`. A 4xx reaches the client as a gRPC code with your message.
+An RPC fails the way a REST route does: throw `getError({ statusCode, message })` or Hono's `HTTPException`. A 4xx reaches the client as a gRPC code with your message. A [database error](#database-errors) the request caused does too.
 
 ```typescript
 import { getError, HTTP } from '@venizia/ignis-helpers';
@@ -35,7 +35,7 @@ The message and status come from the default error handler, so an RPC client may
 
 These answer `internal`, whatever status they carry:
 
-- an error of another library, such as a raw `ZodError` or a database driver error. A constraint violation a REST route answers with 400 is `internal` over RPC: catch it and throw `getError`
+- an error of another library, such as a raw `ZodError`. [Database errors](#database-errors) are the exception
 - a 5xx from `getError`
 - an authentication or authorization middleware that returns without calling `next()`
 
@@ -46,6 +46,24 @@ if (!parsed.success) {
   throw getError({ statusCode: HTTP.ResultCodes.RS_4.BadRequest, message: 'Title is required' });
 }
 ```
+
+## Database errors
+
+A PostgreSQL error that a REST route answers with 400 or 409 reaches an RPC client with the same message and a gRPC code. The driver error may be wrapped in `cause`, as a query builder does.
+
+| SQLSTATE | gRPC code |
+|---|---|
+| `23505` unique violation | `already_exists` |
+| `23503` foreign key violation | `failed_precondition` |
+| `23000`, `23001`, `23P01`, `44000` and other constraint violations | `failed_precondition` |
+| `23502` not null, `23514` check, class `22` data errors | `invalid_argument` |
+| `40001`, `40P01` serialization failure, deadlock | `aborted` |
+
+Outside the development environments the message names the kind of error only: no detail, table or constraint. Any other database error, and a SQLite error, answers `internal`.
+
+## What the log shows
+
+Every failed RPC is logged once, an unexpected error such as a `TypeError` or a lost database connection included. A `ConnectError` is your own answer and is not logged. A 401, 403 or 404 of `getError` or `HTTPException` is logged at `warn`, any other error at `error`; a `logLevel` you set on `getError` wins. A call of the native port is logged as `grpc://<host the caller sent>/<path>`: the host is the caller's text, so do not rely on it.
 
 ## Choose a gRPC code yourself
 
@@ -82,7 +100,7 @@ try {
 | Compressed request message | `unimplemented` |
 | Deadline passed, handler honoured `rpc.signal` | `deadline_exceeded` |
 | Client cancelled | `canceled` |
-| Native port stopping, call aborted | `unavailable` |
+| Server stopping, call aborted | `unavailable` |
 | Request over `server.maxRequestBodySize` (application port) | HTTP 413 |
 | gRPC content type on the application port | HTTP 415 |
 | Bidi on the application port | HTTP 505 |

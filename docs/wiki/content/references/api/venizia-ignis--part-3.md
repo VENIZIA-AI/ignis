@@ -645,6 +645,8 @@ export declare abstract class ServerApplication<AppEnv extends Env = Env, AppSch
     /** Which runtime is underneath, and the socket once one is bound. Both live here, not on `RestApplication`: a browser Worker has neither. `start()` refuses to run unless this is Bun. */
     protected runtime: "bun" | undefined;
     protected serverInstance?: TBunServerInstance;
+    /** When the running `stop()` started to count the time its requests get (`performance.now()`). */
+    private stopStartedAt?;
     /** Widened by this layer, which is the only one that binds a socket. Assigned by the base constructor - `declare` so no field initializer runs here and overwrites it with `undefined`. */
     protected configs: IServerApplicationConfigs;
     /**
@@ -680,6 +682,7 @@ export declare abstract class ServerApplication<AppEnv extends Env = Env, AppSch
     getServerInstance<T extends TBunServerInstance = TBunServerInstance>(): T | undefined;
     protected startBunModule(): Promise<unknown>;
     start(): Promise<void>;
+    registerComponents(): Promise<void>;
     /** Post-stop hooks, then the server, then the datasources - closed even when the server fails to, so a stopped application holds no connection. */
     stop(): Promise<void>;
     /** Set once `installShutdownSignals` ran; holds the way back, so a second call is a no-op. */
@@ -697,6 +700,11 @@ export declare abstract class ServerApplication<AppEnv extends Env = Env, AppSch
      */
     installShutdownSignals(opts?: IShutdownSignalsOptions): () => void;
     protected stopServer(): Promise<void>;
+    /**
+     * Waits for the requests in flight until the shutdown timeout plus a grace has passed since the post-stop hooks
+     * reached the server's, then closes their connections: a handler that never ends would hold `stop()` for ever.
+     */
+    private closeServer;
 }
 ```
 
@@ -1124,15 +1132,3 @@ export declare class SwaggerUIProvider extends BaseHelper implements IUIProvider
 ```
 
 Source: `packages/core-server/src/components/api-reference/ui/swagger.ts`
-
-## `TApiReferenceSecurityScheme`
-
-*type*
-
-An OpenAPI security scheme (`apiKey`, `http`, `oauth2`, `openIdConnect`) or a reference to one, as the document registry takes it.
-
-```ts
-export type TApiReferenceSecurityScheme = Parameters<typeof OpenAPIRegistry.prototype.registerComponent<'securitySchemes'>>[2];
-```
-
-Source: `packages/core-server/src/components/api-reference/common/types.ts`

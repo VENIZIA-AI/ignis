@@ -417,7 +417,7 @@ The declarations are on 4 pages; each export below links to its own.
 
 ## `TApiReferenceSecurityScheme`
 
-*type* - [Declaration](/references/api/venizia-ignis--part-3#tapireferencesecurityscheme)
+*type* - [Declaration](/references/api/venizia-ignis--part-4#tapireferencesecurityscheme)
 
 ## `TBunServerInstance`
 

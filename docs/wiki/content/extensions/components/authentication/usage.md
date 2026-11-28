@@ -46,16 +46,17 @@ const FALLBACK_AUTH_CONFIG = {
 } as const;
 ```
 
-**Make a route public.** `skip: true` bypasses authentication entirely.
+**Make a route public.** Leave `authenticate` out. An `authenticate` that names no strategy stops the boot.
 
 ```typescript
 const PUBLIC_ROUTE_CONFIG = {
   path: '/public',
   method: HTTP.Methods.GET,
-  authenticate: { skip: true },
   responses: OpenApiResponses.jsonResponse({ description: 'Public endpoint', schema: z.object({ message: z.string() }) }),
 } as const;
 ```
+
+A generated route that inherits the controller's `authenticate` is opened with `authenticate: { skip: true }` in its `routes` entry.
 
 **Use `authenticate()` as raw Hono middleware.** Use this outside route configs - for a plain Hono sub-app, for example.
 

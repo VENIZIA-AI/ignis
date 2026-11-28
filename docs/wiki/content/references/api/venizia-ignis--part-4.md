@@ -9,6 +9,18 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 Part 4 of 4 of [`@venizia/ignis`](/references/api/venizia-ignis).
 
+## `TApiReferenceSecurityScheme`
+
+*type*
+
+An OpenAPI security scheme (`apiKey`, `http`, `oauth2`, `openIdConnect`) or a reference to one, as the document registry takes it.
+
+```ts
+export type TApiReferenceSecurityScheme = Parameters<typeof OpenAPIRegistry.prototype.registerComponent<'securitySchemes'>>[2];
+```
+
+Source: `packages/core-server/src/components/api-reference/common/types.ts`
+
 ## `TBunServerInstance`
 
 *type*

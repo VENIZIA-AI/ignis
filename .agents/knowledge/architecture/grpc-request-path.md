@@ -17,7 +17,11 @@ handler with the Hono context in ConnectRPC's context values.
 - RPC routes carry `BodyLimits.stream()`: the application body limit and the request spy leave the body alone;
   ConnectRPC enforces `limits.messageSize` per message (default 5 MiB; ConnectRPC's own default is 4 GiB).
 - No `acceptCompression` and no maximum timeout are passed to ConnectRPC: a compressed request is `unimplemented`.
-- An RPC name the service does not declare, or a kind mismatch, throws at boot.
+- An RPC name the service does not declare, a kind mismatch, or an `authenticate` that names no strategy throws at
+  boot. REST routes have the same rule (see [Controller system](/architecture/controller-system.md)).
+- `GrpcSignalIterable` (`signal-iterable.ts`) wraps a streamed request and a streamed answer: a read rejects when
+  `rpc.signal` aborts, with the signal's `ConnectError` or `canceled`. One listener per iterator and a promise per read,
+  so nothing accumulates per message. An abandoned answer gets `return()` without being awaited.
 
 ## Related
 

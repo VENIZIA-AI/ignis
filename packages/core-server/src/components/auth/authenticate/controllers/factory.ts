@@ -95,9 +95,9 @@ export class AuthControllerFactory {
             description: 'Sign Up',
             path: '/sign-up',
             method: HTTP.Methods.POST,
-            authenticate: {
-              strategies: !requireAuthenticatedSignUp ? [] : [Authentication.STRATEGY_JWT],
-            },
+            authenticate: requireAuthenticatedSignUp
+              ? { strategies: [Authentication.STRATEGY_JWT] }
+              : undefined,
             request: {
               body: OpenApiResponses.jsonContent({
                 description: 'Sign-up request body',

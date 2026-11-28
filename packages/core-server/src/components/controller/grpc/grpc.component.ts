@@ -5,10 +5,11 @@ import { ControllerTransports } from '@venizia/ignis-kernel';
 import type { AbstractGrpcController } from '@/base/controllers/grpc';
 import { BindingNamespaces } from '@venizia/ignis-kernel';
 import { Binding, BindingValueTypes, MetadataRegistry } from '@venizia/ignis-kernel';
-import { getError } from '@venizia/ignis-helpers/core';
+import { ExecutionFrames, getError } from '@venizia/ignis-helpers/core';
 import { HTTP, ObjectUtility } from '@venizia/ignis-helpers/common';
 import type { IGrpcComponentConfig, IGrpcNativeOptions } from './common/types';
 import { GrpcListenerHelper } from '@/base/controllers/grpc/native/listener.helper';
+import { DEFAULT_SHUTDOWN_TIMEOUT_MS } from '@/base/controllers/grpc/native/constants';
 import { ToggleUtility } from '@venizia/ignis-kernel';
 import { GrpcBindingKeys } from './common/types';
 
@@ -39,6 +40,8 @@ export class GrpcComponent extends BaseComponent {
 
     const native = ToggleUtility.pick(options?.native, { name: '[GrpcComponent] native' });
     const shutdown = new AbortController();
+    /** The application port's, apart from `shutdown`, which the native listener aborts only for calls of its own. */
+    const httpShutdown = new AbortController();
     /** `/package.Service/Method` to where the application mounts it: what the native port serves. */
     const routes = new Map<string, string>();
 
@@ -99,6 +102,7 @@ export class GrpcComponent extends BaseComponent {
         instance.interceptors = options?.interceptors;
         instance.limits = options?.limits;
         instance.native = native && { shutdownSignal: shutdown.signal };
+        instance.shutdownSignal = httpShutdown.signal;
         instance.idleTimeout = this.application.getProjectConfigs().server?.idleTimeout;
         await instance.configure();
 
@@ -123,9 +127,31 @@ export class GrpcComponent extends BaseComponent {
       });
     }
 
+    // Registered before the native port's hook, which waits: both ports count their timeout from the same moment.
+    this.registerApplicationPortShutdown({
+      shutdown: httpShutdown,
+      timeoutMs: native?.shutdownTimeout ?? DEFAULT_SHUTDOWN_TIMEOUT_MS,
+    });
+
     if (native) {
       this.registerNativeListener({ native, routes, shutdown });
     }
+  }
+
+  /**
+   * `stop()` waits for the requests in flight on the application port, so an RPC still running after `timeoutMs` is
+   * aborted. The hook only starts the clock; the timer alone keeps no process running.
+   */
+  private registerApplicationPortShutdown(opts: { shutdown: AbortController; timeoutMs: number }) {
+    const { shutdown, timeoutMs } = opts;
+
+    this.application.registerPostStopHook({
+      identifier: 'grpc.http.stop',
+      hook: () => {
+        // A root frame: the `abort` listeners of a handler run inside this call.
+        setTimeout(() => ExecutionFrames.root({ task: () => shutdown.abort() }), timeoutMs).unref();
+      },
+    });
   }
 
   /** gRPC clients call `/package.Service/Method` with no prefix, so each such path has one owner. */

@@ -1,8 +1,10 @@
 import 'reflect-metadata';
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
+import { Code, ConnectError } from '@connectrpc/connect';
 import { fileDesc, serviceDesc } from '@bufbuild/protobuf/codegenv2';
 import { GRPC, HTTP } from '@venizia/ignis-helpers/common';
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, LoggerFactory } from '@venizia/ignis-helpers/core';
+import { Logger } from '@venizia/ignis-helpers/winston';
 import { HTTPException } from 'hono/http-exception';
 import { BaseGrpcController } from '@/base/controllers/grpc/base';
 
@@ -77,6 +79,11 @@ describe.each(['production', 'development'])('gRPC errors on the wire - %s', (en
     expect(result3).toEqual(INTERNAL);
   });
 
+  test('a thrown string stays internal', async () => {
+    const result = await call({ failure: 'connection string', env });
+    expect(result).toEqual(INTERNAL);
+  });
+
   test('any other error stays internal', async () => {
     const result4 = await call({ failure: new Error('connection string'), env });
     expect(result4).toEqual(INTERNAL);
@@ -87,5 +94,170 @@ describe.each(['production', 'development'])('gRPC errors on the wire - %s', (en
 
     const result5 = await call({ failure, env });
     expect(result5).toEqual(INTERNAL);
+  });
+});
+
+/** A driver error as an ORM wraps it: the SQLSTATE and the row context sit on the `cause`. */
+const databaseError = (code: string) => {
+  const cause = Object.assign(new Error('duplicate key value violates "Note_title_key"'), {
+    code,
+    detail: 'Key (title)=(secret-title) already exists.',
+    table: 'SecretNote',
+    constraint: 'Note_title_key',
+  });
+
+  return new Error('Failed query: insert into "SecretNote"', { cause });
+};
+
+const DATABASE_ROWS = [
+  { sqlState: '23505', code: 'already_exists', message: 'Unique constraint violation' },
+  { sqlState: '23503', code: 'failed_precondition', message: 'Foreign key constraint violation' },
+  { sqlState: '23001', code: 'failed_precondition', message: 'Restrict constraint violation' },
+  { sqlState: '23P01', code: 'failed_precondition', message: 'Exclusion constraint violation' },
+  { sqlState: '44000', code: 'failed_precondition', message: 'View check option violation' },
+  { sqlState: '23502', code: 'invalid_argument', message: 'Not null constraint violation' },
+  { sqlState: '23514', code: 'invalid_argument', message: 'Check constraint violation' },
+  { sqlState: '22001', code: 'invalid_argument', message: 'String data too long' },
+  { sqlState: '22P02', code: 'invalid_argument', message: 'Invalid text representation' },
+  {
+    sqlState: '40001',
+    code: 'aborted',
+    message: 'The request conflicted with a concurrent operation; please retry.',
+  },
+  {
+    sqlState: '40P01',
+    code: 'aborted',
+    message: 'The request conflicted with a concurrent operation; please retry.',
+  },
+];
+
+describe('gRPC errors on the wire - database errors', () => {
+  test.each(DATABASE_ROWS)(
+    'SQLSTATE $sqlState answers $code, with no database detail in production',
+    async (row) => {
+      const result = await call({ failure: databaseError(row.sqlState), env: 'production' });
+
+      expect(result.body).toEqual({ code: row.code, message: row.message });
+    },
+  );
+
+  test('development carries the detail a REST request would carry', async () => {
+    const result = await call({ failure: databaseError('23505'), env: 'development' });
+
+    expect(result.body).toHaveProperty('code', 'already_exists');
+    expect(result.body).toHaveProperty(
+      'message',
+      [
+        'Unique constraint violation',
+        'Detail: Key (title)=(secret-title) already exists.',
+        'Table: SecretNote',
+        'Constraint: Note_title_key',
+      ].join('\n'),
+    );
+  });
+
+  const hidden = [
+    { name: 'a SQLSTATE that is not the caller’s fault', failure: databaseError('42P01') },
+    {
+      name: 'a foreign error with a statusCode and a server SQLSTATE',
+      failure: Object.assign(new Error('relation "SecretNote"'), {
+        code: '42P01',
+        statusCode: 401,
+      }),
+    },
+    {
+      name: 'a SQLite constraint, which REST does not classify either',
+      failure: Object.assign(new Error('UNIQUE constraint failed: SecretNote.title'), {
+        code: 'SQLITE_CONSTRAINT_UNIQUE',
+      }),
+    },
+  ];
+
+  test.each(hidden)('$name stays internal', async (row) => {
+    const result = await call({ failure: row.failure, env: 'production' });
+
+    expect(result).toEqual(INTERNAL);
+  });
+
+  test('a ConnectError with a database cause keeps its own code', async () => {
+    const failure = new ConnectError(
+      'try later',
+      Code.Unavailable,
+      undefined,
+      undefined,
+      databaseError('23505'),
+    );
+    const result = await call({ failure, env: 'production' });
+
+    expect(result.body).toEqual({ code: 'unavailable', message: 'try later' });
+  });
+});
+
+describe('gRPC errors - the level a failed RPC is logged at', () => {
+  const levelsOf = async (failure: unknown) => {
+    LoggerFactory.use({ provider: Logger });
+    const log = spyOn(Logger.prototype, 'log');
+
+    try {
+      await call({ failure, env: 'production' });
+
+      return log.mock.calls
+        .filter(([, message]) => String(message).includes('REQUEST ERROR'))
+        .map(([level]) => String(level));
+    } finally {
+      log.mockRestore();
+      LoggerFactory.reset();
+    }
+  };
+
+  const rows = [
+    { statusCode: 401, level: 'warn' },
+    { statusCode: 403, level: 'warn' },
+    { statusCode: 404, level: 'warn' },
+    { statusCode: 400, level: 'error' },
+    { statusCode: 409, level: 'error' },
+  ];
+
+  test.each(rows)('$statusCode is logged at $level', async (row) => {
+    const levels = await levelsOf(getError({ statusCode: row.statusCode, message: 'refused' }));
+
+    expect(levels).toEqual([row.level]);
+  });
+
+  test('a Hono HTTPException 403 is logged at warn', async () => {
+    const levels = await levelsOf(new HTTPException(403, { message: 'refused' }));
+
+    expect(levels).toEqual(['warn']);
+  });
+
+  const unexpected = [
+    { name: 'an Error', failure: new Error('boom') },
+    { name: 'a TypeError', failure: new TypeError('boom') },
+    { name: 'a database error of the server', failure: databaseError('42P01') },
+    { name: 'a lost database connection', failure: databaseError('08006') },
+    { name: 'a thrown string', failure: 'boom' },
+    {
+      name: 'a foreign error with statusCode 404',
+      failure: Object.assign(new Error('boom'), { statusCode: 404 }),
+    },
+  ];
+
+  test.each(unexpected)('$name is logged at error and answers internal', async (row) => {
+    const levels = await levelsOf(row.failure);
+
+    expect(levels).toEqual(['error']);
+  });
+
+  test('a ConnectError is the answer the handler chose: it is not logged', async () => {
+    const levels = await levelsOf(new ConnectError('later', Code.Unavailable));
+
+    expect(levels).toEqual([]);
+  });
+
+  test('a logLevel the throw site set wins', async () => {
+    const failure = getError({ statusCode: 401, message: 'refused', logLevel: 'error' });
+    const levels = await levelsOf(failure);
+
+    expect(levels).toEqual(['error']);
   });
 });

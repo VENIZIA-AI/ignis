@@ -31,7 +31,7 @@ A public call hit the idle timeout. [Raise it or authenticate](/guides/core-conc
 
 ## Every error arrives as internal
 
-Only IGNIS errors and `HTTPException` with a 4xx keep their code. [Throw `getError` or a `ConnectError`](/guides/core-concepts/grpc/errors#errors-that-answer-internal).
+Only IGNIS errors, `HTTPException` with a 4xx and request-caused database errors keep their code. The server log has the cause. [Throw `getError` or a `ConnectError`](/guides/core-concepts/grpc/errors#errors-that-answer-internal).
 
 ## resource_exhausted on a large message
 
@@ -60,6 +60,6 @@ Check that the strategy is [registered](/guides/core-concepts/grpc/authenticatio
 
 Set `middlewares.cors` for your origin. See [browser clients](/guides/core-concepts/grpc/ports#connect-and-grpc-web-clients-on-the-application-port).
 
-## Shutdown hangs or exits with code 1
+## A request is cut at shutdown, or the process exits with code 1
 
-An open stream on the application port holds `stop()`. [End it in a post-stop hook](/guides/core-concepts/grpc/shutdown#end-long-lived-streams-at-shutdown).
+`stop()` closes what still runs a second after `shutdownTimeout`. [Pass `rpc.signal` to everything a handler waits on](/guides/core-concepts/grpc/shutdown#the-limit-of-the-application-port), and keep the signal `timeoutMs` above `shutdownTimeout` plus the time your own hooks and datasources need.

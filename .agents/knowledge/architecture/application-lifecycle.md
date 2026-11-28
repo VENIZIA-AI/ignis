@@ -166,7 +166,8 @@ silently do not exist.
 only: `start()` calls `BunRuntimeGuard.assert()` first and throws `IGNIS requires Bun >= 1.4 (running on
 <runtime>)` on any other runtime, before any hook, datasource or socket is touched. `stop()` runs the
 post-stop hooks, then `stopServer()`, then `closeDataSources()` in a `finally`: datasources close even
-when the server fails to, and that error still rejects `stop()`.
+when the server fails to, and that error still rejects `stop()`. `stopServer()` waits for the requests in flight only
+up to the [hard limit](/architecture/grpc-timeouts-and-shutdown.md), then closes their connections.
 
 `closeDataSources()` lives on the kernel's `RestApplication`, so `WorkerApplication.stop()` calls the
 same one. It closes the datasources the boot configured (`registeredBindings['datasources']`), logs

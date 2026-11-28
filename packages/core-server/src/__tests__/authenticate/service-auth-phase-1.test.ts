@@ -122,10 +122,9 @@ describe('the registry is the source of truth for a strategy name', () => {
   });
 
   /**
-   * `strategies: []` is the framework's own encoding of `authenticate: { skip: true }`. A check that
-   * rejected it would break every intentionally public route.
+   * `assertRegistered` checks names only: a list with none has nothing unknown on it.
    */
-  test('an EMPTY list is always accepted - it means skip, not misconfigured', () => {
+  test('an EMPTY list has no unknown name', () => {
     expect(() => registry.assertRegistered({ names: [] })).not.toThrow();
   });
 

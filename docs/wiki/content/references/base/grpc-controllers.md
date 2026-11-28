@@ -259,7 +259,7 @@ interface IRpcMetadata {
   name: string;
   /** RPC method type. */
   method: TGrpcMethod;  // 'unary' | 'server_streaming' | 'client_streaming' | 'bidi_streaming'
-  /** Per-RPC authentication config. */
+  /** Per-RPC authentication. Leave it out for a public RPC; one that names no strategy stops the boot. */
   authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
   /** Per-RPC authorization spec(s). */
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
@@ -402,10 +402,11 @@ route of the RPC (global middleware has run)
 ```typescript
 static async build(opts: {
   controller: AbstractGrpcController<...>;
-  interceptors?: unknown[];
+  interceptors?: Interceptor[];         // from '@connectrpc/connect'
   module?: IConnectRpcModule;
   limits?: IGrpcLimits;
   native?: IGrpcNativeAdapterOptions;   // set when the native port is on
+  shutdownSignal?: AbortSignal;         // aborts rpc.signal on the application port
   idleTimeout?: number;                 // seconds, restored when a call ends
 }): Promise<IConnectAdapterResult<RouteEnv>>
 ```
@@ -436,7 +437,7 @@ Auto-discovers and configures gRPC controllers during the application lifecycle.
 
 ```typescript
 interface IGrpcComponentConfig {
-  interceptors?: unknown[];
+  interceptors?: Interceptor[];
   limits?: IGrpcLimits;
   module?: IConnectRpcModule;
   native?: TToggle<IGrpcNativeOptions>;
@@ -454,7 +455,8 @@ Defaults and ranges: [Configuration and limits](/guides/core-concepts/grpc/confi
    - If `service` is missing, logs a warning and skips the controller
 4. Calls `configure()` on each controller instance
 5. Mounts the controller's router on the application's root router at the controller's path via `router.route(metadata.path, instance.getRouter())`
-6. With the native port on, maps each `/package.Service/Method` to its mounted path (one owner per path) and registers the listener's start and stop hooks
+6. Registers the post-stop hook that [aborts RPCs still running on the application port](/guides/core-concepts/grpc/shutdown#shutdown-of-the-application-port)
+7. With the native port on, maps each `/package.Service/Method` to its mounted path (one owner per path) and registers the listener's start and stop hooks
 
 ### Dynamic Discovery
 

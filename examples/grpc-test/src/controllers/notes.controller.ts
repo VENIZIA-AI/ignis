@@ -18,7 +18,7 @@ import type { TNote } from '@/models/note.model';
 import { AuthService } from '@/services/auth.service';
 import { NoteService, type INoteDraft } from '@/services/note.service';
 import { create } from '@bufbuild/protobuf';
-import { Code, ConnectError, type HandlerContext } from '@connectrpc/connect';
+import type { HandlerContext } from '@connectrpc/connect';
 import {
   Authentication,
   BaseGrpcController,
@@ -92,11 +92,6 @@ export class NotesController extends BaseGrpcController {
 
     // Trailers travel after the last message.
     rpc.responseTrailer.set('x-notes-sent', String(sent));
-
-    if (follow && this.noteService.isClosed) {
-      // Not an error of the caller: `unavailable` tells a client to try again.
-      throw new ConnectError('The server is shutting down', Code.Unavailable);
-    }
   }
 
   @clientStream({ configs: { name: 'importNotes', ...MAY_CREATE } })

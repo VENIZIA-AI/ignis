@@ -1,4 +1,4 @@
-import type { ConnectRouter } from '@connectrpc/connect';
+import type { ConnectRouter, Interceptor } from '@connectrpc/connect';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { IAuthorizationSpec, IRpcMetadata } from '@venizia/ignis-kernel';
@@ -49,11 +49,13 @@ export abstract class AbstractGrpcController<
   /** Assigned by GrpcComponent from its options, before configure(). Absent means the adapter resolves the peer itself. */
   connectRpcModule?: IConnectRpcModule;
   /** ConnectRPC interceptors, assigned by GrpcComponent from its options before configure(). Applied to every RPC this controller registers. */
-  interceptors?: unknown[];
+  interceptors?: Interceptor[];
   /** Size limits, assigned by GrpcComponent from its options before configure(). */
   limits?: IGrpcLimits;
   /** Assigned by GrpcComponent when the native gRPC port is on, before configure(). */
   native?: IGrpcNativeAdapterOptions;
+  /** Assigned by GrpcComponent before configure(): aborted when `stop()` runs out of time on the application port. */
+  shutdownSignal?: AbortSignal;
   /** The `/package.Service/Method` paths this controller serves; empty until configure(). */
   rpcPaths: string[] = [];
   /** The server's `idleTimeout` in seconds, assigned by GrpcComponent before configure(). */
@@ -101,6 +103,13 @@ export abstract class AbstractGrpcController<
     if (configs.authenticate) {
       const { strategies = [], mode = AuthenticationModes.ANY } = configs.authenticate;
 
+      // Refused, not skipped: a gate that names no strategy would leave the RPC public.
+      if (!Array.isArray(strategies) || strategies.length === 0) {
+        throw getError({
+          message: `[${this.constructor.name}] RPC "${configs.name}": authenticate names no strategy | name one in authenticate.strategies, or remove authenticate for a public RPC`,
+        });
+      }
+
       // Same boot-time guard the REST controller applies. Fixing only REST would leave every RPC
       // with a misspelled strategy name silently unreachable.
       AuthenticationStrategyRegistry.getInstance().reportUnregistered({
@@ -108,12 +117,10 @@ export abstract class AbstractGrpcController<
         scope: this.constructor.name,
       });
 
-      if (strategies.length > 0) {
-        const authMw = authenticateFn({ strategies, mode });
+      const authMw = authenticateFn({ strategies, mode });
 
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the middleware is typed for Hono's `Context`; `TRouteContext` declares `json` and `req.valid` differently and is no subtype
-        mws.push((context, next) => authMw(context as any, next));
-      }
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the middleware is typed for Hono's `Context`; `TRouteContext` declares `json` and `req.valid` differently and is no subtype
+      mws.push((context, next) => authMw(context as any, next));
     }
 
     // Inject authorize middleware AFTER authenticate
@@ -194,6 +201,7 @@ export abstract class AbstractGrpcController<
       interceptors: this.interceptors,
       limits: this.limits,
       native: this.native,
+      shutdownSignal: this.shutdownSignal,
       idleTimeout: this.idleTimeout,
     });
     this.rpcPaths = adapter.paths;

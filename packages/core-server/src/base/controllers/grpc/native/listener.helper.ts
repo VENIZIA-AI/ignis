@@ -1,5 +1,5 @@
 import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { BaseHelper, getError, Execution } from '@venizia/ignis-helpers/core';
+import { ExecutionFrames, BaseHelper, getError, Execution } from '@venizia/ignis-helpers/core';
 import { ErrorPrettier } from '@venizia/ignis-helpers';
 import { ToggleUtility } from '@venizia/ignis-kernel';
 import type {
@@ -11,12 +11,12 @@ import type {
 import type { Socket } from 'node:net';
 import { GrpcNativeCallStore } from './call.store';
 import type { IGrpcNativeOptions } from './common/types';
+import { DEFAULT_SHUTDOWN_TIMEOUT_MS } from './constants';
 import { GrpcHeaderUtility } from './header.utility';
 import { GrpcNativeWriter } from './native.writer';
 
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_CONCURRENT_STREAMS = 100;
-const DEFAULT_SHUTDOWN_TIMEOUT_MS = 10_000;
 /** What aborted calls get to write their answer before the connections are destroyed. */
 const ABORT_GRACE_MS = 1_000;
 const MAX_PORT = 65_535;
@@ -171,7 +171,8 @@ export class GrpcListenerHelper extends BaseHelper {
       this.logger
         .for(this.stop.name)
         .warn('Native gRPC calls still running after %s ms | aborting them', timeout);
-      this.listener.shutdown.abort();
+      // A root frame: the `abort` listeners of a handler run inside this call.
+      ExecutionFrames.root({ task: () => this.listener.shutdown.abort() });
       await this.settle({ task: drained, ms: ABORT_GRACE_MS });
     }
 
