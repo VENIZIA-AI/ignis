@@ -1,13 +1,13 @@
 ---
-title: "@venizia/ignis (1 of 3)"
+title: "@venizia/ignis (1 of 4)"
 description: "Every export of @venizia/ignis, from the built declarations (generated)."
 ---
 
-# `@venizia/ignis (1 of 3)`
+# `@venizia/ignis (1 of 4)`
 
 > Generated from the built declarations by `vulcan atlas api gen` - do not edit.
 
-Part 1 of 3 of [`@venizia/ignis`](/references/api/venizia-ignis).
+Part 1 of 4 of [`@venizia/ignis`](/references/api/venizia-ignis).
 
 ## `AbstractBearerTokenService`
 
@@ -144,6 +144,8 @@ export declare abstract class AbstractGrpcController<RouteEnv extends Env = Env,
     interceptors?: unknown[];
     /** Size limits, assigned by GrpcComponent from its options before configure(). */
     limits?: IGrpcLimits;
+    /** The server's `idleTimeout` in seconds, assigned by GrpcComponent before configure(). */
+    idleTimeout?: number;
     router: Hono<RouteEnv, RouteSchema, BasePath>;
     constructor(opts: IGrpcControllerOptions);
     /** Returns the per-controller sub-router. */
@@ -672,7 +674,7 @@ export declare abstract class BaseGrpcController<RouteEnv extends Env = Env, Rou
         configs: IRpcMetadata;
         handler: TRpcHandler<unknown, unknown, RouteEnv>;
     }): IGrpcDefineRouteOptions;
-    /** Internal: validates and stores handler + configs in definitions. Throws on non-unary methods. */
+    /** Internal: stores handler + configs in definitions. */
     private registerRoute;
 }
 ```

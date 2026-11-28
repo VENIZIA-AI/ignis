@@ -19,9 +19,8 @@ imports the decorated modules.
   `GRPC` from that array and `GreeterController` boots with a warning instead of a route.
 - **The Connect protocol needs no gRPC client** - a unary RPC is one `curl -X POST` away, plain JSON
   over HTTP/1.1, at `/api/grpc/greeter.v1.GreeterService/SayHello`.
-- **Only unary RPCs** - `BaseGrpcController` throws at boot, when it registers the route, for any
-  RPC method that is not unary. Server-streaming, client-streaming and bidirectional RPCs need
-  HTTP/2 (true gRPC), which this example does not set up.
+- **It shows one unary RPC** - streaming RPCs work on the application port (bidi excepted), and
+  the example does not show them yet.
 - **Generated code is committed, never imported directly** - `buf generate` (via `bun run
   proto:gen`) writes `src/controllers/greeter/generated/greeter_pb.ts` from
   `src/controllers/greeter/proto/greeter.proto`; `definition.ts` re-exports the generated names, and

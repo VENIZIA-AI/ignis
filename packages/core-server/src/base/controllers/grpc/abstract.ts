@@ -49,6 +49,8 @@ export abstract class AbstractGrpcController<
   interceptors?: unknown[];
   /** Size limits, assigned by GrpcComponent from its options before configure(). */
   limits?: IGrpcLimits;
+  /** The server's `idleTimeout` in seconds, assigned by GrpcComponent before configure(). */
+  idleTimeout?: number;
   router: Hono<RouteEnv, RouteSchema, BasePath>;
 
   constructor(opts: IGrpcControllerOptions) {
@@ -184,6 +186,7 @@ export abstract class AbstractGrpcController<
       module: this.connectRpcModule,
       interceptors: this.interceptors,
       limits: this.limits,
+      idleTimeout: this.idleTimeout,
     });
     this.router.route('/', adapter.router);
 

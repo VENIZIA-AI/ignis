@@ -1,4 +1,3 @@
-import { BodyLimits } from '@venizia/ignis-kernel';
 import * as connect from '@connectrpc/connect';
 import 'reflect-metadata';
 import { afterAll, afterEach, beforeEach, describe, expect, test } from 'bun:test';
@@ -6,8 +5,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ModuleUtility } from '@venizia/ignis-helpers';
-import { MetadataRegistry } from '@venizia/ignis-kernel';
-import { ControllerTransports } from '@venizia/ignis-kernel';
+import { BodyLimits, ControllerTransports, MetadataRegistry } from '@venizia/ignis-kernel';
 import { BaseGrpcController } from '@/base/controllers/grpc/base';
 import type { IConnectRpcModule } from '@/base/controllers/grpc/common/types';
 import { GRPC } from '@venizia/ignis-helpers/common';
@@ -192,7 +190,7 @@ describe('BaseGrpcController', () => {
       await ctrl['binding']();
     });
 
-    test('should throw on non-unary streaming methods', () => {
+    test('should register a streaming method', async () => {
       class TestCtrl extends BaseGrpcController {
         async binding() {
           this.bindRoute({
@@ -202,7 +200,9 @@ describe('BaseGrpcController', () => {
       }
 
       const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
-      expect(() => ctrl['binding']()).toThrow('Only unary RPCs are supported');
+      await ctrl['binding']();
+
+      expect(ctrl.definitions['StreamMethod'].configs.method).toBe('server_streaming');
     });
   });
 
